@@ -80,23 +80,32 @@ public class GitSkara {
             System.exit(1);
         }
 
+        var head = repo.get().head();
+        System.out.print("Checking for updates ...");
         repo.get().pull();
+        var newHead = repo.get().head();
 
-        var cmd = new ArrayList<String>();
-        if (System.getProperty("os.name").toLowerCase().startsWith("win")) {
-            cmd.add("gradlew.bat");
+        if (!head.equals(newHead)) {
+            System.out.println("updates downloaded");
+            System.out.println("Rebuilding ...");
+            var cmd = new ArrayList<String>();
+            if (System.getProperty("os.name").toLowerCase().startsWith("win")) {
+                cmd.add("gradlew.bat");
+            } else {
+                cmd.addAll(List.of("sh", "gradlew"));
+            }
+
+            var pb = new ProcessBuilder(cmd);
+            pb.inheritIO();
+            pb.directory(parent.toFile());
+            var p = pb.start();
+            var res = p.waitFor();
+            if (res != 0) {
+                System.err.println("error: could not build Skara tooling");
+                System.exit(1);
+            }
         } else {
-            cmd.addAll(List.of("sh", "gradlew"));
-        }
-
-        var pb = new ProcessBuilder(cmd);
-        pb.inheritIO();
-        pb.directory(parent.toFile());
-        var p = pb.start();
-        var res = p.waitFor();
-        if (res != 0) {
-            System.err.println("error: could not build Skara tooling");
-            System.exit(1);
+            System.out.println("no updates found");
         }
     }
 
