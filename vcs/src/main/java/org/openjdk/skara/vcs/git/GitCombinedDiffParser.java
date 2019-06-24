@@ -1,0 +1,225 @@
+/*
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+package org.openjdk.skara.vcs.git;
+
+import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.vcs.tools.*;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.*;
+
+class GitCombinedDiffParser {
+    private final List<Hash> bases;
+    private final int numParents;
+    private final Hash head;
+    private final String delimiter;
+    private String line = null;
+
+    public GitCombinedDiffParser(List<Hash> bases, Hash head, String delimiter) {
+        this.bases = bases;
+        this.numParents = bases.size();
+        this.head = head;
+        this.delimiter = delimiter;
+    }
+
+    private List<List<Hunk>> parseSingleFileMultiParentDiff(UnixStreamReader reader) throws IOException {
+        assert line.startsWith("diff --combined");
+
+        while ((line = reader.readLine()) != null &&
+                !line.startsWith("@@@") &&
+                !line.startsWith("diff --combined") &&
+                !line.equals(delimiter)) {
+            // Skip all diff header lines (we already have them via the raw headers)
+            // Note: this will also skip 'Binary files differ...' on purpose
+        }
+
+        var hunksPerParent = new ArrayList<List<Hunk>>(numParents);
+        for (int i = 0; i < numParents; i++) {
+            hunksPerParent.add(new ArrayList<Hunk>());
+        }
+
+        while (line != null && line.startsWith("@@@")) {
+            var words = line.split("\\s");
+            assert words[0].startsWith("@@@");
+            var sourceRangesPerParent = new ArrayList<Range>(numParents);
+            for (int i = 1; i <= numParents; i++) {
+                sourceRangesPerParent.add(Range.fromString(words[i].substring(1))); // skip initial '-'
+            }
+            var targetRange = Range.fromString(words[numParents + 1].substring(1)); // skip initial '+'
+
+            var linesPerParent = new ArrayList<List<String>>(numParents);
+            for (int i = 0; i < numParents; i++) {
+                linesPerParent.add(new ArrayList<String>());
+            }
+
+            while ((line = reader.readLine()) != null &&
+                   !line.startsWith("@@@") &&
+                   !line.startsWith("diff --combined") &&
+                   !line.equals(delimiter)) {
+                if (line.equals("\\ No newline at end of file")) {
+                    continue;
+                }
+
+                var signs = line.substring(0, numParents);
+                var content = line.substring(numParents);
+                for (int i = 0; i < numParents; i++) {
+                    char sign = line.charAt(i);
+                    var lines = linesPerParent.get(i);
+                    if (sign == '-') {
+                        lines.add("-" + content);
+                    } else if (sign == '+') {
+                        lines.add("+" + content);
+                    } else if (sign == ' ') {
+                        var presentInParentFile = !signs.contains("-");
+                        if (presentInParentFile) {
+                            lines.add(" " + content);
+                        }
+                    } else {
+                        throw new RuntimeException("Unexpected diff line: " + line);
+                    }
+                }
+            }
+
+            for (int i = 0; i < numParents; i++) {
+                var sourceRange = sourceRangesPerParent.get(i);
+                var lines = linesPerParent.get(i);
+                var hunks = UnifiedDiffParser.splitDiffWithContext(sourceRange, targetRange, lines);
+                hunksPerParent.get(i).addAll(hunks);
+            }
+        }
+
+        return hunksPerParent;
+    }
+
+    private List<PatchHeader> parseCombinedRawLine(String line) {
+        var headers = new ArrayList<PatchHeader>(numParents);
+        var words = line.substring(2).split("\\s");
+
+        int index = 0;
+        int end = index + numParents;
+
+        var srcTypes = new ArrayList<FileType>(numParents);
+        while (index < end) {
+            srcTypes.add(FileType.fromOctal(words[index]));
+            index++;
+        }
+        var dstType = FileType.fromOctal(words[index]);
+        index++;
+
+        end = index + numParents;
+        var srcHashes = new ArrayList<Hash>(numParents);
+        while (index < end) {
+            srcHashes.add(new Hash(words[index]));
+            index++;
+        }
+        var dstHash = new Hash(words[index]);
+        index++;
+
+        var statuses = new ArrayList<Status>(numParents);
+        var statusWord = words[index];
+        for (int i = 0; i < statusWord.length(); i++) {
+            statuses.add(Status.from(statusWord.charAt(i)));
+        }
+
+        index++;
+        var dstPath = Path.of(words[index]);
+        assert words.length == (index + 1);
+
+        for (int i = 0; i < numParents; i++) {
+            var status = statuses.get(i);
+            var srcType = srcTypes.get(i);
+            var srcPath = status.isModified() ?  dstPath : null;
+            var srcHash = srcHashes.get(i);
+            headers.add(new PatchHeader(srcPath, srcType, srcHash,  dstPath, dstType, dstHash, status));
+        }
+
+        return headers;
+    }
+
+    public List<Diff> parse(UnixStreamReader reader) throws IOException {
+        line = reader.readLine();
+
+        if (line == null || line.equals(delimiter)) {
+            // Not all merge commits contains non-trivial changes
+            var diffsPerParent = new ArrayList<Diff>(numParents);
+            for (int i = 0; i < numParents; i++) {
+                diffsPerParent.add(new Diff(bases.get(i), head, new ArrayList<Patch>()));
+            }
+            return diffsPerParent;
+        }
+
+        var headersPerParent = new ArrayList<List<PatchHeader>>(numParents);
+        for (int i = 0; i < numParents; i++) {
+            headersPerParent.add(new ArrayList<PatchHeader>());
+        }
+
+        while (line != null && line.startsWith("::")) {
+            var headersForFile = parseCombinedRawLine(line);
+            assert headersForFile.size() == numParents;
+
+            for (int i = 0; i < numParents; i++) {
+                headersPerParent.get(i).add(headersForFile.get(i));
+            }
+
+            line = reader.readLine();
+        }
+
+        // skip empty newline added by git
+        assert line.equals("");
+        line = reader.readLine();
+
+        var hunksPerFilePerParent = new ArrayList<List<List<Hunk>>>(numParents);
+        for (int i = 0; i < numParents; i++) {
+            hunksPerFilePerParent.add(new ArrayList<List<Hunk>>());
+        }
+        while (line != null && !line.equals(delimiter)) {
+            var hunksPerParentForFile = parseSingleFileMultiParentDiff(reader);
+            assert hunksPerParentForFile.size() == numParents;
+
+            for (int i = 0; i < numParents; i++) {
+                hunksPerFilePerParent.get(i).add(hunksPerParentForFile.get(i));
+            }
+        }
+
+        var patchesPerParent = new ArrayList<List<Patch>>(numParents);
+        for (int i = 0; i < numParents; i++) {
+            var headers = headersPerParent.get(i);
+            var hunks = hunksPerFilePerParent.get(i);
+            var patches = new ArrayList<Patch>();
+            for (int j = 0; j < headers.size(); j++) {
+                var h = headers.get(j);
+                patches.add(new TextualPatch(h.sourcePath(), h.sourceFileType(), h.sourceHash(),
+                                             h.targetPath(), h.targetFileType(), h.targetHash(),
+                                             h.status(), hunks.get(j)));
+            }
+            patchesPerParent.add(patches);
+        }
+
+        var diffs = new ArrayList<Diff>(numParents);
+        for (int i = 0; i < numParents; i++) {
+            diffs.add(new Diff(bases.get(i), head, patchesPerParent.get(i)));
+        }
+        return diffs;
+    }
+}

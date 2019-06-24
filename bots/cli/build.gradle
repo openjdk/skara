@@ -1,0 +1,73 @@
+/*
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+
+plugins {
+    id 'org.openjdk.skara.gradle.images'
+}
+
+module {
+    name = 'org.openjdk.skara.bots.cli'
+    test {
+        requires 'org.junit.jupiter.api'
+        requires 'org.openjdk.skara.test'
+        requires 'jdk.httpserver'
+        opens 'org.openjdk.skara.bots.cli' to 'org.junit.platform.commons'
+    }
+}
+
+dependencies {
+    implementation project(':bots:pr')
+    implementation project(':bots:hgbridge')
+    implementation project(':bots:notify')
+    implementation project(':bots:mlbridge')
+    implementation project(':bots:submit')
+    implementation project(':vcs')
+    implementation project(':jcheck')
+    implementation project(':host')
+    implementation project(':bot')
+    implementation project(':census')
+    implementation project(':json')
+    implementation project(':ini')
+    implementation project(':process')
+    implementation project(':args')
+
+    testImplementation project(':test')
+}
+
+images {
+    linux {
+        modules = ['jdk.crypto.ec',
+                   'org.openjdk.skara.bots.pr',
+                   'org.openjdk.skara.bots.hgbridge',
+                   'org.openjdk.skara.bots.notify',
+                   'org.openjdk.skara.bots.mlbridge',
+                   'org.openjdk.skara.bots.submit']
+        launchers = ['skara-bots': 'org.openjdk.skara.bots.cli/org.openjdk.skara.bots.cli.BotLauncher']
+        options = ["--module-path", "plugins"]
+        bundles = ['zip', 'tar.gz']
+        jdk {
+            url = 'https://download.java.net/java/GA/jdk12/GPL/openjdk-12_linux-x64_bin.tar.gz'
+            sha256 = 'b43bc15f4934f6d321170419f2c24451486bc848a2179af5e49d10721438dd56'
+        }
+    }
+}

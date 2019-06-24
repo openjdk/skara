@@ -1,0 +1,114 @@
+/*
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+
+plugins {
+    id 'org.openjdk.skara.gradle.proxy'
+    id 'org.openjdk.skara.gradle.version'
+    id 'org.openjdk.skara.gradle.reproduce'
+}
+
+configure(subprojects.findAll() { it.name != 'bots' }) {
+    apply plugin: 'java-library'
+    apply plugin: 'maven-publish'
+    apply plugin: 'org.openjdk.skara.gradle.module'
+    apply plugin: 'org.openjdk.skara.gradle.version'
+
+    group = 'org.openjdk.skara'
+
+    repositories {
+        mavenLocal()
+        maven {
+            url System.getProperty('maven.url', 'https://repo.maven.apache.org/maven2/')
+        }
+    }
+
+    dependencies {
+        testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.1'
+        testImplementation 'org.junit.jupiter:junit-jupiter-params:5.3.1'
+        testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.1'
+    }
+
+    test {
+        useJUnitPlatform()
+
+        testLogging {
+            events "passed", "skipped", "failed"
+        }
+    }
+
+    publishing {
+        repositories {
+            maven {
+                url = findProperty('mavenRepositoryUrl')
+                credentials {
+                    username = findProperty('mavenRepositoryUser')
+                    password = findProperty('mavenRepositoryPassword')
+                }
+            }
+        }
+    }
+
+    gradle.taskGraph.whenReady { graph ->
+        if (graph.hasTask(publish) && !findProperty('mavenRepositoryUrl')) {
+            throw new GradleException("To publish artifacts, set the maven repository url -PmavenRepositoryUrl=<url>")
+        }
+        if (graph.hasTask(publish) && !findProperty('mavenRepositoryUser')) {
+            throw new GradleException("To publish artifacts, set the maven repository user name -PmavenRepositoryUser=<user>")
+        }
+        if (graph.hasTask(publish) && !findProperty('mavenRepositoryPassword')) {
+            throw new GradleException("To publish artifacts, set the maven repository password -PmavenRepositoryPassword=<password>")
+        }
+    }
+}
+
+task jar {
+    subprojects.findAll() { it.name != 'bots' }.each { dependsOn "${it.path}:jar" }
+}
+
+task test {
+    subprojects.findAll() { it.name != 'bots' }.each { dependsOn "${it.path}:test" }
+}
+
+reproduce {
+    dockerfile = 'test.dockerfile'
+}
+
+task deleteBuildDir(type: Delete) {
+    delete project.buildDir
+}
+
+task local(type: Copy) {
+    def os = System.getProperty('os.name').toLowerCase()
+    def osName = os.startsWith('win') ? 'Windows' :
+        os.startsWith('mac') ? 'Macos' : 'Linux'
+
+    dependsOn ':cli:image' + osName
+    dependsOn deleteBuildDir
+    from zipTree(file(project.rootDir.toString() +
+                      '/cli/build/distributions/cli' +
+                      '-' + project.version + '-' +
+		      osName.toLowerCase() + '.zip'))
+    into project.buildDir
+}
+
+defaultTasks 'local'

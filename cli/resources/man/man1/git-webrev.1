@@ -1,0 +1,60 @@
+\"
+\" Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+\" DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+\"
+\" This code is free software; you can redistribute it and/or modify it
+\" under the terms of the GNU General Public License version 2 only, as
+\" published by the Free Software Foundation.
+\"
+\" This code is distributed in the hope that it will be useful, but WITHOUT
+\" ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+\" FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+\" version 2 for more details (a copy is included in the LICENSE file that
+\" accompanied this code).
+\"
+\" You should have received a copy of the GNU General Public License version
+\" 2 along with this work; if not, write to the Free Software Foundation,
+\" Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+\"
+\" Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+\" or visit www.oracle.com if you need additional information or have any
+\" questions.
+\"
+.TH GIT-WEBREV 1
+.SH NAME
+git-webrev \- render a HTML view of changes
+.SH SYNOPSIS
+\fIgit webrev\fR [options]
+.SH DESCRIPTION
+Render a HTML view of the changes between two commits.
+.PP
+.TP
+\fIgit webrev\fR --base=<commit> --head=<commit>
+Creates a webrev with changes from the base commit to the head commit
+(i.e. base must be an ancestor of head).
+.SH OPTIONS
+.TP
+--base
+Base revision to compare against.
+.PP
+.TP
+--head
+Head revision to compare against.
+.PP
+.TP
+-o <directory>, --output=<directory>
+Output webrev to <directory>. Defaults to 'webrev'.
+.PP
+.TP
+--remote=<name>
+The remote corresponding to the upstream repository. Defaults to 'origin'.
+.PP
+.TP
+--repository=<url>
+The upstream repository for this local repository. Defaults to the 'origin' URL.
+.PP
+.TP
+--title=<name>
+The title of the webrev. Defaults to the basename of the current working directory.
+.SH SEE ALSO
+\fBgit-diff\fR(1)

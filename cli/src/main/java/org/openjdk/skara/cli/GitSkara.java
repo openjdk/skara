@@ -1,0 +1,127 @@
+/*
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+package org.openjdk.skara.cli;
+
+import org.openjdk.skara.vcs.Repository;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.function.Consumer;
+
+public class GitSkara {
+    @FunctionalInterface
+    private interface Command {
+        void execute(String[] args) throws Exception;
+    }
+
+    private static final Map<String, Command> commands = new TreeMap<>();
+
+    private static void usage(String[] args) {
+        var names = new ArrayList<String>();
+        names.addAll(commands.keySet());
+
+        System.out.println("usage: git-skara <" + String.join("|", names) + ">");
+        System.out.println("");
+        System.out.println("Additional available git commands");
+        for (var name : names) {
+            System.out.println("- git-" + name);
+        }
+        System.exit(0);
+    }
+
+    private static List<String> config(String key) throws IOException, InterruptedException {
+        var pb = new ProcessBuilder("git", "config", key);
+        pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
+        pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+        var p = pb.start();
+        var value = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        p.waitFor();
+        return Arrays.asList(value.split("\n"));
+    }
+
+    private static void update(String[] args) throws IOException, InterruptedException {
+        var lines = config("include.path");
+        var path = lines.stream().filter(l -> l.endsWith("skara.gitconfig")).map(Path::of).findFirst();
+        if (path.isEmpty()) {
+            System.err.println("error: could not find skara repository");
+            System.exit(1);
+        }
+
+        var parent = path.get().getParent();
+        var repo = Repository.get(parent);
+        if (repo.isEmpty()) {
+            System.err.println("error: could not find skara repository");
+            System.exit(1);
+        }
+
+        repo.get().pull();
+
+        var cmd = new ArrayList<String>();
+        if (System.getProperty("os.name").toLowerCase().startsWith("win")) {
+            cmd.add("gradlew.bat");
+        } else {
+            cmd.addAll(List.of("sh", "gradlew"));
+        }
+
+        var pb = new ProcessBuilder(cmd);
+        pb.inheritIO();
+        pb.directory(parent.toFile());
+        var p = pb.start();
+        var res = p.waitFor();
+        if (res != 0) {
+            System.err.println("error: could not build Skara tooling");
+            System.exit(1);
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        commands.put("jcheck", GitJCheck::main);
+        commands.put("webrev", GitWebrev::main);
+        commands.put("defpath", GitDefpath::main);
+        commands.put("verify-import", GitVerifyImport::main);
+        commands.put("openjdk-import", GitOpenJDKImport::main);
+        commands.put("fork", GitFork::main);
+        commands.put("pr", GitPr::main);
+        commands.put("token", GitToken::main);
+        commands.put("info", GitInfo::main);
+        commands.put("translate", GitTranslate::main);
+        commands.put("update", GitSkara::update);
+        commands.put("help", GitSkara::usage);
+
+        var isEmpty = args.length == 0;
+        var command = isEmpty ? "help" : args[0];
+        var commandArgs = isEmpty ? new String[0] : Arrays.copyOfRange(args, 1, args.length);
+        if (commands.containsKey(command)) {
+            commands.get(command).execute(commandArgs);
+        } else {
+            System.err.println("error: unknown command: " + command);
+            usage(args);
+        }
+    }
+}

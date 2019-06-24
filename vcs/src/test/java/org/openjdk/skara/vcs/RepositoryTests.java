@@ -1,0 +1,1403 @@
+/*
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+package org.openjdk.skara.vcs;
+
+import org.openjdk.skara.test.TemporaryDirectory;
+
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+
+import java.io.IOException;
+import java.net.URI;
+import java.nio.file.*;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static java.nio.file.StandardOpenOption.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+public class RepositoryTests {
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testExistsOnMissingDirectory(VCS vcs) throws IOException {
+        var d = Paths.get("/", "this", "path", "does", "not", "exist");
+        var r = Repository.get(d);
+        assertTrue(r.isEmpty());
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testExistsOnEmptyDirectory(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.get(dir.path());
+            assertTrue(r.isEmpty());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testExistsOnInitializedRepository(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.exists());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testExistsOnSubdir() throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), VCS.GIT);
+            assertTrue(r.exists());
+
+            var subdir = Paths.get(dir.toString(), "test");
+            Files.createDirectories(subdir);
+            var r2 = Repository.get(subdir);
+            assertTrue(r2.get().exists());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testRootOnTopLevel() throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), VCS.GIT);
+            assertEquals(dir.toString(), r.root().toString());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testRootOnSubdirectory(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertEquals(dir.toString(), r.root().toString());
+
+            var subdir = Paths.get(dir.toString(), "sub");
+            Files.createDirectories(subdir);
+
+            var r2 = Repository.get(subdir);
+            assertEquals(dir.toString(), r2.get().root().toString());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testResolveOnEmptyRepository(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.resolve("HEAD").isEmpty());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testResolveWithHEAD(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            r.add(readme);
+            var head = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            assertEquals(head, r.head());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testConfig(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            if (vcs == VCS.GIT) {
+                var config = dir.path().resolve(".git").resolve("config");
+                Files.write(config, List.of("[user]", "name = duke"), WRITE, APPEND);
+                assertEquals(List.of("duke"), r.config("user.name"));
+            } else if (vcs == VCS.HG) {
+                var config = dir.path().resolve(".hg").resolve("hgrc");
+                Files.write(config, List.of("[ui]", "username = duke"), WRITE, CREATE);
+                assertEquals(List.of("duke"), r.config("ui.username"));
+            }
+
+            assertEquals("duke", r.username().get());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testCurrentBranchOnEmptyRepository(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertEquals(r.defaultBranch(), r.currentBranch());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testCheckout(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+            r.add(readme);
+
+            var head1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            assertEquals(head1, r.head());
+
+            Files.write(readme, List.of("Another line"), WRITE, APPEND);
+            r.add(readme);
+
+            var head2 = r.commit("Add one more line", "duke", "duke@openjdk.java.net");
+            assertEquals(head2, r.head());
+
+            r.checkout(head1, false);
+            assertEquals(head1, r.head());
+
+            r.checkout(head2, false);
+            assertEquals(head2, r.head());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testLines(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+            r.add(readme);
+
+            var head1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            assertEquals(List.of("Hello, readme!"),
+                         r.lines(readme, head1).orElseThrow());
+
+            Files.write(readme, List.of("Another line"), WRITE, APPEND);
+            r.add(readme);
+
+            var head2 = r.commit("Add one more line", "duke", "duke@openjdk.java.net");
+            assertEquals(List.of("Hello, readme!", "Another line"),
+                         r.lines(readme, head2).orElseThrow());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testLinesInSubdir(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            Repository.init(dir.path(), vcs);
+
+            var subdir = dir.path().resolve("sub");
+            Files.createDirectories(subdir);
+            var r = Repository.get(subdir).get();
+
+            var readme = subdir.getParent().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+            r.add(readme);
+
+            var head = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            assertEquals(List.of("Hello, readme!"),
+                         r.lines(readme, head).orElseThrow());
+
+            var example = subdir.resolve("EXAMPLE");
+            Files.write(example, List.of("An example"));
+            r.add(example);
+
+            var head2 = r.commit("Add EXAMPLE", "duke", "duke@openjdk.java.net");
+            assertEquals(List.of("An example"),
+                         r.lines(example, head2).orElseThrow());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testCommitListingOnEmptyRepo(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.commits().asList().isEmpty());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testCommitListingWithSingleCommit(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            r.add(readme);
+
+            var committerName = vcs == VCS.GIT ? "bot" : "duke";
+            var committerEmail = vcs == VCS.GIT ? "bot@openjdk.java.net" : "duke@openjdk.java.net";
+            var hash = r.commit("Add README", "duke", "duke@openjdk.java.net", committerName, committerEmail);
+
+            var commits = r.commits().asList();
+            assertEquals(1, commits.size());
+
+            var commit = commits.get(0);
+            assertEquals("duke", commit.author().name());
+            assertEquals("duke@openjdk.java.net", commit.author().email());
+            assertEquals(committerName, commit.committer().name());
+            assertEquals(committerEmail, commit.committer().email());
+
+            assertEquals(List.of("Add README"), commit.message());
+
+            assertEquals(1, commit.numParents());
+            assertEquals(1, commit.parents().size());
+
+            var nullHash = "0".repeat(40);
+            var parent = commit.parents().get(0);
+            assertEquals(nullHash, parent.hex());
+
+            assertTrue(commit.isInitialCommit());
+            assertFalse(commit.isMerge());
+            assertEquals(hash, commit.hash());
+
+            var diffs = commit.parentDiffs();
+            assertEquals(1, diffs.size());
+
+            var diff = diffs.get(0);
+            assertEquals(nullHash, diff.from().hex());
+            assertEquals(hash, diff.to());
+
+            assertEquals(0, diff.removed());
+            assertEquals(0, diff.modified());
+            assertEquals(1, diff.added());
+
+            var patches = diff.patches();
+            assertEquals(1, patches.size());
+
+            var patch = patches.get(0).asTextualPatch();
+            assertTrue(patch.status().isAdded());
+
+            assertTrue(patch.source().path().isEmpty());
+            assertTrue(patch.source().type().isEmpty());
+
+            assertEquals(Path.of("README"), patch.target().path().get());
+            assertTrue(patch.target().type().get().isRegularNonExecutable());
+
+            var hunks = patch.hunks();
+            assertEquals(1, hunks.size());
+
+            var hunk = hunks.get(0);
+            assertEquals(new Range(0, 0), hunk.source().range());
+            assertEquals(new Range(1, 1), hunk.target().range());
+
+            assertEquals(List.of(), hunk.source().lines());
+            assertEquals(List.of("Hello, readme!"), hunk.target().lines());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testCommitListingWithMultipleCommits(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            r.add(readme);
+            var hash1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme, List.of("Another line"), WRITE, APPEND);
+            r.add(readme);
+            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.java.net");
+
+            var commits = r.commits().asList();
+            assertEquals(2, commits.size());
+
+            var commit = commits.get(0);
+            assertEquals("duke", commit.author().name());
+            assertEquals("duke@openjdk.java.net", commit.author().email());
+
+            assertEquals(List.of("Modify README"), commit.message());
+
+            assertEquals(1, commit.numParents());
+            assertEquals(1, commit.parents().size());
+
+            var parent = commit.parents().get(0);
+            assertEquals(hash1, parent);
+
+            assertFalse(commit.isInitialCommit());
+            assertFalse(commit.isMerge());
+            assertEquals(hash2, commit.hash());
+
+            var diffs = commit.parentDiffs();
+            assertEquals(1, diffs.size());
+
+            var diff = diffs.get(0);
+            assertEquals(hash1, diff.from());
+            assertEquals(hash2, diff.to());
+
+            assertEquals(0, diff.removed());
+            assertEquals(0, diff.modified());
+            assertEquals(1, diff.added());
+
+            var patches = diff.patches();
+            assertEquals(1, patches.size());
+
+            var patch = patches.get(0).asTextualPatch();
+            assertTrue(patch.status().isModified());
+            assertEquals(Path.of("README"), patch.source().path().get());
+            assertTrue(patch.source().type().get().isRegularNonExecutable());
+            assertEquals(Path.of("README"), patch.target().path().get());
+            assertTrue(patch.target().type().get().isRegularNonExecutable());
+
+            var hunks = patch.hunks();
+            assertEquals(1, hunks.size());
+
+            var hunk = hunks.get(0);
+            assertEquals(new Range(1, 0), hunk.source().range());
+            assertEquals(new Range(2, 1), hunk.target().range());
+
+            assertEquals(List.of(), hunk.source().lines());
+            assertEquals(List.of("Another line"), hunk.target().lines());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testSquashDeletes(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var file1 = dir.path().resolve("file1.txt");
+            Files.write(file1, List.of("Hello, file 1!"));
+            var file2 = dir.path().resolve("file2.txt");
+            Files.write(file2, List.of("Hello, file 2!"));
+            var file3 = dir.path().resolve("file3.txt");
+            Files.write(file3, List.of("Hello, file 3!"));
+
+            r.add(file1, file2, file3);
+            var hash1 = r.commit("Add files", "duke", "duke@openjdk.java.net");
+
+            Files.delete(file2);
+            r.remove(file2);
+            var hash2 = r.commit("Remove file 2", "duke", "duke@openjdk.java.net");
+
+            Files.delete(file3);
+            r.remove(file3);
+            var hash3 = r.commit("Remove file 3", "duke", "duke@openjdk.java.net");
+
+            var refspec = vcs == VCS.GIT ? r.head().hex() : r.head().hex() + ":0";
+            assertEquals(3, r.commits(refspec).asList().size());
+
+            r.checkout(hash1, false);
+            r.squash(hash3);
+            r.commit("Squashed remove of file 2 and 3", "duke", "duke@openjdk.java.net");
+
+            refspec = vcs == VCS.GIT ? r.head().hex() : r.head().hex() + ":0";
+            var commits = r.commits(refspec).asList();
+            assertEquals(2, commits.size());
+
+            assertEquals(hash1, commits.get(1).hash());
+
+            var head = commits.get(0);
+            assertNotEquals(hash2, head);
+            assertNotEquals(hash3, head);
+
+            assertEquals(hash1, head.parents().get(0));
+            assertFalse(head.isInitialCommit());
+            assertFalse(head.isMerge());
+
+            var diffs = head.parentDiffs();
+            assertEquals(1, diffs.size());
+
+            var diff = diffs.get(0);
+            assertEquals(hash1, diff.from());
+            assertEquals(head.hash(), diff.to());
+
+            assertEquals(2, diff.removed());
+            assertEquals(0, diff.modified());
+            assertEquals(0, diff.added());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testSquash(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            r.add(readme);
+            var hash1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme, List.of("Another line"), WRITE, APPEND);
+            r.add(readme);
+            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme, List.of("A final line"), WRITE, APPEND);
+            r.add(readme);
+            var hash3 = r.commit("Modify README again", "duke", "duke@openjdk.java.net");
+
+            var refspec = vcs == VCS.GIT ? r.head().hex() : r.head().hex() + ":0";
+            assertEquals(3, r.commits(refspec).asList().size());
+
+            r.checkout(hash1, false);
+            r.squash(hash3);
+            r.commit("Squashed commits 2 and 3", "duke", "duke@openjdk.java.net");
+
+            refspec = vcs == VCS.GIT ? r.head().hex() : r.head().hex() + ":0";
+            var commits = r.commits(refspec).asList();
+            assertEquals(2, commits.size());
+
+            assertEquals(hash1, commits.get(1).hash());
+
+            var head = commits.get(0);
+            assertNotEquals(hash2, head);
+            assertNotEquals(hash3, head);
+
+            assertEquals(hash1, head.parents().get(0));
+            assertFalse(head.isInitialCommit());
+            assertFalse(head.isMerge());
+
+            var diffs = head.parentDiffs();
+            assertEquals(1, diffs.size());
+
+            var diff = diffs.get(0);
+            assertEquals(hash1, diff.from());
+            assertEquals(head.hash(), diff.to());
+
+            assertEquals(0, diff.removed());
+            assertEquals(0, diff.modified());
+            assertEquals(2, diff.added());
+
+            var patches = diff.patches();
+            assertEquals(1, patches.size());
+
+            var patch = patches.get(0).asTextualPatch();
+            assertTrue(patch.status().isModified());
+            assertEquals(Path.of("README"), patch.source().path().get());
+            assertTrue(patch.source().type().get().isRegularNonExecutable());
+            assertEquals(Path.of("README"), patch.target().path().get());
+            assertTrue(patch.target().type().get().isRegularNonExecutable());
+
+            var hunks = patch.hunks();
+            assertEquals(1, hunks.size());
+
+            var hunk = hunks.get(0);
+            assertEquals(new Range(1, 0), hunk.source().range());
+            assertEquals(new Range(2, 2), hunk.target().range());
+
+            assertEquals(List.of(), hunk.source().lines());
+            assertEquals(List.of("Another line", "A final line"), hunk.target().lines());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testMergeBase(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            r.add(readme);
+            var hash1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme, List.of("Another line"), WRITE, APPEND);
+            r.add(readme);
+            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.java.net");
+
+            r.checkout(hash1, false);
+            Files.write(readme, List.of("A conflicting line"), WRITE, APPEND);
+            r.add(readme);
+            var hash3 = r.commit("Branching README modification", "duke", "duke@openjdk.java.net");
+
+            assertEquals(hash1, r.mergeBase(hash2, hash3));
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testRebase(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            r.add(readme);
+            var hash1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme, List.of("Another line"), WRITE, APPEND);
+            r.add(readme);
+            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.java.net");
+
+            r.checkout(hash1, false);
+
+            var contributing = dir.path().resolve("CONTRIBUTING");
+            Files.write(contributing, List.of("Keep the patches coming"));
+            r.add(contributing);
+            var hash3 = r.commit("Add independent change", "duke", "duke@openjdk.java.net");
+
+            var committerName = vcs == VCS.GIT ? "bot" : "duke";
+            var committerEmail = vcs == VCS.GIT ? "bot@openjdk.java.net" : "duke@openjdk.java.net";
+            r.rebase(hash2, committerName, committerEmail);
+
+            var refspec = vcs == VCS.GIT ? r.head().hex() : r.head().hex() + ":0";
+            var commits = r.commits(refspec).asList();
+            assertEquals(3, commits.size());
+            assertEquals(hash2, commits.get(1).hash());
+            assertEquals(hash1, commits.get(2).hash());
+
+            assertEquals("duke", commits.get(0).author().name());
+            assertEquals("duke@openjdk.java.net", commits.get(0).author().email());
+            assertEquals(committerName, commits.get(0).committer().name());
+            assertEquals(committerEmail, commits.get(0).committer().email());
+
+            assertEquals("duke", commits.get(1).author().name());
+            assertEquals("duke@openjdk.java.net", commits.get(1).author().email());
+            assertEquals("duke", commits.get(1).committer().name());
+            assertEquals("duke@openjdk.java.net", commits.get(1).committer().email());
+
+            assertEquals("duke", commits.get(2).author().name());
+            assertEquals("duke@openjdk.java.net", commits.get(2).author().email());
+            assertEquals("duke", commits.get(2).committer().name());
+            assertEquals("duke@openjdk.java.net", commits.get(2).committer().email());
+
+            var head = commits.get(0);
+            assertEquals(hash2, head.parents().get(0));
+            assertEquals(List.of("Add independent change"), head.message());
+
+            var diffs = head.parentDiffs();
+            assertEquals(1, diffs.size());
+            var diff = diffs.get(0);
+
+            assertEquals(0, diff.removed());
+            assertEquals(0, diff.modified());
+            assertEquals(1, diff.added());
+
+            var patches = diff.patches();
+            assertEquals(1, patches.size());
+            var patch = patches.get(0).asTextualPatch();
+            assertEquals(Path.of("CONTRIBUTING"), patch.target().path().get());
+
+            var hunks = patch.hunks();
+            assertEquals(1, hunks.size());
+            var hunk = hunks.get(0);
+            assertEquals(List.of("Keep the patches coming"), hunk.target().lines());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testInitializedRepositoryIsEmpty(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.isEmpty());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testRepositoryWithCommitIsNonEmpty(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            r.add(readme);
+            r.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            assertFalse(r.isEmpty());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testEmptyRepositoryIsHealthy(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.isHealthy());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testNonEmptyRepositoryIsHealthy(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            r.add(readme);
+            r.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            assertTrue(r.isHealthy());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testBranchesOnEmptyRepository(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            var expected = vcs == VCS.GIT ? List.of() : List.of(new Branch("default"));
+            assertEquals(List.of(), r.branches());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testBranchesOnNonEmptyRepository(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            r.add(readme);
+            r.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            assertEquals(List.of(r.defaultBranch()), r.branches());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testTagsOnEmptyRepository(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            var expected = vcs == VCS.GIT ? List.of() : List.of(new Tag("tip"));
+            assertEquals(expected, r.tags());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testTagsOnNonEmptyRepository(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            r.add(readme);
+            r.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            var expected = vcs == VCS.GIT ? List.of() : List.of(new Tag("tip"));
+            assertEquals(expected, r.tags());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testFetchAndPush(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var upstream = Repository.init(dir.path(), vcs);
+
+            if (vcs == VCS.GIT) {
+                Files.write(upstream.root().resolve(".git").resolve("config"),
+                            List.of("[receive]", "denyCurrentBranch=ignore"),
+                            WRITE, APPEND);
+            }
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            upstream.add(readme);
+            upstream.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            try (var dir2 = new TemporaryDirectory()) {
+                var downstream = Repository.init(dir2.path(), vcs);
+
+                var upstreamURI = URI.create("file://" + dir.toString());
+
+                var fetchHead = downstream.fetch(upstreamURI, downstream.defaultBranch().name());
+                downstream.checkout(fetchHead, false);
+
+                var downstreamReadme = dir2.path().resolve("README");
+                Files.write(downstreamReadme, List.of("Downstream change"), WRITE, APPEND);
+
+                downstream.add(downstreamReadme);
+                var head = downstream.commit("Modify README", "duke", "duke@openjdk.java.net");
+
+                downstream.push(head, upstreamURI, downstream.defaultBranch().name());
+            }
+
+            upstream.checkout(upstream.resolve(upstream.defaultBranch().name()).get(), false);
+
+            var commits = upstream.commits().asList();
+            assertEquals(2, commits.size());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testClean(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            r.clean();
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            r.add(readme);
+            var hash1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            r.clean();
+
+            assertEquals(hash1, r.head());
+
+            Files.write(readme, List.of("A random change"), WRITE, APPEND);
+
+            r.clean();
+
+            assertEquals(List.of("Hello, readme!"), Files.readAllLines(readme));
+
+            var untracked = dir.path().resolve("UNTRACKED");
+            Files.write(untracked, List.of("Random text"));
+
+            r.clean();
+
+            assertFalse(Files.exists(untracked));
+
+            // Mercurial cannot currently deal with this situation
+            if (vcs != VCS.HG) {
+                var subRepo = Repository.init(dir.path().resolve("submodule"), vcs);
+                var subRepoFile = subRepo.root().resolve("file.txt");
+                Files.write(subRepoFile, List.of("Looks like a file in a submodule"));
+
+                r.clean();
+
+                assertFalse(Files.exists(subRepoFile));
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testCleanIgnored(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            r.clean();
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+            Files.write(dir.path().resolve(".gitignore"), List.of("*.txt"));
+            Files.write(dir.path().resolve(".hgignore"), List.of(".*txt"));
+
+            r.add(readme);
+            var hash1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            var ignored = dir.path().resolve("ignored.txt");
+            Files.write(ignored, List.of("Random text"));
+
+            r.clean();
+
+            assertFalse(Files.exists(ignored));
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testDiffBetweenCommits(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            r.add(readme);
+            var first = r.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme, List.of("One more line"), WRITE, APPEND);
+            r.add(readme);
+            var second = r.commit("Add one more line", "duke", "duke@openjdk.java.net");
+
+            var diff = r.diff(first, second);
+            assertEquals(first, diff.from());
+            assertEquals(second, diff.to());
+
+            var patches = diff.patches();
+            assertEquals(1, patches.size());
+
+            var patch = patches.get(0).asTextualPatch();
+            assertEquals(Path.of("README"), patch.source().path().get());
+            assertEquals(Path.of("README"), patch.target().path().get());
+            assertTrue(patch.source().type().get().isRegularNonExecutable());
+            assertTrue(patch.target().type().get().isRegularNonExecutable());
+            assertTrue(patch.status().isModified());
+
+            var hunks = patch.hunks();
+            assertEquals(1, hunks.size());
+
+            var hunk = hunks.get(0);
+            assertEquals(1, hunk.source().range().start());
+            assertEquals(0, hunk.source().range().count());
+            assertEquals(0, hunk.source().lines().size());
+
+            assertEquals(2, hunk.target().range().start());
+            assertEquals(1, hunk.target().range().count());
+            assertEquals(List.of("One more line"), hunk.target().lines());
+
+            assertEquals(1, hunk.added());
+            assertEquals(0, hunk.removed());
+            assertEquals(0, hunk.modified());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testDiffBetweenCommitsWithMultiplePatches(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            var building = dir.path().resolve("BUILDING");
+            Files.write(building, List.of("make"));
+
+            r.add(readme);
+            r.add(building);
+            var first = r.commit("Add README and BUILDING", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme, List.of("Hello, Skara!"), WRITE, TRUNCATE_EXISTING);
+            Files.write(building, List.of("make images"), WRITE, TRUNCATE_EXISTING);
+            r.add(readme);
+            r.add(building);
+            var second = r.commit("Modify README and BUILDING", "duke", "duke@openjdk.java.net");
+
+            var diff = r.diff(first, second);
+            assertEquals(first, diff.from());
+            assertEquals(second, diff.to());
+
+            var patches = diff.patches();
+            assertEquals(2, patches.size());
+
+            var patch1 = patches.get(0).asTextualPatch();
+            assertEquals(Path.of("BUILDING"), patch1.source().path().get());
+            assertEquals(Path.of("BUILDING"), patch1.target().path().get());
+            assertTrue(patch1.source().type().get().isRegularNonExecutable());
+            assertTrue(patch1.target().type().get().isRegularNonExecutable());
+            assertTrue(patch1.status().isModified());
+
+            var hunks1 = patch1.hunks();
+            assertEquals(1, hunks1.size());
+
+            var hunk1 = hunks1.get(0);
+            assertEquals(1, hunk1.source().range().start());
+            assertEquals(1, hunk1.source().range().count());
+            assertEquals(List.of("make"), hunk1.source().lines());
+
+            assertEquals(1, hunk1.target().range().start());
+            assertEquals(1, hunk1.target().range().count());
+            assertEquals(List.of("make images"), hunk1.target().lines());
+
+            var patch2 = patches.get(1).asTextualPatch();
+            assertEquals(Path.of("README"), patch2.source().path().get());
+            assertEquals(Path.of("README"), patch2.target().path().get());
+            assertTrue(patch2.source().type().get().isRegularNonExecutable());
+            assertTrue(patch2.target().type().get().isRegularNonExecutable());
+            assertTrue(patch2.status().isModified());
+
+            var hunks2 = patch2.hunks();
+            assertEquals(1, hunks2.size());
+
+            var hunk2 = hunks2.get(0);
+            assertEquals(1, hunk2.source().range().start());
+            assertEquals(1, hunk2.source().range().count());
+            assertEquals(List.of("Hello, readme!"), hunk2.source().lines());
+
+            assertEquals(1, hunk2.target().range().start());
+            assertEquals(1, hunk2.target().range().count());
+            assertEquals(List.of("Hello, Skara!"), hunk2.target().lines());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testDiffBetweenCommitsWithMultipleHunks(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var abc = dir.path().resolve("abc.txt");
+            Files.write(abc, List.of("A", "B", "C"));
+
+            r.add(abc);
+            var first = r.commit("Added ABC", "duke", "duke@openjdk.java.net");
+
+            Files.write(abc, List.of("1", "2", "B", "3"), WRITE, TRUNCATE_EXISTING);
+            r.add(abc);
+            var second = r.commit("Modify A and C", "duke", "duke@openjdk.java.net");
+
+            var diff = r.diff(first, second);
+            assertEquals(first, diff.from());
+            assertEquals(second, diff.to());
+
+            var patches = diff.patches();
+            assertEquals(1, patches.size());
+
+            var patch = patches.get(0).asTextualPatch();
+            assertEquals(Path.of("abc.txt"), patch.source().path().get());
+            assertEquals(Path.of("abc.txt"), patch.target().path().get());
+            assertTrue(patch.source().type().get().isRegularNonExecutable());
+            assertTrue(patch.target().type().get().isRegularNonExecutable());
+            assertTrue(patch.status().isModified());
+
+            var hunks = patch.hunks();
+            assertEquals(2, hunks.size());
+
+            var hunk1 = hunks.get(0);
+            assertEquals(1, hunk1.source().range().start());
+            assertEquals(1, hunk1.source().range().count());
+            assertEquals(List.of("A"), hunk1.source().lines());
+
+            assertEquals(1, hunk1.target().range().start());
+            assertEquals(2, hunk1.target().range().count());
+            assertEquals(List.of("1", "2"), hunk1.target().lines());
+
+            assertEquals(1, hunk1.added());
+            assertEquals(0, hunk1.removed());
+            assertEquals(1, hunk1.modified());
+
+            var hunk2 = hunks.get(1);
+            assertEquals(3, hunk2.source().range().start());
+            assertEquals(1, hunk2.source().range().count());
+            assertEquals(List.of("C"), hunk2.source().lines());
+
+            assertEquals(4, hunk2.target().range().start());
+            assertEquals(1, hunk2.target().range().count());
+            assertEquals(List.of("3"), hunk2.target().lines());
+
+            assertEquals(0, hunk2.added());
+            assertEquals(0, hunk2.removed());
+            assertEquals(1, hunk2.modified());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testDiffWithRemoval(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, world!"));
+
+            r.add(readme);
+            var first = r.commit("Added README", "duke", "duke@openjdk.java.net");
+
+            Files.delete(readme);
+            r.remove(readme);
+            var second = r.commit("Removed README", "duke", "duke@openjdk.java.net");
+
+            var diff = r.diff(first, second);
+            assertEquals(first, diff.from());
+            assertEquals(second, diff.to());
+
+            var patches = diff.patches();
+            assertEquals(1, patches.size());
+
+            var patch = patches.get(0).asTextualPatch();
+            assertEquals(Path.of("README"), patch.source().path().get());
+            assertTrue(patch.target().path().isEmpty());
+            assertTrue(patch.source().type().get().isRegularNonExecutable());
+            assertTrue(patch.target().type().isEmpty());
+            assertTrue(patch.status().isDeleted());
+
+            var hunks = patch.hunks();
+            assertEquals(1, hunks.size());
+
+            var hunk = hunks.get(0);
+            assertEquals(1, hunk.source().range().start());
+            assertEquals(1, hunk.source().range().count());
+            assertEquals(List.of("Hello, world!"), hunk.source().lines());
+
+            assertEquals(0, hunk.target().range().start());
+            assertEquals(0, hunk.target().range().count());
+            assertEquals(List.of(), hunk.target().lines());
+
+            assertEquals(0, hunk.added());
+            assertEquals(1, hunk.removed());
+            assertEquals(0, hunk.modified());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testDiffWithAddition(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, world!"));
+
+            r.add(readme);
+            var first = r.commit("Added README", "duke", "duke@openjdk.java.net");
+
+            var building = dir.path().resolve("BUILDING");
+            Files.write(building, List.of("make"));
+            r.add(building);
+            var second = r.commit("Added BUILDING", "duke", "duke@openjdk.java.net");
+
+            var diff = r.diff(first, second);
+            assertEquals(first, diff.from());
+            assertEquals(second, diff.to());
+
+            var patches = diff.patches();
+            assertEquals(1, patches.size());
+
+            var patch = patches.get(0).asTextualPatch();
+            assertTrue(patch.source().path().isEmpty());
+            assertEquals(Path.of("BUILDING"), patch.target().path().get());
+            assertTrue(patch.source().type().isEmpty());
+            assertTrue(patch.target().type().get().isRegularNonExecutable());
+            assertTrue(patch.status().isAdded());
+
+            var hunks = patch.hunks();
+            assertEquals(1, hunks.size());
+
+            var hunk = hunks.get(0);
+            assertEquals(0, hunk.source().range().start());
+            assertEquals(0, hunk.source().range().count());
+            assertEquals(List.of(), hunk.source().lines());
+
+            assertEquals(1, hunk.target().range().start());
+            assertEquals(1, hunk.target().range().count());
+            assertEquals(List.of("make"), hunk.target().lines());
+
+            assertEquals(1, hunk.added());
+            assertEquals(0, hunk.removed());
+            assertEquals(0, hunk.modified());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testDiffWithWorkingDir(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, world!"));
+
+            r.add(readme);
+            var first = r.commit("Added README", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme, List.of("One more line"), WRITE, APPEND);
+            var diff = r.diff(first);
+
+            assertEquals(first, diff.from());
+            assertNull(diff.to());
+
+            var patches = diff.patches();
+            assertEquals(1, patches.size());
+
+            var patch = patches.get(0).asTextualPatch();
+            assertEquals(Path.of("README"), patch.source().path().get());
+            assertEquals(Path.of("README"), patch.target().path().get());
+            assertTrue(patch.source().type().get().isRegularNonExecutable());
+            assertTrue(patch.target().type().get().isRegularNonExecutable());
+            assertTrue(patch.status().isModified());
+
+            var hunks = patch.hunks();
+            assertEquals(1, hunks.size());
+
+            var hunk = hunks.get(0);
+            assertEquals(1, hunk.source().range().start());
+            assertEquals(0, hunk.source().range().count());
+            assertEquals(List.of(), hunk.source().lines());
+
+            assertEquals(2, hunk.target().range().start());
+            assertEquals(1, hunk.target().range().count());
+            assertEquals(List.of("One more line"), hunk.target().lines());
+
+            assertEquals(1, hunk.added());
+            assertEquals(0, hunk.removed());
+            assertEquals(0, hunk.modified());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testCommitMetadata(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, world!"));
+            r.add(readme);
+            var first = r.commit("Added README", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme, List.of("One more line"), WRITE, APPEND);
+            r.add(readme);
+            var second = r.commit("Modified README", "duke", "duke@openjdk.java.net");
+
+            var metadata = r.commitMetadata();
+            assertEquals(2, metadata.size());
+
+            assertEquals(first, metadata.get(0).hash());
+            assertEquals(List.of("Added README"), metadata.get(0).message());
+
+            assertEquals(second, metadata.get(1).hash());
+            assertEquals(List.of("Modified README"), metadata.get(1).message());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testTrivialMerge(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, world!"));
+            r.add(readme);
+            var first = r.commit("Added README", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme, List.of("One more line"), WRITE, APPEND);
+            r.add(readme);
+            var second = r.commit("Modified README", "duke", "duke@openjdk.java.net");
+
+            r.checkout(first, false);
+
+            var contributing = dir.path().resolve("CONTRIBUTING");
+            Files.write(contributing, List.of("Send those patches!"));
+            r.add(contributing);
+            var third = r.commit("Added contributing", "duke", "duke@openjdk.java.net");
+
+            r.merge(second);
+            r.commit("Merge", "duke", "duke@openjdk.java.net");
+
+            var refspec = vcs == VCS.GIT ? r.head().hex() : r.head().hex() + ":0";
+            var commits = r.commits(refspec).asList();
+
+            assertEquals(4, commits.size());
+
+            var merge = commits.get(0);
+            assertEquals(List.of("Merge"), merge.message());
+
+            var parents = new HashSet<>(merge.parents());
+            assertEquals(2, parents.size());
+            assertTrue(parents.contains(second));
+            assertTrue(parents.contains(third));
+
+            var diffs = merge.parentDiffs();
+            assertEquals(2, diffs.size());
+
+            var diff1 = diffs.get(0);
+            assertEquals(merge.hash(), diff1.to());
+            assertEquals(0, diff1.patches().size());
+            assertTrue(parents.contains(diff1.from()));
+
+            var diff2 = diffs.get(1);
+            assertEquals(merge.hash(), diff2.to());
+            assertEquals(0, diff2.patches().size());
+            assertTrue(parents.contains(diff2.from()));
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testMergeWithEdit(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, world!"));
+            r.add(readme);
+            var first = r.commit("Added README", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme, List.of("One more line"), WRITE, APPEND);
+            r.add(readme);
+            var second = r.commit("Modified README", "duke", "duke@openjdk.java.net");
+
+            r.checkout(first, false);
+
+            var contributing = dir.path().resolve("CONTRIBUTING");
+            Files.write(contributing, List.of("Send those patches!"));
+            r.add(contributing);
+            var third = r.commit("Added contributing", "duke", "duke@openjdk.java.net");
+
+            r.merge(second);
+
+            Files.write(readme, List.of("One last line"), WRITE, APPEND);
+            r.add(readme);
+            r.commit("Merge", "duke", "duke@openjdk.java.net");
+
+            var refspec = vcs == VCS.GIT ? r.head().hex() : r.head().hex() + ":0";
+            var commits = r.commits(refspec).asList();
+
+            assertEquals(4, commits.size());
+
+            var merge = commits.get(0);
+            assertEquals(List.of("Merge"), merge.message());
+
+            var parents = new HashSet<>(merge.parents());
+            assertEquals(2, parents.size());
+            assertTrue(parents.contains(second));
+            assertTrue(parents.contains(third));
+
+            var diffs = merge.parentDiffs();
+            assertEquals(2, diffs.size());
+
+            var secondDiff = diffs.stream().filter(d -> d.from().equals(second)).findFirst().get();
+            assertEquals(merge.hash(), secondDiff.to());
+            assertEquals(1, secondDiff.patches().size());
+            var secondPatch = secondDiff.patches().get(0).asTextualPatch();
+
+            assertEquals(Path.of("README"), secondPatch.source().path().get());
+            assertEquals(Path.of("README"), secondPatch.target().path().get());
+            assertTrue(secondPatch.status().isModified());
+            assertEquals(1, secondPatch.hunks().size());
+
+            var secondHunk = secondPatch.hunks().get(0);
+            assertEquals(List.of(), secondHunk.source().lines());
+            assertEquals(List.of("One last line"), secondHunk.target().lines());
+
+            assertEquals(2, secondHunk.source().range().start());
+            assertEquals(0, secondHunk.source().range().count());
+            assertEquals(3, secondHunk.target().range().start());
+            assertEquals(1, secondHunk.target().range().count());
+
+            var thirdDiff = diffs.stream().filter(d -> d.from().equals(third)).findFirst().get();
+            assertEquals(merge.hash(), thirdDiff.to());
+            assertEquals(1, thirdDiff.patches().size());
+            var thirdPatch = thirdDiff.patches().get(0).asTextualPatch();
+
+            assertEquals(Path.of("README"), thirdPatch.source().path().get());
+            assertEquals(Path.of("README"), thirdPatch.target().path().get());
+            assertTrue(thirdPatch.status().isModified());
+            assertEquals(1, thirdPatch.hunks().size());
+
+            var thirdHunk = thirdPatch.hunks().get(0);
+            assertEquals(List.of(), thirdHunk.source().lines());
+            assertEquals(List.of("One more line", "One last line"), thirdHunk.target().lines());
+
+            assertEquals(1, thirdHunk.source().range().start());
+            assertEquals(0, thirdHunk.source().range().count());
+            assertEquals(2, thirdHunk.target().range().start());
+            assertEquals(2, thirdHunk.target().range().count());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testDefaultBranch(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            var expected = vcs == VCS.GIT ? "master" : "default";
+            assertEquals(expected, r.defaultBranch().name());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testPaths(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            var remote = vcs == VCS.GIT ? "origin" : "default";
+            r.setPaths(remote, "http://pull", "http://push");
+            assertEquals("http://pull", r.pullPath(remote));
+            assertEquals("http://push", r.pushPath(remote));
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testIsValidRevisionRange(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertFalse(r.isValidRevisionRange("foo"));
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, world!"));
+            r.add(readme);
+            r.commit("Added README", "duke", "duke@openjdk.java.net");
+
+            assertTrue(r.isValidRevisionRange(r.defaultBranch().toString()));
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testDefaultTag(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            var expected = vcs == VCS.GIT ? Optional.empty() : Optional.of(new Tag("tip"));
+            assertEquals(expected, r.defaultTag());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testTag(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, world!"));
+            r.add(readme);
+            var first = r.commit("Added README", "duke", "duke@openjdk.java.net");
+
+            r.tag(first, "test", "Tagging test", "duke", "duke@openjdk.java.net");
+            var defaultTag = r.defaultTag().orElse(null);
+            var nonDefaultTags = r.tags().stream()
+                                  .filter(tag -> !tag.equals(defaultTag))
+                                  .map(Tag::toString)
+                                  .collect(Collectors.toList());
+            assertEquals(List.of("test"), nonDefaultTags);
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testIsClean(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.isClean());
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, world!"));
+            assertFalse(r.isClean());
+
+            r.add(readme);
+            assertFalse(r.isClean());
+
+            r.commit("Added README", "duke", "duke@openjdk.java.net");
+            assertTrue(r.isClean());
+
+            Files.delete(readme);
+            assertFalse(r.isClean());
+
+            Files.write(readme, List.of("Hello, world!"));
+            assertTrue(r.isClean());
+        }
+    }
+}

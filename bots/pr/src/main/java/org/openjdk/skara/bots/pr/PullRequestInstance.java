@@ -1,0 +1,194 @@
+/*
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+package org.openjdk.skara.bots.pr;
+
+import org.openjdk.skara.census.*;
+import org.openjdk.skara.host.*;
+import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.vcs.openjdk.*;
+
+import java.io.*;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.stream.Collectors;
+
+class PullRequestInstance {
+    private final PullRequest pr;
+    private final Repository localRepo;
+    private final Hash targetHash;
+    private final Hash headHash;
+    private final Hash baseHash;
+
+    PullRequestInstance(Path localRepoPath, PullRequest pr) throws IOException  {
+        this.pr = pr;
+        var repository = pr.repository();
+
+        // Materialize the PR's target ref
+        localRepo = Repository.materialize(localRepoPath, repository.getUrl(), pr.getTargetRef());
+        targetHash = localRepo.fetch(repository.getUrl(), pr.getTargetRef());
+        headHash = localRepo.fetch(repository.getUrl(), pr.getHeadHash().hex());
+        baseHash = localRepo.mergeBase(targetHash, headHash);
+    }
+
+    private String commitMessage(Namespace namespace, boolean isMerge) throws IOException {
+        var reviewers = pr.getReviews().stream()
+                          .filter(review -> review.verdict == Review.Verdict.APPROVED)
+                          .map(review -> review.reviewer.id())
+                          .map(namespace::get)
+                          .filter(Objects::nonNull)
+                          .map(Contributor::username)
+                          .collect(Collectors.toList());
+
+        var additionalContributors = Contributors.contributors(pr.repository().host().getCurrentUserDetails(),
+                                                               pr.getComments()).stream()
+                                                 .map(email -> Author.fromString(email.toString()))
+                                                 .collect(Collectors.toList());
+
+        var commitMessage = CommitMessage.title(isMerge ? "Merge" : pr.getTitle())
+                                         .contributors(additionalContributors)
+                                         .reviewers(reviewers);
+        return String.join("\n", commitMessage.format(CommitMessageFormatters.v1));
+    }
+
+    private Hash commitSquashed(Namespace namespace, String censusDomain, String sponsorId) throws IOException {
+        localRepo.checkout(baseHash, true);
+        localRepo.squash(headHash);
+
+        Author committer;
+        Author author;
+        var contributor = namespace.get(pr.getAuthor().id());
+
+        if (contributor == null) {
+            // Use the information contained in the head commit - jcheck has verified that it contains sane values
+            var headCommit = localRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
+            author = headCommit.author();
+        } else {
+            author = new Author(contributor.fullName().orElseThrow(), contributor.username() + "@" + censusDomain);
+        }
+
+        if (sponsorId != null) {
+            var sponsorContributor = namespace.get(sponsorId);
+            committer = new Author(sponsorContributor.fullName().orElseThrow(), sponsorContributor.username() + "@" + censusDomain);
+        } else {
+            committer = author;
+        }
+
+        var commitMessage = commitMessage(namespace, false);
+        return localRepo.commit(commitMessage, author.name(), author.email(), committer.name(), committer.email());
+    }
+
+    private Hash commitMerge(Namespace namespace, String censusDomain) throws IOException {
+        localRepo.checkout(headHash, true);
+
+        var contributor = namespace.get(pr.getAuthor().id());
+        if (contributor == null) {
+            throw new RuntimeException("Merges can only be performed by Committers");
+        }
+
+        var author = new Author(contributor.fullName().orElseThrow(), contributor.username() + "@" + censusDomain);
+
+        var commitMessage = commitMessage(namespace, true);
+        return localRepo.amend(commitMessage, author.name(), author.email(), author.name(), author.email());
+    }
+
+    Hash commit(Namespace namespace, String censusDomain, String sponsorId) throws IOException {
+        if (!pr.getTitle().startsWith("Merge")) {
+            return commitSquashed(namespace, censusDomain, sponsorId);
+        } else {
+            return commitMerge(namespace, censusDomain);
+        }
+    }
+
+    List<Commit> divergingCommits() {
+        try {
+            return localRepo.commits(baseHash + ".." + targetHash).asList();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    boolean rebasePossible(Hash commitHash) {
+        try {
+            var commit = localRepo.lookup(commitHash);
+            if (commit.isEmpty()) {
+                return false;
+            }
+            localRepo.rebase(targetHash, commit.get().committer().name(), commit.get().committer().email());
+            var hash = localRepo.head();
+            return !hash.hex().equals(targetHash.hex());
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    Optional<Hash> rebase(Hash commitHash, PrintWriter reply) {
+        var divergingCommits = divergingCommits();
+        if (divergingCommits.size() > 0) {
+            reply.print("The following commits have been pushed to ");
+            reply.print(pr.getTargetRef());
+            reply.println(" since your change was applied:");
+            divergingCommits.forEach(c -> reply.println(" * " + c.hash()));
+
+            try {
+                var commit = localRepo.lookup(commitHash).orElseThrow();
+                localRepo.rebase(targetHash, commit.committer().name(), commit.committer().email());
+                reply.println();
+                reply.println("Your commit was automatically rebased without conflicts.");
+                var hash = localRepo.head();
+                if (hash.hex().equals(targetHash.hex())) {
+                    reply.print("Warning! Your commit did not result in any changes! ");
+                    reply.println("No push attempt will be made.");
+                    return Optional.empty();
+                } else {
+                    return Optional.of(hash);
+                }
+            } catch (IOException e) {
+                reply.println();
+                reply.print("It was not possible to rebase your changes automatically. ");
+                reply.println("Please rebase your branch manually and try again.");
+                return Optional.empty();
+            }
+        } else {
+            // No rebase needed
+            return Optional.of(commitHash);
+        }
+    }
+
+    Repository localRepo() {
+        return this.localRepo;
+    }
+
+    Hash baseHash() {
+        return this.baseHash;
+    }
+
+    Set<Path> changedFiles() throws IOException {
+        var ret = new HashSet<Path>();
+        var changes = localRepo.diff(baseHash, headHash);
+        for (var patch : changes.patches()) {
+            patch.target().path().ifPresent(ret::add);
+            patch.source().path().ifPresent(ret::add);
+        }
+        return ret;
+    }
+}

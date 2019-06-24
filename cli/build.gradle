@@ -1,0 +1,99 @@
+/*
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+
+plugins {
+    id 'org.openjdk.skara.gradle.images'
+}
+
+module {
+    name = 'org.openjdk.skara.cli'
+}
+
+dependencies {
+    implementation project(':args')
+    implementation project(':census')
+    implementation project(':ini')
+    implementation project(':jcheck')
+    implementation project(':vcs')
+    implementation project(':webrev')
+    implementation project(':json')
+    implementation project(':host')
+}
+
+
+jar {
+    manifest {
+        attributes("Implementation-Title": "org.openjdk.skara.cli", "Implementation-Version": version)
+    }
+}
+
+images {
+    ext.launchers = [
+        'git-jcheck': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitJCheck',
+        'git-webrev': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitWebrev',
+        'git-defpath': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitDefpath',
+        'git-verify-import': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitVerifyImport',
+        'git-openjdk-import': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitOpenJDKImport',
+        'git-fork': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitFork',
+        'git-pr': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitPr',
+        'git-token': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitToken',
+        'git-info': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitInfo',
+        'git-translate': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitTranslate',
+        'git-skara': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitSkara',
+        'hg-openjdk-import': 'org.openjdk.skara.cli/org.openjdk.skara.cli.HgOpenJDKImport'
+    ]
+
+    ext.modules = ['jdk.crypto.ec']
+
+    windows {
+        modules = ext.modules
+        launchers = ext.launchers
+        bundles = ['zip', 'tar.gz']
+        jdk {
+            url = 'https://download.java.net/java/GA/jdk12/GPL/openjdk-12_windows-x64_bin.zip'
+            sha256 = '35a8d018f420fb05fe7c2aa9933122896ca50bd23dbd373e90d8e2f3897c4e92'
+        }
+    }
+
+    linux {
+        modules = ext.modules
+        launchers = ext.launchers
+        man = 'cli/resources/man'
+        bundles = ['zip', 'tar.gz']
+        jdk {
+            url = 'https://download.java.net/java/GA/jdk12/GPL/openjdk-12_linux-x64_bin.tar.gz'
+            sha256 = 'b43bc15f4934f6d321170419f2c24451486bc848a2179af5e49d10721438dd56'
+        }
+    }
+
+    macos {
+        modules = ext.modules
+        launchers = ext.launchers
+        man = 'cli/resources/man'
+        bundles = ['zip', 'tar.gz']
+        jdk {
+            url = 'https://download.java.net/java/GA/jdk12/GPL/openjdk-12_osx-x64_bin.tar.gz'
+            sha256 = '52164a04db4d3fdfe128cfc7b868bc4dae52d969f03d53ae9d4239fe783e1a3a'
+        }
+    }
+}
