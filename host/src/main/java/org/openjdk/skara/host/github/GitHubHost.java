@@ -32,12 +32,14 @@ import java.util.Arrays;
 
 public class GitHubHost implements Host {
     private final URI uri;
+    private final URI webUri;
     private final GitHubApplication application;
     private final PersonalAccessToken pat;
     private final RestRequest request;
 
-    public GitHubHost(URI uri, GitHubApplication application) {
+    public GitHubHost(URI uri, GitHubApplication application, URI webUri) {
         this.uri = uri;
+        this.webUri = webUri;
         this.application = application;
         this.pat = null;
 
@@ -54,6 +56,7 @@ public class GitHubHost implements Host {
 
     public GitHubHost(URI uri, PersonalAccessToken pat) {
         this.uri = uri;
+        this.webUri = uri;
         this.pat = pat;
         this.application = null;
 
@@ -68,6 +71,7 @@ public class GitHubHost implements Host {
 
     public GitHubHost(URI uri) {
         this.uri = uri;
+        this.webUri = uri;
         this.pat = null;
         this.application = null;
 
@@ -81,6 +85,10 @@ public class GitHubHost implements Host {
 
     public URI getURI() {
         return uri;
+    }
+
+    URI getWebURI() {
+        return webUri;
     }
 
     String getInstallationToken() {

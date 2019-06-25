@@ -67,6 +67,7 @@ public class HostCredentials implements AutoCloseable {
             var apps = config.get("apps").asArray();
             var key = configDir.resolve(apps.get(userIndex).get("key").asString());
             return HostFactory.createGitHubHost(hostUri,
+                                                hostUri,
                                                 key.toString(),
                                                 apps.get(userIndex).get("id").asString(),
                                                 apps.get(userIndex).get("installation").asString());

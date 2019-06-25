@@ -28,9 +28,9 @@ import org.openjdk.skara.host.gitlab.GitLabHost;
 import java.net.URI;
 
 public class HostFactory {
-    public static Host createGitHubHost(URI uri, String keyFile, String issue, String id) {
+    public static Host createGitHubHost(URI uri, URI webUri, String keyFile, String issue, String id) {
         var app = new GitHubApplication(keyFile, issue, id);
-        return new GitHubHost(uri, app);
+        return new GitHubHost(uri, app, webUri);
     }
 
     public static Host createGitHubHost(URI uri, PersonalAccessToken pat) {
