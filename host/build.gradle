@@ -24,6 +24,7 @@
 module {
     name = 'org.openjdk.skara.host'
     test {
+        requires 'org.openjdk.skara.test'
         requires 'org.junit.jupiter.api'
         requires 'jdk.httpserver'
         opens 'org.openjdk.skara.host.network' to 'org.junit.platform.commons'
@@ -38,6 +39,8 @@ dependencies {
     implementation project(':ini')
     implementation project(':process')
     implementation project(':email')
+
+    testImplementation project(':test')
 }
 
 publishing {

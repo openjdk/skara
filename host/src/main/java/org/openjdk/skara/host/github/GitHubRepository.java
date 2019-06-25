@@ -134,15 +134,14 @@ public class GitHubRepository implements HostedRepository {
 
     @Override
     public URI getWebUrl() {
-        return URIBuilder.base(gitHubHost.getWebURI())
-                         .setPath("/" + repository)
-                         .build();    }
+        var endpoint = "/" + repository;
+        return gitHubHost.getWebURI(endpoint);
+    }
 
     @Override
     public URI getWebUrl(Hash hash) {
-        return URIBuilder.base(gitHubHost.getWebURI())
-                .setPath("/" + repository + "/commit/" + hash.abbreviate())
-                .build();
+        var endpoint = "/" + repository + "/commit/" + hash.abbreviate();
+        return gitHubHost.getWebURI(endpoint);
     }
 
     @Override
