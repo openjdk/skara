@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.notify;
 
+import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.host.HostedRepository;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.storage.StorageBuilder;
@@ -33,13 +34,13 @@ import org.junit.jupiter.api.*;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
-class JNotifyBotTests {
-
+class UpdaterTests {
     private List<Path> findJsonFiles(Path folder, String partialName) throws IOException {
         return Files.walk(folder)
                     .filter(path -> path.toString().endsWith(".json"))
@@ -134,6 +135,81 @@ class JNotifyBotTests {
                     assertEquals("b02", json.asArray().get(0).get("build").asString());
                 }
             }
+        }
+    }
+
+    @Test
+    void testMailingList(TestInfo testInfo) throws IOException {
+        try (var smtpServer = new SMTPServer();
+             var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.getRepositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, repo.getUrl(), "master", true);
+
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+
+            var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var recipient = EmailAddress.from("list", "list@list.list");
+            var updater = new MailingListUpdater(smtpServer.address(), recipient, sender);
+            var notifyBot = new JNotifyBot(repo, "master", tagStorage, branchStorage, List.of(updater));
+
+            // No mail should be sent on the first run as there is no history
+            TestBotRunner.runPeriodicItems(notifyBot);
+            assertThrows(RuntimeException.class, () -> smtpServer.receive(Duration.ofMillis(1)));
+
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
+            localRepo.push(editHash, repo.getUrl(), "master");
+            TestBotRunner.runPeriodicItems(notifyBot);
+            var email = smtpServer.receive(Duration.ofSeconds(10));
+            assertEquals(email.sender(), sender);
+            assertEquals(email.recipients(), List.of(recipient));
+            assertTrue(email.body().contains("Changeset: " + editHash.abbreviate()));
+            assertTrue(email.body().contains("23456789: More fixes"));
+            assertFalse(email.body().contains(masterHash.abbreviate()));
+        }
+    }
+
+    @Test
+    void testMailingListMultiple(TestInfo testInfo) throws IOException {
+        try (var smtpServer = new SMTPServer();
+             var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.getRepositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, repo.getUrl(), "master", true);
+
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+
+            var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var recipient = EmailAddress.from("list", "list@list.list");
+            var updater = new MailingListUpdater(smtpServer.address(), recipient, sender);
+            var notifyBot = new JNotifyBot(repo, "master", tagStorage, branchStorage, List.of(updater));
+
+            // No mail should be sent on the first run as there is no history
+            TestBotRunner.runPeriodicItems(notifyBot);
+            assertThrows(RuntimeException.class, () -> smtpServer.receive(Duration.ofMillis(1)));
+
+            var editHash1 = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
+            localRepo.push(editHash1, repo.getUrl(), "master");
+            var editHash2 = CheckableRepository.appendAndCommit(localRepo, "Yet another line", "3456789A: Even more fixes");
+            localRepo.push(editHash2, repo.getUrl(), "master");
+
+            TestBotRunner.runPeriodicItems(notifyBot);
+            var email = smtpServer.receive(Duration.ofSeconds(10));
+            assertEquals(email.sender(), sender);
+            assertEquals(email.recipients(), List.of(recipient));
+            assertTrue(email.body().contains("Changeset: " + editHash1.abbreviate()));
+            assertTrue(email.body().contains("23456789: More fixes"));
+            assertTrue(email.body().contains("Changeset: " + editHash2.abbreviate()));
+            assertTrue(email.body().contains("3456789A: Even more fixes"));
+            assertFalse(email.body().contains(masterHash.abbreviate()));
         }
     }
 }
