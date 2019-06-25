@@ -33,11 +33,13 @@ import java.util.*;
 
 public class MailingListUpdater implements UpdateConsumer {
     private final String host;
-    private final EmailAddress emailAddress;
+    private final EmailAddress recipient;
+    private final EmailAddress sender;
 
-    MailingListUpdater(String host, EmailAddress emailAddress) {
+    MailingListUpdater(String host, EmailAddress recipient, EmailAddress sender) {
         this.host = host;
-        this.emailAddress = emailAddress;
+        this.recipient = recipient;
+        this.sender = sender;
     }
 
     private String patchToText(Patch patch) {
@@ -93,9 +95,6 @@ public class MailingListUpdater implements UpdateConsumer {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
-        var authorCommit = commits.get(0);
-        var sender = EmailAddress.from(authorCommit.author().name(), authorCommit.author().email());
-        var headers = new HashMap<String, String>();
         var subject = commitsToSubject(repository, commits);
 
         for (var commit : commits) {
@@ -103,11 +102,11 @@ public class MailingListUpdater implements UpdateConsumer {
         }
 
         var email = Email.create(sender, subject, writer.toString())
-                         .recipient(emailAddress)
+                         .recipient(recipient)
                          .build();
 
         try {
-            SMTP.send(host, emailAddress, email);
+            SMTP.send(host, recipient, email);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

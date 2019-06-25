@@ -50,8 +50,6 @@ public class JNotifyBotFactory implements BotFactory {
         var databaseName = database.get("name").asString();
         var databaseEmail = database.get("email").asString();
 
-        var storage = configuration.storageFolder();
-
         for (var repo : specific.get("repositories").fields()) {
             var repoName = repo.name();
             var branch = repo.value().get("branch").asString();
@@ -64,7 +62,10 @@ public class JNotifyBotFactory implements BotFactory {
             }
             if (repo.value().contains("mailinglist")) {
                 var mailcfg = repo.value().get("mailinglist").asObject();
-                updaters.add(new MailingListUpdater(mailcfg.get("smtp").asString(), EmailAddress.parse(mailcfg.get("recipient").asString())));
+                var senderName = mailcfg.get("name").asString();
+                var senderMail = mailcfg.get("email").asString();
+                var sender = EmailAddress.from(senderName, senderMail);
+                updaters.add(new MailingListUpdater(mailcfg.get("smtp").asString(), EmailAddress.parse(mailcfg.get("recipient").asString()), sender));
             }
 
             if (updaters.isEmpty()) {
