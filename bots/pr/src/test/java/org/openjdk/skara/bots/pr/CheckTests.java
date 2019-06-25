@@ -29,6 +29,7 @@ import org.junit.jupiter.api.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -541,6 +542,55 @@ class CheckTests {
 
             // The PR should not be flagged as outdated
             assertFalse(pr.getLabels().contains("outdated"));
+        }
+    }
+
+    @Test
+    void blockingLabel(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.host().getCurrentUserDetails().id())
+                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master", Map.of(), Map.of(),
+                                              Map.of("block", "Test Blocker"));
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.getUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.getUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+            pr.addLabel("block");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that the check failed
+            var checks = pr.getChecks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            assertEquals(CheckStatus.FAILURE, check.status());
+            assertTrue(check.summary().orElseThrow().contains("Test Blocker"));
+
+            // The PR should not yet be ready for review
+            assertTrue(pr.getLabels().contains("block"));
+            assertFalse(pr.getLabels().contains("rfr"));
+            assertFalse(pr.getLabels().contains("ready"));
+
+            // Check the status again
+            pr.removeLabel("block");
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The PR should now be ready for review
+            assertTrue(pr.getLabels().contains("rfr"));
+            assertFalse(pr.getLabels().contains("ready"));
         }
     }
 }
