@@ -39,24 +39,32 @@ class CheckRun {
     private final PullRequestInstance prInstance;
     private final List<Comment> comments;
     private final List<Review> reviews;
+    private final Set<String> labels;
     private final CensusInstance censusInstance;
+    private final Map<String, String> blockingLabels;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     private final String progressMarker = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
     private final String mergeReadyMarker = "<!-- PullRequestBot merge is ready comment -->";
     private final Pattern mergeSourcePattern = Pattern.compile("^Merge ([-/\\w]+):([-\\w]+$)");
-    private CheckRun(CheckWorkItem workItem, PullRequest pr, PullRequestInstance prInstance, List<Comment> comments, List<Review> reviews, CensusInstance censusInstance) {
+    private final Set<String> newLabels;
+
+    private CheckRun(CheckWorkItem workItem, PullRequest pr, PullRequestInstance prInstance, List<Comment> comments,
+                     List<Review> reviews, Set<String> labels, CensusInstance censusInstance, Map<String, String> blockingLabels) {
         this.workItem = workItem;
         this.pr = pr;
         this.prInstance = prInstance;
         this.comments = comments;
         this.reviews = reviews;
+        this.labels = new HashSet<>(labels);
+        this.newLabels = new HashSet<>(labels);
         this.censusInstance = censusInstance;
+        this.blockingLabels = blockingLabels;
     }
 
     static void execute(CheckWorkItem workItem, PullRequest pr, PullRequestInstance prInstance, List<Comment> comments,
-                        List<Review> reviews, CensusInstance censusInstance) {
-        var run = new CheckRun(workItem, pr, prInstance, comments, reviews, censusInstance);
+                        List<Review> reviews, Set<String> labels, CensusInstance censusInstance, Map<String, String> blockingLabels) {
+        var run = new CheckRun(workItem, pr, prInstance, comments, reviews, labels, censusInstance, blockingLabels);
         run.checkStatus();
     }
 
@@ -141,6 +149,12 @@ class CheckRun {
             }
         }
 
+        for (var blocker : blockingLabels.entrySet()) {
+            if (labels.contains(blocker.getKey())) {
+                ret.add(blocker.getValue());
+            }
+        }
+
         return ret;
     }
 
@@ -184,15 +198,15 @@ class CheckRun {
 
         // Additional errors are not allowed
         if (!additionalErrors.isEmpty()) {
-            pr.removeLabel("rfr");
+            newLabels.remove("rfr");
             return;
         }
 
         // Check if the visitor found any issues that should be resolved before reviewing
         if (visitor.isReadyForReview()) {
-            pr.addLabel("rfr");
+            newLabels.add("rfr");
         } else {
-            pr.removeLabel("rfr");
+            newLabels.remove("rfr");
         }
     }
 
@@ -460,20 +474,23 @@ class CheckRun {
             updateMergeReadyComment(checkBuilder.build().status() == CheckStatus.SUCCESS, commitMessage,
                                     comments, reviews, rebasePossible);
             if (checkBuilder.build().status() == CheckStatus.SUCCESS) {
-                pr.addLabel("ready");
+                newLabels.add("ready");
+            } else {
+                newLabels.remove("ready");
             }
             if (!rebasePossible) {
-                pr.addLabel("outdated");
+                newLabels.add("outdated");
             } else {
-                pr.removeLabel("outdated");
+                newLabels.remove("outdated");
             }
 
             // Calculate current metadata to avoid unnecessary future checks
-            var metadata = workItem.getMetadata(pr.getTitle(), updatedBody, pr.getComments(), reviews, censusInstance, pr.getTargetHash());
+            var metadata = workItem.getMetadata(pr.getTitle(), updatedBody, pr.getComments(), reviews, newLabels, censusInstance, pr.getTargetHash());
             checkBuilder.metadata(metadata);
         } catch (Exception e) {
             log.throwing("CommitChecker", "checkStatus", e);
-            var metadata = workItem.getMetadata(pr.getTitle(), pr.getBody(), pr.getComments(), reviews, censusInstance, pr.getTargetHash());
+            newLabels.remove("ready");
+            var metadata = workItem.getMetadata(pr.getTitle(), pr.getBody(), pr.getComments(), reviews, newLabels, censusInstance, pr.getTargetHash());
             checkBuilder.metadata(metadata);
             checkBuilder.title("Exception occurred during jcheck");
             checkBuilder.summary(e.getMessage());
@@ -481,8 +498,17 @@ class CheckRun {
         }
         var check = checkBuilder.build();
         pr.updateCheck(check);
-        if (checkBuilder.build().status() != CheckStatus.SUCCESS) {
-            pr.removeLabel("ready");
+
+        // Synchronize the wanted set of labels
+        for (var newLabel : newLabels) {
+            if (!labels.contains(newLabel)) {
+                pr.addLabel(newLabel);
+            }
+        }
+        for (var oldLabel : labels) {
+            if (!newLabels.contains(oldLabel)) {
+                pr.removeLabel(oldLabel);
+            }
         }
     }
 }

@@ -37,26 +37,28 @@ class PullRequestBot implements Bot {
     private final String censusRef;
     private final Map<String, List<Pattern>> labelPatterns;
     private final Map<String, String> externalCommands;
+    private final Map<String, String> blockingLabels;
     private final ConcurrentMap<Hash, Boolean> currentLabels = new ConcurrentHashMap<>();
 
     PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef, Map<String,
-            List<Pattern>> labelPatterns, Map<String, String> externalCommands) {
+            List<Pattern>> labelPatterns, Map<String, String> externalCommands, Map<String, String> blockingLabels) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
         this.labelPatterns = labelPatterns;
         this.externalCommands = externalCommands;
+        this.blockingLabels = blockingLabels;
     }
 
     PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef) {
-        this(repo, censusRepo, censusRef, Map.of(), Map.of());
+        this(repo, censusRepo, censusRef, Map.of(), Map.of(), Map.of());
     }
 
     private List<WorkItem> getWorkItems(List<PullRequest> pullRequests) {
         var ret = new LinkedList<WorkItem>();
 
         for (var pr : pullRequests) {
-            ret.add(new CheckWorkItem(pr, censusRepo, censusRef));
+            ret.add(new CheckWorkItem(pr, censusRepo, censusRef, blockingLabels));
             ret.add(new CommandWorkItem(pr, censusRepo, censusRef, externalCommands));
             ret.add(new LabelerWorkItem(pr, labelPatterns, currentLabels));
         }

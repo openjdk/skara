@@ -40,14 +40,16 @@ class CheckWorkItem implements WorkItem {
     private final PullRequest pr;
     private final HostedRepository censusRepo;
     private final String censusRef;
+    private final Map<String, String> blockingLabels;
 
     private final Pattern metadataComments = Pattern.compile("<!-- (add|remove) contributor");
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
-    CheckWorkItem(PullRequest pr, HostedRepository censusRepo, String censusRef) {
+    CheckWorkItem(PullRequest pr, HostedRepository censusRepo, String censusRef, Map<String, String> blockingLabels) {
         this.pr = pr;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
+        this.blockingLabels = blockingLabels;
     }
 
     private String encodeReviewer(HostUserDetails reviewer, CensusInstance censusInstance) {
@@ -66,7 +68,8 @@ class CheckWorkItem implements WorkItem {
         }
     }
 
-    String getMetadata(String title, String body, List<Comment> comments, List<Review> reviews, CensusInstance censusInstance, Hash target) {
+    String getMetadata(String title, String body, List<Comment> comments, List<Review> reviews, Set<String> labels,
+                       CensusInstance censusInstance, Hash target) {
         try {
             var approverString = reviews.stream()
                                         .filter(review -> review.verdict == Review.Verdict.APPROVED)
@@ -78,11 +81,15 @@ class CheckWorkItem implements WorkItem {
                                         .flatMap(comment -> comment.body().lines())
                                         .filter(line -> metadataComments.matcher(line).find())
                                         .collect(Collectors.joining());
+            var labelString = labels.stream()
+                                    .sorted()
+                                    .collect(Collectors.joining());
             var digest = MessageDigest.getInstance("SHA-256");
             digest.update(title.getBytes(StandardCharsets.UTF_8));
             digest.update(body.getBytes(StandardCharsets.UTF_8));
             digest.update(approverString.getBytes(StandardCharsets.UTF_8));
             digest.update(commentString.getBytes(StandardCharsets.UTF_8));
+            digest.update(labelString.getBytes(StandardCharsets.UTF_8));
             digest.update(target.hex().getBytes(StandardCharsets.UTF_8));
 
             return Base64.getUrlEncoder().encodeToString(digest.digest());
@@ -91,10 +98,10 @@ class CheckWorkItem implements WorkItem {
         }
     }
 
-    private boolean currentCheckValid(CensusInstance censusInstance, List<Comment> comments, List<Review> reviews) {
+    private boolean currentCheckValid(CensusInstance censusInstance, List<Comment> comments, List<Review> reviews, Set<String> labels) {
         var hash = pr.getHeadHash();
         var targetHash = pr.getTargetHash();
-        var metadata = getMetadata(pr.getTitle(), pr.getBody(),comments, reviews, censusInstance, targetHash);
+        var metadata = getMetadata(pr.getTitle(), pr.getBody(),comments, reviews, labels, censusInstance, targetHash);
         var currentChecks = pr.getChecks(hash);
 
         if (currentChecks.containsKey("jcheck")) {
@@ -150,11 +157,12 @@ class CheckWorkItem implements WorkItem {
         var census = CensusInstance.create(censusRepo, censusRef, scratchPath.resolve("census"), pr);
         var comments = pr.getComments();
         var reviews = pr.getReviews();
+        var labels = new HashSet(pr.getLabels());
 
-        if (!currentCheckValid(census, comments, reviews)) {
+        if (!currentCheckValid(census, comments, reviews, labels)) {
             try {
                 var prInstance = new PullRequestInstance(scratchPath.resolve("pr"), pr);
-                CheckRun.execute(this, pr, prInstance, comments, reviews, census);
+                CheckRun.execute(this, pr, prInstance, comments, reviews, labels, census, blockingLabels);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
