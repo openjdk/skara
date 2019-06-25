@@ -70,10 +70,17 @@ public class BotRunnerConfiguration {
                 } else {
                     uri = URIBuilder.base("https://github.com/").build();
                 }
+                URI webUri;
+                if (github.contains("weburl")) {
+                    webUri = URIBuilder.base(github.get("weburl").asString()).build();
+                } else {
+                    webUri = uri;
+                }
 
                 var keyFile = cwd.resolve(github.get("app").get("key").asString());
-                ret.put(entry.name(), HostFactory.createGitHubHost(uri, keyFile.toString(),
-                                                                   github.get("app").get("id").asString(), github.get("app").get("installation").asString()));
+                ret.put(entry.name(), HostFactory.createGitHubHost(uri, webUri, keyFile.toString(),
+                                                                   github.get("app").get("id").asString(),
+                                                                   github.get("app").get("installation").asString()));
             } else {
                 throw new ConfigurationError("Host " + entry.name());
             }
