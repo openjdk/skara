@@ -34,10 +34,14 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.file.*;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.logging.Level;
 
 public class GitJCheck {
+
+    private static final Pattern urlPattern = Pattern.compile("^https?://.*", Pattern.CASE_INSENSITIVE);
+
     public static void main(String[] args) throws Exception {
         var flags = List.of(
             Option.shortcut("r")
@@ -156,7 +160,9 @@ public class GitJCheck {
                 return fallback;
             }
         });
-        var census = Files.exists(Path.of(endpoint)) ? Census.parse(Path.of(endpoint)) : Census.from(URI.create(endpoint));
+        var census = !isURL(endpoint)
+                ? Census.parse(Path.of(endpoint))
+                : Census.from(URI.create(endpoint));
         var isLocal = arguments.contains("local");
         if (!isLocal) {
             var lines = repo.config("jcheck.local");
@@ -171,5 +177,9 @@ public class GitJCheck {
                 error.accept(visitor);
             }
         }
+    }
+
+    private static boolean isURL(String pathOrURL) {
+        return urlPattern.matcher(pathOrURL).matches();
     }
 }
