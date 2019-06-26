@@ -28,12 +28,14 @@ import java.util.concurrent.TimeUnit;
 
 class GitCredentials {
     private final String host;
+    private final String path;
     private final String username;
     private final String password;
     private final String protocol;
 
-    GitCredentials(String host, String username, String password, String protocol) {
+    GitCredentials(String host, String path, String username, String password, String protocol) {
         this.host = host;
+        this.path = path;
         this.username = username;
         this.password = password;
         this.protocol = protocol;
@@ -41,6 +43,10 @@ class GitCredentials {
 
     String host() {
         return host;
+    }
+
+    String path() {
+        return path;
     }
 
     String username() {
@@ -55,7 +61,7 @@ class GitCredentials {
         return protocol;
     }
 
-    static GitCredentials fill(String host, String username, String password, String protocol) throws IOException {
+    static GitCredentials fill(String host, String path, String username, String password, String protocol) throws IOException {
         try {
             var pb = new ProcessBuilder("git", "credential", "fill");
             pb.redirectInput(ProcessBuilder.Redirect.PIPE);
@@ -65,6 +71,9 @@ class GitCredentials {
 
             var gitStdin = p.getOutputStream();
             String input = "host=" + host + "\n";
+            if (path != null) {
+                input += "path=" + path + "\n";
+            }
             if (username != null) {
                 input += "username=" + username + "\n";
             }
@@ -87,6 +96,7 @@ class GitCredentials {
             protocol = null;
             username = null;
             password = null;
+            path = null;
             host = null;
             for (var line : new String(bytes, StandardCharsets.UTF_8).split("\n")) {
                 if (line.startsWith("host=")) {
@@ -98,13 +108,14 @@ class GitCredentials {
                 } else if (line.startsWith("protocol=")) {
                     protocol = line.split("=")[1];
                 } else if (line.startsWith("path=")) {
-                    // ignore for now
+                    String[] parts = line.split("=");
+                    path = parts.length > 1 ? parts[1] : null; // value can be empty
                 } else {
                     throw new IOException("'git credential' returned unexpected line: " + line);
                 }
             }
 
-            return new GitCredentials(host, username, password, protocol);
+            return new GitCredentials(host, path, username, password, protocol);
         } catch (InterruptedException e) {
             throw new IOException(e);
         }
@@ -120,6 +131,7 @@ class GitCredentials {
 
             var gitStdin = p.getOutputStream();
             String input = "host=" + credentials.host() + "\n" +
+                           "path=" + credentials.path() + "\n" +
                            "username=" + credentials.username() + "\n" +
                            "password=" + credentials.password() + "\n" +
                            "protocol=" + credentials.protocol() + "\n";
@@ -144,6 +156,7 @@ class GitCredentials {
 
             var gitStdin = p.getOutputStream();
             String input = "host=" + credentials.host() + "\n" +
+                           "path=" + credentials.path() + "\n" +
                            "username=" + credentials.username() + "\n" +
                            "password=" + credentials.password() + "\n" +
                            "protocol=" + credentials.protocol() + "\n";

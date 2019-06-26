@@ -78,10 +78,10 @@ public class GitToken {
         var uri = arguments.at(1).via(URI::create);
 
         if (command.equals("store")) {
-            var credentials = GitCredentials.fill(uri.getHost(), null, null, uri.getScheme());
+            var credentials = GitCredentials.fill(uri.getHost(), uri.getPath(), null, null, uri.getScheme());
             GitCredentials.approve(credentials);
         } else if (command.equals("revoke")) {
-            var credentials = GitCredentials.fill(uri.getHost(), null, null, uri.getScheme());
+            var credentials = GitCredentials.fill(uri.getHost(), uri.getPath(), null, null, uri.getScheme());
             GitCredentials.reject(credentials);
         } else {
             exit("error: unknown command: " + command);
