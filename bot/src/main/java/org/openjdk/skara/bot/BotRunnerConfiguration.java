@@ -34,6 +34,7 @@ import java.nio.file.*;
 import java.time.Duration;
 import java.util.*;
 import java.util.logging.*;
+import java.util.regex.Pattern;
 
 public class BotRunnerConfiguration {
     private final Logger log;
@@ -70,15 +71,15 @@ public class BotRunnerConfiguration {
                 } else {
                     uri = URIBuilder.base("https://github.com/").build();
                 }
-                URI webUri;
+                Pattern webUriPattern = null;
+                String webUriReplacement = null;
                 if (github.contains("weburl")) {
-                    webUri = URIBuilder.base(github.get("weburl").asString()).build();
-                } else {
-                    webUri = uri;
+                    webUriPattern = Pattern.compile(github.get("weburl").get("pattern").asString());
+                    webUriReplacement = github.get("weburl").get("replacement").asString();
                 }
 
                 var keyFile = cwd.resolve(github.get("app").get("key").asString());
-                ret.put(entry.name(), HostFactory.createGitHubHost(uri, webUri, keyFile.toString(),
+                ret.put(entry.name(), HostFactory.createGitHubHost(uri, webUriPattern, webUriReplacement, keyFile.toString(),
                                                                    github.get("app").get("id").asString(),
                                                                    github.get("app").get("installation").asString()));
             } else {

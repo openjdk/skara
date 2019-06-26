@@ -26,11 +26,12 @@ import org.openjdk.skara.host.github.*;
 import org.openjdk.skara.host.gitlab.GitLabHost;
 
 import java.net.URI;
+import java.util.regex.Pattern;
 
 public class HostFactory {
-    public static Host createGitHubHost(URI uri, URI webUri, String keyFile, String issue, String id) {
+    public static Host createGitHubHost(URI uri, Pattern webUriPattern, String webUriReplacement, String keyFile, String issue, String id) {
         var app = new GitHubApplication(keyFile, issue, id);
-        return new GitHubHost(uri, app, webUri);
+        return new GitHubHost(uri, app, webUriPattern, webUriReplacement);
     }
 
     public static Host createGitHubHost(URI uri, PersonalAccessToken pat) {

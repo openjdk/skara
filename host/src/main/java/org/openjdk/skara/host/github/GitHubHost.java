@@ -29,17 +29,20 @@ import org.openjdk.skara.json.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.regex.Pattern;
 
 public class GitHubHost implements Host {
     private final URI uri;
-    private final URI webUri;
+    private final Pattern webUriPattern;
+    private final String webUriReplacement;
     private final GitHubApplication application;
     private final PersonalAccessToken pat;
     private final RestRequest request;
 
-    public GitHubHost(URI uri, GitHubApplication application, URI webUri) {
+    public GitHubHost(URI uri, GitHubApplication application, Pattern webUriPattern, String webUriReplacement) {
         this.uri = uri;
-        this.webUri = webUri;
+        this.webUriPattern = webUriPattern;
+        this.webUriReplacement = webUriReplacement;
         this.application = application;
         this.pat = null;
 
@@ -56,7 +59,8 @@ public class GitHubHost implements Host {
 
     public GitHubHost(URI uri, PersonalAccessToken pat) {
         this.uri = uri;
-        this.webUri = uri;
+        this.webUriPattern = null;
+        this.webUriReplacement = null;
         this.pat = pat;
         this.application = null;
 
@@ -71,7 +75,8 @@ public class GitHubHost implements Host {
 
     public GitHubHost(URI uri) {
         this.uri = uri;
-        this.webUri = uri;
+        this.webUriPattern = null;
+        this.webUriReplacement = null;
         this.pat = null;
         this.application = null;
 
@@ -87,8 +92,21 @@ public class GitHubHost implements Host {
         return uri;
     }
 
-    URI getWebURI() {
-        return webUri;
+    URI getWebURI(String endpoint) {
+        var baseWebUri = URIBuilder.base(uri)
+                                   .setPath(endpoint)
+                                   .build();
+
+        if (webUriPattern == null) {
+            return baseWebUri;
+        }
+
+        var matcher = webUriPattern.matcher(baseWebUri.toString());
+        if (!matcher.matches()) {
+            return baseWebUri;
+
+        }
+        return URIBuilder.base(matcher.replaceAll(webUriReplacement)).build();
     }
 
     String getInstallationToken() {

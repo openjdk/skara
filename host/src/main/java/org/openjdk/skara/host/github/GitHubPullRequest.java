@@ -397,9 +397,9 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public URI getWebUrl() {
-        return URIBuilder.base(repository.getWebUrl())
-                         .setPath("/" + repository.getName() + "/pull/" + getId())
-                         .build();
+        var host = (GitHubHost)repository.host();
+        var endpoint = "/" + repository.getName() + "/pull/" + getId();
+        return host.getWebURI(endpoint);
     }
 
     @Override
