@@ -97,6 +97,8 @@ class GitCredentials {
                     password = line.split("=")[1];
                 } else if (line.startsWith("protocol=")) {
                     protocol = line.split("=")[1];
+                } else if (line.startsWith("path=")) {
+                    // ignore for now
                 } else {
                     throw new IOException("'git credential' returned unexpected line: " + line);
                 }
