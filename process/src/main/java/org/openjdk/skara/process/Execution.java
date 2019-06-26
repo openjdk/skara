@@ -28,11 +28,10 @@ import java.time.*;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 public class Execution implements AutoCloseable {
 
-    private final List<ProcessBuilder> processBuilders;
+    private final ProcessBuilder processBuilder;
     private final Process.OutputOption outputOption;
     private final Duration timeout;
 
@@ -41,13 +40,12 @@ public class Execution implements AutoCloseable {
     private String cmd;
     private int status = 0;
     private File stdoutFile;
-    private List<File> stderrFiles;
+    private File stderrFile;
 
-    private Instant start;
     private boolean finished;
     private Result result;
     private Throwable exception;
-    private List<java.lang.Process> processes;
+    private java.lang.Process process;
 
     public static class CheckedResult {
 
@@ -107,103 +105,45 @@ public class Execution implements AutoCloseable {
         }
     }
 
-    private ProcessBuilder getLastProcessBuilder() {
-        return processBuilders.get(processBuilders.size() - 1);
-    }
-
     private void prepareRedirects() throws IOException {
 
-        // For piped execution, only the last process can generated output on stdout
         if (outputOption == Process.OutputOption.CAPTURE) {
             stdoutFile = File.createTempFile("stdout", ".txt");
-            getLastProcessBuilder().redirectOutput(stdoutFile);
+            processBuilder.redirectOutput(stdoutFile);
         } else if (outputOption == Process.OutputOption.INHERIT) {
-            getLastProcessBuilder().redirectOutput(ProcessBuilder.Redirect.INHERIT);
+            processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
         } else {
-            getLastProcessBuilder().redirectOutput(ProcessBuilder.Redirect.DISCARD);
+            processBuilder.redirectOutput(ProcessBuilder.Redirect.DISCARD);
         }
 
-        // But every process can write to stderr
-        stderrFiles = new LinkedList<>();
-        for (var processBuilder : processBuilders) {
-            if (outputOption == Process.OutputOption.CAPTURE) {
-                var stderrFile = File.createTempFile("stderr", ".txt");
-                stderrFiles.add(stderrFile);
-                processBuilder.redirectError(stderrFile);
-            } else if (outputOption == Process.OutputOption.INHERIT) {
-                processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
-            } else {
-                processBuilder.redirectError(ProcessBuilder.Redirect.DISCARD);
-            }
+        if (outputOption == Process.OutputOption.CAPTURE) {
+            stderrFile = File.createTempFile("stderr", ".txt");
+            processBuilder.redirectError(stderrFile);
+        } else if (outputOption == Process.OutputOption.INHERIT) {
+            processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
+        } else {
+            processBuilder.redirectError(ProcessBuilder.Redirect.DISCARD);
         }
-    }
 
-    private void startProcessPipe() throws IOException {
-        cmd = processBuilders.stream()
-                             .map(p -> String.join(" ", p.command()))
-                             .collect(Collectors.joining(" | "));
-        log.fine("Executing pipeline '" + cmd + "'");
-
-        prepareRedirects();
-        start = Instant.now();
-
-        processes = ProcessBuilder.startPipeline(processBuilders);
-    }
-
-    private void waitForProcessPipe() throws IOException, InterruptedException {
-        var remainingTimeout = Duration.from(timeout);
-        for (var process : processes) {
-            var terminated = false;
-            try {
-                terminated = process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);
-                if (terminated) {
-                    var processStatus = process.exitValue();
-                    if (processStatus != 0) {
-                        // Set the final status to the rightmost command to exit with a non-zero status,
-                        // similar to pipefail in shells
-                        status = processStatus;
-                    }
-                }
-            } catch (InterruptedException e) {
-                status = -1;
-                break;
-            }
-
-            if (!terminated) {
-                log.warning("Command '" + cmd + "' didn't finish in " + timeout + ", attempting to terminate...");
-                try {
-                    process.destroyForcibly().waitFor();
-                } catch (InterruptedException e) {
-                    log.warning("Failed to terminate command");
-                    throw new RuntimeException("Failed to terminate timeouted command '" + cmd + "'");
-                }
-                throw new InterruptedException("Command '" + cmd + "' didn't finish in " + timeout + ", terminated");
-            }
-            remainingTimeout = remainingTimeout.minus(Duration.between(start, Instant.now()));
-            start = Instant.now();
-        }
     }
 
     private void startProcess() throws IOException {
-        cmd = String.join(" ", getLastProcessBuilder().command());
+        cmd = String.join(" ", processBuilder.command());
         log.fine("Executing '" + cmd + "'");
 
         prepareRedirects();
-        start = Instant.now();
 
-        processes = new LinkedList<>();
-        processes.add(getLastProcessBuilder().start());
+        process = processBuilder.start();
     }
 
     private void waitForProcess() throws IOException, InterruptedException {
-        var process = processes.get(0);
-        var terminated = process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);
+        var terminated = this.process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);
         if (!terminated) {
             log.warning("Command '" + cmd + "' didn't finish in " + timeout + ", attempting to terminate...");
-            process.destroyForcibly().waitFor();
+            this.process.destroyForcibly().waitFor();
             throw new InterruptedException("Command '" + cmd + "' didn't finish in " + timeout + ", terminated");
         }
-        status = process.exitValue();
+        status = this.process.exitValue();
     }
 
     private List<String> content(File f) {
@@ -228,36 +168,24 @@ public class Execution implements AutoCloseable {
                 log.warning("Failed to delete stdout file buffer: " + stdoutFile.toString());
             }
 
-            stderr = new ArrayList<String>();
-            for (var stderrFile : stderrFiles) {
-                stderr.addAll(content(stderrFile));
-                if (!stderrFile.delete()) {
-                    log.warning("Failed to delete stderr file buffer: " + stderrFile.toString());
-                }
+            stderr = content(stderrFile);
+            if (!stderrFile.delete()) {
+                log.warning("Failed to delete stderr file buffer: " + stderrFile.toString());
             }
-
         }
 
-
-        var command = processBuilders.stream()
-                                     .map(pb -> String.join(" ", pb.command()))
-                                     .reduce("", (res, cmd) -> res.isEmpty() ? cmd : res + " | " + cmd);
-        return new Result(command, stdout, stderr, status, exception);
+        return new Result(cmd, stdout, stderr, status, exception);
     }
 
-    Execution(List<ProcessBuilder> processBuilders, Process.OutputOption outputOption, Duration timeout) {
-        this.processBuilders = processBuilders;
+    Execution(ProcessBuilder processBuilder, Process.OutputOption outputOption, Duration timeout) {
+        this.processBuilder = processBuilder;
         this.outputOption = outputOption;
         this.timeout = timeout;
 
         finished = false;
 
         try {
-            if (processBuilders.size() == 1) {
-                startProcess();
-            } else {
-                startProcessPipe();
-            }
+            startProcess();
         } catch (IOException e) {
             log.throwing("Process", "execute", e);
             finished = true;
@@ -271,11 +199,7 @@ public class Execution implements AutoCloseable {
         synchronized (this) {
             if (!finished) {
                 try {
-                    if (processBuilders.size() == 1) {
-                        waitForProcess();
-                    } else {
-                        waitForProcessPipe();
-                    }
+                    waitForProcess();
                 } catch (IOException | InterruptedException e) {
                     status = -1;
                     exception = e;
@@ -305,7 +229,7 @@ public class Execution implements AutoCloseable {
     public void close() {
         synchronized (this) {
             if (!finished) {
-                // FIXME: stop processes
+                // FIXME: stop process
                 finished = true;
                 status = -1;
                 result = createResult();
