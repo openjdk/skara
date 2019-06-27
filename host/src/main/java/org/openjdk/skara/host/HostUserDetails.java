@@ -28,20 +28,18 @@ import java.util.function.Supplier;
 public class HostUserDetails {
     private final int id;
     private final String username;
-    private String name;
     private final Supplier<String> nameSupplier;
+    private String name;
 
     public HostUserDetails(int id, String username, String name) {
         this.id = id;
         this.username = username;
-        this.name = name;
-        this.nameSupplier = null;
+        this.nameSupplier = () -> name;
     }
 
     public HostUserDetails(int id, String username, Supplier<String> nameSupplier) {
         this.id = id;
         this.username = username;
-        this.name = null;
         this.nameSupplier = nameSupplier;
     }
 
@@ -75,7 +73,6 @@ public class HostUserDetails {
         if (name != null) {
             return name;
         }
-        assert nameSupplier != null;
         name = nameSupplier.get();
         return name;
     }
