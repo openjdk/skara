@@ -124,10 +124,11 @@ public class GitFork {
             exit("Not a valid URI: " + uri);
         }
         final var hostName = uri.getHost();
+        var path = uri.getPath().substring(1); // trim leading '/'
         final var protocol = uri.getScheme();
         final var token = System.getenv("GIT_TOKEN");
         final var username = arguments.contains("username") ? arguments.get("username").asString() : null;
-        final var credentials = GitCredentials.fill(hostName, username, token, protocol);
+        final var credentials = GitCredentials.fill(hostName, path, username, token, protocol);
 
         if (credentials.password() == null) {
             exit("No token for host " + hostName + " found, use git-credentials or the environment variable GIT_TOKEN");
@@ -138,7 +139,6 @@ public class GitFork {
         }
 
         var host = Host.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
-        var path = uri.getPath().substring(1);
         if (path.endsWith(".git")) {
             path = path.substring(0, path.length() - 4);
         }
