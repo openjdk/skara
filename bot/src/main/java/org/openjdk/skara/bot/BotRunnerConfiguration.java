@@ -78,10 +78,15 @@ public class BotRunnerConfiguration {
                     webUriReplacement = github.get("weburl").get("replacement").asString();
                 }
 
-                var keyFile = cwd.resolve(github.get("app").get("key").asString());
-                ret.put(entry.name(), HostFactory.createGitHubHost(uri, webUriPattern, webUriReplacement, keyFile.toString(),
-                                                                   github.get("app").get("id").asString(),
-                                                                   github.get("app").get("installation").asString()));
+                if (github.contains("app")) {
+                    var keyFile = cwd.resolve(github.get("app").get("key").asString());
+                    ret.put(entry.name(), HostFactory.createGitHubHost(uri, webUriPattern, webUriReplacement, keyFile.toString(),
+                                                                       github.get("app").get("id").asString(),
+                                                                       github.get("app").get("installation").asString()));
+                } else {
+                    var pat = new PersonalAccessToken(github.get("username").asString(), github.get("pat").asString());
+                    ret.put(entry.name(), HostFactory.createGitHubHost(uri, pat));
+                }
             } else {
                 throw new ConfigurationError("Host " + entry.name());
             }
