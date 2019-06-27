@@ -179,7 +179,7 @@ public class GitJCheck {
         }
     }
 
-    private static boolean isURL(String pathOrURL) {
-        return urlPattern.matcher(pathOrURL).matches();
+    private static boolean isURL(String s) {
+        return urlPattern.matcher(s).matches();
     }
 }
