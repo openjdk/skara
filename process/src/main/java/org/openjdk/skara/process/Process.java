@@ -48,29 +48,22 @@ public class Process {
         }
 
         private final OutputOption outputOption;
-        private final List<ProcessBuilderSetup> processBuilderSetups = new LinkedList<>();
+        private ProcessBuilderSetup processBuilderSetup;
         private Duration timeout;
 
         Description(Process.OutputOption outputOption, String... command) {
             this.outputOption = outputOption;
             timeout = Duration.ofHours(6);
 
-            var setup = new ProcessBuilderSetup(command);
-            processBuilderSetups.add(setup);
+            this.processBuilderSetup = new ProcessBuilderSetup(command);
         }
 
         private ProcessBuilderSetup getCurrentProcessBuilderSetup() {
-            return processBuilderSetups.get(processBuilderSetups.size() - 1);
+            return processBuilderSetup;
         }
 
         public Description environ(String key, String value) {
             getCurrentProcessBuilderSetup().environment.put(key, value);
-            return this;
-        }
-
-        public Description pipe(String... command) {
-            var setup = new ProcessBuilderSetup(command);
-            processBuilderSetups.add(setup);
             return this;
         }
 
@@ -90,17 +83,14 @@ public class Process {
         }
 
         public Execution execute() {
-            var processBuilders = processBuilderSetups.stream()
-                                                      .map(setup -> {
-                                                          var builder = new ProcessBuilder(setup.command.toArray(new String[0]));
-                                                          builder.environment().putAll(setup.environment);
-                                                          if (setup.workdir != null) {
-                                                              builder.directory(setup.workdir.toFile());
-                                                          }
-                                                          return builder;
-                                                      })
-                                                      .collect(Collectors.toList());
-            return new Execution(processBuilders, outputOption, timeout);
+
+            var builder = new ProcessBuilder(processBuilderSetup.command.toArray(new String[0]));
+            builder.environment().putAll(processBuilderSetup.environment);
+            if (processBuilderSetup.workdir != null) {
+                builder.directory(processBuilderSetup.workdir.toFile());
+            }
+
+            return new Execution(builder, outputOption, timeout);
         }
 
     }

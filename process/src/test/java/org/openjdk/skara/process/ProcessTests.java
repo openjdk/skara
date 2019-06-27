@@ -47,18 +47,6 @@ class ProcessTests {
         log.addHandler(handler);
     }
 
-    @Test
-    void pipeStderrRedirect() throws TimeoutException {
-        try (var pipe = Process.capture("ls", "/", invalidDirectory)
-                               .pipe("cat", "-")
-                               .execute()) {
-            var result = pipe.await();
-
-            assertTrue(result.stdout().size() > 0, "stdout: " + result.stdout());
-            assertTrue(result.stderr().size() > 0, "stderr: " + result.stderr());
-            assertTrue(result.status() != 0);
-        }
-    }
 
     @Test
     void reuseSetup() throws IOException {
@@ -85,42 +73,8 @@ class ProcessTests {
     }
 
     @Test
-    void noOutputPipe() {
-        try (var p = Process.command("ls", "/")
-                            .pipe("sort")
-                            .execute()) {
-            var result = p.check();
-
-            assertEquals(0, result.stdout().size());
-            assertEquals(0, result.stderr().size());
-        }
-    }
-
-    @Test
     void timeout() {
         try (var p = Process.capture("sleep", "10000")
-                            .timeout(Duration.ofMillis(1))
-                            .execute()) {
-            var result = p.await();
-            assertEquals(-1, result.status());
-        }
-    }
-
-    @Test
-    void timeoutFirstPipe() {
-        try (var p = Process.capture("sleep", "10000")
-                            .pipe("sort")
-                            .timeout(Duration.ofMillis(1))
-                            .execute()) {
-            var result = p.await();
-            assertEquals(-1, result.status());
-        }
-    }
-
-    @Test
-    void timeoutLastPipe() {
-        try (var p = Process.capture("echo", "hello")
-                            .pipe("sleep", "10000")
                             .timeout(Duration.ofMillis(1))
                             .execute()) {
             var result = p.await();
@@ -141,30 +95,6 @@ class ProcessTests {
                             .execute()) {
             var result = p.await();
             assertNotEquals(0, result.status());
-        }
-    }
-
-    @Test
-    void workingDirectoryPerPipe() throws IOException {
-
-        var emptyDirectory = Files.createTempDirectory("workingDirPerPipe");
-
-        try (var p = Process.capture("ls")
-                            .workdir(emptyDirectory)
-                            .pipe("sort")
-                            .workdir("/")
-                            .execute()) {
-            var result = p.check();
-            assertEquals(0, result.stdout().size());
-        }
-
-        try (var p = Process.capture("ls")
-                            .workdir("/")
-                            .pipe("sort")
-                            .workdir(emptyDirectory)
-                            .execute()) {
-            var result = p.check();
-            assertNotEquals(0, result.stdout().size());
         }
     }
 }
