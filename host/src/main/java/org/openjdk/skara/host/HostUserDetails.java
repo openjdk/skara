@@ -23,16 +23,24 @@
 package org.openjdk.skara.host;
 
 import java.util.Objects;
+import java.util.function.Supplier;
 
 public class HostUserDetails {
-    private int id;
-    private String username;
+    private final int id;
+    private final String username;
+    private final Supplier<String> nameSupplier;
     private String name;
 
     public HostUserDetails(int id, String username, String name) {
         this.id = id;
         this.username = username;
-        this.name = name;
+        this.nameSupplier = () -> name;
+    }
+
+    public HostUserDetails(int id, String username, Supplier<String> nameSupplier) {
+        this.id = id;
+        this.username = username;
+        this.nameSupplier = nameSupplier;
     }
 
     @Override
@@ -45,13 +53,12 @@ public class HostUserDetails {
         }
         HostUserDetails that = (HostUserDetails) o;
         return id == that.id &&
-                Objects.equals(username, that.username) &&
-                Objects.equals(name, that.name);
+                Objects.equals(username, that.username);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, username, name);
+        return Objects.hash(id, username);
     }
 
     public String id() {
@@ -63,6 +70,9 @@ public class HostUserDetails {
     }
 
     public String fullName() {
+        if (name == null) {
+            name = nameSupplier.get();
+        }
         return name;
     }
 

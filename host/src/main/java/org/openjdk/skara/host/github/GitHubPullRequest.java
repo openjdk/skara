@@ -35,13 +35,14 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class GitHubPullRequest implements PullRequest {
-
     private final JSONValue json;
     private final RestRequest request;
+    private final GitHubHost host;
     private final GitHubRepository repository;
     private final Logger log = Logger.getLogger("org.openjdk.skara.host");
 
     GitHubPullRequest(GitHubRepository repository, JSONValue jsonValue, RestRequest request) {
+        this.host = (GitHubHost)repository.host();
         this.repository = repository;
         this.request = request;
         this.json = jsonValue;
@@ -59,7 +60,7 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public HostUserDetails getAuthor() {
-        return repository.host().getUserDetails(json.get("user").get("login").asString());
+        return host.parseUserDetails(json);
     }
 
     @Override
@@ -69,7 +70,7 @@ public class GitHubPullRequest implements PullRequest {
                              .map(JSONValue::asObject)
                              .map(obj -> {
                                  var ret = new Review();
-                                 ret.reviewer = repository.host().getUserDetails(obj.get("user").get("login").asString());
+                                 ret.reviewer = host.parseUserDetails(obj);
                                  ret.hash = new Hash(obj.get("commit_id").asString());
                                  switch (obj.get("state").asString()) {
                                      case "APPROVED":
@@ -119,7 +120,7 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     private ReviewComment parseReviewComment(ReviewComment parent, JSONObject json) {
-        var author = repository.host().getUserDetails(json.get("user").get("login").asString());
+        var author = host.parseUserDetails(json);
         var threadId = parent == null ? json.get("id").toString() : parent.threadId();
         var comment = new ReviewComment(parent,
                                         threadId,
@@ -167,8 +168,6 @@ public class GitHubPullRequest implements PullRequest {
         var idToComment = new HashMap<String, ReviewComment>();
 
         for (var reviewComment : reviewComments) {
-            var author = repository.host().getUserDetails(reviewComment.get("user").get("login").asString());
-
             ReviewComment parent = null;
             if (reviewComment.contains("in_reply_to_id")) {
                 parent = idToComment.get(reviewComment.get("in_reply_to_id").toString());
@@ -225,7 +224,7 @@ public class GitHubPullRequest implements PullRequest {
     private Comment parseComment(JSONValue comment) {
         var ret = new Comment(Integer.toString(comment.get("id").asInt()),
                               comment.get("body").asString(),
-                              repository.host().getUserDetails(comment.get("user").get("login").asString()),
+                              host.parseUserDetails(comment),
                               ZonedDateTime.parse(comment.get("created_at").asString()),
                               ZonedDateTime.parse(comment.get("updated_at").asString()));
         return ret;
@@ -282,6 +281,15 @@ public class GitHubPullRequest implements PullRequest {
                             if (c.contains("external_id")) {
                                 checkBuilder.metadata(c.get("external_id").asString());
                             }
+                            if (c.contains("output")) {
+                                var output = c.get("output").asObject();
+                                if (output.contains("title")) {
+                                    checkBuilder.title(output.get("title").asString());
+                                }
+                                if (output.contains("summary")) {
+                                    checkBuilder.summary(output.get("summary").asString());
+                                }
+                            }
 
                             return checkBuilder.build();
                         }));
@@ -302,7 +310,6 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public void updateCheck(Check check) {
-
         JSONObject outputQuery = null;
         if (check.title().isPresent() && check.summary().isPresent()) {
             outputQuery = JSON.object();
@@ -411,7 +418,7 @@ public class GitHubPullRequest implements PullRequest {
     public List<HostUserDetails> getAssignees() {
         return json.get("assignees").asArray()
                                     .stream()
-                                    .map(o -> repository.host().getUserDetails(o.get("login").asString()))
+                                    .map(host::parseUserDetails)
                                     .collect(Collectors.toList());
     }
 

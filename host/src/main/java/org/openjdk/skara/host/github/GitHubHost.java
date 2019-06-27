@@ -38,6 +38,7 @@ public class GitHubHost implements Host {
     private final GitHubApplication application;
     private final PersonalAccessToken pat;
     private final RestRequest request;
+    private HostUserDetails currentUser;
 
     public GitHubHost(URI uri, GitHubApplication application, Pattern webUriPattern, String webUriReplacement) {
         this.uri = uri;
@@ -117,6 +118,17 @@ public class GitHubHost implements Host {
         }
     }
 
+    private String getFullName(String userName) {
+        var details = getUserDetails(userName);
+        return details.fullName();
+    }
+
+    // Most GitHub API's return user information in this format
+    HostUserDetails parseUserDetails(JSONValue json) {
+        return new HostUserDetails(json.get("user").get("id").asInt(), json.get("user").get("login").asString(),
+                                   () -> getFullName(json.get("user").get("login").asString()));
+    }
+
     @Override
     public boolean isValid() {
         var endpoints = request.get("")
@@ -153,14 +165,17 @@ public class GitHubHost implements Host {
 
     @Override
     public HostUserDetails getCurrentUserDetails() {
-        if (application != null) {
-            var appDetails = application.getAppDetails();
-            var appName = appDetails.get("name").asString() + "[bot]";
-            return getUserDetails(appName);
-        } else if (pat != null){
-            return getUserDetails(pat.userName());
-        } else {
-            throw new IllegalStateException("No credentials present");
+        if (currentUser == null) {
+            if (application != null) {
+                var appDetails = application.getAppDetails();
+                var appName = appDetails.get("name").asString() + "[bot]";
+                currentUser = getUserDetails(appName);
+            } else if (pat != null) {
+                currentUser = getUserDetails(pat.userName());
+            } else {
+                throw new IllegalStateException("No credentials present");
+            }
         }
+        return currentUser;
     }
 }
