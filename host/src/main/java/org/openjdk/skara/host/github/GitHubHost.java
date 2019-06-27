@@ -38,7 +38,7 @@ public class GitHubHost implements Host {
     private final GitHubApplication application;
     private final PersonalAccessToken pat;
     private final RestRequest request;
-    private final HostUserDetails currentUser;
+    private HostUserDetails currentUser;
 
     public GitHubHost(URI uri, GitHubApplication application, Pattern webUriPattern, String webUriReplacement) {
         this.uri = uri;
@@ -56,10 +56,6 @@ public class GitHubHost implements Host {
                 "Authorization", "token " + getInstallationToken(),
                 "Accept", "application/vnd.github.machine-man-preview+json",
                 "Accept", "application/vnd.github.antiope-preview+json"));
-
-        var appDetails = application.getAppDetails();
-        var appName = appDetails.get("name").asString() + "[bot]";
-        currentUser = getUserDetails(appName);
     }
 
     public GitHubHost(URI uri, PersonalAccessToken pat) {
@@ -76,7 +72,6 @@ public class GitHubHost implements Host {
 
         request = new RestRequest(baseApi, () -> Arrays.asList(
                 "Authorization", "token " + pat.token()));
-        currentUser = getUserDetails(pat.userName());
     }
 
     public GitHubHost(URI uri) {
@@ -92,7 +87,6 @@ public class GitHubHost implements Host {
                                 .build();
 
         request = new RestRequest(baseApi);
-        currentUser = null;
     }
 
     public URI getURI() {
@@ -172,7 +166,15 @@ public class GitHubHost implements Host {
     @Override
     public HostUserDetails getCurrentUserDetails() {
         if (currentUser == null) {
-            throw new IllegalStateException("No credentials present");
+            if (application != null) {
+                var appDetails = application.getAppDetails();
+                var appName = appDetails.get("name").asString() + "[bot]";
+                currentUser = getUserDetails(appName);
+            } else if (pat != null) {
+                currentUser = getUserDetails(pat.userName());
+            } else {
+                throw new IllegalStateException("No credentials present");
+            }
         }
         return currentUser;
     }

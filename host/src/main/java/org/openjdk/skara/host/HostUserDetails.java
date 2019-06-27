@@ -70,10 +70,9 @@ public class HostUserDetails {
     }
 
     public String fullName() {
-        if (name != null) {
-            return name;
+        if (name == null) {
+            name = nameSupplier.get();
         }
-        name = nameSupplier.get();
         return name;
     }
 
