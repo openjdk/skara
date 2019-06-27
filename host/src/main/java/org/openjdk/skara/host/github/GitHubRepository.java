@@ -84,10 +84,11 @@ public class GitHubRepository implements HostedRepository {
         }
 
         var upstream = (GitHubRepository) target;
-        var namespace = host().getCurrentUserDetails().userName();
+        var user = host().getCurrentUserDetails().userName();
+        var namespace = user.endsWith("[bot]") ? "" : user + ":";
         var pr = upstream.request.post("pulls")
                                  .body("title", title)
-                                 .body("head", namespace + ":" + sourceRef)
+                                 .body("head", namespace + sourceRef)
                                  .body("base", targetRef)
                                  .body("body", String.join("\n", body))
                                  .execute();
