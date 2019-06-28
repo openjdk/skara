@@ -237,6 +237,7 @@ public class JSONParser {
         var list = new ArrayList<JSONValue>();
 
         advance(); // step beyond opening '['
+        consumeWhitespace();
         expectMoreInput(error);
 
         while (current() != ']') {
@@ -267,6 +268,7 @@ public class JSONParser {
         var map = new HashMap<String, JSONValue>();
 
         advance(); // step beyond opening '{'
+        consumeWhitespace();
         expectMoreInput(error);
 
         while (current() != '}') {

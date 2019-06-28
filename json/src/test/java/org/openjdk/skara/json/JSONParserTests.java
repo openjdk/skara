@@ -486,4 +486,16 @@ public class JSONParserTests {
         var names = json.fields().stream().map(JSONObject.Field::name).collect(Collectors.toList());
         assertEquals(List.of("id", "type", "body"), names);
     }
+
+    @Test
+    public void testArrayWithWhitespace() {
+        var json = JSON.parse("{ \"foo\": [ ] }");
+        assertEquals(0, json.get("foo").asArray().size());
+    }
+
+    @Test
+    public void testObjectWithWhitespace() {
+        var json = JSON.parse("{ \"foo\": { } }");
+        assertEquals(0, json.get("foo").asObject().fields().size());
+    }
 }
