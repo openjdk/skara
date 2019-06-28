@@ -183,7 +183,7 @@ class VetoTests {
 
             // Place a veto
             var vetoPr = vetoer.getPullRequest(pr.getId());
-            vetoPr.addReview(Review.Verdict.APPROVED);
+            vetoPr.addReview(Review.Verdict.APPROVED, "Approved");
             vetoPr.addComment("/reject");
             TestBotRunner.runPeriodicItems(prBot);
 
@@ -253,7 +253,7 @@ class VetoTests {
 
             // Place a veto
             var vetoPr = vetoer.getPullRequest(pr.getId());
-            vetoPr.addReview(Review.Verdict.APPROVED);
+            vetoPr.addReview(Review.Verdict.APPROVED, "Approved");
             vetoPr.addComment("/reject");
             TestBotRunner.runPeriodicItems(prBot);
 

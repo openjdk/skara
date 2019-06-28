@@ -62,7 +62,7 @@ class SponsorTests {
 
             // Approve it as another user
             var approvalPr = reviewer.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Let the bot see it
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -253,7 +253,7 @@ class SponsorTests {
 
             // Approve it as another user
             var approvalPr = reviewer.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Let the bot see it
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -338,7 +338,7 @@ class SponsorTests {
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Push something unrelated to master
             localRepo.checkout(masterHash, true);

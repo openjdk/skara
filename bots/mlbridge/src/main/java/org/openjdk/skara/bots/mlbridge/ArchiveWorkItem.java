@@ -179,6 +179,39 @@ class ArchiveWorkItem implements WorkItem {
                 filterComments(body);
     }
 
+    private String verdictToString(Review.Verdict verdict) {
+        switch (verdict) {
+            case APPROVED:
+                return "changes are approved";
+            case DISAPPROVED:
+                return "more changes are needed";
+            case NONE:
+                return "a comment has been added";
+            default:
+                throw new RuntimeException("Unknown verdict: " + verdict);
+        }
+    }
+
+    private String composeReview(ZonedDateTime date, EmailAddress parentAuthor, String parentBody, Review review) {
+        var body = new StringBuilder();
+        var author = getAuthorAddress(review.reviewer());
+        body.append("This PR has been reviewed by ");
+        body.append(author.fullName().orElse(author.localPart()));
+        body.append(" - ");
+        body.append(verdictToString(review.verdict()));
+        body.append(".");
+        if (review.body().isPresent()) {
+            body.append(" Review comment:\n\n");
+            body.append(review.body().get());
+        }
+
+        return "On " + date.format(DateTimeFormatter.RFC_1123_DATE_TIME) + ", " + parentAuthor.toString() + " wrote:\n" +
+                "\n" +
+                quoteBody(parentBody) +
+                "\n\n" +
+                filterComments(body.toString());
+    }
+
     private String composeRebaseComment(Hash lastBase, PullRequestInstance prInstance, URI fullWebrev) {
         var commitMessages = prInstance.formatCommitMessages(prInstance.baseHash(), prInstance.headHash(), this::formatCommit);
         return "The pull request has been updated with a complete new set of changes (possibly due to a rebase).\n\n" +
@@ -215,41 +248,6 @@ class ArchiveWorkItem implements WorkItem {
     private String composeReadyForIntegrationComment() {
         return "This PR now fulfills all the requirements for integration, and is only awaiting the final " +
                 "integration command from the author.";
-    }
-
-    private String verdictToString(Review.Verdict verdict) {
-        switch (verdict) {
-            case APPROVED:
-                return "changes are approved";
-            case DISAPPROVED:
-                return "more changes needed";
-            case NONE:
-                return "comment added";
-            default:
-                throw new RuntimeException("Unknown verdict: " + verdict);
-        }
-    }
-
-    private String composeNewReviewVerdict(Review review) {
-        var ret = new StringBuilder();
-        var author = getAuthorAddress(review.reviewer);
-        ret.append("This PR has now been reviewed by ");
-        ret.append(author.fullName().orElse(author.localPart()));
-        ret.append(" - ");
-        ret.append(verdictToString(review.verdict));
-        ret.append(".");
-        return ret.toString();
-    }
-
-    private String composeUpdatedReviewVerdict(Review review) {
-        var ret = new StringBuilder();
-        var author = getAuthorAddress(review.reviewer);
-        ret.append("The PR reviewed by ");
-        ret.append(author.fullName().orElse(author.localPart()));
-        ret.append(" has now been updated - ");
-        ret.append(verdictToString(review.verdict));
-        ret.append(".");
-        return ret.toString();
     }
 
     private Repository materializeArchive(Path scratchPath) {
@@ -314,8 +312,8 @@ class ArchiveWorkItem implements WorkItem {
         return getUniqueMessageId("rw" + raw);
     }
 
-    private EmailAddress getMessageId(HostUserDetails reviewer, String verdict, int reviewCount) {
-        return getUniqueMessageId("vd" + reviewer.id() + ";" + verdict + ";" + reviewCount);
+    private EmailAddress getMessageId(Review review) {
+        return getUniqueMessageId("rv" + review.id());
     }
 
     private EmailAddress getAuthorAddress(HostUserDetails originalAuthor) {
@@ -350,6 +348,19 @@ class ArchiveWorkItem implements WorkItem {
                          .header("References", references)
                          .build();
         return email;
+    }
+
+    private Email review(Email parent, Review review) {
+        var body = composeReview(parent.date(), parent.author(), parent.body(), review);
+        var email = Email.create(getAuthorAddress(review.reviewer()), "Re: RFR: " + pr.getTitle(), body)
+                         .sender(bot.emailAddress())
+                         .recipient(parent.author())
+                         .id(getMessageId(review))
+                         .header("In-Reply-To", parent.id().toString())
+                         .header("References", parent.id().toString())
+                         .build();
+        return email;
+
     }
 
     private Email reviewComment(Email parent, ReviewComment comment) {
@@ -422,50 +433,6 @@ class ArchiveWorkItem implements WorkItem {
                          .header("PR-Labels", String.join(";", currentLabels))
                          .build();
         return email;
-    }
-
-    private Email reviewVerdictComment(Email parent, HostUserDetails reviewer, String verdict, int reviewCount, String body) {
-        var email = Email.create(getAuthorAddress(reviewer), "Re: RFR: " + pr.getTitle(), body)
-                         .sender(bot.emailAddress())
-                         .recipient(parent.author())
-                         .id(getMessageId(reviewer, verdict, reviewCount))
-                         .header("In-Reply-To", parent.id().toString())
-                         .header("References", parent.id().toString())
-                         .header("PR-Review-Verdict", reviewer.id() + ";" + verdict)
-                         .build();
-        return email;
-
-    }
-
-    private List<Email> getReviewVerdictMails(Email parent, List<Email> archiveMails) {
-        // Determine the latest reported reviews
-        var ret = new ArrayList<Email>();
-        var reportedReviews = archiveMails.stream()
-                                          .filter(email -> email.hasHeader("PR-Review-Verdict"))
-                                          .map(email -> email.headerValue("PR-Review-Verdict"))
-                                          .collect(Collectors.toMap(
-                                                  value -> value.substring(0, value.indexOf(";")),
-                                                  value -> value.substring(value.indexOf(";") + 1),
-                                                  (a, b) -> b)
-                                          );
-        var reviews = pr.getReviews();
-        var newReviews = reviews.stream()
-                                .filter(review -> !reportedReviews.containsKey(review.reviewer.id()))
-                                .collect(Collectors.toList());
-        var updatedReviews = reviews.stream()
-                                    .filter(review -> reportedReviews.containsKey(review.reviewer.id()))
-                                    .filter(review -> !reportedReviews.get(review.reviewer.id()).equals(review.verdict.toString()))
-                                    .collect(Collectors.toList());
-
-        for (var newReview : newReviews) {
-            var body = composeNewReviewVerdict(newReview);
-            ret.add(reviewVerdictComment(parent, newReview.reviewer, newReview.verdict.toString(), reportedReviews.size(), body));
-        }
-        for (var updatedReview : updatedReviews) {
-            var body = composeUpdatedReviewVerdict(updatedReview);
-            ret.add(reviewVerdictComment(parent, updatedReview.reviewer, updatedReview.verdict.toString(), reportedReviews.size(), body));
-        }
-        return ret;
     }
 
     private List<Email> parseArchive(MailingList archive) {
@@ -672,8 +639,26 @@ class ArchiveWorkItem implements WorkItem {
             previous = commentMail;
         }
 
-        // File specific comments
+        // Review comments
         final var first = archiveMails.size() > 0 ? archiveMails.get(0) : newMails.get(0);
+        var reviews = pr.getReviews();
+        for (var review : reviews) {
+            var id = getStableMessageId(getMessageId(review));
+            if (stableIdToMail.containsKey(id)) {
+                continue;
+            }
+            if (ignoreComment(review.reviewer(), review.body().orElse(""))) {
+                continue;
+            }
+
+            var commentMail = review(first, review);
+            archive.post(commentMail);
+            newMails.add(commentMail);
+            stableIdToMail.put(getStableMessageId(commentMail.id()), commentMail);
+        }
+
+
+        // File specific comments
         var reviewComments = pr.getReviewComments();
         for (var reviewComment : reviewComments) {
             var id = getStableMessageId(getMessageId(reviewComment));
@@ -689,14 +674,6 @@ class ArchiveWorkItem implements WorkItem {
             archive.post(commentMail);
             newMails.add(commentMail);
             stableIdToMail.put(getStableMessageId(commentMail.id()), commentMail);
-        }
-
-        // Review verdicts
-        var reviewVerdictMails = getReviewVerdictMails(first, archiveMails);
-        for (var reviewVerdictMail : reviewVerdictMails) {
-            archive.post(reviewVerdictMail);
-            newMails.add(reviewVerdictMail);
-            stableIdToMail.put(getStableMessageId(reviewVerdictMail.id()), reviewVerdictMail);
         }
 
         if (newMails.isEmpty()) {

@@ -60,7 +60,7 @@ class IntegrateTests {
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Attempt a merge (the bot should only process the first one)
             pr.addComment("/integrate");
@@ -118,8 +118,8 @@ class IntegrateTests {
             // Review it twice
             var integratorPr = integrator.getPullRequest(pr.getId());
             var committerPr = committer.getPullRequest(pr.getId());
-            integratorPr.addReview(Review.Verdict.APPROVED);
-            committerPr.addReview(Review.Verdict.APPROVED);
+            integratorPr.addReview(Review.Verdict.APPROVED, "Approved");
+            committerPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Attempt a merge
             pr.addComment("/integrate");
@@ -282,7 +282,7 @@ class IntegrateTests {
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Let the bot see it (a few times)
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -303,7 +303,7 @@ class IntegrateTests {
             assertEquals(0, error);
 
             // Drop the approval
-            approvalPr.addReview(Review.Verdict.DISAPPROVED);
+            approvalPr.addReview(Review.Verdict.DISAPPROVED, "Disapproved");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The instructional message should have been updated
@@ -313,7 +313,7 @@ class IntegrateTests {
             assertEquals(1, pushed);
 
             // Restore the approval
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The instructional message should have been updated
@@ -325,7 +325,7 @@ class IntegrateTests {
 
             // Approve it as yet another user
             var reviewerPr = reviewer.getPullRequest(pr.getId());
-            reviewerPr.addReview(Review.Verdict.APPROVED);
+            reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The instructional message should have been updated
@@ -399,7 +399,7 @@ class IntegrateTests {
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Push something unrelated to master
             localRepo.checkout(masterHash, true);

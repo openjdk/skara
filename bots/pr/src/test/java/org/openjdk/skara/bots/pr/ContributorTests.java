@@ -92,7 +92,7 @@ class ContributorTests {
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
 

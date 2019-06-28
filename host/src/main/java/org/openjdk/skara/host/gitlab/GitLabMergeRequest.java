@@ -91,25 +91,25 @@ public class GitLabMergeRequest implements PullRequest {
                       .filter(obj -> obj.get("name").asString().equals("thumbsup") ||
                                     obj.get("name").asString().equals("thumbsdown"))
                       .map(obj -> {
-                                var ret = new Review();
-                                ret.reviewer = repository.host().getUserDetails(obj.get("user").get("username").asString());
-                                ret.verdict = obj.get("name").asString().equals("thumbsup") ? Review.Verdict.APPROVED : Review.Verdict.DISAPPROVED;
+                                var reviewer = repository.host().getUserDetails(obj.get("user").get("username").asString());
+                                var verdict = obj.get("name").asString().equals("thumbsup") ? Review.Verdict.APPROVED : Review.Verdict.DISAPPROVED;
                                 var createdAt = ZonedDateTime.parse(obj.get("updated_at").asString());
 
                                 // Find the latest commit that isn't created after our review
-                                ret.hash = commits.get(0).hash;
+                                var hash = commits.get(0).hash;
                                 for (var cd : commits) {
                                     if (createdAt.isAfter(cd.date)) {
-                                        ret.hash = cd.hash;
+                                        hash = cd.hash;
                                     }
                                 }
-                                return ret;
+                                var id = obj.get("id").asInt();
+                                return new Review(reviewer, verdict, hash, id, null);
                             })
                       .collect(Collectors.toList());
     }
 
     @Override
-    public void addReview(Review.Verdict verdict) {
+    public void addReview(Review.Verdict verdict, String body) {
         // Remove any previous awards
         var awards = request.get("award_emoji").execute().stream()
                             .map(JSONValue::asObject)

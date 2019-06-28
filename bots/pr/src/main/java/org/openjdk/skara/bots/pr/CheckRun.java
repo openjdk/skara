@@ -38,7 +38,8 @@ class CheckRun {
     private final PullRequest pr;
     private final PullRequestInstance prInstance;
     private final List<Comment> comments;
-    private final List<Review> reviews;
+    private final List<Review> allReviews;
+    private final List<Review> activeReviews;
     private final Set<String> labels;
     private final CensusInstance censusInstance;
     private final Map<String, String> blockingLabels;
@@ -50,12 +51,14 @@ class CheckRun {
     private final Set<String> newLabels;
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, PullRequestInstance prInstance, List<Comment> comments,
-                     List<Review> reviews, Set<String> labels, CensusInstance censusInstance, Map<String, String> blockingLabels) {
+                     List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
+                     CensusInstance censusInstance, Map<String, String> blockingLabels) {
         this.workItem = workItem;
         this.pr = pr;
         this.prInstance = prInstance;
         this.comments = comments;
-        this.reviews = reviews;
+        this.allReviews = allReviews;
+        this.activeReviews = activeReviews;
         this.labels = new HashSet<>(labels);
         this.newLabels = new HashSet<>(labels);
         this.censusInstance = censusInstance;
@@ -63,8 +66,8 @@ class CheckRun {
     }
 
     static void execute(CheckWorkItem workItem, PullRequest pr, PullRequestInstance prInstance, List<Comment> comments,
-                        List<Review> reviews, Set<String> labels, CensusInstance censusInstance, Map<String, String> blockingLabels) {
-        var run = new CheckRun(workItem, pr, prInstance, comments, reviews, labels, censusInstance, blockingLabels);
+                        List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance, Map<String, String> blockingLabels) {
+        var run = new CheckRun(workItem, pr, prInstance, comments, allReviews, activeReviews, labels, censusInstance, blockingLabels);
         run.checkStatus();
     }
 
@@ -244,11 +247,11 @@ class CheckRun {
 
     private Optional<String> getReviewersList(List<Review> reviews) {
         var reviewers = reviews.stream()
-                               .filter(review -> review.verdict == Review.Verdict.APPROVED)
+                               .filter(review -> review.verdict() == Review.Verdict.APPROVED)
                                .map(review -> {
-                                   var entry = " * " + formatReviewer( review.reviewer);
-                                   if (!review.hash.equals(pr.getHeadHash())) {
-                                       entry += " **Note!** Review applies to " + review.hash;
+                                   var entry = " * " + formatReviewer(review.reviewer());
+                                   if (!review.hash().equals(pr.getHeadHash())) {
+                                       entry += " **Note!** Review applies to " + review.hash();
                                    }
                                    return entry;
                                })
@@ -311,15 +314,15 @@ class CheckRun {
         for (var added : reviewTracker.newReviews().entrySet()) {
             var body = added.getValue() + "\n" +
                     "This PR has been reviewed by " +
-                    formatReviewer(added.getKey().reviewer) + " - " +
-                    verdictToString(added.getKey().verdict) + ".";
+                    formatReviewer(added.getKey().reviewer()) + " - " +
+                    verdictToString(added.getKey().verdict()) + ".";
             pr.addComment(body);
         }
 
         for (var updated : reviewTracker.updatedReviews().entrySet()) {
             var body = updated.getValue() + "\n" +
-                    "The PR review by " + formatReviewer(updated.getKey().reviewer) +
-                    " has been updated - " + verdictToString(updated.getKey().verdict) + ".";
+                    "The PR review by " + formatReviewer(updated.getKey().reviewer()) +
+                    " has been updated - " + verdictToString(updated.getKey().verdict()) + ".";
             pr.addComment(body);
         }
 
@@ -396,8 +399,8 @@ class CheckRun {
             message.append("an existing [Committer](http://openjdk.java.net/bylaws#committer) must agree to ");
             message.append("[sponsor](http://openjdk.java.net/sponsor/) your change. ");
             var candidates = reviews.stream()
-                                    .filter(review -> ProjectPermissions.mayCommit(censusInstance, review.reviewer))
-                                    .map(review -> "@" + review.reviewer.userName())
+                                    .filter(review -> ProjectPermissions.mayCommit(censusInstance, review.reviewer()))
+                                    .map(review -> "@" + review.reviewer().userName())
                                     .collect(Collectors.joining(", "));
             if (candidates.length() > 0) {
                 message.append("Possible candidates are the reviewers of this PR (");
@@ -463,16 +466,16 @@ class CheckRun {
             var rebasePossible = prInstance.rebasePossible(localHash);
 
             // Calculate and update the status message if needed
-            var statusMessage = getStatusMessage(reviews, visitor);
+            var statusMessage = getStatusMessage(activeReviews, visitor);
             var updatedBody = updateStatusMessage(statusMessage);
 
             // Post / update approval messages
-            updateReviewedMessages(comments, reviews);
+            updateReviewedMessages(comments, allReviews);
 
             var commit = prInstance.localRepo().lookup(localHash).orElseThrow();
             var commitMessage = String.join("\n", commit.message());
             updateMergeReadyComment(checkBuilder.build().status() == CheckStatus.SUCCESS, commitMessage,
-                                    comments, reviews, rebasePossible);
+                                    comments, activeReviews, rebasePossible);
             if (checkBuilder.build().status() == CheckStatus.SUCCESS) {
                 newLabels.add("ready");
             } else {
@@ -485,12 +488,12 @@ class CheckRun {
             }
 
             // Calculate current metadata to avoid unnecessary future checks
-            var metadata = workItem.getMetadata(pr.getTitle(), updatedBody, pr.getComments(), reviews, newLabels, censusInstance, pr.getTargetHash());
+            var metadata = workItem.getMetadata(pr.getTitle(), updatedBody, pr.getComments(), activeReviews, newLabels, censusInstance, pr.getTargetHash());
             checkBuilder.metadata(metadata);
         } catch (Exception e) {
             log.throwing("CommitChecker", "checkStatus", e);
             newLabels.remove("ready");
-            var metadata = workItem.getMetadata(pr.getTitle(), pr.getBody(), pr.getComments(), reviews, newLabels, censusInstance, pr.getTargetHash());
+            var metadata = workItem.getMetadata(pr.getTitle(), pr.getBody(), pr.getComments(), activeReviews, newLabels, censusInstance, pr.getTargetHash());
             checkBuilder.metadata(metadata);
             checkBuilder.title("Exception occurred during jcheck");
             checkBuilder.summary(e.getMessage());

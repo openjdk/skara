@@ -105,23 +105,19 @@ public class TestPullRequest implements PullRequest {
     }
 
     @Override
-    public void addReview(Review.Verdict verdict) {
-        var reviewer = repository.host().getCurrentUserDetails();
-        var existing = data.reviews.stream()
-                .filter(review -> review.reviewer.equals(reviewer))
-                .findAny();
-        existing.ifPresent(data.reviews::remove);
-
-        var review = new Review();
-        review.reviewer = reviewer;
-        review.verdict = verdict;
+    public void addReview(Review.Verdict verdict, String body) {
         try {
-            review.hash = repository.localRepository().resolve(sourceRef).orElseThrow();
+            var review = new Review(repository.host().getCurrentUserDetails(),
+                                    verdict, repository.localRepository().resolve(sourceRef).orElseThrow(),
+                                    data.reviews.size(),
+                                    body);
+
+            data.reviews.add(review);
+            data.lastUpdate = ZonedDateTime.now();
+
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-        data.reviews.add(review);
-        data.lastUpdate = ZonedDateTime.now();
     }
 
     @Override

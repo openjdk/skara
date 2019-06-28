@@ -50,10 +50,24 @@ class PullRequestInstance {
         baseHash = localRepo.mergeBase(targetHash, headHash);
     }
 
-    private String commitMessage(Namespace namespace, boolean isMerge) throws IOException {
-        var reviewers = pr.getReviews().stream()
-                          .filter(review -> review.verdict == Review.Verdict.APPROVED)
-                          .map(review -> review.reviewer.id())
+    /**
+     * The Review list is in chronological order, the latest one from a particular reviewer is the
+     * one that is "active".
+     * @param allReviews
+     * @return
+     */
+    static List<Review> filterActiveReviews(List<Review> allReviews) {
+        var reviewPerUser = new LinkedHashMap<HostUserDetails, Review>();
+        for (var review : allReviews) {
+            reviewPerUser.put(review.reviewer(), review);
+        }
+        return new ArrayList<>(reviewPerUser.values());
+    }
+
+    private String commitMessage(List<Review> activeReviews, Namespace namespace, boolean isMerge) throws IOException {
+        var reviewers = activeReviews.stream()
+                          .filter(review -> review.verdict() == Review.Verdict.APPROVED)
+                          .map(review -> review.reviewer().id())
                           .map(namespace::get)
                           .filter(Objects::nonNull)
                           .map(Contributor::username)
@@ -70,7 +84,7 @@ class PullRequestInstance {
         return String.join("\n", commitMessage.format(CommitMessageFormatters.v1));
     }
 
-    private Hash commitSquashed(Namespace namespace, String censusDomain, String sponsorId) throws IOException {
+    private Hash commitSquashed(List<Review> activeReviews, Namespace namespace, String censusDomain, String sponsorId) throws IOException {
         localRepo.checkout(baseHash, true);
         localRepo.squash(headHash);
 
@@ -93,11 +107,11 @@ class PullRequestInstance {
             committer = author;
         }
 
-        var commitMessage = commitMessage(namespace, false);
+        var commitMessage = commitMessage(activeReviews, namespace, false);
         return localRepo.commit(commitMessage, author.name(), author.email(), committer.name(), committer.email());
     }
 
-    private Hash commitMerge(Namespace namespace, String censusDomain) throws IOException {
+    private Hash commitMerge(List<Review> activeReviews, Namespace namespace, String censusDomain) throws IOException {
         localRepo.checkout(headHash, true);
 
         var contributor = namespace.get(pr.getAuthor().id());
@@ -107,15 +121,16 @@ class PullRequestInstance {
 
         var author = new Author(contributor.fullName().orElseThrow(), contributor.username() + "@" + censusDomain);
 
-        var commitMessage = commitMessage(namespace, true);
+        var commitMessage = commitMessage(activeReviews, namespace, true);
         return localRepo.amend(commitMessage, author.name(), author.email(), author.name(), author.email());
     }
 
     Hash commit(Namespace namespace, String censusDomain, String sponsorId) throws IOException {
+        var activeReviews = filterActiveReviews(pr.getReviews());
         if (!pr.getTitle().startsWith("Merge")) {
-            return commitSquashed(namespace, censusDomain, sponsorId);
+            return commitSquashed(activeReviews, namespace, censusDomain, sponsorId);
         } else {
-            return commitMerge(namespace, censusDomain);
+            return commitMerge(activeReviews, namespace, censusDomain);
         }
     }
 

@@ -72,14 +72,14 @@ class ReviewTracker {
         // Find all reviews without a comment
         for (var review : reviews) {
             // Not notified yet
-            if (!reviewStates.containsKey(review.reviewer.id())) {
-                newComments.put(review, String.format(reviewMarker, review.verdict.ordinal(), review.reviewer.id(), review.reviewer.userName(), review.hash.hex()));
+            if (!reviewStates.containsKey(review.reviewer().id())) {
+                newComments.put(review, String.format(reviewMarker, review.verdict().ordinal(), review.reviewer().id(), review.reviewer().userName(), review.hash().hex()));
             } else {
-                var oldReview = reviewStates.get(review.reviewer.id());
-                if (review.verdict.ordinal() != oldReview.verdict) {
-                    updatedReviews.put(review, String.format(reviewMarker, review.verdict.ordinal(), review.reviewer.id(), review.reviewer.userName(), review.hash.hex()));
+                var oldReview = reviewStates.get(review.reviewer().id());
+                if (review.verdict().ordinal() != oldReview.verdict) {
+                    updatedReviews.put(review, String.format(reviewMarker, review.verdict().ordinal(), review.reviewer().id(), review.reviewer().userName(), review.hash().hex()));
                 }
-                reviewStates.remove(review.reviewer.id());
+                reviewStates.remove(review.reviewer().id());
             }
         }
 
