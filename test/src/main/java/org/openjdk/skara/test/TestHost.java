@@ -105,6 +105,11 @@ public class TestHost implements Host {
         return data.users.get(currentUser);
     }
 
+    @Override
+    public boolean supportsReviewBody() {
+        return true;
+    }
+
     void close() {
         if (currentUser == 0) {
             data.folders.forEach(TemporaryDirectory::close);

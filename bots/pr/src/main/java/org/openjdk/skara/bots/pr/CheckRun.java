@@ -454,8 +454,10 @@ class CheckRun {
             var statusMessage = getStatusMessage(activeReviews, visitor);
             var updatedBody = updateStatusMessage(statusMessage);
 
-            // Post / update approval messages
-            updateReviewedMessages(comments, allReviews);
+            // Post / update approval messages (only needed if the review itself can't contain a body)
+            if (!pr.repository().host().supportsReviewBody()) {
+                updateReviewedMessages(comments, allReviews);
+            }
 
             var commit = prInstance.localRepo().lookup(localHash).orElseThrow();
             var commitMessage = String.join("\n", commit.message());

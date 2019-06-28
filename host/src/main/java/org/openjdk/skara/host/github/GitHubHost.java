@@ -178,4 +178,9 @@ public class GitHubHost implements Host {
         }
         return currentUser;
     }
+
+    @Override
+    public boolean supportsReviewBody() {
+        return true;
+    }
 }

@@ -115,6 +115,12 @@ public class GitLabHost implements Host {
         return parseUserDetails(details);
     }
 
+    @Override
+    public boolean supportsReviewBody() {
+        // GitLab CE does not support this
+        return false;
+    }
+
     boolean isProjectForkComplete(String name) {
         var project = getProjectInfo(name);
         if (project.contains("import_status")) {
