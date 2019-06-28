@@ -50,7 +50,7 @@ public class ModulePlugin implements Plugin<Project> {
                     var compileJavaTask = (JavaCompile) task;
                     compileJavaTask.doFirst(t -> {
                         var classpath = compileJavaTask.getClasspath().getAsPath();
-                        compileJavaTask.getOptions().setCompilerArgs(List.of("--module-path", classpath));
+                        compileJavaTask.getOptions().getCompilerArgs().addAll(List.of("--module-path", classpath));
                         compileJavaTask.setClasspath(project.files());
                     });
                 }
