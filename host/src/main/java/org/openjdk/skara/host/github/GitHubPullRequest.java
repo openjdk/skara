@@ -65,41 +65,34 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public List<Review> getReviews() {
-        // Reviews are returned in chronological order, we only care about the latest
         var reviews = request.get("pulls/" + json.get("number").toString() + "/reviews").execute().stream()
                              .map(JSONValue::asObject)
+                             .filter(obj -> !(obj.get("state").asString().equals("COMMENTED") && obj.get("body").asString().isEmpty()))
                              .map(obj -> {
-                                 var ret = new Review();
-                                 ret.reviewer = host.parseUserDetails(obj);
-                                 ret.hash = new Hash(obj.get("commit_id").asString());
+                                 var reviewer = host.parseUserDetails(obj);
+                                 var hash = new Hash(obj.get("commit_id").asString());
+                                 Review.Verdict verdict;
                                  switch (obj.get("state").asString()) {
                                      case "APPROVED":
-                                         ret.verdict = Review.Verdict.APPROVED;
+                                         verdict = Review.Verdict.APPROVED;
                                          break;
-                                     case "REQUEST_CHANGES":
-                                         ret.verdict = Review.Verdict.DISAPPROVED;
+                                     case "CHANGES_REQUESTED":
+                                         verdict = Review.Verdict.DISAPPROVED;
                                          break;
                                      default:
-                                         ret.verdict = Review.Verdict.NONE;
+                                         verdict = Review.Verdict.NONE;
                                          break;
                                  }
-                                 return ret;
+                                 var id = obj.get("id").asInt();
+                                 var body = obj.get("body").asString();
+                                 return new Review(reviewer, verdict, hash, id, body);
                              })
                              .collect(Collectors.toList());
-
-        var reviewMap = new HashMap<String, Review>();
-        for (var review : reviews) {
-            reviewMap.put(review.reviewer.id(), review);
-        }
-
-        return reviewMap.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .map(Map.Entry::getValue)
-                .collect(Collectors.toList());
+        return reviews;
     }
 
     @Override
-    public void addReview(Review.Verdict verdict) {
+    public void addReview(Review.Verdict verdict, String body) {
         var query = JSON.object();
         switch (verdict) {
             case APPROVED:
@@ -107,13 +100,12 @@ public class GitHubPullRequest implements PullRequest {
                 break;
             case DISAPPROVED:
                 query.put("event", "REQUEST_CHANGES");
-                query.put("body", "Disapproved by API function setApproval");
                 break;
             case NONE:
                 query.put("event", "COMMENT");
-                query.put("body", "Review comment by API function setApproval");
                 break;
         }
+        query.put("body", body);
         request.post("pulls/" + json.get("number").toString() + "/reviews")
                .body(query)
                .execute();

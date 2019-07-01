@@ -45,7 +45,7 @@ public interface PullRequest {
     HostUserDetails getAuthor();
 
     /**
-     * List of reviews.
+     * List of reviews, in descending chronological order.
      * @return
      */
     List<Review> getReviews();
@@ -53,7 +53,7 @@ public interface PullRequest {
     /**
      * Adds a review with the given verdict.
      */
-    void addReview(Review.Verdict verdict);
+    void addReview(Review.Verdict verdict, String body);
 
     /**
      * Add a file specific comment.

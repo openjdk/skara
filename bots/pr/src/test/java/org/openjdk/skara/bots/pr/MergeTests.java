@@ -79,7 +79,7 @@ class MergeTests {
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Let the bot check the status
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -158,7 +158,7 @@ class MergeTests {
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Let the bot check the status
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -244,7 +244,7 @@ class MergeTests {
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Let the bot check the status
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -299,7 +299,7 @@ class MergeTests {
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Let the bot check the status
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -357,7 +357,7 @@ class MergeTests {
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Let the bot check the status
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -420,7 +420,7 @@ class MergeTests {
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Let the bot check the status
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -478,7 +478,7 @@ class MergeTests {
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Let the bot check the status
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -550,7 +550,7 @@ class MergeTests {
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Let the bot check the status
             TestBotRunner.runPeriodicItems(mergeBot);

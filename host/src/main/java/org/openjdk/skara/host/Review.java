@@ -24,10 +24,42 @@ package org.openjdk.skara.host;
 
 import org.openjdk.skara.vcs.Hash;
 
+import java.util.Optional;
+
 public class Review {
-    public HostUserDetails reviewer;
-    public Verdict verdict;
-    public Hash hash;
+    private final HostUserDetails reviewer;
+    private final Verdict verdict;
+    private final Hash hash;
+    private final int id;
+    private final String body;
+
+    public Review(HostUserDetails reviewer, Verdict verdict, Hash hash, int id, String body) {
+        this.reviewer = reviewer;
+        this.verdict = verdict;
+        this.hash = hash;
+        this.id = id;
+        this.body = body;
+    }
+
+    public HostUserDetails reviewer() {
+        return reviewer;
+    }
+
+    public Verdict verdict() {
+        return verdict;
+    }
+
+    public Hash hash() {
+        return hash;
+    }
+
+    public int id() {
+        return id;
+    }
+
+    public Optional<String> body() {
+        return Optional.ofNullable(body);
+    }
 
     public enum Verdict {
         NONE,

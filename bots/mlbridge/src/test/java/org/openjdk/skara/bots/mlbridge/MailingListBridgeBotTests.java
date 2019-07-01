@@ -497,6 +497,16 @@ class MailingListBridgeBotTests {
             var nextHash = CheckableRepository.appendAndCommit(localRepo, "Yet one more line", "Fixing");
             localRepo.push(nextHash, author.getUrl(), "edit");
 
+            // Make sure that the push registered
+            var lastHeadHash = pr.getHeadHash();
+            var refreshCount = 0;
+            do {
+                pr = author.getPullRequest(pr.getId());
+                if (refreshCount++ > 100) {
+                    fail("The PR did not update after the new push");
+                }
+            } while (pr.getHeadHash().equals(lastHeadHash));
+
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
             TestBotRunner.runPeriodicItems(mlBot);
@@ -536,6 +546,17 @@ class MailingListBridgeBotTests {
             for (int i = 0; i < 3; ++i) {
                 var anotherHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "Fixing");
                 localRepo.push(anotherHash, author.getUrl(), "edit");
+
+                // Make sure that the push registered
+                lastHeadHash = pr.getHeadHash();
+                refreshCount = 0;
+                do {
+                    pr = author.getPullRequest(pr.getId());
+                    if (refreshCount++ > 100) {
+                        fail("The PR did not update after the new push");
+                    }
+                } while (pr.getHeadHash().equals(lastHeadHash));
+
                 TestBotRunner.runPeriodicItems(mlBot);
                 TestBotRunner.runPeriodicItems(mlBot);
                 listServer.processIncoming();
@@ -585,6 +606,16 @@ class MailingListBridgeBotTests {
             var newLocalRepo = Repository.materialize(tempFolder.path().resolve("second"), author.getUrl(), "master");
             var newEditHash = CheckableRepository.appendAndCommit(newLocalRepo, "Another line", "Replaced msg");
             newLocalRepo.push(newEditHash, author.getUrl(), "edit", true);
+
+            // Make sure that the push registered
+            var lastHeadHash = pr.getHeadHash();
+            var refreshCount = 0;
+            do {
+                pr = author.getPullRequest(pr.getId());
+                if (refreshCount++ > 100) {
+                    fail("The PR did not update after the new push");
+                }
+            } while (pr.getHeadHash().equals(lastHeadHash));
 
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
@@ -725,34 +756,35 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
 
             // First unapprove it
-            pr.addReview(Review.Verdict.DISAPPROVED);
+            var reviewedPr = credentials.getHostedRepository().getPullRequest(pr.getId());
+            reviewedPr.addReview(Review.Verdict.DISAPPROVED, "Reason 1");
             TestBotRunner.runPeriodicItems(mlBot);
             TestBotRunner.runPeriodicItems(mlBot);
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should contain a note
             Repository.materialize(archiveFolder.path(), archive.getUrl(), "master");
-            assertEquals(1, archiveContainsCount(archiveFolder.path(), "This PR has now been reviewed.*more changes needed"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "This PR has been reviewed.*more changes are needed"));
 
             // Then approve it
-            pr.addReview(Review.Verdict.APPROVED);
+            reviewedPr.addReview(Review.Verdict.APPROVED, "Reason 2");
             TestBotRunner.runPeriodicItems(mlBot);
             TestBotRunner.runPeriodicItems(mlBot);
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should contain another note
             Repository.materialize(archiveFolder.path(), archive.getUrl(), "master");
-            assertEquals(1, archiveContainsCount(archiveFolder.path(), "The PR reviewed by.*has now been updated.*approved"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "This PR.*approved"));
 
             // Yet another change
-            pr.addReview(Review.Verdict.DISAPPROVED);
+            reviewedPr.addReview(Review.Verdict.DISAPPROVED, "Reason 3");
             TestBotRunner.runPeriodicItems(mlBot);
             TestBotRunner.runPeriodicItems(mlBot);
             TestBotRunner.runPeriodicItems(mlBot);
 
             // The archive should contain another note
             Repository.materialize(archiveFolder.path(), archive.getUrl(), "master");
-            assertEquals(1, archiveContainsCount(archiveFolder.path(), "The PR reviewed by.*has now been updated.*more changes"));
+            assertEquals(2, archiveContainsCount(archiveFolder.path(), "This PR.*more changes"));
         }
     }
 }

@@ -71,7 +71,7 @@ class CheckTests {
 
             // Approve it as another user
             var approvalPr = reviewer.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
@@ -119,7 +119,7 @@ class CheckTests {
 
             // Approve it as another user
             var approvalPr = reviewer.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
@@ -193,7 +193,7 @@ class CheckTests {
 
             // Approve it
             var reviewerPr = reviewer.getPullRequest(authorPr.getId());
-            reviewerPr.addReview(Review.Verdict.APPROVED);
+            reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Refresh the PR and check that it has been approved
@@ -220,26 +220,26 @@ class CheckTests {
             assertTrue(authorPr.getBody().contains("Note"));
 
             // Now we can approve it again
-            reviewerPr.addReview(Review.Verdict.APPROVED);
+            reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Refresh the PR and check that it has been approved (once) and is no longer stale
             authorPr = author.getPullRequest(authorPr.getId());
             assertTrue(authorPr.getBody().contains("Approvers"));
             assertEquals(1, authorPr.getBody().split("Generated Reviewer", -1).length - 1);
-            assertEquals(1, authorPr.getReviews().size());
+            assertTrue(authorPr.getReviews().size() >= 1);
             assertFalse(authorPr.getBody().contains("Note"));
 
             // Add a review with disapproval
             var commenterPr = commenter.getPullRequest(authorPr.getId());
-            commenterPr.addReview(Review.Verdict.DISAPPROVED);
+            commenterPr.addReview(Review.Verdict.DISAPPROVED, "Disapproved");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Refresh the PR and check that it still only approved once (but two reviews) and is no longer stale
             authorPr = author.getPullRequest(authorPr.getId());
             assertTrue(authorPr.getBody().contains("Approvers"));
             assertEquals(1, authorPr.getBody().split("Generated Reviewer", -1).length - 1);
-            assertEquals(2, authorPr.getReviews().size());
+            assertTrue(authorPr.getReviews().size() >= 2);
             assertFalse(authorPr.getBody().contains("Note"));
         }
     }
@@ -279,7 +279,7 @@ class CheckTests {
 
             // Approve it as another user
             var approvalPr = reviewer.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
@@ -332,7 +332,7 @@ class CheckTests {
 
             // Approve it as another user
             var approvalPr = reviewer.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
@@ -393,38 +393,40 @@ class CheckTests {
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
+            var comments = pr.getComments();
+            var commentCount = comments.size();
 
             // Approve it as another user
             var approvalPr = reviewer.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
 
-            // There should now be a comment
-            var comments = pr.getComments();
-            assertEquals(2, comments.size());
-            var comment = comments.get(0);
+            // There should now be two additional comments
+            comments = pr.getComments();
+            assertEquals(commentCount + 2, comments.size());
+            var comment = comments.get(commentCount);
             assertTrue(comment.body().contains(reviewer.host().getCurrentUserDetails().userName()));
             assertTrue(comment.body().contains("approved"));
 
             // Drop the review
-            approvalPr.addReview(Review.Verdict.NONE);
+            approvalPr.addReview(Review.Verdict.NONE, "Unreviewed");
 
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
 
             // There should now be yet another comment
             comments = pr.getComments();
-            assertEquals(3, comments.size());
-            comment = comments.get(2);
+            assertEquals(commentCount + 3, comments.size());
+            comment = comments.get(commentCount + 2);
             assertTrue(comment.body().contains(reviewer.host().getCurrentUserDetails().userName()));
             assertTrue(comment.body().contains("comment"));
 
             // No changes should not generate additional comments
             TestBotRunner.runPeriodicItems(checkBot);
             comments = pr.getComments();
-            assertEquals(3, comments.size());
+            assertEquals(commentCount + 3, comments.size());
         }
     }
 
@@ -454,7 +456,7 @@ class CheckTests {
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Get all messages up to date
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -505,7 +507,7 @@ class CheckTests {
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
-            approvalPr.addReview(Review.Verdict.APPROVED);
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Get all messages up to date
             TestBotRunner.runPeriodicItems(mergeBot);

@@ -72,8 +72,8 @@ class CheckWorkItem implements WorkItem {
                        CensusInstance censusInstance, Hash target) {
         try {
             var approverString = reviews.stream()
-                                        .filter(review -> review.verdict == Review.Verdict.APPROVED)
-                                        .map(review -> encodeReviewer(review.reviewer, censusInstance) + review.hash.hex())
+                                        .filter(review -> review.verdict() == Review.Verdict.APPROVED)
+                                        .map(review -> encodeReviewer(review.reviewer(), censusInstance) + review.hash().hex())
                                         .sorted()
                                         .collect(Collectors.joining());
             var commentString = comments.stream()
@@ -156,13 +156,15 @@ class CheckWorkItem implements WorkItem {
         // First determine if the current state of the PR has already been checked
         var census = CensusInstance.create(censusRepo, censusRef, scratchPath.resolve("census"), pr);
         var comments = pr.getComments();
-        var reviews = pr.getReviews();
-        var labels = new HashSet(pr.getLabels());
+        var allReviews = pr.getReviews();
+        var labels = new HashSet<>(pr.getLabels());
 
-        if (!currentCheckValid(census, comments, reviews, labels)) {
+        // Filter out the active reviews
+        var activeReviews = PullRequestInstance.filterActiveReviews(allReviews);
+        if (!currentCheckValid(census, comments, activeReviews, labels)) {
             try {
                 var prInstance = new PullRequestInstance(scratchPath.resolve("pr"), pr);
-                CheckRun.execute(this, pr, prInstance, comments, reviews, labels, census, blockingLabels);
+                CheckRun.execute(this, pr, prInstance, comments, allReviews, activeReviews, labels, census, blockingLabels);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

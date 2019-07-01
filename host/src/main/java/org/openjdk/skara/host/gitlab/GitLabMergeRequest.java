@@ -89,32 +89,46 @@ public class GitLabMergeRequest implements PullRequest {
         return request.get("award_emoji").execute().stream()
                       .map(JSONValue::asObject)
                       .filter(obj -> obj.get("name").asString().equals("thumbsup") ||
-                                    obj.get("name").asString().equals("thumbsdown"))
+                              obj.get("name").asString().equals("thumbsdown") ||
+                              obj.get("name").asString().equals("question"))
                       .map(obj -> {
-                                var ret = new Review();
-                                ret.reviewer = repository.host().getUserDetails(obj.get("user").get("username").asString());
-                                ret.verdict = obj.get("name").asString().equals("thumbsup") ? Review.Verdict.APPROVED : Review.Verdict.DISAPPROVED;
-                                var createdAt = ZonedDateTime.parse(obj.get("updated_at").asString());
+                          var reviewer = repository.host().getUserDetails(obj.get("user").get("username").asString());
+                          Review.Verdict verdict;
+                          switch (obj.get("name").asString()) {
+                              case "thumbsup":
+                                  verdict = Review.Verdict.APPROVED;
+                                  break;
+                              case "thumbsdown":
+                                  verdict = Review.Verdict.DISAPPROVED;
+                                  break;
+                              default:
+                                  verdict = Review.Verdict.NONE;
+                                  break;
+                          }
 
-                                // Find the latest commit that isn't created after our review
-                                ret.hash = commits.get(0).hash;
-                                for (var cd : commits) {
-                                    if (createdAt.isAfter(cd.date)) {
-                                        ret.hash = cd.hash;
-                                    }
-                                }
-                                return ret;
-                            })
+                          var createdAt = ZonedDateTime.parse(obj.get("updated_at").asString());
+
+                          // Find the latest commit that isn't created after our review
+                          var hash = commits.get(0).hash;
+                          for (var cd : commits) {
+                              if (createdAt.isAfter(cd.date)) {
+                                  hash = cd.hash;
+                              }
+                          }
+                          var id = obj.get("id").asInt();
+                          return new Review(reviewer, verdict, hash, id, null);
+                      })
                       .collect(Collectors.toList());
     }
 
     @Override
-    public void addReview(Review.Verdict verdict) {
+    public void addReview(Review.Verdict verdict, String body) {
         // Remove any previous awards
         var awards = request.get("award_emoji").execute().stream()
                             .map(JSONValue::asObject)
                             .filter(obj -> obj.get("name").asString().equals("thumbsup") ||
-                                    obj.get("name").asString().equals("thumbsdown"))
+                                    obj.get("name").asString().equals("thumbsdown") ||
+                                    obj.get("name").asString().equals("question"))
                             .filter(obj -> obj.get("user").get("username").asString().equals(repository.host().getCurrentUserDetails().userName()))
                             .map(obj -> obj.get("id").toString())
                             .collect(Collectors.toList());
@@ -131,8 +145,8 @@ public class GitLabMergeRequest implements PullRequest {
                 award = "thumbsdown";
                 break;
             default:
-                // No action
-                return;
+                award = "question";
+                break;
         }
         request.post("award_emoji")
                .body("name", award)
@@ -323,7 +337,6 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public Map<String, Check> getChecks(Hash hash) {
-
         var pattern = Pattern.compile(String.format(checkResultPattern, hash.hex()));
         var matchers = getComments().stream()
                 .collect(Collectors.toMap(comment -> comment,
@@ -341,6 +354,7 @@ public class GitLabMergeRequest implements PullRequest {
                             if (!entry.getValue().group(3).equals("NONE")) {
                                 checkBuilder.metadata(new String(Base64.getDecoder().decode(entry.getValue().group(3)), StandardCharsets.UTF_8));
                             }
+                            checkBuilder.summary(entry.getKey().body());
                             return checkBuilder.build();
                         }));
     }
