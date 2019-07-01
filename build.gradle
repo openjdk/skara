@@ -51,6 +51,11 @@ configure(subprojects.findAll() { it.name != 'bots' }) {
     test {
         useJUnitPlatform()
 
+        if (findProperty('credentials')) {
+            systemProperty "credentials", findProperty('credentials')
+            systemProperties(System.getProperties())
+        }
+
         testLogging {
             events "passed", "skipped", "failed"
         }
