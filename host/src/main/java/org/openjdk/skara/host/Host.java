@@ -29,6 +29,7 @@ public interface Host {
     HostedRepository getRepository(String name);
     HostUserDetails getUserDetails(String username);
     HostUserDetails getCurrentUserDetails();
+    boolean supportsReviewBody();
 
     static Host from(URI uri, PersonalAccessToken pat) {
         return HostFactory.createFromURI(uri, pat);
