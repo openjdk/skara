@@ -25,22 +25,23 @@ package org.openjdk.skara.test;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.host.network.URIBuilder;
 import org.openjdk.skara.json.*;
+import org.openjdk.skara.vcs.*;
 
 import org.junit.jupiter.api.TestInfo;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.time.Duration;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.logging.Logger;
 
 public class HostCredentials implements AutoCloseable {
     private final String testName;
     private final Credentials credentials;
-    private final Path credentialsLock;
     private final List<PullRequest> pullRequestsToBeClosed = new ArrayList<>();
-    private boolean hasCredentialsLock;
+    private HostedRepository credentialsLock;
     private int nextHostIndex;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.test");
@@ -175,10 +176,7 @@ public class HostCredentials implements AutoCloseable {
         // If no credentials have been specified, use the test host implementation
         if (credentialsFile == null) {
             credentials = new TestCredentials();
-            credentialsLock = null;
         } else {
-            credentialsLock = Path.of(credentialsFile + ".lock");
-
             var credentialsPath = Paths.get(credentialsFile);
             var credentialsData = Files.readAllBytes(credentialsPath);
             var credentialsJson = JSON.parse(new String(credentialsData, StandardCharsets.UTF_8));
@@ -186,32 +184,70 @@ public class HostCredentials implements AutoCloseable {
         }
     }
 
-    public HostedRepository getHostedRepository() {
-        if (credentialsLock != null && !hasCredentialsLock) {
-            var tmpLock = Path.of(credentialsLock + "." + testName + ".tmp");
+    private boolean getLock(HostedRepository repo) throws IOException {
+        try (var tempFolder = new TemporaryDirectory()) {
+            var repoFolder = tempFolder.path().resolve("lock");
+            var lockFile = repoFolder.resolve("lock.txt");
+            Repository localRepo;
             try {
-                Files.writeString(tmpLock, testName);
+                localRepo = Repository.materialize(repoFolder, repo.getUrl(), "testlock");
             } catch (IOException e) {
-                throw new UncheckedIOException(e);
+                // If the branch does not exist, we'll try to create it
+                localRepo = Repository.init(repoFolder, VCS.GIT);
             }
 
-            while (!hasCredentialsLock) {
+            if (Files.exists(lockFile)) {
+                var currentLock = Files.readString(lockFile, StandardCharsets.UTF_8);
+                var lockTime = ZonedDateTime.parse(currentLock, DateTimeFormatter.ISO_DATE_TIME);
+                if (lockTime.isBefore(ZonedDateTime.now().minus(Duration.ofMinutes(10)))) {
+                    log.info("Stale lock encountered - overwriting it");
+                } else {
+                    log.info("Active lock encountered - waiting");
+                    return false;
+                }
+            }
+
+            // The lock either doesn't exist or is stale, try to grab it
+            Files.writeString(lockFile, ZonedDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), StandardCharsets.UTF_8);
+            localRepo.add(lockFile);
+            var lockHash = localRepo.commit("Lock", "test", "test@test.test");
+            localRepo.push(lockHash, repo.getUrl(), "testlock");
+            log.info("Obtained credentials lock");
+
+            // If no exception occurs, we have obtained the lock
+            return true;
+        }
+    }
+
+    private void releaseLock(HostedRepository repo) throws IOException {
+        try (var tempFolder = new TemporaryDirectory()) {
+            var repoFolder = tempFolder.path().resolve("lock");
+            var lockFile = repoFolder.resolve("lock.txt");
+            Repository localRepo;
+            localRepo = Repository.materialize(repoFolder, repo.getUrl(), "testlock");
+            localRepo.remove(lockFile);
+            var lockHash = localRepo.commit("Lock", "test", "test@test.test");
+            localRepo.push(lockHash, repo.getUrl(), "testlock");
+        }
+    }
+
+    public HostedRepository getHostedRepository() {
+        var host = getHost();
+        var repo = credentials.getHostedRepository(host);
+
+        while (credentialsLock == null) {
+            try {
+                if (getLock(repo)) {
+                    credentialsLock = repo;
+                }
+            } catch (IOException e) {
                 try {
-                    Files.move(tmpLock, credentialsLock);
-                    log.info("Obtained credentials lock for " + testName);
-                    hasCredentialsLock = true;
-                } catch (IOException e) {
-                    log.fine("Failed to obtain credentials lock for " + testName + ", waiting...");
-                    try {
-                        Thread.sleep(Duration.ofSeconds(1).toMillis());
-                    } catch (InterruptedException ignored) {
-                    }
+                    Thread.sleep(Duration.ofSeconds(1).toMillis());
+                } catch (InterruptedException ignored) {
                 }
             }
         }
-
-        var host = getHost();
-        return credentials.getHostedRepository(host);
+        return repo;
     }
 
     public PullRequest createPullRequest(HostedRepository hostedRepository, String targetRef, String sourceRef, String title) {
@@ -229,14 +265,14 @@ public class HostCredentials implements AutoCloseable {
         for (var pr : pullRequestsToBeClosed) {
             pr.setState(PullRequest.State.CLOSED);
         }
-        if (credentialsLock != null && hasCredentialsLock) {
+        if (credentialsLock != null) {
             try {
-                Files.delete(credentialsLock);
+                releaseLock(credentialsLock);
                 log.info("Released credentials lock for " + testName);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
-            hasCredentialsLock = false;
+            credentialsLock = null;
         }
 
         credentials.close();
