@@ -765,7 +765,6 @@ class MailingListBridgeBotTests {
             // The archive should contain a note
             Repository.materialize(archiveFolder.path(), archive.getUrl(), "master");
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "This PR has been reviewed.*more changes are needed"));
-            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 1"));
 
             // Then approve it
             reviewedPr.addReview(Review.Verdict.APPROVED, "Reason 2");
@@ -776,7 +775,6 @@ class MailingListBridgeBotTests {
             // The archive should contain another note
             Repository.materialize(archiveFolder.path(), archive.getUrl(), "master");
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "This PR.*approved"));
-            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 2"));
 
             // Yet another change
             reviewedPr.addReview(Review.Verdict.DISAPPROVED, "Reason 3");
@@ -787,7 +785,6 @@ class MailingListBridgeBotTests {
             // The archive should contain another note
             Repository.materialize(archiveFolder.path(), archive.getUrl(), "master");
             assertEquals(2, archiveContainsCount(archiveFolder.path(), "This PR.*more changes"));
-            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 3"));
         }
     }
 }

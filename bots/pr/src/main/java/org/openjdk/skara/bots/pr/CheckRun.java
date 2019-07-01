@@ -318,21 +318,6 @@ class CheckRun {
                     verdictToString(added.getKey().verdict()) + ".";
             pr.addComment(body);
         }
-
-        for (var updated : reviewTracker.updatedReviews().entrySet()) {
-            var body = updated.getValue() + "\n" +
-                    "The PR review by " + formatReviewer(updated.getKey().reviewer()) +
-                    " has been updated - " + verdictToString(updated.getKey().verdict()) + ".";
-            pr.addComment(body);
-        }
-
-        for (var removed : reviewTracker.removedReviews().entrySet()) {
-            var user = pr.repository().host().getUserDetails(removed.getKey());
-            var body = removed.getValue() + "\n" +
-                    "This PR is no longer reviewed by " +
-                    formatReviewer(user) + ".";
-            pr.addComment(body);
-        }
     }
 
     private Optional<Comment> findComment(List<Comment> comments, String marker) {
