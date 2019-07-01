@@ -214,7 +214,7 @@ public class HostCredentials implements AutoCloseable {
             localRepo.push(lockHash, repo.getUrl(), "testlock");
             log.info("Obtained credentials lock");
 
-            // If no exception occurs, we have obtained the lock
+            // If no exception occurs (such as the push fails), we have obtained the lock
             return true;
         }
     }
@@ -226,7 +226,7 @@ public class HostCredentials implements AutoCloseable {
             Repository localRepo;
             localRepo = Repository.materialize(repoFolder, repo.getUrl(), "testlock");
             localRepo.remove(lockFile);
-            var lockHash = localRepo.commit("Lock", "test", "test@test.test");
+            var lockHash = localRepo.commit("Unlock", "test", "test@test.test");
             localRepo.push(lockHash, repo.getUrl(), "testlock");
         }
     }
