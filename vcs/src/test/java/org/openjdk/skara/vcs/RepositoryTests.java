@@ -30,6 +30,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.*;
+import java.nio.file.attribute.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -1398,6 +1399,35 @@ public class RepositoryTests {
 
             Files.write(readme, List.of("Hello, world!"));
             assertTrue(r.isClean());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testShowOnExecutableFiles(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.isClean());
+
+            var readOnlyExecutableFile = dir.path().resolve("hello.sh");
+            Files.write(readOnlyExecutableFile, List.of("echo 'hello'"));
+            if (readOnlyExecutableFile.getFileSystem().supportedFileAttributeViews().contains("posix")) {
+                var permissions = PosixFilePermissions.fromString("r-xr-xr-x");
+                Files.setPosixFilePermissions(readOnlyExecutableFile, permissions);
+            }
+            r.add(readOnlyExecutableFile);
+            var hash = r.commit("Added read only executable file", "duke", "duke@openjdk.java.net");
+            assertEquals(Optional.of(List.of("echo 'hello'")), r.lines(readOnlyExecutableFile, hash));
+
+            var readWriteExecutableFile = dir.path().resolve("goodbye.sh");
+            Files.write(readWriteExecutableFile, List.of("echo 'goodbye'"));
+            if (readOnlyExecutableFile.getFileSystem().supportedFileAttributeViews().contains("posix")) {
+                var permissions = PosixFilePermissions.fromString("rwxrwxrwx");
+                Files.setPosixFilePermissions(readWriteExecutableFile, permissions);
+            }
+            r.add(readWriteExecutableFile);
+            var hash2 = r.commit("Added read-write executable file", "duke", "duke@openjdk.java.net");
+            assertEquals(Optional.of(List.of("echo 'goodbye'")), r.lines(readWriteExecutableFile, hash2));
         }
     }
 }

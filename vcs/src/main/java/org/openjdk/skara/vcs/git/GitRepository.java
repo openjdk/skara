@@ -629,11 +629,12 @@ public class GitRepository implements Repository {
         }
 
         var parts = entry.split(" ");
-        if (parts[0].equals("160000")) {
+        var mode = parts[0];
+        if (mode.equals("160000")) {
             // submodule
             var hashAndName = parts[2].split("\t");
             return Optional.of(("Subproject commit " + hashAndName[0]).getBytes(StandardCharsets.UTF_8));
-        } else if (parts[0].equals("100644")) {
+        } else if (mode.equals("100644") || mode.equals("100755")) {
             // blob
             var blobAndName = parts[2].split("\t");
             var blob = blobAndName[0];

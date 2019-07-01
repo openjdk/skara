@@ -43,17 +43,30 @@ class ModifiedFileView implements FileView {
         this.navigation = navigation;
         if (patch.isTextual()) {
             binaryContent = null;
-            oldContent = repo.lines(patch.source().path().get(), base).orElseThrow(IllegalArgumentException::new);
+            oldContent = repo.lines(patch.source().path().get(), base).orElseThrow(() -> {
+                throw new IllegalArgumentException("Could not get content for file " +
+                                                   patch.source().path().get() +
+                                                   " at revision " + base);
+            });
             if (head == null) {
                 var path = repo.root().resolve(patch.target().path().get());
                 if (patch.target().type().get().isVCSLink()) {
-                    var content = repo.lines(patch.target().path().get(), repo.head()).orElseThrow(IllegalArgumentException::new);
+                    var tip = repo.head();
+                    var content = repo.lines(patch.target().path().get(), tip).orElseThrow(() -> {
+                        throw new IllegalArgumentException("Could not get content for file " +
+                                                           patch.target().path().get() +
+                                                           " at revision " + tip);
+                    });
                     newContent = List.of(content.get(0) + "-dirty");
                 } else {
                     newContent = Files.readAllLines(path);
                 }
             } else {
-                newContent = repo.lines(patch.target().path().get(), head).orElseThrow(IllegalArgumentException::new);
+                newContent = repo.lines(patch.target().path().get(), head).orElseThrow(() -> {
+                    throw new IllegalArgumentException("Could not get content for file " +
+                                                       patch.target().path().get() +
+                                                       " at revision " + head);
+                });
             }
             stats = new WebrevStats(patch.asTextualPatch().stats(), newContent.size());
         } else {
@@ -62,7 +75,11 @@ class ModifiedFileView implements FileView {
             if (head == null) {
                 binaryContent = Files.readAllBytes(repo.root().resolve(patch.target().path().get()));
             } else {
-                binaryContent = repo.show(patch.target().path().get(), head).orElseThrow(IllegalArgumentException::new);
+                binaryContent = repo.show(patch.target().path().get(), head).orElseThrow(() -> {
+                    throw new IllegalArgumentException("Could not get content for file " +
+                                                       patch.target().path().get() +
+                                                       " at revision " + head);
+                });
             }
             stats = WebrevStats.empty();
         }
