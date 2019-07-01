@@ -425,7 +425,7 @@ public class GitPr {
             if (action.equals("integrate")) {
                 pr.addComment("/integrate");
             } else if (action.equals("approve")) {
-                pr.addReview(Review.Verdict.APPROVED);
+                pr.addReview(Review.Verdict.APPROVED, "Looks good!");
             } else {
                 throw new IllegalStateException("unexpected action: " + action);
             }
