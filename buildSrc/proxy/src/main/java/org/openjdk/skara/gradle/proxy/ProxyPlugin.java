@@ -26,8 +26,10 @@ package org.openjdk.skara.gradle.proxy;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 
-import java.net.*;
+import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ProxyPlugin implements Plugin<Project> {
     public void apply(Project project) {
@@ -45,13 +47,11 @@ public class ProxyPlugin implements Plugin<Project> {
         }
         var no_proxy = System.getenv("no_proxy");
         no_proxy = no_proxy == null ? System.getenv("NO_PROXY") : no_proxy;
-        if (no_proxy != null) {
-            var hosts = no_proxy.replace(",", "|")
-                                .replaceAll("^\\.", "*.")
-                                .replaceAll("\\|\\.", "|*.");
-            if (System.getProperty("http.nonProxyHosts") == null) {
-                System.setProperty("http.nonProxyHosts", hosts);
-            }
+        if (no_proxy != null && System.getProperty("http.nonProxyHosts") == null) {
+            var hosts = Arrays.stream(no_proxy.split(","))
+                              .map(s -> s.startsWith(".") ? "*" + s : s)
+                              .collect(Collectors.toList());
+            System.setProperty("http.nonProxyHosts", String.join("|", hosts));
         }
     }
 }
