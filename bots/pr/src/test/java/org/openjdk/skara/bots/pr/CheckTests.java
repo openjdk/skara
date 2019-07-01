@@ -32,6 +32,7 @@ import java.nio.file.Files;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class CheckTests {
     @Test
@@ -375,6 +376,9 @@ class CheckTests {
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
+
+            // This test is only relevant on hosts not supporting proper review comment bodies
+            assumeTrue(!author.host().supportsReviewBody());
 
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.host().getCurrentUserDetails().id())
