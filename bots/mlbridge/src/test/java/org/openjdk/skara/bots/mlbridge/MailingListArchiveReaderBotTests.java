@@ -68,7 +68,8 @@ class MailingListArchiveReaderBotTests {
                                                  Set.of(ignored.host().getCurrentUserDetails().userName()),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build());
+                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 Set.of(), Map.of());
 
             // The mailing list as well
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP());
@@ -87,7 +88,6 @@ class MailingListArchiveReaderBotTests {
             localRepo.push(editHash, author.getUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This should now be ready");
-            pr.addLabel("rfr");
 
             // Run an archive pass
             TestBotRunner.runPeriodicItems(mlBot);
@@ -129,7 +129,8 @@ class MailingListArchiveReaderBotTests {
                                                  Set.of(ignored.host().getCurrentUserDetails().userName()),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build());
+                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 Set.of(), Map.of());
 
             // The mailing list as well
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP());
@@ -148,7 +149,6 @@ class MailingListArchiveReaderBotTests {
             localRepo.push(editHash, author.getUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This should now be ready");
-            pr.addLabel("rfr");
 
             // Run an archive pass
             TestBotRunner.runPeriodicItems(mlBot);

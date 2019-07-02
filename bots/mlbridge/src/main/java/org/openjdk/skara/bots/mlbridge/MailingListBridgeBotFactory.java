@@ -26,11 +26,12 @@ import org.openjdk.skara.bot.*;
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.host.HostedRepository;
 import org.openjdk.skara.host.network.URIBuilder;
-import org.openjdk.skara.json.JSONValue;
+import org.openjdk.skara.json.*;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
 
 import java.nio.file.Path;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class MailingListBridgeBotFactory implements BotFactory {
@@ -58,6 +59,14 @@ public class MailingListBridgeBotFactory implements BotFactory {
         var allListNames = new HashSet<EmailAddress>();
         var allRepositories = new HashSet<HostedRepository>();
 
+        var readyLabels = specific.get("ready").get("labels").stream()
+                .map(JSONValue::asString)
+                .collect(Collectors.toSet());
+        var readyComments = specific.get("ready").get("comments").stream()
+                .map(JSONValue::asObject)
+                .collect(Collectors.toMap(obj -> obj.get("user").asString(),
+                                          obj -> Pattern.compile(obj.get("pattern").asString())));
+
         for (var repoConfig : specific.get("repositories").asArray()) {
             var repo = repoConfig.get("repository").asString();
             var archive = repoConfig.get("archive").asString();
@@ -65,7 +74,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
             var bot = new MailingListBridgeBot(from, configuration.repository(repo), configuration.repository(archive),
                                                list, ignoredUsers, listArchive, listSmtp,
                                                configuration.repository(webrevRepo), webrevRef, Path.of(repo),
-                                               URIBuilder.base(webrevWeb).build());
+                                               URIBuilder.base(webrevWeb).build(), readyLabels, readyComments);
             ret.add(bot);
 
             allListNames.add(list);

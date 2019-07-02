@@ -35,7 +35,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.Duration;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -102,7 +102,9 @@ class MailingListBridgeBotTests {
                                                  Set.of(ignored.host().getCurrentUserDetails().userName()),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build());
+                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 Set.of("rfr"), Map.of(ignored.host().getCurrentUserDetails().userName(),
+                                                                       Pattern.compile("ready")));
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
@@ -127,6 +129,27 @@ class MailingListBridgeBotTests {
             // Flag it as ready for review
             pr.setBody("This should now be ready");
             pr.addLabel("rfr");
+
+            // Run another archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // But it should still not be archived
+            Repository.materialize(archiveFolder.path(), archive.getUrl(), "master");
+            assertFalse(archiveContains(archiveFolder.path(), "This is a pull request"));
+
+            // Now post a general comment - not a ready marker
+            var ignoredPr = ignored.getPullRequest(pr.getId());
+            ignoredPr.addComment("hello there");
+
+            // Run another archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // It should still not be archived
+            Repository.materialize(archiveFolder.path(), archive.getUrl(), "master");
+            assertFalse(archiveContains(archiveFolder.path(), "This is a pull request"));
+
+            // Now post a ready comment
+            ignoredPr.addComment("ready");
 
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
@@ -171,7 +194,6 @@ class MailingListBridgeBotTests {
             pr.addComment("This is a comment");
 
             // Add a comment from an ignored user as well
-            var ignoredPr = ignored.getPullRequest(pr.getId());
             ignoredPr.addComment("Don't mind me");
 
             // Run another archive pass
@@ -228,7 +250,8 @@ class MailingListBridgeBotTests {
                                                  Set.of(ignored.host().getCurrentUserDetails().userName()),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build());
+                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 Set.of(), Map.of());
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -241,7 +264,6 @@ class MailingListBridgeBotTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.getUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
-            pr.addLabel("rfr");
             pr.setBody("This is now ready");
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
@@ -311,7 +333,8 @@ class MailingListBridgeBotTests {
             var mlBot = new MailingListBridgeBot(from, author, archive, listAddress, Set.of(), listServer.getArchive(),
                                                  listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build());
+                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 Set.of(), Map.of());
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -324,7 +347,6 @@ class MailingListBridgeBotTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.getUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
-            pr.addLabel("rfr");
             pr.setBody("This is now ready");
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
@@ -372,7 +394,8 @@ class MailingListBridgeBotTests {
             var mlBot = new MailingListBridgeBot(from, author, archive, listAddress, Set.of(), listServer.getArchive(),
                                                  listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build());
+                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 Set.of(), Map.of());
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -385,7 +408,6 @@ class MailingListBridgeBotTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Line 1\nLine 2\nLine 3\nLine 4");
             localRepo.push(editHash, author.getUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
-            pr.addLabel("rfr");
             pr.setBody("This is now ready");
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
@@ -419,7 +441,8 @@ class MailingListBridgeBotTests {
             var mlBot = new MailingListBridgeBot(from, author, archive, listAddress, Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build());
+                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 Set.of(), Map.of());
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -432,7 +455,6 @@ class MailingListBridgeBotTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.getUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
-            pr.addLabel("rfr");
             pr.setBody("This is now ready\n<!-- this is a comment -->\nAnd this is not\n" +
                                "<!-- Anything below this marker will be hidden -->\nStatus stuff");
 
@@ -474,7 +496,8 @@ class MailingListBridgeBotTests {
             var mlBot = new MailingListBridgeBot(from, author, archive, listAddress, Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build());
+                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 Set.of(), Map.of());
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -487,7 +510,6 @@ class MailingListBridgeBotTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.getUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
-            pr.addLabel("rfr");
             pr.setBody("This is now ready");
 
             // Run an archive pass
@@ -583,7 +605,8 @@ class MailingListBridgeBotTests {
             var mlBot = new MailingListBridgeBot(from, author, archive, listAddress, Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build());
+                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 Set.of(), Map.of());
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -596,7 +619,6 @@ class MailingListBridgeBotTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A line", "Original msg");
             localRepo.push(editHash, author.getUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
-            pr.addLabel("rfr");
             pr.setBody("This is now ready");
 
             // Run an archive pass
@@ -670,7 +692,8 @@ class MailingListBridgeBotTests {
                                                  Set.of(ignored.host().getCurrentUserDetails().userName()),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build());
+                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 Set.of(), Map.of());
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
@@ -686,7 +709,6 @@ class MailingListBridgeBotTests {
 
             // Flag it as ready for review
             pr.setBody("This should now be ready");
-            pr.addLabel("rfr");
 
             // Run an archive pass
             TestBotRunner.runPeriodicItems(mlBot);
@@ -736,7 +758,8 @@ class MailingListBridgeBotTests {
             var mlBot = new MailingListBridgeBot(from, author, archive, listAddress, Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build());
+                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 Set.of(), Map.of());
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -749,7 +772,6 @@ class MailingListBridgeBotTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.getUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
-            pr.addLabel("rfr");
             pr.setBody("This is now ready");
 
             // Run an archive pass
