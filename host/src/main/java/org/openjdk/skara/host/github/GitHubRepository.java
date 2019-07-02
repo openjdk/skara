@@ -54,9 +54,8 @@ public class GitHubRepository implements HostedRepository {
                 "Accept", "application/vnd.github.machine-man-preview+json",
                 "Accept", "application/vnd.github.antiope-preview+json"));
         json = gitHubHost.getProjectInfo(repository);
-        var urlPattern = URIBuilder.base(gitHubHost.getURI())
-                .setPath("/" + repository + "/pull/").build();
-        pullRequestPattern = Pattern.compile(urlPattern.toString() + "(\\d+)");
+        var urlPattern = gitHubHost.getWebURI("/" + repository + "/pull/").toString();
+        pullRequestPattern = Pattern.compile(urlPattern + "(\\d+)");
     }
 
     @Override
