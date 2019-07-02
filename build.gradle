@@ -53,7 +53,7 @@ configure(subprojects.findAll() { it.name != 'bots' }) {
 
         if (findProperty('credentials')) {
             systemProperty "credentials", findProperty('credentials')
-            systemProperties(System.getProperties())
+            System.getProperties().findAll { it.key.toString().toLowerCase().contains('proxy') }.each { systemProperty it.key, it.value }
         }
 
         testLogging {
