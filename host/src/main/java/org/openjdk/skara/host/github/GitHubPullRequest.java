@@ -179,7 +179,7 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public String getSourceRef() {
-        return json.get("head").get("ref").asString();
+        return "pull/" + getId() + "/head";
     }
 
     @Override

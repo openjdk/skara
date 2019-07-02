@@ -232,7 +232,7 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public String getSourceRef() {
-        return json.get("source_branch").asString();
+        return "merge-requests/" + getId() + "/head";
     }
 
     @Override
