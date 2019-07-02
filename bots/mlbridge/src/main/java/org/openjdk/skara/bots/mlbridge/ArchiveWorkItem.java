@@ -176,7 +176,9 @@ class ArchiveWorkItem implements WorkItem {
                 "\n" +
                 quoteBody(parentBody) +
                 "\n\n" +
-                filterComments(body);
+                filterComments(body) +
+                "\n\n" +
+                "PR: " + pr.getWebUrl();
     }
 
     private String verdictToString(Review.Verdict verdict) {
@@ -209,7 +211,9 @@ class ArchiveWorkItem implements WorkItem {
                 "\n" +
                 quoteBody(parentBody) +
                 "\n\n" +
-                filterComments(body.toString());
+                filterComments(body.toString()) +
+                "\n\n" +
+                "PR: " + pr.getWebUrl();
     }
 
     private String composeRebaseComment(Hash lastBase, PullRequestInstance prInstance, URI fullWebrev) {
@@ -247,7 +251,9 @@ class ArchiveWorkItem implements WorkItem {
 
     private String composeReadyForIntegrationComment() {
         return "This PR now fulfills all the requirements for integration, and is only awaiting the final " +
-                "integration command from the author.";
+                "integration command from the author." +
+                "\n\n" +
+                "PR: " + pr.getWebUrl();
     }
 
     private Repository materializeArchive(Path scratchPath) {
