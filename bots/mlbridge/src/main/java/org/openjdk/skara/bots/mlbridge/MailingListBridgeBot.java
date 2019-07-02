@@ -30,6 +30,7 @@ import org.openjdk.skara.jcheck.JCheckConfiguration;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class MailingListBridgeBot implements Bot {
@@ -41,11 +42,14 @@ public class MailingListBridgeBot implements Bot {
     private final URI listArchive;
     private final String smtpServer;
     private final WebrevStorage webrevStorage;
+    private final Set<String> readyLabels;
+    private final Map<String, Pattern> readyComments;
 
     MailingListBridgeBot(EmailAddress from, HostedRepository repo, HostedRepository archive, EmailAddress list,
                          Set<String> ignoredUsers, URI listArchive, String smtpServer,
                          HostedRepository webrevStorageRepository, String webrevStorageRef,
-                         Path webrevStorageBase, URI webrevStorageBaseUri) {
+                         Path webrevStorageBase, URI webrevStorageBaseUri, Set<String> readyLabels,
+                         Map<String, Pattern> readyComments) {
         emailAddress = from;
         codeRepo = repo;
         archiveRepo = archive;
@@ -53,14 +57,11 @@ public class MailingListBridgeBot implements Bot {
         this.ignoredUsers = ignoredUsers;
         this.listArchive = listArchive;
         this.smtpServer = smtpServer;
+        this.readyLabels = readyLabels;
+        this.readyComments = readyComments;
 
         this.webrevStorage = new WebrevStorage(webrevStorageRepository, webrevStorageRef, webrevStorageBase,
                                                webrevStorageBaseUri, from);
-    }
-
-    JCheckConfiguration configuration() {
-        var confFile = codeRepo.getFileContents(".jcheck/conf", "master");
-        return JCheckConfiguration.parse(confFile.lines().collect(Collectors.toList()));
     }
 
     HostedRepository codeRepo() {
@@ -93,6 +94,14 @@ public class MailingListBridgeBot implements Bot {
 
     WebrevStorage webrevStorage() {
         return webrevStorage;
+    }
+
+    Set<String> readyLabels() {
+        return readyLabels;
+    }
+
+    Map<String, Pattern> readyComments() {
+        return readyComments;
     }
 
     @Override

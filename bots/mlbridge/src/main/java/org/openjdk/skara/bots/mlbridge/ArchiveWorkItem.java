@@ -551,10 +551,34 @@ class ArchiveWorkItem implements WorkItem {
 
         // First determine if this PR should be inspected further or not
         if (archiveMails.isEmpty()) {
-            // Wait until the PR is ready for review
-            if (!pr.getLabels().contains("rfr")) {
-                log.fine("PR is not yet ready for review");
-                return;
+            var labels = new HashSet<>(pr.getLabels());
+            for (var readyLabel : bot.readyLabels()) {
+                if (!labels.contains(readyLabel)) {
+                    log.fine("PR is not yet ready - missing label '" + readyLabel + "'");
+                    return;
+                }
+            }
+        }
+
+        // Also inspect comments before making the first post
+        var comments = pr.getComments();
+        if (archiveMails.isEmpty()) {
+            for (var readyComment : bot.readyComments().entrySet()) {
+                var commentFound = false;
+                for (var comment : comments) {
+                    if (comment.author().userName().equals(readyComment.getKey())) {
+                        var matcher = readyComment.getValue().matcher(comment.body());
+                        if (matcher.find()) {
+                            commentFound = true;
+                            break;
+                        }
+                    }
+                }
+                if (!commentFound) {
+                    log.fine("PR is not yet ready - missing ready comment from '" + readyComment.getKey() +
+                                     "containing '" + readyComment.getValue().pattern() + "'");
+                    return;
+                }
             }
         }
 
@@ -564,7 +588,6 @@ class ArchiveWorkItem implements WorkItem {
         var newMails = new ArrayList<Email>();
         var stableIdToMail = archiveMails.stream().collect(Collectors.toMap(email -> getStableMessageId(email.id()),
                                                                             Function.identity()));
-        var comments = pr.getComments();
         var prInstance = new PullRequestInstance(scratchPath.resolve("mlbridge-mergebase"), pr);
 
         // First post
