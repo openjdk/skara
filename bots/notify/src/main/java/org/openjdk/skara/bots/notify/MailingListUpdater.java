@@ -60,6 +60,9 @@ public class MailingListUpdater implements UpdateConsumer {
 
         printer.println("Changeset: " + commit.hash().abbreviate());
         printer.println("Author:    " + commit.author().name() + " <" + commit.author().email() + ">");
+        if (!commit.author().equals(commit.committer())) {
+            printer.println("Committer: " + commit.committer().name() + " <" + commit.committer().email() + ">");
+        }
         printer.println("Date:      " + commit.date().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss +0000")));
         printer.println("URL:       " + repository.getWebUrl(commit.hash()));
         printer.println();
