@@ -23,7 +23,7 @@
 package org.openjdk.skara.bots.submit;
 
 import org.openjdk.skara.bot.*;
-import org.openjdk.skara.host.HostedRepository;
+import org.openjdk.skara.host.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -31,15 +31,18 @@ import java.util.stream.Collectors;
 public class SubmitBot implements Bot {
     private final HostedRepository repository;
     private final List<SubmitExecutor> executors;
+    private final PullRequestUpdateCache updateCache;
 
     SubmitBot(HostedRepository repository, List<SubmitExecutor> executors) {
         this.repository = repository;
         this.executors = executors;
+        this.updateCache = new PullRequestUpdateCache();
     }
 
     @Override
     public List<WorkItem> getPeriodicItems() {
         return repository.getPullRequests().stream()
+                         .filter(updateCache::needsUpdate)
                          .flatMap(pr -> executors.stream()
                                                  .map(executor -> new SubmitBotWorkItem(this, executor, pr)))
                          .collect(Collectors.toList());

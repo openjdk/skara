@@ -41,10 +41,10 @@ public class TestPullRequest implements PullRequest {
     private final String sourceRef;
     private final String title;
     private final List<String> body;
-    private final Hash headHash;
     private final PullRequestData data;
 
     private static class PullRequestData {
+        private Hash headHash;
         String body = "";
         final List<Comment> comments = new ArrayList<>();
         final List<ReviewComment> reviewComments = new ArrayList<>();
@@ -67,7 +67,11 @@ public class TestPullRequest implements PullRequest {
         this.data = data;
 
         try {
-            headHash = repository.localRepository().resolve(sourceRef).orElseThrow();
+            var headHash = repository.localRepository().resolve(sourceRef).orElseThrow();
+            if (!headHash.equals(data.headHash)) {
+                data.headHash = headHash;
+                data.lastUpdate = ZonedDateTime.now();
+            }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -143,7 +147,7 @@ public class TestPullRequest implements PullRequest {
 
     @Override
     public Hash getHeadHash() {
-        return headHash;
+        return data.headHash;
     }
 
     @Override

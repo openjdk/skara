@@ -24,11 +24,12 @@ package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.email.EmailAddress;
-import org.openjdk.skara.host.HostedRepository;
+import org.openjdk.skara.host.*;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
 
 import java.net.URI;
 import java.nio.file.Path;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -44,6 +45,7 @@ public class MailingListBridgeBot implements Bot {
     private final WebrevStorage webrevStorage;
     private final Set<String> readyLabels;
     private final Map<String, Pattern> readyComments;
+    private final PullRequestUpdateCache updateCache;
 
     MailingListBridgeBot(EmailAddress from, HostedRepository repo, HostedRepository archive, EmailAddress list,
                          Set<String> ignoredUsers, URI listArchive, String smtpServer,
@@ -62,6 +64,7 @@ public class MailingListBridgeBot implements Bot {
 
         this.webrevStorage = new WebrevStorage(webrevStorageRepository, webrevStorageRef, webrevStorageBase,
                                                webrevStorageBaseUri, from);
+        this.updateCache = new PullRequestUpdateCache();
     }
 
     HostedRepository codeRepo() {
@@ -109,7 +112,9 @@ public class MailingListBridgeBot implements Bot {
         List<WorkItem> ret = new LinkedList<>();
 
         for (var pr : codeRepo.getPullRequests()) {
-            ret.add(new ArchiveWorkItem(pr, this));
+            if (updateCache.needsUpdate(pr)) {
+                ret.add(new ArchiveWorkItem(pr, this));
+            }
         }
 
         return ret;
