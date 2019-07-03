@@ -65,6 +65,7 @@ class UpdaterTests {
              var jsonFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
             var localRepo = CheckableRepository.init(tempFolder.path(), repo.getRepositoryType());
+            localRepo.fetch(repo.getUrl(), "testlock:testlock");
             localRepo.pushAll(repo.getUrl());
 
             var tagStorage = createTagStorage(repo);
@@ -98,6 +99,7 @@ class UpdaterTests {
              var jsonFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
             var localRepo = CheckableRepository.init(tempFolder.path(), repo.getRepositoryType());
+            localRepo.fetch(repo.getUrl(), "testlock:testlock");
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.tag(masterHash, "jdk-12+1", "Added tag 1", "Duke", "duke@openjdk.java.net");
             localRepo.pushAll(repo.getUrl());
@@ -169,6 +171,7 @@ class UpdaterTests {
             assertEquals(email.recipients(), List.of(recipient));
             assertTrue(email.body().contains("Changeset: " + editHash.abbreviate()));
             assertTrue(email.body().contains("23456789: More fixes"));
+            assertFalse(email.body().contains("Committer"));
             assertFalse(email.body().contains(masterHash.abbreviate()));
         }
     }
@@ -212,4 +215,44 @@ class UpdaterTests {
             assertFalse(email.body().contains(masterHash.abbreviate()));
         }
     }
+
+    @Test
+    void testMailingListSponsored(TestInfo testInfo) throws IOException {
+        try (var smtpServer = new SMTPServer();
+             var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.getRepositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, repo.getUrl(), "master", true);
+
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+
+            var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var recipient = EmailAddress.from("list", "list@list.list");
+            var updater = new MailingListUpdater(smtpServer.address(), recipient, sender);
+            var notifyBot = new JNotifyBot(repo, "master", tagStorage, branchStorage, List.of(updater));
+
+            // No mail should be sent on the first run as there is no history
+            TestBotRunner.runPeriodicItems(notifyBot);
+            assertThrows(RuntimeException.class, () -> smtpServer.receive(Duration.ofMillis(1)));
+
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes",
+                                                               "author", "author@test.test",
+                                                               "committer", "committer@test.test");
+            localRepo.push(editHash, repo.getUrl(), "master");
+            TestBotRunner.runPeriodicItems(notifyBot);
+            var email = smtpServer.receive(Duration.ofSeconds(10));
+            assertEquals(email.sender(), sender);
+            assertEquals(email.recipients(), List.of(recipient));
+            assertTrue(email.body().contains("Changeset: " + editHash.abbreviate()));
+            assertTrue(email.body().contains("23456789: More fixes"));
+            assertTrue(email.body().contains("Author:    author <author@test.test>"));
+            assertTrue(email.body().contains("Committer: committer <committer@test.test>"));
+            assertFalse(email.body().contains(masterHash.abbreviate()));
+        }
+    }
+
 }

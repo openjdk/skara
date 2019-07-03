@@ -96,6 +96,11 @@ public class CheckableRepository {
     }
 
     public static Hash appendAndCommit(Repository repo, String body, String message, String authorName, String authorEmail) throws IOException {
+        return appendAndCommit(repo, body, message, authorName, authorEmail, authorName, authorEmail);
+    }
+
+    public static Hash appendAndCommit(Repository repo, String body, String message, String authorName, String authorEmail,
+                                       String committerName, String committerEmail) throws IOException {
         var file = checkableFile(repo.root());
         try (var output = Files.newBufferedWriter(file, StandardOpenOption.APPEND)) {
             output.append(body);
@@ -103,7 +108,7 @@ public class CheckableRepository {
         }
         repo.add(file);
 
-        return repo.commit(message, authorName, authorEmail);
+        return repo.commit(message, authorName, authorEmail, committerName, committerEmail);
     }
 
     public static Hash replaceAndCommit(Repository repo, String body) throws IOException {
