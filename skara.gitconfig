@@ -31,3 +31,4 @@
         token = ! git skara token
         info = ! git skara info
         translate = ! git skara translate
+        wimport = ! git skara wimport
