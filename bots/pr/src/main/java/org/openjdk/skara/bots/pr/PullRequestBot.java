@@ -39,6 +39,7 @@ class PullRequestBot implements Bot {
     private final Map<String, String> externalCommands;
     private final Map<String, String> blockingLabels;
     private final ConcurrentMap<Hash, Boolean> currentLabels = new ConcurrentHashMap<>();
+    private final PullRequestUpdateCache updateCache;
 
     PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef, Map<String,
             List<Pattern>> labelPatterns, Map<String, String> externalCommands, Map<String, String> blockingLabels) {
@@ -48,6 +49,7 @@ class PullRequestBot implements Bot {
         this.labelPatterns = labelPatterns;
         this.externalCommands = externalCommands;
         this.blockingLabels = blockingLabels;
+        this.updateCache = new PullRequestUpdateCache();
     }
 
     PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef) {
@@ -58,9 +60,11 @@ class PullRequestBot implements Bot {
         var ret = new LinkedList<WorkItem>();
 
         for (var pr : pullRequests) {
-            ret.add(new CheckWorkItem(pr, censusRepo, censusRef, blockingLabels));
-            ret.add(new CommandWorkItem(pr, censusRepo, censusRef, externalCommands));
-            ret.add(new LabelerWorkItem(pr, labelPatterns, currentLabels));
+            if (updateCache.needsUpdate(pr)) {
+                ret.add(new CheckWorkItem(pr, censusRepo, censusRef, blockingLabels));
+                ret.add(new CommandWorkItem(pr, censusRepo, censusRef, externalCommands));
+                ret.add(new LabelerWorkItem(pr, labelPatterns, currentLabels));
+            }
         }
 
         return ret;
