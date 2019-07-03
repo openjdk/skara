@@ -197,7 +197,7 @@ public class HostCredentials implements AutoCloseable {
             }
 
             if (Files.exists(lockFile)) {
-                var currentLock = Files.readString(lockFile, StandardCharsets.UTF_8);
+                var currentLock = Files.readString(lockFile, StandardCharsets.UTF_8).strip();
                 var lockTime = ZonedDateTime.parse(currentLock, DateTimeFormatter.ISO_DATE_TIME);
                 if (lockTime.isBefore(ZonedDateTime.now().minus(Duration.ofMinutes(10)))) {
                     log.info("Stale lock encountered - overwriting it");
@@ -208,9 +208,7 @@ public class HostCredentials implements AutoCloseable {
             }
 
             // The lock either doesn't exist or is stale, try to grab it
-            Files.writeString(lockFile, ZonedDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), StandardCharsets.UTF_8);
-            localRepo.add(lockFile);
-            var lockHash = localRepo.commit("Lock", "test", "test@test.test");
+            var lockHash = commitLock(localRepo);
             localRepo.push(lockHash, repo.getUrl(), "testlock");
             log.info("Obtained credentials lock");
 
@@ -229,6 +227,15 @@ public class HostCredentials implements AutoCloseable {
             var lockHash = localRepo.commit("Unlock", "test", "test@test.test");
             localRepo.push(lockHash, repo.getUrl(), "testlock");
         }
+    }
+
+    public Hash commitLock(Repository localRepo) throws IOException {
+        var lockFile = localRepo.root().resolve("lock.txt");
+        Files.writeString(lockFile, ZonedDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), StandardCharsets.UTF_8);
+        localRepo.add(lockFile);
+        var lockHash = localRepo.commit("Lock", "test", "test@test.test");
+        localRepo.branch(lockHash, "testlock");
+        return lockHash;
     }
 
     public HostedRepository getHostedRepository() {
