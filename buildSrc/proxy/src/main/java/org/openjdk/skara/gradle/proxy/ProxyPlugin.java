@@ -27,6 +27,7 @@ import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -38,10 +39,14 @@ public class ProxyPlugin implements Plugin<Project> {
             value = value == null ? System.getenv(key.toUpperCase()) : value;
             if (value != null) {
                 var protocol = key.split("_")[0];
-                var uri = URI.create(value);
-                if (System.getProperty(protocol + ".proxyHost") == null) {
-                    System.setProperty(protocol + ".proxyHost", uri.getHost());
-                    System.setProperty(protocol + ".proxyPort", String.valueOf(uri.getPort()));
+                try {
+                    var uri = new URI(value);
+                    if (System.getProperty(protocol + ".proxyHost") == null && uri.getHost() != null) {
+                        System.setProperty(protocol + ".proxyHost", uri.getHost());
+                        System.setProperty(protocol + ".proxyPort", String.valueOf(uri.getPort()));
+                    }
+                } catch (URISyntaxException e) {
+                    // pass
                 }
             }
         }

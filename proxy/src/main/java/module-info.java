@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,19 +20,6 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-module org.openjdk.skara.bots.cli {
-    requires org.openjdk.skara.vcs;
-    requires org.openjdk.skara.jcheck;
-    requires org.openjdk.skara.host;
-    requires org.openjdk.skara.bot;
-    requires org.openjdk.skara.census;
-    requires org.openjdk.skara.json;
-    requires org.openjdk.skara.args;
-    requires org.openjdk.skara.process;
-    requires org.openjdk.skara.proxy;
-
-    requires java.sql;
-
-    exports org.openjdk.skara.bots.cli;
+module org.openjdk.skara.proxy {
+    exports org.openjdk.skara.proxy;
 }
-

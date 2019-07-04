@@ -26,6 +26,7 @@ import org.openjdk.skara.args.*;
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.host.network.URIBuilder;
 import org.openjdk.skara.json.*;
+import org.openjdk.skara.proxy.HttpProxy;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -109,6 +110,7 @@ public class BotLauncher {
     }
 
     public static void main(String... args) {
+        HttpProxy.setup();
 
         var flags = List.of(
                 Option.shortcut("t")

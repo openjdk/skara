@@ -38,6 +38,7 @@ dependencies {
     implementation project(':webrev')
     implementation project(':json')
     implementation project(':host')
+    implementation project(':proxy')
 }
 
 
