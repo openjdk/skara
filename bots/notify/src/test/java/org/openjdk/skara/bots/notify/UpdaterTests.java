@@ -149,7 +149,8 @@ class UpdaterTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.getRepositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, repo.getUrl(), "master", true);
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.getUrl());
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -185,7 +186,8 @@ class UpdaterTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.getRepositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, repo.getUrl(), "master", true);
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.getUrl());
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
@@ -225,7 +227,8 @@ class UpdaterTests {
             var repoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(repoFolder, repo.getRepositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, repo.getUrl(), "master", true);
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.getUrl());
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
