@@ -395,6 +395,10 @@ public class HgRepository implements Repository {
 
     @Override
     public boolean exists() throws IOException {
+        if (!Files.exists(dir)) {
+            return false;
+        }
+
         try {
             root();
             return true;
@@ -657,6 +661,10 @@ public class HgRepository implements Repository {
     }
 
     public static Optional<Repository> get(Path p) throws IOException {
+        if (!Files.exists(p)) {
+            return Optional.empty();
+        }
+
         var r = new HgRepository(p);
         return r.exists() ? Optional.of(new HgRepository(r.root())) : Optional.empty();
     }

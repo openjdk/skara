@@ -24,6 +24,7 @@ package org.openjdk.skara.vcs;
 
 import org.openjdk.skara.test.TemporaryDirectory;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
@@ -1429,5 +1430,12 @@ public class RepositoryTests {
             var hash2 = r.commit("Added read-write executable file", "duke", "duke@openjdk.java.net");
             assertEquals(Optional.of(List.of("echo 'goodbye'")), r.lines(readWriteExecutableFile, hash2));
         }
+    }
+
+    @Test
+    void testGetAndExistsOnNonExistingDirectory() throws IOException {
+        var nonExistingDirectory = Path.of("this", "does", "not", "exist");
+        assertEquals(Optional.empty(), Repository.get(nonExistingDirectory));
+        assertEquals(false, Repository.exists(nonExistingDirectory));
     }
 }

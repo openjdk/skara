@@ -701,6 +701,10 @@ public class GitRepository implements Repository {
     }
 
     public static Optional<Repository> get(Path p) throws IOException {
+        if (!Files.exists(p)) {
+            return Optional.empty();
+        }
+
         var r = new GitRepository(p);
         return r.exists() ? Optional.of(new GitRepository(r.root())) : Optional.empty();
     }
