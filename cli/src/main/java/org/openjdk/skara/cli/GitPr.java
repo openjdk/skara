@@ -26,6 +26,7 @@ import org.openjdk.skara.args.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.*;
+import org.openjdk.skara.proxy.HttpProxy;
 
 import java.io.IOException;
 import java.net.URI;

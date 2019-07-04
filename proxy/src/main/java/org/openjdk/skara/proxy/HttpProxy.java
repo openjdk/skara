@@ -20,30 +20,39 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.cli;
+package org.openjdk.skara.proxy;
 
-import java.util.List;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
-class HttpProxy {
-    static void setup() {
+public class HttpProxy {
+    public static void setup() {
         for (var key : List.of("http_proxy", "https_proxy")) {
             var value = System.getenv(key);
             value = value == null ? System.getenv(key.toUpperCase()) : value;
             if (value != null) {
                 var protocol = key.split("_")[0];
-                var uri = URI.create(value);
-                System.setProperty(protocol + ".proxyHost", uri.getHost());
-                System.setProperty(protocol + ".proxyPort", String.valueOf(uri.getPort()));
+                try {
+                    var uri = new URI(value);
+                    if (System.getProperty(protocol + ".proxyHost") == null && uri.getHost() != null) {
+                        System.setProperty(protocol + ".proxyHost", uri.getHost());
+                        System.setProperty(protocol + ".proxyPort", String.valueOf(uri.getPort()));
+                    }
+                } catch (URISyntaxException e) {
+                    // pass
+                }
             }
         }
         var no_proxy = System.getenv("no_proxy");
         no_proxy = no_proxy == null ? System.getenv("NO_PROXY") : no_proxy;
-        if (no_proxy != null) {
-            var hosts = no_proxy.replace(",", "|")
-                                .replaceAll("^\\.", "*.")
-                                .replaceAll("\\|\\.", "|*.");
-            System.setProperty("http.nonProxyHosts", hosts);
+        if (no_proxy != null && System.getProperty("http.nonProxyHosts") == null) {
+            var hosts = Arrays.stream(no_proxy.split(","))
+                              .map(s -> s.startsWith(".") ? "*" + s : s)
+                              .collect(Collectors.toList());
+            System.setProperty("http.nonProxyHosts", String.join("|", hosts));
         }
     }
 }

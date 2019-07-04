@@ -50,6 +50,7 @@ dependencies {
     implementation project(':ini')
     implementation project(':process')
     implementation project(':args')
+    implementation project(':proxy')
 
     testImplementation project(':test')
 }
