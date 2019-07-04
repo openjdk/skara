@@ -34,7 +34,10 @@ import org.junit.jupiter.api.*;
 
 import java.io.*;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -42,7 +45,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class BridgeBotTests {
-
     private List<String> runHgCommand(Repository repository, String... params) throws IOException {
         List<String> finalParams = new ArrayList<>();
         finalParams.add("hg");
@@ -112,6 +114,14 @@ class BridgeBotTests {
         try {
             var localRepo = Repository.materialize(sourceFolder.path(), URIBuilder.base("http://hg.openjdk.java.net/code-tools/jtreg").build(), "default");
             runHgCommand(localRepo, "strip", "-r", "b2511c725d81");
+
+            // Create a lockfile in the mercurial repo, as it will overwrite the existing lock in the remote git repo
+            runHgCommand(localRepo, "update", "null");
+            runHgCommand(localRepo, "branch", "testlock");
+            var lockFile = localRepo.root().resolve("lock.txt");
+            Files.writeString(lockFile, ZonedDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), StandardCharsets.UTF_8);
+            localRepo.add(lockFile);
+            localRepo.commit("Lock", "duke", "Duke <duke@openjdk.java.net>");
         } catch (IOException e) {
             Assumptions.assumeTrue(false, "Failed to connect to hg.openjdk.java.net - skipping tests");
         }
@@ -132,6 +142,7 @@ class BridgeBotTests {
              var storageFolder2 = new TemporaryDirectory()) {
             // Export a partial version of a hg repository
             var localHgRepo = Repository.materialize(hgFolder.path(), source, "default");
+            localHgRepo.fetch(source, "testlock");
             var destinationRepo = credentials.getHostedRepository();
             var config = new TestExporterConfig(localHgRepo.root().toUri(), destinationRepo);
             var bridge = new JBridgeBot(config, storageFolder.path());
@@ -256,8 +267,9 @@ class BridgeBotTests {
             var localGitCommits = getCommitHashes(localGitRepo);
             assertTrue(localGitCommits.contains("9cb6a5b843c0e9f6d45273a1a6f5c98979ab0766"));
 
-            // Push something else to overwrite it
+            // Push something else to overwrite it (but retain the lock)
             var localRepo = CheckableRepository.init(gitFolder2.path(), destinationRepo.getRepositoryType());
+            credentials.commitLock(localRepo);
             localRepo.pushAll(destinationRepo.getUrl());
 
             // Materialize it again and ensure that the known commit is now gone
@@ -344,6 +356,7 @@ class BridgeBotTests {
              var storageFolder2 = new TemporaryDirectory()) {
             // Export a hg repository with unreachable commits
             var localHgRepo = Repository.materialize(hgFolder.path(), source, "default");
+            localHgRepo.fetch(source, "testlock");
             var destinationRepo = credentials.getHostedRepository();
             var config = new TestExporterConfig(localHgRepo.root().toUri(), destinationRepo);
             var bridge = new JBridgeBot(config, storageFolder.path());

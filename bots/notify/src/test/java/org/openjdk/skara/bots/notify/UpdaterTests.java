@@ -65,7 +65,7 @@ class UpdaterTests {
              var jsonFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
             var localRepo = CheckableRepository.init(tempFolder.path(), repo.getRepositoryType());
-            localRepo.fetch(repo.getUrl(), "testlock:testlock");
+            credentials.commitLock(localRepo);
             localRepo.pushAll(repo.getUrl());
 
             var tagStorage = createTagStorage(repo);
@@ -99,7 +99,7 @@ class UpdaterTests {
              var jsonFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
             var localRepo = CheckableRepository.init(tempFolder.path(), repo.getRepositoryType());
-            localRepo.fetch(repo.getUrl(), "testlock:testlock");
+            credentials.commitLock(localRepo);
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.tag(masterHash, "jdk-12+1", "Added tag 1", "Duke", "duke@openjdk.java.net");
             localRepo.pushAll(repo.getUrl());
