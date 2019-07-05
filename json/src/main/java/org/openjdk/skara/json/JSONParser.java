@@ -24,11 +24,11 @@ package org.openjdk.skara.json;
 
 import java.util.*;
 
-public class JSONParser {
+class JSONParser {
     private int pos = 0;
     private String input;
 
-    public JSONParser() {
+    JSONParser() {
     }
 
     private IllegalStateException failure(String message) {
