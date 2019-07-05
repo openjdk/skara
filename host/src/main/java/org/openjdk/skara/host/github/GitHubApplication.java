@@ -97,7 +97,6 @@ public class GitHubApplication {
     private final Token installationToken;
 
     private final Logger log;
-    private final JSONParser jsonParser;
 
     static class GitHubConfigurationError extends RuntimeException {
         public GitHubConfigurationError(String message) {
@@ -108,7 +107,6 @@ public class GitHubApplication {
     public GitHubApplication(String keyFile, String issue, String id) {
 
         log = Logger.getLogger("org.openjdk.host.github");
-        jsonParser = new JSONParser();
 
         apiBase = URIBuilder.base("https://api.github.com/").build();
         this.issue = issue;
@@ -194,7 +192,7 @@ public class GitHubApplication {
                     HttpResponse.BodyHandlers.ofString()
             );
 
-            var data = jsonParser.parse(response.body());
+            var data = JSON.parse(response.body());
             if (!data.contains("token")) {
                 throw new Token.GeneratorError("Unknown data returned: " + data);
             }
@@ -228,7 +226,7 @@ public class GitHubApplication {
                     HttpResponse.BodyHandlers.ofString()
             );
 
-            var data = jsonParser.parse(response.body());
+            var data = JSON.parse(response.body());
             return data.asObject();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
