@@ -57,7 +57,7 @@ class GitWImport {
                         .optional(),
                 Switch.shortcut("f")
                         .fullname("file")
-                        .helptext("Input is a file path")
+                        .helptext("Input is a file path to a local patch file")
                         .optional(),
                 Switch.shortcut("k")
                         .fullname("keep")
@@ -154,15 +154,16 @@ class GitWImport {
 
     private static Path downloadPatchFile(URI uri, String patchName, boolean keep) throws IOException, InterruptedException {
         var client = HttpClient.newHttpClient();
-        var patchFile = Paths.get(patchName + ".patch");
+        Path patchFile;
         if (keep) {
+            patchFile = Paths.get(patchName + ".patch");
             if (Files.exists(patchFile)) {
                 System.err.println("Patch file: " + patchFile + " already exists!");
                 System.exit(1);
             } else {
                 Files.createFile(patchFile);
             }
-        }else {
+        } else {
             patchFile = Files.createTempFile(patchName, ".patch");
         }
 
