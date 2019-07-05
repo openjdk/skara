@@ -26,8 +26,11 @@ import org.openjdk.skara.host.*;
 import org.openjdk.skara.host.network.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.vcs.Hash;
+import org.openjdk.skara.vcs.tools.UnifiedDiffParser;
 
+import java.io.*;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -153,6 +156,16 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public List<ReviewComment> getReviewComments() {
+        var diff = request.get("pulls/" + json.get("number").toString())
+                          .header("Accept", "application/vnd.github.v3.diff")
+                          .executeUnparsed();
+        try {
+            var patches = UnifiedDiffParser.parseGitRaw(new ByteArrayInputStream(diff.getBytes(StandardCharsets.UTF_8)));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+
+
         var ret = new ArrayList<ReviewComment>();
         var reviewComments = request.get("pulls/" + json.get("number").toString() + "/comments").execute().stream()
                                     .map(JSONValue::asObject)
