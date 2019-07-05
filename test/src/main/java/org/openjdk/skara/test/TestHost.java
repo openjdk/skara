@@ -86,6 +86,9 @@ public class TestHost implements Host {
         if (data.repositories.containsKey(name)) {
             localRepository = data.repositories.get(name);
         } else {
+            if (data.repositories.size() > 0) {
+                throw new RuntimeException("A test host can only manage a single repository");
+            }
             localRepository = createLocalRepository();
             data.repositories.put(name, localRepository);
         }

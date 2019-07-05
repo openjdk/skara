@@ -75,7 +75,7 @@ class MergeTests {
             localRepo.merge(otherHash2);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
             localRepo.push(mergeHash, author.getUrl(), "edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + credentials.getHostedRepository().getName() + ":other");
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.getName() + ":other");
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
@@ -154,7 +154,7 @@ class MergeTests {
             localRepo.merge(otherHash2);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
             localRepo.push(mergeHash, author.getUrl(), "edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + credentials.getHostedRepository().getName() + ":other");
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.getName() + ":other");
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
@@ -240,7 +240,7 @@ class MergeTests {
             localRepo.merge(otherHash);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
             localRepo.push(mergeHash, author.getUrl(), "edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + credentials.getHostedRepository().getName() + ":other");
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.getName() + ":other");
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
@@ -295,7 +295,7 @@ class MergeTests {
             localRepo.merge(otherHash);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
             localRepo.push(mergeHash, author.getUrl(), "edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + credentials.getHostedRepository().getName() + "xyz" + ":other");
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.getName() + "xyz" + ":other");
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
@@ -315,7 +315,7 @@ class MergeTests {
             assertEquals(1, error, () -> pr.getComments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
 
             var check = pr.getChecks(mergeHash).get("jcheck");
-            assertEquals("- Could not fetch branch `other` from project `" + credentials.getHostedRepository().getName() + "xyz` - check that they are correct.", check.summary().orElseThrow());
+            assertEquals("- Could not find project `" + author.getName() + "xyz` - check that it is correct.", check.summary().orElseThrow());
         }
     }
 
@@ -353,7 +353,7 @@ class MergeTests {
             localRepo.merge(otherHash);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
             localRepo.push(mergeHash, author.getUrl(), "edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + credentials.getHostedRepository().getName() + ":otherxyz");
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.getName() + ":otherxyz");
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
@@ -373,7 +373,7 @@ class MergeTests {
             assertEquals(1, error, () -> pr.getComments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
 
             var check = pr.getChecks(mergeHash).get("jcheck");
-            assertEquals("- Could not fetch branch `otherxyz` from project `" + credentials.getHostedRepository().getName() + "` - check that they are correct.", check.summary().orElseThrow());
+            assertEquals("- Could not fetch branch `otherxyz` from project `" + author.getName() + "` - check that they are correct.", check.summary().orElseThrow());
         }
     }
 
@@ -416,7 +416,7 @@ class MergeTests {
             localRepo.merge(other1Hash, "ours");
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
             localRepo.push(mergeHash, author.getUrl(), "edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + credentials.getHostedRepository().getName() + ":other2");
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.getName() + ":other2");
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
@@ -474,7 +474,7 @@ class MergeTests {
             localRepo.merge(otherHash);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
             localRepo.push(mergeHash, author.getUrl(), "edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + credentials.getHostedRepository().getName() + ":other");
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.getName() + ":other");
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
@@ -546,7 +546,7 @@ class MergeTests {
             //localRepo.merge(otherHash);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
             localRepo.push(mergeHash, author.getUrl(), "edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + credentials.getHostedRepository().getName() + ":other");
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.getName() + ":other");
 
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());

@@ -33,6 +33,7 @@ dependencies {
     implementation project(':host')
     implementation project(':email')
     implementation project(':mailinglist')
+    implementation project(':proxy')
 
     implementation 'org.junit.jupiter:junit-jupiter-api:5.3.1'
     implementation 'org.junit.jupiter:junit-jupiter-params:5.3.1'

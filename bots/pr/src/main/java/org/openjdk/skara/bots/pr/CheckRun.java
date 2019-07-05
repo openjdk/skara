@@ -89,13 +89,12 @@ class CheckRun {
         return ((names.size() == 1) && emails.size() == 1);
     }
 
-    private Optional<HostedRepository> mergeSourceRepository() {
+    private Optional<String> mergeSourceRepository() {
         var repoMatcher = mergeSourcePattern.matcher(pr.getTitle());
         if (!repoMatcher.matches()) {
             return Optional.empty();
         }
-        var mergeSourceRepo = pr.repository().host().getRepository(repoMatcher.group(1));
-        return Optional.of(mergeSourceRepo);
+        return Optional.of(repoMatcher.group(1));
     }
 
     private Optional<String> mergeSourceBranch() {
@@ -133,17 +132,20 @@ class CheckRun {
                 var sourceRepo = mergeSourceRepository();
                 var sourceBranch = mergeSourceBranch();
                 if (sourceBranch.isPresent() && sourceRepo.isPresent()) {
-                    Hash sourceHash = null;
                     try {
-                        sourceHash = prInstance.localRepo().fetch(sourceRepo.get().getUrl(), sourceBranch.get());
-                    } catch (IOException e) {
-                        ret.add("Could not fetch branch `" + sourceBranch.get() + "` from project `" +
-                                        sourceRepo.get().getName() + "` - check that they are correct.");
-                    }
-                    if (sourceHash != null) {
-                        if (!prInstance.localRepo().isAncestor(commits.get(1).hash(), sourceHash)) {
-                            ret.add("The merge contains commits that are not ancestors of the source");
+                        var mergeSourceRepo = pr.repository().host().getRepository(sourceRepo.get());
+                        try {
+                            var sourceHash = prInstance.localRepo().fetch(mergeSourceRepo.getUrl(), sourceBranch.get());
+                            if (!prInstance.localRepo().isAncestor(commits.get(1).hash(), sourceHash)) {
+                                ret.add("The merge contains commits that are not ancestors of the source");
+                            }
+                        } catch (IOException e) {
+                            ret.add("Could not fetch branch `" + sourceBranch.get() + "` from project `" +
+                                            sourceRepo.get() + "` - check that they are correct.");
                         }
+                    } catch (RuntimeException e) {
+                        ret.add("Could not find project `" +
+                                        sourceRepo.get() + "` - check that it is correct.");
                     }
                 } else {
                     ret.add("Could not determine the source for this merge. A Merge PR title must be specified on the format: " +

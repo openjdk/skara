@@ -25,6 +25,7 @@ package org.openjdk.skara.test;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.host.network.URIBuilder;
 import org.openjdk.skara.json.*;
+import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.vcs.*;
 
 import org.junit.jupiter.api.TestInfo;
@@ -170,6 +171,8 @@ public class HostCredentials implements AutoCloseable {
     }
 
     public HostCredentials(TestInfo testInfo) throws IOException  {
+        HttpProxy.setup();
+
         var credentialsFile = System.getProperty("credentials");
         testName = testInfo.getDisplayName();
 

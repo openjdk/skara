@@ -31,6 +31,7 @@ module org.openjdk.skara.test {
     requires org.openjdk.skara.host;
     requires org.openjdk.skara.email;
     requires org.openjdk.skara.mailinglist;
+    requires org.openjdk.skara.proxy;
 
     requires org.junit.jupiter.api;
 

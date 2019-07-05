@@ -335,6 +335,9 @@ public class GitLabMergeRequest implements PullRequest {
         return message.replaceAll("\n", "  \n");
     }
 
+    private final Pattern checkBodyPattern = Pattern.compile("^##### ([^\\n\\r]*)\\R(.*)",
+                                                             Pattern.DOTALL | Pattern.MULTILINE);
+
     @Override
     public Map<String, Check> getChecks(Hash hash) {
         var pattern = Pattern.compile(String.format(checkResultPattern, hash.hex()));
@@ -354,7 +357,11 @@ public class GitLabMergeRequest implements PullRequest {
                             if (!entry.getValue().group(3).equals("NONE")) {
                                 checkBuilder.metadata(new String(Base64.getDecoder().decode(entry.getValue().group(3)), StandardCharsets.UTF_8));
                             }
-                            checkBuilder.summary(entry.getKey().body());
+                            var checkBodyMatcher = checkBodyPattern.matcher(entry.getKey().body());
+                            if (checkBodyMatcher.find()) {
+                                checkBuilder.title(checkBodyMatcher.group(1));
+                                checkBuilder.summary(checkBodyMatcher.group(2));
+                            }
                             return checkBuilder.build();
                         }));
     }
