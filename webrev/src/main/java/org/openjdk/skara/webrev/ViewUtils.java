@@ -102,4 +102,8 @@ class ViewUtils {
         writer.write(" ");
         writer.write(HTML.escape(line));
     }
+
+    public static String pathWithUnixSeps(Path p) {
+        return p.toString().replace('\\', '/');
+    }
 }

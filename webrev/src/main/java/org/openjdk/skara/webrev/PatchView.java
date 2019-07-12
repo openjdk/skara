@@ -56,15 +56,15 @@ class PatchView implements View {
 
         try (var fw = Files.newBufferedWriter(patchFile)) {
             fw.write("diff a/");
-            fw.write(patch.source().path().get().toString());
+            fw.write(ViewUtils.pathWithUnixSeps(patch.source().path().get()));
             fw.write(" b/");
-            fw.write(patch.target().path().get().toString());
+            fw.write(ViewUtils.pathWithUnixSeps(patch.target().path().get()));
             fw.write("\n");
             fw.write("--- a/");
-            fw.write(patch.source().path().get().toString());
+            fw.write(ViewUtils.pathWithUnixSeps(patch.source().path().get()));
             fw.write("\n");
             fw.write("+++ b/");
-            fw.write(patch.target().path().get().toString());
+            fw.write(ViewUtils.pathWithUnixSeps(patch.target().path().get()));
             fw.write("\n");
 
             var coalescer = new HunkCoalescer(NUM_CONTEXT_LINES, sourceContent, destContent);

@@ -37,19 +37,18 @@ class RemovedPatchView implements View {
         this.file = file;
         this.patch = patch;
     }
-
     public void render(Writer w) throws IOException {
         var patchFile = out.resolve(file.toString() + ".patch");
         Files.createDirectories(patchFile.getParent());
 
         try (var fw = Files.newBufferedWriter(patchFile)) {
             fw.write("diff a/");
-            fw.write(patch.source().path().get().toString());
+            fw.write(ViewUtils.pathWithUnixSeps(patch.source().path().get()));
             fw.write(" b/");
-            fw.write(patch.source().path().get().toString());
+            fw.write(ViewUtils.pathWithUnixSeps(patch.source().path().get()));
             fw.write("\n");
             fw.write("--- a/");
-            fw.write(patch.source().path().get().toString());
+            fw.write(ViewUtils.pathWithUnixSeps(patch.source().path().get()));
             fw.write("\n");
             fw.write("+++ /dev/null");
             fw.write("\n");
