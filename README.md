@@ -26,7 +26,7 @@ There are also CLI tools available for importing OpenJDK
 The following server-side tools (so called "bots") for interacting with
 external Git source code hosting providers are available:
 
-- hgbridge - continously convert Mercurial repositories to git
+- hgbridge - continuously convert Mercurial repositories to git
 - mlbridge - bridge messages between mailing lists and pull requests
 - notify - send email notifications when repositories are updated
 - pr - add OpenJDK workflow support for pull requests
