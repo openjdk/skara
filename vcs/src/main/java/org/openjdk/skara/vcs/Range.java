@@ -49,6 +49,12 @@ public class Range {
         var count =
             countString.equals("18446744073709551615") ?  0 : Integer.parseInt(countString);
 
+        if (count == 0 && start != 0) {
+            // start is off-by-one when count is 0.
+            // but if start == 0, a file was added and we need a 0 here.
+            start++;
+        }
+
         return new Range(start, count);
     }
 

@@ -174,14 +174,6 @@ class HunkCoalescer {
         var sourceCount = sourceEnd - sourceStart;
         var destCount = destEnd - destStart;
 
-        // For some reason git wants the start to be +1 when no lines have changed
-        if (sourceCount == numContextLines * 2) {
-            sourceStart++;
-        }
-        if (destCount == numContextLines * 2) {
-            destStart++;
-        }
-
         return new Header(new Range(sourceStart, sourceCount),
                           new Range(destStart, destCount));
     }
@@ -189,16 +181,10 @@ class HunkCoalescer {
     private Context createContextBeforeGroup(Header header, Hunk first) {
         var sourceContextBeforeStart = header.source().start();
         var sourceContextBeforeEnd = first.source().range().start();
-        if (first.source().range().count() == 0) {
-            sourceContextBeforeEnd++;
-        }
         var sourceBeforeContextCount = sourceContextBeforeEnd - sourceContextBeforeStart;
 
         var destContextBeforeStart = header.target().start();
         var destContextBeforeEnd = first.target().range().start();
-        if (first.target().range().count() == 0) {
-            destContextBeforeEnd++;
-        }
         var destBeforeContextCount = destContextBeforeEnd - destContextBeforeStart;
 
         var beforeContextCount = Math.min(destBeforeContextCount, sourceBeforeContextCount);
@@ -250,15 +236,8 @@ class HunkCoalescer {
     }
 
     private Context createContextAfterHunk(Hunk hunk, Hunk nextNonEmptySourceHunk, Hunk nextNonEmptyTargetHunk) {
-        boolean isOneRangeEmpty = hunk.source().range().count() == 0 ||
-                                  hunk.target().range().count() == 0;
-
         var sourceAfterContextStart = hunk.source().range().end();
         var sourceAfterContextEnd = hunk.source().range().end() + numContextLines;
-        if (hunk.source().range().count() == 0) {
-            sourceAfterContextStart++;
-            sourceAfterContextEnd++;
-        }
         sourceAfterContextEnd = Math.min(sourceAfterContextEnd, sourceContent.size() + 1);
         if (nextNonEmptySourceHunk != null) {
             var nextNonEmptySourceHunkStart = nextNonEmptySourceHunk.source().range().start();
@@ -268,10 +247,6 @@ class HunkCoalescer {
 
         var destAfterContextStart = hunk.target().range().end();
         var destAfterContextEnd = hunk.target().range().end() + numContextLines;
-        if (hunk.target().range().count() == 0) {
-            destAfterContextStart++;
-            destAfterContextEnd++;
-        }
         destAfterContextEnd = Math.min(destAfterContextEnd, destContent.size() + 1);
         if (nextNonEmptyTargetHunk != null) {
             var nextNonEmptyTargetHunkStart = nextNonEmptyTargetHunk.target().range().start();
