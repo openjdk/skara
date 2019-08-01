@@ -25,6 +25,7 @@ package org.openjdk.skara.webrev;
 import org.openjdk.skara.vcs.*;
 
 import java.io.*;
+import java.net.URISyntaxException;
 import java.nio.channels.FileChannel;
 import java.nio.file.*;
 import java.util.*;
@@ -191,7 +192,12 @@ public class Webrev {
         private void copyResource(String name) throws IOException {
             var stream = this.getClass().getResourceAsStream("/" + name);
             if (stream == null) {
-                var classPath = Path.of(getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
+                Path classPath;
+                try {
+                    classPath = Path.of(getClass().getProtectionDomain().getCodeSource().getLocation().toURI());
+                } catch (URISyntaxException e) {
+                    throw new IOException(e);
+                }
                 var extPath = classPath.getParent().resolve("resources").resolve(name);
                 stream = new FileInputStream(extPath.toFile());
             }
