@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019 Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,9 +20,9 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-module org.openjdk.skara.webrev {
-    requires org.openjdk.skara.vcs;
-    requires java.net.http;
+package org.openjdk.skara.args;
 
-    exports org.openjdk.skara.webrev;
+@FunctionalInterface
+public interface Command {
+    void execute(String[] args) throws Exception;
 }

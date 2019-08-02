@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.cli;
 
+import org.openjdk.skara.args.Command;
 import org.openjdk.skara.vcs.Repository;
 
 import java.io.IOException;
@@ -32,13 +33,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.function.Consumer;
 
 public class GitSkara {
-    @FunctionalInterface
-    private interface Command {
-        void execute(String[] args) throws Exception;
-    }
 
     private static final Map<String, Command> commands = new TreeMap<>();
 
@@ -120,7 +116,6 @@ public class GitSkara {
         commands.put("token", GitToken::main);
         commands.put("info", GitInfo::main);
         commands.put("translate", GitTranslate::main);
-        commands.put("wimport", GitWImport::main);
         commands.put("update", GitSkara::update);
         commands.put("help", GitSkara::usage);
 

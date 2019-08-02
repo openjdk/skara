@@ -29,10 +29,12 @@ import org.openjdk.skara.webrev.*;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.*;
 import java.util.*;
-import java.util.jar.Manifest;
-import java.util.stream.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class GitWebrev {
@@ -79,7 +81,7 @@ public class GitWebrev {
         }
     }
 
-    public static void main(String[] args) throws IOException {
+    private static void generate(String[] args) throws IOException {
         var flags = List.of(
             Option.shortcut("r")
                   .fullname("rev")
@@ -250,5 +252,79 @@ public class GitWebrev {
               .issue(issue)
               .version(version)
               .generate(rev);
+    }
+
+    private static void apply(String[] args) throws Exception {
+        var inputs = List.of(
+            Input.position(0)
+                .describe("webrev url")
+                .singular()
+                .required());
+
+        var parser = new ArgumentParser("git webrev apply", List.of(), inputs);
+        var arguments = parser.parse(args);
+
+        var inputString = arguments.at(0).asString();
+        var webrevMetaData = WebrevMetaData.fromWebrevURL(inputString);
+        var patchFileURI = webrevMetaData.patchURI()
+                .orElseThrow(() -> new IllegalStateException("Could not find patch file in webrev"));
+        var patchFile = downloadPatchFile(patchFileURI);
+
+        var cwd = Paths.get("").toAbsolutePath();
+        var repository = Repository.get(cwd);
+        if (repository.isEmpty()) {
+            System.err.println(String.format("error: %s is not a repository", cwd.toString()));
+            System.exit(1);
+        }
+
+        if (!check(patchFile)) {
+            System.err.println("Patch does not apply cleanly!");
+            System.exit(1);
+        }
+
+        System.out.println("Applying patch file: " + patchFile);
+        stat(patchFile);
+        apply(patchFile);
+    }
+
+    private static Path downloadPatchFile(URI uri) throws IOException, InterruptedException {
+        var client = HttpClient.newHttpClient();
+        var patchFile = Files.createTempFile("patch", ".patch");
+        var patchFileRequest = HttpRequest.newBuilder()
+                .uri(uri)
+                .build();
+        client.send(patchFileRequest, HttpResponse.BodyHandlers.ofFile(patchFile));
+        return patchFile;
+    }
+
+    private static boolean check(Path patchFile) throws IOException, InterruptedException {
+        return applyInternal(patchFile, "--check", "--index") == 0;
+    }
+
+    private static void stat(Path patchFile) throws IOException, InterruptedException {
+        applyInternal(patchFile, "--stat", "--index");
+    }
+
+    private static void apply(Path patchFile) throws IOException, InterruptedException {
+        applyInternal(patchFile, "--index");
+    }
+
+    private static int applyInternal(Path patchFile, String...options) throws IOException, InterruptedException {
+        List<String> args = new ArrayList<>();
+        args.add("git");
+        args.add("apply");
+        args.addAll(Arrays.asList(options));
+        args.add(patchFile.toString());
+        var pb = new ProcessBuilder(args.toArray(String[]::new));
+        pb.inheritIO();
+        return pb.start().waitFor();
+    }
+
+    public static void main(String[] args) throws Exception {
+        SubCommandSwitch.builder("git webrev")
+                .defaultCommand("generate", "generate a webrev", GitWebrev::generate)
+                .subCommand("apply", "apply a webrev from a webrev url", GitWebrev::apply)
+                .build()
+                .execute(args);
     }
 }
