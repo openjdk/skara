@@ -104,10 +104,10 @@ public abstract class Patch {
 
     public void write(BufferedWriter w) throws IOException {
         // header
-        var sourcePath = source.path().isPresent() ?
-            source.path().get().toString() : target.path().get().toString();
-        var targetPath = target.path().isPresent() ?
-            target.path().get().toString() : source.path().get().toString();
+        var sourcePath = pathWithUnixSeps(source.path().isPresent() ?
+            source.path().get() : target.path().get());
+        var targetPath = pathWithUnixSeps(target.path().isPresent() ?
+            target.path().get() : source.path().get());
 
         w.append("diff --git ");
         w.append("a/" + sourcePath);
@@ -196,10 +196,10 @@ public abstract class Patch {
         }
 
         w.append("--- ");
-        w.append(source.path().isPresent() ? "a/" + source.path().get().toString() : "/dev/null");
+        w.append(source.path().isPresent() ? "a/" + sourcePath : "/dev/null");
         w.append("\n");
         w.append("+++ ");
-        w.append(target.path().isPresent() ? "b/" + target.path().get().toString() : "/dev/null");
+        w.append(target.path().isPresent() ? "b/" + targetPath : "/dev/null");
         w.newLine();
 
         if (isBinary()) {
@@ -219,5 +219,9 @@ public abstract class Patch {
         try (var w = Files.newBufferedWriter(p)) {
             write(w);
         }
+    }
+
+    public static String pathWithUnixSeps(Path p) {
+        return p.toString().replace('\\', '/');
     }
 }
