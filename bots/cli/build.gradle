@@ -41,6 +41,7 @@ dependencies {
     implementation project(':bots:notify')
     implementation project(':bots:mlbridge')
     implementation project(':bots:submit')
+    implementation project(':bots:forward')
     implementation project(':vcs')
     implementation project(':jcheck')
     implementation project(':host')
@@ -62,7 +63,8 @@ images {
                    'org.openjdk.skara.bots.hgbridge',
                    'org.openjdk.skara.bots.notify',
                    'org.openjdk.skara.bots.mlbridge',
-                   'org.openjdk.skara.bots.submit']
+                   'org.openjdk.skara.bots.submit',
+                   'org.openjdk.skara.bots.forward']
         launchers = ['skara-bots': 'org.openjdk.skara.bots.cli/org.openjdk.skara.bots.cli.BotLauncher']
         options = ["--module-path", "plugins"]
         bundles = ['zip', 'tar.gz']

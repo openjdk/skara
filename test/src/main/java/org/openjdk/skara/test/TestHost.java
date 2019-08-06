@@ -58,7 +58,7 @@ public class TestHost implements Host {
         }
     }
 
-    static TestHost createNew(List<HostUserDetails> users) {
+    public static TestHost createNew(List<HostUserDetails> users) {
         var data = new HostData();
         data.users.addAll(users);
         var host = new TestHost(data, 0);
