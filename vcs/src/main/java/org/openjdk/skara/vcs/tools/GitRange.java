@@ -35,7 +35,7 @@ class GitRange {
 
         var start = Integer.parseInt(s.substring(0, separatorIndex));
 
-        // Need to work arond a bug in git where git sometimes print -1
+        // Need to work around a bug in git where git sometimes print -1
         // as an unsigned int for the count part of the range
         var countString = s.substring(separatorIndex + 1, s.length());
         var count =

@@ -67,7 +67,7 @@ class GitCombinedDiffParser {
                 var header = headers.get(i - 1);
                 if (header.status().isAdded()) {
                     // git reports wrong start for added files, they should
-                    // always have range (0, 0), but git reports (1,0)
+                    // always have range (0,0), but git reports (1,0)
                     sourceRangesPerParent.add(new Range(0, 0));
                 } else {
                     sourceRangesPerParent.add(Range.fromString(words[i].substring(1))); // skip initial '-'
