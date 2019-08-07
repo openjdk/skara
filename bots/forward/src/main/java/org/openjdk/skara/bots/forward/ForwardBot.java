@@ -38,14 +38,17 @@ import java.util.logging.Logger;
 class ForwardBot implements Bot, WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
 
+    private final Path storage;
+
     private final HostedRepository fromHostedRepo;
     private final Branch fromBranch;
 
     private final HostedRepository toHostedRepo;
     private final Branch toBranch;
 
-    ForwardBot(HostedRepository fromHostedRepo, Branch fromBranch,
+    ForwardBot(Path storage, HostedRepository fromHostedRepo, Branch fromBranch,
                HostedRepository toHostedRepo, Branch toBranch) {
+        this.storage = storage;
         this.fromHostedRepo = fromHostedRepo;
         this.fromBranch = fromBranch;
         this.toHostedRepo = toHostedRepo;
@@ -66,7 +69,7 @@ class ForwardBot implements Bot, WorkItem {
         try {
             var sanitizedUrl =
                 URLEncoder.encode(toHostedRepo.getUrl().toString(), StandardCharsets.UTF_8);
-            var toDir = scratchPath.resolve("forward").resolve(sanitizedUrl);
+            var toDir = storage.resolve(sanitizedUrl);
             Repository toLocalRepo = null;
             if (!Files.exists(toDir)) {
                 log.info("Cloning " + toHostedRepo.getName());

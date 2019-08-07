@@ -65,7 +65,8 @@ class SubmitBotTests {
             var toCommits = toLocalRepo.commits().asList();
             assertEquals(0, toCommits.size());
 
-            var bot = new ForwardBot(fromHostedRepo, master, toHostedRepo, master);
+            var storage = temp.path().resolve("storage");
+            var bot = new ForwardBot(storage, fromHostedRepo, master, toHostedRepo, master);
             TestBotRunner.runPeriodicItems(bot);
 
             toCommits = toLocalRepo.commits().asList();
@@ -101,7 +102,8 @@ class SubmitBotTests {
             var toCommits = toLocalRepo.commits().asList();
             assertEquals(0, toCommits.size());
 
-            var bot = new ForwardBot(fromHostedRepo, master, toHostedRepo, new Branch("dev"));
+            var storage = temp.path().resolve("storage");
+            var bot = new ForwardBot(storage, fromHostedRepo, master, toHostedRepo, new Branch("dev"));
             TestBotRunner.runPeriodicItems(bot);
 
             toCommits = toLocalRepo.commits().asList();

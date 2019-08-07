@@ -25,6 +25,9 @@ package org.openjdk.skara.bots.forward;
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.vcs.Branch;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Logger;
@@ -40,6 +43,12 @@ public class ForwardBotFactory implements BotFactory {
     @Override
     public List<Bot> create(BotConfiguration configuration) {
         var ret = new ArrayList<Bot>();
+        var storage = configuration.storageFolder();
+        try {
+            Files.createDirectories(storage);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
         var specific = configuration.specific();
 
         for (var repo : specific.get("repositories").fields()) {
@@ -52,7 +61,7 @@ public class ForwardBotFactory implements BotFactory {
             var toRepo = configuration.repository(to[0]);
             var toBranch = new Branch(to[1]);
 
-            var bot = new ForwardBot(fromRepo, fromBranch, toRepo, toBranch);
+            var bot = new ForwardBot(storage, fromRepo, fromBranch, toRepo, toBranch);
             log.info("Setting up forwarding from " +
                      fromRepo.getName() + ":" + fromBranch.name() +
                      "to " + toRepo.getName() + ":" + toBranch.name());
