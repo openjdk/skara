@@ -68,9 +68,8 @@ class PullRequestInstance {
     }
 
     String fetchCommand() {
-        var repoUrl = pr.repository().getUrl();
-        return "git fetch " + repoUrl.getScheme() + "://" + repoUrl.getHost() + repoUrl.getPath() + " " +
-                pr.getSourceRef() + ":pull/" + pr.getId();
+        var repoUrl = pr.repository().getWebUrl();
+        return "git fetch " + repoUrl + " " + pr.getSourceRef() + ":pull/" + pr.getId();
     }
 
     @FunctionalInterface
