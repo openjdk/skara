@@ -23,14 +23,11 @@
 package org.openjdk.skara.host.github;
 
 import org.openjdk.skara.host.*;
-import org.openjdk.skara.host.network.*;
+import org.openjdk.skara.host.network.RestRequest;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.vcs.Hash;
-import org.openjdk.skara.vcs.tools.UnifiedDiffParser;
 
-import java.io.*;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -114,14 +111,14 @@ public class GitHubPullRequest implements PullRequest {
                .execute();
     }
 
-    private ReviewComment parseReviewComment(ReviewComment parent, JSONObject json) {
+    private ReviewComment parseReviewComment(ReviewComment parent, JSONObject json, PositionMapper diff) {
         var author = host.parseUserDetails(json);
         var threadId = parent == null ? json.get("id").toString() : parent.threadId();
         var comment = new ReviewComment(parent,
                                         threadId,
                                         new Hash(json.get("commit_id").asString()),
                                         json.get("path").asString(),
-                                        json.get("original_position").asInt(),  // FIXME: This is not the line
+                                        diff.positionToLine(json.get("path").asString(), json.get("original_position").asInt()),
                                         json.get("id").toString(),
                                         json.get("body").asString(),
                                         author,
@@ -132,39 +129,44 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public ReviewComment addReviewComment(Hash base, Hash hash, String path, int line, String body) {
+        var rawDiff = request.get("pulls/" + json.get("number").toString())
+                             .header("Accept", "application/vnd.github.v3.diff")
+                             .executeUnparsed();
+        var diff = PositionMapper.parse(rawDiff);
+
         var query = JSON.object()
                 .put("body", body)
                 .put("commit_id", hash.hex())
                 .put("path", path)
-                .put("position", line);
+                .put("position", diff.lineToPosition(path, line));
         var response = request.post("pulls/" + json.get("number").toString() + "/comments")
                 .body(query)
                 .execute();
-        return parseReviewComment(null, response.asObject());
+        return parseReviewComment(null, response.asObject(), diff);
     }
 
     @Override
     public ReviewComment addReviewCommentReply(ReviewComment parent, String body) {
+        var rawDiff = request.get("pulls/" + json.get("number").toString())
+                             .header("Accept", "application/vnd.github.v3.diff")
+                             .executeUnparsed();
+        var diff = PositionMapper.parse(rawDiff);
+
         var query = JSON.object()
                         .put("body", body)
                 .put("in_reply_to", Integer.parseInt(parent.threadId()));
         var response = request.post("pulls/" + json.get("number").toString() + "/comments")
                 .body(query)
                 .execute();
-        return parseReviewComment(parent, response.asObject());
+        return parseReviewComment(parent, response.asObject(), diff);
     }
 
     @Override
     public List<ReviewComment> getReviewComments() {
-        var diff = request.get("pulls/" + json.get("number").toString())
+        var rawDiff = request.get("pulls/" + json.get("number").toString())
                           .header("Accept", "application/vnd.github.v3.diff")
                           .executeUnparsed();
-        try {
-            var patches = UnifiedDiffParser.parseGitRaw(new ByteArrayInputStream(diff.getBytes(StandardCharsets.UTF_8)));
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-
+        var diff = PositionMapper.parse(rawDiff);
 
         var ret = new ArrayList<ReviewComment>();
         var reviewComments = request.get("pulls/" + json.get("number").toString() + "/comments").execute().stream()
@@ -177,7 +179,7 @@ public class GitHubPullRequest implements PullRequest {
             if (reviewComment.contains("in_reply_to_id")) {
                 parent = idToComment.get(reviewComment.get("in_reply_to_id").toString());
             }
-            var comment = parseReviewComment(parent, reviewComment);
+            var comment = parseReviewComment(parent, reviewComment, diff);
             idToComment.put(comment.id(), comment);
             ret.add(comment);
         }

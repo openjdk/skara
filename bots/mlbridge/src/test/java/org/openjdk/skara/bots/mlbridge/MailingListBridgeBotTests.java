@@ -427,6 +427,72 @@ class MailingListBridgeBotTests {
     }
 
     @Test
+    void multipleReviewContexts(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var archiveFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer()) {
+            var author = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.host().getCurrentUserDetails().id());
+            var from = EmailAddress.from("test", "test@test.mail");
+            var mlBot = new MailingListBridgeBot(from, author, archive, listAddress, Set.of(), listServer.getArchive(),
+                                                 listServer.getSMTP(),
+                                                 archive, "webrev", Path.of("test"),
+                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 Set.of(), Map.of());
+
+            // Populate the projects repository
+            var reviewFile = Path.of("reviewfile.txt");
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType(), reviewFile);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, archive.getUrl(), "webrev", true);
+            var initialHash = CheckableRepository.appendAndCommit(localRepo,
+                                                                  "Line 0.1\nLine 0.2\nLine 0.3\nLine 0.4\n" +
+                                                                          "Line 1\nLine 2\nLine 3\nLine 4\n" +
+                                                                          "Line 5\nLine 6\nLine 7\nLine 8\n" +
+                                                                          "Line 8.1\nLine 8.2\nLine 8.3\nLine 8.4\n" +
+                                                                          "Line 9\nLine 10\nLine 11\nLine 12\n" +
+                                                                          "Line 13\nLine 14\nLine 15\nLine 16\n");
+            localRepo.push(initialHash, author.getUrl(), "master");
+
+            // Make a change with a corresponding PR
+            var current = Files.readString(localRepo.root().resolve(reviewFile), StandardCharsets.UTF_8);
+            var updated = current.replaceAll("Line 2", "Line 2 edit\nLine 2.5");
+            updated = updated.replaceAll("Line 13", "Line 12.5\nLine 13 edit");
+            Files.writeString(localRepo.root().resolve(reviewFile), updated, StandardCharsets.UTF_8);
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.getUrl(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
+            pr.setBody("This is now ready");
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // Make file specific comments
+            pr.addReviewComment(masterHash, editHash, reviewFile.toString(), 7, "Review comment");
+            pr.addReviewComment(masterHash, editHash, reviewFile.toString(), 24, "Another review comment");
+
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // The archive should only contain context around line 2 and 20
+            Repository.materialize(archiveFolder.path(), archive.getUrl(), "master");
+            assertTrue(archiveContains(archiveFolder.path(), "reviewfile.txt line 7"));
+            assertTrue(archiveContains(archiveFolder.path(), "^> 6: Line 1$"));
+            assertTrue(archiveContains(archiveFolder.path(), "^> 7: Line 2 edit$"));
+            assertFalse(archiveContains(archiveFolder.path(), "Line 3"));
+
+            assertTrue(archiveContains(archiveFolder.path(), "reviewfile.txt line 24"));
+            assertTrue(archiveContains(archiveFolder.path(), "^> 23: Line 12.5$"));
+            assertTrue(archiveContains(archiveFolder.path(), "^> 24: Line 13 edit$"));
+            assertFalse(archiveContains(archiveFolder.path(), "^Line 15"));
+        }
+    }
+
+    @Test
     void filterComments(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
