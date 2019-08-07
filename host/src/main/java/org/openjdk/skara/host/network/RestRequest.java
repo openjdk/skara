@@ -63,6 +63,7 @@ public class RestRequest {
 
         private final List<Param> params = new ArrayList<>();
         private final List<Param> bodyParams = new ArrayList<>();
+        private final Map<String, String> headers = new HashMap<>();
         private JSONValue body;
         private int maxPages;
         private ErrorTransform onError;
@@ -140,6 +141,11 @@ public class RestRequest {
          */
         public QueryBuilder onError(ErrorTransform errorTransform) {
             onError = errorTransform;
+            return this;
+        }
+
+        public QueryBuilder header(String name, String value) {
+            headers.put(name, value);
             return this;
         }
 
@@ -259,7 +265,8 @@ public class RestRequest {
         }
     }
 
-    private HttpRequest createRequest(RequestType requestType, String endpoint, JSONValue body, List<QueryBuilder.Param> params) {
+    private HttpRequest createRequest(RequestType requestType, String endpoint, JSONValue body,
+                                      List<QueryBuilder.Param> params, Map<String, String> headers) {
         var uriBuilder = URIBuilder.base(apiBase);
         if (endpoint != null && !endpoint.isEmpty()) {
             uriBuilder = uriBuilder.appendPath(endpoint);
@@ -279,6 +286,7 @@ public class RestRequest {
         if (body != null) {
             requestBuilder.method(requestType.name(), HttpRequest.BodyPublishers.ofString(body.toString()));
         }
+        headers.forEach(requestBuilder::header);
         return requestBuilder.build();
     }
 
@@ -290,7 +298,8 @@ public class RestRequest {
     }
 
     private JSONValue execute(QueryBuilder queryBuilder) {
-        var request = createRequest(queryBuilder.queryType, queryBuilder.endpoint, queryBuilder.composedBody(), queryBuilder.params);
+        var request = createRequest(queryBuilder.queryType, queryBuilder.endpoint, queryBuilder.composedBody(),
+                                    queryBuilder.params, queryBuilder.headers);
         var response = sendRequest(request);
         var errorTransform = transformBadResponse(response, queryBuilder);
         if (errorTransform.isPresent()) {
@@ -331,7 +340,8 @@ public class RestRequest {
     }
 
     private String executeUnparsed(QueryBuilder queryBuilder) {
-        var request = createRequest(queryBuilder.queryType, queryBuilder.endpoint, queryBuilder.composedBody(), queryBuilder.params);
+        var request = createRequest(queryBuilder.queryType, queryBuilder.endpoint, queryBuilder.composedBody(),
+                                    queryBuilder.params, queryBuilder.headers);
         var response = sendRequest(request);
         return response.body();
     }
