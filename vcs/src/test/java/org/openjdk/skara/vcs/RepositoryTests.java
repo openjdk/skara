@@ -376,7 +376,7 @@ public class RepositoryTests {
             assertEquals(1, hunks.size());
 
             var hunk = hunks.get(0);
-            assertEquals(new Range(1, 0), hunk.source().range());
+            assertEquals(new Range(2, 0), hunk.source().range());
             assertEquals(new Range(2, 1), hunk.target().range());
 
             assertEquals(List.of(), hunk.source().lines());
@@ -508,7 +508,7 @@ public class RepositoryTests {
             assertEquals(1, hunks.size());
 
             var hunk = hunks.get(0);
-            assertEquals(new Range(1, 0), hunk.source().range());
+            assertEquals(new Range(2, 0), hunk.source().range());
             assertEquals(new Range(2, 2), hunk.target().range());
 
             assertEquals(List.of(), hunk.source().lines());
@@ -859,7 +859,7 @@ public class RepositoryTests {
             assertEquals(1, hunks.size());
 
             var hunk = hunks.get(0);
-            assertEquals(1, hunk.source().range().start());
+            assertEquals(2, hunk.source().range().start());
             assertEquals(0, hunk.source().range().count());
             assertEquals(0, hunk.source().lines().size());
 
@@ -1132,7 +1132,7 @@ public class RepositoryTests {
             assertEquals(1, hunks.size());
 
             var hunk = hunks.get(0);
-            assertEquals(1, hunk.source().range().start());
+            assertEquals(2, hunk.source().range().start());
             assertEquals(0, hunk.source().range().count());
             assertEquals(List.of(), hunk.source().lines());
 
@@ -1283,7 +1283,7 @@ public class RepositoryTests {
             assertEquals(List.of(), secondHunk.source().lines());
             assertEquals(List.of("One last line"), secondHunk.target().lines());
 
-            assertEquals(2, secondHunk.source().range().start());
+            assertEquals(3, secondHunk.source().range().start());
             assertEquals(0, secondHunk.source().range().count());
             assertEquals(3, secondHunk.target().range().start());
             assertEquals(1, secondHunk.target().range().count());
@@ -1302,7 +1302,7 @@ public class RepositoryTests {
             assertEquals(List.of(), thirdHunk.source().lines());
             assertEquals(List.of("One more line", "One last line"), thirdHunk.target().lines());
 
-            assertEquals(1, thirdHunk.source().range().start());
+            assertEquals(2, thirdHunk.source().range().start());
             assertEquals(0, thirdHunk.source().range().count());
             assertEquals(2, thirdHunk.target().range().start());
             assertEquals(2, thirdHunk.target().range().count());

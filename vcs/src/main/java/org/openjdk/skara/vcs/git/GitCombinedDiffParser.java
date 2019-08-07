@@ -43,7 +43,7 @@ class GitCombinedDiffParser {
         this.delimiter = delimiter;
     }
 
-    private List<List<Hunk>> parseSingleFileMultiParentDiff(UnixStreamReader reader) throws IOException {
+    private List<List<Hunk>> parseSingleFileMultiParentDiff(UnixStreamReader reader, List<PatchHeader> headers) throws IOException {
         assert line.startsWith("diff --combined");
 
         while ((line = reader.readLine()) != null &&
@@ -64,7 +64,14 @@ class GitCombinedDiffParser {
             assert words[0].startsWith("@@@");
             var sourceRangesPerParent = new ArrayList<Range>(numParents);
             for (int i = 1; i <= numParents; i++) {
-                sourceRangesPerParent.add(Range.fromString(words[i].substring(1))); // skip initial '-'
+                var header = headers.get(i - 1);
+                if (header.status().isAdded()) {
+                    // git reports wrong start for added files, they should
+                    // always have range (0, 0), but git reports (1,0)
+                    sourceRangesPerParent.add(new Range(0, 0));
+                } else {
+                    sourceRangesPerParent.add(Range.fromString(words[i].substring(1))); // skip initial '-'
+                }
             }
             var targetRange = Range.fromString(words[numParents + 1].substring(1)); // skip initial '+'
 
@@ -174,8 +181,10 @@ class GitCombinedDiffParser {
             headersPerParent.add(new ArrayList<PatchHeader>());
         }
 
+        var headersForFiles = new ArrayList<List<PatchHeader>>();
         while (line != null && line.startsWith("::")) {
             var headersForFile = parseCombinedRawLine(line);
+            headersForFiles.add(headersForFile);
             assert headersForFile.size() == numParents;
 
             for (int i = 0; i < numParents; i++) {
@@ -193,13 +202,18 @@ class GitCombinedDiffParser {
         for (int i = 0; i < numParents; i++) {
             hunksPerFilePerParent.add(new ArrayList<List<Hunk>>());
         }
+
+        int headerIndex = 0;
         while (line != null && !line.equals(delimiter)) {
-            var hunksPerParentForFile = parseSingleFileMultiParentDiff(reader);
+            var headersForFile = headersForFiles.get(headerIndex);
+            var hunksPerParentForFile = parseSingleFileMultiParentDiff(reader, headersForFile);
             assert hunksPerParentForFile.size() == numParents;
 
             for (int i = 0; i < numParents; i++) {
                 hunksPerFilePerParent.get(i).add(hunksPerParentForFile.get(i));
             }
+
+            headerIndex++;
         }
 
         var patchesPerParent = new ArrayList<List<Patch>>(numParents);

@@ -149,8 +149,8 @@ public class UnifiedDiffParser {
                     throw new IllegalStateException("Unexpected diff line: " + line);
                 }
             }
-            hunks.add(new Hunk(Range.fromString(sourceRange), sourceLines, sourceHasNewlineAtEndOfFile,
-                               Range.fromString(targetRange), targetLines, targetHasNewlineAtEndOfFile));
+            hunks.add(new Hunk(GitRange.fromString(sourceRange), sourceLines, sourceHasNewlineAtEndOfFile,
+                               GitRange.fromString(targetRange), targetLines, targetHasNewlineAtEndOfFile));
         }
 
         return Hunks.ofTextual(hunks);
@@ -261,14 +261,6 @@ public class UnifiedDiffParser {
             }
 
             if (line.startsWith(" ")) {
-                // this is the start of another hunk
-                // TODO: explain this strange behaviour
-                if (sourceLines.size() == 0) {
-                    sourceStart--;
-                }
-                if (targetLines.size() == 0) {
-                    targetStart--;
-                }
                 hunks.add(new Hunk(new Range(sourceStart, sourceLines.size()), sourceLines,
                                    new Range(targetStart, targetLines.size()), targetLines));
 
@@ -287,12 +279,6 @@ public class UnifiedDiffParser {
         }
 
         if (sourceLines.size() > 0 || targetLines.size() > 0) {
-            if (sourceLines.size() == 0) {
-                sourceStart--;
-            }
-            if (targetLines.size() == 0) {
-                targetStart--;
-            }
             hunks.add(new Hunk(new Range(sourceStart, sourceLines.size()), sourceLines,
                                new Range(targetStart, targetLines.size()), targetLines));
         }
