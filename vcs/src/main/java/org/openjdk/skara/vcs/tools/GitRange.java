@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,20 +20,12 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.vcs;
+package org.openjdk.skara.vcs.tools;
 
-import java.util.Objects;
+import org.openjdk.skara.vcs.Range;
 
-public class Range {
-    private final int start;
-    private final int count;
-
-    public Range(int start, int count) {
-        this.start = start;
-        this.count = count;
-    }
-
-    public static Range fromString(String s) {
+class GitRange {
+    static Range fromString(String s) {
         var separatorIndex = s.indexOf(",");
 
         if (separatorIndex == -1) {
@@ -42,40 +34,19 @@ public class Range {
         }
 
         var start = Integer.parseInt(s.substring(0, separatorIndex));
-        var count = Integer.parseInt(s.substring(separatorIndex + 1, s.length()));
 
-        return new Range(start, count);
-    }
+        // Need to work around a bug in git where git sometimes print -1
+        // as an unsigned int for the count part of the range
+        var countString = s.substring(separatorIndex + 1, s.length());
+        var count =
+            countString.equals("18446744073709551615") ?  0 : Integer.parseInt(countString);
 
-    public int start() {
-        return this.start;
-    }
-
-    public int count() {
-        return this.count;
-    }
-
-    public int end() {
-        return start + count;
-    }
-
-    @Override
-    public String toString() {
-        return Integer.toString(start) + "," + Integer.toString(count);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(start, count);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (!(o instanceof Range)) {
-            return false;
+        if (count == 0 && start != 0) {
+            // start is off-by-one when count is 0.
+            // but if start == 0, a file was added and we need a 0 here.
+            start++;
         }
 
-        var other = (Range) o;
-        return start == other.start && count == other.count;
+        return new Range(start, count);
     }
 }
