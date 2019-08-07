@@ -26,7 +26,6 @@ module org.openjdk.skara.vcs {
     requires org.openjdk.skara.encoding;
 
     exports org.openjdk.skara.vcs;
-    exports org.openjdk.skara.vcs.tools;
     exports org.openjdk.skara.vcs.openjdk;
     exports org.openjdk.skara.vcs.openjdk.convert;
 }
