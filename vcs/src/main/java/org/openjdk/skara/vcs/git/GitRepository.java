@@ -84,6 +84,10 @@ public class GitRepository implements Repository {
                       .execute();
     }
 
+    private static Execution capture(Path cwd, List<String> cmd) {
+        return capture(cwd, cmd.toArray(new String[0]));
+    }
+
     private static Execution.Result await(Execution e) throws IOException {
         var result = e.await();
         if (result.status() != 0) {
@@ -829,8 +833,14 @@ public class GitRepository implements Repository {
         }
     }
 
-    public static Repository clone(URI from, Path to) throws IOException {
-        try (var p = capture(Path.of("").toAbsolutePath(), "git", "clone", from.toString(), to.toString())) {
+    public static Repository clone(URI from, Path to, boolean isBare) throws IOException {
+        var cmd = new ArrayList<String>();
+        cmd.addAll(List.of("git", "clone"));
+        if (isBare) {
+            cmd.add("--bare");
+        }
+        cmd.addAll(List.of(from.toString(), to.toString()));
+        try (var p = capture(Path.of("").toAbsolutePath(), cmd)) {
             await(p);
         }
         return new GitRepository(to);

@@ -38,7 +38,7 @@ public class TestHostedRepository implements HostedRepository {
     private final Repository localRepository;
     private final Pattern pullRequestPattern;
 
-    TestHostedRepository(TestHost host, String projectName, Repository localRepository) {
+    public TestHostedRepository(TestHost host, String projectName, Repository localRepository) {
         this.host = host;
         this.projectName = projectName;
         this.localRepository = localRepository;
@@ -89,7 +89,8 @@ public class TestHostedRepository implements HostedRepository {
     public URI getUrl() {
         try {
             // We need a URL without a trailing slash
-            return new URI(localRepository.root().getParent().toUri().toString() + "hosted.git");
+            var fileName = localRepository.root().getFileName().toString();
+            return new URI(localRepository.root().getParent().toUri().toString() + fileName);
         } catch (IOException | URISyntaxException e) {
             throw new RuntimeException(e);
         }

@@ -84,6 +84,9 @@ public class HgRepository implements Repository {
         return capture(dir, cmd);
     }
 
+    private static Execution capture(Path cwd, List<String> cmd) {
+        return capture(cwd, cmd.toArray(new String[0]));
+    }
     private static Execution capture(Path cwd, String... cmd) {
         return Process.capture(cmd)
                       .environ("HGRCPATH", "")
@@ -847,8 +850,15 @@ public class HgRepository implements Repository {
         return Optional.of(b.name());
     }
 
-    public static Repository clone(URI from, Path to) throws IOException {
-        try (var p = capture(Path.of("").toAbsolutePath(), "hg", "clone", from.toString(), to.toString())) {
+    public static Repository clone(URI from, Path to, boolean isBare) throws IOException {
+        var cmd = new ArrayList<String>();
+        cmd.addAll(List.of("hg", "clone"));
+        if (isBare) {
+            cmd.add("--noupdate");
+        }
+        cmd.addAll(List.of(from.toString(), to.toString()));
+
+        try (var p = capture(Path.of("").toAbsolutePath(), cmd)) {
             await(p);
         }
         return new HgRepository(to);

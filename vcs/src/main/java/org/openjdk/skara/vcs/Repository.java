@@ -177,7 +177,11 @@ public interface Repository extends ReadOnlyRepository {
     }
 
     static Repository clone(URI from, Path to) throws IOException {
+        return clone(from, to, false);
+    }
+
+    static Repository clone(URI from, Path to, boolean isBare) throws IOException {
         return from.getPath().toString().endsWith(".git") ?
-            GitRepository.clone(from, to) : HgRepository.clone(from, to);
+            GitRepository.clone(from, to, isBare) : HgRepository.clone(from, to, isBare);
     }
 }
