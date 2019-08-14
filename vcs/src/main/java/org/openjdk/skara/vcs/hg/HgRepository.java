@@ -333,7 +333,17 @@ public class HgRepository implements Repository {
     public Hash fetch(URI uri, String refspec) throws IOException {
         var oldHeads = new HashSet<Hash>(heads());
 
-        try (var p = capture("hg", "pull", "--rev=" + refspec, uri.toString())) {
+        var cmd = new ArrayList<String>();
+        cmd.add("hg");
+        cmd.add("pull");
+        if (refspec != null) {
+            cmd.add("--rev");
+            cmd.add(refspec);
+        }
+        if (uri != null) {
+            cmd.add(uri.toString());
+        }
+        try (var p = capture(cmd)) {
             await(p);
         }
 
@@ -347,6 +357,31 @@ public class HgRepository implements Repository {
             return head();
         }
         return newHeads.iterator().next();
+    }
+
+    @Override
+    public void fetchAll() throws IOException {
+        var pullPaths = new ArrayList<URI>();
+        try (var p = capture("hg", "paths")) {
+            var res = await(p);
+            for (var line : res.stdout()) {
+                var parts = line.split("=");
+                var name = parts[0].trim();
+                var uri = parts[1].trim();
+                if (!name.endsWith("-push")) {
+                    pullPaths.add(URI.create(uri));
+                }
+            }
+        }
+
+        for (var uri : pullPaths) {
+            fetch(uri, null);
+        }
+    }
+
+    @Override
+    public void delete(Branch b) throws IOException {
+        throw new RuntimeException("Branches cannot be deleted in Mercurial");
     }
 
     @Override
@@ -866,17 +901,26 @@ public class HgRepository implements Repository {
 
     @Override
     public void pull() throws IOException {
-        pull("default", "default");
+        pull(null, null);
     }
 
     @Override
     public void pull(String remote) throws IOException {
-        pull(remote, "default");
+        pull(remote, null);
     }
 
     @Override
     public void pull(String remote, String refspec) throws IOException {
-        try (var p = capture("hg", "pull", "--update", "--branch", refspec, remote)) {
+        var cmd = new ArrayList<String>();
+        cmd.addAll(List.of("hg", "pull", "--update"));
+        if (refspec != null) {
+            cmd.add("--branch");
+            cmd.add(refspec);
+        }
+        if (remote != null) {
+            cmd.add(remote);
+        }
+        try (var p = capture(cmd)) {
             await(p);
         }
     }

@@ -38,6 +38,7 @@ public interface Repository extends ReadOnlyRepository {
     void checkout(Hash h, boolean force) throws IOException;
     void checkout(Branch b, boolean force) throws IOException;
     Hash fetch(URI uri, String refspec) throws IOException;
+    void fetchAll() throws IOException;
     void pushAll(URI uri) throws IOException;
     void push(Hash hash, URI uri, String ref, boolean force) throws IOException;
     void push(Branch branch, String remote, boolean setUpstream) throws IOException;
@@ -97,6 +98,7 @@ public interface Repository extends ReadOnlyRepository {
                String committerEmail) throws IOException;
     Tag tag(Hash hash, String tagName, String message, String authorName, String authorEmail) throws IOException;
     Branch branch(Hash hash, String branchName) throws IOException;
+    void delete(Branch b) throws IOException;
     void rebase(Hash hash, String committerName, String committerEmail) throws IOException;
     void merge(Hash hash) throws IOException;
     void merge(Hash hash, String strategy) throws IOException;
@@ -183,5 +185,11 @@ public interface Repository extends ReadOnlyRepository {
     static Repository clone(URI from, Path to, boolean isBare) throws IOException {
         return from.getPath().toString().endsWith(".git") ?
             GitRepository.clone(from, to, isBare) : HgRepository.clone(from, to, isBare);
+    }
+
+    static Repository mirror(URI from, Path to) throws IOException {
+        return from.getPath().toString().endsWith(".git") ?
+            GitRepository.mirror(from, to) :
+            HgRepository.clone(from, to, true); // hg does not have concept of "mirror"
     }
 }
