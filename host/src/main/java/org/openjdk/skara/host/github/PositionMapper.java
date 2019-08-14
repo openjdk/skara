@@ -44,7 +44,6 @@ class PositionMapper {
         var latestList = new ArrayList<PositionOffset>();
 
         for (var line : lines) {
-            position++;
             var fileMatcher = filePattern.matcher(line);
             if (fileMatcher.matches()) {
                 latestList = new ArrayList<>();
@@ -53,14 +52,17 @@ class PositionMapper {
             }
             var hunkMatcher = hunkPattern.matcher(line);
             if (hunkMatcher.matches()) {
+                var positionOffset = new PositionOffset();
                 if (latestList.isEmpty()) {
                     position = 1;
+                    positionOffset.position = 1;
+                } else {
+                    positionOffset.position = position + 1;
                 }
-                var positionOffset = new PositionOffset();
-                positionOffset.position = position;
                 positionOffset.line = Integer.parseInt(hunkMatcher.group(2));
                 latestList.add(positionOffset);
             }
+            position++;
         }
     }
 
