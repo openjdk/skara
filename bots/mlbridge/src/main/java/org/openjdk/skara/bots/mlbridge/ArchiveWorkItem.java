@@ -73,7 +73,7 @@ class ArchiveWorkItem implements WorkItem {
 
     private void pushMbox(Repository localRepo, String message) {
         try {
-            localRepo.addremove(localRepo.root().resolve("."));
+            localRepo.add(localRepo.root().resolve("."));
             var hash = localRepo.commit(message, bot.emailAddress().fullName().orElseThrow(), bot.emailAddress().address());
             localRepo.push(hash, bot.archiveRepo().getUrl(), "master");
         } catch (IOException e) {

@@ -857,7 +857,7 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public void remove(Path... paths) throws IOException {
+    public void remove(List<Path> paths) throws IOException {
         var cmd = new ArrayList<>(List.of("hg", "rm"));
         for (var p : paths) {
             cmd.add(p.toString());
@@ -868,12 +868,19 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public void add(Path... paths) throws IOException {
+    public void add(List<Path> paths) throws IOException {
         var cmd = new ArrayList<>(List.of("hg", "add"));
         for (var p : paths) {
             cmd.add(p.toString());
         }
         try (var p = capture(cmd)) {
+            await(p);
+        }
+    }
+
+    @Override
+    public void addremove() throws IOException {
+        try (var p = capture("hg", "addremove")) {
             await(p);
         }
     }

@@ -30,8 +30,7 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Files;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Optional;
+import java.util.*;
 
 public interface Repository extends ReadOnlyRepository {
     Repository init() throws IOException;
@@ -45,30 +44,18 @@ public interface Repository extends ReadOnlyRepository {
     void clean() throws IOException;
     Repository reinitialize() throws IOException;
     void squash(Hash h) throws IOException;
-    void add(Path... files) throws IOException;
-    void remove(Path... files) throws IOException;
+    void add(List<Path> files) throws IOException;
+    default void add(Path... files) throws IOException {
+        add(Arrays.asList(files));
+    }
+    void remove(List<Path> files) throws IOException;
+    default void remove(Path... files) throws IOException {
+        remove(Arrays.asList(files));
+    }
     void pull() throws IOException;
     void pull(String remote) throws IOException;
     void pull(String remote, String refspec) throws IOException;
-    default void addremove(Path... files) throws IOException {
-        var exists = new ArrayList<Path>();
-        var missing = new ArrayList<Path>();
-        for (var file : files) {
-            if (Files.exists(file)) {
-                exists.add(file);
-            } else {
-                missing.add(file);
-            }
-        }
-
-        if (!exists.isEmpty()) {
-            add(exists.toArray(new Path[0]));
-        }
-
-        if (!missing.isEmpty()) {
-            remove(missing.toArray(new Path[0]));
-        }
-    }
+    void addremove() throws IOException;
     Hash commit(String message,
                 String authorName,
                 String authorEmail) throws IOException;
