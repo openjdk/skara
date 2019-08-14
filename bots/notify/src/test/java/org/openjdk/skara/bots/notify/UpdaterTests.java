@@ -61,26 +61,29 @@ class UpdaterTests {
     @Test
     void testJsonUpdaterBranch(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var jsonFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
-            var localRepo = CheckableRepository.init(tempFolder.path(), repo.getRepositoryType());
+            var localRepoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(localRepoFolder, repo.getRepositoryType());
             credentials.commitLock(localRepo);
             localRepo.pushAll(repo.getUrl());
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
+            var jsonFolder = tempFolder.path().resolve("json");
+            Files.createDirectory(jsonFolder);
+            var storageFolder = tempFolder.path().resolve("storage");
 
-            var updater = new JsonUpdater(jsonFolder.path(), "12", "team");
-            var notifyBot = new JNotifyBot(repo, "master", tagStorage, branchStorage, List.of(updater));
+            var updater = new JsonUpdater(jsonFolder, "12", "team");
+            var notifyBot = new JNotifyBot(repo, storageFolder, "master", tagStorage, branchStorage, List.of(updater));
 
             TestBotRunner.runPeriodicItems(notifyBot);
-            assertEquals(List.of(), findJsonFiles(jsonFolder.path(), ""));
+            assertEquals(List.of(), findJsonFiles(jsonFolder, ""));
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "One more line", "12345678: Fixes");
             localRepo.push(editHash, repo.getUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
-            var jsonFiles = findJsonFiles(jsonFolder.path(), "");
+            var jsonFiles = findJsonFiles(jsonFolder, "");
             assertEquals(1, jsonFiles.size());
             var jsonData = Files.readString(jsonFiles.get(0), StandardCharsets.UTF_8);
             var json = JSON.parse(jsonData);
@@ -95,10 +98,10 @@ class UpdaterTests {
     @Test
     void testJsonUpdaterTag(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var jsonFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
-            var localRepo = CheckableRepository.init(tempFolder.path(), repo.getRepositoryType());
+            var localRepoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(localRepoFolder, repo.getRepositoryType());
             credentials.commitLock(localRepo);
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.tag(masterHash, "jdk-12+1", "Added tag 1", "Duke", "duke@openjdk.java.net");
@@ -106,12 +109,15 @@ class UpdaterTests {
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
+            var jsonFolder = tempFolder.path().resolve("json");
+            Files.createDirectory(jsonFolder);
+            var storageFolder =tempFolder.path().resolve("storage");
 
-            var updater = new JsonUpdater(jsonFolder.path(), "12", "team");
-            var notifyBot = new JNotifyBot(repo, "master", tagStorage, branchStorage, List.of(updater));
+            var updater = new JsonUpdater(jsonFolder, "12", "team");
+            var notifyBot = new JNotifyBot(repo, storageFolder, "master", tagStorage, branchStorage, List.of(updater));
 
             TestBotRunner.runPeriodicItems(notifyBot);
-            assertEquals(List.of(), findJsonFiles(jsonFolder.path(), ""));
+            assertEquals(List.of(), findJsonFiles(jsonFolder, ""));
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
             localRepo.fetch(repo.getUrl(), "history:history");
@@ -119,7 +125,7 @@ class UpdaterTests {
             localRepo.pushAll(repo.getUrl());
 
             TestBotRunner.runPeriodicItems(notifyBot);
-            var jsonFiles = findJsonFiles(jsonFolder.path(), "");
+            var jsonFiles = findJsonFiles(jsonFolder, "");
             assertEquals(2, jsonFiles.size());
 
             for (var file : jsonFiles) {
@@ -154,11 +160,12 @@ class UpdaterTests {
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var recipient = EmailAddress.from("list", "list@list.list");
             var updater = new MailingListUpdater(smtpServer.address(), recipient, sender);
-            var notifyBot = new JNotifyBot(repo, "master", tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, "master", tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -191,11 +198,12 @@ class UpdaterTests {
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var recipient = EmailAddress.from("list", "list@list.list");
             var updater = new MailingListUpdater(smtpServer.address(), recipient, sender);
-            var notifyBot = new JNotifyBot(repo, "master", tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, "master", tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -232,11 +240,12 @@ class UpdaterTests {
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var recipient = EmailAddress.from("list", "list@list.list");
             var updater = new MailingListUpdater(smtpServer.address(), recipient, sender);
-            var notifyBot = new JNotifyBot(repo, "master", tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, "master", tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);

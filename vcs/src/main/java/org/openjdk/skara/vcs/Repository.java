@@ -143,6 +143,10 @@ public interface Repository extends ReadOnlyRepository {
     }
 
     static Repository materialize(Path p, URI remote, String ref) throws IOException {
+        return materialize(p, remote, ref, true);
+    }
+
+    static Repository materialize(Path p, URI remote, String ref, boolean checkout) throws IOException {
         var localRepo = remote.getPath().endsWith(".git") ?
             Repository.init(p, VCS.GIT) : Repository.init(p, VCS.HG);
         if (!localRepo.exists()) {
@@ -159,12 +163,14 @@ public interface Repository extends ReadOnlyRepository {
 
         var baseHash = localRepo.fetch(remote, ref);
 
-        try {
-            localRepo.checkout(baseHash, true);
-        } catch (IOException e) {
-            localRepo.reinitialize();
-            baseHash = localRepo.fetch(remote, ref);
-            localRepo.checkout(baseHash, true);
+        if (checkout) {
+            try {
+                localRepo.checkout(baseHash, true);
+            } catch (IOException e) {
+                localRepo.reinitialize();
+                baseHash = localRepo.fetch(remote, ref);
+                localRepo.checkout(baseHash, true);
+            }
         }
 
         return localRepo;
