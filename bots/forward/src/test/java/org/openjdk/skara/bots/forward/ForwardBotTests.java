@@ -35,7 +35,7 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class SubmitBotTests {
+class ForwardBotTests {
     private static final Branch master = new Branch("master");
 
     @Test

@@ -307,6 +307,13 @@ public class GitRepository implements Repository {
         }
     }
 
+    @Override
+    public void fetchAll() throws IOException {
+        try (var p = capture("git", "fetch", "--tags", "--prune", "--prune-tags", "--all")) {
+            await(p);
+        }
+    }
+
     private void checkout(String ref, boolean force) throws IOException {
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("git", "-c", "advice.detachedHead=false", "checkout"));
@@ -436,6 +443,13 @@ public class GitRepository implements Repository {
             cmd.add(path.toString());
         }
         try (var p = capture(cmd)) {
+            await(p);
+        }
+    }
+
+    @Override
+    public void delete(Branch b) throws IOException {
+        try (var p = capture("git", "branch", "-D", b.name())) {
             await(p);
         }
     }
@@ -846,20 +860,37 @@ public class GitRepository implements Repository {
         return new GitRepository(to);
     }
 
+    public static Repository mirror(URI from, Path to) throws IOException {
+        var cwd = Path.of("").toAbsolutePath();
+        try (var p = capture(cwd, "git", "clone", "--mirror", from.toString(), to.toString())) {
+            await(p);
+        }
+        return new GitRepository(to);
+    }
+
     @Override
     public void pull() throws IOException {
-        pull("origin", "master");
+        pull(null, null);
     }
 
     @Override
     public void pull(String remote) throws IOException {
-        pull(remote, "master");
+        pull(remote, null);
     }
 
 
     @Override
     public void pull(String remote, String refspec) throws IOException {
-        try (var p = capture("git", "pull", remote, refspec)) {
+        var cmd = new ArrayList<String>();
+        cmd.add("git");
+        cmd.add("pull");
+        if (remote != null) {
+            cmd.add(remote);
+        }
+        if (refspec != null) {
+            cmd.add(refspec);
+        }
+        try (var p = capture(cmd)) {
             await(p);
         }
     }
