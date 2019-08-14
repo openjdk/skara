@@ -1,7 +1,7 @@
 # OpenJDK Project Skara
 
 The goal of Project Skara is to investigate alternative SCM and code review
-options for the JDK source code, including options based upon Git rather than
+options for the OpenJDK source code, including options based upon Git rather than
 Mercurial, and including options hosted by third parties.
 
 This repository contains tooling for working with OpenJDK projects and
