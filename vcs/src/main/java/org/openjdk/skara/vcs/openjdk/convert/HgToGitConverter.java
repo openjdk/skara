@@ -686,7 +686,7 @@ public class HgToGitConverter implements Converter {
                 for (var mark : marks) {
                     hgHashesToMarks.put(mark.hg(), mark.key());
                     marksToHgHashes.put(mark.key(), mark.hg());
-                    currentMark = mark.key() > currentMark ? mark.key() : currentMark;
+                    currentMark = Math.max(mark.key(), currentMark);
                 }
                 var gitMarks = writeMarks(marks);
                 convert(hg, git, hgRepo, gitMarks);

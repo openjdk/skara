@@ -52,6 +52,12 @@ public class JBridgeBotFactory implements BotFactory {
         var specific = configuration.specific();
         var storage = configuration.storageFolder();
 
+        var marks = specific.get("marks").asObject();
+        var marksRepo = configuration.repository(marks.get("repository").asString());
+        var marksRef = marks.get("ref").asString();
+        var marksName = marks.get("name").asString();
+        var marksEmail = marks.get("email").asString();
+
         var converters = specific.get("converters").stream()
                                  .map(JSONValue::asObject)
                                  .flatMap(base -> base.get("repositories").stream()
@@ -61,6 +67,12 @@ public class JBridgeBotFactory implements BotFactory {
                                                           // Base configuration options
                                                           converterConfig.configurationRepo(configuration.repository(base.get("repository").asString()));
                                                           converterConfig.configurationRef(base.get("ref").asString());
+
+                                                          // Mark storage configuration
+                                                          converterConfig.marksRepo(marksRepo);
+                                                          converterConfig.marksRef(marksRef);
+                                                          converterConfig.marksAuthorName(marksName);
+                                                          converterConfig.marksAuthorEmail(marksEmail);
 
                                                           // Repository specific overrides
                                                           converterConfig.replacements(getSpecific("replacements", base, repo));
