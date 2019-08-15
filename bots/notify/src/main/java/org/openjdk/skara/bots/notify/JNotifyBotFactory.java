@@ -77,7 +77,7 @@ public class JNotifyBotFactory implements BotFactory {
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added tag for " + repoName);
             var branchStorageBuilder = new StorageBuilder<ResolvedBranch>(repoName + ".branches.txt")
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added branch hash for " + repoName);
-            var bot = new JNotifyBot(configuration.repository(repoName), branch, tagStorageBuilder, branchStorageBuilder, updaters);
+            var bot = new JNotifyBot(configuration.repository(repoName), configuration.storageFolder(), branch, tagStorageBuilder, branchStorageBuilder, updaters);
             ret.add(bot);
         }
 
