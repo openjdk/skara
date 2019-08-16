@@ -533,12 +533,21 @@ public class HgRepository implements Repository {
 
     @Override
     public Hash amend(String message, String authorName, String authorEmail) throws IOException {
-        throw new RuntimeException("Not implemented yet");
+        var user = authorEmail == null ? authorName : authorName + " <" + authorEmail + ">";
+        try (var p = capture("hg", "commit", "--amend", "--message=" + message, "--user=" + user)) {
+            await(p);
+        }
+        return resolve("tip").orElseThrow(() -> new IOException("Could not resolve 'tip'"));
     }
 
     @Override
     public Hash amend(String message, String authorName, String authorEmail, String committerName, String committerEmail) throws IOException {
-        throw new RuntimeException("Not implemented yet");
+        if (!Objects.equals(authorName, committerName) ||
+            !Objects.equals(authorEmail, committerEmail)) {
+            throw new IllegalArgumentException("hg does not support different author and committer data");
+        }
+
+        return amend(message, authorName, authorEmail);
     }
 
     @Override

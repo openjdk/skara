@@ -1523,4 +1523,26 @@ public class RepositoryTests {
             assertEquals(List.of("An empty commit"), commit.message());
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testAmend(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.isClean());
+
+            var f = dir.path().resolve("README");
+            Files.writeString(f, "Hello\n");
+            r.add(f);
+            r.commit("Initial commit", "duke", "duke@openjdk.org");
+
+            Files.writeString(f, "Hello, world\n");
+            r.add(f);
+            r.amend("Initial commit corrected", "duke", "duke@openjdk.java.net");
+            var commits = r.commits().asList();
+            assertEquals(1, commits.size());
+            var commit = commits.get(0);
+            assertEquals(List.of("Initial commit corrected"), commit.message());
+        }
+    }
 }
