@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 public class GitRepository implements Repository {
     private final Path dir;
     private final Logger log = Logger.getLogger("org.openjdk.skara.vcs.git");
+    private Path cachedRoot = null;
 
     private java.lang.Process start(String... cmd) throws IOException {
         return start(Arrays.asList(cmd));
@@ -275,6 +276,8 @@ public class GitRepository implements Repository {
 
     @Override
     public void clean() throws IOException {
+        cachedRoot = null;
+
         try (var p = capture("git", "clean", "-x", "-d", "--force", "--force")) {
             await(p);
         }
@@ -290,6 +293,8 @@ public class GitRepository implements Repository {
 
     @Override
     public Repository reinitialize() throws IOException {
+        cachedRoot = null;
+
         Files.walk(dir)
              .map(Path::toFile)
              .sorted(Comparator.reverseOrder())
@@ -337,6 +342,8 @@ public class GitRepository implements Repository {
 
     @Override
     public Repository init() throws IOException {
+        cachedRoot = null;
+
         if (!Files.exists(dir)) {
             Files.createDirectories(dir);
         }
@@ -401,6 +408,10 @@ public class GitRepository implements Repository {
 
     @Override
     public Path root() throws IOException {
+        if (cachedRoot != null) {
+            return cachedRoot;
+        }
+
         try (var p = capture("git", "rev-parse", "--show-toplevel")) {
             var res = await(p);
             if (res.stdout().size() != 1) {
@@ -410,10 +421,13 @@ public class GitRepository implements Repository {
                     if (res2.stdout().size() != 1) {
                         throw new IOException("Unexpected output\n" + res2);
                     }
-                    return dir.resolve(Path.of(res2.stdout().get(0)));
+                    cachedRoot = dir.resolve(Path.of(res2.stdout().get(0)));
+                    return cachedRoot;
                 }
             }
-            return Path.of(res.stdout().get(0));
+
+            cachedRoot = Path.of(res.stdout().get(0));
+            return cachedRoot;
         }
     }
 
