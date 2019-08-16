@@ -25,12 +25,15 @@ module {
     name = 'org.openjdk.skara.webrev'
     test {
         requires 'org.junit.jupiter.api'
+        requires 'org.openjdk.skara.test'
         opens 'org.openjdk.skara.webrev' to 'org.junit.platform.commons'
     }
 }
 
 dependencies {
     implementation project(':vcs')
+
+    testImplementation project(':test')
 }
 
 publishing {

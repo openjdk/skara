@@ -92,7 +92,9 @@ class FramesView implements View {
                 var hunk = hunks.get(hunkIndex);
                 var numSourceLines = hunk.source().lines().size();
                 var numDestLines = hunk.target().lines().size();
-                var start = hunk.source().range().start() - 1;
+                var start = numSourceLines == 0 ?
+                    hunk.source().range().start() :
+                    hunk.source().range().start() - 1;
 
                 for (var i = lastEnd; i < start; i++) {
                     ViewUtils.writeWithLineNumber(fw, sourceContent.get(i), i + 1, maxLineNum);
