@@ -70,10 +70,10 @@ class GitCombinedDiffParser {
                     // always have range (0,0), but git reports (1,0)
                     sourceRangesPerParent.add(new Range(0, 0));
                 } else {
-                    sourceRangesPerParent.add(Range.fromString(words[i].substring(1))); // skip initial '-'
+                    sourceRangesPerParent.add(GitRange.fromCombinedString(words[i].substring(1))); // skip initial '-'
                 }
             }
-            var targetRange = Range.fromString(words[numParents + 1].substring(1)); // skip initial '+'
+            var targetRange = GitRange.fromCombinedString(words[numParents + 1].substring(1)); // skip initial '+'
 
             var linesPerParent = new ArrayList<List<String>>(numParents);
             for (int i = 0; i < numParents; i++) {

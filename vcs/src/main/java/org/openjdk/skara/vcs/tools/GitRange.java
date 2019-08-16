@@ -24,7 +24,7 @@ package org.openjdk.skara.vcs.tools;
 
 import org.openjdk.skara.vcs.Range;
 
-class GitRange {
+public class GitRange {
     static Range fromString(String s) {
         var separatorIndex = s.indexOf(",");
 
@@ -46,6 +46,25 @@ class GitRange {
             // but if start == 0, a file was added and we need a 0 here.
             start++;
         }
+
+        return new Range(start, count);
+    }
+
+    public static Range fromCombinedString(String s) {
+        var separatorIndex = s.indexOf(",");
+
+        if (separatorIndex == -1) {
+            var start = Integer.parseInt(s);
+            return new Range(start, 1);
+        }
+
+        var start = Integer.parseInt(s.substring(0, separatorIndex));
+
+        // Need to work around a bug in git where git sometimes print -1
+        // as an unsigned int for the count part of the range
+        var countString = s.substring(separatorIndex + 1, s.length());
+        var count =
+            countString.equals("18446744073709551615") ?  0 : Integer.parseInt(countString);
 
         return new Range(start, count);
     }
