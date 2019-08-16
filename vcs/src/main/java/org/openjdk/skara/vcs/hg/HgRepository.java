@@ -613,7 +613,6 @@ public class HgRepository implements Repository {
         return Optional.of(new Tag("tip"));
     }
 
-
     @Override
     public Optional<byte[]> show(Path path, Hash hash) throws IOException {
         var output = Files.createTempFile("hg-cat-rev-" + hash.abbreviate(), ".bin");
