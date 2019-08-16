@@ -36,6 +36,15 @@ dependencies {
     testImplementation project(':test')
 }
 
+task copyResources(type: Copy) {
+    from "${projectDir}/src/main/resources"
+    into "${buildDir}/classes/java/test"
+}
+
+test {
+    dependsOn 'copyResources'
+}
+
 publishing {
     publications {
         webrev(MavenPublication) {
