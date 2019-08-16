@@ -47,7 +47,8 @@ public class CommandWorkItem implements WorkItem {
             "help", new HelpCommand(),
             "integrate", new IntegrateCommand(),
             "sponsor", new SponsorCommand(),
-            "contributor", new ContributorCommand()
+            "contributor", new ContributorCommand(),
+            "summary", new SummaryCommand()
     );
 
     static class HelpCommand implements CommandHandler {
