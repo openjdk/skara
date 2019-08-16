@@ -38,8 +38,10 @@ module {
 dependencies {
     implementation project(':bots:pr')
     implementation project(':bots:hgbridge')
+    implementation project(':bots:forward')
     implementation project(':bots:notify')
     implementation project(':bots:mlbridge')
+    implementation project(':bots:mirror')
     implementation project(':bots:submit')
     implementation project(':bots:forward')
     implementation project(':vcs')
@@ -61,8 +63,10 @@ images {
         modules = ['jdk.crypto.ec',
                    'org.openjdk.skara.bots.pr',
                    'org.openjdk.skara.bots.hgbridge',
+                   'org.openjdk.skara.bots.forward',
                    'org.openjdk.skara.bots.notify',
                    'org.openjdk.skara.bots.mlbridge',
+                   'org.openjdk.skara.bots.mirror',
                    'org.openjdk.skara.bots.submit',
                    'org.openjdk.skara.bots.forward']
         launchers = ['skara-bots': 'org.openjdk.skara.bots.cli/org.openjdk.skara.bots.cli.BotLauncher']
