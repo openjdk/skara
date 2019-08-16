@@ -92,7 +92,7 @@ class FramesView implements View {
                 var hunk = hunks.get(hunkIndex);
                 var numSourceLines = hunk.source().lines().size();
                 var numDestLines = hunk.target().lines().size();
-                var start = numSourceLines == 0 ?
+                var start = numSourceLines == 0 && hunk.source().range().start() == 0 ?
                     hunk.source().range().start() :
                     hunk.source().range().start() - 1;
 
