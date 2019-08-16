@@ -31,9 +31,8 @@ import java.io.*;
 import java.net.URI;
 import java.nio.file.*;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.ZonedDateTime;
-import java.time.ZoneOffset;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -467,7 +466,7 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public Hash commit(String message, String authorName, String authorEmail, Instant authorDate)  throws IOException {
+    public Hash commit(String message, String authorName, String authorEmail, ZonedDateTime authorDate)  throws IOException {
         return commit(message, authorName, authorEmail, authorDate, authorName, authorEmail, authorDate);
     }
 
@@ -484,10 +483,10 @@ public class GitRepository implements Repository {
     public Hash commit(String message,
                        String authorName,
                        String authorEmail,
-                       Instant authorDate,
+                       ZonedDateTime authorDate,
                        String committerName,
                        String committerEmail,
-                       Instant committerDate) throws IOException {
+                       ZonedDateTime committerDate) throws IOException {
         var cmd = Process.capture("git", "commit", "--message=" + message)
                          .workdir(dir)
                          .environ("GIT_AUTHOR_NAME", authorName)
@@ -495,12 +494,12 @@ public class GitRepository implements Repository {
                          .environ("GIT_COMMITTER_NAME", committerName)
                          .environ("GIT_COMMITTER_EMAIL", committerEmail);
         if (authorDate != null) {
-            var epochSecond = ZonedDateTime.ofInstant(authorDate, ZoneOffset.UTC);
-            cmd = cmd.environ("GIT_AUTHOR_DATE", epochSecond + " +0000");
+            cmd = cmd.environ("GIT_AUTHOR_DATE",
+                              authorDate.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
         }
         if (committerDate != null) {
-            var epochSecond = ZonedDateTime.ofInstant(committerDate, ZoneOffset.UTC);
-            cmd = cmd.environ("GIT_COMMITTER_DATE", epochSecond + " +0000");
+            cmd = cmd.environ("GIT_COMMITTER_DATE",
+                              committerDate.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
         }
         try (var p = cmd.execute()) {
             await(p);

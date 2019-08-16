@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.*;
-import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.io.IOException;
 
 class AuthorCheckTests {
@@ -45,9 +45,9 @@ class AuthorCheckTests {
         var committer = new Author("Foo", "foo@bar.org");
         var hash = new Hash("0123456789012345678901234567890123456789");
         var parents = List.of(new Hash("12345789012345789012345678901234567890"));
-        var timestamp = Instant.now();
+        var date = ZonedDateTime.now();
         var message = List.of("Initial commit");
-        var metadata = new CommitMetadata(hash, parents, author, committer, timestamp, message);
+        var metadata = new CommitMetadata(hash, parents, author, committer, date, message);
         return new Commit(metadata, List.of());
     }
 

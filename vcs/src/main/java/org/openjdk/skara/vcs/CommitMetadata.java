@@ -33,17 +33,17 @@ public class CommitMetadata {
     private final List<Hash> parents;
     private final Author author;
     private final Author committer;
-    private final Instant timestamp;
+    private final ZonedDateTime date;
     private final List<String> message;
 
     public CommitMetadata(Hash hash, List<Hash> parents,
                           Author author, Author committer,
-                          Instant timestamp, List<String> message) {
+                          ZonedDateTime date, List<String> message) {
         this.hash = hash;
         this.parents = parents;
         this.author = author;
         this.committer = committer;
-        this.timestamp = timestamp;
+        this.date = date;
         this.message = message;
     }
 
@@ -67,16 +67,12 @@ public class CommitMetadata {
         return parents;
     }
 
-    public Instant timestamp() {
-        return timestamp;
+    public ZonedDateTime date() {
+        return date;
     }
 
     public boolean isInitialCommit() {
         return numParents() == 1 && parents.get(0).equals(NULL_HASH);
-    }
-
-    public ZonedDateTime date() {
-        return ZonedDateTime.ofInstant(timestamp(), ZoneOffset.UTC);
     }
 
     public boolean isMerge() {
@@ -89,17 +85,15 @@ public class CommitMetadata {
 
     @Override
     public String toString() {
-        final var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                                               .withLocale(Locale.getDefault())
-                                               .withZone(ZoneOffset.UTC);
-        final var displayDate = formatter.format(timestamp);
+        final var formatter = DateTimeFormatter.RFC_1123_DATE_TIME;
+        final var displayDate = date.format(formatter);
         return String.format("%s  %-12s  %s  %s",
                              hash().toString(), author(), displayDate, message.get(0));
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(hash, parents, author, committer, timestamp, message);
+        return Objects.hash(hash, parents, author, committer, date, message);
     }
 
     @Override
@@ -113,7 +107,7 @@ public class CommitMetadata {
                Objects.equals(parents, other.parents) &&
                Objects.equals(author, other.author) &&
                Objects.equals(committer, other.committer) &&
-               Objects.equals(timestamp, other.timestamp) &&
+               Objects.equals(date, other.date) &&
                Objects.equals(message, other.message);
     }
 }

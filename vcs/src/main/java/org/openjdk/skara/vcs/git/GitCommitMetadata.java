@@ -41,7 +41,7 @@ class GitCommitMetadata {
     private static final String authorEmailFormat = "%ae";
     private static final String committerNameFormat = "%cn";
     private static final String committerEmailFormat = "%ce";
-    private static final String timestampFormat = "%at";
+    private static final String timestampFormat = "%aI";
 
     private static final String messageDelimiter = "=@=@=@=@=@";
     private static final String messageFormat = "%B" + messageDelimiter;
@@ -81,7 +81,8 @@ class GitCommitMetadata {
         log.finer("committerEmail " + committerName);
         var committer = new Author(committerName, committerEmail);
 
-        var timestamp = Instant.ofEpochSecond(Long.parseLong(reader.readLine()));
+        var formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+        var date = ZonedDateTime.parse(reader.readLine(), formatter);
 
         var message = new ArrayList<String>();
         var line = reader.readLine();
@@ -95,6 +96,6 @@ class GitCommitMetadata {
             message.add(prefix);
         }
 
-        return new CommitMetadata(hash, parents, author, committer, timestamp, message);
+        return new CommitMetadata(hash, parents, author, committer, date, message);
     }
 }

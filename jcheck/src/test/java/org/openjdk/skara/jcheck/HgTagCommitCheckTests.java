@@ -34,7 +34,7 @@ import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
-import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.io.IOException;
 
 class HgTagCommitCheckTests {
@@ -61,8 +61,8 @@ class HgTagCommitCheckTests {
     private static Commit commit(Hash hash, List<String> message, List<Diff> parentDiffs) {
         var author = new Author("Foo Bar", "foo@bar.org");
         var parents = List.of(new Hash("12345789012345789012345678901234567890"));
-        var timestamp = Instant.now();
-        var metadata = new CommitMetadata(hash, parents, author, author, timestamp, message);
+        var date = ZonedDateTime.now();
+        var metadata = new CommitMetadata(hash, parents, author, author, date, message);
         return new Commit(metadata, parentDiffs);
     }
 
@@ -72,8 +72,8 @@ class HgTagCommitCheckTests {
         var parents = List.of(new Hash("12345789012345789012345678901234567890"),
                               new Hash("12345789012345789012345678901234567890"));
         var message = List.of("Merge");
-        var timestamp = Instant.now();
-        var metadata = new CommitMetadata(hash, parents, author, author, timestamp, message);
+        var date = ZonedDateTime.now();
+        var metadata = new CommitMetadata(hash, parents, author, author, date, message);
         return new Commit(metadata, List.of());
     }
 

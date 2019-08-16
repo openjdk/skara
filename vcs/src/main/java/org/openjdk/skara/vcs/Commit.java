@@ -55,10 +55,6 @@ public class Commit {
         return metadata.parents();
     }
 
-    public Instant timestamp() {
-        return metadata.timestamp();
-    }
-
     public List<Diff> parentDiffs() {
         return parentDiffs;
     }

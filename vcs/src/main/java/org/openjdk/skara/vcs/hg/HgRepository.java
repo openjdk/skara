@@ -29,9 +29,8 @@ import org.openjdk.skara.vcs.tools.*;
 
 import java.io.*;
 import java.nio.file.*;
-import java.time.Instant;
-import java.time.ZonedDateTime;
-import java.time.ZoneOffset;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.*;
@@ -492,13 +491,13 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public Hash commit(String message, String authorName, String authorEmail, Instant authorDate)  throws IOException {
+    public Hash commit(String message, String authorName, String authorEmail, ZonedDateTime authorDate)  throws IOException {
         var user = authorEmail == null ? authorName : authorName + " <" + authorEmail + ">";
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("hg", "commit", "--message=" + message, "--user=" + user));
         if (authorDate != null) {
-            var date = ZonedDateTime.ofInstant(authorDate, ZoneOffset.UTC);
-            cmd.add("--date=" + date.toEpochSecond() + " 0");
+            var formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+            cmd.add("--date=" + authorDate.format(formatter));
         }
         try (var p = capture(cmd)) {
             await(p);
@@ -519,10 +518,10 @@ public class HgRepository implements Repository {
     public Hash commit(String message,
                        String authorName,
                        String authorEmail,
-                       Instant authorDate,
+                       ZonedDateTime authorDate,
                        String committerName,
                        String committerEmail,
-                       Instant committerDate) throws IOException {
+                       ZonedDateTime committerDate) throws IOException {
         if (!Objects.equals(authorName, committerName) ||
             !Objects.equals(authorEmail, committerEmail) ||
             !Objects.equals(authorDate, committerDate)) {

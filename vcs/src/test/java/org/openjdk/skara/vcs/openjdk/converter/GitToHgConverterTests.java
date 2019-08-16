@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class GitToHgConverterTests {
     void assertCommitEquals(Commit gitCommit, Commit hgCommit) {
-        assertEquals(gitCommit.timestamp(), hgCommit.timestamp());
+        assertEquals(gitCommit.date(), hgCommit.date());
         assertEquals(gitCommit.isInitialCommit(), hgCommit.isInitialCommit());
         assertEquals(gitCommit.isMerge(), hgCommit.isMerge());
         assertEquals(gitCommit.numParents(), hgCommit.numParents());
