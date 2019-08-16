@@ -426,7 +426,7 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public void add(Path... paths) throws IOException {
+    public void add(List<Path> paths) throws IOException {
         var cmd = new ArrayList<>(List.of("git", "add"));
         for (var path : paths) {
             cmd.add(path.toString());
@@ -437,7 +437,7 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public void remove(Path... paths) throws IOException {
+    public void remove(List<Path> paths) throws IOException {
         var cmd = new ArrayList<>(List.of("git", "rm"));
         for (var path : paths) {
             cmd.add(path.toString());
@@ -450,6 +450,13 @@ public class GitRepository implements Repository {
     @Override
     public void delete(Branch b) throws IOException {
         try (var p = capture("git", "branch", "-D", b.name())) {
+            await(p);
+        }
+    }
+
+    @Override
+    public void addremove() throws IOException {
+        try (var p = capture("git", "add", "--all")) {
             await(p);
         }
     }
