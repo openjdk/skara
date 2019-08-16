@@ -1462,4 +1462,65 @@ public class RepositoryTests {
             assertEquals(Path.of("hello world.txt"), path);
         }
     }
+
+    @Test
+    void testSingleEmptyCommit() throws IOException, InterruptedException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), VCS.GIT);
+            assertTrue(r.isClean());
+
+            // must ust git directly to be able to pass --allow-empty
+            var pb = new ProcessBuilder("git", "commit", "--message", "An empty commit", "--allow-empty");
+            pb.environment().put("GIT_AUTHOR_NAME", "duke");
+            pb.environment().put("GIT_AUTHOR_EMAIL", "duke@openjdk.org");
+            pb.environment().put("GIT_COMMITTER_NAME", "duke");
+            pb.environment().put("GIT_COMMITTER_EMAIL", "duke@openjdk.org");
+            pb.directory(dir.path().toFile());
+
+            var res = pb.start().waitFor();
+            assertEquals(0, res);
+
+            var commits = r.commits().asList();
+            assertEquals(1, commits.size());
+            var commit = commits.get(0);
+            assertEquals("duke", commit.author().name());
+            assertEquals("duke@openjdk.org", commit.author().email());
+            assertEquals("duke", commit.committer().name());
+            assertEquals("duke@openjdk.org", commit.committer().email());
+            assertEquals(List.of("An empty commit"), commit.message());
+        }
+    }
+
+    @Test
+    void testEmptyCommitWithParent() throws IOException, InterruptedException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), VCS.GIT);
+            assertTrue(r.isClean());
+
+            var f = Files.createFile(dir.path().resolve("hello.txt"));
+            Files.writeString(f, "Hello world\n");
+            r.add(f);
+            r.commit("Initial commit", "duke", "duke@openjdk.org");
+
+            // must ust git directly to be able to pass --allow-empty
+            var pb = new ProcessBuilder("git", "commit", "--message", "An empty commit", "--allow-empty");
+            pb.environment().put("GIT_AUTHOR_NAME", "duke");
+            pb.environment().put("GIT_AUTHOR_EMAIL", "duke@openjdk.org");
+            pb.environment().put("GIT_COMMITTER_NAME", "duke");
+            pb.environment().put("GIT_COMMITTER_EMAIL", "duke@openjdk.org");
+            pb.directory(dir.path().toFile());
+
+            var res = pb.start().waitFor();
+            assertEquals(0, res);
+
+            var commits = r.commits().asList();
+            assertEquals(2, commits.size());
+            var commit = commits.get(0);
+            assertEquals("duke", commit.author().name());
+            assertEquals("duke@openjdk.org", commit.author().email());
+            assertEquals("duke", commit.committer().name());
+            assertEquals("duke@openjdk.org", commit.committer().email());
+            assertEquals(List.of("An empty commit"), commit.message());
+        }
+    }
 }
