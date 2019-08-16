@@ -64,7 +64,7 @@ class HgToGitConverterTests {
             assertEquals(gitCommit.author(), new Author("Foo Bar", "foo@openjdk.java.net"));
             assertEquals(gitCommit.committer(), new Author("Foo Bar", "foo@openjdk.java.net"));
             assertEquals(hgCommit.message(), gitCommit.message());
-            assertEquals(hgCommit.timestamp(), gitCommit.timestamp());
+            assertEquals(hgCommit.date(), gitCommit.date());
             assertEquals(hgCommit.isInitialCommit(), gitCommit.isInitialCommit());
             assertEquals(hgCommit.isMerge(), gitCommit.isMerge());
             assertEquals(hgCommit.numParents(), gitCommit.numParents());

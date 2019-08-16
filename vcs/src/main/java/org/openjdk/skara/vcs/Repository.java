@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Files;
-import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.*;
 
 public interface Repository extends ReadOnlyRepository {
@@ -62,7 +62,7 @@ public interface Repository extends ReadOnlyRepository {
     Hash commit(String message,
                 String authorName,
                 String authorEmail,
-                Instant timestamp) throws IOException;
+                ZonedDateTime date) throws IOException;
     Hash commit(String message,
                 String authorName,
                 String authorEmail,
@@ -71,10 +71,10 @@ public interface Repository extends ReadOnlyRepository {
     Hash commit(String message,
                 String authorName,
                 String authorEmail,
-                Instant authorDate,
+                ZonedDateTime authorDate,
                 String committerName,
                 String committerEmail,
-                Instant committerDate) throws IOException;
+                ZonedDateTime committerDate) throws IOException;
     Hash amend(String message,
                String authorName,
                String authorEmail) throws IOException;

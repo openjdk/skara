@@ -47,7 +47,7 @@ class HgCommitMetadata {
         var author = Author.fromString(reader.readLine());
 
         var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd H:m:sZ");
-        var timestamp = ZonedDateTime.parse(reader.readLine(), formatter).toInstant();
+        var date = ZonedDateTime.parse(reader.readLine(), formatter);
 
         var messageSize = Integer.parseInt(reader.readLine());
         var messageBuffer = reader.read(messageSize);
@@ -64,6 +64,6 @@ class HgCommitMetadata {
             }
         }
 
-        return new CommitMetadata(hash, parents, author, author, timestamp, message);
+        return new CommitMetadata(hash, parents, author, author, date, message);
     }
 }

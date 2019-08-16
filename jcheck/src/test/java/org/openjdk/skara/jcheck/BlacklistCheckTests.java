@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.*;
-import java.time.Instant;
+import java.time.ZonedDateTime;
 
 class BlacklistCheckTests {
     private static final JCheckConfiguration conf = JCheckConfiguration.parse(List.of(
@@ -44,9 +44,9 @@ class BlacklistCheckTests {
         var author = new Author("Foo", "foo@bar.org");
         var committer = author;
         var parents = List.of(new Hash("12345789012345789012345678901234567890"));
-        var timestamp = Instant.now();
+        var date = ZonedDateTime.now();
         var message = List.of("Initial commit");
-        var metadata = new CommitMetadata(hash, parents, author, committer, timestamp, message);
+        var metadata = new CommitMetadata(hash, parents, author, committer, date, message);
         return new Commit(metadata, List.of());
     }
 

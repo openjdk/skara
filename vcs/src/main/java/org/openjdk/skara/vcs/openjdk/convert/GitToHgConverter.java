@@ -174,7 +174,7 @@ public class GitToHgConverter implements Converter {
             var hgHash = hgRepo.commit(hgMessage,
                                        username(committer),
                                        null,
-                                       commit.timestamp());
+                                       commit.date());
             log.finer("Hg hash: " + hgHash.hex());
             gitToHg.put(commit.hash(), hgHash);
             hgToGit.put(hgHash, commit.hash());
