@@ -159,7 +159,7 @@ class Exporter {
         }
     }
 
-    static Optional<Repository> export(Converter converter, URI source, Path destination) throws IOException {
+    static Optional<Repository> export(Converter converter, URI source, Path destination, Path finalMarks) throws IOException {
         final var successMarker = "success.txt";
         final var lastKnownGood = destination.resolve("lkg");
         final var current = destination.resolve("current");
@@ -199,6 +199,10 @@ class Exporter {
             Files.deleteIfExists(lastKnownGood.resolve(successMarker));
             syncFolder(current, lastKnownGood);
             lastKnownGood.resolve(successMarker).toFile().createNewFile();
+
+            // Update marks
+            var markSource = current.resolve("marks.txt");
+            Files.copy(markSource, finalMarks, StandardCopyOption.REPLACE_EXISTING);
         }
 
         return ret;

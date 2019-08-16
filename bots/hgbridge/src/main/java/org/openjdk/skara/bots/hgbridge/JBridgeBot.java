@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.hgbridge;
 
 import org.openjdk.skara.bot.*;
+import org.openjdk.skara.vcs.Repository;
 
 import java.io.*;
 import java.net.URLEncoder;
@@ -61,15 +62,61 @@ public class JBridgeBot implements Bot, WorkItem {
         }
     }
 
+    private void pushMarks(Path markSource, String destName, Path markScratchPath) throws IOException {
+        var marksRepo = Repository.materialize(markScratchPath, exporterConfig.marksRepo().getUrl(), exporterConfig.marksRef());
+
+        // We should never change existing marks
+        var markDest = markScratchPath.resolve(destName);
+        var updated = Files.readString(markSource);
+        if (Files.exists(markDest)) {
+            var existing = Files.readString(markDest);
+
+            if (!updated.startsWith(existing)) {
+                throw new RuntimeException("Update containing conflicting marks!");
+            }
+            if (existing.equals(updated)) {
+                // Nothing new to push
+                return;
+            }
+        } else {
+            if (!Files.exists(markDest.getParent())) {
+                Files.createDirectories(markDest.getParent());
+            }
+        }
+
+        Files.writeString(markDest, updated, StandardCharsets.UTF_8);
+        marksRepo.add(markDest);
+        var hash = marksRepo.commit("Updated marks", exporterConfig.marksAuthorName(), exporterConfig.marksAuthorEmail());
+        marksRepo.push(hash, exporterConfig.marksRepo().getUrl(), exporterConfig.marksRef());
+    }
+
     @Override
     public void run(Path scratchPath) {
         log.fine("Running export for " + exporterConfig.source().toString());
 
         try {
-            var converter = exporterConfig.resolve(scratchPath);
-            var exported = Exporter.export(converter, exporterConfig.source(), storage);
-            IOException lastException = null;
+            var converter = exporterConfig.resolve(scratchPath.resolve("converter"));
+            var marksFile = scratchPath.resolve("marks.txt");
+            var exported = Exporter.export(converter, exporterConfig.source(), storage, marksFile);
 
+            // Push updated marks - other marks files may be updated concurrently, so try a few times
+            var retryCount = 0;
+            while (exported.isPresent()) {
+                try {
+                    pushMarks(marksFile,
+                              exporterConfig.source().getHost() + "/" + exporterConfig.source().getPath() + "/marks.txt",
+                              scratchPath.resolve("markspush"));
+                    break;
+                } catch (IOException e) {
+                    retryCount++;
+                    if (retryCount > 10) {
+                        log.warning("Retry count exceeded for pushing marks");
+                        throw new UncheckedIOException(e);
+                    }
+                }
+            }
+
+            IOException lastException = null;
             for (var destination : exporterConfig.destinations()) {
                 var markerBase = destination.getUrl().getHost() + "/" + destination.getName();
                 var successfulPushMarker = storage.resolve(URLEncoder.encode(markerBase, StandardCharsets.UTF_8) + ".success.txt");

@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.bots.hgbridge;
 
-import org.openjdk.skara.host.HostedRepository;
+import org.openjdk.skara.host.*;
 import org.openjdk.skara.host.network.URIBuilder;
 import org.openjdk.skara.process.Process;
 import org.openjdk.skara.test.*;
@@ -63,9 +63,26 @@ class BridgeBotTests {
     static class TestExporterConfig extends ExporterConfig {
         private boolean badAuthors = false;
 
-        TestExporterConfig(URI source, HostedRepository destination) {
+        TestExporterConfig(URI source, HostedRepository destination, Path marksRepoPath) throws IOException {
             this.source(source);
             this.destinations(List.of(destination));
+
+            var host = TestHost.createNew(List.of(new HostUserDetails(0, "duke", "J. Duke")));
+            var marksLocalRepo = Repository.init(marksRepoPath.resolve("marks.git"), VCS.GIT);
+
+            var initialFile = marksLocalRepo.root().resolve("init.txt");
+            if (!Files.exists(initialFile)) {
+                Files.writeString(initialFile, "Hello", StandardCharsets.UTF_8);
+                marksLocalRepo.add(initialFile);
+                var hash = marksLocalRepo.commit("First", "duke", "duke@duke.duke");
+                marksLocalRepo.checkout(hash, true); // Have to move away from the master branch to allow pushes
+            }
+
+            var marksHostedRepo = new TestHostedRepository(host, "test", marksLocalRepo);
+            this.marksRepo(marksHostedRepo);
+            this.marksRef("master");
+            this.marksAuthorName("J. Duke");
+            this.marksAuthorEmail("j@duke.duke");
         }
 
         void setBadAuthors() {
@@ -139,12 +156,13 @@ class BridgeBotTests {
              var hgFolder = new TemporaryDirectory();
              var gitFolder = new TemporaryDirectory();
              var storageFolder = new TemporaryDirectory();
-             var storageFolder2 = new TemporaryDirectory()) {
+             var storageFolder2 = new TemporaryDirectory();
+             var marksFolder = new TemporaryDirectory()) {
             // Export a partial version of a hg repository
             var localHgRepo = Repository.materialize(hgFolder.path(), source, "default");
             localHgRepo.fetch(source, "testlock");
             var destinationRepo = credentials.getHostedRepository();
-            var config = new TestExporterConfig(localHgRepo.root().toUri(), destinationRepo);
+            var config = new TestExporterConfig(localHgRepo.root().toUri(), destinationRepo, marksFolder.path());
             var bridge = new JBridgeBot(config, storageFolder.path());
 
             runHgCommand(localHgRepo, "strip", "-r", "bd7a3ed1210f");
@@ -188,11 +206,12 @@ class BridgeBotTests {
     void bridgeCorruptedStorageHg(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var storageFolder = new TemporaryDirectory();
-             var gitFolder = new TemporaryDirectory()) {
+             var gitFolder = new TemporaryDirectory();
+             var marksFolder = new TemporaryDirectory()) {
             var destinationRepo = credentials.getHostedRepository();
 
             // Export an hg repository as is
-            var config = new TestExporterConfig(source, destinationRepo);
+            var config = new TestExporterConfig(source, destinationRepo, marksFolder.path());
             var bridge = new JBridgeBot(config, storageFolder.path());
             TestBotRunner.runPeriodicItems(bridge);
 
@@ -226,17 +245,18 @@ class BridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var storageFolder = new TemporaryDirectory();
              var storageFolder2 = new TemporaryDirectory();
-             var gitFolder = new TemporaryDirectory()) {
+             var gitFolder = new TemporaryDirectory();
+             var marksFolder = new TemporaryDirectory()) {
             var destinationRepo = credentials.getHostedRepository();
 
             // Export an hg repository but with an empty authors list
-            var config = new TestExporterConfig(source, destinationRepo);
+            var config = new TestExporterConfig(source, destinationRepo, marksFolder.path());
             config.setBadAuthors();
             var badBridge = new JBridgeBot(config, storageFolder.path());
             assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(badBridge));
 
             // Now once again with a correct configuration
-            config = new TestExporterConfig(source, destinationRepo);
+            config = new TestExporterConfig(source, destinationRepo, marksFolder.path());
             var goodBridge = new JBridgeBot(config, storageFolder2.path());
             TestBotRunner.runPeriodicItems(goodBridge);
 
@@ -254,9 +274,10 @@ class BridgeBotTests {
              var gitFolder = new TemporaryDirectory();
              var gitFolder2 = new TemporaryDirectory();
              var gitFolder3 = new TemporaryDirectory();
-             var gitFolder4 = new TemporaryDirectory()) {
+             var gitFolder4 = new TemporaryDirectory();
+             var marksFolder = new TemporaryDirectory()) {
             var destinationRepo = credentials.getHostedRepository();
-            var config = new TestExporterConfig(source, destinationRepo);
+            var config = new TestExporterConfig(source, destinationRepo, marksFolder.path());
 
             // Export an hg repository as is
             var bridge = new JBridgeBot(config, storageFolder.path());
@@ -295,9 +316,10 @@ class BridgeBotTests {
              var gitFolder2 = new TemporaryDirectory();
              var gitFolder3 = new TemporaryDirectory();
              var gitFolder4 = new TemporaryDirectory();
-             var gitFolder5 = new TemporaryDirectory()) {
+             var gitFolder5 = new TemporaryDirectory();
+             var marksFolder = new TemporaryDirectory()) {
             var destinationRepo = credentials.getHostedRepository();
-            var config = new TestExporterConfig(source, destinationRepo);
+            var config = new TestExporterConfig(source, destinationRepo, marksFolder.path());
 
             // Export an hg repository as is
             var bridge = new JBridgeBot(config, storageFolder.path());
@@ -351,14 +373,13 @@ class BridgeBotTests {
     void filterUnreachable(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var hgFolder = new TemporaryDirectory();
-             var gitFolder = new TemporaryDirectory();
              var storageFolder = new TemporaryDirectory();
-             var storageFolder2 = new TemporaryDirectory()) {
+             var marksFolder = new TemporaryDirectory()) {
             // Export a hg repository with unreachable commits
             var localHgRepo = Repository.materialize(hgFolder.path(), source, "default");
             localHgRepo.fetch(source, "testlock");
             var destinationRepo = credentials.getHostedRepository();
-            var config = new TestExporterConfig(localHgRepo.root().toUri(), destinationRepo);
+            var config = new TestExporterConfig(localHgRepo.root().toUri(), destinationRepo, marksFolder.path());
             var bridge = new JBridgeBot(config, storageFolder.path());
 
             runHgCommand(localHgRepo, "update", "-r", "5");
@@ -373,6 +394,41 @@ class BridgeBotTests {
 
             // The second conversion should not encounter unreachable commits in the marks file
             TestBotRunner.runPeriodicItems(bridge);
+        }
+    }
+
+    @Test
+    void changedMarks(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var hgFolder = new TemporaryDirectory();
+             var storageFolder = new TemporaryDirectory();
+             var storageFolder2 = new TemporaryDirectory();
+             var marksFolder = new TemporaryDirectory()) {
+            // Export a hg repository
+            var localHgRepo = Repository.materialize(hgFolder.path(), source, "default");
+            localHgRepo.fetch(source, "testlock");
+            var destinationRepo = credentials.getHostedRepository();
+            var config = new TestExporterConfig(localHgRepo.root().toUri(), destinationRepo, marksFolder.path());
+            var bridge = new JBridgeBot(config, storageFolder.path());
+
+            runHgCommand(localHgRepo, "update", "-r", "5");
+            var other = localHgRepo.root().resolve("other.txt");
+            Files.writeString(other, "Hello");
+            localHgRepo.add(other);
+            localHgRepo.commit("First", "duke", "");
+
+            // Do an initial conversion
+            TestBotRunner.runPeriodicItems(bridge);
+
+            // Now roll back and commit something else
+            runHgCommand(localHgRepo, "update", "-r", "5");
+            Files.writeString(other, "There");
+            localHgRepo.add(other);
+            localHgRepo.commit("Second", "duke", "");
+
+            // The second conversion (with fresh storage) should detect that marks have changed
+            var newBridge = new JBridgeBot(config, storageFolder2.path());
+            assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(newBridge));
         }
     }
 }

@@ -39,6 +39,10 @@ class ExporterConfig {
     private URI source;
     private HostedRepository configurationRepo;
     private String configurationRef;
+    private HostedRepository marksRepo;
+    private String marksRef;
+    private String marksAuthorName;
+    private String marksAuthorEmail;
     private List<String> replacementsFile;
     private List<String> correctionsFile;
     private List<String> lowercaseFile;
@@ -69,6 +73,38 @@ class ExporterConfig {
 
     void configurationRef(String configurationRef) {
         this.configurationRef = configurationRef;
+    }
+
+    void marksRepo(HostedRepository marksRepo) {
+        this.marksRepo = marksRepo;
+    }
+
+    HostedRepository marksRepo() {
+        return marksRepo;
+    }
+
+    void marksRef(String marksRef) {
+        this.marksRef = marksRef;
+    }
+
+    String marksRef() {
+        return marksRef;
+    }
+
+    void marksAuthorName(String marksAuthorName) {
+        this.marksAuthorName = marksAuthorName;
+    }
+
+    String marksAuthorName() {
+        return marksAuthorName;
+    }
+
+    void marksAuthorEmail(String marksAuthorEmail) {
+        this.marksAuthorEmail = marksAuthorEmail;
+    }
+
+    String marksAuthorEmail() {
+        return marksAuthorEmail;
     }
 
     void replacements(List<String> replacements) {
