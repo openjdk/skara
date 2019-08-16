@@ -1545,4 +1545,31 @@ public class RepositoryTests {
             assertEquals(List.of("Initial commit corrected"), commit.message());
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testRevert(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.isClean());
+
+            var f = dir.path().resolve("README");
+            Files.writeString(f, "Hello\n");
+            r.add(f);
+            var initial = r.commit("Initial commit", "duke", "duke@openjdk.org");
+
+            Files.writeString(f, "Hello, world\n");
+            r.revert(initial);
+            Files.writeString(f, "Goodbye, world\n");
+            r.add(f);
+            var hash = r.commit("Second commit", "duke", "duke@openjdk.org");
+            var commit = r.lookup(hash).orElseThrow();
+            var patches = commit.parentDiffs().get(0).patches();
+            assertEquals(1, patches.size());
+            var patch = patches.get(0).asTextualPatch();
+            assertEquals(1, patch.hunks().size());
+            var hunk = patch.hunks().get(0);
+            assertEquals(List.of("Goodbye, world"), hunk.target().lines());
+        }
+    }
 }

@@ -641,6 +641,13 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public void revert(Hash parent) throws IOException {
+        try (var p = capture("hg", "revert", "--no-backup", "--all", "--rev", parent.hex())) {
+            await(p);
+        }
+    }
+
+    @Override
     public Diff diff(Hash from) throws IOException {
         return diff(from, null);
     }
