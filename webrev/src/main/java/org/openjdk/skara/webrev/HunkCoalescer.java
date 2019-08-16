@@ -256,9 +256,10 @@ class HunkCoalescer {
 
         var afterContextCount = Math.min(sourceAfterContextCount, destAfterContextCount);
 
-        var sourceEndingLineNum = sourceAfterContextStart + afterContextCount;
+        var sourceLineNumStart = hunk.source().lines().isEmpty() ? sourceAfterContextStart + 1 : sourceAfterContextStart;
+        var sourceEndingLineNum = sourceLineNumStart + afterContextCount;
         var sourceContextAfter = new ArrayList<Line>();
-        for (var lineNum = sourceAfterContextStart; lineNum < sourceEndingLineNum; lineNum++) {
+        for (var lineNum = sourceLineNumStart; lineNum < sourceEndingLineNum; lineNum++) {
             var text = sourceContent.get(lineNum - 1);
             sourceContextAfter.add(new Line(lineNum, text));
         }
