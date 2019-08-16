@@ -73,14 +73,19 @@ class PullRequestInstance {
                           .map(Contributor::username)
                           .collect(Collectors.toList());
 
+        var comments = pr.getComments();
         var additionalContributors = Contributors.contributors(pr.repository().host().getCurrentUserDetails(),
-                                                               pr.getComments()).stream()
+                                                               comments).stream()
                                                  .map(email -> Author.fromString(email.toString()))
                                                  .collect(Collectors.toList());
+
+        var summary = Summary.summary(pr.repository().host().getCurrentUserDetails(), comments);
 
         var commitMessage = CommitMessage.title(isMerge ? "Merge" : pr.getTitle())
                                          .contributors(additionalContributors)
                                          .reviewers(reviewers);
+        summary.ifPresent(commitMessage::summary);
+
         return String.join("\n", commitMessage.format(CommitMessageFormatters.v1));
     }
 
