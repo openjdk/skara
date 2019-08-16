@@ -67,11 +67,11 @@ def _diff_git_raw(repo, ctx1, ctx2, modified, added, removed):
     for path in sorted(modified | added | removed_copy):
         if path in modified:
             fctx = ctx2.filectx(path)
-            writeln(':{} {} {} {} M {}'.format(mode(ctx1.filectx(path)), mode(fctx), nullHash, nullHash, fctx.path()))
+            writeln(':{} {} {} {} M\t{}'.format(mode(ctx1.filectx(path)), mode(fctx), nullHash, nullHash, fctx.path()))
         elif path in added:
             fctx = ctx2.filectx(path)
             if not fctx.renamed():
-                writeln(':000000 {} {} {} A {}'.format(mode(fctx), nullHash, nullHash, fctx.path()))
+                writeln(':000000 {} {} {} A\t{}'.format(mode(fctx), nullHash, nullHash, fctx.path()))
             else:
                 parent = fctx.p1()
                 score = int(ratio(parent.data(), fctx.data(), 0.5) * 100)
@@ -82,10 +82,10 @@ def _diff_git_raw(repo, ctx1, ctx2, modified, added, removed):
                 else:
                     operation = 'C'
 
-                writeln(':{} {} {} {} {}{} {} {}'.format(mode(parent), mode(fctx), nullHash, nullHash, operation, score, old_path, path))
+                writeln(':{} {} {} {} {}{}\t{}\t{}'.format(mode(parent), mode(fctx), nullHash, nullHash, operation, score, old_path, path))
         elif path in removed_copy:
             fctx = ctx1.filectx(path)
-            writeln(':{} 000000 {} {} D {}'.format(mode(fctx), nullHash, nullHash, path))
+            writeln(':{} 000000 {} {} D\t{}'.format(mode(fctx), nullHash, nullHash, path))
 
     writeln('')
 
