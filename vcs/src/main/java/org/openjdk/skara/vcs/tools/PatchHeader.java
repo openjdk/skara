@@ -82,30 +82,29 @@ public class PatchHeader {
         if (line == null || line.isEmpty() || line.charAt(0) != ':') {
             throw new IllegalArgumentException("Raw line does not start with colon: " + line);
         }
-        line = line.substring(1); // skip the first ':' char
+        var sourceType = FileType.fromOctal(line.substring(1, 7));
+        var targetType = FileType.fromOctal(line.substring(8, 14));
 
-        var words = line.split("\\s");
-        var sourceType = FileType.fromOctal(words[0]);
-        var targetType = FileType.fromOctal(words[1]);
+        var sourceHash = new Hash(line.substring(15, 55));
+        var targetHash = new Hash(line.substring(56, 96));
 
-        var sourceHash = new Hash(words[2]);
-        var targetHash = new Hash(words[3]);
-
-        var status = Status.from(words[4]);
+        var rest = line.substring(97);
+        var parts = rest.split("\t");
+        var status = Status.from(parts[0]);
 
         Path sourcePath = null;
         Path targetPath = null;
         if (status.isModified()) {
-            sourcePath = Path.of(words[5]);
+            sourcePath = Path.of(parts[1]);
             targetPath = sourcePath;
         } else if (status.isAdded()) {
-            targetPath = Path.of(words[5]);
+            targetPath = Path.of(parts[1]);
         } else if (status.isDeleted()) {
-            sourcePath = Path.of(words[5]);
+            sourcePath = Path.of(parts[1]);
         } else {
             // either copied or renamed
-            sourcePath = Path.of(words[5]);
-            targetPath = Path.of(words[6]);
+            sourcePath = Path.of(parts[1]);
+            targetPath = Path.of(parts[2]);
         }
 
         return new PatchHeader(sourcePath, sourceType, sourceHash, targetPath, targetType, targetHash, status);

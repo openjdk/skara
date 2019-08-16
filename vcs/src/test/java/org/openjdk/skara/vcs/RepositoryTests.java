@@ -1438,4 +1438,28 @@ public class RepositoryTests {
         assertEquals(Optional.empty(), Repository.get(nonExistingDirectory));
         assertEquals(false, Repository.exists(nonExistingDirectory));
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testDiffOnFilenamesWithSpace(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.isClean());
+
+            var fileWithSpaceInName = dir.path().resolve("hello world.txt");
+            Files.writeString(fileWithSpaceInName, "Hello world\n");
+            r.add(fileWithSpaceInName);
+            var hash1 = r.commit("Added file with space in name", "duke", "duke@openjdk.java.net");
+            Files.writeString(fileWithSpaceInName, "Goodbye world\n");
+            r.add(fileWithSpaceInName);
+            var hash2 = r.commit("Modified file with space in name", "duke", "duke@openjdk.java.net");
+            var diff = r.diff(hash1, hash2);
+            var patches = diff.patches();
+            assertEquals(1, patches.size());
+            var patch = patches.get(0);
+            assertTrue(patch.target().path().isPresent());
+            var path = patch.target().path().get();
+            assertEquals(Path.of("hello world.txt"), path);
+        }
+    }
 }
