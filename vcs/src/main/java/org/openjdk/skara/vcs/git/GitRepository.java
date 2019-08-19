@@ -292,6 +292,13 @@ public class GitRepository implements Repository {
     }
 
     @Override
+    public void revert(Hash h) throws IOException {
+        try (var p = capture("git", "checkout", h.hex(), "--", ".")) {
+            await(p);
+        }
+    }
+
+    @Override
     public Repository reinitialize() throws IOException {
         cachedRoot = null;
 
