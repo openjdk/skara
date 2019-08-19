@@ -30,8 +30,7 @@ import org.openjdk.skara.vcs.*;
 import java.io.*;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
-import java.time.*;
+import java.nio.file.Path;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -88,14 +87,8 @@ class CensusInstance {
             var localRepo = Repository.get(repoFolder)
                                       .or(() -> Optional.of(initialize(censusRepo, censusRef, repoFolder)))
                                       .orElseThrow();
-            var lastFetchMarker = repoFolder.resolve(".last_fetch");
-
-            // Time to refresh?
-            if (!Files.exists(lastFetchMarker) || Files.getLastModifiedTime(lastFetchMarker).toInstant().isBefore(Instant.now().minus(Duration.ofMinutes(10)))) {
-                var hash = localRepo.fetch(censusRepo.getUrl(), censusRef);
-                localRepo.checkout(hash, true);
-                Files.writeString(lastFetchMarker, "fetch ok", StandardCharsets.UTF_8);
-            }
+            var hash = localRepo.fetch(censusRepo.getUrl(), censusRef);
+            localRepo.checkout(hash, true);
         } catch (IOException e) {
             initialize(censusRepo, censusRef, repoFolder);
         }
