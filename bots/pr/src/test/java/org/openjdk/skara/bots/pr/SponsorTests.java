@@ -110,6 +110,7 @@ class SponsorTests {
 
             assertEquals("Generated Reviewer 1", headCommit.committer().name());
             assertEquals("integrationreviewer1@openjdk.java.net", headCommit.committer().email());
+            assertTrue(pr.getLabels().contains("integrated"));
         }
     }
 

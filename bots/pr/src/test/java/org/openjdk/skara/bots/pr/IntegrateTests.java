@@ -86,6 +86,7 @@ class IntegrateTests {
             assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
             assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
+            assertTrue(pr.getLabels().contains("integrated"));
         }
     }
 
