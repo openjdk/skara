@@ -97,6 +97,7 @@ public class IntegrateCommand implements CommandHandler {
                 reply.println("Pushed as commit " + rebasedHash.get().hex() + ".");
                 prInstance.localRepo().push(rebasedHash.get(), pr.repository().getUrl(), pr.getTargetRef());
                 pr.setState(PullRequest.State.CLOSED);
+                pr.addLabel("integrated");
             }
         } catch (IOException e) {
             log.throwing("IntegrateCommand", "handle", e);
