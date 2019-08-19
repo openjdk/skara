@@ -62,6 +62,15 @@ class GitCommitIterator implements Iterator<Commit> {
             var metadata = GitCommitMetadata.read(reader);
 
             line = reader.readLine();   // read empty line before patches
+            if (line == null || line.equals(commitDelimiter)) {
+                // commit without patches
+                var parentDiffs = new ArrayList<Diff>();
+                for (var parentHash : metadata.parents()) {
+                    parentDiffs.add(new Diff(parentHash, metadata.hash(), Collections.emptyList()));
+                }
+                return new Commit(metadata, parentDiffs);
+            }
+
             if (!line.equals("")) {
                 throw new IllegalStateException("Unexpected line: " + line);
             }
