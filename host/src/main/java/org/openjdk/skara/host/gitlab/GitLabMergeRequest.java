@@ -208,6 +208,10 @@ public class GitLabMergeRequest implements PullRequest {
             if (note.get("system").asBoolean()) {
                 continue;
             }
+            // Ignore plain comments
+            if (!note.contains("position")) {
+                continue;
+            }
 
             var comment = parseReviewComment(discussion.get("id").asString(), parent, note.asObject());
             parent = comment;
@@ -279,9 +283,8 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public List<Comment> getComments() {
-        // FIXME: sort order doesn't seem to affect anything
         return request.get("notes").param("sort", "asc").execute().stream()
-                      .filter(entry -> !entry.get("resolvable").asBoolean()) // Ignore discussions - they are review comments
+                      .filter(entry -> !entry.contains("position")) // Ignore comments with a position - they are review comments
                       .filter(entry -> !entry.get("system").asBoolean()) // Ignore system generated comments
                 .map(this::parseComment)
                 .collect(Collectors.toList());
