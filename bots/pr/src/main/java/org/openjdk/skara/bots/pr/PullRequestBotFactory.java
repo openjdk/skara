@@ -54,6 +54,14 @@ public class PullRequestBotFactory implements BotFactory {
             }
         }
 
+        var readyLabels = specific.get("ready").get("labels").stream()
+                                  .map(JSONValue::asString)
+                                  .collect(Collectors.toSet());
+        var readyComments = specific.get("ready").get("comments").stream()
+                                    .map(JSONValue::asObject)
+                                    .collect(Collectors.toMap(obj -> obj.get("user").asString(),
+                                                              obj -> Pattern.compile(obj.get("pattern").asString())));
+
         for (var repo : specific.get("repositories").fields()) {
             var censusName = repo.value().get("census").asString();
             var censusRepo = configuration.repository(specific.get("census").get(censusName).get("repository").asString());
@@ -69,7 +77,8 @@ public class PullRequestBotFactory implements BotFactory {
                     labelPatterns.put(label.name(), patterns);
                 }
             }
-            var bot = new PullRequestBot(configuration.repository(repo.name()), censusRepo, censusRef, labelPatterns, external, blockers);
+            var bot = new PullRequestBot(configuration.repository(repo.name()), censusRepo, censusRef, labelPatterns,
+                                         external, blockers, readyLabels, readyComments);
             ret.add(bot);
         }
 

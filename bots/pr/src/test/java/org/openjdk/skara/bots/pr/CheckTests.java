@@ -29,7 +29,8 @@ import org.junit.jupiter.api.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Map;
+import java.util.*;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -562,7 +563,7 @@ class CheckTests {
                                            .addAuthor(author.host().getCurrentUserDetails().id())
                                            .addReviewer(reviewer.host().getCurrentUserDetails().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master", Map.of(), Map.of(),
-                                              Map.of("block", "Test Blocker"));
+                                              Map.of("block", "Test Blocker"), Set.of(), Map.of());
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
@@ -599,4 +600,90 @@ class CheckTests {
             assertFalse(pr.getLabels().contains("ready"));
         }
     }
+
+    @Test
+    void missingReadyLabel(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.host().getCurrentUserDetails().id())
+                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master", Map.of(), Map.of(),
+                                              Map.of(), Set.of("good-to-go"), Map.of());
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.getUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.getUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that no checks have been run
+            var checks = pr.getChecks(editHash);
+            assertEquals(0, checks.size());
+
+            // The PR should not yet be ready for review
+            assertFalse(pr.getLabels().contains("rfr"));
+
+            // Check the status again
+            pr.addLabel("good-to-go");
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The PR should now be ready for review
+            assertTrue(pr.getLabels().contains("rfr"));
+        }
+    }
+
+    @Test
+    void missingReadyComment(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.host().getCurrentUserDetails().id())
+                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master", Map.of(), Map.of(),
+                                              Map.of(), Set.of(), Map.of(reviewer.host().getCurrentUserDetails().userName(), Pattern.compile("proceed")));
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.getUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.getUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that no checks have been run
+            var checks = pr.getChecks(editHash);
+            assertEquals(0, checks.size());
+
+            // The PR should not yet be ready for review
+            assertFalse(pr.getLabels().contains("rfr"));
+
+            // Check the status again
+            var reviewerPr = reviewer.getPullRequest(pr.getId());
+            reviewerPr.addComment("proceed");
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The PR should now be ready for review
+            assertTrue(pr.getLabels().contains("rfr"));
+        }
+    }
+
 }
