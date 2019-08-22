@@ -107,9 +107,7 @@ public class Webrev {
         }
 
         public void generate(Hash tailEnd, Hash head) throws IOException {
-            if (!Files.exists(output)) {
-                Files.createDirectory(output);
-            }
+            Files.createDirectories(output);
 
             copyResource(ANCNAV_HTML);
             copyResource(ANCNAV_JS);
