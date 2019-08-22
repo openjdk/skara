@@ -114,7 +114,7 @@ def really_differs(repo, p1, p2, ctx, files):
     # that has an empty diff against one of its parents
     differs = set()
     for path in files:
-        match = mercurial.match.exact(repo.root, repo.getcwd(), [path])
+        match = _match_exact(repo.root, repo.getcwd(), [path])
         opts = mercurial.mdiff.diffopts(git=True, nodates=True, context=0, showfunc=True)
 
         diff1 = mercurial.patch.diff(repo, p1.node(), ctx.node(), match=match, opts=opts)
