@@ -737,7 +737,8 @@ public class RepositoryTests {
             try (var dir2 = new TemporaryDirectory()) {
                 var downstream = Repository.init(dir2.path(), vcs);
 
-                var upstreamURI = URI.create("file://" + dir.toString());
+                 // note: forcing unix path separators for URI
+                var upstreamURI = URI.create("file:///" + dir.toString().replace('\\', '/'));
 
                 var fetchHead = downstream.fetch(upstreamURI, downstream.defaultBranch().name());
                 downstream.checkout(fetchHead, false);
