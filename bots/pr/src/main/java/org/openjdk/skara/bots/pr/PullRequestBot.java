@@ -29,6 +29,7 @@ import org.openjdk.skara.vcs.Hash;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 class PullRequestBot implements Bot {
@@ -38,22 +39,59 @@ class PullRequestBot implements Bot {
     private final Map<String, List<Pattern>> labelPatterns;
     private final Map<String, String> externalCommands;
     private final Map<String, String> blockingLabels;
+    private final Set<String> readyLabels;
+    private final Map<String, Pattern> readyComments;
     private final ConcurrentMap<Hash, Boolean> currentLabels = new ConcurrentHashMap<>();
     private final PullRequestUpdateCache updateCache;
+    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
-    PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef, Map<String,
-            List<Pattern>> labelPatterns, Map<String, String> externalCommands, Map<String, String> blockingLabels) {
+    PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef,
+                   Map<String, List<Pattern>> labelPatterns, Map<String, String> externalCommands,
+                   Map<String, String> blockingLabels, Set<String> readyLabels,
+                   Map<String, Pattern> readyComments) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
         this.labelPatterns = labelPatterns;
         this.externalCommands = externalCommands;
         this.blockingLabels = blockingLabels;
+        this.readyLabels = readyLabels;
+        this.readyComments = readyComments;
         this.updateCache = new PullRequestUpdateCache();
     }
 
     PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef) {
-        this(repo, censusRepo, censusRef, Map.of(), Map.of(), Map.of());
+        this(repo, censusRepo, censusRef, Map.of(), Map.of(), Map.of(), Set.of(), Map.of());
+    }
+
+    private boolean isReady(PullRequest pr) {
+        var labels = new HashSet<>(pr.getLabels());
+        for (var readyLabel : readyLabels) {
+            if (!labels.contains(readyLabel)) {
+                log.fine("PR is not yet ready - missing label '" + readyLabel + "'");
+                return false;
+            }
+        }
+
+        var comments = pr.getComments();
+        for (var readyComment : readyComments.entrySet()) {
+            var commentFound = false;
+            for (var comment : comments) {
+                if (comment.author().userName().equals(readyComment.getKey())) {
+                    var matcher = readyComment.getValue().matcher(comment.body());
+                    if (matcher.find()) {
+                        commentFound = true;
+                        break;
+                    }
+                }
+            }
+            if (!commentFound) {
+                log.fine("PR is not yet ready - missing ready comment from '" + readyComment.getKey() +
+                                 "containing '" + readyComment.getValue().pattern() + "'");
+                return false;
+            }
+        }
+        return true;
     }
 
     private List<WorkItem> getWorkItems(List<PullRequest> pullRequests) {
@@ -61,6 +99,10 @@ class PullRequestBot implements Bot {
 
         for (var pr : pullRequests) {
             if (updateCache.needsUpdate(pr)) {
+                if (!isReady(pr)) {
+                    continue;
+                }
+
                 ret.add(new CheckWorkItem(pr, censusRepo, censusRef, blockingLabels));
                 ret.add(new CommandWorkItem(pr, censusRepo, censusRef, externalCommands));
                 ret.add(new LabelerWorkItem(pr, labelPatterns, currentLabels));
