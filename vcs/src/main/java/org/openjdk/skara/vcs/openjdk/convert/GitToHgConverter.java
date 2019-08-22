@@ -25,12 +25,10 @@ package org.openjdk.skara.vcs.openjdk.convert;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.*;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.nio.file.*;
+import java.nio.charset.StandardCharsets;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.logging.Logger;
 
@@ -74,51 +72,97 @@ public class GitToHgConverter implements Converter {
         return committer.email().split("@")[0];
     }
 
-    private Diff updateTags(Diff diff, ReadOnlyRepository gitRepo, Map<Hash, Hash> gitToHg) throws IOException {
-        var patches = new ArrayList<Patch>();
-        for (var patch : diff.patches()) {
-            if (patch.target().path().isPresent()) {
-                var targetPath = patch.target().path().get();
-                if (targetPath.toString().equals(".hgtags") && patch.isTextual()) {
-                    var hunks = new ArrayList<Hunk>();
-                    for (var hunk : patch.asTextualPatch().hunks()) {
-                        var targetLines = new ArrayList<String>();
-                        for (var i = 0; i < hunk.target().lines().size(); i++) {
-                            var line = hunk.target().lines().get(i);
-                            var parts = line.split(" ");
-                            var hash = parts[0];
-                            if (hash.equals("0".repeat(40))) {
-                                targetLines.add(line);
-                            } else {
-                                var tag = parts[1];
-                                var gitHash = gitRepo.resolve(tag);
-                                if (gitHash.isPresent()) {
-                                    var newHgHash = gitToHg.get(gitHash.get());
-                                    if (newHgHash == null) {
-                                        throw new IllegalStateException("Have not converted git hash " + gitHash.get().hex() + " for tag " + tag);
-                                    }
-                                    log.finer("updating tag: " + tag + " -> " + newHgHash);
-                                    targetLines.add(newHgHash.hex() + " " + tag);
-                                } else {
-                                    // can be an old tag that has been removed, just add it, will be removed later
-                                    targetLines.add(line);
-                                }
-                            }
-                        }
-                        hunks.add(new Hunk(hunk.source().range(), hunk.source().lines(), hunk.source().hasNewlineAtEndOfFile(),
-                                           hunk.target().range(), targetLines, hunk.target().hasNewlineAtEndOfFile()));
+    private byte[] updateTags(ReadOnlyRepository gitRepo, Map<Hash, Hash> gitToHg, byte[] content) throws IOException {
+        var lines = new String(content, StandardCharsets.UTF_8).split("\n");
+        var result = new StringBuilder();
+        for (var line : lines) {
+            var parts = line.split(" ");
+            var hash = parts[0];
+            if (hash.equals("0".repeat(40))) {
+                result.append(line);
+            } else {
+                var tag = parts[1];
+                var gitHash = gitRepo.resolve(tag);
+                if (gitHash.isPresent()) {
+                    var newHgHash = gitToHg.get(gitHash.get());
+                    if (newHgHash != null) {
+                        log.finer("updating tag: " + tag + " -> " + newHgHash);
+                        result.append(newHgHash.hex() + " " + tag);
+                    } else {
+                        log.warning("Did not hg hash for git hash " + gitHash.get() + " for tag " + tag);
+                        result.append(line);
                     }
-                    patches.add(new TextualPatch(patch.source().path().orElse(null), patch.source().type().orElse(null), patch.source().hash(),
-                                                 patch.target().path().get(), patch.target().type().get(), patch.target().hash(),
-                                                 patch.status(), hunks));
                 } else {
-                    patches.add(patch);
+                    // can be an old tag that has been removed, just add it, will be removed later
+                    log.warning("Did not find tag " + tag + " in git repo");
+                    result.append(line);
+                }
+            }
+            result.append("\n");
+        }
+
+        return result.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    private void applyPatches(ReadOnlyRepository gitRepo, Path gitRoot, Repository hgRepo, Path hgRoot, List<Patch> patches, Hash to) throws IOException {
+        apply(gitRepo, gitRoot, hgRepo, hgRoot, patches.stream().map(StatusEntry::new).collect(Collectors.toList()), to);
+    }
+
+    private void apply(ReadOnlyRepository gitRepo, Path gitRoot, Repository hgRepo, Path hgRoot, List<StatusEntry> entries, Hash to) throws IOException {
+        var toRemove = new ArrayList<Path>();
+        var toAdd = new ArrayList<Path>();
+        var toDump = new ArrayList<Path>();
+
+        for (var entry : entries) {
+            var status = entry.status();
+            if (status.isDeleted()) {
+                toRemove.add(entry.source().path().orElseThrow());
+            } else if (status.isRenamed()) {
+                hgRepo.move(entry.source().path().orElseThrow(), entry.target().path().orElseThrow());
+                toDump.add(entry.target().path().orElseThrow());
+            } else if (status.isCopied()) {
+                hgRepo.copy(entry.source().path().orElseThrow(), entry.target().path().orElseThrow());
+                toDump.add(entry.target().path().orElseThrow());
+            } else if (status.isModified() || status.isAdded()) {
+                var targetPath = entry.target().path().orElseThrow();
+                toDump.add(targetPath);
+                if (status.isAdded()) {
+                    toAdd.add(targetPath);
                 }
             } else {
-                patches.add(patch);
+                throw new IOException("Unexpected status: " + status.toString());
             }
         }
-        return new Diff(diff.from(), diff.to(), patches);
+
+        if (toDump.size() > 0) {
+            for (var file : gitRepo.files(to, toDump)) {
+                var hgPath = hgRoot.resolve(file.path());
+                gitRepo.dump(file, hgPath);
+                Files.setPosixFilePermissions(hgPath, file.type().permissions().orElseThrow());
+            }
+        }
+
+        if (toAdd.size() > 0) {
+            hgRepo.add(toAdd);
+        }
+
+        if (toRemove.size() > 0) {
+            hgRepo.remove(toRemove);
+        }
+    }
+
+    private boolean changesHgTags(Commit c) {
+        for (var diff : c.parentDiffs()) {
+            for (var patch : diff.patches()) {
+                var status = patch.status();
+                if ((status.isModified() || status.isAdded()) &&
+                    patch.target().path().orElseThrow().toString().equals(".hgtags")) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private List<Hash> convert(Commits commits,
@@ -126,39 +170,37 @@ public class GitToHgConverter implements Converter {
                                ReadOnlyRepository gitRepo,
                                Map<Hash, Hash> gitToHg,
                                Map<Hash, Hash> hgToGit) throws IOException {
+        var hgRoot = hgRepo.root();
+        var gitRoot = gitRepo.root();
         var hgHashes = new ArrayList<Hash>();
         for (var commit : commits) {
             log.fine("Converting: " + commit.hash().hex());
             var parents = commit.parents();
+            var hgParent0 = gitToHg.get(parents.get(0));
+            var patches0 = commit.parentDiffs().get(0).patches();
+
             if (commit.isInitialCommit()) {
-                hgRepo.apply(commit.parentDiffs().get(0), true);
+                applyPatches(gitRepo, gitRoot, hgRepo, hgRoot, patches0, commit.hash());
             } else if (parents.size() == 1) {
-                var hgParent = gitToHg.get(parents.get(0));
-                hgRepo.checkout(hgParent, false);
-                hgRepo.apply(updateTags(commit.parentDiffs().get(0), gitRepo, gitToHg), true);
-            } else if (parents.size() == 2) {
-                var hgParent0 = gitToHg.get(parents.get(0));
                 hgRepo.checkout(hgParent0, false);
+                applyPatches(gitRepo, gitRoot, hgRepo, hgRoot, patches0, commit.hash());
+            } else if (parents.size() == 2) {
+                hgRepo.checkout(hgParent0, false);
+
                 var hgParent1 = gitToHg.get(parents.get(1));
                 hgRepo.merge(hgParent1, ":local");
+                hgRepo.revert(hgParent0);
 
-                var parent0Diff = commit.parentDiffs().get(0);
-                if (!parent0Diff.patches().isEmpty()) {
-                    for (var patch : parent0Diff.patches()) {
-                        if (patch.status().isAdded()) {
-                            // There can be a merge conflict if the merge brings in a new file
-                            // that also contains updates in the merge commit itself.
-                            // Delete the file and re-create it using apply.
-                            var target = hgRepo.root().resolve(patch.target().path().get());
-                            if (Files.exists(target)) {
-                                Files.delete(target);
-                            }
-                        }
-                    }
-                    hgRepo.apply(updateTags(parent0Diff, gitRepo, gitToHg), true);
-                }
+                var changes = gitRepo.status(parents.get(0), commit.hash());
+                apply(gitRepo, gitRoot, hgRepo, hgRoot, changes, commit.hash());
             } else {
                 throw new IllegalStateException("More than two parents is not supported");
+            }
+
+            if (changesHgTags(commit)) {
+                var content = gitRepo.show(Path.of(".hgtags"), commit.hash()).orElseThrow();
+                var adjustedContent = updateTags(gitRepo, gitToHg, content);
+                Files.write(hgRoot.resolve(".hgtags"), adjustedContent, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
             }
 
             var author = commit.author();
@@ -171,11 +213,21 @@ public class GitToHgConverter implements Converter {
             log.finest("Message: " + hgMessage);
             var hgAuthor = username(committer);
             log.finer("Author: " + hgAuthor);
-            var hgHash = hgRepo.commit(hgMessage,
-                                       username(committer),
+
+            Hash hgHash = null;
+            if (parents.size() == 1 && patches0.isEmpty()) {
+                var tmp = Files.createFile(hgRoot.resolve("THIS_IS_A_REALLY_UNIQUE_FILE_NAME_THAT_CANT_POSSIBLY_BE_USED"));
+                hgRepo.add(tmp);
+                hgRepo.commit(hgMessage, hgAuthor, null, commit.date());
+                hgRepo.remove(tmp);
+                hgHash = hgRepo.amend(hgMessage, hgAuthor, null);
+            } else {
+                hgHash = hgRepo.commit(hgMessage,
+                                       hgAuthor,
                                        null,
                                        commit.date());
-            log.finer("Hg hash: " + hgHash.hex());
+            }
+            log.fine("Converted hg hash: " + hgHash.hex());
             gitToHg.put(commit.hash(), hgHash);
             hgToGit.put(hgHash, commit.hash());
             hgHashes.add(hgHash);
