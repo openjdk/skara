@@ -43,9 +43,12 @@ configure(subprojects.findAll() { it.name != 'bots' }) {
     }
 
     dependencies {
-        testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.1'
-        testImplementation 'org.junit.jupiter:junit-jupiter-params:5.3.1'
-        testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.1'
+        testImplementation 'org.junit.jupiter:junit-jupiter-api:5.5.1'
+        testImplementation 'org.junit.jupiter:junit-jupiter-params:5.5.1'
+        testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.5.1'
+        // Force Gradle to load the JUnit Platform Launcher from the module-path, as
+        // configured in buildSrc/.../ModulePlugin.java -- see SKARA-69 for details.
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.5.1'
     }
 
     test {

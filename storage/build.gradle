@@ -25,6 +25,7 @@ module {
     name = 'org.openjdk.skara.storage'
     test {
         requires 'org.junit.jupiter.api'
+        requires 'org.junit.jupiter.params'
         opens 'org.openjdk.skara.storage' to 'org.junit.platform.commons'
     }
 }
