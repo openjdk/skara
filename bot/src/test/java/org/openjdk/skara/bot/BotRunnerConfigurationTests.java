@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bot;
 
+import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.openjdk.skara.json.JSON;
 
@@ -36,6 +37,6 @@ public class BotRunnerConfigurationTests {
         var cfg = BotRunnerConfiguration.parse(input);
         var botCfg = cfg.perBotConfiguration("xbot");
 
-        assertEquals("/x/xbot", botCfg.storageFolder().toString());
+        assertEquals(Path.of("/x/xbot"), botCfg.storageFolder());
     }
 }
