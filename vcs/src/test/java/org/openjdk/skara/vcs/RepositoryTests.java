@@ -1632,4 +1632,25 @@ public class RepositoryTests {
             assertTrue(entry.type().isRegularNonExecutable());
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testDump(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.isClean());
+
+            var f = dir.path().resolve("README");
+            Files.writeString(f, "Hello\n");
+            r.add(f);
+            var initial = r.commit("Initial commit", "duke", "duke@openjdk.org");
+
+            var readme = r.files(initial).get(0);
+
+            var tmp = Files.createTempFile("README", "txt");
+            r.dump(readme, tmp);
+            assertEquals("Hello\n", Files.readString(tmp));
+            Files.delete(tmp);
+        }
+    }
 }

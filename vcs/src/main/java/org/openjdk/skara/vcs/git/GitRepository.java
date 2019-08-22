@@ -686,7 +686,8 @@ public class GitRepository implements Repository {
                 var metadata = parts[0].split(" ");
                 var filename = parts[1];
 
-                var entry = new FileEntry(FileType.fromOctal(metadata[0]),
+                var entry = new FileEntry(hash,
+                                          FileType.fromOctal(metadata[0]),
                                           new Hash(metadata[2]),
                                           Path.of(filename));
                 entries.add(entry);
@@ -728,6 +729,18 @@ public class GitRepository implements Repository {
         }
 
         return Optional.empty();
+    }
+
+    @Override
+    public boolean dump(FileEntry entry, Path to) throws IOException {
+        var type = entry.type();
+        if (type.isRegular()) {
+            var path = unpackFile(entry.hash().hex());
+            Files.createDirectories(to.getParent());
+            Files.move(path, to, StandardCopyOption.REPLACE_EXISTING);
+            return true;
+        }
+        return false;
     }
 
     @Override

@@ -178,6 +178,10 @@ class TestRepository implements ReadOnlyRepository {
         return List.of();
     }
 
+    public boolean dump(FileEntry entry, Path to) throws IOException {
+        return false;
+    }
+
     public Diff diff(Hash base, Hash head) throws IOException {
         return null;
     }
