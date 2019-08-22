@@ -1661,4 +1661,34 @@ public class RepositoryTests {
             Files.delete(tmp);
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testStatus(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.isClean());
+
+            var f = dir.path().resolve("README");
+            Files.writeString(f, "Hello\n");
+            r.add(f);
+            var initial = r.commit("Initial commit", "duke", "duke@openjdk.org");
+
+            var f2 = dir.path().resolve("CONTRIBUTING");
+            Files.writeString(f2, "Goodbye\n");
+            r.add(f2);
+            var second = r.commit("Second commit", "duke", "duke@openjdk.org");
+
+            var entries = r.status(initial, second);
+            assertEquals(1, entries.size());
+            var entry = entries.get(0);
+            assertTrue(entry.status().isAdded());
+            assertTrue(entry.source().path().isEmpty());
+            assertTrue(entry.source().type().isEmpty());
+
+            assertTrue(entry.target().path().isPresent());
+            assertEquals(Path.of("CONTRIBUTING"), entry.target().path().get());
+            assertTrue(entry.target().type().get().isRegular());
+        }
+    }
 }

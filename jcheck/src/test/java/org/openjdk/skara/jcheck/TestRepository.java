@@ -212,4 +212,8 @@ class TestRepository implements ReadOnlyRepository {
     public Optional<String> upstreamFor(Branch b) throws IOException {
         return Optional.empty();
     }
+
+    public List<StatusEntry> status(Hash from, Hash to) throws IOException {
+        return Collections.emptyList();
+    }
 }

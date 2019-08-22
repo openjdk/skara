@@ -65,7 +65,7 @@ def _match_exact(root, cwd, files, badfn=None):
     else:
         return mercurial.match.exact(root, cwd, files, badfn)
 
-def _diff_git_raw(repo, ctx1, ctx2, modified, added, removed):
+def _diff_git_raw(repo, ctx1, ctx2, modified, added, removed, showPatch):
     nullHash = '0' * 40
     removed_copy = set(removed)
 
@@ -100,12 +100,13 @@ def _diff_git_raw(repo, ctx1, ctx2, modified, added, removed):
             fctx = ctx1.filectx(path)
             writeln(':{} 000000 {} {} D\t{}'.format(mode(fctx), nullHash, nullHash, path))
 
-    writeln('')
+    if showPatch:
+        writeln('')
 
-    match = _match_exact(repo.root, repo.getcwd(), list(modified) + list(added) + list(removed_copy))
-    opts = mercurial.mdiff.diffopts(git=True, nodates=True, context=0, showfunc=True)
-    for d in mercurial.patch.diff(repo, ctx1.node(), ctx2.node(), match=match, opts=opts):
-        sys.stdout.write(d)
+        match = _match_exact(repo.root, repo.getcwd(), list(modified) + list(added) + list(removed_copy))
+        opts = mercurial.mdiff.diffopts(git=True, nodates=True, context=0, showfunc=True)
+        for d in mercurial.patch.diff(repo, ctx1.node(), ctx2.node(), match=match, opts=opts):
+            sys.stdout.write(d)
 
 def really_differs(repo, p1, p2, ctx, files):
     # workaround bug in hg (present since forever):
@@ -148,7 +149,7 @@ else:
     revsingle = mercurial.cmdutil.revsingle
     revrange = mercurial.cmdutil.revrange
 
-@command('diff-git-raw', [], 'hg diff-git-raw rev1 [rev2]')
+@command('diff-git-raw', [('', 'patch', False, '')], 'hg diff-git-raw rev1 [rev2]')
 def diff_git_raw(ui, repo, rev1, rev2=None, **opts):
     ctx1 = revsingle(repo, rev1)
 
@@ -160,7 +161,7 @@ def diff_git_raw(ui, repo, rev1, rev2=None, **opts):
         status = repo.status(ctx1)
 
     modified, added, removed = [set(l) for l in status[:3]]
-    _diff_git_raw(repo, ctx1, ctx2, modified, added, removed)
+    _diff_git_raw(repo, ctx1, ctx2, modified, added, removed, opts['patch'])
 
 @command('log-git', [('', 'reverse', False, ''), ('l', 'limit', -1, '')],  'hg log-git <revisions>')
 def log_git(ui, repo, revs=None, **opts):
@@ -183,7 +184,7 @@ def log_git(ui, repo, revs=None, **opts):
 
         if len(parents) == 1:
             modified, added, removed = [set(l) for l in repo.status(parents[0], ctx)[:3]]
-            _diff_git_raw(repo, parents[0], ctx, modified, added, removed)
+            _diff_git_raw(repo, parents[0], ctx, modified, added, removed, True)
         else:
             p1 = parents[0]
             p2 = parents[1]
@@ -205,9 +206,9 @@ def log_git(ui, repo, revs=None, **opts):
             combined_modified_p2 = really_differs(repo, p1, p2, ctx, combined_modified_p2)
             combined_added_p2 = really_differs(repo, p1, p2, ctx, combined_added_p2)
 
-            _diff_git_raw(repo, p1, ctx, combined_modified_p1, combined_added_p1, removed_both)
+            _diff_git_raw(repo, p1, ctx, combined_modified_p1, combined_added_p1, removed_both, True)
             writeln('#@!_-=&')
-            _diff_git_raw(repo, p2, ctx, combined_modified_p2, combined_added_p2, removed_both)
+            _diff_git_raw(repo, p2, ctx, combined_modified_p2, combined_added_p2, removed_both, True)
 
         i += 1
         if i == limit:
