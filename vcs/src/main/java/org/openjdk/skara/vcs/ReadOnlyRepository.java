@@ -60,6 +60,12 @@ public interface ReadOnlyRepository {
     default Optional<List<String>> lines(Path p, Hash h) throws IOException {
         return show(p, h).map(bytes -> new String(bytes, StandardCharsets.UTF_8).lines().collect(Collectors.toList()));
     }
+
+    List<FileEntry> files(Hash h, List<Path> paths) throws IOException;
+    default List<FileEntry> files(Hash h, Path... paths) throws IOException {
+        return files(h, Arrays.asList(paths));
+    }
+
     Diff diff(Hash base, Hash head) throws IOException;
     Diff diff(Hash head) throws IOException;
     List<String> config(String key) throws IOException;

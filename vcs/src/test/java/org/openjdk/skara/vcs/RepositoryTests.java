@@ -1593,4 +1593,42 @@ public class RepositoryTests {
             assertEquals(List.of("Goodbye, world"), hunk.target().lines());
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testFiles(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.isClean());
+
+            var f = dir.path().resolve("README");
+            Files.writeString(f, "Hello\n");
+            r.add(f);
+            var initial = r.commit("Initial commit", "duke", "duke@openjdk.org");
+
+            var entries = r.files(initial);
+            assertEquals(1, entries.size());
+            var entry = entries.get(0);
+            assertEquals(Path.of("README"), entry.path());
+            assertTrue(entry.type().isRegularNonExecutable());
+
+            var f2 = dir.path().resolve("CONTRIBUTING");
+            Files.writeString(f2, "Hello\n");
+            r.add(f2);
+            var second = r.commit("Second commit", "duke", "duke@openjdk.org");
+
+            entries = r.files(second);
+            assertEquals(2, entries.size());
+            assertTrue(entries.stream().allMatch(e -> e.type().isRegularNonExecutable()));
+            var paths = entries.stream().map(FileEntry::path).collect(Collectors.toSet());
+            assertTrue(paths.contains(Path.of("README")));
+            assertTrue(paths.contains(Path.of("CONTRIBUTING")));
+
+            entries = r.files(second, Path.of("README"));
+            assertEquals(1, entries.size());
+            entry = entries.get(0);
+            assertEquals(Path.of("README"), entry.path());
+            assertTrue(entry.type().isRegularNonExecutable());
+        }
+    }
 }
