@@ -36,11 +36,17 @@ import java.util.function.*;
 import java.util.logging.*;
 
 public class HgOpenJDKImport {
-    private static Supplier<NoSuchElementException> error(String fmt, Object... args) {
-        return () -> new NoSuchElementException(String.format(fmt, args));
+    static class ErrorException extends RuntimeException {
+        ErrorException(String s) {
+            super(s);
+        }
     }
 
-    public static void main(String[] args) throws IOException, NoSuchElementException {
+    private static Supplier<ErrorException> error(String fmt, Object... args) {
+        return () -> new ErrorException(String.format(fmt, args));
+    }
+
+    public static void main(String[] args) throws IOException {
         var flags = List.of(
             Switch.shortcut("")
                   .fullname("verbose")
@@ -74,25 +80,30 @@ public class HgOpenJDKImport {
             Logging.setup(level);
         }
 
-        var cwd = Path.of("").toAbsolutePath();
-        var hgRepo = Repository.get(cwd)
-                               .orElseThrow(error("%s is not a hg repository", cwd));
+        try {
+            var cwd = Path.of("").toAbsolutePath();
+            var hgRepo = Repository.get(cwd)
+                                   .orElseThrow(error("%s is not a hg repository", cwd));
 
-        var gitDir = arguments.at(0).via(Path::of);
-        var gitRepo = ReadOnlyRepository.get(gitDir)
-                                        .orElseThrow(error("%s is not a git repository", gitDir));
+            var gitDir = arguments.at(0).via(Path::of);
+            var gitRepo = ReadOnlyRepository.get(gitDir)
+                                            .orElseThrow(error("%s is not a git repository", gitDir));
 
-        var converter = new GitToHgConverter();
-        var marks = converter.convert(gitRepo, hgRepo);
+            var converter = new GitToHgConverter();
+            var marks = converter.convert(gitRepo, hgRepo);
 
-        var hgCommits = hgRepo.root().resolve(".hg").resolve("shamap");
-        try (var writer = Files.newBufferedWriter(hgCommits)) {
-            for (var mark : marks) {
-                writer.write(mark.git().hex());
-                writer.write(" ");
-                writer.write(mark.hg().hex());
-                writer.newLine();
+            var hgCommits = hgRepo.root().resolve(".hg").resolve("shamap");
+            try (var writer = Files.newBufferedWriter(hgCommits)) {
+                for (var mark : marks) {
+                    writer.write(mark.git().hex());
+                    writer.write(" ");
+                    writer.write(mark.hg().hex());
+                    writer.newLine();
+                }
             }
+        } catch (ErrorException e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
         }
     }
 }
