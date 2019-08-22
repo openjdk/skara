@@ -60,10 +60,10 @@ def _match_exact(root, cwd, files, badfn=None):
     """
     Wrapper for mercurial.match.exact that ignores some arguments based on the used version
     """
-    if mercurial.util.versiontuple() < 5:
-        return mercurial.match.exact(root, cwd, files, badfn)
-    else:
+    if mercurial.util.version().startswith("5"):
         return mercurial.match.exact(files, badfn)
+    else:
+        return mercurial.match.exact(root, cwd, files, badfn)
 
 def _diff_git_raw(repo, ctx1, ctx2, modified, added, removed):
     nullHash = '0' * 40
