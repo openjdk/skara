@@ -48,6 +48,9 @@ configure(subprojects.findAll() { it.name != 'bots' }) {
         testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.1'
     }
 
+    compileJava.options.encoding = 'UTF-8'
+    compileTestJava.options.encoding = 'UTF-8'
+
     test {
         useJUnitPlatform()
 

@@ -23,15 +23,16 @@
 package org.openjdk.skara.process;
 
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.condition.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Duration;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@DisabledOnOs(OS.WINDOWS)
 class ProcessTests {
 
     private final static String invalidDirectory = "/askldjfoiuycvbsdf8778";
