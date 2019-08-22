@@ -255,6 +255,6 @@ public class GitWebrev {
               .username(username)
               .issue(issue)
               .version(version)
-              .generate(rev);
+              .generate(rev, arguments.at(0).isPresent()?resolve(repo, arguments.at(0).asString()):null);
     }
 }
