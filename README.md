@@ -80,7 +80,7 @@ To check that everything works as expected, run the command `git skara help`.
 
 ## Testing
 
-[JUnit](https://junit.org/junit5/) 5.3.1 or later is required to run the unit
+[JUnit](https://junit.org/junit5/) 5.5.1 or later is required to run the unit
 tests. To run the tests, execute following command from the source tree root:
 
 ```bash
