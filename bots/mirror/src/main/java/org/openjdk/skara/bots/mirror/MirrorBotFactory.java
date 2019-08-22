@@ -23,12 +23,9 @@
 package org.openjdk.skara.bots.mirror;
 
 import org.openjdk.skara.bot.*;
-import org.openjdk.skara.vcs.Branch;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
+import java.io.*;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -51,11 +48,11 @@ public class MirrorBotFactory implements BotFactory {
         var specific = configuration.specific();
 
         var bots = new ArrayList<Bot>();
-        for (var repo : specific.get("repositories").fields()) {
-            var fromName = repo.value().get("from").asString();
+        for (var repo : specific.get("repositories").asArray()) {
+            var fromName = repo.get("from").asString();
             var fromRepo = configuration.repository(fromName);
 
-            var toName = repo.value().get("to").asString();
+            var toName = repo.get("to").asString();
             var toRepo = configuration.repository(toName);
 
             log.info("Setting up mirroring from " + fromRepo.getName() + "to " + toRepo.getName());
