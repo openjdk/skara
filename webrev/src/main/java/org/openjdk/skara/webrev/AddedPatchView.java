@@ -44,14 +44,14 @@ class AddedPatchView implements View {
 
         try (var fw = Files.newBufferedWriter(patchFile)) {
             fw.write("diff a/");
-            fw.write(patch.target().path().get().toString());
+            fw.write(ViewUtils.pathWithUnixSeps(patch.target().path().get()));
             fw.write(" b/");
-            fw.write(patch.target().path().get().toString());
+            fw.write(ViewUtils.pathWithUnixSeps(patch.target().path().get()));
             fw.write("\n");
             fw.write("--- /dev/null");
             fw.write("\n");
             fw.write("+++ b/");
-            fw.write(patch.target().path().get().toString());
+            fw.write(ViewUtils.pathWithUnixSeps(patch.target().path().get()));
             fw.write("\n");
 
             assert patch.hunks().size() == 1;
