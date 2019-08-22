@@ -312,8 +312,16 @@ public class RepositoryTests {
             assertEquals(new Range(1, 1), hunk.target().range());
 
             assertEquals(List.of(), hunk.source().lines());
-            assertEquals(List.of("Hello, readme!"), hunk.target().lines());
+            assertEquals(suffixPlatformLineEndings("Hello, readme!"), hunk.target().lines());
         }
+    }
+
+    static List<String> suffixPlatformLineEndings(String... lines) {
+        var newLine = System.lineSeparator();
+        var suffix = newLine.endsWith("\n")
+                ? newLine.substring(0, newLine.length() - 1) // drop trailing '\n' (keeping any '\r')
+                : newLine;
+        return Arrays.stream(lines).map(l -> l + suffix).collect(Collectors.toList());
     }
 
     @ParameterizedTest
@@ -380,7 +388,7 @@ public class RepositoryTests {
             assertEquals(new Range(2, 1), hunk.target().range());
 
             assertEquals(List.of(), hunk.source().lines());
-            assertEquals(List.of("Another line"), hunk.target().lines());
+            assertEquals(suffixPlatformLineEndings("Another line"), hunk.target().lines());
         }
     }
 
@@ -512,7 +520,7 @@ public class RepositoryTests {
             assertEquals(new Range(2, 2), hunk.target().range());
 
             assertEquals(List.of(), hunk.source().lines());
-            assertEquals(List.of("Another line", "A final line"), hunk.target().lines());
+            assertEquals(suffixPlatformLineEndings("Another line", "A final line"), hunk.target().lines());
         }
     }
 
@@ -609,7 +617,7 @@ public class RepositoryTests {
             var hunks = patch.hunks();
             assertEquals(1, hunks.size());
             var hunk = hunks.get(0);
-            assertEquals(List.of("Keep the patches coming"), hunk.target().lines());
+            assertEquals(suffixPlatformLineEndings("Keep the patches coming"), hunk.target().lines());
         }
     }
 
@@ -887,7 +895,7 @@ public class RepositoryTests {
 
             assertEquals(2, hunk.target().range().start());
             assertEquals(1, hunk.target().range().count());
-            assertEquals(List.of("One more line"), hunk.target().lines());
+            assertEquals(suffixPlatformLineEndings("One more line"), hunk.target().lines());
 
             assertEquals(1, hunk.added());
             assertEquals(0, hunk.removed());
@@ -937,11 +945,11 @@ public class RepositoryTests {
             var hunk1 = hunks1.get(0);
             assertEquals(1, hunk1.source().range().start());
             assertEquals(1, hunk1.source().range().count());
-            assertEquals(List.of("make"), hunk1.source().lines());
+            assertEquals(suffixPlatformLineEndings("make"), hunk1.source().lines());
 
             assertEquals(1, hunk1.target().range().start());
             assertEquals(1, hunk1.target().range().count());
-            assertEquals(List.of("make images"), hunk1.target().lines());
+            assertEquals(suffixPlatformLineEndings("make images"), hunk1.target().lines());
 
             var patch2 = patches.get(1).asTextualPatch();
             assertEquals(Path.of("README"), patch2.source().path().get());
@@ -956,11 +964,11 @@ public class RepositoryTests {
             var hunk2 = hunks2.get(0);
             assertEquals(1, hunk2.source().range().start());
             assertEquals(1, hunk2.source().range().count());
-            assertEquals(List.of("Hello, readme!"), hunk2.source().lines());
+            assertEquals(suffixPlatformLineEndings("Hello, readme!"), hunk2.source().lines());
 
             assertEquals(1, hunk2.target().range().start());
             assertEquals(1, hunk2.target().range().count());
-            assertEquals(List.of("Hello, Skara!"), hunk2.target().lines());
+            assertEquals(suffixPlatformLineEndings("Hello, Skara!"), hunk2.target().lines());
         }
     }
 
@@ -1000,11 +1008,11 @@ public class RepositoryTests {
             var hunk1 = hunks.get(0);
             assertEquals(1, hunk1.source().range().start());
             assertEquals(1, hunk1.source().range().count());
-            assertEquals(List.of("A"), hunk1.source().lines());
+            assertEquals(suffixPlatformLineEndings("A"), hunk1.source().lines());
 
             assertEquals(1, hunk1.target().range().start());
             assertEquals(2, hunk1.target().range().count());
-            assertEquals(List.of("1", "2"), hunk1.target().lines());
+            assertEquals(suffixPlatformLineEndings("1", "2"), hunk1.target().lines());
 
             assertEquals(1, hunk1.added());
             assertEquals(0, hunk1.removed());
@@ -1013,11 +1021,11 @@ public class RepositoryTests {
             var hunk2 = hunks.get(1);
             assertEquals(3, hunk2.source().range().start());
             assertEquals(1, hunk2.source().range().count());
-            assertEquals(List.of("C"), hunk2.source().lines());
+            assertEquals(suffixPlatformLineEndings("C"), hunk2.source().lines());
 
             assertEquals(4, hunk2.target().range().start());
             assertEquals(1, hunk2.target().range().count());
-            assertEquals(List.of("3"), hunk2.target().lines());
+            assertEquals(suffixPlatformLineEndings("3"), hunk2.target().lines());
 
             assertEquals(0, hunk2.added());
             assertEquals(0, hunk2.removed());
@@ -1061,7 +1069,7 @@ public class RepositoryTests {
             var hunk = hunks.get(0);
             assertEquals(1, hunk.source().range().start());
             assertEquals(1, hunk.source().range().count());
-            assertEquals(List.of("Hello, world!"), hunk.source().lines());
+            assertEquals(suffixPlatformLineEndings("Hello, world!"), hunk.source().lines());
 
             assertEquals(0, hunk.target().range().start());
             assertEquals(0, hunk.target().range().count());
@@ -1114,7 +1122,7 @@ public class RepositoryTests {
 
             assertEquals(1, hunk.target().range().start());
             assertEquals(1, hunk.target().range().count());
-            assertEquals(List.of("make"), hunk.target().lines());
+            assertEquals(suffixPlatformLineEndings("make"), hunk.target().lines());
 
             assertEquals(1, hunk.added());
             assertEquals(0, hunk.removed());
@@ -1160,7 +1168,7 @@ public class RepositoryTests {
 
             assertEquals(2, hunk.target().range().start());
             assertEquals(1, hunk.target().range().count());
-            assertEquals(List.of("One more line"), hunk.target().lines());
+            assertEquals(suffixPlatformLineEndings("One more line"), hunk.target().lines());
 
             assertEquals(1, hunk.added());
             assertEquals(0, hunk.removed());
@@ -1303,7 +1311,7 @@ public class RepositoryTests {
 
             var secondHunk = secondPatch.hunks().get(0);
             assertEquals(List.of(), secondHunk.source().lines());
-            assertEquals(List.of("One last line"), secondHunk.target().lines());
+            assertEquals(suffixPlatformLineEndings("One last line"), secondHunk.target().lines());
 
             assertEquals(3, secondHunk.source().range().start());
             assertEquals(0, secondHunk.source().range().count());
@@ -1322,7 +1330,7 @@ public class RepositoryTests {
 
             var thirdHunk = thirdPatch.hunks().get(0);
             assertEquals(List.of(), thirdHunk.source().lines());
-            assertEquals(List.of("One more line", "One last line"), thirdHunk.target().lines());
+            assertEquals(suffixPlatformLineEndings("One more line", "One last line"), thirdHunk.target().lines());
 
             assertEquals(2, thirdHunk.source().range().start());
             assertEquals(0, thirdHunk.source().range().count());
