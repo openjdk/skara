@@ -665,6 +665,26 @@ public class RepositoryTests {
 
     @ParameterizedTest
     @EnumSource(VCS.class)
+    void testNonCheckedOutRepositoryIsHealthy(VCS vcs) throws IOException {
+        try (var dir1 = new TemporaryDirectory();
+             var dir2 = new TemporaryDirectory()) {
+            var r1 = Repository.init(dir1.path(), vcs);
+
+            var readme = dir1.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            r1.add(readme);
+            r1.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            var r2 = Repository.init(dir2.path(), vcs);
+            r2.fetch(r1.root().toUri(), r1.defaultBranch().name());
+
+            assertTrue(r2.isHealthy());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
     void testBranchesOnEmptyRepository(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
             var r = Repository.init(dir.path(), vcs);

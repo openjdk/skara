@@ -210,11 +210,24 @@ public class GitRepository implements Repository {
         return result;
     }
 
+    private int numRefs() throws IOException {
+        try (var p = capture("git", "show-ref", "--hash", "--abbrev")) {
+            var res = p.await();
+            if (res.status() == -1) {
+                if (res.stdout().size() != 0) {
+                    throw new IOException("Unexpected output\n" + res);
+                }
+                return 0;
+            } else {
+                return res.stdout().size();
+            }
+        }
+    }
+
     @Override
     public boolean isEmpty() throws IOException {
         int numLooseObjects = -1;
         int numPackedObjects = -1;
-        int numRefs = -1;
 
         try (var p = capture("git", "count-objects", "-v")) {
             var res = await(p);
@@ -238,24 +251,15 @@ public class GitRepository implements Repository {
             }
         }
 
-        try (var p = capture("git", "show-ref", "--hash", "--abbrev")) {
-            var res = p.await();
-            if (res.status() == -1) {
-                if (res.stdout().size() != 0) {
-                    throw new IOException("Unexpected output\n" + res);
-                }
-                numRefs = 0;
-            } else {
-                numRefs = res.stdout().size();
-            }
-        }
-
-        return numLooseObjects == 0 && numPackedObjects == 0 && numRefs == 0;
+        return numLooseObjects == 0 && numPackedObjects == 0 && numRefs() == 0;
     }
 
     @Override
     public boolean isHealthy() throws IOException {
         if (isEmpty()) {
+            return true;
+        }
+        if (numRefs() == 0) {
             return true;
         }
 
