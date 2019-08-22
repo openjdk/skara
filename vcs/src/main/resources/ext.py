@@ -22,8 +22,12 @@
 import mercurial
 import mercurial.patch
 import mercurial.mdiff
+import mercurial.util
 import difflib
 import sys
+
+# space separated version list
+testedwith = '4.9.2 5.0.2'
 
 def mode(fctx):
     flags = fctx.flags()
@@ -51,6 +55,15 @@ def write(s):
 def writeln(s):
     write(s)
     sys.stdout.write(encode('\n'))
+
+def _match_exact(root, cwd, files, badfn=None):
+    """
+    Wrapper for mercurial.match.exact that ignores some arguments based on the used version
+    """
+    if mercurial.util.version().startswith("5"):
+        return mercurial.match.exact(files, badfn)
+    else:
+        return mercurial.match.exact(root, cwd, files, badfn)
 
 def _diff_git_raw(repo, ctx1, ctx2, modified, added, removed):
     nullHash = '0' * 40
@@ -89,7 +102,7 @@ def _diff_git_raw(repo, ctx1, ctx2, modified, added, removed):
 
     writeln('')
 
-    match = mercurial.match.exact(repo.root, repo.getcwd(), list(modified) + list(added) + list(removed_copy))
+    match = _match_exact(repo.root, repo.getcwd(), list(modified) + list(added) + list(removed_copy))
     opts = mercurial.mdiff.diffopts(git=True, nodates=True, context=0, showfunc=True)
     for d in mercurial.patch.diff(repo, ctx1.node(), ctx2.node(), match=match, opts=opts):
         sys.stdout.write(d)
@@ -101,7 +114,7 @@ def really_differs(repo, p1, p2, ctx, files):
     # that has an empty diff against one of its parents
     differs = set()
     for path in files:
-        match = mercurial.match.exact(repo.root, repo.getcwd(), [path])
+        match = _match_exact(repo.root, repo.getcwd(), [path])
         opts = mercurial.mdiff.diffopts(git=True, nodates=True, context=0, showfunc=True)
 
         diff1 = mercurial.patch.diff(repo, p1.node(), ctx.node(), match=match, opts=opts)
