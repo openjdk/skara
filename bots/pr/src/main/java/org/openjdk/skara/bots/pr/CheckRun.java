@@ -476,6 +476,16 @@ class CheckRun {
                 newLabels.remove("outdated");
             }
 
+            // Ensure that the ready for sponsor label is up to date
+            newLabels.remove("sponsor");
+            var readyHash = ReadyForSponsorTracker.latestReadyForSponsor(pr.repository().host().getCurrentUserDetails(), comments);
+            if (readyHash.isPresent()) {
+                var acceptedHash = readyHash.get();
+                if (pr.getHeadHash().equals(acceptedHash)) {
+                    newLabels.add("sponsor");
+                }
+            }
+
             // Calculate current metadata to avoid unnecessary future checks
             var metadata = workItem.getMetadata(pr.getTitle(), updatedBody, pr.getComments(), activeReviews, newLabels, censusInstance, pr.getTargetHash());
             checkBuilder.metadata(metadata);

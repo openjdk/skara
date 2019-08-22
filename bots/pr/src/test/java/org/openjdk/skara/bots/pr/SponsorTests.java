@@ -269,6 +269,7 @@ class SponsorTests {
                           .filter(comment -> comment.body().contains("at version " + editHash.hex()))
                           .count();
             assertEquals(1, ready);
+            assertTrue(pr.getLabels().contains("sponsor"));
 
             // Push another change
             var updateHash = CheckableRepository.appendAndCommit(localRepo,"Yet more stuff");
@@ -283,6 +284,10 @@ class SponsorTests {
                     fail("The PR did not update after the new push");
                 }
             } while (pr.getHeadHash().equals(lastHeadHash));
+
+            // The label should have been dropped
+            TestBotRunner.runPeriodicItems(mergeBot);
+            assertFalse(pr.getLabels().contains("sponsor"));
 
             // Reviewer now tries to sponsor
             var reviewerPr = reviewer.getPullRequest(pr.getId());
@@ -302,6 +307,7 @@ class SponsorTests {
             // It should now be possible to sponsor
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(mergeBot);
+            assertTrue(pr.getLabels().contains("sponsor"));
 
             // The bot should have pushed the commit
             var pushed = pr.getComments().stream()
