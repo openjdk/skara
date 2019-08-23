@@ -674,7 +674,8 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             r1.add(readme);
-            r1.commit("Add README", "duke", "duke@openjdk.java.net");
+            var hash = r1.commit("Add README", "duke", "duke@openjdk.java.net");
+            r1.tag(hash, "tag", "tagging", "duke", "duke@openjdk.java.net");
 
             var r2 = Repository.init(dir2.path(), vcs);
             r2.fetch(r1.root().toUri(), r1.defaultBranch().name());
