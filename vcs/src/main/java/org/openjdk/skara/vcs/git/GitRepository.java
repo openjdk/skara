@@ -210,16 +210,18 @@ public class GitRepository implements Repository {
         return result;
     }
 
-    private int numRefs() throws IOException {
+    private List<Hash> refs() throws IOException {
         try (var p = capture("git", "show-ref", "--hash", "--abbrev")) {
             var res = p.await();
             if (res.status() == -1) {
                 if (res.stdout().size() != 0) {
                     throw new IOException("Unexpected output\n" + res);
                 }
-                return 0;
+                return new ArrayList<>();
             } else {
-                return res.stdout().size();
+                return res.stdout().stream()
+                          .map(Hash::new)
+                          .collect(Collectors.toList());
             }
         }
     }
@@ -251,20 +253,18 @@ public class GitRepository implements Repository {
             }
         }
 
-        return numLooseObjects == 0 && numPackedObjects == 0 && numRefs() == 0;
+        return numLooseObjects == 0 && numPackedObjects == 0 && refs().size() == 0;
     }
 
     @Override
     public boolean isHealthy() throws IOException {
-        if (isEmpty()) {
-            return true;
-        }
-        if (numRefs() == 0) {
+        var refs = refs();
+        if (refs.size() == 0) {
             return true;
         }
 
         var name = "health-check";
-        try (var p = capture("git", "branch", name, "HEAD")) {
+        try (var p = capture("git", "branch", name, refs.get(0).hex())) {
             if (p.await().status() != 0) {
                 return false;
             }
