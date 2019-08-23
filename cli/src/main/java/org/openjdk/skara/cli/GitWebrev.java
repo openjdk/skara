@@ -98,7 +98,7 @@ public class GitWebrev {
                   .optional(),
             Option.shortcut("")
                   .fullname("repository")
-                  .describe("URI")
+                  .describe("URL")
                   .helptext("The URL to the upstream repository")
                   .optional(),
             Option.shortcut("t")
@@ -132,13 +132,7 @@ public class GitWebrev {
                   .helptext("Print the version of this tool")
                   .optional());
 
-        var inputs = List.of(
-                Input.position(0)
-                     .describe("rev")
-                     .singular()
-                     .optional());
-
-        var parser = new ArgumentParser("git webrev", flags, inputs);
+        var parser = new ArgumentParser("git webrev", flags);
         var arguments = parser.parse(args);
 
         var version = Version.fromManifest().orElse("unknown");
