@@ -36,13 +36,14 @@ import java.util.function.*;
 import java.util.logging.*;
 
 public class HgOpenJDKImport {
-    private static void die(Exception e) {
-        System.err.println(e.getMessage());
-        System.exit(1);
+    static class ErrorException extends RuntimeException {
+        ErrorException(String s) {
+            super(s);
+        }
     }
 
-    private static Supplier<NoSuchElementException> error(String fmt, Object... args) {
-        return () -> new NoSuchElementException(String.format(fmt, args));
+    private static Supplier<ErrorException> error(String fmt, Object... args) {
+        return () -> new ErrorException(String.format(fmt, args));
     }
 
     public static void main(String[] args) throws IOException {
@@ -74,12 +75,12 @@ public class HgOpenJDKImport {
             System.exit(0);
         }
 
-        try {
-            if (arguments.contains("verbose") || arguments.contains("debug")) {
-                var level = arguments.contains("debug") ? Level.FINER : Level.FINE;
-                Logging.setup(level);
-            }
+        if (arguments.contains("verbose") || arguments.contains("debug")) {
+            var level = arguments.contains("debug") ? Level.FINER : Level.FINE;
+            Logging.setup(level);
+        }
 
+        try {
             var cwd = Path.of("").toAbsolutePath();
             var hgRepo = Repository.get(cwd)
                                    .orElseThrow(error("%s is not a hg repository", cwd));
@@ -100,8 +101,9 @@ public class HgOpenJDKImport {
                     writer.newLine();
                 }
             }
-        } catch (NoSuchElementException e) {
-            die(e);
+        } catch (ErrorException e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
         }
     }
 }
