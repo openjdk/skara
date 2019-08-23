@@ -641,6 +641,31 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public List<FileEntry> files(Hash hash, List<Path> paths) throws IOException {
+        var ext = Files.createTempFile("ext", ".py");
+        copyResource(EXT_PY, ext);
+
+        var include = new HashSet<>(paths);
+
+        try (var p = capture("hg", "--config", "extensions.ls-tree=" + ext, "ls-tree", hash.hex())) {
+            var res = await(p);
+            var entries = new ArrayList<FileEntry>();
+            for (var line : res.stdout()) {
+                var parts = line.split("\t");
+                var metadata = parts[0].split(" ");
+                var path = Path.of(parts[1]);
+                if (include.isEmpty() || include.contains(path)) {
+                    var entry = new FileEntry(FileType.fromOctal(metadata[0]),
+                                              new Hash(metadata[2]),
+                                              path);
+                    entries.add(entry);
+                }
+            }
+            return entries;
+        }
+    }
+
+    @Override
     public void revert(Hash parent) throws IOException {
         try (var p = capture("hg", "revert", "--no-backup", "--all", "--rev", parent.hex())) {
             await(p);

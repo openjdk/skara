@@ -273,3 +273,17 @@ def dump(ui, repo, revs=None, **opts):
     for r in revrange(repo, [revs]):
         ctx = repo[r]
         __dump_metadata(ctx)
+
+@command('ls-tree', [],  'hg ls-tree')
+def ls_tree(ui, repo, rev, **opts):
+    nullHash = '0' * 40
+    ctx = revsingle(repo, rev)
+    for filename in ctx.manifest():
+        fctx = ctx.filectx(filename)
+        if 'x' in fctx.flags():
+            write('100755 blob ')
+        else:
+            write('100644 blob ')
+        write(nullHash)
+        write('\t')
+        writeln(filename)

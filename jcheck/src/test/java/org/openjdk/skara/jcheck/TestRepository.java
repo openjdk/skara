@@ -174,6 +174,10 @@ class TestRepository implements ReadOnlyRepository {
         return Optional.of(new byte[0]);
     }
 
+    public List<FileEntry> files(Hash h, List<Path> paths) throws IOException {
+        return List.of();
+    }
+
     public Diff diff(Hash base, Hash head) throws IOException {
         return null;
     }

@@ -671,36 +671,62 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public Optional<byte[]> show(Path path, Hash hash) throws IOException {
-        var entry = treeEntry(path, hash);
-        if (entry == null) {
-            return Optional.empty();
-        }
+    public List<FileEntry> files(Hash hash, List<Path> paths) throws IOException {
+        var cmd = new ArrayList<String>();
+        cmd.addAll(List.of("git", "ls-tree", "-r"));
+        cmd.add(hash.hex());
+        cmd.addAll(paths.stream().map(Path::toString).collect(Collectors.toList()));
+        try (var p = Process.capture(cmd.toArray(new String[0]))
+                            .workdir(root())
+                            .execute()) {
+            var res = await(p);
+            var entries = new ArrayList<FileEntry>();
+            for (var line : res.stdout()) {
+                var parts = line.split("\t");
+                var metadata = parts[0].split(" ");
+                var filename = parts[1];
 
-        var parts = entry.split(" ");
-        var mode = parts[0];
-        if (mode.equals("160000")) {
-            // submodule
-            var hashAndName = parts[2].split("\t");
-            return Optional.of(("Subproject commit " + hashAndName[0]).getBytes(StandardCharsets.UTF_8));
-        } else if (mode.equals("100644") || mode.equals("100755")) {
-            // blob
-            var blobAndName = parts[2].split("\t");
-            var blob = blobAndName[0];
-            try (var p = capture("git", "unpack-file", blob)) {
-                var res = await(p);
-                if (res.stdout().size() != 1) {
-                    throw new IOException("Unexpected output\n" + res);
-                }
-
-                var file = Path.of(root().toString(), res.stdout().get(0));
-                if (Files.exists(file)) {
-                    var bytes = Files.readAllBytes(file);
-                    Files.delete(file);
-                    return Optional.of(bytes);
-                }
+                var entry = new FileEntry(FileType.fromOctal(metadata[0]),
+                                          new Hash(metadata[2]),
+                                          Path.of(filename));
+                entries.add(entry);
             }
+            return entries;
         }
+    }
+
+    private Path unpackFile(String blob) throws IOException {
+        try (var p = capture("git", "unpack-file", blob)) {
+            var res = await(p);
+            if (res.stdout().size() != 1) {
+                throw new IOException("Unexpected output\n" + res);
+            }
+
+            return Path.of(root().toString(), res.stdout().get(0));
+        }
+    }
+
+    @Override
+    public Optional<byte[]> show(Path path, Hash hash) throws IOException {
+        var entries = files(hash, path);
+        if (entries.size() == 0) {
+            return Optional.empty();
+        } else if (entries.size() > 1) {
+            throw new IOException("Multiple files match path " + path.toString() + " in commit " + hash.hex());
+        }
+
+        var entry = entries.get(0);
+        var type = entry.type();
+        if (type.isVCSLink()) {
+            var content = "Subproject commit " + entry.hash().hex() + " " + entry.path().toString();
+            return Optional.of(content.getBytes(StandardCharsets.UTF_8));
+        } else if (type.isRegular()) {
+            var tmp = unpackFile(entry.hash().hex());
+            var content = Files.readAllBytes(tmp);
+            Files.delete(tmp);
+            return Optional.of(content);
+        }
+
         return Optional.empty();
     }
 
