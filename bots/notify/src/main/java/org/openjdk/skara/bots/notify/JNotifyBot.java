@@ -136,7 +136,7 @@ class JNotifyBot implements Bot, WorkItem {
 
     @Override
     public void run(Path scratchPath) {
-        var sanitizedUrl = URLEncoder.encode(repository.getUrl().toString(), StandardCharsets.UTF_8);
+        var sanitizedUrl = URLEncoder.encode(repository.getWebUrl().toString(), StandardCharsets.UTF_8);
         var path = storagePath.resolve(sanitizedUrl);
         var historyPath = scratchPath.resolve("notify").resolve("history");
 

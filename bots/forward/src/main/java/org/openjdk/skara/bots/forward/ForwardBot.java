@@ -68,7 +68,7 @@ class ForwardBot implements Bot, WorkItem {
     public void run(Path scratchPath) {
         try {
             var sanitizedUrl =
-                URLEncoder.encode(toHostedRepo.getUrl().toString(), StandardCharsets.UTF_8);
+                URLEncoder.encode(toHostedRepo.getWebUrl().toString(), StandardCharsets.UTF_8);
             var toDir = storage.resolve(sanitizedUrl);
             Repository toLocalRepo = null;
             if (!Files.exists(toDir)) {

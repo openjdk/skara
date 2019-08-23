@@ -60,7 +60,7 @@ class MirrorBot implements Bot, WorkItem {
     public void run(Path scratchPath) {
         try {
             var sanitizedUrl =
-                URLEncoder.encode(from.getUrl().toString(), StandardCharsets.UTF_8);
+                URLEncoder.encode(from.getWebUrl().toString(), StandardCharsets.UTF_8);
             var dir = storage.resolve(sanitizedUrl);
             Repository repo = null;
             if (!Files.exists(dir)) {

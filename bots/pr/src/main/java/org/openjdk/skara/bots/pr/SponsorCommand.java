@@ -68,7 +68,7 @@ public class SponsorCommand implements CommandHandler {
 
         // Execute merge
         try {
-            var sanitizedUrl = URLEncoder.encode(pr.repository().getUrl().toString(), StandardCharsets.UTF_8);
+            var sanitizedUrl = URLEncoder.encode(pr.repository().getWebUrl().toString(), StandardCharsets.UTF_8);
             var path = scratchPath.resolve("pr.sponsor").resolve(sanitizedUrl);
 
             var prInstance = new PullRequestInstance(path, pr);
