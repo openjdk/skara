@@ -113,18 +113,18 @@ public abstract class Patch {
         w.append("a/" + sourcePath);
         w.append(" ");
         w.append("b/" + targetPath);
-        w.newLine();
+        w.write("\n");
 
         // extended headers
         if (status.isModified()) {
             if (!source.type().get().equals(target.type().get())) {
                 w.append("old mode ");
                 w.append(source.type().get().toOctal());
-                w.newLine();
+                w.write("\n");
 
                 w.append("new mode ");
                 w.append(target.type().get().toOctal());
-                w.newLine();
+                w.write("\n");
             }
             w.append("index ");
             w.append(source().hash().hex());
@@ -132,39 +132,39 @@ public abstract class Patch {
             w.append(target().hash().hex());
             w.append(" ");
             w.append(target.type().get().toOctal());
-            w.newLine();
+            w.write("\n");
         } else if (status.isAdded()) {
             w.append("new file mode ");
             w.append(target.type().get().toOctal());
-            w.newLine();
+            w.write("\n");
 
             w.append("index ");
             w.append("0".repeat(40));
             w.append("..");
             w.append(target.hash().hex());
-            w.newLine();
+            w.write("\n");
         } else if (status.isDeleted()) {
             w.append("deleted file mode ");
             w.append(source.type().get().toOctal());
-            w.newLine();
+            w.write("\n");
 
             w.append("index ");
             w.append(source.hash().hex());
             w.append("..");
             w.append("0".repeat(40));
-            w.newLine();
+            w.write("\n");
         } else if (status.isCopied()) {
             w.append("similarity index ");
             w.append(Integer.toString(status.score()));
             w.append("%");
-            w.newLine();
+            w.write("\n");
 
             w.append("copy from ");
             w.append(source.path().get().toString());
-            w.newLine();
+            w.write("\n");
             w.append("copy to ");
             w.append(target.path().get().toString());
-            w.newLine();
+            w.write("\n");
 
             w.append("index ");
             w.append(source().hash().hex());
@@ -172,19 +172,19 @@ public abstract class Patch {
             w.append(target().hash().hex());
             w.append(" ");
             w.append(target.type().get().toOctal());
-            w.newLine();
+            w.write("\n");
         } else if (status.isRenamed()) {
             w.append("similarity index ");
             w.append(Integer.toString(status.score()));
             w.append("%");
-            w.newLine();
+            w.write("\n");
 
             w.append("rename from ");
             w.append(source.path().get().toString());
-            w.newLine();
+            w.write("\n");
             w.append("rename to ");
             w.append(target.path().get().toString());
-            w.newLine();
+            w.write("\n");
 
             w.append("index ");
             w.append(source().hash().hex());
@@ -192,7 +192,7 @@ public abstract class Patch {
             w.append(target().hash().hex());
             w.append(" ");
             w.append(target.type().get().toOctal());
-            w.newLine();
+            w.write("\n");
         }
 
         w.append("--- ");
@@ -200,11 +200,11 @@ public abstract class Patch {
         w.append("\n");
         w.append("+++ ");
         w.append(target.path().isPresent() ? "b/" + targetPath : "/dev/null");
-        w.newLine();
+        w.write("\n");
 
         if (isBinary()) {
             w.append("GIT binary patch");
-            w.newLine();
+            w.write("\n");
             for (var hunk : asBinaryPatch().hunks()) {
                 hunk.write(w);
             }

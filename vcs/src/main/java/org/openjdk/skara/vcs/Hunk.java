@@ -91,26 +91,26 @@ public class Hunk {
         w.append(" +");
         w.append(target.range().toString());
         w.append(" @@");
-        w.newLine();
+        w.write("\n");
 
         for (var line : source.lines()) {
             w.append("-");
             w.append(line);
-            w.newLine();
+            w.write("\n");
         }
         if (!source.hasNewlineAtEndOfFile()) {
             w.append("\\ No newline at end of file");
-            w.newLine();
+            w.write("\n");
         }
 
         for (var line : target.lines()) {
             w.append("+");
             w.append(line);
-            w.newLine();
+            w.write("\n");
         }
         if (!target.hasNewlineAtEndOfFile()) {
             w.append("\\ No newline at end of file");
-            w.newLine();
+            w.write("\n");
         }
     }
 }
