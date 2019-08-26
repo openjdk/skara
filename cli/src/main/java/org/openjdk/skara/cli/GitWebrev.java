@@ -125,7 +125,7 @@ public class GitWebrev {
                   .optional(),
             Switch.shortcut("N")
                   .fullname("no-outgoing")
-                  .helptext("Do not compare against remote, use only 'git status'")
+                  .helptext("Do not compare against remote, use only 'status'")
                   .optional(),
             Switch.shortcut("v")
                   .fullname("version")
