@@ -316,12 +316,12 @@ public class RepositoryTests {
         }
     }
 
+    static String stripTrailingCR(String line) {
+        return line.endsWith("\r") ? line.substring(0, line.length() - 1) : line;
+    }
+
     static void assertLinesEquals(List<String> expected, List<String> actual) {
-        var newLine = System.lineSeparator();
-        var suffix = newLine.endsWith("\n")
-                ? newLine.substring(0, newLine.length() - 1) // drop trailing '\n' (keeping any '\r')
-                : newLine;
-        assertEquals(expected.stream().map(l -> l + suffix).collect(Collectors.toList()), actual);
+        assertEquals(expected, actual.stream().map(RepositoryTests::stripTrailingCR).collect(Collectors.toList()));
     }
 
     @ParameterizedTest
@@ -1689,6 +1689,52 @@ public class RepositoryTests {
             assertTrue(entry.target().path().isPresent());
             assertEquals(Path.of("CONTRIBUTING"), entry.target().path().get());
             assertTrue(entry.target().type().get().isRegular());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testTrackLineEndings(VCS vcs) throws IOException, InterruptedException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            if (vcs == VCS.GIT) { // turn of git's meddling
+                int exitCode = new ProcessBuilder()
+                        .command("git", "config", "--local", "core.autocrlf", "false")
+                        .directory(dir.path().toFile())
+                        .start()
+                        .waitFor();
+                assertEquals(0, exitCode);
+            }
+
+            var readme = dir.path().resolve("README");
+            Files.writeString(readme, "Line with Unix line ending\n");
+            Files.writeString(readme, "Line with Windows line ending\r\n", APPEND);
+
+            r.add(readme);
+            r.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            var commits = r.commits().asList();
+            assertEquals(1, commits.size());
+
+            var commit = commits.get(0);
+            var diffs = commit.parentDiffs();
+            var diff = diffs.get(0);
+            assertEquals(2, diff.added());
+
+            var patches = diff.patches();
+            assertEquals(1, patches.size());
+
+            var patch = patches.get(0).asTextualPatch();
+            var hunks = patch.hunks();
+            assertEquals(1, hunks.size());
+
+            var hunk = hunks.get(0);
+            assertEquals(new Range(0, 0), hunk.source().range());
+            assertEquals(new Range(1, 2), hunk.target().range());
+
+            assertEquals(
+                    List.of("Line with Unix line ending", "Line with Windows line ending\r"),
+                    hunk.target().lines());
         }
     }
 }
