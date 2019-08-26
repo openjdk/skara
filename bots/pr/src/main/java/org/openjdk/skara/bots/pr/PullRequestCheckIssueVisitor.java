@@ -97,8 +97,10 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     }
 
     @Override
-    public void visit(SelfReviewIssue e) {
-        log.fine("ignored: self-reviews are not allowed");
+    public void visit(SelfReviewIssue e)
+    {
+        messages.add("Self-reviews are not allowed");
+        failedChecks.add(e.check().getClass());
     }
 
     @Override
