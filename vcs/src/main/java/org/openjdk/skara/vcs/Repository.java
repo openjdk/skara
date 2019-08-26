@@ -172,7 +172,7 @@ public interface Repository extends ReadOnlyRepository {
     }
 
     static Repository clone(URI from) throws IOException {
-        var to = Path.of(from.getPath()).getFileName();
+        var to = Path.of(from).getFileName();
         if (to.toString().endsWith(".git")) {
             to = Path.of(to.toString().replace(".git", ""));
         }
