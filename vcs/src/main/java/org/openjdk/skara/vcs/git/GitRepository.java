@@ -732,15 +732,13 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public boolean dump(FileEntry entry, Path to) throws IOException {
+    public void dump(FileEntry entry, Path to) throws IOException {
         var type = entry.type();
         if (type.isRegular()) {
             var path = unpackFile(entry.hash().hex());
             Files.createDirectories(to.getParent());
             Files.move(path, to, StandardCopyOption.REPLACE_EXISTING);
-            return true;
         }
-        return false;
     }
 
     @Override

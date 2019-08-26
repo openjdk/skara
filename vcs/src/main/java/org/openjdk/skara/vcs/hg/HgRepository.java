@@ -667,13 +667,12 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public boolean dump(FileEntry entry, Path to) throws IOException {
+    public void dump(FileEntry entry, Path to) throws IOException {
         var output = to.toAbsolutePath();
         try (var p = capture("hg", "cat", "--output=" + output.toString(),
                                           "--rev=" + entry.commit(),
                                           entry.path().toString())) {
-            var res = await(p);
-            return Files.exists(output);
+            await(p);
         }
     }
 
