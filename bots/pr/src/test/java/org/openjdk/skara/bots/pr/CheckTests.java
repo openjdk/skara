@@ -247,6 +247,48 @@ class CheckTests {
     }
 
     @Test
+    void selfReview(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(author.host().getCurrentUserDetails().id());
+
+            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.getUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.getUrl(), "edit", true);
+            var authorPr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Let the status bot inspect the PR
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertFalse(authorPr.getBody().contains("Approvers"));
+
+            // Approve it
+            authorPr.addReview(Review.Verdict.APPROVED, "Approved");
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Refresh the PR and check that it has been approved
+            authorPr = author.getPullRequest(authorPr.getId());
+            assertTrue(authorPr.getBody().contains("Approvers"));
+
+            // Verify that the check failed
+            var checks = authorPr.getChecks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            assertEquals(CheckStatus.FAILURE, check.status());
+        }
+    }
+
+    @Test
     void multipleCommitters(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
@@ -685,5 +727,4 @@ class CheckTests {
             assertTrue(pr.getLabels().contains("rfr"));
         }
     }
-
 }
