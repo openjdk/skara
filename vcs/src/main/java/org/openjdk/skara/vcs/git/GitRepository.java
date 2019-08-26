@@ -449,8 +449,25 @@ public class GitRepository implements Repository {
         }
     }
 
-    @Override
-    public void add(List<Path> paths) throws IOException {
+    @FunctionalInterface
+    private static interface Operation {
+        void execute(List<Path> args) throws IOException;
+    }
+
+    private void batch(Operation op, List<Path> args) throws IOException {
+        var batchSize = 64;
+        var start = 0;
+        while (start < args.size()) {
+            var end = start + batchSize;
+            if (end > args.size()) {
+                end = args.size();
+            }
+            op.execute(args.subList(start, end));
+            start = end;
+        }
+    }
+
+    private void addAll(List<Path> paths) throws IOException {
         var cmd = new ArrayList<>(List.of("git", "add"));
         for (var path : paths) {
             cmd.add(path.toString());
@@ -461,7 +478,11 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public void remove(List<Path> paths) throws IOException {
+    public void add(List<Path> paths) throws IOException {
+        batch(this::addAll, paths);
+    }
+
+    private void removeAll(List<Path> paths) throws IOException {
         var cmd = new ArrayList<>(List.of("git", "rm"));
         for (var path : paths) {
             cmd.add(path.toString());
@@ -469,6 +490,11 @@ public class GitRepository implements Repository {
         try (var p = capture(cmd)) {
             await(p);
         }
+    }
+
+    @Override
+    public void remove(List<Path> paths) throws IOException {
+        batch(this::removeAll, paths);
     }
 
     @Override
@@ -670,8 +696,7 @@ public class GitRepository implements Repository {
         }
     }
 
-    @Override
-    public List<FileEntry> files(Hash hash, List<Path> paths) throws IOException {
+    private List<FileEntry> allFiles(Hash hash, List<Path> paths) throws IOException {
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("git", "ls-tree", "-r"));
         cmd.add(hash.hex());
@@ -694,6 +719,26 @@ public class GitRepository implements Repository {
             }
             return entries;
         }
+    }
+
+    @Override
+    public List<FileEntry> files(Hash hash, List<Path> paths) throws IOException {
+        if (paths.isEmpty()) {
+            return allFiles(hash, paths);
+        }
+
+        var entries = new ArrayList<FileEntry>();
+        var batchSize = 64;
+        var start = 0;
+        while (start < paths.size()) {
+            var end = start + batchSize;
+            if (end > paths.size()) {
+                end = paths.size();
+            }
+            entries.addAll(allFiles(hash, paths.subList(start, end)));
+            start = end;
+        }
+        return entries;
     }
 
     private Path unpackFile(String blob) throws IOException {
