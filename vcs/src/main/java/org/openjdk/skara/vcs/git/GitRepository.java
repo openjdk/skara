@@ -742,6 +742,18 @@ public class GitRepository implements Repository {
     }
 
     @Override
+    public List<StatusEntry> status(Hash from, Hash to) throws IOException {
+        try (var p = capture("git", "diff", "--raw", "--find-renames=99%", "--find-copies=99%", "--find-copies-harder", "--no-abbrev", "--no-color", from.hex(), to.hex())) {
+            var res = await(p);
+            var entries = new ArrayList<StatusEntry>();
+            for (var line : res.stdout()) {
+                entries.add(StatusEntry.fromRawLine(line));
+            }
+            return entries;
+        }
+    }
+
+    @Override
     public Diff diff(Hash from) throws IOException {
         return diff(from, null);
     }

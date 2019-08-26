@@ -667,6 +667,22 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public List<StatusEntry> status(Hash from, Hash to) throws IOException {
+        var ext = Files.createTempFile("ext", ".py");
+        copyResource(EXT_PY, ext);
+
+        try (var p = capture("hg", "--config", "extensions.diff-git-raw=" + ext.toAbsolutePath().toString(),
+                                               "diff-git-raw", from.hex(), to.hex())) {
+            var res = await(p);
+            var entries = new ArrayList<StatusEntry>();
+            for (var line : res.stdout()) {
+                entries.add(StatusEntry.fromRawLine(line));
+            }
+            return entries;
+        }
+    }
+
+    @Override
     public void dump(FileEntry entry, Path to) throws IOException {
         var output = to.toAbsolutePath();
         try (var p = capture("hg", "cat", "--output=" + output.toString(),
@@ -694,7 +710,7 @@ public class HgRepository implements Repository {
         copyResource(EXT_PY, ext);
 
         var cmd = new ArrayList<>(List.of("hg", "--config", "extensions.diff-git-raw=" + ext.toAbsolutePath(),
-                                                "diff-git-raw", from.hex()));
+                                                "diff-git-raw", "--patch", from.hex()));
         if (to != null) {
             cmd.add(to.hex());
         }

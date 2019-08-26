@@ -67,6 +67,7 @@ public interface ReadOnlyRepository {
     }
 
     void dump(FileEntry entry, Path to) throws IOException;
+    List<StatusEntry> status(Hash from, Hash to) throws IOException;
     Diff diff(Hash base, Hash head) throws IOException;
     Diff diff(Hash head) throws IOException;
     List<String> config(String key) throws IOException;
