@@ -96,4 +96,23 @@ class WebrevTests {
             assertContains(webrevFolder.path().resolve("index.html"), "<td>1 lines changed; 1 ins; 0 del; 0 mod; 3 unchg</td>");
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void removedHeader(VCS vcs) throws IOException {
+        try (var repoFolder = new TemporaryDirectory();
+             var webrevFolder = new TemporaryDirectory()) {
+            var repo = Repository.init(repoFolder.path(), vcs);
+            var file = repoFolder.path().resolve("x.txt");
+            Files.writeString(file, "1\n2\n3\n4\n5\n6\n7\n8\n9\n", StandardCharsets.UTF_8);
+            repo.add(file);
+            var hash1 = repo.commit("Commit", "a", "a@a.a");
+            Files.writeString(file, "5\n6\n7\n8\n9\n", StandardCharsets.UTF_8);
+            repo.add(file);
+            var hash2 = repo.commit("Commit 2", "a", "a@a.a");
+
+            new Webrev.Builder(repo, webrevFolder.path()).generate(hash1, hash2);
+            assertContains(webrevFolder.path().resolve("index.html"), "<td>4 lines changed; 0 ins; 4 del; 0 mod; 1 unchg</td>");
+        }
+    }
 }
