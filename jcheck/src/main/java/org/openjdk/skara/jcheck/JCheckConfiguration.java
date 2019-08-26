@@ -106,7 +106,7 @@ public class JCheckConfiguration {
 
         config.add("[census]");
         config.add("version=0");
-        config.add("domain=openjdk.java.net");
+        config.add("domain=openjdk.org");
 
         if (shouldCheckWhitespace) {
             config.add("[checks \"whitespace\"]");
