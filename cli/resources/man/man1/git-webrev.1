@@ -29,32 +29,56 @@ git-webrev \- render a HTML view of changes
 Render a HTML view of the changes between two commits.
 .PP
 .TP
-\fIgit webrev\fR --base=<commit> --head=<commit>
-Creates a webrev with changes from the base commit to the head commit
-(i.e. base must be an ancestor of head).
+\fIgit webrev\fR 
+Creates a webrev with changes between the last two commits, and puts the resoult in a directory named 'webrev'
 .SH OPTIONS
 .TP
---base
-Base revision to compare against.
+-r, --rev=\fIREV\fR
+Compare against a specified revision, 
 .PP
 .TP
---head
-Head revision to compare against.
+-o, --output=\fIDIR\fR
+Output webrev to DIR. Defaults to 'webrev'.
 .PP
 .TP
--o <directory>, --output=<directory>
-Output webrev to <directory>. Defaults to 'webrev'.
+-u, --username=\fINAME\fR
+Use that username instead of 'guessing' one
 .PP
 .TP
---remote=<name>
-The remote corresponding to the upstream repository. Defaults to 'origin'.
+    --repository=\fIURL\fR
+The upstream repository for this local repository. Defaults to the 'origin' (or 'default') URL.
 .PP
 .TP
---repository=<url>
-The upstream repository for this local repository. Defaults to the 'origin' URL.
-.PP
-.TP
---title=<name>
+-t, --title=\fITITLE\fR
 The title of the webrev. Defaults to the basename of the current working directory.
+.PP
+.TP
+-c, --cr=\fICR\fR
+Include link to CR (aka bugid) in the main page
+.PP
+.TP
+-b,
+Do not ignore changes in whitespace (always true)
+.PP
+.TP
+-m, --mercurial
+Deprecated: force use of mercurial
+.PP
+.TP
+-C, --no-comments
+Don't show comments
+.PP
+.TP
+-N, --no-outgoing
+Do not compare against remote, use only 'status'
+.PP
+.TP
+-v, --version
+Print the version of this tool
+.PP
+.TP
+-h, --help
+Show help text
+.PP
 .SH SEE ALSO
 \fBgit-diff\fR(1)
