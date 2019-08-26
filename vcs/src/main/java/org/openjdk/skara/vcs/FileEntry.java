@@ -26,14 +26,20 @@ import java.util.Objects;
 import java.nio.file.Path;
 
 public class FileEntry {
+    private final Hash commit;
     private final FileType type;
     private final Hash hash;
     private final Path path;
 
-    public FileEntry(FileType type, Hash hash, Path path) {
+    public FileEntry(Hash commit, FileType type, Hash hash, Path path) {
+        this.commit = commit;
         this.type = type;
         this.hash = hash;
         this.path = path;
+    }
+
+    public Hash commit() {
+        return commit;
     }
 
     public FileType type() {
@@ -50,7 +56,7 @@ public class FileEntry {
 
     @Override
     public int hashCode() {
-        return Objects.hash(type, hash, path);
+        return Objects.hash(commit, type, hash, path);
     }
 
     @Override
@@ -60,13 +66,14 @@ public class FileEntry {
         }
 
         var e = (FileEntry) o;
-        return Objects.equals(type, e.type) &&
+        return Objects.equals(commit, e.commit) &&
+               Objects.equals(type, e.type) &&
                Objects.equals(hash, e.hash) &&
                Objects.equals(path, e.path);
     }
 
     @Override
     public String toString() {
-        return type.toString() + " " + hash.toString() + "\t" + path.toString();
+        return type.toString() + " blob " + hash.toString() + "\t" + path.toString();
     }
 }

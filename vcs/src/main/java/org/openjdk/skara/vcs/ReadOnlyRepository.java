@@ -66,6 +66,7 @@ public interface ReadOnlyRepository {
         return files(h, Arrays.asList(paths));
     }
 
+    void dump(FileEntry entry, Path to) throws IOException;
     Diff diff(Hash base, Hash head) throws IOException;
     Diff diff(Hash head) throws IOException;
     List<String> config(String key) throws IOException;

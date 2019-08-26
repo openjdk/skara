@@ -655,13 +655,24 @@ public class HgRepository implements Repository {
                 var metadata = parts[0].split(" ");
                 var path = Path.of(parts[1]);
                 if (include.isEmpty() || include.contains(path)) {
-                    var entry = new FileEntry(FileType.fromOctal(metadata[0]),
+                    var entry = new FileEntry(hash,
+                                              FileType.fromOctal(metadata[0]),
                                               new Hash(metadata[2]),
                                               path);
                     entries.add(entry);
                 }
             }
             return entries;
+        }
+    }
+
+    @Override
+    public void dump(FileEntry entry, Path to) throws IOException {
+        var output = to.toAbsolutePath();
+        try (var p = capture("hg", "cat", "--output=" + output.toString(),
+                                          "--rev=" + entry.commit(),
+                                          entry.path().toString())) {
+            await(p);
         }
     }
 
