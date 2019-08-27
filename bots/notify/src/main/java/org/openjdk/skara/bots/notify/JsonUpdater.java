@@ -24,7 +24,7 @@ package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.host.HostedRepository;
 import org.openjdk.skara.json.*;
-import org.openjdk.skara.vcs.Commit;
+import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.*;
 
 import java.nio.file.Path;
@@ -76,7 +76,7 @@ public class JsonUpdater implements UpdateConsumer {
     }
 
     @Override
-    public void handleCommits(HostedRepository repository, List<Commit> commits) {
+    public void handleCommits(HostedRepository repository, List<Commit> commits, Branch branch) {
         try (var writer = new JsonUpdateWriter(path, repository.getName())) {
             for (var commit : commits) {
                 var json = commitToChanges(repository, commit, defaultBuild);

@@ -78,11 +78,13 @@ public class MailingListUpdater implements UpdateConsumer {
         return writer.toString();
     }
 
-    private String commitsToSubject(HostedRepository repository, List<Commit> commits) {
+    private String commitsToSubject(HostedRepository repository, List<Commit> commits, Branch branch) {
         var subject = new StringBuilder();
         subject.append(repository.getRepositoryType().shortName());
         subject.append(": ");
         subject.append(repository.getName());
+        subject.append(": ");
+        subject.append(branch.name());
         subject.append(": ");
         if (commits.size() > 1) {
             subject.append(commits.size());
@@ -94,11 +96,11 @@ public class MailingListUpdater implements UpdateConsumer {
     }
 
     @Override
-    public void handleCommits(HostedRepository repository, List<Commit> commits) {
+    public void handleCommits(HostedRepository repository, List<Commit> commits, Branch branch) {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
-        var subject = commitsToSubject(repository, commits);
+        var subject = commitsToSubject(repository, commits, branch);
 
         for (var commit : commits) {
             printer.println(commitToText(repository, commit));

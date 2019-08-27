@@ -24,12 +24,14 @@ package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.email.EmailAddress;
+import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.storage.StorageBuilder;
-import org.openjdk.skara.vcs.Tag;
+import org.openjdk.skara.vcs.*;
 
 import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class JNotifyBotFactory implements BotFactory {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
@@ -52,7 +54,9 @@ public class JNotifyBotFactory implements BotFactory {
 
         for (var repo : specific.get("repositories").fields()) {
             var repoName = repo.name();
-            var branch = repo.value().get("branch").asString();
+            var branches = repo.value().get("branches").stream()
+                               .map(JSONValue::asString)
+                               .collect(Collectors.toList());
             var build = repo.value().get("build").asString();
             var version = repo.value().get("version").asString();
 
@@ -77,7 +81,7 @@ public class JNotifyBotFactory implements BotFactory {
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added tag for " + repoName);
             var branchStorageBuilder = new StorageBuilder<ResolvedBranch>(repoName + ".branches.txt")
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added branch hash for " + repoName);
-            var bot = new JNotifyBot(configuration.repository(repoName), configuration.storageFolder(), branch, tagStorageBuilder, branchStorageBuilder, updaters);
+            var bot = new JNotifyBot(configuration.repository(repoName), configuration.storageFolder(), branches, tagStorageBuilder, branchStorageBuilder, updaters);
             ret.add(bot);
         }
 
