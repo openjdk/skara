@@ -32,6 +32,8 @@ import java.io.*;
 import java.net.URI;
 import java.nio.file.*;
 import java.util.Comparator;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 class WebrevStorage {
     private final HostedRepository storage;
@@ -54,17 +56,36 @@ class WebrevStorage {
               .generate(base, head);
     }
 
-    private void push(Repository localStorage, Path webrevFolder) throws IOException {
-        var files = Files.walk(webrevFolder).toArray(Path[]::new);
-        localStorage.add(files);
-        var hash = localStorage.commit("Added webrev", author.fullName().orElseThrow(), author.address());
-        localStorage.push(hash, storage.getUrl(), storageRef);
+    private void push(Repository localStorage, Path webrevFolder, String identifier) throws IOException {
+        var batchIndex = new AtomicInteger();
+        try (var files = Files.walk(webrevFolder)) {
+            // Try to push 1000 files at a time
+            var batches = files.filter(Files::isRegularFile)
+                               .collect(Collectors.groupingBy(path -> {
+                                   int curIndex = batchIndex.incrementAndGet();
+                                   return Math.floorDiv(curIndex, 1000);
+                               }));
+
+            for (var batch : batches.entrySet()) {
+                localStorage.add(batch.getValue());
+                Hash hash;
+                var message = "Added webrev for " + identifier +
+                        (batches.size() > 1 ? " (" + (batch.getKey() + 1) + "/" + batches.size() + ")" : "");
+                try {
+                    hash = localStorage.commit(message, author.fullName().orElseThrow(), author.address());
+                } catch (IOException e) {
+                    // If the commit fails, it probably means that we're resuming a partially completed previous update
+                    // where some of the files have already been committed. Ignore it and continue.
+                    continue;
+                }
+                localStorage.push(hash, storage.getUrl(), storageRef);
+            }
+        }
     }
 
     private static void clearDirectory(Path directory) {
-        try {
-            Files.walk(directory)
-                 .map(Path::toFile)
+        try (var files = Files.walk(directory)) {
+            files.map(Path::toFile)
                  .sorted(Comparator.reverseOrder())
                  .forEach(File::delete);
         } catch (IOException io) {
@@ -83,7 +104,7 @@ class WebrevStorage {
             }
             generate(prInstance, outputFolder, base, head);
             if (!localStorage.isClean()) {
-                push(localStorage, outputFolder);
+                push(localStorage, outputFolder, baseFolder.resolve(prInstance.id()).toString());
             }
             return URIBuilder.base(baseUri).appendPath(relativeFolder.toString()).build();
         } catch (IOException e) {
