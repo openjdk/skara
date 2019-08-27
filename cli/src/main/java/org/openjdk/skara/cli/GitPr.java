@@ -281,7 +281,6 @@ public class GitPr {
         var username = arguments.contains("username") ? arguments.get("username").asString() : null;
         var token = System.getenv("GIT_TOKEN");
         var uri = toURI(remotePullPath);
-        System.out.println(uri.toString());
         var credentials = GitCredentials.fill(uri.getHost(), uri.getPath().substring(1), username, token, uri.getScheme());
         var host = Host.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
 
