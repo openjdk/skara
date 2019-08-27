@@ -27,6 +27,7 @@ import org.openjdk.skara.host.*;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.*;
 import org.openjdk.skara.proxy.HttpProxy;
+import org.openjdk.skara.ssh.SSHConfig;
 
 import java.io.IOException;
 import java.net.URI;
@@ -154,18 +155,37 @@ public class GitPr {
         await(pb.start());
     }
 
-    private static URI toURI(String remotePath) {
+    private static URI toURI(String remotePath) throws IOException {
         if (remotePath.startsWith("http")) {
             return URI.create(remotePath);
         } else if (remotePath.startsWith("ssh://")) {
             var sshURI = URI.create(remotePath);
             return URI.create("https://" + sshURI.getHost() + sshURI.getPath());
         } else {
-            if (remotePath.startsWith("git@")) {
-                var hostAndPath = remotePath.split("@")[1].replaceFirst(":", "/");
-                return URI.create("https://" + hostAndPath);
+            var indexOfColon = remotePath.indexOf(':');
+            var indexOfSlash = remotePath.indexOf('/');
+            if (indexOfColon != -1) {
+                if (indexOfSlash == -1 || indexOfColon < indexOfSlash) {
+                    var path = remotePath.contains("@") ? remotePath.split("@")[1] : remotePath;
+                    var name = path.split(":")[0];
+
+                    // Could be a Host in the ~/.ssh/config file
+                    var sshConfig = Path.of(System.getProperty("user.home"), ".ssh", "config");
+                    for (var host : SSHConfig.parse(sshConfig).hosts()) {
+                        if (host.name().equals(name)) {
+                            var hostName = host.hostName();
+                            if (hostName != null) {
+                                return URI.create("https://" + hostName + "/" + path.split(":")[1]);
+                            }
+                        }
+                    }
+
+                    // Otherwise is must be a domain
+                    return URI.create("https://" + path.replace(":", "/"));
+                }
             }
         }
+
         exit("error: cannot find remote repository for " + remotePath);
         return null; // will never reach here
     }
@@ -261,6 +281,7 @@ public class GitPr {
         var username = arguments.contains("username") ? arguments.get("username").asString() : null;
         var token = System.getenv("GIT_TOKEN");
         var uri = toURI(remotePullPath);
+        System.out.println(uri.toString());
         var credentials = GitCredentials.fill(uri.getHost(), uri.getPath().substring(1), username, token, uri.getScheme());
         var host = Host.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
 

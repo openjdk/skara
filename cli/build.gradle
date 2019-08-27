@@ -39,6 +39,7 @@ dependencies {
     implementation project(':json')
     implementation project(':host')
     implementation project(':proxy')
+    implementation project(':ssh')
 }
 
 
