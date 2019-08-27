@@ -171,11 +171,13 @@ public class GitPr {
 
                     // Could be a Host in the ~/.ssh/config file
                     var sshConfig = Path.of(System.getProperty("user.home"), ".ssh", "config");
-                    for (var host : SSHConfig.parse(sshConfig).hosts()) {
-                        if (host.name().equals(name)) {
-                            var hostName = host.hostName();
-                            if (hostName != null) {
-                                return URI.create("https://" + hostName + "/" + path.split(":")[1]);
+                    if (Files.exists(sshConfig)) {
+                        for (var host : SSHConfig.parse(sshConfig).hosts()) {
+                            if (host.name().equals(name)) {
+                                var hostName = host.hostName();
+                                if (hostName != null) {
+                                    return URI.create("https://" + hostName + "/" + path.split(":")[1]);
+                                }
                             }
                         }
                     }
