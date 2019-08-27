@@ -34,15 +34,15 @@ public class SSHConfigTests {
         var lines = List.of(
             "Host test",
             "  User git",
-	    "  HostName git.openjdk.java.net",
-	    "  Port 22"
-	);
-	var config = SSHConfig.parse(lines);
-	var hosts = config.hosts();
-	assertEquals(1, hosts.size());
-	var host = hosts.get(0);
-	assertEquals("test", host.name());
-	assertEquals("git", host.user());
-	assertEquals(22, host.port());
+            "  HostName git.openjdk.java.net",
+            "  Port 22"
+        );
+        var config = SSHConfig.parse(lines);
+        var hosts = config.hosts();
+        assertEquals(1, hosts.size());
+        var host = hosts.get(0);
+        assertEquals("test", host.name());
+        assertEquals("git", host.user());
+        assertEquals(22, host.port());
     }
 }
