@@ -20,32 +20,29 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-rootProject.name = 'skara'
 
-include 'args'
-include 'bot'
-include 'cli'
-include 'census'
-include 'email'
-include 'encoding'
-include 'host'
-include 'ini'
-include 'jcheck'
-include 'json'
-include 'mailinglist'
-include 'process'
-include 'proxy'
-include 'storage'
-include 'ssh'
-include 'test'
-include 'vcs'
-include 'webrev'
+package org.openjdk.skara.ssh;
 
-include 'bots:cli'
-include 'bots:forward'
-include 'bots:hgbridge'
-include 'bots:mirror'
-include 'bots:mlbridge'
-include 'bots:notify'
-include 'bots:pr'
-include 'bots:submit'
+import java.util.*;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+public class SSHConfigTests {
+    @Test
+    void testSimpleConfig() {
+        var lines = List.of(
+            "Host test",
+            "  User git",
+            "  HostName git.openjdk.java.net",
+            "  Port 22"
+        );
+        var config = SSHConfig.parse(lines);
+        var hosts = config.hosts();
+        assertEquals(1, hosts.size());
+        var host = hosts.get(0);
+        assertEquals("test", host.name());
+        assertEquals("git", host.user());
+        assertEquals(22, host.port());
+    }
+}

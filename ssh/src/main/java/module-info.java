@@ -20,32 +20,6 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-rootProject.name = 'skara'
-
-include 'args'
-include 'bot'
-include 'cli'
-include 'census'
-include 'email'
-include 'encoding'
-include 'host'
-include 'ini'
-include 'jcheck'
-include 'json'
-include 'mailinglist'
-include 'process'
-include 'proxy'
-include 'storage'
-include 'ssh'
-include 'test'
-include 'vcs'
-include 'webrev'
-
-include 'bots:cli'
-include 'bots:forward'
-include 'bots:hgbridge'
-include 'bots:mirror'
-include 'bots:mlbridge'
-include 'bots:notify'
-include 'bots:pr'
-include 'bots:submit'
+module org.openjdk.skara.ssh {
+    exports org.openjdk.skara.ssh;
+}
