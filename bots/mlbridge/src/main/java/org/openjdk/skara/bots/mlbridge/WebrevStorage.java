@@ -61,6 +61,14 @@ class WebrevStorage {
         try (var files = Files.walk(webrevFolder)) {
             // Try to push 1000 files at a time
             var batches = files.filter(Files::isRegularFile)
+                               .filter(file -> {
+                                   // Huge files are not that useful in a webrev
+                                   try {
+                                       return Files.size(file) < 1000 * 1000;
+                                   } catch (IOException e) {
+                                       return false;
+                                   }
+                               })
                                .collect(Collectors.groupingBy(path -> {
                                    int curIndex = batchIndex.incrementAndGet();
                                    return Math.floorDiv(curIndex, 1000);
