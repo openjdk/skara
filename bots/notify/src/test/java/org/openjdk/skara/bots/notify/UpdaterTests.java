@@ -164,7 +164,7 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var recipient = EmailAddress.from("list", "list@list.list");
-            var updater = new MailingListUpdater(smtpServer.address(), recipient, sender);
+            var updater = new MailingListUpdater(smtpServer.address(), recipient, sender, false);
             var notifyBot = new JNotifyBot(repo, storageFolder, List.of("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
@@ -177,6 +177,8 @@ class UpdaterTests {
             var email = smtpServer.receive(Duration.ofSeconds(10));
             assertEquals(email.sender(), sender);
             assertEquals(email.recipients(), List.of(recipient));
+            assertTrue(email.subject().contains(": 23456789: More fixes"));
+            assertFalse(email.subject().contains("master"));
             assertTrue(email.body().contains("Changeset: " + editHash.abbreviate()));
             assertTrue(email.body().contains("23456789: More fixes"));
             assertFalse(email.body().contains("Committer"));
@@ -202,7 +204,7 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var recipient = EmailAddress.from("list", "list@list.list");
-            var updater = new MailingListUpdater(smtpServer.address(), recipient, sender);
+            var updater = new MailingListUpdater(smtpServer.address(), recipient, sender, false);
             var notifyBot = new JNotifyBot(repo, storageFolder, List.of("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
@@ -218,6 +220,8 @@ class UpdaterTests {
             var email = smtpServer.receive(Duration.ofSeconds(10));
             assertEquals(email.sender(), sender);
             assertEquals(email.recipients(), List.of(recipient));
+            assertTrue(email.subject().contains(": 2 new changesets"));
+            assertFalse(email.subject().contains("master"));
             assertTrue(email.body().contains("Changeset: " + editHash1.abbreviate()));
             assertTrue(email.body().contains("23456789: More fixes"));
             assertTrue(email.body().contains("Changeset: " + editHash2.abbreviate()));
@@ -244,7 +248,7 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var recipient = EmailAddress.from("list", "list@list.list");
-            var updater = new MailingListUpdater(smtpServer.address(), recipient, sender);
+            var updater = new MailingListUpdater(smtpServer.address(), recipient, sender, false);
             var notifyBot = new JNotifyBot(repo, storageFolder, List.of("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
@@ -286,7 +290,7 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var recipient = EmailAddress.from("list", "list@list.list");
-            var updater = new MailingListUpdater(smtpServer.address(), recipient, sender);
+            var updater = new MailingListUpdater(smtpServer.address(), recipient, sender, true);
             var notifyBot = new JNotifyBot(repo, storageFolder, List.of("master", "another"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
@@ -303,7 +307,7 @@ class UpdaterTests {
             assertEquals(email.sender(), sender);
             assertEquals(email.recipients(), List.of(recipient));
             assertFalse(email.subject().contains("another"));
-            assertTrue(email.subject().contains("master"));
+            assertTrue(email.subject().contains(": master: 2 new changesets"));
             assertTrue(email.body().contains("Changeset: " + editHash1.abbreviate()));
             assertTrue(email.body().contains("23456789: More fixes"));
             assertTrue(email.body().contains("Changeset: " + editHash2.abbreviate()));
@@ -319,7 +323,7 @@ class UpdaterTests {
             email = smtpServer.receive(Duration.ofSeconds(10));
             assertEquals(email.sender(), sender);
             assertEquals(email.recipients(), List.of(recipient));
-            assertTrue(email.subject().contains("another"));
+            assertTrue(email.subject().contains(": another: 456789AB: Yet more fixes"));
             assertFalse(email.subject().contains("master"));
             assertTrue(email.body().contains("Changeset: " + editHash3.abbreviate()));
             assertTrue(email.body().contains("456789AB: Yet more fixes"));

@@ -35,11 +35,13 @@ public class MailingListUpdater implements UpdateConsumer {
     private final String host;
     private final EmailAddress recipient;
     private final EmailAddress sender;
+    private final boolean includeBranch;
 
-    MailingListUpdater(String host, EmailAddress recipient, EmailAddress sender) {
+    MailingListUpdater(String host, EmailAddress recipient, EmailAddress sender, boolean includeBranch) {
         this.host = host;
         this.recipient = recipient;
         this.sender = sender;
+        this.includeBranch = includeBranch;
     }
 
     private String patchToText(Patch patch) {
@@ -84,8 +86,10 @@ public class MailingListUpdater implements UpdateConsumer {
         subject.append(": ");
         subject.append(repository.getName());
         subject.append(": ");
-        subject.append(branch.name());
-        subject.append(": ");
+        if (includeBranch) {
+            subject.append(branch.name());
+            subject.append(": ");
+        }
         if (commits.size() > 1) {
             subject.append(commits.size());
             subject.append(" new changesets");

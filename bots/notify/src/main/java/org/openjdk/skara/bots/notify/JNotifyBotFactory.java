@@ -69,7 +69,7 @@ public class JNotifyBotFactory implements BotFactory {
                 var senderName = mailcfg.get("name").asString();
                 var senderMail = mailcfg.get("email").asString();
                 var sender = EmailAddress.from(senderName, senderMail);
-                updaters.add(new MailingListUpdater(mailcfg.get("smtp").asString(), EmailAddress.parse(mailcfg.get("recipient").asString()), sender));
+                updaters.add(new MailingListUpdater(mailcfg.get("smtp").asString(), EmailAddress.parse(mailcfg.get("recipient").asString()), sender, branches.size() > 1));
             }
 
             if (updaters.isEmpty()) {
