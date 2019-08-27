@@ -35,11 +35,13 @@ public class MailingListUpdater implements UpdateConsumer {
     private final String host;
     private final EmailAddress recipient;
     private final EmailAddress sender;
+    private final boolean includeBranch;
 
-    MailingListUpdater(String host, EmailAddress recipient, EmailAddress sender) {
+    MailingListUpdater(String host, EmailAddress recipient, EmailAddress sender, boolean includeBranch) {
         this.host = host;
         this.recipient = recipient;
         this.sender = sender;
+        this.includeBranch = includeBranch;
     }
 
     private String patchToText(Patch patch) {
@@ -78,12 +80,16 @@ public class MailingListUpdater implements UpdateConsumer {
         return writer.toString();
     }
 
-    private String commitsToSubject(HostedRepository repository, List<Commit> commits) {
+    private String commitsToSubject(HostedRepository repository, List<Commit> commits, Branch branch) {
         var subject = new StringBuilder();
         subject.append(repository.getRepositoryType().shortName());
         subject.append(": ");
         subject.append(repository.getName());
         subject.append(": ");
+        if (includeBranch) {
+            subject.append(branch.name());
+            subject.append(": ");
+        }
         if (commits.size() > 1) {
             subject.append(commits.size());
             subject.append(" new changesets");
@@ -94,11 +100,11 @@ public class MailingListUpdater implements UpdateConsumer {
     }
 
     @Override
-    public void handleCommits(HostedRepository repository, List<Commit> commits) {
+    public void handleCommits(HostedRepository repository, List<Commit> commits, Branch branch) {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
-        var subject = commitsToSubject(repository, commits);
+        var subject = commitsToSubject(repository, commits, branch);
 
         for (var commit : commits) {
             printer.println(commitToText(repository, commit));

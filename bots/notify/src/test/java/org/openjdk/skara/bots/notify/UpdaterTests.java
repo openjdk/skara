@@ -75,7 +75,7 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var updater = new JsonUpdater(jsonFolder, "12", "team");
-            var notifyBot = new JNotifyBot(repo, storageFolder, "master", tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, List.of("master"), tagStorage, branchStorage, List.of(updater));
 
             TestBotRunner.runPeriodicItems(notifyBot);
             assertEquals(List.of(), findJsonFiles(jsonFolder, ""));
@@ -114,7 +114,7 @@ class UpdaterTests {
             var storageFolder =tempFolder.path().resolve("storage");
 
             var updater = new JsonUpdater(jsonFolder, "12", "team");
-            var notifyBot = new JNotifyBot(repo, storageFolder, "master", tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, List.of("master"), tagStorage, branchStorage, List.of(updater));
 
             TestBotRunner.runPeriodicItems(notifyBot);
             assertEquals(List.of(), findJsonFiles(jsonFolder, ""));
@@ -164,8 +164,8 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var recipient = EmailAddress.from("list", "list@list.list");
-            var updater = new MailingListUpdater(smtpServer.address(), recipient, sender);
-            var notifyBot = new JNotifyBot(repo, storageFolder, "master", tagStorage, branchStorage, List.of(updater));
+            var updater = new MailingListUpdater(smtpServer.address(), recipient, sender, false);
+            var notifyBot = new JNotifyBot(repo, storageFolder, List.of("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -177,6 +177,8 @@ class UpdaterTests {
             var email = smtpServer.receive(Duration.ofSeconds(10));
             assertEquals(email.sender(), sender);
             assertEquals(email.recipients(), List.of(recipient));
+            assertTrue(email.subject().contains(": 23456789: More fixes"));
+            assertFalse(email.subject().contains("master"));
             assertTrue(email.body().contains("Changeset: " + editHash.abbreviate()));
             assertTrue(email.body().contains("23456789: More fixes"));
             assertFalse(email.body().contains("Committer"));
@@ -202,8 +204,8 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var recipient = EmailAddress.from("list", "list@list.list");
-            var updater = new MailingListUpdater(smtpServer.address(), recipient, sender);
-            var notifyBot = new JNotifyBot(repo, storageFolder, "master", tagStorage, branchStorage, List.of(updater));
+            var updater = new MailingListUpdater(smtpServer.address(), recipient, sender, false);
+            var notifyBot = new JNotifyBot(repo, storageFolder, List.of("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -218,6 +220,8 @@ class UpdaterTests {
             var email = smtpServer.receive(Duration.ofSeconds(10));
             assertEquals(email.sender(), sender);
             assertEquals(email.recipients(), List.of(recipient));
+            assertTrue(email.subject().contains(": 2 new changesets"));
+            assertFalse(email.subject().contains("master"));
             assertTrue(email.body().contains("Changeset: " + editHash1.abbreviate()));
             assertTrue(email.body().contains("23456789: More fixes"));
             assertTrue(email.body().contains("Changeset: " + editHash2.abbreviate()));
@@ -244,8 +248,8 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var recipient = EmailAddress.from("list", "list@list.list");
-            var updater = new MailingListUpdater(smtpServer.address(), recipient, sender);
-            var notifyBot = new JNotifyBot(repo, storageFolder, "master", tagStorage, branchStorage, List.of(updater));
+            var updater = new MailingListUpdater(smtpServer.address(), recipient, sender, false);
+            var notifyBot = new JNotifyBot(repo, storageFolder, List.of("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -267,4 +271,64 @@ class UpdaterTests {
         }
     }
 
+    @Test
+    void testMailingListMultipleBranches(TestInfo testInfo) throws IOException {
+        try (var smtpServer = new SMTPServer();
+             var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.getRepositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            credentials.commitLock(localRepo);
+            var branch = localRepo.branch(masterHash, "another");
+            localRepo.pushAll(repo.getUrl());
+
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var recipient = EmailAddress.from("list", "list@list.list");
+            var updater = new MailingListUpdater(smtpServer.address(), recipient, sender, true);
+            var notifyBot = new JNotifyBot(repo, storageFolder, List.of("master", "another"), tagStorage, branchStorage, List.of(updater));
+
+            // No mail should be sent on the first run as there is no history
+            TestBotRunner.runPeriodicItems(notifyBot);
+            assertThrows(RuntimeException.class, () -> smtpServer.receive(Duration.ofMillis(1)));
+
+            var editHash1 = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
+            localRepo.push(editHash1, repo.getUrl(), "master");
+            var editHash2 = CheckableRepository.appendAndCommit(localRepo, "Yet another line", "3456789A: Even more fixes");
+            localRepo.push(editHash2, repo.getUrl(), "master");
+
+            TestBotRunner.runPeriodicItems(notifyBot);
+            var email = smtpServer.receive(Duration.ofSeconds(10));
+            assertEquals(email.sender(), sender);
+            assertEquals(email.recipients(), List.of(recipient));
+            assertFalse(email.subject().contains("another"));
+            assertTrue(email.subject().contains(": master: 2 new changesets"));
+            assertTrue(email.body().contains("Changeset: " + editHash1.abbreviate()));
+            assertTrue(email.body().contains("23456789: More fixes"));
+            assertTrue(email.body().contains("Changeset: " + editHash2.abbreviate()));
+            assertTrue(email.body().contains("3456789A: Even more fixes"));
+            assertFalse(email.body().contains(masterHash.abbreviate()));
+            assertFalse(email.body().contains("456789AB: Yet more fixes"));
+
+            localRepo.checkout(branch, true);
+            var editHash3 = CheckableRepository.appendAndCommit(localRepo, "Another branch", "456789AB: Yet more fixes");
+            localRepo.push(editHash3, repo.getUrl(), "another");
+
+            TestBotRunner.runPeriodicItems(notifyBot);
+            email = smtpServer.receive(Duration.ofSeconds(10));
+            assertEquals(email.sender(), sender);
+            assertEquals(email.recipients(), List.of(recipient));
+            assertTrue(email.subject().contains(": another: 456789AB: Yet more fixes"));
+            assertFalse(email.subject().contains("master"));
+            assertTrue(email.body().contains("Changeset: " + editHash3.abbreviate()));
+            assertTrue(email.body().contains("456789AB: Yet more fixes"));
+            assertFalse(email.body().contains("Changeset: " + editHash2.abbreviate()));
+            assertFalse(email.body().contains("3456789A: Even more fixes"));
+        }
+    }
 }
