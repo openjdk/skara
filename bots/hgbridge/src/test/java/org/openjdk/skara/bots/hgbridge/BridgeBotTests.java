@@ -31,7 +31,6 @@ import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.convert.*;
 
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.condition.*;
 
 import java.io.*;
 import java.net.URI;
@@ -44,7 +43,6 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@DisabledOnOs(OS.WINDOWS)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class BridgeBotTests {
     private List<String> runHgCommand(Repository repository, String... params) throws IOException {
@@ -130,7 +128,6 @@ class BridgeBotTests {
     void setup() throws IOException {
         // Export the beginning of the jtreg repository
         sourceFolder = new TemporaryDirectory();
-        Assumptions.assumeFalse(OS.WINDOWS.isCurrentOs(), "Running on Windows -- skipping tests");
         try {
             var localRepo = Repository.materialize(sourceFolder.path(), URIBuilder.base("http://hg.openjdk.java.net/code-tools/jtreg").build(), "default");
             runHgCommand(localRepo, "strip", "-r", "b2511c725d81");

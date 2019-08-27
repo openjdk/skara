@@ -20,24 +20,24 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-module org.openjdk.skara.test {
-    requires java.logging;
-    requires jdk.httpserver;
+package org.openjdk.skara.test;
 
-    requires org.openjdk.skara.census;
-    requires org.openjdk.skara.vcs;
-    requires org.openjdk.skara.bot;
-    requires org.openjdk.skara.json;
-    requires org.openjdk.skara.host;
-    requires org.openjdk.skara.email;
-    requires org.openjdk.skara.mailinglist;
-    requires org.openjdk.skara.proxy;
+import static org.junit.jupiter.api.extension.ConditionEvaluationResult.disabled;
+import static org.junit.jupiter.api.extension.ConditionEvaluationResult.enabled;
 
-    requires org.junit.jupiter.api;
+import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.api.extension.ConditionEvaluationResult;
+import org.junit.jupiter.api.extension.ExecutionCondition;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-    exports org.openjdk.skara.test;
-
-    provides org.junit.jupiter.api.extension.Extension
-        with org.openjdk.skara.test.DisableAllBotsTestsOnWindows;
+public class DisableAllBotsTestsOnWindows implements ExecutionCondition {
+    @Override
+    public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
+        if (!OS.WINDOWS.isCurrentOs()) {
+            return enabled("Non-Windows OS");
+        }
+        var test = context.getRequiredTestClass();
+        var bots = test.getPackageName().startsWith("org.openjdk.skara.bots.");
+        return bots ? disabled("All bots tests are disabled on Windows") : enabled("Non-bots test");
+    }
 }
-
