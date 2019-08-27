@@ -30,6 +30,7 @@ import java.io.*;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -37,11 +38,13 @@ public class LabelerWorkItem implements WorkItem {
     private final PullRequest pr;
     private final Map<String, List<Pattern>> labelPatterns;
     private final ConcurrentMap<Hash, Boolean> currentLabels;
+    private final Consumer<RuntimeException> errorHandler;
 
-    LabelerWorkItem(PullRequest pr, Map<String, List<Pattern>> labelPatterns, ConcurrentMap<Hash, Boolean> currentLabels) {
+    LabelerWorkItem(PullRequest pr, Map<String, List<Pattern>> labelPatterns, ConcurrentMap<Hash, Boolean> currentLabels, Consumer<RuntimeException> errorHandler) {
         this.pr = pr;
         this.labelPatterns = labelPatterns;
         this.currentLabels = currentLabels;
+        this.errorHandler = errorHandler;
     }
 
     @Override
@@ -107,6 +110,10 @@ public class LabelerWorkItem implements WorkItem {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
 
+    @Override
+    public void handleRuntimeException(RuntimeException e) {
+        errorHandler.accept(e);
     }
 }

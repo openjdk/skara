@@ -79,6 +79,7 @@ public class BotRunner {
                 item.run(scratchPath);
             } catch (RuntimeException e) {
                 log.severe("Exception during item execution (" + item + "): " + e.getMessage());
+                item.handleRuntimeException(e);
                 log.throwing(item.toString(), "run", e);
             } finally {
                 log.log(Level.FINE, "Item " + item + " is now done", TaskPhases.END);

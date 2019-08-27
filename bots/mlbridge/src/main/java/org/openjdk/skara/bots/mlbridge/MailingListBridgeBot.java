@@ -25,14 +25,11 @@ package org.openjdk.skara.bots.mlbridge;
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.host.*;
-import org.openjdk.skara.jcheck.JCheckConfiguration;
 
 import java.net.URI;
 import java.nio.file.Path;
-import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class MailingListBridgeBot implements Bot {
     private final EmailAddress emailAddress;
@@ -113,7 +110,7 @@ public class MailingListBridgeBot implements Bot {
 
         for (var pr : codeRepo.getPullRequests()) {
             if (updateCache.needsUpdate(pr)) {
-                ret.add(new ArchiveWorkItem(pr, this));
+                ret.add(new ArchiveWorkItem(pr, this, e -> updateCache.invalidate(pr)));
             }
         }
 

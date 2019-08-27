@@ -44,11 +44,13 @@ import java.util.stream.Collectors;
 class ArchiveWorkItem implements WorkItem {
     private final PullRequest pr;
     private final MailingListBridgeBot bot;
+    private final Consumer<RuntimeException> exceptionConsumer;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
 
-    ArchiveWorkItem(PullRequest pr, MailingListBridgeBot bot) {
+    ArchiveWorkItem(PullRequest pr, MailingListBridgeBot bot, Consumer<RuntimeException> exceptionConsumer) {
         this.pr = pr;
         this.bot = bot;
+        this.exceptionConsumer = exceptionConsumer;
     }
 
     @Override
@@ -717,5 +719,10 @@ class ArchiveWorkItem implements WorkItem {
         for (var mail : listMails) {
             list.post(mail);
         }
+    }
+
+    @Override
+    public void handleRuntimeException(RuntimeException e) {
+        exceptionConsumer.accept(e);
     }
 }

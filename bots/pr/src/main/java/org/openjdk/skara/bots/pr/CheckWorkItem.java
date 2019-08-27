@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.security.*;
 import java.time.*;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -41,15 +42,17 @@ class CheckWorkItem implements WorkItem {
     private final HostedRepository censusRepo;
     private final String censusRef;
     private final Map<String, String> blockingLabels;
+    private final Consumer<RuntimeException> errorHandler;
 
     private final Pattern metadataComments = Pattern.compile("<!-- (add|remove) contributor");
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
-    CheckWorkItem(PullRequest pr, HostedRepository censusRepo, String censusRef, Map<String, String> blockingLabels) {
+    CheckWorkItem(PullRequest pr, HostedRepository censusRepo, String censusRef, Map<String, String> blockingLabels, Consumer<RuntimeException> errorHandler) {
         this.pr = pr;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
         this.blockingLabels = blockingLabels;
+        this.errorHandler = errorHandler;
     }
 
     private String encodeReviewer(HostUserDetails reviewer, CensusInstance censusInstance) {
@@ -169,5 +172,10 @@ class CheckWorkItem implements WorkItem {
                 throw new UncheckedIOException(e);
             }
         }
+    }
+
+    @Override
+    public void handleRuntimeException(RuntimeException e) {
+        errorHandler.accept(e);
     }
 }
