@@ -882,6 +882,13 @@ public class GitRepository implements Repository {
     }
 
     @Override
+    public void abortMerge() throws IOException {
+        try (var p = capture("git", "merge", "--abort")) {
+            await(p);
+        }
+    }
+
+    @Override
     public void addRemote(String name, String pullPath) throws IOException {
         try (var p = capture("git", "remote", "add", name, pullPath)) {
             await(p);

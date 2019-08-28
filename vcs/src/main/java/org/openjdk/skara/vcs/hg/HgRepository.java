@@ -802,6 +802,20 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public void abortMerge() throws IOException {
+        try (var p = capture("hg", "merge", "--abort")) {
+            await(p);
+        }
+
+        try (var p = capture("hg", "status", "--unknown", "--no-status")) {
+            var res = await(p);
+            for (var path : res.stdout()) {
+                Files.delete(root().resolve(path));
+            }
+        }
+    }
+
+    @Override
     public void addRemote(String name, String path) throws IOException {
         setPaths(name, path, path);
     }
