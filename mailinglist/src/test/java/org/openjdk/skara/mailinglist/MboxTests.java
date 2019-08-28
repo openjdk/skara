@@ -27,9 +27,12 @@ import org.openjdk.skara.test.TemporaryDirectory;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.time.Duration;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 class MboxTests {
     @Test
@@ -153,6 +156,32 @@ class MboxTests {
             assertEquals(1, conversations.size());
             var conversation = conversations.get(0);
             assertEquals(sentMail, conversation.first());
+        }
+    }
+
+    @Test
+    void unencodedFrom() throws IOException {
+        try (var folder = new TemporaryDirectory()) {
+            var rawMbox = folder.path().resolve("test.mbox");
+            Files.writeString(rawMbox,
+                              "From test at example.com  Wed Aug 21 17:22:50 2019\n" +
+                                      "From: test at example.com (test at example.com)\n" +
+                                      "Date: Wed, 21 Aug 2019 17:22:50 +0000\n" +
+                                      "Subject: this is a test\n" +
+                                      "Message-ID: <abc123@example.com>\n" +
+                                      "\n" +
+                                      "Sometimes there are unencoded from lines as well\n" +
+                                      "\n" +
+                                      "From this point onwards, it may be hard to parse this\n" +
+                                      "\n", StandardCharsets.UTF_8);
+            var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
+            var list = mbox.getList("test");
+            var conversations = list.conversations(Duration.ofDays(30));
+            assertEquals(1, conversations.size());
+            var conversation = conversations.get(0);
+            assertEquals(1, conversation.allMessages().size());
+            assertTrue(conversation.first().body().contains("there are unencoded"), conversation.first().body());
+            assertTrue(conversation.first().body().contains("this point onwards"), conversation.first().body());
         }
     }
 }
