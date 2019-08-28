@@ -53,7 +53,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
         readyForReview = true;
     }
 
-    List<String> getIssues() {
+    List<String> getMessages() {
         return new ArrayList<>(messages);
     }
 

@@ -165,7 +165,7 @@ class CheckRun {
         if (visitor.isReadyForReview() && additionalErrors.isEmpty()) {
             checkBuilder.complete(true);
         } else {
-            var summary = Stream.concat(visitor.getIssues().stream(), additionalErrors.stream())
+            var summary = Stream.concat(visitor.getMessages().stream(), additionalErrors.stream())
                                 .sorted()
                                 .map(m -> "- " + m)
                                 .collect(Collectors.joining("\n"));
@@ -179,7 +179,7 @@ class CheckRun {
 
     private void updateReadyForReview(PullRequestCheckIssueVisitor visitor, List<String> additionalErrors) {
         // If there are no issues at all, the PR is already reviewed
-        if (visitor.getIssues().isEmpty() && additionalErrors.isEmpty()) {
+        if (visitor.getMessages().isEmpty() && additionalErrors.isEmpty()) {
             pr.removeLabel("rfr");
             return;
         }
@@ -446,7 +446,7 @@ class CheckRun {
 
             var commit = prInstance.localRepo().lookup(localHash).orElseThrow();
             var commitMessage = String.join("\n", commit.message());
-            var readyForIntegration = visitor.getIssues().isEmpty() && additionalErrors.isEmpty();
+            var readyForIntegration = visitor.getMessages().isEmpty() && additionalErrors.isEmpty();
             updateMergeReadyComment(readyForIntegration, commitMessage, comments, activeReviews, rebasePossible);
             if (readyForIntegration) {
                 newLabels.add("ready");

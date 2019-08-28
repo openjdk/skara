@@ -79,10 +79,10 @@ public class IntegrateCommand implements CommandHandler {
             var prInstance = new PullRequestInstance(path, pr);
             var hash = prInstance.commit(censusInstance.namespace(), censusInstance.configuration().census().domain(), null);
             var issues = prInstance.executeChecks(hash, censusInstance);
-            if (!issues.getIssues().isEmpty()) {
+            if (!issues.getMessages().isEmpty()) {
                 reply.print("Your merge request cannot be fulfilled at this time, as ");
                 reply.println("your changes failed the final jcheck:");
-                issues.getIssues().stream()
+                issues.getMessages().stream()
                       .map(line -> " * " + line)
                       .forEach(reply::println);
                 return;
