@@ -37,7 +37,7 @@ public class Mbox {
     private final static Logger log = Logger.getLogger("org.openjdk.skara.mailinglist");
 
     private final static Pattern mboxMessagePattern = Pattern.compile(
-            "^\\R^(From (?:.(?!^\\R^From ))*)", Pattern.MULTILINE | Pattern.DOTALL);
+            "^(From (?:.(?!^\\R^From ))*)", Pattern.MULTILINE | Pattern.DOTALL);
     private final static DateTimeFormatter ctimeFormat = DateTimeFormatter.ofPattern(
             "EEE LLL dd HH:mm:ss yyyy", Locale.US);
     private final static Pattern fromStringEncodePattern = Pattern.compile("^(>*From )", Pattern.MULTILINE);
@@ -46,15 +46,30 @@ public class Mbox {
     private final static Pattern decodedQuotedPrintablePattern = Pattern.compile("=\\?utf-8\\?b\\?(.*?)\\?=");
 
     private static List<Email> splitMbox(String mbox) {
+        // Initial split
         var messages = mboxMessagePattern.matcher(mbox).results()
                                          .map(match -> match.group(1))
+                                         .filter(message -> message.length() > 0)
+                                         .map(Mbox::decodeFromStrings)
+                                         .map(Mbox::decodeQuotedPrintable)
                                          .collect(Collectors.toList());
-        return messages.stream()
-                       .filter(message -> message.length() > 0)
-                       .map(Mbox::decodeFromStrings)
-                       .map(Mbox::decodeQuotedPrintable)
-                       .map(Email::parse)
-                       .collect(Collectors.toList());
+
+        // Pipermail can occasionally fail to encode 'From ' in message bodies, try to handle this
+        var messageBuilder = new StringBuilder();
+        var parsedMails = new ArrayList<Email>();
+        Collections.reverse(messages);
+        for (var message : messages) {
+            messageBuilder.insert(0, message);
+            try {
+                var email = Email.parse(messageBuilder.toString());
+                parsedMails.add(email);
+                messageBuilder.setLength(0);
+            } catch (RuntimeException ignored) {
+            }
+        }
+
+        Collections.reverse(parsedMails);
+        return parsedMails;
     }
 
     private static String encodeFromStrings(String body) {
