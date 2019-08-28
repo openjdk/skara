@@ -158,7 +158,7 @@ class MboxTests {
             assertEquals(sentMail, conversation.first());
         }
     }
-    
+
     @Test
     void unencodedFrom() throws IOException {
         try (var folder = new TemporaryDirectory()) {
