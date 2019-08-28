@@ -1737,4 +1737,26 @@ public class RepositoryTests {
                     hunk.target().lines());
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testContains(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.isClean());
+
+            var f = dir.path().resolve("README");
+            Files.writeString(f, "Hello\n");
+            r.add(f);
+            var initial = r.commit("Initial commit", "duke", "duke@openjdk.org");
+
+            assertTrue(r.contains(r.defaultBranch(), initial));
+
+            Files.writeString(f, "Hello again\n");
+            r.add(f);
+            var second = r.commit("Second commit", "duke", "duke@openjdk.org");
+
+            assertTrue(r.contains(r.defaultBranch(), initial));
+        }
+    }
 }

@@ -55,6 +55,7 @@ public interface ReadOnlyRepository {
     Hash mergeBase(Hash first, Hash second) throws IOException;
     boolean isAncestor(Hash ancestor, Hash descendant) throws IOException;
     Optional<Hash> resolve(String ref) throws IOException;
+    boolean contains(Branch b, Hash h) throws IOException;
     Optional<String> username() throws IOException;
     Optional<byte[]> show(Path p, Hash h) throws IOException;
     default Optional<List<String>> lines(Path p, Hash h) throws IOException {

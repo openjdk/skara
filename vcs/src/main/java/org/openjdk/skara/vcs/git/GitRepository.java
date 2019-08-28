@@ -1019,4 +1019,18 @@ public class GitRepository implements Repository {
             await(p);
         }
     }
+
+    @Override
+    public boolean contains(Branch b, Hash h) throws IOException {
+        try (var p = capture("git", "for-each-ref", "--contains", h.hex(), "--format", "%(refname:short)")) {
+            var res = await(p);
+            for (var line : res.stdout()) {
+                if (line.equals(b.name())) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 }
