@@ -35,7 +35,13 @@ import java.util.*;
 public interface Repository extends ReadOnlyRepository {
     Repository init() throws IOException;
     void checkout(Hash h, boolean force) throws IOException;
+    default void checkout(Hash h) throws IOException {
+        checkout(h, false);
+    }
     void checkout(Branch b, boolean force) throws IOException;
+    default void checkout(Branch b) throws IOException {
+        checkout(b, false);
+    }
     Hash fetch(URI uri, String refspec) throws IOException;
     void fetchAll() throws IOException;
     void pushAll(URI uri) throws IOException;
