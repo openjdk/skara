@@ -30,6 +30,7 @@ import org.junit.jupiter.api.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -178,7 +179,7 @@ class IntegrateTests {
     }
 
     @Test
-    void failedCheck(TestInfo testInfo) throws IOException {
+    void notReviewed(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
@@ -195,6 +196,40 @@ class IntegrateTests {
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Attempt a merge
+            pr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an error message
+            var error = pr.getComments().stream()
+                          .filter(comment -> comment.body().contains("merge request cannot be fulfilled at this time"))
+                          .filter(comment -> comment.body().contains("failed the final jcheck"))
+                          .count();
+            assertEquals(1, error, pr.getComments().stream().map(Comment::body).collect(Collectors.joining("\n---\n")));
+        }
+    }
+
+    @Test
+    void failedCheck(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.host().getCurrentUserDetails().id());
+            var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.getUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "trailing whitespace   ");
             localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 

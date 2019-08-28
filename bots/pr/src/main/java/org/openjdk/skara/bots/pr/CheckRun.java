@@ -23,9 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.host.*;
-import org.openjdk.skara.jcheck.JCheck;
 import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 
 import java.io.IOException;
 import java.util.*;
@@ -163,40 +161,25 @@ class CheckRun {
         return ret;
     }
 
-    private PullRequestCheckIssueVisitor executeChecks(Hash localHash) throws Exception {
-        log.fine("Changes committed to local repository, executing checks...");
-
-        var checks = JCheck.checks(prInstance.localRepo(), censusInstance.census(), localHash);
-        var visitor = new PullRequestCheckIssueVisitor(checks);
-        try (var issues = JCheck.check(prInstance.localRepo(), censusInstance.census(), CommitMessageParsers.v1, "HEAD~1..HEAD",
-                                       localHash, new HashMap<>(), new HashSet<>())) {
-            for (var issue : issues) {
-                issue.accept(visitor);
-            }
-        }
-
-        return visitor;
-    }
-
     private void updateCheckBuilder(CheckBuilder checkBuilder, PullRequestCheckIssueVisitor visitor, List<String> additionalErrors) {
-        var summary = Stream.concat(visitor.getIssues().stream(), additionalErrors.stream())
-                            .sorted()
-                            .map(m -> "- " + m)
-                            .collect(Collectors.joining("\n"));
-        if (summary.length() > 0) {
+        if (visitor.isReadyForReview() && additionalErrors.isEmpty()) {
+            checkBuilder.complete(true);
+        } else {
+            var summary = Stream.concat(visitor.getMessages().stream(), additionalErrors.stream())
+                                .sorted()
+                                .map(m -> "- " + m)
+                                .collect(Collectors.joining("\n"));
             checkBuilder.summary(summary);
             for (var annotation : visitor.getAnnotations()) {
                 checkBuilder.annotation(annotation);
             }
             checkBuilder.complete(false);
-        } else {
-            checkBuilder.complete(true);
         }
     }
 
     private void updateReadyForReview(PullRequestCheckIssueVisitor visitor, List<String> additionalErrors) {
         // If there are no issues at all, the PR is already reviewed
-        if (visitor.getIssues().isEmpty() && additionalErrors.isEmpty()) {
+        if (visitor.getMessages().isEmpty() && additionalErrors.isEmpty()) {
             pr.removeLabel("rfr");
             return;
         }
@@ -446,7 +429,7 @@ class CheckRun {
             var localHash = prInstance.commit(censusInstance.namespace(), censusDomain, null);
 
             // Determine current status
-            var visitor = executeChecks(localHash);
+            var visitor = prInstance.executeChecks(localHash, censusInstance);
             var additionalErrors = botSpecificChecks();
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
             updateReadyForReview(visitor, additionalErrors);
@@ -463,9 +446,9 @@ class CheckRun {
 
             var commit = prInstance.localRepo().lookup(localHash).orElseThrow();
             var commitMessage = String.join("\n", commit.message());
-            updateMergeReadyComment(checkBuilder.build().status() == CheckStatus.SUCCESS, commitMessage,
-                                    comments, activeReviews, rebasePossible);
-            if (checkBuilder.build().status() == CheckStatus.SUCCESS) {
+            var readyForIntegration = visitor.getMessages().isEmpty() && additionalErrors.isEmpty();
+            updateMergeReadyComment(readyForIntegration, commitMessage, comments, activeReviews, rebasePossible);
+            if (readyForIntegration) {
                 newLabels.add("ready");
             } else {
                 newLabels.remove("ready");
