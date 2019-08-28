@@ -61,11 +61,11 @@ class CheckTests {
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
 
-            // Verify that the check failed
+            // Verify that the check succeeded
             var checks = pr.getChecks(editHash);
             assertEquals(1, checks.size());
             var check = checks.get("jcheck");
-            assertEquals(CheckStatus.FAILURE, check.status());
+            assertEquals(CheckStatus.SUCCESS, check.status());
 
             // The PR should now be ready for review
             assertTrue(pr.getLabels().contains("rfr"));
@@ -364,11 +364,11 @@ class CheckTests {
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
 
-            // Verify that the check failed
+            // Verify that the check passed
             var checks = pr.getChecks(editHash);
             assertEquals(1, checks.size());
             var check = checks.get("jcheck");
-            assertEquals(CheckStatus.FAILURE, check.status());
+            assertEquals(CheckStatus.SUCCESS, check.status());
 
             // The PR should now be ready for review
             assertTrue(pr.getLabels().contains("rfr"));
@@ -410,6 +410,12 @@ class CheckTests {
             // The PR is now neither ready for review nor integration
             assertFalse(pr.getLabels().contains("rfr"));
             assertFalse(pr.getLabels().contains("ready"));
+
+            // The check should now be failing
+            checks = pr.getChecks(addedHash);
+            assertEquals(1, checks.size());
+            check = checks.get("jcheck");
+            assertEquals(CheckStatus.FAILURE, check.status());
         }
     }
 

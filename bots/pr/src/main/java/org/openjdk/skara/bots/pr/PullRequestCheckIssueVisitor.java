@@ -101,6 +101,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     {
         messages.add("Self-reviews are not allowed");
         failedChecks.add(e.check().getClass());
+        readyForReview = false;
     }
 
     @Override

@@ -226,8 +226,8 @@ class MergeTests {
             localRepo.push(masterHash, author.getUrl(), "master", true);
 
             // Make a change in another branch that will not pass jcheck
-            var otherHash = CheckableRepository.appendAndCommit(localRepo, "Change in other",
-                                                                "Unreviewed change in other");
+            var otherHash = CheckableRepository.appendAndCommit(localRepo, "Change in other with trails..   ",
+                                                                "Bad change in other");
             localRepo.push(otherHash, author.getUrl(), "other", true);
 
             // Go back to the original master

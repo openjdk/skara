@@ -71,27 +71,39 @@ public class IntegrateCommand implements CommandHandler {
             return;
         }
 
-        if (!pr.getTitle().startsWith("Merge")) {
-            if (!ProjectPermissions.mayCommit(censusInstance, pr.getAuthor())) {
-                reply.println(ReadyForSponsorTracker.addIntegrationMarker(pr.getHeadHash()));
-                reply.println("Your change (at version " + pr.getHeadHash() + ") is now ready to be sponsored by a Committer.");
-                pr.addLabel("sponsor");
-                return;
-            }
-        } else {
-            if (!ProjectPermissions.mayCommit(censusInstance, pr.getAuthor())) {
-                reply.println("Merges require Committer status.");
-                return;
-            }
-        }
-
-        // Execute merge
+        // Run a final jcheck to ensure the change has been properly reviewed
         try {
             var sanitizedUrl = URLEncoder.encode(pr.repository().getWebUrl().toString(), StandardCharsets.UTF_8);
             var path = scratchPath.resolve("pr.integrate").resolve(sanitizedUrl);
 
             var prInstance = new PullRequestInstance(path, pr);
             var hash = prInstance.commit(censusInstance.namespace(), censusInstance.configuration().census().domain(), null);
+            var issues = prInstance.executeChecks(hash, censusInstance);
+            if (!issues.getIssues().isEmpty()) {
+                reply.print("Your merge request cannot be fulfilled at this time, as ");
+                reply.println("your changes failed the final jcheck:");
+                issues.getIssues().stream()
+                      .map(line -> " * " + line)
+                      .forEach(reply::println);
+                return;
+            }
+
+            // Finally check if the author is allowed to perform the actual push
+            if (!pr.getTitle().startsWith("Merge")) {
+                if (!ProjectPermissions.mayCommit(censusInstance, pr.getAuthor())) {
+                    reply.println(ReadyForSponsorTracker.addIntegrationMarker(pr.getHeadHash()));
+                    reply.println("Your change (at version " + pr.getHeadHash() + ") is now ready to be sponsored by a Committer.");
+                    pr.addLabel("sponsor");
+                    return;
+                }
+            } else {
+                if (!ProjectPermissions.mayCommit(censusInstance, pr.getAuthor())) {
+                    reply.println("Merges require Committer status.");
+                    return;
+                }
+            }
+
+            // Rebase and push it!
             var rebasedHash = prInstance.rebase(hash, reply);
             if (rebasedHash.isPresent()) {
                 reply.println("Pushed as commit " + rebasedHash.get().hex() + ".");
@@ -99,10 +111,11 @@ public class IntegrateCommand implements CommandHandler {
                 pr.setState(PullRequest.State.CLOSED);
                 pr.addLabel("integrated");
             }
-        } catch (IOException e) {
+
+        } catch (Exception e) {
             log.throwing("IntegrateCommand", "handle", e);
-            reply.println("An error occurred during integration");
-            throw new UncheckedIOException(e);
+            reply.println("An error occurred during final integration jcheck");
+            throw new RuntimeException(e);
         }
     }
 
