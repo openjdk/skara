@@ -134,7 +134,7 @@ public class GitHubApplication {
 
     private String generateJsonWebToken() {
         var issuedAt = ZonedDateTime.now(ZoneOffset.UTC);
-        var expires = issuedAt.plus(Duration.ofMinutes(10));
+        var expires = issuedAt.plus(Duration.ofMinutes(8));
 
         var header = Base64.getUrlEncoder().encode(JSON.object()
                                                        .put("alg", "RS256")
