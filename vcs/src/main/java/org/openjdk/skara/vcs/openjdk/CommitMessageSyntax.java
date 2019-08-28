@@ -31,7 +31,7 @@ public class CommitMessageSyntax {
         private static final String REAL_NAME_AND_EMAIL_ATTR_REGEX = REAL_NAME_REGEX + " +<" + EMAIL_ADDR_REGEX + ">";
         private static final String ATTR_REGEX = "(?:(?:" + EMAIL_ADDR_REGEX + ")|(?:" + REAL_NAME_AND_EMAIL_ATTR_REGEX + "))";
 
-        public static final Pattern ISSUE_PATTERN = Pattern.compile("((?:[A-Z][A-Z0-9]+-)?[0-9]+): (\\S.*)$");
+        public static final Pattern ISSUE_PATTERN = Pattern.compile("([1-9][0-9]{6}): (\\S.*)$");
         public static final Pattern SUMMARY_PATTERN = Pattern.compile("Summary: (\\S.*)");
         public static final Pattern REVIEWED_BY_PATTERN = Pattern.compile("Reviewed-by: ((?:" + OPENJDK_USERNAME_REGEX + ")(?:, " + OPENJDK_USERNAME_REGEX + ")*)$");
         public static final Pattern CONTRIBUTED_BY_PATTERN = Pattern.compile("Contributed-by: (" + ATTR_REGEX + "(?:, " + ATTR_REGEX + ")*)$");

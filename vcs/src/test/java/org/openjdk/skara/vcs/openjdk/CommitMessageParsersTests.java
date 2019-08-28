@@ -32,12 +32,12 @@ import org.openjdk.skara.vcs.Author;
 public class CommitMessageParsersTests {
     @Test
     void parseVersion0Commit() {
-        var text = List.of("01234567: A bug",
+        var text = List.of("1234567: A bug",
                            "Reviewed-by: foo",
                            "Contributed-by: Bar O'Baz <bar.obaz@localhost.com>");
         var message = CommitMessageParsers.v0.parse(text);
 
-        assertEquals(List.of(new Issue("01234567", "A bug")), message.issues());
+        assertEquals(List.of(new Issue("1234567", "A bug")), message.issues());
         assertEquals(List.of(new Author("Bar O'Baz", "bar.obaz@localhost.com")),
                      message.contributors());
         assertEquals(List.of("foo"), message.reviewers());
@@ -47,13 +47,13 @@ public class CommitMessageParsersTests {
 
     @Test
     void parseVersion0CommitWithExtraNewline() {
-        var text = List.of("01234567: A bug",
+        var text = List.of("1234567: A bug",
                            "",
                            "Summary: summary",
                            "Reviewed-by: foo");
         var message = CommitMessageParsers.v0.parse(text);
 
-        assertEquals(List.of(new Issue("01234567", "A bug")), message.issues());
+        assertEquals(List.of(new Issue("1234567", "A bug")), message.issues());
         assertEquals(List.of(), message.contributors());
         assertEquals(List.of(), message.reviewers());
         assertEquals(List.of(), message.summaries());
@@ -62,13 +62,13 @@ public class CommitMessageParsersTests {
 
     @Test
     void parseVersion0CommitWithSummary() {
-        var text = List.of("01234567: A bug",
+        var text = List.of("1234567: A bug",
                            "Summary: This is a summary",
                            "Reviewed-by: foo",
                            "Contributed-by: Bar O'Baz <bar.obaz@localhost.com>");
         var message = CommitMessageParsers.v0.parse(text);
 
-        assertEquals(List.of(new Issue("01234567", "A bug")), message.issues());
+        assertEquals(List.of(new Issue("1234567", "A bug")), message.issues());
         assertEquals(List.of(new Author("Bar O'Baz", "bar.obaz@localhost.com")),
                      message.contributors());
         assertEquals(List.of("foo"), message.reviewers());
@@ -79,13 +79,13 @@ public class CommitMessageParsersTests {
 
     @Test
     void parseVersion1Commit() {
-        var text = List.of("01234567: A bug",
+        var text = List.of("1234567: A bug",
                            "",
                            "Co-authored-by: Bar O'Baz <bar.obaz@localhost.com>",
                            "Reviewed-by: foo");
         var message = CommitMessageParsers.v1.parse(text);
 
-        assertEquals(List.of(new Issue("01234567", "A bug")), message.issues());
+        assertEquals(List.of(new Issue("1234567", "A bug")), message.issues());
         assertEquals(List.of(new Author("Bar O'Baz", "bar.obaz@localhost.com")),
                      message.contributors());
         assertEquals(List.of("foo"), message.reviewers());
@@ -95,7 +95,7 @@ public class CommitMessageParsersTests {
 
     @Test
     void parseVersion1CommitWithSummary() {
-        var text = List.of("01234567: A bug",
+        var text = List.of("1234567: A bug",
                            "",
                            "This is a summary",
                            "",
@@ -103,7 +103,7 @@ public class CommitMessageParsersTests {
                            "Reviewed-by: foo");
         var message = CommitMessageParsers.v1.parse(text);
 
-        assertEquals(List.of(new Issue("01234567", "A bug")), message.issues());
+        assertEquals(List.of(new Issue("1234567", "A bug")), message.issues());
         assertEquals(List.of(new Author("Bar O'Baz", "bar.obaz@localhost.com")),
                      message.contributors());
         assertEquals(List.of("foo"), message.reviewers());
@@ -113,7 +113,7 @@ public class CommitMessageParsersTests {
 
     @Test
     void parseVersion1CommitWithMultiPargraphSummary() {
-        var text = List.of("01234567: A bug",
+        var text = List.of("1234567: A bug",
                            "",
                            "This is a summary",
                            "",
@@ -123,7 +123,7 @@ public class CommitMessageParsersTests {
                            "Reviewed-by: foo");
         var message = CommitMessageParsers.v1.parse(text);
 
-        assertEquals(List.of(new Issue("01234567", "A bug")), message.issues());
+        assertEquals(List.of(new Issue("1234567", "A bug")), message.issues());
         assertEquals(List.of(new Author("Bar O'Baz", "bar.obaz@localhost.com")),
                      message.contributors());
         assertEquals(List.of("foo"), message.reviewers());
@@ -134,14 +134,14 @@ public class CommitMessageParsersTests {
 
     @Test
     void parseVersion1CommitWithoutTrailers() {
-        var text = List.of("01234567: A bug",
+        var text = List.of("1234567: A bug",
                            "",
                            "This is a summary",
                            "",
                            "This is another summary paragraph");
         var message = CommitMessageParsers.v1.parse(text);
 
-        assertEquals(List.of(new Issue("01234567", "A bug")), message.issues());
+        assertEquals(List.of(new Issue("1234567", "A bug")), message.issues());
         assertEquals(List.of(), message.contributors());
         assertEquals(List.of(), message.reviewers());
         assertEquals(List.of("This is a summary","","This is another summary paragraph"),
@@ -182,13 +182,13 @@ public class CommitMessageParsersTests {
 
     @Test
     void parseVersion1CommitWithIssueAndReview() {
-        var text = List.of("01234567: An issue",
+        var text = List.of("1234567: An issue",
                            "",
                            "Reviewed-by: foo");
         var message = CommitMessageParsers.v1.parse(text);
 
-        assertEquals("01234567: An issue", message.title());
-        assertEquals(List.of(new Issue("01234567", "An issue")), message.issues());
+        assertEquals("1234567: An issue", message.title());
+        assertEquals(List.of(new Issue("1234567", "An issue")), message.issues());
         assertEquals(List.of(), message.contributors());
         assertEquals(List.of("foo"), message.reviewers());
         assertEquals(List.of(), message.summaries());
@@ -197,12 +197,12 @@ public class CommitMessageParsersTests {
 
     @Test
     void parseVersion1WithAdditionalLines() {
-        var text = List.of("01234567: An issue",
+        var text = List.of("1234567: An issue",
                            "Reviewed-by: foo");
         var message = CommitMessageParsers.v1.parse(text);
 
-        assertEquals("01234567: An issue", message.title());
-        assertEquals(List.of(new Issue("01234567", "An issue")), message.issues());
+        assertEquals("1234567: An issue", message.title());
+        assertEquals(List.of(new Issue("1234567", "An issue")), message.issues());
         assertEquals(List.of(), message.contributors());
         assertEquals(List.of(), message.reviewers());
         assertEquals(List.of(), message.summaries());
@@ -211,14 +211,14 @@ public class CommitMessageParsersTests {
 
     @Test
     void parseVersion1WithUknownTrailer() {
-        var text = List.of("01234567: An issue",
+        var text = List.of("1234567: An issue",
                            "",
                            "Reviewed-by: foo",
                            "Unknown-trailer: bar");
         var message = CommitMessageParsers.v1.parse(text);
 
-        assertEquals("01234567: An issue", message.title());
-        assertEquals(List.of(new Issue("01234567", "An issue")), message.issues());
+        assertEquals("1234567: An issue", message.title());
+        assertEquals(List.of(new Issue("1234567", "An issue")), message.issues());
         assertEquals(List.of(), message.contributors());
         assertEquals(List.of("foo"), message.reviewers());
         assertEquals(List.of(), message.summaries());

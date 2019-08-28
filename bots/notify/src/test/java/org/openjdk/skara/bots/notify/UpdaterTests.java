@@ -80,7 +80,7 @@ class UpdaterTests {
             TestBotRunner.runPeriodicItems(notifyBot);
             assertEquals(List.of(), findJsonFiles(jsonFolder, ""));
 
-            var editHash = CheckableRepository.appendAndCommit(localRepo, "One more line", "12345678: Fixes");
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "One more line", "1234567: Fixes");
             localRepo.push(editHash, repo.getUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
             var jsonFiles = findJsonFiles(jsonFolder, "");
@@ -89,7 +89,7 @@ class UpdaterTests {
             var json = JSON.parse(jsonData);
             assertEquals(1, json.asArray().size());
             assertEquals(repo.getWebUrl(editHash).toString(), json.asArray().get(0).get("url").asString());
-            assertEquals(List.of("12345678"), json.asArray().get(0).get("issue").asArray().stream()
+            assertEquals(List.of("1234567"), json.asArray().get(0).get("issue").asArray().stream()
                                                   .map(JSONValue::asString)
                                                   .collect(Collectors.toList()));
         }
@@ -119,7 +119,7 @@ class UpdaterTests {
             TestBotRunner.runPeriodicItems(notifyBot);
             assertEquals(List.of(), findJsonFiles(jsonFolder, ""));
 
-            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "2345678: More fixes");
             localRepo.fetch(repo.getUrl(), "history:history");
             localRepo.tag(editHash, "jdk-12+2", "Added tag 2", "Duke", "duke@openjdk.java.net");
             localRepo.pushAll(repo.getUrl());
@@ -132,7 +132,7 @@ class UpdaterTests {
                 var jsonData = Files.readString(file, StandardCharsets.UTF_8);
                 var json = JSON.parse(jsonData);
                 assertEquals(1, json.asArray().size());
-                assertEquals(List.of("23456789"), json.asArray().get(0).get("issue").asArray().stream()
+                assertEquals(List.of("2345678"), json.asArray().get(0).get("issue").asArray().stream()
                                                       .map(JSONValue::asString)
                                                       .collect(Collectors.toList()));
 
@@ -171,16 +171,16 @@ class UpdaterTests {
             TestBotRunner.runPeriodicItems(notifyBot);
             assertThrows(RuntimeException.class, () -> smtpServer.receive(Duration.ofMillis(1)));
 
-            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "2345678: More fixes");
             localRepo.push(editHash, repo.getUrl(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
             var email = smtpServer.receive(Duration.ofSeconds(10));
             assertEquals(email.sender(), sender);
             assertEquals(email.recipients(), List.of(recipient));
-            assertTrue(email.subject().contains(": 23456789: More fixes"));
+            assertTrue(email.subject().contains(": 2345678: More fixes"));
             assertFalse(email.subject().contains("master"));
             assertTrue(email.body().contains("Changeset: " + editHash.abbreviate()));
-            assertTrue(email.body().contains("23456789: More fixes"));
+            assertTrue(email.body().contains("2345678: More fixes"));
             assertFalse(email.body().contains("Committer"));
             assertFalse(email.body().contains(masterHash.abbreviate()));
         }
@@ -211,7 +211,7 @@ class UpdaterTests {
             TestBotRunner.runPeriodicItems(notifyBot);
             assertThrows(RuntimeException.class, () -> smtpServer.receive(Duration.ofMillis(1)));
 
-            var editHash1 = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
+            var editHash1 = CheckableRepository.appendAndCommit(localRepo, "Another line", "2345678: More fixes");
             localRepo.push(editHash1, repo.getUrl(), "master");
             var editHash2 = CheckableRepository.appendAndCommit(localRepo, "Yet another line", "3456789A: Even more fixes");
             localRepo.push(editHash2, repo.getUrl(), "master");
@@ -223,7 +223,7 @@ class UpdaterTests {
             assertTrue(email.subject().contains(": 2 new changesets"));
             assertFalse(email.subject().contains("master"));
             assertTrue(email.body().contains("Changeset: " + editHash1.abbreviate()));
-            assertTrue(email.body().contains("23456789: More fixes"));
+            assertTrue(email.body().contains("2345678: More fixes"));
             assertTrue(email.body().contains("Changeset: " + editHash2.abbreviate()));
             assertTrue(email.body().contains("3456789A: Even more fixes"));
             assertFalse(email.body().contains(masterHash.abbreviate()));
@@ -255,7 +255,7 @@ class UpdaterTests {
             TestBotRunner.runPeriodicItems(notifyBot);
             assertThrows(RuntimeException.class, () -> smtpServer.receive(Duration.ofMillis(1)));
 
-            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes",
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "2345678: More fixes",
                                                                "author", "author@test.test",
                                                                "committer", "committer@test.test");
             localRepo.push(editHash, repo.getUrl(), "master");
@@ -264,7 +264,7 @@ class UpdaterTests {
             assertEquals(email.sender(), sender);
             assertEquals(email.recipients(), List.of(recipient));
             assertTrue(email.body().contains("Changeset: " + editHash.abbreviate()));
-            assertTrue(email.body().contains("23456789: More fixes"));
+            assertTrue(email.body().contains("2345678: More fixes"));
             assertTrue(email.body().contains("Author:    author <author@test.test>"));
             assertTrue(email.body().contains("Committer: committer <committer@test.test>"));
             assertFalse(email.body().contains(masterHash.abbreviate()));
@@ -297,7 +297,7 @@ class UpdaterTests {
             TestBotRunner.runPeriodicItems(notifyBot);
             assertThrows(RuntimeException.class, () -> smtpServer.receive(Duration.ofMillis(1)));
 
-            var editHash1 = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
+            var editHash1 = CheckableRepository.appendAndCommit(localRepo, "Another line", "2345678: More fixes");
             localRepo.push(editHash1, repo.getUrl(), "master");
             var editHash2 = CheckableRepository.appendAndCommit(localRepo, "Yet another line", "3456789A: Even more fixes");
             localRepo.push(editHash2, repo.getUrl(), "master");
@@ -309,7 +309,7 @@ class UpdaterTests {
             assertFalse(email.subject().contains("another"));
             assertTrue(email.subject().contains(": master: 2 new changesets"));
             assertTrue(email.body().contains("Changeset: " + editHash1.abbreviate()));
-            assertTrue(email.body().contains("23456789: More fixes"));
+            assertTrue(email.body().contains("2345678: More fixes"));
             assertTrue(email.body().contains("Changeset: " + editHash2.abbreviate()));
             assertTrue(email.body().contains("3456789A: Even more fixes"));
             assertFalse(email.body().contains(masterHash.abbreviate()));

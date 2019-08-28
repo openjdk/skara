@@ -91,7 +91,7 @@ class IssuesCheckTests {
 
     @Test
     void singleIssueReferenceShouldPass() {
-        var commit = commit(List.of("0123457: A bug"));
+        var commit = commit(List.of("1234570: A bug"));
         var check = new IssuesCheck(utils);
         var issues = toList(check.check(commit, message(commit), conf()));
         assertEquals(0, issues.size());
@@ -99,10 +99,74 @@ class IssuesCheckTests {
 
     @Test
     void multipleIssueReferencesShouldPass() {
-        var commit = commit(List.of("0123457: A bug", "12345678: Another bug"));
+        var commit = commit(List.of("1234570: A bug", "1234567: Another bug"));
         var message = message(commit);
         var check = new IssuesCheck(utils);
         var issues = toList(check.check(commit, message, conf()));
         assertEquals(0, issues.size());
+    }
+
+    @Test
+    void issueWithLeadingZeroShouldFail() {
+        var commit = commit(List.of("0123456: A bug"));
+        var message = message(commit);
+        var check = new IssuesCheck(utils);
+        var issues = toList(check.check(commit, message, conf()));
+
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0) instanceof IssuesIssue);
+        var issue = (IssuesIssue) issues.get(0);
+        assertEquals(commit, issue.commit());
+        assertEquals(message, issue.message());
+        assertEquals(Severity.ERROR, issue.severity());
+        assertEquals(check.getClass(), issue.check().getClass());
+    }
+
+    @Test
+    void issueWithTooFewDigitsShouldFail() {
+        var commit = commit(List.of("123456: A bug"));
+        var message = message(commit);
+        var check = new IssuesCheck(utils);
+        var issues = toList(check.check(commit, message, conf()));
+
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0) instanceof IssuesIssue);
+        var issue = (IssuesIssue) issues.get(0);
+        assertEquals(commit, issue.commit());
+        assertEquals(message, issue.message());
+        assertEquals(Severity.ERROR, issue.severity());
+        assertEquals(check.getClass(), issue.check().getClass());
+    }
+
+    @Test
+    void issueWithTooManyDigitsShouldFail() {
+        var commit = commit(List.of("12345678: A bug"));
+        var message = message(commit);
+        var check = new IssuesCheck(utils);
+        var issues = toList(check.check(commit, message, conf()));
+
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0) instanceof IssuesIssue);
+        var issue = (IssuesIssue) issues.get(0);
+        assertEquals(commit, issue.commit());
+        assertEquals(message, issue.message());
+        assertEquals(Severity.ERROR, issue.severity());
+        assertEquals(check.getClass(), issue.check().getClass());
+    }
+
+    @Test
+    void issueWithPrefixShouldFail() {
+        var commit = commit(List.of("JDK-7654321: A bug"));
+        var message = message(commit);
+        var check = new IssuesCheck(utils);
+        var issues = toList(check.check(commit, message, conf()));
+
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0) instanceof IssuesIssue);
+        var issue = (IssuesIssue) issues.get(0);
+        assertEquals(commit, issue.commit());
+        assertEquals(message, issue.message());
+        assertEquals(Severity.ERROR, issue.severity());
+        assertEquals(check.getClass(), issue.check().getClass());
     }
 }
