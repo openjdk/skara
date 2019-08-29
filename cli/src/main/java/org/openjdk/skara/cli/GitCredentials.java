@@ -72,6 +72,9 @@ class GitCredentials {
             var gitStdin = p.getOutputStream();
             String input = "host=" + host + "\n";
             if (path != null) {
+                if (path.startsWith("/")) {
+                    path = path.substring(1);
+                }
                 input += "path=" + path + "\n";
             }
             if (username != null) {
