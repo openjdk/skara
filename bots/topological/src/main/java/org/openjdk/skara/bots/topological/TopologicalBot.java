@@ -154,8 +154,9 @@ class TopologicalBot implements Bot, WorkItem {
 
     private void mergeIfAhead(Repository repo, Branch branch, Branch parent) throws IOException {
         var fromHash = repo.resolve(parent.name()).orElseThrow();
+        var oldHead = repo.head();
         if (!repo.contains(branch, fromHash)) {
-            var isFastForward = repo.isAncestor(repo.head(), fromHash);
+            var isFastForward = repo.isAncestor(oldHead, fromHash);
             repo.merge(fromHash);
             if (!isFastForward) {
                 log.info("Merged " + parent + " into " + branch);
@@ -169,10 +170,18 @@ class TopologicalBot implements Bot, WorkItem {
                 repo.push(repo.head(), hostedRepo.getUrl(), branch.name());
             } catch (IOException e) {
                 log.severe("Pusing failed! Aborting...");
-                repo.abortMerge();
+                hardReset(repo, oldHead);
                 throw e;
             }
         }
+    }
+
+    private void hardReset(Repository repo, Hash oldHead) throws IOException {
+        var process = new ProcessBuilder()
+            .command("git", "reset", "--hard", oldHead.hex())
+            .directory(repo.root().toFile())
+            .start();
+        await(process);
     }
 
     private static Stream<String> log(Repository repo, String targetRef, String fromRef) throws IOException {
@@ -180,6 +189,12 @@ class TopologicalBot implements Bot, WorkItem {
                 .command("git", "log", targetRef + ".." + fromRef, "--")
                 .directory(repo.root().toFile())
                 .start();
+        await(process);
+
+        return new BufferedReader(new InputStreamReader(process.getInputStream())).lines();
+    }
+
+    private static void await(Process process) throws IOException {
         try {
             int exit = process.waitFor();
             if (exit != 0) {
@@ -191,8 +206,6 @@ class TopologicalBot implements Bot, WorkItem {
         } catch (InterruptedException e) {
             throw new IOException(e);
         }
-
-        return new BufferedReader(new InputStreamReader(process.getInputStream())).lines();
     }
 
     @Override
