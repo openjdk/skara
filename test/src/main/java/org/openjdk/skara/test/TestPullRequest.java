@@ -259,7 +259,7 @@ public class TestPullRequest implements PullRequest {
         data.lastUpdate = ZonedDateTime.now();
     }
 
-    public boolean isOpen() {
+    boolean isOpen() {
         return data.state.equals(PullRequest.State.OPEN);
     }
 
