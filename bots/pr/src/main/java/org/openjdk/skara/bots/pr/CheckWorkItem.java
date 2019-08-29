@@ -22,7 +22,6 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.vcs.Hash;
 
@@ -37,22 +36,19 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-class CheckWorkItem implements WorkItem {
-    private final PullRequest pr;
+class CheckWorkItem extends PullRequestWorkItem {
     private final HostedRepository censusRepo;
     private final String censusRef;
     private final Map<String, String> blockingLabels;
-    private final Consumer<RuntimeException> errorHandler;
 
     private final Pattern metadataComments = Pattern.compile("<!-- (add|remove) contributor");
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     CheckWorkItem(PullRequest pr, HostedRepository censusRepo, String censusRef, Map<String, String> blockingLabels, Consumer<RuntimeException> errorHandler) {
-        this.pr = pr;
+        super(pr, errorHandler);
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
         this.blockingLabels = blockingLabels;
-        this.errorHandler = errorHandler;
     }
 
     private String encodeReviewer(HostUserDetails reviewer, CensusInstance censusInstance) {
@@ -140,21 +136,6 @@ class CheckWorkItem implements WorkItem {
     }
 
     @Override
-    public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof CheckWorkItem)) {
-            return true;
-        }
-        CheckWorkItem otherItem = (CheckWorkItem)other;
-        if (!pr.getId().equals(otherItem.pr.getId())) {
-            return true;
-        }
-        if (!pr.repository().getName().equals(otherItem.pr.repository().getName())) {
-            return true;
-        }
-        return false;
-    }
-
-    @Override
     public void run(Path scratchPath) {
         // First determine if the current state of the PR has already been checked
         var census = CensusInstance.create(censusRepo, censusRef, scratchPath.resolve("census"), pr);
@@ -172,10 +153,5 @@ class CheckWorkItem implements WorkItem {
                 throw new UncheckedIOException(e);
             }
         }
-    }
-
-    @Override
-    public void handleRuntimeException(RuntimeException e) {
-        errorHandler.accept(e);
     }
 }
