@@ -34,8 +34,15 @@ public interface WorkItem {
     boolean concurrentWith(WorkItem other);
 
     /**
-     *  Execute the appropriate tasks with the provided scratch folder.
+     * Execute the appropriate tasks with the provided scratch folder.
      * @param scratchPath
      */
     void run(Path scratchPath);
+
+    /**
+     * The BotRunner will catch <code>RuntimeException</code>s, implementing this method allows a WorkItem to
+     * perform additional cleanup if necessary (avoiding the need for catching and rethrowing the exception).
+     * @param e
+     */
+    default void handleRuntimeException(RuntimeException e) {}
 }

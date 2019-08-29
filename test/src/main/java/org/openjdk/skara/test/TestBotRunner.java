@@ -29,11 +29,7 @@ import java.util.function.Predicate;
 
 public class TestBotRunner {
     public static void runPeriodicItems(Bot bot) throws IOException {
-        for (var item : bot.getPeriodicItems()) {
-            try (var scratchFolder = new TemporaryDirectory()) {
-                item.run(scratchFolder.path());
-            }
-        }
+        runPeriodicItems(bot, wi -> false);
     }
 
     public static void runPeriodicItems(Bot bot, Predicate<WorkItem> ignored) throws IOException {
@@ -41,6 +37,10 @@ public class TestBotRunner {
             if (!ignored.test(item)) {
                 try (var scratchFolder = new TemporaryDirectory()) {
                     item.run(scratchFolder.path());
+                } catch (RuntimeException e) {
+                    item.handleRuntimeException(e);
+                    // Allow tests to assert on these as well
+                    throw e;
                 }
             }
         }

@@ -103,17 +103,13 @@ class PullRequestBot implements Bot {
                     continue;
                 }
 
-                ret.add(new CheckWorkItem(pr, censusRepo, censusRef, blockingLabels));
-                ret.add(new CommandWorkItem(pr, censusRepo, censusRef, externalCommands));
-                ret.add(new LabelerWorkItem(pr, labelPatterns, currentLabels));
+                ret.add(new CheckWorkItem(pr, censusRepo, censusRef, blockingLabels, e -> updateCache.invalidate(pr)));
+                ret.add(new CommandWorkItem(pr, censusRepo, censusRef, externalCommands, e -> updateCache.invalidate(pr)));
+                ret.add(new LabelerWorkItem(pr, labelPatterns, currentLabels, e -> updateCache.invalidate(pr)));
             }
         }
 
         return ret;
-    }
-
-    HostedRepository repository() {
-        return remoteRepo;
     }
 
     @Override

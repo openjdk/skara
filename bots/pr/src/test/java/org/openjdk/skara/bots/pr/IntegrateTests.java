@@ -463,4 +463,55 @@ class IntegrateTests {
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
         }
     }
+
+    @Test
+    void retryOnFailure(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.host().getCurrentUserDetails().id())
+                                           .addReviewer(integrator.host().getCurrentUserDetails().id());
+            var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.getUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Approve it as another user
+            var approvalPr = integrator.getPullRequest(pr.getId());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // Let the bot check it
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // Pre-push to cause a failure
+            localRepo.push(editHash, author.getUrl(), "master");
+
+            // Attempt a merge (without triggering another check)
+            pr.addComment("/integrate");
+            assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(mergeBot, wi -> wi instanceof CheckWorkItem));
+
+            // Restore the master branch
+            localRepo.push(masterHash, author.getUrl(), "master", true);
+
+            // The bot should now retry
+            TestBotRunner.runPeriodicItems(mergeBot, wi -> wi instanceof CheckWorkItem);
+
+            // The bot should reply with an ok message
+            var pushed = pr.getComments().stream()
+                           .filter(comment -> comment.body().contains("Pushed as commit"))
+                           .count();
+            assertEquals(1, pushed);
+        }
+    }
 }

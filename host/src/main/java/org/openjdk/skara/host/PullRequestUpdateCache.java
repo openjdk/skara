@@ -34,17 +34,21 @@ public class PullRequestUpdateCache {
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.host");
 
-    public boolean needsUpdate(PullRequest pr) {
+    private String getUniqueId(PullRequest pr) {
+        var repo = pr.repository();
+        if (!repositoryIds.containsKey(repo)) {
+            repositoryIds.put(repo, Integer.toString(repositoryIds.size()));
+        }
+        return repositoryIds.get(repo) + ";" + pr.getId();
+    }
+
+    public synchronized boolean needsUpdate(PullRequest pr) {
         // GitLab CE does not update this field on events such as adding an award
         if (pr instanceof GitLabMergeRequest) {
             return true;
         }
 
-        var repo = pr.repository();
-        if (!repositoryIds.containsKey(repo)) {
-            repositoryIds.put(repo, Integer.toString(repositoryIds.size()));
-        }
-        var uniqueId = repositoryIds.get(repo) + ";" + pr.getId();
+        var uniqueId = getUniqueId(pr);
         var update = pr.getUpdated();
 
         if (!lastUpdates.containsKey(uniqueId)) {
@@ -56,7 +60,12 @@ public class PullRequestUpdateCache {
             lastUpdates.put(uniqueId, update);
             return true;
         }
-        log.info("Skipping update for " + repo.getName() + "#" + pr.getId());
+        log.info("Skipping update for " + pr.repository().getName() + "#" + pr.getId());
         return false;
+    }
+
+    public synchronized void invalidate(PullRequest pr) {
+        var uniqueId = getUniqueId(pr);
+        lastUpdates.remove(uniqueId);
     }
 }

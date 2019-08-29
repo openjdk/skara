@@ -28,6 +28,7 @@ import org.openjdk.skara.host.*;
 import java.io.*;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 import java.util.regex.*;
 import java.util.stream.*;
@@ -37,6 +38,7 @@ public class CommandWorkItem implements WorkItem {
     private final HostedRepository censusRepo;
     private final String censusRef;
     private final Map<String, String> external;
+    private final Consumer<RuntimeException> errorHandler;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
@@ -71,11 +73,12 @@ public class CommandWorkItem implements WorkItem {
         }
     }
 
-    CommandWorkItem(PullRequest pr, HostedRepository censusRepo, String censusRef, Map<String, String> external) {
+    CommandWorkItem(PullRequest pr, HostedRepository censusRepo, String censusRef, Map<String, String> external, Consumer<RuntimeException> errorHandler) {
         this.pr = pr;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
         this.external = external;
+        this.errorHandler = errorHandler;
 
         if (HelpCommand.external == null) {
             HelpCommand.external = external;
@@ -164,5 +167,10 @@ public class CommandWorkItem implements WorkItem {
         for (var entry : unprocessedCommands) {
             processCommand(pr, census, scratchPath.resolve("pr"), entry.getKey(), entry.getValue(), comments);
         }
+    }
+
+    @Override
+    public void handleRuntimeException(RuntimeException e) {
+        errorHandler.accept(e);
     }
 }
