@@ -53,7 +53,7 @@ public class GeneralConfiguration {
         }
 
         var project = s.get("project", DEFAULT.project());
-        var repository = s.get("project", DEFAULT.repository());
+        var repository = s.get("repository", DEFAULT.repository());
         return new GeneralConfiguration(project, repository);
     }
 }
