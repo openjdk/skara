@@ -45,6 +45,7 @@ public class TestPullRequest implements PullRequest {
 
     private static class PullRequestData {
         private Hash headHash;
+        PullRequest.State state = PullRequest.State.OPEN;
         String body = "";
         final List<Comment> comments = new ArrayList<>();
         final List<ReviewComment> reviewComments = new ArrayList<>();
@@ -254,7 +255,12 @@ public class TestPullRequest implements PullRequest {
 
     @Override
     public void setState(State state) {
+        data.state = state;
         data.lastUpdate = ZonedDateTime.now();
+    }
+
+    boolean isOpen() {
+        return data.state.equals(PullRequest.State.OPEN);
     }
 
     @Override

@@ -135,6 +135,7 @@ public class TestHost implements Host {
         return data.pullRequests.entrySet().stream()
                                 .sorted(Comparator.comparing(Map.Entry::getKey))
                                 .map(pr -> getPullRequest(repository, pr.getKey()))
+                                .filter(TestPullRequest::isOpen)
                                 .collect(Collectors.toList());
     }
 }
