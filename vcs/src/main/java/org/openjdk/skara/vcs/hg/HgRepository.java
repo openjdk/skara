@@ -997,4 +997,16 @@ public class HgRepository implements Repository {
             await(p);
         }
     }
+
+    @Override
+    public boolean contains(Branch b, Hash h) throws IOException {
+        try (var p = capture("hg", "log", "--template", "{branch}", "-r", h.hex())) {
+            var res = await(p);
+            if (res.stdout().size() != 1) {
+                throw new IOException("Unexpected output: " + String.join("\n", res.stdout()));
+            }
+            var line = res.stdout().get(0);
+            return line.equals(b.name());
+        }
+    }
 }
