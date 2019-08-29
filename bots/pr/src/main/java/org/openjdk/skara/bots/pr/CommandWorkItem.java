@@ -33,12 +33,10 @@ import java.util.logging.Logger;
 import java.util.regex.*;
 import java.util.stream.*;
 
-public class CommandWorkItem implements WorkItem {
-    private final PullRequest pr;
+public class CommandWorkItem extends PullRequestWorkItem {
     private final HostedRepository censusRepo;
     private final String censusRef;
     private final Map<String, String> external;
-    private final Consumer<RuntimeException> errorHandler;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
@@ -74,11 +72,10 @@ public class CommandWorkItem implements WorkItem {
     }
 
     CommandWorkItem(PullRequest pr, HostedRepository censusRepo, String censusRef, Map<String, String> external, Consumer<RuntimeException> errorHandler) {
-        this.pr = pr;
+        super(pr, errorHandler);
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
         this.external = external;
-        this.errorHandler = errorHandler;
 
         if (HelpCommand.external == null) {
             HelpCommand.external = external;
@@ -137,21 +134,6 @@ public class CommandWorkItem implements WorkItem {
     }
 
     @Override
-    public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof CommandWorkItem)) {
-            return true;
-        }
-        CommandWorkItem otherItem = (CommandWorkItem)other;
-        if (!pr.getId().equals(otherItem.pr.getId())) {
-            return true;
-        }
-        if (!pr.repository().getName().equals(otherItem.pr.repository().getName())) {
-            return true;
-        }
-        return false;
-    }
-
-    @Override
     public void run(Path scratchPath) {
         log.info("Looking for merge commands");
 
@@ -167,10 +149,5 @@ public class CommandWorkItem implements WorkItem {
         for (var entry : unprocessedCommands) {
             processCommand(pr, census, scratchPath.resolve("pr"), entry.getKey(), entry.getValue(), comments);
         }
-    }
-
-    @Override
-    public void handleRuntimeException(RuntimeException e) {
-        errorHandler.accept(e);
     }
 }

@@ -22,49 +22,30 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.host.PullRequest;
 import org.openjdk.skara.vcs.Hash;
 
 import java.io.*;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class LabelerWorkItem implements WorkItem {
-    private final PullRequest pr;
+public class LabelerWorkItem extends PullRequestWorkItem {
     private final Map<String, List<Pattern>> labelPatterns;
     private final ConcurrentMap<Hash, Boolean> currentLabels;
-    private final Consumer<RuntimeException> errorHandler;
 
     LabelerWorkItem(PullRequest pr, Map<String, List<Pattern>> labelPatterns, ConcurrentMap<Hash, Boolean> currentLabels, Consumer<RuntimeException> errorHandler) {
-        this.pr = pr;
+        super(pr, errorHandler);
         this.labelPatterns = labelPatterns;
         this.currentLabels = currentLabels;
-        this.errorHandler = errorHandler;
     }
 
     @Override
     public String toString() {
         return "LabelerWorkItem@" + pr.repository().getName() + "#" + pr.getId();
-    }
-
-    @Override
-    public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof LabelerWorkItem)) {
-            return true;
-        }
-        LabelerWorkItem otherItem = (LabelerWorkItem) other;
-        if (!pr.getId().equals(otherItem.pr.getId())) {
-            return true;
-        }
-        if (!pr.repository().getName().equals(otherItem.pr.repository().getName())) {
-            return true;
-        }
-        return false;
     }
 
     private Set<String> getLabels(PullRequestInstance prInstance) throws IOException {
@@ -110,10 +91,5 @@ public class LabelerWorkItem implements WorkItem {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-    }
-
-    @Override
-    public void handleRuntimeException(RuntimeException e) {
-        errorHandler.accept(e);
     }
 }
