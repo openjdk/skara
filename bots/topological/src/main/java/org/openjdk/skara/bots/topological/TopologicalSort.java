@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 
 class TopologicalSort {
 
-    static List<Branch> tsort(List<Edge> edges) {
+    static List<Branch> sort(List<Edge> edges) {
         List<Edge> eCopy = new ArrayList<>(edges);
         List<Branch> result = new ArrayList<>();
         while (!eCopy.isEmpty()) {

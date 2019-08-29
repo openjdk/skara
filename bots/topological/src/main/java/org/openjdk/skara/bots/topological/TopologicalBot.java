@@ -26,19 +26,14 @@ import org.openjdk.skara.bot.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.vcs.*;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Files;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -94,7 +89,7 @@ class TopologicalBot implements Bot, WorkItem {
             for (var branch : orderedBranches) {
                 log.info("Processing branch " + branch + "...");
                 repo.checkout(branch);
-                var parents = dependencies(depsFile).collect(Collectors.toSet());
+                var parents = dependencies(repo, repo.head(), depsFile).collect(Collectors.toSet());
                 List<String> failedMerges = new ArrayList<>();
                 boolean progress;
                 boolean failed;
@@ -128,27 +123,27 @@ class TopologicalBot implements Bot, WorkItem {
         log.info("Ending topobot run");
     }
 
-    private static Stream<Branch> dependencies(Path depsFile) throws IOException {
-        if (Files.exists(depsFile)) {
-            var lines = Files.readAllLines(depsFile).stream().filter(s -> !s.isEmpty()).collect(Collectors.toList());
+    private static Stream<Branch> dependencies(Repository repo, Hash hash, Path depsFile) throws IOException {
+        return repo.lines(depsFile, hash).map(l -> {
+            var lines = l.stream().filter(s -> !s.isEmpty()).collect(Collectors.toList());
             if (lines.size() > 1) {
                 throw new IllegalStateException("Multiple non-empty lines in " + depsFile.toString() + ": "
                         + String.join("\n", lines));
             }
             return Stream.of(lines.get(0).split(" ")).map(Branch::new);
-        } else {
-            return Stream.of(new Branch("master"));
-        }
+        })
+        .orElse(Stream.of(repo.defaultBranch()));
     }
 
     private List<Branch> orderedBranches(Repository repo, Path depsFile) throws IOException {
         List<Edge> deps = new ArrayList<>();
         for (var branch : branches) {
-            repo.checkout(branch);
-            dependencies(depsFile).forEach(dep -> deps.add(new Edge(dep, branch)));
+            dependencies(repo, repo.resolve("origin/" + branch.name()).orElseThrow(), depsFile)
+                    .forEach(dep -> deps.add(new Edge(dep, branch)));
         }
-        return TopologicalSort.tsort(deps).stream()
-            .filter(branch -> !branch.name().equals("master"))
+        var defaultBranch = repo.defaultBranch();
+        return TopologicalSort.sort(deps).stream()
+            .filter(branch -> !branch.equals(defaultBranch))
             .collect(Collectors.toList());
     }
 
@@ -165,46 +160,16 @@ class TopologicalBot implements Bot, WorkItem {
                 log.info("Fast forwarded " + branch + " to " + parent);
             }
             log.info("merge with " + parent + " succeeded. The following commits will be pushed:\n"
-                    + log(repo, "origin/" + branch.name(), branch.name()).collect(Collectors.joining("\n", "\n", "\n")));
+                    + repo.commits("origin/" + branch.name() + ".." + branch.name()).stream()
+                        .map(Commit::toString)
+                        .collect(Collectors.joining("\n", "\n", "\n")));
             try {
                 repo.push(repo.head(), hostedRepo.getUrl(), branch.name());
             } catch (IOException e) {
-                log.severe("Pusing failed! Aborting...");
-                hardReset(repo, oldHead);
+                log.severe("Pushing failed! Aborting...");
+                repo.reset(oldHead, true);
                 throw e;
             }
-        }
-    }
-
-    private void hardReset(Repository repo, Hash oldHead) throws IOException {
-        var process = new ProcessBuilder()
-            .command("git", "reset", "--hard", oldHead.hex())
-            .directory(repo.root().toFile())
-            .start();
-        await(process);
-    }
-
-    private static Stream<String> log(Repository repo, String targetRef, String fromRef) throws IOException {
-        var process = new ProcessBuilder()
-                .command("git", "log", targetRef + ".." + fromRef, "--")
-                .directory(repo.root().toFile())
-                .start();
-        await(process);
-
-        return new BufferedReader(new InputStreamReader(process.getInputStream())).lines();
-    }
-
-    private static void await(Process process) throws IOException {
-        try {
-            int exit = process.waitFor();
-            if (exit != 0) {
-                throw new IOException("Unexpected exit code: " + exit + "\n\n"
-                        + new BufferedReader(new InputStreamReader(process.getErrorStream()))
-                            .lines()
-                            .collect(Collectors.joining("\n")));
-            }
-        } catch (InterruptedException e) {
-            throw new IOException(e);
         }
     }
 

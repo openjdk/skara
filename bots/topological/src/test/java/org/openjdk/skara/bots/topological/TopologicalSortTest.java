@@ -51,31 +51,31 @@ class TopologicalSortTest {
 
     @Test
     void testEmpty() {
-        var branches = TopologicalSort.tsort(List.of());
+        var branches = TopologicalSort.sort(List.of());
         assertEquals(brancheList(), branches);
     }
 
     @Test
     void testTrivial() {
-        var branches = TopologicalSort.tsort(List.of(edge("A", "B")));
+        var branches = TopologicalSort.sort(List.of(edge("A", "B")));
         assertEquals(brancheList("A", "B"), branches);
     }
 
     @Test()
     void testCycleTrivial() {
-        assertThrows(IllegalStateException.class, () -> TopologicalSort.tsort(List.of(edge("A", "A"))));
+        assertThrows(IllegalStateException.class, () -> TopologicalSort.sort(List.of(edge("A", "A"))));
     }
 
     @Test()
     void testCycle() {
         assertThrows(IllegalStateException.class, () ->
-                TopologicalSort.tsort(List.of(edge("B", "C"), edge("A", "B"), edge("C", "A"))));
+                TopologicalSort.sort(List.of(edge("B", "C"), edge("A", "B"), edge("C", "A"))));
     }
 
     @ParameterizedTest
     @ArgumentsSource(EdgeProvider.class)
     void testSort(List<Edge> edges) {
-        var branches = TopologicalSort.tsort(edges);
+        var branches = TopologicalSort.sort(edges);
         assertEquals(brancheList("A", "B", "C", "D", "E"), branches);
     }
 
