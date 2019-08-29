@@ -1759,4 +1759,32 @@ public class RepositoryTests {
             assertTrue(r.contains(r.defaultBranch(), initial));
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testAbortMerge(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory(false)) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.isClean());
+
+            var f = dir.path().resolve("README");
+            Files.writeString(f, "Hello\n");
+            r.add(f);
+            var initial = r.commit("Initial commit", "duke", "duke@openjdk.org");
+
+            Files.writeString(f, "Hello again\n");
+            r.add(f);
+            var second = r.commit("Second commit", "duke", "duke@openjdk.org");
+
+            r.checkout(initial);
+            Files.writeString(f, "Conflicting hello\n");
+            r.add(f);
+            var third = r.commit("Third commit", "duke", "duke@openjdk.org");
+
+            assertThrows(IOException.class, () -> { r.merge(second); });
+
+            r.abortMerge();
+            assertTrue(r.isClean());
+        }
+    }
 }
