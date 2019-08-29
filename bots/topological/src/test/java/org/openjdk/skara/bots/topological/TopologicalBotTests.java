@@ -76,7 +76,7 @@ class TopologicalBotTests {
             var cBranch = repo.branch(repo.head(), "C");
             repo.checkout(cBranch);
             var cDeps = fromDir.resolve(depsFileName);
-            Files.writeString(cDeps, "B");
+            Files.writeString(cDeps, "B A");
             repo.add(cDeps);
             repo.commit("Adding deps file to C", "duke", "duke@openjdk.org");
             repo.pushAll(hostedRepo.getUrl());
@@ -98,7 +98,7 @@ class TopologicalBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             var postCommits = repo.commits().asList();
-            assertEquals(6, postCommits.size());
+            assertEquals(7, postCommits.size());
 
             repo.checkout(aBranch);
             assertEquals(preHash, repo.head());

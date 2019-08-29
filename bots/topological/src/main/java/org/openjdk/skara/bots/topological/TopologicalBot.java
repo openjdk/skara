@@ -35,6 +35,7 @@ import java.nio.file.Path;
 import java.nio.file.Files;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -88,13 +89,12 @@ class TopologicalBot implements Bot, WorkItem {
             repo.fetchAll();
             var depsFile = repo.root().resolve(depsFileName);
 
-            List<Branch> ordered = orderedBranches(repo, depsFile);
-            log.info("Merge order " + ordered);
-            for (Branch branch : ordered) {
+            var orderedBranches = orderedBranches(repo, depsFile);
+            log.info("Merge order " + orderedBranches);
+            for (var branch : orderedBranches) {
                 log.info("Processing branch " + branch + "...");
                 repo.checkout(branch);
-                Set<String> parents = new HashSet<>(
-                        Files.exists(depsFile) ? Files.readAllLines(depsFile) : List.of("master"));
+                var parents = dependencies(depsFile).collect(Collectors.toSet());
                 List<String> failedMerges = new ArrayList<>();
                 boolean progress;
                 boolean failed;
@@ -104,7 +104,7 @@ class TopologicalBot implements Bot, WorkItem {
                     progress = false;
                     failed = false;
                     for (var parentsIt = parents.iterator(); parentsIt.hasNext();) {
-                        String parent = parentsIt.next();
+                        var parent = parentsIt.next();
                         try {
                             mergeIfAhead(repo, branch, parent);
                             progress = true;
@@ -128,30 +128,38 @@ class TopologicalBot implements Bot, WorkItem {
         log.info("Ending topobot run");
     }
 
+    private static Stream<Branch> dependencies(Path depsFile) throws IOException {
+        if (Files.exists(depsFile)) {
+            var lines = Files.readAllLines(depsFile).stream().filter(s -> !s.isEmpty()).collect(Collectors.toList());
+            if (lines.size() > 1) {
+                throw new IllegalStateException("Multiple non-empty lines in " + depsFile.toString() + ": "
+                        + String.join("\n", lines));
+            }
+            return Stream.of(lines.get(0).split(" ")).map(Branch::new);
+        } else {
+            return Stream.of(new Branch("master"));
+        }
+    }
+
     private List<Branch> orderedBranches(Repository repo, Path depsFile) throws IOException {
         List<Edge> deps = new ArrayList<>();
-        for (Branch branch : branches) {
+        for (var branch : branches) {
             repo.checkout(branch);
-            if (Files.exists(depsFile)) {
-                Files.lines(depsFile)
-                        .forEach(dep -> deps.add(new Edge(new Branch(dep), branch)));
-            } else {
-                deps.add(new Edge(new Branch("master"), branch));
-            }
+            dependencies(depsFile).forEach(dep -> deps.add(new Edge(dep, branch)));
         }
         return TopologicalSort.tsort(deps).stream()
             .filter(branch -> !branch.name().equals("master"))
             .collect(Collectors.toList());
     }
 
-    private void mergeIfAhead(Repository repo, Branch branch, String parent) throws IOException {
-        if (log(repo, branch.name(), parent).count() != 0) {
-            var fromHash = repo.resolve(parent).orElseThrow();
+    private void mergeIfAhead(Repository repo, Branch branch, Branch parent) throws IOException {
+        var fromHash = repo.resolve(parent.name()).orElseThrow();
+        if (!repo.contains(branch, fromHash)) {
             var isFastForward = repo.isAncestor(repo.head(), fromHash);
             repo.merge(fromHash);
             if (!isFastForward) {
                 log.info("Merged " + parent + " into " + branch);
-                repo.commit("Automatic merge with " + parent, "topobot", "");
+                repo.commit("Automatic merge with " + parent, "duke", "duke@openjdk.org");
             } else {
                 log.info("Fast forwarded " + branch + " to " + parent);
             }
