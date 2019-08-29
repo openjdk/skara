@@ -810,7 +810,9 @@ public class HgRepository implements Repository {
         try (var p = capture("hg", "status", "--unknown", "--no-status")) {
             var res = await(p);
             for (var path : res.stdout()) {
-                Files.delete(root().resolve(path));
+                if (path.toString().endsWith(".orig")) {
+                    Files.delete(root().resolve(path));
+                }
             }
         }
     }
