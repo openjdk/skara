@@ -165,8 +165,9 @@ class MergeBot implements Bot, WorkItem {
                 message.add("```");
                 message.add("");
                 message.add("Push the resulting merge conflict to your personal fork and " +
-                            "create a pull request towards this repository. Finally close this pull request " +
-                            "once the pull request with the resolved conflicts has been integrated.");
+                            "create a pull request towards this repository. This pull request " +
+                            "will be closed automatically once the pull request with the resolved " +
+                            "conflicts has been integrated.");
                 var pr = from.createPullRequest(to,
                                                 toBranch.name(),
                                                 fromBranch.name(),
