@@ -79,6 +79,7 @@ public class TestPullRequest implements PullRequest {
 
     static TestPullRequest createNew(TestHostedRepository repository, String id, String targetRef, String sourceRef, String title, List<String> body) {
         var data = new PullRequestData();
+        data.body = String.join("\n", body);
         var pr = new TestPullRequest(repository, id, repository.host().getCurrentUserDetails(), repository.host().getCurrentUserDetails(), targetRef, sourceRef, title, body, data);
         return pr;
     }
