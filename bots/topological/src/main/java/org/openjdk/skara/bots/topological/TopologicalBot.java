@@ -36,7 +36,6 @@ import java.nio.file.Files;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -140,7 +139,7 @@ class TopologicalBot implements Bot, WorkItem {
                 deps.add(new Edge(new Branch("master"), branch));
             }
         }
-        return tsort(deps).stream()
+        return TopologicalSort.tsort(deps).stream()
             .filter(branch -> !branch.name().equals("master"))
             .collect(Collectors.toList());
     }
@@ -186,50 +185,6 @@ class TopologicalBot implements Bot, WorkItem {
         }
 
         return new BufferedReader(new InputStreamReader(process.getInputStream())).lines();
-    }
-
-    private static class Edge {
-        final Branch from;
-        final Branch to;
-
-        Edge(Branch from, Branch to) {
-            this.from = from;
-            this.to = to;
-        }
-
-        @Override
-        public String toString() {
-            return "Edge{" +
-                    "from='" + from + '\'' +
-                    ", to='" + to + '\'' +
-                    '}';
-        }
-    }
-
-    private static List<Branch> tsort(List<Edge> edges) {
-        List<Edge> eCopy = new ArrayList<>(edges);
-        List<Branch> result = new ArrayList<>();
-        while (!eCopy.isEmpty()) {
-            Set<Branch> orphans = eCopy.stream()
-                    .map(e -> e.from)
-                    .filter(f -> eCopy.stream().map(e -> e.to).noneMatch(f::equals))
-                    .collect(Collectors.toSet());
-            if (orphans.isEmpty()) {
-                throw new IllegalStateException("Detected a cycle! " + edges);
-            }
-            orphans.forEach(o -> {
-                result.add(o);
-                eCopy.removeIf(e -> o.equals(e.from));
-            });
-        }
-
-        // add all leaves
-        edges.stream()
-            .map(e -> e.to)
-            .filter(f -> edges.stream().map(e -> e.from).noneMatch(f::equals))
-            .forEach(result::add);
-
-        return result;
     }
 
     @Override
