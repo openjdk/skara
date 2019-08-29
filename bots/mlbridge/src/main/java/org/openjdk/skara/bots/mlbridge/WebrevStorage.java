@@ -114,7 +114,7 @@ class WebrevStorage {
             if (!localStorage.isClean()) {
                 push(localStorage, outputFolder, baseFolder.resolve(prInstance.id()).toString());
             }
-            return URIBuilder.base(baseUri).appendPath(relativeFolder.toString()).build();
+            return URIBuilder.base(baseUri).appendPath(relativeFolder.toString().replace('\\', '/')).build();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

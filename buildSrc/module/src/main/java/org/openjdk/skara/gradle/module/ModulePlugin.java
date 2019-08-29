@@ -103,6 +103,7 @@ public class ModulePlugin implements Plugin<Project> {
 
                         var jvmArgs = new ArrayList<String>(testTask.getJvmArgs());
                         jvmArgs.addAll(List.of(
+                                "-Djunit.jupiter.extensions.autodetection.enabled=true",
                                 "--module-path", classpath,
                                 "--add-modules", "ALL-MODULE-PATH",
                                 "--patch-module", moduleName + "=" + outputDir,
