@@ -24,6 +24,7 @@ package org.openjdk.skara.vcs;
 
 import java.io.*;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.*;
 
 public interface Commits extends Closeable, Iterable<Commit> {
@@ -39,6 +40,22 @@ public interface Commits extends Closeable, Iterable<Commit> {
     }
 
     default Stream<Commit> stream() {
-        return StreamSupport.stream(spliterator(), false);
+        return StreamSupport.stream(spliterator(), false).onClose(() -> {
+            try {
+                close();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        });
+    }
+
+    @Override
+    default void forEach(Consumer<? super Commit> action) {
+        Iterable.super.forEach(action);
+        try {
+            close();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }
