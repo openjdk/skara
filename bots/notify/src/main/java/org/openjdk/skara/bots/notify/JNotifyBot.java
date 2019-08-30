@@ -76,8 +76,7 @@ class JNotifyBot implements Bot, WorkItem {
             return;
         }
 
-        var newCommits = localRepo.commits(lastRef.get() + ".." + curHead).stream()
-                                  .collect(Collectors.toList());
+        var newCommits = localRepo.commits(lastRef.get() + ".." + curHead).asList();
         if (newCommits.size() == 0) {
             return;
         }
@@ -118,8 +117,7 @@ class JNotifyBot implements Bot, WorkItem {
                 log.warning("No previous tag found for '" + tag.tag() + "' - ignoring");
                 continue;
             }
-            var commits = localRepo.commits(previous.get().tag() + ".." + tag.tag()).stream()
-                                   .collect(Collectors.toList());
+            var commits = localRepo.commits(previous.get().tag() + ".." + tag.tag()).asList();
             if (commits.size() == 0) {
                 continue;
             }

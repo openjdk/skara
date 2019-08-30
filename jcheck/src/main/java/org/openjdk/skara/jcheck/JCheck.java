@@ -146,10 +146,11 @@ public class JCheck {
     }
 
     private Set<Check> checksForCommits() throws IOException {
-        var commits = repository.commits(revisionRange);
-        return commits.stream()
-                .flatMap(commit -> checksForCommit(commit).stream())
-                .collect(Collectors.toSet());
+        try (var commits = repository.commits(revisionRange)) {
+            return commits.stream()
+                    .flatMap(commit -> checksForCommit(commit).stream())
+                    .collect(Collectors.toSet());
+        }
     }
 
     public static class Issues implements Iterable<Issue>, AutoCloseable {

@@ -32,6 +32,7 @@ import org.junit.jupiter.api.*;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -101,9 +102,12 @@ class MergeTests {
 
             // The commits from the "other" branch should be preserved and not squashed (but not the merge commit)
             var headHash = pushedRepo.resolve("HEAD").orElseThrow();
-            var commits = pushedRepo.commits(masterHash.hex() + ".." + headHash.hex()).stream()
-                                    .map(Commit::hash)
-                                    .collect(Collectors.toSet());
+            Set<Hash> commits;
+            try (var tempCommits = pushedRepo.commits(masterHash.hex() + ".." + headHash.hex())) {
+                commits = tempCommits.stream()
+                        .map(Commit::hash)
+                        .collect(Collectors.toSet());
+            }
             assertTrue(commits.contains(otherHash1));
             assertTrue(commits.contains(otherHash2));
             assertFalse(commits.contains(mergeHash));
@@ -190,9 +194,12 @@ class MergeTests {
 
             // The commits from the "other" branch should be preserved and not squashed (but not the merge commit)
             var headHash = pushedRepo.resolve("HEAD").orElseThrow();
-            var commits = pushedRepo.commits(masterHash.hex() + ".." + headHash.hex()).stream()
-                                    .map(Commit::hash)
-                                    .collect(Collectors.toSet());
+            Set<Hash> commits;
+            try (var tempCommits = pushedRepo.commits(masterHash.hex() + ".." + headHash.hex())) {
+                commits = tempCommits.stream()
+                        .map(Commit::hash)
+                        .collect(Collectors.toSet());
+            }
             assertTrue(commits.contains(otherHash1));
             assertTrue(commits.contains(otherHash2));
             assertFalse(commits.contains(mergeHash));

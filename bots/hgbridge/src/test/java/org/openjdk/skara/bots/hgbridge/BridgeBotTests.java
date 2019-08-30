@@ -116,9 +116,11 @@ class BridgeBotTests {
     }
 
     private Set<String> getCommitHashes(Repository repo) throws IOException {
-        return repo.commits().stream()
-                   .map(c -> c.hash().hex())
-                   .collect(Collectors.toSet());
+        try (var commits = repo.commits()) {
+            return commits.stream()
+                    .map(c -> c.hash().hex())
+                    .collect(Collectors.toSet());
+        }
     }
 
     private TemporaryDirectory sourceFolder;

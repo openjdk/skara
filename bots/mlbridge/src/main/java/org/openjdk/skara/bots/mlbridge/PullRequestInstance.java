@@ -78,8 +78,7 @@ class PullRequestInstance {
     }
 
     String formatCommitMessages(Hash first, Hash last, CommitFormatter formatter) {
-        try {
-            var commits = localRepo().commits(first.hex() + ".." + last.hex());
+        try (var commits = localRepo().commits(first.hex() + ".." + last.hex())) {
             return commits.stream()
                           .map(formatter::format)
                           .collect(Collectors.joining("\n"));
