@@ -39,6 +39,12 @@ public interface Commits extends Closeable, Iterable<Commit> {
     }
 
     default Stream<Commit> stream() {
-        return StreamSupport.stream(spliterator(), false);
+        return StreamSupport.stream(spliterator(), false).onClose(() -> {
+            try {
+                close();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        });
     }
 }
