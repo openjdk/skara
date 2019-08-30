@@ -936,6 +936,12 @@ public class HgRepository implements Repository {
     public void apply(Diff diff, boolean force) throws IOException {
         var patchFile = Files.createTempFile("import", ".patch");
         diff.toFile(patchFile);
+        apply(patchFile, force);
+        //Files.delete(patchFile);
+    }
+
+    @Override
+    public void apply(Path patchFile, boolean force) throws IOException {
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("hg", "import", "--no-commit"));
         if (force) {
@@ -945,7 +951,6 @@ public class HgRepository implements Repository {
         try (var p = capture(cmd)) {
             await(p);
         }
-        //Files.delete(patchFile);
     }
 
     @Override

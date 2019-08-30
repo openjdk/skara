@@ -264,27 +264,20 @@ public class GitWebrev {
         var parser = new ArgumentParser("git webrev apply", List.of(), inputs);
         var arguments = parser.parse(args);
 
+        var cwd = Paths.get("").toAbsolutePath();
+        var repository = Repository.get(cwd).orElseGet(() -> {
+            System.err.println(String.format("error: %s is not a repository", cwd.toString()));
+            System.exit(1);
+            return null;
+        });
+
         var inputString = arguments.at(0).asString();
         var webrevMetaData = WebrevMetaData.fromWebrevURL(inputString);
         var patchFileURI = webrevMetaData.patchURI()
                 .orElseThrow(() -> new IllegalStateException("Could not find patch file in webrev"));
         var patchFile = downloadPatchFile(patchFileURI);
 
-        var cwd = Paths.get("").toAbsolutePath();
-        var repository = Repository.get(cwd);
-        if (repository.isEmpty()) {
-            System.err.println(String.format("error: %s is not a repository", cwd.toString()));
-            System.exit(1);
-        }
-
-        if (!check(patchFile)) {
-            System.err.println("Patch does not apply cleanly!");
-            System.exit(1);
-        }
-
-        System.out.println("Applying patch file: " + patchFile);
-        stat(patchFile);
-        apply(patchFile);
+        repository.apply(patchFile, false);
     }
 
     private static Path downloadPatchFile(URI uri) throws IOException, InterruptedException {
@@ -295,29 +288,6 @@ public class GitWebrev {
                 .build();
         client.send(patchFileRequest, HttpResponse.BodyHandlers.ofFile(patchFile));
         return patchFile;
-    }
-
-    private static boolean check(Path patchFile) throws IOException, InterruptedException {
-        return applyInternal(patchFile, "--check", "--index") == 0;
-    }
-
-    private static void stat(Path patchFile) throws IOException, InterruptedException {
-        applyInternal(patchFile, "--stat", "--index");
-    }
-
-    private static void apply(Path patchFile) throws IOException, InterruptedException {
-        applyInternal(patchFile, "--index");
-    }
-
-    private static int applyInternal(Path patchFile, String...options) throws IOException, InterruptedException {
-        List<String> args = new ArrayList<>();
-        args.add("git");
-        args.add("apply");
-        args.addAll(Arrays.asList(options));
-        args.add(patchFile.toString());
-        var pb = new ProcessBuilder(args.toArray(String[]::new));
-        pb.inheritIO();
-        return pb.start().waitFor();
     }
 
     public static void main(String[] args) throws Exception {
