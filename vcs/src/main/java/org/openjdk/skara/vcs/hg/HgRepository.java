@@ -640,8 +640,7 @@ public class HgRepository implements Repository {
         }
     }
 
-    @Override
-    public List<FileEntry> files(Hash hash, List<Path> paths) throws IOException {
+    private List<FileEntry> allFiles(Hash hash, List<Path> paths) throws IOException {
         var ext = Files.createTempFile("ext", ".py");
         copyResource(EXT_PY, ext);
 
@@ -664,6 +663,26 @@ public class HgRepository implements Repository {
             }
             return entries;
         }
+    }
+
+    @Override
+    public List<FileEntry> files(Hash hash, List<Path> paths) throws IOException {
+        if (paths.isEmpty()) {
+            return allFiles(hash, paths);
+        }
+
+        var entries = new ArrayList<FileEntry>();
+        var batchSize = 64;
+        var start = 0;
+        while (start < paths.size()) {
+            var end = start + batchSize;
+            if (end > paths.size()) {
+                end = paths.size();
+            }
+            entries.addAll(allFiles(hash, paths.subList(start, end)));
+            start = end;
+        }
+        return entries;
     }
 
     @Override
@@ -938,26 +957,53 @@ public class HgRepository implements Repository {
         }
     }
 
-    @Override
-    public void remove(List<Path> paths) throws IOException {
-        var cmd = new ArrayList<>(List.of("hg", "rm"));
-        for (var p : paths) {
-            cmd.add(p.toString());
+    @FunctionalInterface
+    private static interface Operation {
+        void execute(List<Path> args) throws IOException;
+    }
+
+    private void batch(Operation op, List<Path> args) throws IOException {
+        var batchSize = 64;
+        var start = 0;
+        while (start < args.size()) {
+            var end = start + batchSize;
+            if (end > args.size()) {
+                end = args.size();
+            }
+            op.execute(args.subList(start, end));
+            start = end;
+        }
+    }
+
+    private void addAll(List<Path> paths) throws IOException {
+        var cmd = new ArrayList<>(List.of("hg", "add"));
+        for (var path : paths) {
+            cmd.add(path.toString());
         }
         try (var p = capture(cmd)) {
             await(p);
         }
     }
 
-    @Override
-    public void add(List<Path> paths) throws IOException {
-        var cmd = new ArrayList<>(List.of("hg", "add"));
-        for (var p : paths) {
-            cmd.add(p.toString());
+    private void removeAll(List<Path> paths) throws IOException {
+        var cmd = new ArrayList<>(List.of("hg", "rm"));
+        for (var path : paths) {
+            cmd.add(path.toString());
         }
         try (var p = capture(cmd)) {
             await(p);
         }
+    }
+
+
+    @Override
+    public void remove(List<Path> paths) throws IOException {
+        batch(this::removeAll, paths);
+    }
+
+    @Override
+    public void add(List<Path> paths) throws IOException {
+        batch(this::addAll, paths);
     }
 
     @Override
