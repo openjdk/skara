@@ -297,14 +297,13 @@ public class GitRepository implements Repository {
 
     @Override
     public void reset(Hash target, boolean hard) throws IOException {
-        var cmd = new ArrayList<String>();
-        cmd.addAll(List.of("git", "reset"));
+        var cmd = new ArrayList<>(List.of("git", "reset"));
         if (hard) {
            cmd.add("--hard");
         }
         cmd.add(target.hex());
 
-        try (var p = capture(cmd.toArray(String[]::new))) {
+        try (var p = capture(cmd)) {
             await(p);
         }
     }

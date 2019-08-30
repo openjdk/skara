@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.vcs;
 
+import org.junit.jupiter.api.Assumptions;
 import org.openjdk.skara.test.TemporaryDirectory;
 
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,7 @@ import java.util.stream.Collectors;
 
 import static java.nio.file.StandardOpenOption.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class RepositoryTests {
 
@@ -1785,6 +1787,34 @@ public class RepositoryTests {
 
             r.abortMerge();
             assertTrue(r.isClean());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testReset(VCS vcs) throws IOException {
+        assumeTrue(vcs == VCS.GIT); // FIXME reset is not yet implemented for HG
+
+        try (var dir = new TemporaryDirectory()) {
+            var repo = Repository.init(dir.path(), vcs);
+            assertTrue(repo.isClean());
+
+            var f = dir.path().resolve("README");
+            Files.writeString(f, "Hello\n");
+            repo.add(f);
+            var initial = repo.commit("Initial commit", "duke", "duke@openjdk.org");
+
+            Files.writeString(f, "Hello again\n");
+            repo.add(f);
+            var second = repo.commit("Second commit", "duke", "duke@openjdk.org");
+
+            assertEquals(second, repo.head());
+            assertEquals(2, repo.commits().asList().size());
+
+            repo.reset(initial, true);
+
+            assertEquals(initial, repo.head());
+            assertEquals(1, repo.commits().asList().size());
         }
     }
 }

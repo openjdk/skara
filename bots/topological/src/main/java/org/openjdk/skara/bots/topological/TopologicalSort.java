@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 class TopologicalSort {
-
     static List<Branch> sort(List<Edge> edges) {
         List<Edge> eCopy = new ArrayList<>(edges);
         List<Branch> result = new ArrayList<>();
@@ -56,5 +55,4 @@ class TopologicalSort {
 
         return result;
     }
-
 }
