@@ -159,10 +159,12 @@ class TopologicalBot implements Bot, WorkItem {
             } else {
                 log.info("Fast forwarded " + branch + " to " + parent);
             }
-            log.info("merge with " + parent + " succeeded. The following commits will be pushed:\n"
-                    + repo.commits("origin/" + branch.name() + ".." + branch.name()).stream()
-                        .map(Commit::toString)
-                        .collect(Collectors.joining("\n", "\n", "\n")));
+            try (var commits = repo.commits("origin/" + branch.name() + ".." + branch.name()).stream()) {
+                log.info("merge with " + parent + " succeeded. The following commits will be pushed:\n"
+                        + commits
+                            .map(Commit::toString)
+                            .collect(Collectors.joining("\n", "\n", "\n")));
+            }
             try {
                 repo.push(repo.head(), hostedRepo.getUrl(), branch.name());
             } catch (IOException e) {
