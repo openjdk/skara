@@ -69,6 +69,12 @@ class TestWorkItem implements WorkItem {
     }
 }
 
+class TestWorkItemChild extends TestWorkItem {
+    TestWorkItemChild(ConcurrencyCheck concurrencyCheck, String description) {
+        super(concurrencyCheck, description);
+    }
+}
+
 class TestBot implements Bot {
 
     private final List<WorkItem> items;
@@ -208,5 +214,28 @@ class BotRunnerTests {
         Assertions.assertFalse(item2.hasRun);
         Assertions.assertFalse(item3.hasRun);
         Assertions.assertTrue(item4.hasRun);
+    }
+
+    @Test
+    void dontDiscardDifferentBlockedItems() throws TimeoutException {
+        var item1 = new TestWorkItem(i -> false, "Item 1");
+        var item2 = new TestWorkItem(i -> false, "Item 2");
+        var item3 = new TestWorkItem(i -> false, "Item 3");
+        var item4 = new TestWorkItem(i -> false, "Item 4");
+        var item5 = new TestWorkItemChild(i -> false, "Item 5");
+        var item6 = new TestWorkItemChild(i -> false, "Item 6");
+        var item7 = new TestWorkItemChild(i -> false, "Item 7");
+        var bot = new TestBot(item1, item2, item3, item4, item5, item6, item7);
+        var runner = new BotRunner(config(), List.of(bot));
+
+        runner.runOnce(Duration.ofSeconds(10));
+
+        Assertions.assertTrue(item1.hasRun);
+        Assertions.assertFalse(item2.hasRun);
+        Assertions.assertFalse(item3.hasRun);
+        Assertions.assertTrue(item4.hasRun);
+        Assertions.assertFalse(item5.hasRun);
+        Assertions.assertFalse(item6.hasRun);
+        Assertions.assertTrue(item7.hasRun);
     }
 }
