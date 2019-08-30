@@ -20,34 +20,40 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-rootProject.name = 'skara'
+package org.openjdk.skara.bots.topological;
 
-include 'args'
-include 'bot'
-include 'cli'
-include 'census'
-include 'email'
-include 'encoding'
-include 'host'
-include 'ini'
-include 'jcheck'
-include 'json'
-include 'mailinglist'
-include 'process'
-include 'proxy'
-include 'storage'
-include 'ssh'
-include 'test'
-include 'vcs'
-include 'webrev'
+import org.openjdk.skara.vcs.Branch;
 
-include 'bots:cli'
-include 'bots:forward'
-include 'bots:hgbridge'
-include 'bots:merge'
-include 'bots:mirror'
-include 'bots:mlbridge'
-include 'bots:notify'
-include 'bots:pr'
-include 'bots:submit'
-include 'bots:topological'
+import java.util.Objects;
+
+class Edge {
+    final Branch from;
+    final Branch to;
+
+    Edge(Branch from, Branch to) {
+        this.from = from;
+        this.to = to;
+    }
+
+    @Override
+    public String toString() {
+        return "Edge{" +
+                "from='" + from + '\'' +
+                ", to='" + to + '\'' +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Edge edge = (Edge) o;
+        return Objects.equals(from, edge.from) &&
+                Objects.equals(to, edge.to);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(from, to);
+    }
+}

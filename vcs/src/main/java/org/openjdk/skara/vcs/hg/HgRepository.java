@@ -319,6 +319,11 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public void reset(Hash target, boolean hard) throws IOException {
+        throw new RuntimeException("Not implemented yet");
+    }
+
+    @Override
     public Repository reinitialize() throws IOException {
         Files.walk(dir)
              .map(Path::toFile)

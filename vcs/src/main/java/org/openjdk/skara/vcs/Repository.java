@@ -48,6 +48,7 @@ public interface Repository extends ReadOnlyRepository {
     void push(Hash hash, URI uri, String ref, boolean force) throws IOException;
     void push(Branch branch, String remote, boolean setUpstream) throws IOException;
     void clean() throws IOException;
+    void reset(Hash target, boolean hard) throws IOException;
     void revert(Hash parent) throws IOException;
     Repository reinitialize() throws IOException;
     void squash(Hash h) throws IOException;
@@ -172,7 +173,7 @@ public interface Repository extends ReadOnlyRepository {
     }
 
     static Repository clone(URI from) throws IOException {
-        var to = Path.of(from.getPath()).getFileName();
+        var to = Path.of(from).getFileName();
         if (to.toString().endsWith(".git")) {
             to = Path.of(to.toString().replace(".git", ""));
         }
