@@ -25,6 +25,7 @@ module {
     name = 'org.openjdk.skara.bots.topological'
     test {
         requires 'org.junit.jupiter.api'
+        requires 'org.junit.jupiter.params'
         requires 'org.openjdk.skara.test'
         opens 'org.openjdk.skara.bots.topological' to 'org.junit.platform.commons'
     }
