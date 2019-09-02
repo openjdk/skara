@@ -34,7 +34,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.*;
 import java.util.*;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class GitWebrev {
@@ -291,10 +290,17 @@ public class GitWebrev {
     }
 
     public static void main(String[] args) throws Exception {
-        SubCommandSwitch.builder("git webrev")
-                .defaultCommand("generate", "generate a webrev", GitWebrev::generate)
-                .subCommand("apply", "apply a webrev from a webrev url", GitWebrev::apply)
-                .build()
-                .execute(args);
+        var commands = List.of(
+                    Default.name("generate")
+                           .helptext("generate a webrev")
+                           .main(GitWebrev::generate),
+                    Command.name("apply")
+                           .helptext("apply a webrev from a webrev url")
+                           .main(GitWebrev::apply)
+                );
+
+        var parser = new MultiCommandParser("git webrev", commands);
+        var command = parser.parse(args);
+        command.execute();
     }
 }

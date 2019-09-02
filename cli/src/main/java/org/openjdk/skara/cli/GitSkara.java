@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.cli;
 
-import org.openjdk.skara.args.Command;
+import org.openjdk.skara.args.Main;
 import org.openjdk.skara.vcs.Repository;
 
 import java.io.IOException;
@@ -36,7 +36,7 @@ import java.util.TreeMap;
 
 public class GitSkara {
 
-    private static final Map<String, Command> commands = new TreeMap<>();
+    private static final Map<String, Main> commands = new TreeMap<>();
 
     private static void usage(String[] args) {
         var names = new ArrayList<String>();
@@ -123,7 +123,7 @@ public class GitSkara {
         var command = isEmpty ? "help" : args[0];
         var commandArgs = isEmpty ? new String[0] : Arrays.copyOfRange(args, 1, args.length);
         if (commands.containsKey(command)) {
-            commands.get(command).execute(commandArgs);
+            commands.get(command).main(commandArgs);
         } else {
             System.err.println("error: unknown command: " + command);
             usage(args);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,35 +22,7 @@
  */
 package org.openjdk.skara.args;
 
-public class Command implements Main {
-    private final String name;
-    private final String helpText;
-    private final Main main;
-
-    Command(String name, String helpText, Main main) {
-        this.name = name;
-        this.helpText = helpText;
-        this.main = main;
-    }
-
-    public String name() {
-        return name;
-    }
-
-    public String helpText() {
-        return helpText;
-    }
-
-    public Main main() {
-        return main;
-    }
-
-    public static CommandHelpText name(String name) {
-        return new CommandHelpText<>(Command::new, name);
-    }
-
-    @Override
-    public void main(String[] args) throws Exception {
-        main.main(args);
-    }
+@FunctionalInterface
+public interface Executable {
+    void execute() throws Exception;
 }
