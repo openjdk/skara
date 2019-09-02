@@ -109,4 +109,66 @@ public class HunkCoalescerTest {
         assertEquals(2, contextHunk1.contextAfter().sourceLines().size());
         assertEquals(2, contextHunk1.contextAfter().destinationLines().size());
     }
+
+    @Test
+    void testNonOverllapping() {
+        var sourceContent = List.of(
+                "A",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "B"
+        );
+
+        var targetContent = List.of(
+                "C",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "D"
+        );
+
+        var hunk1 = new Hunk(new Range(1, 1), List.of("A"), new Range(1, 1), List.of("C"));
+        var hunk2 = new Hunk(new Range(14, 1), List.of("B"), new Range(14, 1), List.of("D"));
+
+        var coalescer = new HunkCoalescer(5, sourceContent, targetContent);
+        var groups = coalescer.coalesce(List.of(hunk1, hunk2));
+
+        assertEquals(2, groups.size());
+
+        var group1 = groups.get(0);
+        assertEquals(6, group1.header().source().count());
+        assertEquals(6, group1.header().target().count());
+
+        assertEquals(1, group1.hunks().size());
+        var contextHunk1 = group1.hunks().get(0);
+        assertEquals(5, contextHunk1.contextAfter().sourceLines().size());
+        assertEquals(5, contextHunk1.contextAfter().destinationLines().size());
+
+        var group2 = groups.get(1);
+        assertEquals(6, group2.header().source().count());
+        assertEquals(6, group2.header().target().count());
+
+        assertEquals(1, group2.hunks().size());
+        assertEquals(5, group2.contextBefore().sourceLines().size());
+        assertEquals(5, group2.contextBefore().destinationLines().size());
+    }
 }
