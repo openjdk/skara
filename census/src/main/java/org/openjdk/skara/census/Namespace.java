@@ -29,10 +29,12 @@ import java.util.*;
 public class Namespace {
     private final String name;
     private final Map<String, Contributor> mapping;
+    private final Map<Contributor, String> reverse;
 
-    Namespace(String name, Map<String, Contributor> mapping) {
+    private Namespace(String name, Map<String, Contributor> mapping, Map<Contributor, String> reverse) {
         this.name = name;
         this.mapping = mapping;
+        this.reverse = reverse;
     }
 
     public String name() {
@@ -43,8 +45,13 @@ public class Namespace {
         return mapping.get(id);
     }
 
+    public String get(Contributor contributor) {
+        return reverse.get(contributor);
+    }
+
     static Namespace parse(Path p, Map<String, Contributor> contributors) throws IOException {
         var mapping = new HashMap<String, Contributor>();
+        var reverse = new HashMap<Contributor, String>();
 
         var document = XML.parse(p);
         var namespace = XML.child(document, "namespace");
@@ -59,8 +66,9 @@ public class Namespace {
             }
             var contributor = contributors.get(to);
             mapping.put(id, contributor);
+            reverse.put(contributor, id);
         }
 
-        return new Namespace(name, mapping);
+        return new Namespace(name, mapping, reverse);
     }
 }

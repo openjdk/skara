@@ -111,6 +111,13 @@ class CensusTests {
                              List.of(new Member(c1, 1)), List.of(new Member(c2, 1)), List.of(new Member(c3, 1)), List.of(new Member(c4, 1)));
         assertEquals(List.of(p1), census.projects());
 
+        var namespace = census.namespace("github.com");
+        assertEquals("github.com", namespace.name());
+        assertEquals(c1, namespace.get("1234567"));
+        assertEquals(c2, namespace.get("2345678"));
+        assertEquals("1234567", namespace.get(c1));
+        assertEquals("2345678", namespace.get(c2));
+
         assertEquals(1, census.version().format());
     }
 
