@@ -148,8 +148,10 @@ class HunkCoalescer {
             var last = hunksInRange.get(hunksInRange.size() - 1);
             var destEnd = last.target().range().end() + numContextLines;
             var sourceEnd = last.source().range().end() + numContextLines;
-            if (sourceEnd >= next.source().range().start() ||
-                  destEnd >= next.target().range().start()) {
+            var nextDestStart = next.target().range().start() - numContextLines;
+            var nextSourceStart = next.source().range().start() - numContextLines;
+            if (sourceEnd >= nextSourceStart ||
+                destEnd >= nextDestStart) {
                 hunksInRange.add(hunks.removeFirst());
             } else {
                 break;
@@ -241,7 +243,9 @@ class HunkCoalescer {
         sourceAfterContextEnd = Math.min(sourceAfterContextEnd, sourceContent.size() + 1);
         if (nextNonEmptySourceHunk != null) {
             var nextNonEmptySourceHunkStart = nextNonEmptySourceHunk.source().range().start();
-            sourceAfterContextEnd = Math.min(sourceAfterContextEnd, nextNonEmptySourceHunkStart);
+            sourceAfterContextEnd = sourceAfterContextEnd > nextNonEmptySourceHunkStart
+                    ? Math.min(sourceAfterContextEnd, nextNonEmptySourceHunkStart)
+                    : Math.max(sourceAfterContextEnd, nextNonEmptySourceHunkStart);
         }
         var sourceAfterContextCount = sourceAfterContextEnd - sourceAfterContextStart;
 
@@ -250,7 +254,9 @@ class HunkCoalescer {
         destAfterContextEnd = Math.min(destAfterContextEnd, destContent.size() + 1);
         if (nextNonEmptyTargetHunk != null) {
             var nextNonEmptyTargetHunkStart = nextNonEmptyTargetHunk.target().range().start();
-            destAfterContextEnd = Math.min(destAfterContextEnd, nextNonEmptyTargetHunkStart);
+            destAfterContextEnd = destAfterContextEnd > nextNonEmptyTargetHunkStart
+                    ? Math.min(destAfterContextEnd, nextNonEmptyTargetHunkStart)
+                    : Math.max(destAfterContextEnd, nextNonEmptyTargetHunkStart);
         }
         var destAfterContextCount = destAfterContextEnd - destAfterContextStart;
 
