@@ -26,7 +26,7 @@ import org.openjdk.skara.census.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.host.network.URIBuilder;
 import org.openjdk.skara.json.*;
-import org.openjdk.skara.vcs.Repository;
+import org.openjdk.skara.vcs.*;
 
 import java.io.*;
 import java.net.URI;
@@ -115,11 +115,39 @@ public class BotRunnerConfiguration {
         return ret;
     }
 
-    private HostedRepository getRepository(String name) throws ConfigurationError {
-        if (!repositories.containsKey(name)) {
-            throw new ConfigurationError("Repository " + name + " is not defined!");
+    private static class RepositoryEntry {
+        HostedRepository repository;
+        String ref;
+    }
+
+    private RepositoryEntry parseRepositoryEntry(String entry) throws ConfigurationError {
+        var ret = new RepositoryEntry();
+        var refSeparatorIndex = entry.indexOf(':');
+        if (refSeparatorIndex >= 0) {
+            ret.ref = entry.substring(refSeparatorIndex + 1);
+            entry = entry.substring(0, refSeparatorIndex);
         }
-        return repositories.get(name);
+        var hostSeparatorIndex = entry.indexOf('/');
+        if (hostSeparatorIndex >= 0) {
+            var hostName = entry.substring(0, hostSeparatorIndex);
+            var host = hosts.get(hostName);
+            if (!hosts.containsKey(hostName)) {
+                throw new ConfigurationError("Repository entry " + entry + " uses undefined host '" + hostName + "'");
+            }
+            var repositoryName = entry.substring(hostSeparatorIndex + 1);
+            ret.repository = host.getRepository(repositoryName);
+        } else {
+            if (!repositories.containsKey(entry)) {
+                throw new ConfigurationError("Repository " + entry + " is not defined!");
+            }
+            ret.repository = repositories.get(entry);
+        }
+
+        if (ret.ref == null) {
+            ret.ref = ret.repository.getRepositoryType() == VCS.GIT ? "master" : "default";
+        }
+
+        return ret;
     }
 
     public static BotRunnerConfiguration parse(JSONObject config, Path cwd) throws ConfigurationError {
@@ -131,7 +159,6 @@ public class BotRunnerConfiguration {
     }
 
     public BotConfiguration perBotConfiguration(String botName) throws ConfigurationError {
-
         if (!config.contains(botName)) {
             throw new ConfigurationError("No configuration for bot name: " + botName);
         }
@@ -152,7 +179,18 @@ public class BotRunnerConfiguration {
             @Override
             public HostedRepository repository(String name) {
                 try {
-                    return getRepository(name);
+                    var entry = parseRepositoryEntry(name);
+                    return entry.repository;
+                } catch (ConfigurationError configurationError) {
+                    throw new RuntimeException("Couldn't find repository with name: " + name, configurationError);
+                }
+            }
+
+            @Override
+            public String repositoryRef(String name) {
+                try {
+                    var entry = parseRepositoryEntry(name);
+                    return entry.ref;
                 } catch (ConfigurationError configurationError) {
                     throw new RuntimeException("Couldn't find repository with name: " + name, configurationError);
                 }

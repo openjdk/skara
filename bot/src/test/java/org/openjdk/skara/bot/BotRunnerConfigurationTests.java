@@ -23,13 +23,14 @@
 package org.openjdk.skara.bot;
 
 import java.nio.file.Path;
+
 import org.junit.jupiter.api.Test;
-import org.openjdk.skara.json.JSON;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.openjdk.skara.json.*;
 
-public class BotRunnerConfigurationTests {
+import static org.junit.jupiter.api.Assertions.*;
 
+class BotRunnerConfigurationTests {
     @Test
     void storageFolder() throws ConfigurationError {
         var input = JSON.object().put("storage", JSON.object().put("path", "/x"))
@@ -38,5 +39,29 @@ public class BotRunnerConfigurationTests {
         var botCfg = cfg.perBotConfiguration("xbot");
 
         assertEquals(Path.of("/x/xbot"), botCfg.storageFolder());
+    }
+
+    @Test
+    void parseHost() throws ConfigurationError {
+        var input = JSON.object()
+                        .put("xbot",
+                             JSON.object().put("repository", "test/x/y"));
+        var cfg = BotRunnerConfiguration.parse(input);
+        var botCfg = cfg.perBotConfiguration("xbot");
+
+        var error = assertThrows(RuntimeException.class, () -> botCfg.repository("test/x/y"));
+        assertEquals("Repository entry test/x/y uses undefined host 'test'", error.getCause().getMessage());
+    }
+
+    @Test
+    void parseRef() throws ConfigurationError {
+        var input = JSON.object()
+                        .put("xbot",
+                             JSON.object().put("repository", "test/x/y:z"));
+        var cfg = BotRunnerConfiguration.parse(input);
+        var botCfg = cfg.perBotConfiguration("xbot");
+
+        var error = assertThrows(RuntimeException.class, () -> botCfg.repositoryRef("test/x/y:z"));
+        assertEquals("Repository entry test/x/y uses undefined host 'test'", error.getCause().getMessage());
     }
 }
