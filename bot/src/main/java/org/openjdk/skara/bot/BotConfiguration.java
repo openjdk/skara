@@ -25,12 +25,12 @@ package org.openjdk.skara.bot;
 import org.openjdk.skara.census.Census;
 import org.openjdk.skara.host.HostedRepository;
 import org.openjdk.skara.json.JSONObject;
+import org.openjdk.skara.vcs.Branch;
 
 import java.nio.file.Path;
 import java.util.Optional;
 
 public interface BotConfiguration {
-
     /**
      * Folder that WorkItems may use to store permanent data.
      * @return
@@ -43,6 +43,14 @@ public interface BotConfiguration {
      * @return
      */
     HostedRepository repository(String name);
+
+    /**
+     * Retrieves the ref name that optionally follows the configuration-specific repository name.
+     * If not configured, returns the name of the VCS default branch.
+     * @param name
+     * @return
+     */
+    String repositoryRef(String name);
 
     /**
      * Additional bot-specific configuration.
