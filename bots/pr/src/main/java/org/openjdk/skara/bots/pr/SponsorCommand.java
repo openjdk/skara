@@ -80,6 +80,8 @@ public class SponsorCommand implements CommandHandler {
                 prInstance.localRepo().push(rebasedHash.get(), pr.repository().getUrl(), pr.getTargetRef());
                 pr.setState(PullRequest.State.CLOSED);
                 pr.addLabel("integrated");
+                pr.removeLabel("sponsor");
+                pr.removeLabel("ready");
             }
         } catch (IOException e) {
             log.throwing("SponsorCommand", "handle", e);

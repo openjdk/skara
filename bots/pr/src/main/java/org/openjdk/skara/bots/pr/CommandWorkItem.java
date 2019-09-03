@@ -22,7 +22,6 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.host.*;
 
 import java.io.*;
@@ -137,8 +136,12 @@ public class CommandWorkItem extends PullRequestWorkItem {
     public void run(Path scratchPath) {
         log.info("Looking for merge commands");
 
-        var comments = pr.getComments();
+        if (pr.getLabels().contains("integrated")) {
+            log.info("Skip checking for commands in integrated PR");
+            return;
+        }
 
+        var comments = pr.getComments();
         var unprocessedCommands = findCommandComments(comments);
         if (unprocessedCommands.isEmpty()) {
             log.fine("No new merge commands found, stopping further processing");

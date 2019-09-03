@@ -146,6 +146,11 @@ class CheckWorkItem extends PullRequestWorkItem {
         // Filter out the active reviews
         var activeReviews = PullRequestInstance.filterActiveReviews(allReviews);
         if (!currentCheckValid(census, comments, activeReviews, labels)) {
+            if (labels.contains("integrated")) {
+                log.info("Skipping check of integrated PR");
+                return;
+            }
+
             try {
                 var prInstance = new PullRequestInstance(scratchPath.resolve("pr"), pr);
                 CheckRun.execute(this, pr, prInstance, comments, allReviews, activeReviews, labels, census, blockingLabels);
