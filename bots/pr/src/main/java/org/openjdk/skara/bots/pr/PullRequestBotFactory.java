@@ -63,9 +63,8 @@ public class PullRequestBotFactory implements BotFactory {
                                                               obj -> Pattern.compile(obj.get("pattern").asString())));
 
         for (var repo : specific.get("repositories").fields()) {
-            var censusName = repo.value().get("census").asString();
-            var censusRepo = configuration.repository(specific.get("census").get(censusName).get("repository").asString());
-            var censusRef = specific.get("census").get(censusName).get("ref").asString();
+            var censusRepo = configuration.repository(repo.value().get("census").asString());
+            var censusRef = configuration.repositoryRef(repo.value().get("census").asString());
 
             var labelPatterns = new HashMap<String, List<Pattern>>();
             if (repo.value().contains("labels")) {

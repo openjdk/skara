@@ -22,11 +22,11 @@
  */
 package org.openjdk.skara.bot;
 
-import java.nio.file.Path;
+import org.openjdk.skara.json.JSON;
 
 import org.junit.jupiter.api.Test;
 
-import org.openjdk.skara.json.*;
+import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -64,4 +64,16 @@ class BotRunnerConfigurationTests {
         var error = assertThrows(RuntimeException.class, () -> botCfg.repositoryRef("test/x/y:z"));
         assertEquals("Repository entry test/x/y uses undefined host 'test'", error.getCause().getMessage());
     }
+
+    @Test
+    void parseName() throws ConfigurationError {
+        var empty = JSON.object().put("xbot", JSON.object());
+        var cfg = BotRunnerConfiguration.parse(empty);
+        assertEquals("repo", cfg.perBotConfiguration("xbot").repositoryName("repo"));
+        assertEquals("repo", cfg.perBotConfiguration("xbot").repositoryName("host/org/repo"));
+        assertEquals("repo", cfg.perBotConfiguration("xbot").repositoryName("host/org/repo:ref"));
+        assertEquals("repo", cfg.perBotConfiguration("xbot").repositoryName("host/org/repo:nested/ref"));
+        assertEquals("repo", cfg.perBotConfiguration("xbot").repositoryName("user@host/org/repo:nested/ref"));
+    }
+
 }

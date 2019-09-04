@@ -22,18 +22,17 @@
  */
 package org.openjdk.skara.bot;
 
-import org.openjdk.skara.census.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.host.network.URIBuilder;
-import org.openjdk.skara.json.*;
-import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.json.JSONObject;
+import org.openjdk.skara.vcs.VCS;
 
 import java.io.*;
 import java.net.URI;
 import java.nio.file.*;
 import java.time.Duration;
 import java.util.*;
-import java.util.logging.*;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 public class BotRunnerConfiguration {
@@ -194,6 +193,19 @@ public class BotRunnerConfiguration {
                 } catch (ConfigurationError configurationError) {
                     throw new RuntimeException("Couldn't find repository with name: " + name, configurationError);
                 }
+            }
+
+            @Override
+            public String repositoryName(String name) {
+                var refIndex = name.indexOf(':');
+                if (refIndex >= 0) {
+                    name = name.substring(0, refIndex);
+                }
+                var orgIndex = name.lastIndexOf('/');
+                if (orgIndex >= 0) {
+                    name = name.substring(orgIndex + 1);
+                }
+                return name;
             }
 
             @Override

@@ -52,9 +52,11 @@ public class MailingListBridgeBotFactory implements BotFactory {
         var listArchive = URIBuilder.base(specific.get("server").get("archive").asString()).build();
         var listSmtp = specific.get("server").get("smtp").asString();
 
-        var webrevRepo = specific.get("webrevs").get("repository").asString();
-        var webrevRef = specific.get("webrevs").get("ref").asString();
+        var webrevRepo = configuration.repository(specific.get("webrevs").get("repository").asString());
+        var webrevRef = configuration.repositoryRef(specific.get("webrevs").get("repository").asString());
         var webrevWeb = specific.get("webrevs").get("web").asString();
+
+        var archiveRepo = configuration.repository(specific.get("archive").asString());
 
         var allListNames = new HashSet<EmailAddress>();
         var allRepositories = new HashSet<HostedRepository>();
@@ -69,11 +71,11 @@ public class MailingListBridgeBotFactory implements BotFactory {
 
         for (var repoConfig : specific.get("repositories").asArray()) {
             var repo = repoConfig.get("repository").asString();
-            var archive = repoConfig.get("archive").asString();
             var list = EmailAddress.parse(repoConfig.get("list").asString());
-            var bot = new MailingListBridgeBot(from, configuration.repository(repo), configuration.repository(archive),
+            var folder = repoConfig.contains("folder") ? repoConfig.get("folder").asString() : configuration.repositoryName(repo);
+            var bot = new MailingListBridgeBot(from, configuration.repository(repo), archiveRepo,
                                                list, ignoredUsers, listArchive, listSmtp,
-                                               configuration.repository(webrevRepo), webrevRef, Path.of(repo),
+                                               webrevRepo, webrevRef, Path.of(folder),
                                                URIBuilder.base(webrevWeb).build(), readyLabels, readyComments);
             ret.add(bot);
 
