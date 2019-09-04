@@ -43,9 +43,11 @@ class IntegrateTests {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
                                            .addCommitter(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(integrator.host().getCurrentUserDetails().id());
+                                           .addReviewer(integrator.host().getCurrentUserDetails().id())
+                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
@@ -88,6 +90,9 @@ class IntegrateTests {
             assertEquals("Generated Committer 1", headCommit.committer().name());
             assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
             assertTrue(pr.getLabels().contains("integrated"));
+
+            // Ready label should have been removed
+            assertFalse(pr.getLabels().contains("ready"));
         }
     }
 

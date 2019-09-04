@@ -111,6 +111,8 @@ class SponsorTests {
             assertEquals("Generated Reviewer 1", headCommit.committer().name());
             assertEquals("integrationreviewer1@openjdk.java.net", headCommit.committer().email());
             assertTrue(pr.getLabels().contains("integrated"));
+            assertFalse(pr.getLabels().contains("ready"));
+            assertFalse(pr.getLabels().contains("sponsor"));
         }
     }
 
@@ -303,11 +305,12 @@ class SponsorTests {
             // Flag it as ready for integration again
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(mergeBot);
+            assertTrue(pr.getLabels().contains("sponsor"));
 
             // It should now be possible to sponsor
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertTrue(pr.getLabels().contains("sponsor"));
+            assertFalse(pr.getLabels().contains("sponsor"));
 
             // The bot should have pushed the commit
             var pushed = pr.getComments().stream()
