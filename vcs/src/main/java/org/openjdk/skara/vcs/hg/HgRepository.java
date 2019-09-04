@@ -937,7 +937,7 @@ public class HgRepository implements Repository {
         var patchFile = Files.createTempFile("import", ".patch");
         diff.toFile(patchFile);
         apply(patchFile, force);
-        //Files.delete(patchFile);
+        Files.delete(patchFile);
     }
 
     @Override

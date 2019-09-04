@@ -29,8 +29,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class MultiCommandParser implements Main {
-
+public class MultiCommandParser {
     private final String programName;
     private final String defaultCommand;
     private final Map<String, Command> subCommands;
@@ -38,7 +37,7 @@ public class MultiCommandParser implements Main {
     public MultiCommandParser(String programName, List<Command> commands) {
         var defaults = commands.stream().filter(Default.class::isInstance).collect(Collectors.toList());
         if (defaults.size() != 1) {
-            throw new IllegalStateException("Expecting exactly one default command");
+            throw new IllegalArgumentException("Expecting exactly one default command");
         }
         this.defaultCommand = defaults.get(0).name();
 
@@ -56,24 +55,13 @@ public class MultiCommandParser implements Main {
 
     public Executable parse(String[] args) {
         if (args.length != 0) {
-            Command p = subCommands.get(args[0]);
+            var p = subCommands.get(args[0]);
             if (p != null) {
-                String[] forwardedArgs = Arrays.copyOfRange(args, 1, args.length);
+                var forwardedArgs = Arrays.copyOfRange(args, 1, args.length);
                 return () -> p.main(forwardedArgs);
-            } else {
-                return () -> {
-                    System.out.println("error: unknown subcommand: " + args[0]);
-                    showUsage();
-                };
             }
-        } else {
-            return this::showUsage;
         }
-    }
-
-    @Override
-    public void main(String[] args) throws Exception {
-
+        return () -> subCommands.get(defaultCommand).main(args);
     }
 
     private void showUsage() {
@@ -93,5 +81,4 @@ public class MultiCommandParser implements Main {
             ps.println(String.format("  %-" + spacing + "s%s", subCommand.name(), subCommand.helpText()));
         }
     }
-
 }

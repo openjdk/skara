@@ -256,9 +256,9 @@ public class GitWebrev {
     private static void apply(String[] args) throws Exception {
         var inputs = List.of(
             Input.position(0)
-                .describe("webrev url")
-                .singular()
-                .required());
+                 .describe("webrev url")
+                 .singular()
+                 .required());
 
         var parser = new ArgumentParser("git webrev apply", List.of(), inputs);
         var arguments = parser.parse(args);
