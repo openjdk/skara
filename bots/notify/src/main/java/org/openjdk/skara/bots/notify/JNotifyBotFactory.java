@@ -77,7 +77,7 @@ public class JNotifyBotFactory implements BotFactory {
                 continue;
             }
 
-            var baseName = repo.value().contains("folder") ? repo.value().get("basename").asString() : configuration.repositoryName(repoName);
+            var baseName = repo.value().contains("basename") ? repo.value().get("basename").asString() : configuration.repositoryName(repoName);
 
             var tagStorageBuilder = new StorageBuilder<Tag>(baseName + ".tags.txt")
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added tag for " + repoName);
