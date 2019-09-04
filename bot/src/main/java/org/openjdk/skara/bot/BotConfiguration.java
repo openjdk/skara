@@ -22,13 +22,10 @@
  */
 package org.openjdk.skara.bot;
 
-import org.openjdk.skara.census.Census;
 import org.openjdk.skara.host.HostedRepository;
 import org.openjdk.skara.json.JSONObject;
-import org.openjdk.skara.vcs.Branch;
 
 import java.nio.file.Path;
-import java.util.Optional;
 
 public interface BotConfiguration {
     /**
@@ -51,6 +48,13 @@ public interface BotConfiguration {
      * @return
      */
     String repositoryRef(String name);
+
+    /**
+     * Extracts a reasonable short repository name from a full repository specification, e.g. host/org/repo:ref -> repo
+     * @param name
+     * @return
+     */
+    String repositoryName(String name);
 
     /**
      * Additional bot-specific configuration.

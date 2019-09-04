@@ -48,7 +48,7 @@ public class JNotifyBotFactory implements BotFactory {
 
         var database = specific.get("database").asObject();
         var databaseRepo = configuration.repository(database.get("repository").asString());
-        var databaseRef = database.get("ref").asString();
+        var databaseRef = configuration.repositoryRef(database.get("repository").asString());
         var databaseName = database.get("name").asString();
         var databaseEmail = database.get("email").asString();
 
@@ -73,13 +73,15 @@ public class JNotifyBotFactory implements BotFactory {
             }
 
             if (updaters.isEmpty()) {
-                log.warning("No update consumers for updater bot configuration: " + repoName);
+                log.warning("No consumers configured for notify bot repository: " + repoName);
                 continue;
             }
 
-            var tagStorageBuilder = new StorageBuilder<Tag>(repoName + ".tags.txt")
+            var baseName = repo.value().contains("folder") ? repo.value().get("basename").asString() : configuration.repositoryName(repoName);
+
+            var tagStorageBuilder = new StorageBuilder<Tag>(baseName + ".tags.txt")
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added tag for " + repoName);
-            var branchStorageBuilder = new StorageBuilder<ResolvedBranch>(repoName + ".branches.txt")
+            var branchStorageBuilder = new StorageBuilder<ResolvedBranch>(baseName + ".branches.txt")
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added branch hash for " + repoName);
             var bot = new JNotifyBot(configuration.repository(repoName), configuration.storageFolder(), branches, tagStorageBuilder, branchStorageBuilder, updaters);
             ret.add(bot);
