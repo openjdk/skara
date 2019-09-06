@@ -42,7 +42,7 @@ public class WebrevMetaData {
         this.patchURI = patchURI;
     }
 
-    public static WebrevMetaData fromWebrevURL(String uri) throws IOException, URISyntaxException, InterruptedException {
+    public static WebrevMetaData from(URI uri) throws IOException, URISyntaxException, InterruptedException {
         var sanatizedUri = sanitizeURI(uri);
         var patchFile = getPatchFile(sanatizedUri);
 
@@ -56,9 +56,10 @@ public class WebrevMetaData {
         return s;
     }
 
-    private static URI sanitizeURI(String uri) throws URISyntaxException {
-        uri = dropSuffix(uri, "index.html");
-        return new URI(uri);
+    private static URI sanitizeURI(URI uri) throws URISyntaxException {
+        var path = dropSuffix(uri.getPath(), "index.html");
+        return new URI(uri.getScheme(), uri.getUserInfo(), uri.getHost(), uri.getPort(),
+                       path, uri.getQuery(), uri.getFragment());
     }
 
     private static Optional<URI> getPatchFile(URI uri) throws IOException, InterruptedException {

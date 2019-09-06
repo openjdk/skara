@@ -54,7 +54,7 @@ public class MultiCommandParser {
     }
 
     public Executable parse(String[] args) {
-        if (args.length != 0) {
+        if (args.length > 0) {
             var p = subCommands.get(args[0]);
             if (p != null) {
                 var forwardedArgs = Arrays.copyOfRange(args, 1, args.length);

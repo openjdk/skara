@@ -23,6 +23,7 @@
 package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
+import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.webrev.*;
 
@@ -271,7 +272,7 @@ public class GitWebrev {
         });
 
         var inputString = arguments.at(0).asString();
-        var webrevMetaData = WebrevMetaData.fromWebrevURL(inputString);
+        var webrevMetaData = WebrevMetaData.from(URI.create(inputString));
         var patchFileURI = webrevMetaData.patchURI()
                 .orElseThrow(() -> new IllegalStateException("Could not find patch file in webrev"));
         var patchFile = downloadPatchFile(patchFileURI);
@@ -298,6 +299,7 @@ public class GitWebrev {
                            .helptext("apply a webrev from a webrev url")
                            .main(GitWebrev::apply)
                 );
+        HttpProxy.setup();
 
         var parser = new MultiCommandParser("git webrev", commands);
         var command = parser.parse(args);
