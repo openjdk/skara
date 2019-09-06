@@ -101,6 +101,7 @@ public interface Repository extends ReadOnlyRepository {
     void addRemote(String name, String path) throws IOException;
     void setPaths(String remote, String pullPath, String pushPath) throws IOException;
     void apply(Diff diff, boolean force) throws IOException;
+    void apply(Path patchFile, boolean force)  throws IOException;
     void copy(Path from, Path to) throws IOException;
     void move(Path from, Path to) throws IOException;
     default void setPaths(String remote, String pullPath) throws IOException {

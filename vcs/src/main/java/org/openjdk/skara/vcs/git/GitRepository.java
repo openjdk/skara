@@ -963,6 +963,12 @@ public class GitRepository implements Repository {
         // ignore force, no such concept in git
         var patchFile = Files.createTempFile("apply", ".patch");
         diff.toFile(patchFile);
+        apply(patchFile, force);
+        Files.delete(patchFile);
+    }
+
+    @Override
+    public void apply(Path patchFile, boolean force)  throws IOException {
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("git", "apply", "--index", "--unidiff-zero"));
         cmd.add(patchFile.toAbsolutePath().toString());

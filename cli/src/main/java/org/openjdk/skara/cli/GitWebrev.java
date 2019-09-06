@@ -23,16 +23,18 @@
 package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
+import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.webrev.*;
 
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.*;
 import java.util.*;
-import java.util.jar.Manifest;
-import java.util.stream.*;
 import java.util.regex.Pattern;
 
 public class GitWebrev {
@@ -79,7 +81,7 @@ public class GitWebrev {
         }
     }
 
-    public static void main(String[] args) throws IOException {
+    private static void generate(String[] args) throws IOException {
         var flags = List.of(
             Option.shortcut("r")
                   .fullname("rev")
@@ -250,5 +252,57 @@ public class GitWebrev {
               .issue(issue)
               .version(version)
               .generate(rev);
+    }
+
+    private static void apply(String[] args) throws Exception {
+        var inputs = List.of(
+            Input.position(0)
+                 .describe("webrev url")
+                 .singular()
+                 .required());
+
+        var parser = new ArgumentParser("git webrev apply", List.of(), inputs);
+        var arguments = parser.parse(args);
+
+        var cwd = Paths.get("").toAbsolutePath();
+        var repository = Repository.get(cwd).orElseGet(() -> {
+            System.err.println(String.format("error: %s is not a repository", cwd.toString()));
+            System.exit(1);
+            return null;
+        });
+
+        var inputString = arguments.at(0).asString();
+        var webrevMetaData = WebrevMetaData.from(URI.create(inputString));
+        var patchFileURI = webrevMetaData.patchURI()
+                .orElseThrow(() -> new IllegalStateException("Could not find patch file in webrev"));
+        var patchFile = downloadPatchFile(patchFileURI);
+
+        repository.apply(patchFile, false);
+    }
+
+    private static Path downloadPatchFile(URI uri) throws IOException, InterruptedException {
+        var client = HttpClient.newHttpClient();
+        var patchFile = Files.createTempFile("patch", ".patch");
+        var patchFileRequest = HttpRequest.newBuilder()
+                .uri(uri)
+                .build();
+        client.send(patchFileRequest, HttpResponse.BodyHandlers.ofFile(patchFile));
+        return patchFile;
+    }
+
+    public static void main(String[] args) throws Exception {
+        var commands = List.of(
+                    Default.name("generate")
+                           .helptext("generate a webrev")
+                           .main(GitWebrev::generate),
+                    Command.name("apply")
+                           .helptext("apply a webrev from a webrev url")
+                           .main(GitWebrev::apply)
+                );
+        HttpProxy.setup();
+
+        var parser = new MultiCommandParser("git webrev", commands);
+        var command = parser.parse(args);
+        command.execute();
     }
 }
