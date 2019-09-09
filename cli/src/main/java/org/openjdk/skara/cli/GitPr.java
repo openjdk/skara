@@ -156,6 +156,9 @@ public class GitPr {
     }
 
     private static URI toURI(String remotePath) throws IOException {
+        if (remotePath.startsWith("git+")) {
+            remotePath = remotePath.substring(4);
+        }
         if (remotePath.startsWith("http")) {
             return URI.create(remotePath);
         } else if (remotePath.startsWith("ssh://")) {
@@ -238,6 +241,10 @@ public class GitPr {
                   .helptext("Hide any decorations when listing PRs")
                   .optional(),
             Switch.shortcut("")
+                  .fullname("mercurial")
+                  .helptext("Force use of Mercurial (hg)")
+                  .optional(),
+            Switch.shortcut("")
                   .fullname("verbose")
                   .helptext("Turn on verbose output")
                   .optional(),
@@ -276,9 +283,10 @@ public class GitPr {
 
         HttpProxy.setup();
 
+        var isMercurial = arguments.contains("mercurial");
         var cwd = Path.of("").toAbsolutePath();
         var repo = Repository.get(cwd).orElseThrow(() -> new IOException("no git repository found at " + cwd.toString()));
-        var remote = arguments.get("remote").orString("origin");
+        var remote = arguments.get("remote").orString(isMercurial ? "default" : "origin");
         var remotePullPath = repo.pullPath(remote);
         var username = arguments.contains("username") ? arguments.get("username").asString() : null;
         var token = System.getenv("GIT_TOKEN");
