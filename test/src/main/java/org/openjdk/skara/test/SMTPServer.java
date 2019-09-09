@@ -53,7 +53,7 @@ public class SMTPServer implements AutoCloseable {
             session.sendCommand("250 MESSAGE OK", quitPattern);
 
             var email = Email.parse(String.join("\n", message));
-            emails.push(email);
+            emails.addLast(email);
         }
 
         @Override
@@ -98,7 +98,7 @@ public class SMTPServer implements AutoCloseable {
         if (emails.isEmpty()) {
             throw new RuntimeException("No email received");
         }
-        return emails.pop();
+        return emails.removeFirst();
     }
 
     @Override

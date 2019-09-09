@@ -35,8 +35,11 @@ public class MailingListBridgeBot implements Bot {
     private final EmailAddress emailAddress;
     private final HostedRepository codeRepo;
     private final HostedRepository archiveRepo;
+    private final HostedRepository censusRepo;
+    private final String censusRef;
     private final EmailAddress listAddress;
     private final Set<String> ignoredUsers;
+    private final Set<Pattern> ignoredComments;
     private final URI listArchive;
     private final String smtpServer;
     private final WebrevStorage webrevStorage;
@@ -44,16 +47,20 @@ public class MailingListBridgeBot implements Bot {
     private final Map<String, Pattern> readyComments;
     private final PullRequestUpdateCache updateCache;
 
-    MailingListBridgeBot(EmailAddress from, HostedRepository repo, HostedRepository archive, EmailAddress list,
-                         Set<String> ignoredUsers, URI listArchive, String smtpServer,
+    MailingListBridgeBot(EmailAddress from, HostedRepository repo, HostedRepository archive,
+                         HostedRepository censusRepo, String censusRef, EmailAddress list,
+                         Set<String> ignoredUsers, Set<Pattern> ignoredComments, URI listArchive, String smtpServer,
                          HostedRepository webrevStorageRepository, String webrevStorageRef,
                          Path webrevStorageBase, URI webrevStorageBaseUri, Set<String> readyLabels,
                          Map<String, Pattern> readyComments) {
         emailAddress = from;
         codeRepo = repo;
         archiveRepo = archive;
+        this.censusRepo = censusRepo;
+        this.censusRef = censusRef;
         listAddress = list;
         this.ignoredUsers = ignoredUsers;
+        this.ignoredComments = ignoredComments;
         this.listArchive = listArchive;
         this.smtpServer = smtpServer;
         this.readyLabels = readyLabels;
@@ -72,6 +79,14 @@ public class MailingListBridgeBot implements Bot {
         return archiveRepo;
     }
 
+    HostedRepository censusRepo() {
+        return censusRepo;
+    }
+
+    String censusRef() {
+        return censusRef;
+    }
+
     EmailAddress emailAddress() {
         return emailAddress;
     }
@@ -82,6 +97,10 @@ public class MailingListBridgeBot implements Bot {
 
     Set<String> ignoredUsers() {
         return ignoredUsers;
+    }
+
+    Set<Pattern> ignoredComments() {
+        return ignoredComments;
     }
 
     URI listArchive() {

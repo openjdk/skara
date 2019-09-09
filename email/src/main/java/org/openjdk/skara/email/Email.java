@@ -119,6 +119,10 @@ public class Email {
         return new EmailBuilder(author, subject, body);
     }
 
+    public static EmailBuilder create(String subject, String body) {
+        return new EmailBuilder(subject, body);
+    }
+
     public static EmailBuilder from(Email email) {
         return new EmailBuilder(email.author, email.subject, email.body)
                 .sender(email.sender)
