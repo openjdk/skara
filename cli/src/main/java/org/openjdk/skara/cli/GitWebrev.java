@@ -99,7 +99,7 @@ public class GitWebrev {
                   .helptext("Use that username instead of 'guessing' one")
                   .optional(),
             Option.shortcut("")
-                  .fullname("repository")
+                  .fullname("upstream")
                   .describe("URL")
                   .helptext("The URL to the upstream repository")
                   .optional(),
@@ -152,7 +152,7 @@ public class GitWebrev {
         var repo = repository.get();
         var isMercurial = arguments.contains("mercurial");
 
-        var upstream = arg("repository", arguments, repo);
+        var upstream = arg("upstream", arguments, repo);
         if (upstream == null) {
             try {
                 var remote = isMercurial ? "default" : "origin";

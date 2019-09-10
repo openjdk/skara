@@ -55,21 +55,22 @@ public class GitFork {
         }
     }
 
-    private static Repository clone(URI from, Path dest) throws IOException {
+    private static Repository clone(URI from, Path dest, boolean isMercurial) throws IOException {
         try {
             var to = dest == null ? Path.of(from.getPath()).getFileName() : dest;
             if (to.toString().endsWith(".git")) {
                 to = Path.of(to.toString().replace(".git", ""));
             }
 
-            var pb = new ProcessBuilder("git", "clone", from.toString(), to.toString());
+            var vcs = isMercurial ? "hg" : "git";
+            var pb = new ProcessBuilder(vcs, "clone", from.toString(), to.toString());
             pb.inheritIO();
             var p = pb.start();
             var res = p.waitFor();
             if (res != 0) {
-                exit("'git clone " + from.toString() + " " + to.toString() + "' failed with exit code: " + res);
+                exit("'" + vcs + " clone " + from.toString() + " " + to.toString() + "' failed with exit code: " + res);
             }
-            return Repository.get(to).orElseThrow(() -> new IOException("Could not find git repository"));
+            return Repository.get(to).orElseThrow(() -> new IOException("Could not find repository"));
         } catch (InterruptedException e) {
             throw new IOException(e);
         }
@@ -93,6 +94,10 @@ public class GitFork {
             Switch.shortcut("")
                   .fullname("version")
                   .helptext("Print the version of this tool")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("mercurial")
+                  .helptext("Force use of mercurial")
                   .optional());
 
         var inputs = List.of(
@@ -107,6 +112,7 @@ public class GitFork {
 
         var parser = new ArgumentParser("git-fork", flags, inputs);
         var arguments = parser.parse(args);
+        var isMercurial = arguments.contains("mercurial");
 
         if (arguments.contains("version")) {
             System.out.println("git-fork version: " + Version.fromManifest().orElse("unknown"));
@@ -140,9 +146,11 @@ public class GitFork {
         }
 
         var host = Host.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
-        path = credentials.path();
         if (path.endsWith(".git")) {
             path = path.substring(0, path.length() - 4);
+        }
+        if (path.startsWith("/")) {
+            path = path.substring(1);
         }
 
         var fork = host.getRepository(path).fork();
@@ -151,16 +159,25 @@ public class GitFork {
             GitCredentials.approve(credentials);
         }
 
+        var webUrl = fork.getWebUrl();
+        if (isMercurial) {
+            webUrl = URI.create("git+" + webUrl.toString());
+        }
         if (arguments.at(1).isPresent()) {
             System.out.println("Fork available at: " + fork.getWebUrl());
             var dest = arguments.at(1).asString();
-            System.out.println("Cloning " + fork.getWebUrl() + "...");
-            var repo = clone(fork.getWebUrl(), Path.of(dest));
-            System.out.print("Adding remote 'upstream' for " + uri.toString() + "...");
-            repo.addRemote("upstream", uri.toString());
+            System.out.println("Cloning " + webUrl + "...");
+            var repo = clone(webUrl, Path.of(dest), isMercurial);
+            var remoteWord = isMercurial ? "path" : "remote";
+            System.out.print("Adding " + remoteWord + " 'upstream' for " + uri.toString() + "...");
+            var upstreamUrl = uri.toString();
+            if (isMercurial) {
+                upstreamUrl = "git+" + upstreamUrl;
+            }
+            repo.addRemote("upstream", upstreamUrl);
             System.out.println("done");
         } else {
-            System.out.println(fork.getWebUrl());
+            System.out.println(webUrl);
         }
     }
 }
