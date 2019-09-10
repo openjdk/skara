@@ -25,6 +25,8 @@ import subprocess
 import sys
 import shutil
 
+testedwith = '4.9.2'
+
 cmdtable = {}
 if hasattr(mercurial, 'registrar') and hasattr(mercurial.registrar, 'command'):
     command = mercurial.registrar.command(cmdtable)

@@ -153,7 +153,6 @@ public class GitFork {
             path = path.substring(1);
         }
 
-        System.out.println("path: " + path);
         var fork = host.getRepository(path).fork();
 
         if (token == null) {
