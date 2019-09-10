@@ -119,7 +119,7 @@ class ReviewArchive {
                              .max(Comparator.comparingInt(email -> Integer.parseInt(email.headerValue("PR-Sequence"))));
 
             if (last.isEmpty()) {
-                throw  new RuntimeException("Failed to find parent");
+                throw new RuntimeException("Failed to find parent");
             } else {
                 return last.get();
             }
