@@ -23,7 +23,7 @@
 package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.email.EmailAddress;
-import org.openjdk.skara.host.Review;
+import org.openjdk.skara.host.*;
 import org.openjdk.skara.host.network.URIBuilder;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
 import org.openjdk.skara.test.*;
@@ -82,6 +82,12 @@ class MailingListBridgeBotTests {
 
     private long countSubstrings(String string, String substring) {
         return Pattern.compile(substring).matcher(string).results().count();
+    }
+
+    private String noreplyAddress(HostedRepository repository) {
+        return repository.host().getCurrentUserDetails().id() + "+" +
+                repository.host().getCurrentUserDetails().userName() +
+                "@users.noreply.test";
     }
 
     @Test
@@ -176,8 +182,8 @@ class MailingListBridgeBotTests {
             assertEquals(1, conversations.size());
             var mail = conversations.get(0).first();
             assertEquals("RFR: This is a pull request", mail.subject());
-            assertEquals(pr.getAuthor().fullName() + " via " + pr.repository().getUrl().getHost(), mail.author().fullName().orElseThrow());
-            assertEquals(from.address(), mail.author().address());
+            assertEquals(pr.getAuthor().fullName(), mail.author().fullName().orElseThrow());
+            assertEquals(noreplyAddress(archive), mail.author().address());
             assertEquals(from, mail.sender());
 
             // And there should be a webrev
@@ -228,7 +234,7 @@ class MailingListBridgeBotTests {
             assertEquals(1, conversations.size());
             assertEquals(3, conversations.get(0).allMessages().size());
             for (var newMail : conversations.get(0).allMessages()) {
-                assertEquals(from.address(), newMail.author().address());
+                assertEquals(noreplyAddress(archive), newMail.author().address());
                 assertEquals(from, newMail.sender());
             }
             assertTrue(conversations.get(0).allMessages().get(2).body().contains("This is a comment 😄"));
@@ -315,7 +321,7 @@ class MailingListBridgeBotTests {
             assertEquals(1, conversations.size());
             assertEquals(3, conversations.get(0).allMessages().size());
             for (var newMail : conversations.get(0).allMessages()) {
-                assertEquals(from.address(), newMail.author().address());
+                assertEquals(noreplyAddress(archive), newMail.author().address());
                 assertEquals(from, newMail.sender());
             }
         }
@@ -462,8 +468,12 @@ class MailingListBridgeBotTests {
             assertFalse(thread1.body().contains("Another review comment"), thread1.body());
             var thread1reply1 = conversations.get(0).replies(thread1).get(0);
             assertTrue(thread1reply1.body().contains("I agree"));
+            assertEquals(noreplyAddress(archive), thread1reply1.author().address());
+            assertEquals(archive.host().getCurrentUserDetails().fullName(), thread1reply1.author().fullName().orElseThrow());
             var thread1reply2 = conversations.get(0).replies(thread1reply1).get(0);
             assertTrue(thread1reply2.body().contains("Great"));
+            assertEquals("integrationreviewer1@openjdk.java.net", thread1reply2.author().address());
+            assertEquals("Generated Reviewer 1", thread1reply2.author().fullName().orElseThrow());
 
             var thread2 = conversations.get(0).replies(mail).get(1);
             assertEquals(2, thread2.body().split("^On.*wrote:").length);
@@ -731,7 +741,7 @@ class MailingListBridgeBotTests {
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             for (var newMail : conversations.get(0).allMessages()) {
-                assertEquals(from.address(), newMail.author().address());
+                assertEquals(noreplyAddress(archive), newMail.author().address());
                 assertEquals(from, newMail.sender());
             }
 
@@ -772,8 +782,8 @@ class MailingListBridgeBotTests {
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.host().getCurrentUserDetails().id());
-            var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
+            var sender = EmailAddress.from("test", "test@test.mail");
+            var mlBot = new MailingListBridgeBot(sender, author, archive, censusBuilder.build(), "master",
                                                  listAddress, Set.of(), Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
@@ -840,8 +850,8 @@ class MailingListBridgeBotTests {
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             for (var newMail : conversations.get(0).allMessages()) {
-                assertEquals(from.address(), newMail.author().address());
-                assertEquals(from, newMail.sender());
+                assertEquals(noreplyAddress(archive), newMail.author().address());
+                assertEquals(sender, newMail.sender());
             }
         }
     }
