@@ -45,6 +45,7 @@ class ArchiveMessages {
         var commentMatcher = commentPattern.matcher(body);
         body = commentMatcher.replaceAll("");
 
+        body = MarkdownToText.removeFormatting(body);
         return body.strip();
     }
 

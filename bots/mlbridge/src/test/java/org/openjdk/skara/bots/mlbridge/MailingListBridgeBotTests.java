@@ -192,7 +192,7 @@ class MailingListBridgeBotTests {
             assertEquals(1, webrevComments.size());
 
             // Add a comment
-            pr.addComment("This is a comment");
+            pr.addComment("This is a comment :smile:");
 
             // Add a comment from an ignored user as well
             ignoredPr.addComment("Don't mind me");
@@ -231,6 +231,7 @@ class MailingListBridgeBotTests {
                 assertEquals(from.address(), newMail.author().address());
                 assertEquals(from, newMail.sender());
             }
+            assertTrue(conversations.get(0).allMessages().get(2).body().contains("This is a comment 😄"));
         }
     }
 
