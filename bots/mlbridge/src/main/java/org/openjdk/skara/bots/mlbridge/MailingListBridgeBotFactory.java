@@ -46,9 +46,13 @@ public class MailingListBridgeBotFactory implements BotFactory {
         var specific = configuration.specific();
 
         var from = EmailAddress.from(specific.get("name").asString(), specific.get("mail").asString());
-        var ignoredUsers = specific.get("ignored").stream()
+        var ignoredUsers = specific.get("ignored").get("users").stream()
                                    .map(JSONValue::asString)
                                    .collect(Collectors.toSet());
+        var ignoredComments = specific.get("ignored").get("comments").stream()
+                                      .map(JSONValue::asString)
+                                      .map(pattern -> Pattern.compile(pattern, Pattern.MULTILINE | Pattern.DOTALL))
+                                      .collect(Collectors.toSet());
         var listArchive = URIBuilder.base(specific.get("server").get("archive").asString()).build();
         var listSmtp = specific.get("server").get("smtp").asString();
 
@@ -71,10 +75,14 @@ public class MailingListBridgeBotFactory implements BotFactory {
 
         for (var repoConfig : specific.get("repositories").asArray()) {
             var repo = repoConfig.get("repository").asString();
+            var censusRepo = configuration.repository(repoConfig.get("census").asString());
+            var censusRef = configuration.repositoryRef(repoConfig.get("census").asString());
+
             var list = EmailAddress.parse(repoConfig.get("list").asString());
             var folder = repoConfig.contains("folder") ? repoConfig.get("folder").asString() : configuration.repositoryName(repo);
             var bot = new MailingListBridgeBot(from, configuration.repository(repo), archiveRepo,
-                                               list, ignoredUsers, listArchive, listSmtp,
+                                               censusRepo, censusRef,
+                                               list, ignoredUsers, ignoredComments, listArchive, listSmtp,
                                                webrevRepo, webrevRef, Path.of(folder),
                                                URIBuilder.base(webrevWeb).build(), readyLabels, readyComments);
             ret.add(bot);

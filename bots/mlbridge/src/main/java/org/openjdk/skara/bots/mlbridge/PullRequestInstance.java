@@ -90,4 +90,8 @@ class PullRequestInstance {
     String id() {
         return pr.getId();
     }
+
+    PullRequest pr() {
+        return pr;
+    }
 }

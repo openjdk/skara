@@ -36,12 +36,15 @@ public class EmailBuilder {
     private final List<EmailAddress> recipients = new ArrayList<>();
     private final Map<String, String> headers = new HashMap<>();
 
-    EmailBuilder(EmailAddress author, String subject, String body) {
-        this.author = author;
+    EmailBuilder(String subject, String body) {
         this.subject = subject;
         this.body = body;
 
         date = ZonedDateTime.now();
+    }
+    EmailBuilder(EmailAddress author, String subject, String body) {
+        this(subject, body);
+        author(author);
     }
 
     public EmailBuilder author(EmailAddress author) {

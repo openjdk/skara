@@ -64,8 +64,10 @@ class MailingListArchiveReaderBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.host().getCurrentUserDetails().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, listAddress,
+            var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
+                                                 listAddress,
                                                  Set.of(ignored.host().getCurrentUserDetails().userName()),
+                                                 Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
                                                  URIBuilder.base("http://www.test.test/").build(),
@@ -125,8 +127,10 @@ class MailingListArchiveReaderBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.host().getCurrentUserDetails().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, listAddress,
+            var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
+                                                 listAddress,
                                                  Set.of(ignored.host().getCurrentUserDetails().userName()),
+                                                 Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
                                                  URIBuilder.base("http://www.test.test/").build(),
