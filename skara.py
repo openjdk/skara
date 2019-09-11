@@ -65,20 +65,53 @@ def _skara(ui, args, **opts):
 
     sys.exit(subprocess.call([git_skara] + args))
 
+def _web_url(url):
+    if url.startswith('git+'):
+        url = url[len('git+'):]
+
+    if url.startswith('http'):
+        return url
+
+    if not url.startswith('ssh://'):
+        raise ValueError('Unexpected url: ' + url)
+
+    without_protocol = url[len('ssh://'):]
+    first_slash = without_protocol.index('/')
+    host = without_protocol[:first_slash]
+
+    ssh_config = os.path.join(os.path.expanduser('~'), '.ssh', 'config')
+    if os.path.exists(ssh_config):
+        with open(ssh_config) as f:
+            lines = f.readlines()
+            current = None
+            for line in lines:
+                if line.startswith('Host '):
+                    current = line.split(' ')[1].strip()
+                if line.strip().lower().startswith('hostname') and host == current:
+                    host = line.strip().split(' ')[1]
+                    break
+
+    return 'https://' + host + without_protocol[first_slash:]
+
+def _username(ui, opts, url):
+    web_url = _web_url(url)
+    username = None
+    if opts.get('username') == '':
+        username = ui.config('credential "' + web_url + '"', 'username')
+        if username == None:
+            protocol, rest = web_url.split('://')
+            hostname = rest[:rest.index('/')]
+            username = ui.config('credential "' + protocol + '://' + hostname + '"', 'username')
+            if username == None:
+                username = ui.config('credential', 'username')
+    return username
+
 fork_opts = [
     ('u', 'username', '', 'Username on host'),
 ]
 @command('fork', fork_opts, 'hg fork URL [DEST]', norepo=True)
 def fork(ui, url, dest=None, **opts):
-    username = None
-    if opts['username'] != '' and url.startswith('http'):
-        username = ui.config('credential "' + url + '"', 'username')
-        if username == None:
-            protocol, rest = url.split('://')
-            hostname = rest[:rest.find('/')]
-            username = ui.config('credential "' + protocol + '://' + hostname + '"', 'username')
-            if username == None:
-                username = ui.config('credential', 'username')
+    username = _username(ui, opts, url)
     args = ['fork', '--mercurial']
     if username != None:
         args.append("--username")
@@ -144,14 +177,26 @@ def info(ui, repo, rev, **opts):
 
 pr_opts = [
     ('u', 'username', '', 'Username on host'),
-    ('r', 'remote', '', 'Name of remote, defaults to "origin"'),
-    ('b', 'branch', '', 'Name of target branch, defaults to "master"'),
+    ('r', 'remote', '', 'Name of path, defaults to "default"'),
+    ('b', 'branch', '', 'Name of target branch, defaults to "default"'),
     ('',  'authors', '', 'Comma separated list of authors'),
     ('',  'assignees', '', 'Comma separated list of assignees'),
     ('',  'labels', '', 'Comma separated list of labels'),
     ('',  'columns', '', 'Comma separated list of columns to show'),
     ('', 'no-decoration', False, 'Do not prefix lines with any decoration')
 ]
-@command('pr', info_opts, 'hg pr <list|fetch|show|checkout|apply|integrate|approve|create|close|update>')
-def pr(ui, repo, action, **opts):
-    _skara(ui, ['pr', '--mercurial', action], **opts)
+@command('pr', pr_opts, 'hg pr <list|fetch|show|checkout|apply|integrate|approve|create|close|update>')
+def pr(ui, repo, action, n=None, **opts):
+    path = opts.get('remote')
+    if path == '':
+        path = 'default'
+    url = ui.config('paths', path)
+    username = _username(ui, opts, url)
+    args = ['pr', '--mercurial']
+    if username != None:
+        args.append('--username')
+        args.append(username)
+    args.append(action)
+    if n != None:
+        args.append(n)
+    _skara(ui, args, **opts)

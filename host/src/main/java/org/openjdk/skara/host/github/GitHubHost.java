@@ -124,9 +124,13 @@ public class GitHubHost implements Host {
     }
 
     // Most GitHub API's return user information in this format
-    HostUserDetails parseUserDetails(JSONValue json) {
-        return new HostUserDetails(json.get("user").get("id").asInt(), json.get("user").get("login").asString(),
-                                   () -> getFullName(json.get("user").get("login").asString()));
+    HostUserDetails parseUserField(JSONValue json) {
+        return parseUserObject(json.get("user"));
+    }
+
+    HostUserDetails parseUserObject(JSONValue json) {
+        return new HostUserDetails(json.get("id").asInt(), json.get("login").asString(),
+                                   () -> getFullName(json.get("login").asString()));
     }
 
     @Override

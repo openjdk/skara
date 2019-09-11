@@ -123,6 +123,9 @@ public class GitPr {
     }
 
     private static void show(String ref, Hash hash) throws IOException {
+        show(ref, hash, null);
+    }
+    private static void show(String ref, Hash hash, Path dir) throws IOException {
         var pb = new ProcessBuilder("git", "diff", "--binary",
                                                    "--patch",
                                                    "--find-renames=50%",
@@ -130,11 +133,30 @@ public class GitPr {
                                                    "--find-copies-harder",
                                                    "--abbrev",
                                                    ref + "..." + hash.hex());
+        if (dir != null) {
+            pb.directory(dir.toFile());
+        }
+        pb.inheritIO();
+        await(pb.start());
+    }
+
+    private static void gimport() throws IOException {
+        var pb = new ProcessBuilder("hg", "gimport");
+        pb.inheritIO();
+        await(pb.start());
+    }
+
+    private static void hgImport(Path patch) throws IOException {
+        var pb = new ProcessBuilder("hg", "import", "--no-commit", patch.toAbsolutePath().toString());
         pb.inheritIO();
         await(pb.start());
     }
 
     private static Path diff(String ref, Hash hash) throws IOException {
+        return diff(ref, hash, null);
+    }
+
+    private static Path diff(String ref, Hash hash, Path dir) throws IOException {
         var patch = Files.createTempFile(hash.hex(), ".patch");
         var pb = new ProcessBuilder("git", "diff", "--binary",
                                                    "--patch",
@@ -143,6 +165,9 @@ public class GitPr {
                                                    "--find-copies-harder",
                                                    "--abbrev",
                                                    ref + "..." + hash.hex());
+        if (dir != null) {
+            pb.directory(dir.toFile());
+        }
         pb.redirectOutput(patch.toFile());
         pb.redirectError(ProcessBuilder.Redirect.INHERIT);
         await(pb.start());
@@ -157,14 +182,14 @@ public class GitPr {
 
     private static URI toURI(String remotePath) throws IOException {
         if (remotePath.startsWith("git+")) {
-            remotePath = remotePath.substring(4);
+            remotePath = remotePath.substring("git+".length());
         }
         if (remotePath.startsWith("http")) {
             return URI.create(remotePath);
-        } else if (remotePath.startsWith("ssh://")) {
-            var sshURI = URI.create(remotePath);
-            return URI.create("https://" + sshURI.getHost() + sshURI.getPath());
         } else {
+            if (remotePath.startsWith("ssh://")) {
+                remotePath = remotePath.substring("ssh://".length()).replaceFirst("/", ":");
+            }
             var indexOfColon = remotePath.indexOf(':');
             var indexOfSlash = remotePath.indexOf('/');
             if (indexOfColon != -1) {
@@ -289,7 +314,7 @@ public class GitPr {
         var remote = arguments.get("remote").orString(isMercurial ? "default" : "origin");
         var remotePullPath = repo.pullPath(remote);
         var username = arguments.contains("username") ? arguments.get("username").asString() : null;
-        var token = System.getenv("GIT_TOKEN");
+        var token = isMercurial ? System.getenv("HG_TOKEN") :  System.getenv("GIT_TOKEN");
         var uri = toURI(remotePullPath);
         var credentials = GitCredentials.fill(uri.getHost(), uri.getPath(), username, token, uri.getScheme());
         var host = Host.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
@@ -547,7 +572,7 @@ public class GitPr {
                                  .collect(Collectors.toList());
                 System.out.format(fmt, (Object[]) row.toArray(new String[0]));
             }
-        } else if (action.equals("fetch") || action.equals("checkout") || action.equals("show") || action.equals("apply") || action.equals("close") || action.equals("update")) {
+        } else if (action.equals("fetch") || action.equals("checkout") || action.equals("show") || action.equals("apply")) {
             var prId = arguments.at(1);
             if (!prId.isPresent()) {
                 exit("error: missing pull request identifier");
@@ -555,8 +580,50 @@ public class GitPr {
 
             var remoteRepo = getHostedRepositoryFor(uri, credentials);
             var pr = remoteRepo.getPullRequest(prId.asString());
-            var fetchHead = repo.fetch(remoteRepo.getUrl(), pr.getHeadHash().hex());
+            var repoUrl = remoteRepo.getWebUrl();
+            var prHeadRef = pr.getSourceRef();
+            var isHgGit = isMercurial && Repository.exists(repo.root().resolve(".hg").resolve("git"));
+            if (isHgGit) {
+                var hgGitRepo = Repository.get(repo.root().resolve(".hg").resolve("git")).get();
+                var hgGitFetchHead = hgGitRepo.fetch(repoUrl, prHeadRef);
 
+                if (action.equals("show") || action.equals("apply")) {
+                    var target = hgGitRepo.fetch(repoUrl, pr.getTargetRef());
+                    var hgGitMergeBase = hgGitRepo.mergeBase(target, hgGitFetchHead);
+
+                    if (action.equals("show")) {
+                        show(hgGitMergeBase.hex(), hgGitFetchHead, hgGitRepo.root());
+                    } else {
+                        var patch = diff(hgGitMergeBase.hex(), hgGitFetchHead, hgGitRepo.root());
+                        hgImport(patch);
+                        Files.delete(patch);
+                    }
+                } else if (action.equals("fetch") || action.equals("checkout")) {
+                    var hgGitRef = prHeadRef.endsWith("/head") ? prHeadRef.replace("/head", "") : prHeadRef;
+                    var hgGitBranches = hgGitRepo.branches();
+                    if (hgGitBranches.contains(new Branch(hgGitRef))) {
+                        hgGitRepo.delete(new Branch(hgGitRef));
+                    }
+                    hgGitRepo.branch(hgGitFetchHead, hgGitRef);
+                    gimport();
+                    var hgFetchHead = repo.resolve(hgGitRef).get();
+
+                    if (action.equals("fetch") && arguments.contains("branch")) {
+                        repo.branch(hgFetchHead, arguments.get("branch").asString());
+                    } else if (action.equals("checkout")) {
+                        repo.checkout(hgFetchHead);
+                        if (arguments.contains("branch")) {
+                            repo.branch(hgFetchHead, arguments.get("branch").asString());
+                        }
+                    }
+                } else {
+                    exit("Unexpected action: " + action);
+                }
+
+                return;
+            }
+
+            var fetchHead = repo.fetch(repoUrl, pr.getSourceRef());
             if (action.equals("fetch")) {
                 if (arguments.contains("branch")) {
                     var branchName = arguments.get("branch").asString();
@@ -578,19 +645,33 @@ public class GitPr {
                 var patch = diff(pr.getTargetRef(), fetchHead);
                 apply(patch);
                 Files.deleteIfExists(patch);
-            } else if (action.equals("close")) {
-                pr.setState(PullRequest.State.CLOSED);
-            } else if (action.equals("update")) {
-                if (arguments.contains("assignees")) {
-                    var usernames = Arrays.asList(arguments.get("assignees").asString().split(","));
-                    var assignees = usernames.stream()
-                                             .map(host::getUserDetails)
-                                             .collect(Collectors.toList());
-                    pr.setAssignees(assignees);
-                }
-            } else {
-                exit("error: unexpected action: " + action);
             }
+        } else if (action.equals("close")) {
+            var prId = arguments.at(1);
+            if (!prId.isPresent()) {
+                exit("error: missing pull request identifier");
+            }
+
+            var remoteRepo = getHostedRepositoryFor(uri, credentials);
+            var pr = remoteRepo.getPullRequest(prId.asString());
+            pr.setState(PullRequest.State.CLOSED);
+        } else if (action.equals("update")) {
+            var prId = arguments.at(1);
+            if (!prId.isPresent()) {
+                exit("error: missing pull request identifier");
+            }
+
+            var remoteRepo = getHostedRepositoryFor(uri, credentials);
+            var pr = remoteRepo.getPullRequest(prId.asString());
+            if (arguments.contains("assignees")) {
+                var usernames = Arrays.asList(arguments.get("assignees").asString().split(","));
+                var assignees = usernames.stream()
+                    .map(host::getUserDetails)
+                    .collect(Collectors.toList());
+                pr.setAssignees(assignees);
+            }
+        } else {
+            exit("error: unexpected action: " + action);
         }
     }
 }
