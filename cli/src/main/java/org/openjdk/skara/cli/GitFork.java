@@ -133,7 +133,7 @@ public class GitFork {
         final var hostName = uri.getHost();
         var path = uri.getPath();
         final var protocol = uri.getScheme();
-        final var token = System.getenv("GIT_TOKEN");
+        final var token = isMercurial ? System.getenv("HG_TOKEN") : System.getenv("GIT_TOKEN");
         final var username = arguments.contains("username") ? arguments.get("username").asString() : null;
         final var credentials = GitCredentials.fill(hostName, path, username, token, protocol);
 

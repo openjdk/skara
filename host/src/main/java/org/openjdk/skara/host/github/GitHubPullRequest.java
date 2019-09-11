@@ -60,7 +60,7 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public HostUserDetails getAuthor() {
-        return host.parseUserDetails(json);
+        return host.parseUserField(json);
     }
 
     @Override
@@ -69,7 +69,7 @@ public class GitHubPullRequest implements PullRequest {
                              .map(JSONValue::asObject)
                              .filter(obj -> !(obj.get("state").asString().equals("COMMENTED") && obj.get("body").asString().isEmpty()))
                              .map(obj -> {
-                                 var reviewer = host.parseUserDetails(obj);
+                                 var reviewer = host.parseUserField(obj);
                                  var hash = new Hash(obj.get("commit_id").asString());
                                  Review.Verdict verdict;
                                  switch (obj.get("state").asString()) {
@@ -112,7 +112,7 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     private ReviewComment parseReviewComment(ReviewComment parent, JSONObject json, PositionMapper diff) {
-        var author = host.parseUserDetails(json);
+        var author = host.parseUserField(json);
         var threadId = parent == null ? json.get("id").toString() : parent.threadId();
         var comment = new ReviewComment(parent,
                                         threadId,
@@ -231,7 +231,7 @@ public class GitHubPullRequest implements PullRequest {
     private Comment parseComment(JSONValue comment) {
         var ret = new Comment(Integer.toString(comment.get("id").asInt()),
                               comment.get("body").asString(),
-                              host.parseUserDetails(comment),
+                              host.parseUserField(comment),
                               ZonedDateTime.parse(comment.get("created_at").asString()),
                               ZonedDateTime.parse(comment.get("updated_at").asString()));
         return ret;
@@ -425,7 +425,7 @@ public class GitHubPullRequest implements PullRequest {
     public List<HostUserDetails> getAssignees() {
         return json.get("assignees").asArray()
                                     .stream()
-                                    .map(host::parseUserDetails)
+                                    .map(host::parseUserObject)
                                     .collect(Collectors.toList());
     }
 
