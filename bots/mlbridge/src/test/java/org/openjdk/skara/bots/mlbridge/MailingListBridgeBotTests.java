@@ -359,7 +359,10 @@ class MailingListBridgeBotTests {
             localRepo.push(editHash, author.getUrl(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
+            pr.addComment("Avoid combining");
+
             TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
             listServer.processIncoming();
 
             // Make two file specific comments
@@ -370,7 +373,7 @@ class MailingListBridgeBotTests {
 
             // The archive should contain a combined entry
             Repository.materialize(archiveFolder.path(), archive.getUrl(), "master");
-            assertEquals(1, archiveContainsCount(archiveFolder.path(), "^On.*wrote:"));
+            assertEquals(2, archiveContainsCount(archiveFolder.path(), "^On.*wrote:"));
 
             // As well as the mailing list
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP());
@@ -379,14 +382,18 @@ class MailingListBridgeBotTests {
             assertEquals(1, conversations.size());
             var mail = conversations.get(0).first();
             assertEquals("RFR: This is a pull request", mail.subject());
-            assertEquals(2, conversations.get(0).allMessages().size());
+            assertEquals(3, conversations.get(0).allMessages().size());
 
-            var reply = conversations.get(0).replies(mail).get(0);
-            assertEquals(2, reply.body().split("^On.*wrote:").length);
-            assertEquals(2, reply.body().split("> This is now ready").length, reply.body());
-            assertEquals("Re: RFR: This is a pull request", reply.subject());
-            assertTrue(reply.body().contains("Review comment\n\n"), reply.body());
-            assertTrue(reply.body().contains("Another review comment"), reply.body());
+            var commentReply = conversations.get(0).replies(mail).get(0);
+            assertEquals(2, commentReply.body().split("^On.*wrote:").length);
+            assertTrue(commentReply.body().contains("Avoid combining\n\n"), commentReply.body());
+
+            var reviewReply = conversations.get(0).replies(mail).get(1);
+            assertEquals(2, reviewReply.body().split("^On.*wrote:").length);
+            assertEquals(2, reviewReply.body().split("> This is now ready").length, reviewReply.body());
+            assertEquals("Re: RFR: This is a pull request", reviewReply.subject());
+            assertTrue(reviewReply.body().contains("Review comment\n\n"), reviewReply.body());
+            assertTrue(reviewReply.body().contains("Another review comment"), reviewReply.body());
         }
     }
 

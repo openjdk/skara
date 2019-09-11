@@ -244,7 +244,10 @@ class ReviewArchive {
 
         // Is it a self-reply?
         if (parent.author().equals(getAuthorAddress(author)) && generatedIds.containsKey(parentId)) {
-            return Optional.of(parent);
+            // But avoid extending top-level parents
+            if (!parent.hasHeader("PR-Head-Hash")) {
+                return Optional.of(parent);
+            }
         }
 
         // Have we already replied to the same parent?
