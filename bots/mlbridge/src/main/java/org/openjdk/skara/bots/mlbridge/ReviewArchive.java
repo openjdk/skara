@@ -189,7 +189,7 @@ class ReviewArchive {
         try {
             var latestCommit = prInstance.localRepo().lookup(prInstance.headHash()).orElseThrow(RuntimeException::new);
             var firstLine = latestCommit.message().size() > 0 ? latestCommit.message().get(0) : prInstance.pr().getTitle();
-            return String.format("%02d: %s", revisionCount(), firstLine);
+            return String.format("Re: %02d: %s", revisionCount(), firstLine);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -261,6 +261,9 @@ class ReviewArchive {
         if (parent.hasHeader("References")) {
             references = parent.headerValue("References") + " " + references;
         }
+        if (!subject.startsWith("Re: ")) {
+            subject = "Re: " + subject;
+        }
 
         // Collapse self-replies and replies-to-same that have been created in this run
         var collapsable = findCollapsable(parent, author);
@@ -276,6 +279,7 @@ class ReviewArchive {
             var reply = ArchiveMessages.composeCombinedReply(parentEmail, body, prInstance);
             var email = Email.from(parentEmail)
                              .body(reply)
+                             .subject(subject)
                              .id(id)
                              .header("PR-Collapsed-IDs", collapsed)
                              .header("PR-Sequence", Integer.toString(existing.size() + generated.size()))
@@ -333,7 +337,7 @@ class ReviewArchive {
                 var userName = contributor != null ? contributor.username() : review.reviewer().userName() + "@" + censusInstance.namespace().name();
                 var userRole = contributor != null ? projectRole(contributor, censusInstance) : "none";
                 var replyBody = ArchiveMessages.reviewCommentBody(review.body().get(), review.verdict(), userName, userRole);
-                addReplyCommon(parent, review.reviewer(), "Re: RFR: " + prInstance.pr().getTitle(), replyBody, id);
+                addReplyCommon(parent, review.reviewer(), parent.subject(), replyBody, id);
             }
         }
 
@@ -371,7 +375,7 @@ class ReviewArchive {
         }
         body.append(reviewComment.body());
 
-        addReplyCommon(parent, reviewComment.author(), "Re: RFR: " + prInstance.pr().getTitle(), body.toString(), id);
+        addReplyCommon(parent, reviewComment.author(), parent.subject(), body.toString(), id);
     }
 
     List<Email> generatedEmails() {
