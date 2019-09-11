@@ -200,3 +200,7 @@ def pr(ui, repo, action, n=None, **opts):
     if n != None:
         args.append(n)
     _skara(ui, args, **opts)
+
+@command('skara', [], 'hg skara')
+def skara(ui, repo, action, **opts):
+    _skara(ui, [action, '--mercurial'], **opts)
