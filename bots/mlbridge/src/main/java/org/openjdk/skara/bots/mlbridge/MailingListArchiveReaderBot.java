@@ -100,16 +100,17 @@ public class MailingListArchiveReaderBot implements Bot {
             parsedEmailIds.add(newMessage.id());
         }
 
-        // Filter out bridged comments
-        var bridgeCandidates = newMessages.stream()
-                .filter(email -> !email.author().address().equals(archivePoster.address()))
-                .collect(Collectors.toList());
+        var pr = parsedConversations.get(conversation.first().id());
+        var bridgeIdPattern = Pattern.compile("^[^.]+\\.[^.]+@" + pr.repository().getUrl().getHost() + "$");
 
+        // Filter out already bridged comments
+        var bridgeCandidates = newMessages.stream()
+                .filter(email -> !bridgeIdPattern.matcher(email.id().address()).matches())
+                .collect(Collectors.toList());
         if (bridgeCandidates.isEmpty()) {
             return;
         }
 
-        var pr = parsedConversations.get(conversation.first().id());
         var workItem = new CommentPosterWorkItem(pr, bridgeCandidates);
         commentQueue.add(workItem);
     }

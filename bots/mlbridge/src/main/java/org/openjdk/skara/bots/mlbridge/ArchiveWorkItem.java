@@ -227,8 +227,7 @@ class ArchiveWorkItem implements WorkItem {
 
         var census = CensusInstance.create(bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr);
         var prInstance = new PullRequestInstance(scratchPath.resolve("mlbridge-mergebase"), pr);
-        var reviewArchive = new ReviewArchive(bot.emailAddress(), prInstance, sentMails,
-                                              " via " + pr.repository().getUrl().getHost());
+        var reviewArchive = new ReviewArchive(bot.emailAddress(), prInstance, census, sentMails);
         var webrevPath = scratchPath.resolve("mlbridge-webrevs");
         var listServer = MailingListServerFactory.createMailmanServer(bot.listArchive(), bot.smtpServer());
         var list = listServer.getList(bot.listAddress().address());
@@ -280,7 +279,7 @@ class ArchiveWorkItem implements WorkItem {
             if (ignoreComment(review.reviewer(), review.body().orElse(""))) {
                 continue;
             }
-            reviewArchive.addReview(review, census);
+            reviewArchive.addReview(review);
         }
 
         // File specific comments

@@ -14,8 +14,8 @@ import java.util.stream.*;
 
 class ReviewArchive {
     private final PullRequestInstance prInstance;
+    private final CensusInstance censusInstance;
     private final EmailAddress sender;
-    private final String nameDecoration;
     private final List<Email> existing;
     private final Map<String, Email> existingIds = new HashMap<>();
     private final List<Email> generated = new ArrayList<>();
@@ -24,8 +24,14 @@ class ReviewArchive {
     private final List<Hash> reportedBases;
 
     private EmailAddress getAuthorAddress(HostUserDetails originalAuthor) {
-        return EmailAddress.from(originalAuthor.fullName() + nameDecoration,
-                                 sender.address());
+        var contributor = censusInstance.namespace().get(originalAuthor.id());
+        if (contributor == null) {
+            return EmailAddress.from(originalAuthor.fullName(),
+                                     originalAuthor.id() + "+" + originalAuthor.userName() + "@users.noreply." + censusInstance.namespace().name());
+        } else {
+            return EmailAddress.from(contributor.fullName().orElse(originalAuthor.fullName()),
+                                     contributor.username() + "@" + censusInstance.configuration().census().domain());
+        }
     }
 
     private EmailAddress getUniqueMessageId(String identifier) {
@@ -127,10 +133,10 @@ class ReviewArchive {
         return parent;
     }
 
-    ReviewArchive(EmailAddress sender, PullRequestInstance prInstance, List<Email> sentMails, String nameDecoration) {
+    ReviewArchive(EmailAddress sender, PullRequestInstance prInstance, CensusInstance censusInstance, List<Email> sentMails) {
         this.sender = sender;
         this.prInstance = prInstance;
-        this.nameDecoration = nameDecoration;
+        this.censusInstance = censusInstance;
 
         existing = sentMails;
         for (var email : existing) {
@@ -308,7 +314,7 @@ class ReviewArchive {
         addReplyCommon(parent, comment.author(), "Re: RFR: " + prInstance.pr().getTitle(), comment.body(), id);
     }
 
-    private String projectRole(Contributor contributor, CensusInstance censusInstance) {
+    private String projectRole(Contributor contributor) {
         var version = censusInstance.configuration().census().version();
         if (censusInstance.project().isLead(contributor.username(), version)) {
             return "Lead";
@@ -322,7 +328,7 @@ class ReviewArchive {
         return "none";
     }
 
-    void addReview(Review review, CensusInstance censusInstance) {
+    void addReview(Review review) {
         var contributor = censusInstance.namespace().get(review.reviewer().id());
 
         // Post the review body as a regular comment
@@ -331,7 +337,7 @@ class ReviewArchive {
             if (!existingIds.containsKey(getStableMessageId(id))) {
                 var parent = topCommentForHash(review.hash());
                 var userName = contributor != null ? contributor.username() : review.reviewer().userName() + "@" + censusInstance.namespace().name();
-                var userRole = contributor != null ? projectRole(contributor, censusInstance) : "none";
+                var userRole = contributor != null ? projectRole(contributor) : "none";
                 var replyBody = ArchiveMessages.reviewCommentBody(review.body().get(), review.verdict(), userName, userRole);
                 addReplyCommon(parent, review.reviewer(), "Re: RFR: " + prInstance.pr().getTitle(), replyBody, id);
             }
