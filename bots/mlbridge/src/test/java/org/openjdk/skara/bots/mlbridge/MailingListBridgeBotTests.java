@@ -669,6 +669,7 @@ class MailingListBridgeBotTests {
              var listServer = new TestMailmanServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
+            var commenter = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.host().getCurrentUserDetails().id());
@@ -745,6 +746,12 @@ class MailingListBridgeBotTests {
                 assertEquals(from, newMail.sender());
             }
 
+            // Add a comment
+            var commenterPr = commenter.getPullRequest(pr.getId());
+            commenterPr.addReviewComment(masterHash, nextHash, reviewFile.toString(), 2, "Review comment");
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
             // Ensure that additional updates are only reported once
             for (int i = 0; i < 3; ++i) {
                 var anotherHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "Fixing");
@@ -767,7 +774,10 @@ class MailingListBridgeBotTests {
             var updatedConversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, updatedConversations.size());
             var conversation = updatedConversations.get(0);
-            assertEquals(5, conversation.allMessages().size());
+            assertEquals(6, conversation.allMessages().size());
+            assertEquals("Re: 01: Fixing", conversation.allMessages().get(1).subject());
+            assertEquals("Re: 01: Fixing", conversation.allMessages().get(2).subject());
+            assertEquals("Re: 04: Fixing", conversation.allMessages().get(5).subject());
         }
     }
 
@@ -853,6 +863,7 @@ class MailingListBridgeBotTests {
                 assertEquals(noreplyAddress(archive), newMail.author().address());
                 assertEquals(sender, newMail.sender());
             }
+            assertEquals("Re: 01: Replaced msg", conversations.get(0).allMessages().get(1).subject());
         }
     }
 
