@@ -618,6 +618,17 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public Optional<Bookmark> currentBookmark() throws IOException {
+        try (var p = capture("hg", "log", "-r", ".", "--template", "{activebookmark}\n")) {
+            var res = await(p);
+            if (res.stdout().size() == 1) {
+                return Optional.of(new Bookmark(res.stdout().get(0)));
+            }
+            return Optional.empty();
+        }
+    }
+
+    @Override
     public Branch defaultBranch() throws IOException {
         return new Branch("default");
     }
