@@ -672,6 +672,11 @@ public class GitRepository implements Repository {
     }
 
     @Override
+    public Optional<Bookmark> currentBookmark() throws IOException {
+        throw new RuntimeException("git does not have bookmarks");
+    }
+
+    @Override
     public Branch defaultBranch() throws IOException {
         try (var p = capture("git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD")) {
             var res = p.await();

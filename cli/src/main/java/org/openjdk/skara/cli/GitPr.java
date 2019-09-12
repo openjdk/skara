@@ -33,9 +33,11 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.*;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import java.nio.charset.StandardCharsets;
 
 public class GitPr {
     private static void exit(String fmt, Object...args) {
@@ -152,6 +154,36 @@ public class GitPr {
         await(pb.start());
     }
 
+    private static List<String> hgTags() throws IOException, InterruptedException {
+        var pb = new ProcessBuilder("hg", "tags", "--quiet");
+        pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
+        pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+        var p = pb.start();
+        var bytes = p.getInputStream().readAllBytes();
+        var exited = p.waitFor(1, TimeUnit.MINUTES);
+        var exitValue = p.exitValue();
+        if (!exited || exitValue != 0) {
+            throw new IOException("'hg tags' exited with value: " + exitValue);
+        }
+
+        return Arrays.asList(new String(bytes, StandardCharsets.UTF_8).split("\n"));
+    }
+
+    private static String hgResolve(String ref) throws IOException, InterruptedException {
+        var pb = new ProcessBuilder("hg", "log", "-r", ref, "--template", "{node}");
+        pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
+        pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+        var p = pb.start();
+        var bytes = p.getInputStream().readAllBytes();
+        var exited = p.waitFor(1, TimeUnit.MINUTES);
+        var exitValue = p.exitValue();
+        if (!exited || exitValue != 0) {
+            throw new IOException("'hg log' exited with value: " + exitValue);
+        }
+
+        return new String(bytes, StandardCharsets.UTF_8);
+    }
+
     private static Path diff(String ref, Hash hash) throws IOException {
         return diff(ref, hash, null);
     }
@@ -224,7 +256,7 @@ public class GitPr {
         return strings.stream().mapToInt(String::length).max().orElse(0);
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         var flags = List.of(
             Option.shortcut("u")
                   .fullname("username")
@@ -321,6 +353,182 @@ public class GitPr {
 
         var action = arguments.at(0).asString();
         if (action.equals("create")) {
+            if (isMercurial) {
+                var currentBookmark = repo.currentBookmark();
+                if (!currentBookmark.isPresent()) {
+                    System.err.println("error: no bookmark is active, you must be on an active bookmark");
+                    System.err.println("");
+                    System.err.println("To create a bookmark and activate it, run:");
+                    System.err.println("");
+                    System.err.println("    hg bookmark NAME-FOR-YOUR-BOOKMARK");
+                    System.err.println("");
+                    System.exit(1);
+                }
+
+                var bookmark = currentBookmark.get();
+                if (bookmark.equals(new Bookmark("master"))) {
+                    System.err.println("error: you should not create pull requests from the 'master' bookmark");
+                    System.err.println("To create a bookmark and activate it, run:");
+                    System.err.println("");
+                    System.err.println("    hg bookmark NAME-FOR-YOUR-BOOKMARK");
+                    System.err.println("");
+                    System.exit(1);
+                }
+
+                var tags = hgTags();
+                var upstreams = tags.stream()
+                                    .filter(t -> t.endsWith(bookmark.name()))
+                                    .collect(Collectors.toList());
+                if (upstreams.isEmpty()) {
+                    System.err.println("error: there is no remote branch for the local bookmark '" + bookmark.name() + "'");
+                    System.err.println("");
+                    System.err.println("To create a remote branch and push the commits for your local branch, run:");
+                    System.err.println("");
+                    System.err.println("    hg push --bookmark " + bookmark.name());
+                    System.err.println("");
+                    System.exit(1);
+                }
+
+                var tagsAndHashes = new HashMap<String, String>();
+                for (var tag : tags) {
+                    tagsAndHashes.put(tag, hgResolve(tag));
+                }
+                var bookmarkHash = hgResolve(bookmark.name());
+                if (!tagsAndHashes.containsValue(bookmarkHash)) {
+                    System.err.println("error: there are local commits on bookmark '" + bookmark.name() + "' not present in a remote repository");
+                    System.err.println("");
+
+                    if (upstreams.size() == 1) {
+                        System.err.println("To push the local commits to the remote repository, run:");
+                        System.err.println("");
+                        System.err.println("    hg push --bookmark " + bookmark.name() + " " + upstreams.get(0));
+                        System.err.println("");
+                    } else {
+                        System.err.println("The following paths contains the " + bookmark.name() + " bookmark:");
+                        System.err.println("");
+                        for (var upstream : upstreams) {
+                            System.err.println("- " + upstream.replace("/" + bookmark.name(), ""));
+                        }
+                        System.err.println("");
+                        System.err.println("To push the local commits to a remote repository, run:");
+                        System.err.println("");
+                        System.err.println("    hg push --bookmark " + bookmark.name() + " <PATH>");
+                        System.err.println("");
+                    }
+                    System.exit(1);
+                }
+
+                var targetBranch = arguments.get("branch").orString("master");
+                var targetHash = hgResolve(targetBranch);
+                var commits = repo.commits(targetHash + ".." + bookmarkHash + "-" + targetHash).asList();
+                if (commits.isEmpty()) {
+                    System.err.println("error: no difference between bookmarks " + targetBranch + " and " + bookmark.name());
+                    System.err.println("       Cannot create an empty pull request, have you committed?");
+                    System.exit(1);
+                }
+
+                var diff = repo.diff(repo.head());
+                if (!diff.patches().isEmpty()) {
+                    System.err.println("error: there are uncommitted changes in your working tree:");
+                    System.err.println("");
+                    for (var patch : diff.patches()) {
+                        var path = patch.target().path().isPresent() ?
+                            patch.target().path().get() : patch.source().path().get();
+                        System.err.println("    " + patch.status().toString() + " " + path.toString());
+                    }
+                    System.err.println("");
+                    System.err.println("If these changes are meant to be part of the pull request, run:");
+                    System.err.println("");
+                    System.err.println("    hg commit --amend");
+                    System.err.println("    hg git-cleanup");
+                    System.err.println("    hg push --bookmark " + bookmark.name() + " <PATH>");
+                    System.err.println("    hg gimport");
+                    System.err.println("");
+                    System.err.println("If these changes are *not* meant to be part of the pull request, run:");
+                    System.err.println("");
+                    System.err.println("    hg shelve");
+                    System.err.println("");
+                    System.err.println("(You can later restore the changes by running: hg unshelve)");
+                    System.exit(1);
+                }
+
+                var remoteRepo = host.getRepository(projectName(uri));
+                if (token == null) {
+                    GitCredentials.approve(credentials);
+                }
+                var parentRepo = remoteRepo.getParent().orElseThrow(() ->
+                        new IOException("error: remote repository " + remotePullPath + " is not a fork of any repository"));
+
+                var file = Files.createTempFile("PULL_REQUEST_", ".txt");
+                if (commits.size() == 1) {
+                    var commit = commits.get(0);
+                    var message = CommitMessageParsers.v1.parse(commit.message());
+                    Files.writeString(file, message.title() + "\n");
+                    if (!message.summaries().isEmpty()) {
+                        Files.write(file, message.summaries(), StandardOpenOption.APPEND);
+                    }
+                    if (!message.additional().isEmpty()) {
+                        Files.write(file, message.additional(), StandardOpenOption.APPEND);
+                    }
+                } else {
+                    Files.write(file, List.of(""));
+                }
+                Files.write(file, List.of(
+                    "# Please enter the pull request message for your changes. Lines starting",
+                    "# with '#' will be ignored, and an empty message aborts the pull request.",
+                    "# The first line will be considered the subject, use a blank line to separate",
+                    "# the subject from the body.",
+                    "#",
+                    "# Commits to be included from branch '" + bookmark.name() + "'"
+                    ),
+                    StandardOpenOption.APPEND
+                );
+                for (var commit : commits) {
+                    var desc = commit.hash().abbreviate() + ": " + commit.message().get(0);
+                    Files.writeString(file, "# - " + desc + "\n", StandardOpenOption.APPEND);
+                }
+                Files.writeString(file, "#\n", StandardOpenOption.APPEND);
+                Files.writeString(file, "# Target repository: " + remotePullPath + "\n", StandardOpenOption.APPEND);
+                Files.writeString(file, "# Target branch: " + targetBranch + "\n", StandardOpenOption.APPEND);
+                var success = spawnEditor(repo, file);
+                if (!success) {
+                    System.err.println("error: editor exited with non-zero status code, aborting");
+                    System.exit(1);
+                }
+                var lines = Files.readAllLines(file)
+                                 .stream()
+                                 .filter(l -> !l.startsWith("#"))
+                                 .collect(Collectors.toList());
+                var isEmpty = lines.stream().allMatch(String::isEmpty);
+                if (isEmpty) {
+                    System.err.println("error: no message present, aborting");
+                    System.exit(1);
+                }
+
+                var title = lines.get(0);
+                List<String> body = null;
+                if (lines.size() > 1) {
+                    body = lines.subList(1, lines.size())
+                                .stream()
+                                .dropWhile(String::isEmpty)
+                                .collect(Collectors.toList());
+                } else {
+                    body = Collections.emptyList();
+                }
+
+                var pr = remoteRepo.createPullRequest(parentRepo, targetBranch, bookmark.name(), title, body);
+                if (arguments.contains("assignees")) {
+                    var usernames = Arrays.asList(arguments.get("assignees").asString().split(","));
+                    var assignees = usernames.stream()
+                                             .map(host::getUserDetails)
+                                             .collect(Collectors.toList());
+                    pr.setAssignees(assignees);
+                }
+                System.out.println(pr.getWebUrl().toString());
+                Files.deleteIfExists(file);
+
+                System.exit(0);
+            }
             var currentBranch = repo.currentBranch();
             if (currentBranch.equals(repo.defaultBranch())) {
                 System.err.println("error: you should not create pull requests from the 'master' branch");
