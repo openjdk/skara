@@ -64,16 +64,8 @@ class ReviewArchive {
         return getUniqueMessageId("ha" + hash.hex());
     }
 
-    private EmailAddress getMessageId(String raw) {
-        return getUniqueMessageId("rw" + raw);
-    }
-
-    private EmailAddress getMessageId(Review review, boolean verdict) {
-        if (verdict) {
-            return getUniqueMessageId("rvvd" + review.id());
-        } else {
-            return getUniqueMessageId("rv" + review.id());
-        }
+    private EmailAddress getMessageId(Review review) {
+        return getUniqueMessageId("rv" + review.id());
     }
 
     private String getStableMessageId(EmailAddress uniqueMessageId) {
@@ -239,12 +231,18 @@ class ReviewArchive {
         generatedIds.put(getStableMessageId(id), email);
     }
 
-    private Optional<Email> findCollapsable(Email parent, HostUserDetails author) {
+    private Optional<Email> findCollapsable(Email parent, HostUserDetails author, String subject) {
         var parentId = getStableMessageId(parent.id());
 
         // Is it a self-reply?
         if (parent.author().equals(getAuthorAddress(author)) && generatedIds.containsKey(parentId)) {
-            return Optional.of(parent);
+            // But avoid extending top-level parents
+            if (!parent.hasHeader("PR-Head-Hash")) {
+                // And only collapse identical subjects
+                if (parent.subject().equals(subject)) {
+                    return Optional.of(parent);
+                }
+            }
         }
 
         // Have we already replied to the same parent?
@@ -255,7 +253,10 @@ class ReviewArchive {
             var inReplyTo = EmailAddress.parse(candidate.headerValue("In-Reply-To"));
             var candidateParentId = getStableMessageId(inReplyTo);
             if (candidateParentId.equals(parentId) && candidate.author().equals(getAuthorAddress(author))) {
-                return Optional.of(candidate);
+                // Only collapse identical subjects
+                if (candidate.subject().equals(subject)) {
+                    return Optional.of(candidate);
+                }
             }
         }
 
@@ -272,7 +273,7 @@ class ReviewArchive {
         }
 
         // Collapse self-replies and replies-to-same that have been created in this run
-        var collapsable = findCollapsable(parent, author);
+        var collapsable = findCollapsable(parent, author, subject);
         if (collapsable.isPresent()) {
             // Drop the parent
             var parentEmail = collapsable.get();
@@ -333,31 +334,29 @@ class ReviewArchive {
     }
 
     void addReview(Review review) {
+        var id = getMessageId(review);
+        if (existingIds.containsKey(getStableMessageId(id))) {
+            return;
+        }
+
         var contributor = censusInstance.namespace().get(review.reviewer().id());
+        var isReviewer = contributor != null && censusInstance.project().isReviewer(contributor.username(), censusInstance.configuration().census().version());
 
-        // Post the review body as a regular comment
-        if (review.body().isPresent()) {
-            var id = getMessageId(review, false);
-            if (!existingIds.containsKey(getStableMessageId(id))) {
-                var parent = topCommentForHash(review.hash());
-                var userName = contributor != null ? contributor.username() : review.reviewer().userName() + "@" + censusInstance.namespace().name();
-                var userRole = contributor != null ? projectRole(contributor) : "none";
-                var replyBody = ArchiveMessages.reviewCommentBody(review.body().get(), review.verdict(), userName, userRole);
-                addReplyCommon(parent, review.reviewer(), parent.subject(), replyBody, id);
-            }
+        // Default parent and subject
+        var parent = topCommentForHash(review.hash());
+        var subject = parent.subject();
+
+        // Approvals by Reviewers get special treatment - post these as top-level comments
+        if (review.verdict() == Review.Verdict.APPROVED && isReviewer) {
+            parent = topEmail();
+            subject = "Approved and Reviewed by " + contributor.username();
         }
 
-        if (contributor != null) {
-            var isReviewer = censusInstance.project().isReviewer(contributor.username(), censusInstance.configuration().census().version());
-            if (review.verdict() == Review.Verdict.APPROVED && isReviewer) {
-                var id = getMessageId(review, true);
-                if (!existingIds.containsKey(getStableMessageId(id))) {
-                    var parent = topEmail();
-                    var replyBody = ArchiveMessages.reviewApprovalBodyReviewer(contributor.username());
-                    addReplyCommon(parent, review.reviewer(), "Approved and Reviewed by " + contributor.username(), replyBody, id);
-                }
-            }
-        }
+        var userName = contributor != null ? contributor.username() : review.reviewer().userName() + "@" + censusInstance.namespace().name();
+        var userRole = contributor != null ? projectRole(contributor) : "none";
+        var replyBody = ArchiveMessages.reviewCommentBody(review.body().orElse(""), review.verdict(), userName, userRole);
+
+        addReplyCommon(parent, review.reviewer(), subject, replyBody, id);
     }
 
     void addReviewComment(ReviewComment reviewComment) {
