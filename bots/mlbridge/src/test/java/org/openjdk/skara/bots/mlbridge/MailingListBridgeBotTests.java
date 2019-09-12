@@ -453,9 +453,16 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
             listServer.processIncoming();
 
+            // Finally some approvals
+            pr.addReview(Review.Verdict.APPROVED, "Nice");
+            reviewPr.addReview(Review.Verdict.APPROVED, "Looks fine");
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+            listServer.processIncoming();
+
             // Sanity check the archive
             Repository.materialize(archiveFolder.path(), archive.getUrl(), "master");
-            assertEquals(6, archiveContainsCount(archiveFolder.path(), "^On.*wrote:"));
+            assertEquals(8, archiveContainsCount(archiveFolder.path(), "^On.*wrote:"));
 
             // Check the mailing list
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP());
@@ -464,9 +471,9 @@ class MailingListBridgeBotTests {
             assertEquals(1, conversations.size());
             var mail = conversations.get(0).first();
             assertEquals("RFR: This is a pull request", mail.subject());
-            assertEquals(7, conversations.get(0).allMessages().size());
+            assertEquals(9, conversations.get(0).allMessages().size());
 
-            // There should be two separate threads
+            // There should be four separate threads
             var thread1 = conversations.get(0).replies(mail).get(0);
             assertEquals(2, thread1.body().split("^On.*wrote:").length);
             assertEquals(2, thread1.body().split("> This is now ready").length, thread1.body());
@@ -492,6 +499,11 @@ class MailingListBridgeBotTests {
             assertTrue(thread2reply1.body().contains("Sounds good"));
             var thread2reply2 = conversations.get(0).replies(thread2reply1).get(0);
             assertTrue(thread2reply2.body().contains("Thanks"));
+
+            var thread3 = conversations.get(0).replies(mail).get(2);
+            assertEquals("Re: RFR: This is a pull request", thread3.subject());
+            var thread4 = conversations.get(0).replies(mail).get(3);
+            assertEquals("Re: Approved and Reviewed by integrationreviewer1", thread4.subject());
         }
     }
 
@@ -1011,7 +1023,7 @@ class MailingListBridgeBotTests {
             if (author.host().supportsReviewBody()) {
                 assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 2"));
             }
-            assertEquals(1, archiveContainsCount(archiveFolder.path(), "This PR has been marked as Reviewed by integrationreviewer1."));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Re: Approved and Reviewed by integrationreviewer1"));
 
             // Yet another change
             reviewedPr.addReview(Review.Verdict.DISAPPROVED, "Reason 3");

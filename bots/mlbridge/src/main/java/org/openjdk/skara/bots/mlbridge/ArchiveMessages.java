@@ -154,8 +154,4 @@ class ArchiveMessages {
         }
         return result.toString();
     }
-
-    static String reviewApprovalBodyReviewer(String reviewer) {
-        return "This PR has been marked as Reviewed by " + reviewer + ".";
-    }
 }
