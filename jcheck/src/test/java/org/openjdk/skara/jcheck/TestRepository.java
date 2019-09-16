@@ -44,6 +44,10 @@ class TestRepository implements ReadOnlyRepository {
         currentBranch = branch;
     }
 
+    public Optional<Bookmark> currentBookmark() {
+        return Optional.empty();
+    }
+
     public Branch defaultBranch() throws IOException {
         return defaultBranch;
     }
