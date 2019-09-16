@@ -26,6 +26,7 @@ module {
     test {
         requires 'org.openjdk.skara.test'
         requires 'org.junit.jupiter.api'
+        requires 'org.junit.jupiter.params'
         opens 'org.openjdk.skara.vcs' to 'org.junit.platform.commons'
         opens 'org.openjdk.skara.vcs.openjdk' to 'org.junit.platform.commons'
         opens 'org.openjdk.skara.vcs.openjdk.converter' to 'org.junit.platform.commons'
