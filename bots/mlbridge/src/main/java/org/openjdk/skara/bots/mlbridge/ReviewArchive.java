@@ -205,13 +205,11 @@ class ReviewArchive {
         var body = ArchiveMessages.composeRebaseComment(prInstance, webrev);
         var id = getMessageId(prInstance.headHash());
         var parent = topEmail();
-        var email = Email.create(latestHeadSubject(), body)
+        var email = Email.reply(parent, latestHeadSubject(), body)
                          .sender(sender)
                          .author(getAuthorAddress(prInstance.pr().getAuthor()))
                          .recipient(parent.author())
                          .id(id)
-                         .header("In-Reply-To", parent.id().toString())
-                         .header("References", parent.id().toString())
                          .header("PR-Head-Hash", prInstance.headHash().hex())
                          .header("PR-Base-Hash", prInstance.baseHash().hex())
                          .header("PR-Sequence", Integer.toString(existing.size() + generated.size()))
@@ -224,13 +222,11 @@ class ReviewArchive {
         var body = ArchiveMessages.composeIncrementalComment(latestHead(), prInstance, fullWebrev, incrementalWebrev);
         var id = getMessageId(prInstance.headHash());
         var parent = topEmail();
-        var email = Email.create(latestHeadSubject(), body)
+        var email = Email.reply(parent, latestHeadSubject(), body)
                          .sender(sender)
                          .author(getAuthorAddress(prInstance.pr().getAuthor()))
                          .recipient(parent.author())
                          .id(id)
-                         .header("In-Reply-To", parent.id().toString())
-                         .header("References", parent.id().toString())
                          .header("PR-Head-Hash", prInstance.headHash().hex())
                          .header("PR-Base-Hash", prInstance.baseHash().hex())
                          .header("PR-Sequence", Integer.toString(existing.size() + generated.size()))
@@ -263,10 +259,6 @@ class ReviewArchive {
     }
 
     private void addReplyCommon(Email parent, HostUserDetails author, String subject, String body, EmailAddress id) {
-        var references = parent.id().toString();
-        if (parent.hasHeader("References")) {
-            references = parent.headerValue("References") + " " + references;
-        }
         if (!subject.startsWith("Re: ")) {
             subject = "Re: " + subject;
         }
@@ -294,13 +286,11 @@ class ReviewArchive {
             generatedIds.put(getStableMessageId(id), email);
         } else {
             var reply = ArchiveMessages.composeReply(parent, body, prInstance);
-            var email = Email.create(subject, reply)
+            var email = Email.reply(parent, subject, reply)
                              .sender(sender)
                              .author(getAuthorAddress(author))
                              .recipient(parent.author())
                              .id(id)
-                             .header("In-Reply-To", parent.id().toString())
-                             .header("References", references)
                              .header("PR-Sequence", Integer.toString(existing.size() + generated.size()))
                              .build();
             generated.add(email);

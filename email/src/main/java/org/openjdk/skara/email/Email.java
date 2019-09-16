@@ -132,6 +132,17 @@ public class Email {
                 .headers(email.headers);
     }
 
+    public static EmailBuilder reply(Email parent, String subject, String body) {
+        var references = parent.id().toString();
+        if (parent.hasHeader("References")) {
+            references = parent.headerValue("References") + " " + references;
+        }
+
+        return new EmailBuilder(subject, body)
+                .header("In-Reply-To", parent.id().toString())
+                .header("References", references);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
