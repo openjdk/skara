@@ -24,7 +24,9 @@ package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.email.EmailAddress;
+import org.openjdk.skara.host.network.URIBuilder;
 import org.openjdk.skara.json.JSONValue;
+import org.openjdk.skara.mailinglist.MailingListServerFactory;
 import org.openjdk.skara.storage.StorageBuilder;
 import org.openjdk.skara.vcs.*;
 
@@ -57,19 +59,43 @@ public class JNotifyBotFactory implements BotFactory {
             var branches = repo.value().get("branches").stream()
                                .map(JSONValue::asString)
                                .collect(Collectors.toList());
-            var build = repo.value().get("build").asString();
-            var version = repo.value().get("version").asString();
 
             var updaters = new ArrayList<UpdateConsumer>();
-            if (repo.value().contains("jsonfolder")) {
-                updaters.add(new JsonUpdater(Path.of(repo.value().get("jsonfolder").asString()), version, build));
+            if (repo.value().contains("json")) {
+                var folder = repo.value().get("folder").asString();
+                var build = repo.value().get("build").asString();
+                var version = repo.value().get("version").asString();
+                updaters.add(new JsonUpdater(Path.of(folder), version, build));
             }
-            if (repo.value().contains("mailinglist")) {
-                var mailcfg = repo.value().get("mailinglist").asObject();
-                var senderName = mailcfg.get("name").asString();
-                var senderMail = mailcfg.get("email").asString();
+            if (repo.value().contains("mailinglists")) {
+                var email = specific.get("email").asObject();
+                var smtp = email.get("smtp").asString();
+                var archive = URIBuilder.base(email.get("archive").asString()).build();
+                var senderName = email.get("name").asString();
+                var senderMail = email.get("address").asString();
                 var sender = EmailAddress.from(senderName, senderMail);
-                updaters.add(new MailingListUpdater(mailcfg.get("smtp").asString(), EmailAddress.parse(mailcfg.get("recipient").asString()), sender, branches.size() > 1));
+                var listServer = MailingListServerFactory.createMailmanServer(archive, smtp);
+
+                for (var mailinglist : repo.value().get("mailinglists").asArray()) {
+                    var recipient = mailinglist.get("recipient").asString();
+                    var recipientAddress = EmailAddress.parse(recipient);
+
+                    var mode = MailingListUpdater.Mode.ALL;
+                    if (mailinglist.contains("mode")) {
+                        switch (mailinglist.get("mode").asString()) {
+                            case "pr":
+                                mode = MailingListUpdater.Mode.PR;
+                                break;
+                            case "pr-only":
+                                mode = MailingListUpdater.Mode.PR_ONLY;
+                                break;
+                            default:
+                                throw new RuntimeException("Unknown mode");
+                        }
+                    }
+
+                    updaters.add(new MailingListUpdater(listServer.getList(recipient), recipientAddress, sender, branches.size() > 1, mode));
+                }
             }
 
             if (updaters.isEmpty()) {

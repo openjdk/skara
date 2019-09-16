@@ -24,24 +24,38 @@ package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.host.HostedRepository;
+import org.openjdk.skara.mailinglist.*;
 import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.vcs.openjdk.*;
+import org.openjdk.skara.vcs.openjdk.OpenJDKTag;
 
 import java.io.*;
+import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.logging.Logger;
 
 public class MailingListUpdater implements UpdateConsumer {
-    private final String host;
+    private final MailingList list;
     private final EmailAddress recipient;
     private final EmailAddress sender;
     private final boolean includeBranch;
+    private final Mode mode;
+    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
-    MailingListUpdater(String host, EmailAddress recipient, EmailAddress sender, boolean includeBranch) {
-        this.host = host;
+    enum Mode {
+        ALL,
+        PR,
+        PR_ONLY
+    }
+
+    MailingListUpdater(MailingList list, EmailAddress recipient, EmailAddress sender, boolean includeBranch, Mode mode) {
+        this.list = list;
         this.recipient = recipient;
         this.sender = sender;
         this.includeBranch = includeBranch;
+        this.mode = mode;
     }
 
     private String patchToText(Patch patch) {
@@ -99,27 +113,82 @@ public class MailingListUpdater implements UpdateConsumer {
         return subject.toString();
     }
 
-    @Override
-    public void handleCommits(HostedRepository repository, List<Commit> commits, Branch branch) {
+    private List<Commit> filterAndSendPrCommits(HostedRepository repository, List<Commit> commits) {
+        var ret = new ArrayList<Commit>();
+
+        var rfrs = list.conversations(Duration.ofDays(365)).stream()
+                       .map(Conversation::first)
+                       .filter(email -> email.subject().startsWith("RFR: "))
+                       .collect(Collectors.toList());
+
+        for (var commit : commits) {
+            var candidates = repository.findPullRequestsWithComment(null, "Pushed as commit " + commit.hash() + ".");
+            if (candidates.size() != 1) {
+                log.warning("Commit " + commit.hash() + " matches " + candidates.size() + " pull requests - expected 1");
+                ret.add(commit);
+                continue;
+            }
+
+            var candidate = candidates.get(0);
+            var prLink = candidate.getWebUrl();
+            var prLinkPattern = Pattern.compile("^" + Pattern.quote(prLink.toString()), Pattern.MULTILINE);
+
+            var rfrCandidates = rfrs.stream()
+                                    .filter(email -> prLinkPattern.matcher(email.body()).find())
+                                    .collect(Collectors.toList());
+            if (rfrCandidates.size() != 1) {
+                log.warning("Pull request " + prLink + " found in " + rfrCandidates.size() + " RFR threads - expected 1");
+                ret.add(commit);
+                continue;
+            }
+            var rfr = rfrCandidates.get(0);
+            var body = commitToText(repository, commit);
+            var email = Email.reply(rfr, "Re: [Integrated] " + rfr.subject(), body)
+                             .author(sender)
+                             .recipient(recipient)
+                             .build();
+            list.post(email);
+        }
+
+        return ret;
+    }
+
+    private void sendCombinedCommits(HostedRepository repository, List<Commit> commits, Branch branch) {
+        if (commits.size() == 0) {
+            return;
+        }
+
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
-
-        var subject = commitsToSubject(repository, commits, branch);
 
         for (var commit : commits) {
             printer.println(commitToText(repository, commit));
         }
 
+        var subject = commitsToSubject(repository, commits, branch);
         var email = Email.create(sender, subject, writer.toString())
                          .recipient(recipient)
                          .build();
 
-        try {
-            SMTP.send(host, recipient, email);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+        list.post(email);
+    }
+
+    @Override
+    public void handleCommits(HostedRepository repository, List<Commit> commits, Branch branch) {
+        switch (mode) {
+            case PR_ONLY:
+                var remaining = filterAndSendPrCommits(repository, commits);
+                if (remaining.size() > 0) {
+                    throw new RuntimeException("Failed to match a commit with a PR!");
+                }
+                break;
+            case PR:
+                commits = filterAndSendPrCommits(repository, commits);
+                // fall-through
+            case ALL:
+                sendCombinedCommits(repository, commits, branch);
+                break;
         }
-        System.out.print(writer.toString());
     }
 
     @Override

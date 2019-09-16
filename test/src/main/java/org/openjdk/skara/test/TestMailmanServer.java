@@ -105,8 +105,8 @@ public class TestMailmanServer implements AutoCloseable {
         return listName;
     }
 
-    public void processIncoming() throws IOException {
-        var email = smtpServer.receive(Duration.ofSeconds(10));
+    public void processIncoming(Duration timeout) throws IOException {
+        var email = smtpServer.receive(timeout);
         var mboxEntry = Mbox.fromMail(email);
 
         var listPath = email.recipients().stream()
@@ -114,6 +114,10 @@ public class TestMailmanServer implements AutoCloseable {
                             .map(recipient -> lists.get(recipient.localPart()))
                             .findAny().orElseThrow();
         Files.writeString(listPath, mboxEntry, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+    }
+
+    public void processIncoming() throws IOException {
+        processIncoming(Duration.ofSeconds(10));
     }
 
     @Override

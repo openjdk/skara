@@ -26,6 +26,7 @@ module org.openjdk.skara.bots.notify {
     requires org.openjdk.skara.jcheck;
     requires org.openjdk.skara.email;
     requires org.openjdk.skara.storage;
+    requires org.openjdk.skara.mailinglist;
     requires java.logging;
 
     provides org.openjdk.skara.bot.BotFactory with org.openjdk.skara.bots.notify.JNotifyBotFactory;

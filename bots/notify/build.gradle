@@ -39,6 +39,7 @@ dependencies {
     implementation project(':jcheck')
     implementation project(':email')
     implementation project(':storage')
+    implementation project(':mailinglist')
 
     testImplementation project(':test')
 }
