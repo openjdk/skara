@@ -503,7 +503,7 @@ class MailingListBridgeBotTests {
             var thread3 = conversations.get(0).replies(mail).get(2);
             assertEquals("Re: RFR: This is a pull request", thread3.subject());
             var thread4 = conversations.get(0).replies(mail).get(3);
-            assertEquals("Re: Approved and Reviewed by integrationreviewer1", thread4.subject());
+            assertEquals("Re: [Approved]: RFR: This is a pull request", thread4.subject());
         }
     }
 
@@ -794,9 +794,9 @@ class MailingListBridgeBotTests {
             assertEquals(1, updatedConversations.size());
             var conversation = updatedConversations.get(0);
             assertEquals(6, conversation.allMessages().size());
-            assertEquals("Re: 01: Fixing", conversation.allMessages().get(1).subject());
-            assertEquals("Re: 01: Fixing", conversation.allMessages().get(2).subject());
-            assertEquals("Re: 04: Fixing", conversation.allMessages().get(5).subject());
+            assertEquals("Re: [Rev 01]: RFR: This is a pull request", conversation.allMessages().get(1).subject());
+            assertEquals("Re: [Rev 01]: RFR: This is a pull request", conversation.allMessages().get(2).subject(), conversation.allMessages().get(2).toString());
+            assertEquals("Re: [Rev 04]: RFR: This is a pull request", conversation.allMessages().get(5).subject());
         }
     }
 
@@ -882,7 +882,7 @@ class MailingListBridgeBotTests {
                 assertEquals(noreplyAddress(archive), newMail.author().address());
                 assertEquals(sender, newMail.sender());
             }
-            assertEquals("Re: 01: Replaced msg", conversations.get(0).allMessages().get(1).subject());
+            assertEquals("Re: [Rev 01]: RFR: This is a pull request", conversations.get(0).allMessages().get(1).subject());
         }
     }
 
@@ -1023,7 +1023,7 @@ class MailingListBridgeBotTests {
             if (author.host().supportsReviewBody()) {
                 assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 2"));
             }
-            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Re: Approved and Reviewed by integrationreviewer1"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Re: \\[Approved\\]:"));
 
             // Yet another change
             reviewedPr.addReview(Review.Verdict.DISAPPROVED, "Reason 3");

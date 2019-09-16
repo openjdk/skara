@@ -183,11 +183,10 @@ class ReviewArchive {
         generatedIds.put(getStableMessageId(id), email);
     }
 
-    private String latestHeadSubject() {
+    private String latestHeadPrefix() {
         try {
             var latestCommit = prInstance.localRepo().lookup(prInstance.headHash()).orElseThrow(RuntimeException::new);
-            var firstLine = latestCommit.message().size() > 0 ? latestCommit.message().get(0) : prInstance.pr().getTitle();
-            return String.format("Re: %02d: %s", revisionCount(), firstLine);
+            return String.format("[Rev %02d]", revisionCount());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -197,7 +196,7 @@ class ReviewArchive {
         var body = ArchiveMessages.composeRebaseComment(prInstance, webrev);
         var id = getMessageId(prInstance.headHash());
         var parent = topEmail();
-        var email = Email.reply(parent, latestHeadSubject(), body)
+        var email = Email.reply(parent, "Re: " + latestHeadPrefix() + ": RFR: " + prInstance.pr().getTitle(), body)
                          .sender(sender)
                          .author(getAuthorAddress(prInstance.pr().getAuthor()))
                          .recipient(parent.author())
@@ -214,7 +213,7 @@ class ReviewArchive {
         var body = ArchiveMessages.composeIncrementalComment(latestHead(), prInstance, fullWebrev, incrementalWebrev);
         var id = getMessageId(prInstance.headHash());
         var parent = topEmail();
-        var email = Email.reply(parent, latestHeadSubject(), body)
+        var email = Email.reply(parent, "Re: " + latestHeadPrefix() + ": RFR: " + prInstance.pr().getTitle(), body)
                          .sender(sender)
                          .author(getAuthorAddress(prInstance.pr().getAuthor()))
                          .recipient(parent.author())
@@ -339,7 +338,7 @@ class ReviewArchive {
         // Approvals by Reviewers get special treatment - post these as top-level comments
         if (review.verdict() == Review.Verdict.APPROVED && isReviewer) {
             parent = topEmail();
-            subject = "Approved and Reviewed by " + contributor.username();
+            subject = "Re: [Approved]: " + "RFR: " + prInstance.pr().getTitle();
         }
 
         var userName = contributor != null ? contributor.username() : review.reviewer().userName() + "@" + censusInstance.namespace().name();
