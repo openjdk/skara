@@ -37,6 +37,7 @@ public interface HostedRepository {
                                   List<String> body);
     PullRequest getPullRequest(String id);
     List<PullRequest> getPullRequests();
+    List<PullRequest> findPullRequestsWithComment(String author, String body);
     Optional<PullRequest> parsePullRequestUrl(String url);
     String getName();
     Optional<HostedRepository> getParent();

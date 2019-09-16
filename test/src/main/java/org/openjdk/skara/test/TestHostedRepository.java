@@ -31,6 +31,7 @@ import java.net.*;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class TestHostedRepository implements HostedRepository {
     private final TestHost host;
@@ -68,6 +69,17 @@ public class TestHostedRepository implements HostedRepository {
     @Override
     public List<PullRequest> getPullRequests() {
         return new ArrayList<>(host.getPullRequests(this));
+    }
+
+    @Override
+    public List<PullRequest> findPullRequestsWithComment(String author, String body) {
+        return getPullRequests().stream()
+                                .filter(pr -> pr.getComments().stream()
+                                        .filter(comment -> author == null || comment.author().userName().equals(author))
+                                        .filter(comment -> comment == null ||comment.body().contains(body))
+                                        .count() > 0
+                                )
+                                .collect(Collectors.toList());
     }
 
     @Override
