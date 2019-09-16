@@ -147,6 +147,13 @@ public class GitHubHost implements Host {
         return project.asObject();
     }
 
+    JSONObject runSearch(String query) {
+        var result = request.get("search/issues")
+                            .param("q", query)
+                            .execute();
+        return result.asObject();
+    }
+
     @Override
     public HostedRepository getRepository(String name) {
         return new GitHubRepository(this, name);

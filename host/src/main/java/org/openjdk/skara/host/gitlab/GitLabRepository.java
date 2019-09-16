@@ -112,6 +112,11 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
+    public List<PullRequest> findPullRequestsWithComment(String author, String body) {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
     public Optional<PullRequest> parsePullRequestUrl(String url) {
         var matcher = mergeRequestPattern.matcher(url);
         if (matcher.find()) {

@@ -109,6 +109,18 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
+    public List<PullRequest> findPullRequestsWithComment(String author, String body) {
+        var query = "\"" + body + "\" in:comments type:pr repo:" + repository;
+        if (author != null) {
+            query += " commenter:" + author;
+        }
+        var result = gitHubHost.runSearch(query);
+        return result.get("items").stream()
+                .map(jsonValue -> new GitHubPullRequest(this, jsonValue, request))
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public Optional<PullRequest> parsePullRequestUrl(String url) {
         var matcher = pullRequestPattern.matcher(url);
         if (matcher.find()) {
