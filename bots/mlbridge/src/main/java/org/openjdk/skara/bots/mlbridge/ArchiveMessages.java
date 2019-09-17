@@ -148,7 +148,6 @@ class ArchiveMessages {
                 result.append(infoSeparator);
                 result.append("\n\n");
             }
-            result.append("Review status set to ");
             if (verdict == Review.Verdict.APPROVED) {
                 result.append("Approved");
             } else {
@@ -156,7 +155,7 @@ class ArchiveMessages {
             }
             result.append(" by ");
             result.append(user);
-            result.append(" (project role: ");
+            result.append(" (");
             result.append(role);
             result.append(").");
         }

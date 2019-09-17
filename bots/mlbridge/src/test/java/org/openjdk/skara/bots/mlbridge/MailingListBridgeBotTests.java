@@ -1007,7 +1007,7 @@ class MailingListBridgeBotTests {
 
             // The archive should contain a note
             Repository.materialize(archiveFolder.path(), archive.getUrl(), "master");
-            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Review status set to Disapproved"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Disapproved by "));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), " by integrationreviewer1"));
             if (author.host().supportsReviewBody()) {
                 assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 1"));
@@ -1021,7 +1021,7 @@ class MailingListBridgeBotTests {
 
             // The archive should contain another note
             Repository.materialize(archiveFolder.path(), archive.getUrl(), "master");
-            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Review status set to Approved"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Approved by "));
             if (author.host().supportsReviewBody()) {
                 assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 2"));
             }
@@ -1035,7 +1035,7 @@ class MailingListBridgeBotTests {
 
             // The archive should contain another note
             Repository.materialize(archiveFolder.path(), archive.getUrl(), "master");
-            assertEquals(2, archiveContainsCount(archiveFolder.path(), "Review status set to Disapproved"));
+            assertEquals(2, archiveContainsCount(archiveFolder.path(), "Disapproved by "));
             if (author.host().supportsReviewBody()) {
                 assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 3"));
             }
