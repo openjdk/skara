@@ -33,9 +33,10 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
-import java.util.function.Consumer;
+import java.util.function.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 class ArchiveWorkItem implements WorkItem {
     private final PullRequest pr;
@@ -301,7 +302,16 @@ class ArchiveWorkItem implements WorkItem {
         pushMbox(archiveRepo, "Adding comments for PR " + bot.codeRepo().getName() + "/" + pr.getId());
 
         // Finally post all new mails to the actual list
-        newMails.forEach(list::post);
+        for (var newMail : newMails) {
+            var filteredHeaders = newMail.headers().stream()
+                                         .filter(header -> !header.startsWith("PR-"))
+                                         .collect(Collectors.toMap(Function.identity(),
+                                                                   newMail::headerValue));
+            var filteredEmail = Email.from(newMail)
+                                     .replaceHeaders(filteredHeaders)
+                                     .build();
+            list.post(filteredEmail);
+        }
     }
 
     @Override

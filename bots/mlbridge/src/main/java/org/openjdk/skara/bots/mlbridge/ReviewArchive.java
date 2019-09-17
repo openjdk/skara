@@ -5,7 +5,6 @@ import org.openjdk.skara.email.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.vcs.Hash;
 
-import java.io.*;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
@@ -184,12 +183,7 @@ class ReviewArchive {
     }
 
     private String latestHeadPrefix() {
-        try {
-            var latestCommit = prInstance.localRepo().lookup(prInstance.headHash()).orElseThrow(RuntimeException::new);
-            return String.format("[Rev %02d]", revisionCount());
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        return String.format("[Rev %02d]", revisionCount());
     }
 
     void addFull(URI webrev) {
