@@ -26,6 +26,7 @@ import java.util.*;
 
 class EmojiTable {
     static final Map<String, String> mapping = Map.<String, String>ofEntries(
+            Map.entry("+1", "👍"),
             Map.entry("100", "💯"),
             Map.entry("1234", "🔢"),
             Map.entry("8ball", "🎱"),
