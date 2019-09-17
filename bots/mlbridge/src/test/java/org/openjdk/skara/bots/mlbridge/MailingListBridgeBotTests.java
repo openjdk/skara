@@ -311,10 +311,11 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
 
-            // The archive should contain the additional comment
+            // The archive should contain the additional comment (but no quoted footers)
             Repository.materialize(archiveFolder.path(), archive.getUrl(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "This is a review reply"));
             assertTrue(archiveContains(archiveFolder.path(), ">> This is now ready"));
+            assertFalse(archiveContains(archiveFolder.path(), "^> PR:"));
 
             // As well as the mailing list
             conversations = mailmanList.conversations(Duration.ofDays(1));

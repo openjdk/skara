@@ -1,7 +1,7 @@
 package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.email.Email;
-import org.openjdk.skara.host.Review;
+import org.openjdk.skara.host.*;
 import org.openjdk.skara.vcs.*;
 
 import java.net.URI;
@@ -112,10 +112,20 @@ class ArchiveMessages {
         return "PR: " + prInstance.pr().getWebUrl();
     }
 
+    private static String filterParentBody(Email parent, PullRequestInstance prInstance) {
+        var parentFooter = ArchiveMessages.composeReplyFooter(prInstance);
+        var filteredParentBody = parent.body().strip();
+        if (filteredParentBody.endsWith(parentFooter)) {
+            return filteredParentBody.substring(0, filteredParentBody.length() - parentFooter.length()).strip();
+        } else {
+            return filteredParentBody;
+        }
+    }
+
     static String composeReply(Email parent, String body, PullRequestInstance prInstance) {
         return "On " + parent.date().format(DateTimeFormatter.RFC_1123_DATE_TIME) + ", " + parent.author().toString() + " wrote:\n" +
                 "\n" +
-                quoteBody(parent.body()) +
+                quoteBody(filterParentBody(parent, prInstance)) +
                 "\n\n" +
                 filterComments(body) +
                 "\n\n" +
@@ -123,13 +133,11 @@ class ArchiveMessages {
     }
 
     static String composeCombinedReply(Email parent, String body, PullRequestInstance prInstance) {
-        var parentFooter = ArchiveMessages.composeReplyFooter(prInstance);
-        var filteredParentBody = parent.body().substring(0, parent.body().length() - parentFooter.length()).strip();
-        return filteredParentBody +
+        return filterParentBody(parent, prInstance) +
                 "\n\n" +
                 filterComments(body) +
                 "\n\n" +
-                parentFooter;
+                composeReplyFooter(prInstance);
     }
 
     static String reviewCommentBody(String body, Review.Verdict verdict, String user, String role) {
