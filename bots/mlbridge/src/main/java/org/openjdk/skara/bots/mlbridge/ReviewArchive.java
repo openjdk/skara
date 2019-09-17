@@ -190,7 +190,7 @@ class ReviewArchive {
         var body = ArchiveMessages.composeRebaseComment(prInstance, webrev);
         var id = getMessageId(prInstance.headHash());
         var parent = topEmail();
-        var email = Email.reply(parent, "Re: " + latestHeadPrefix() + ": RFR: " + prInstance.pr().getTitle(), body)
+        var email = Email.reply(parent, "Re: " + latestHeadPrefix() + " RFR: " + prInstance.pr().getTitle(), body)
                          .sender(sender)
                          .author(getAuthorAddress(prInstance.pr().getAuthor()))
                          .recipient(parent.author())
@@ -207,7 +207,7 @@ class ReviewArchive {
         var body = ArchiveMessages.composeIncrementalComment(latestHead(), prInstance, fullWebrev, incrementalWebrev);
         var id = getMessageId(prInstance.headHash());
         var parent = topEmail();
-        var email = Email.reply(parent, "Re: " + latestHeadPrefix() + ": RFR: " + prInstance.pr().getTitle(), body)
+        var email = Email.reply(parent, "Re: " + latestHeadPrefix() + " RFR: " + prInstance.pr().getTitle(), body)
                          .sender(sender)
                          .author(getAuthorAddress(prInstance.pr().getAuthor()))
                          .recipient(parent.author())
@@ -332,7 +332,7 @@ class ReviewArchive {
         // Approvals by Reviewers get special treatment - post these as top-level comments
         if (review.verdict() == Review.Verdict.APPROVED && isReviewer) {
             parent = topEmail();
-            subject = "Re: [Approved]: " + "RFR: " + prInstance.pr().getTitle();
+            subject = "Re: [Approved] " + "RFR: " + prInstance.pr().getTitle();
         }
 
         var userName = contributor != null ? contributor.username() : review.reviewer().userName() + "@" + censusInstance.namespace().name();
