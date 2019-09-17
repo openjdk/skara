@@ -504,7 +504,7 @@ class MailingListBridgeBotTests {
             var thread3 = conversations.get(0).replies(mail).get(2);
             assertEquals("Re: RFR: This is a pull request", thread3.subject());
             var thread4 = conversations.get(0).replies(mail).get(3);
-            assertEquals("Re: [Approved]: RFR: This is a pull request", thread4.subject());
+            assertEquals("Re: [Approved] RFR: This is a pull request", thread4.subject());
         }
     }
 
@@ -795,9 +795,9 @@ class MailingListBridgeBotTests {
             assertEquals(1, updatedConversations.size());
             var conversation = updatedConversations.get(0);
             assertEquals(6, conversation.allMessages().size());
-            assertEquals("Re: [Rev 01]: RFR: This is a pull request", conversation.allMessages().get(1).subject());
-            assertEquals("Re: [Rev 01]: RFR: This is a pull request", conversation.allMessages().get(2).subject(), conversation.allMessages().get(2).toString());
-            assertEquals("Re: [Rev 04]: RFR: This is a pull request", conversation.allMessages().get(5).subject());
+            assertEquals("Re: [Rev 01] RFR: This is a pull request", conversation.allMessages().get(1).subject());
+            assertEquals("Re: [Rev 01] RFR: This is a pull request", conversation.allMessages().get(2).subject(), conversation.allMessages().get(2).toString());
+            assertEquals("Re: [Rev 04] RFR: This is a pull request", conversation.allMessages().get(5).subject());
         }
     }
 
@@ -884,7 +884,7 @@ class MailingListBridgeBotTests {
                 assertEquals(sender, newMail.sender());
                 assertFalse(newMail.hasHeader("PR-Head-Hash"));
             }
-            assertEquals("Re: [Rev 01]: RFR: This is a pull request", conversations.get(0).allMessages().get(1).subject());
+            assertEquals("Re: [Rev 01] RFR: This is a pull request", conversations.get(0).allMessages().get(1).subject());
         }
     }
 
@@ -1025,7 +1025,7 @@ class MailingListBridgeBotTests {
             if (author.host().supportsReviewBody()) {
                 assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 2"));
             }
-            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Re: \\[Approved\\]:"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Re: \\[Approved\\] RFR:"));
 
             // Yet another change
             reviewedPr.addReview(Review.Verdict.DISAPPROVED, "Reason 3");
