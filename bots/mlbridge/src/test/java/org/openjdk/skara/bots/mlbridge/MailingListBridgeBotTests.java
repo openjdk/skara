@@ -881,6 +881,7 @@ class MailingListBridgeBotTests {
             for (var newMail : conversations.get(0).allMessages()) {
                 assertEquals(noreplyAddress(archive), newMail.author().address());
                 assertEquals(sender, newMail.sender());
+                assertFalse(newMail.hasHeader("PR-Head-Hash"));
             }
             assertEquals("Re: [Rev 01]: RFR: This is a pull request", conversations.get(0).allMessages().get(1).subject());
         }

@@ -92,6 +92,12 @@ public class EmailBuilder {
         return this;
     }
 
+    public EmailBuilder replaceHeaders(Map<String, String> headers) {
+        this.headers.clear();
+        this.headers.putAll(headers);
+        return this;
+    }
+
     public EmailBuilder date(ZonedDateTime date) {
         this.date = date;
         return this;
