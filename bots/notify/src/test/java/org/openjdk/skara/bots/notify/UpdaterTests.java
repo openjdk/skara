@@ -423,9 +423,10 @@ class UpdaterTests {
             assertFalse(email.body().contains("Committer"));
             assertFalse(email.body().contains(masterHash.abbreviate()));
 
-            // Now push the other one without a matching PR - PR_ONLY should make us throw an exception
+            // Now push the other one without a matching PR - PR_ONLY will not generate a mail
             localRepo.push(otherHash, repo.getUrl(), "master");
-            assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(notifyBot));
+            TestBotRunner.runPeriodicItems(notifyBot);
+            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofSeconds(1)));
         }
     }
 

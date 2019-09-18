@@ -177,10 +177,7 @@ public class MailingListUpdater implements UpdateConsumer {
     public void handleCommits(HostedRepository repository, List<Commit> commits, Branch branch) {
         switch (mode) {
             case PR_ONLY:
-                var remaining = filterAndSendPrCommits(repository, commits);
-                if (remaining.size() > 0) {
-                    throw new RuntimeException("Failed to match a commit with a PR!");
-                }
+                filterAndSendPrCommits(repository, commits);
                 break;
             case PR:
                 commits = filterAndSendPrCommits(repository, commits);
