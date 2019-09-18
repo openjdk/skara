@@ -60,6 +60,8 @@ ENV LC_ALL en_US.UTF-8
 RUN yum -y install unzip rsync
 
 COPY gradlew ./
+COPY deps.env ./
+COPY Unzip.java ./
 
 ENV JAVA_TOOL_OPTIONS=$JAVA_OPTIONS
 RUN sh gradlew --no-daemon --version $GRADLE_OPTIONS
