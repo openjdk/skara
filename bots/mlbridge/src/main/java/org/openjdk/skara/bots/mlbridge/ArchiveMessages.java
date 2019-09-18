@@ -7,7 +7,6 @@ import org.openjdk.skara.vcs.*;
 import java.net.URI;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
-import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -19,13 +18,7 @@ class ArchiveMessages {
             ret.append("<no commit message found>");
         } else {
             var abbrev = commit.hash().abbreviate();
-            var filler = "\t".repeat(((abbrev.length() + 4 /* additional spacing */) / 8 /* tab size */) + 1 /* rounding */);
-            ret.append(" - ").append(abbrev).append(":\t").append(message.get(0).strip());
-            message.stream()
-                   .skip(1)
-                   .map(String::strip)
-                   .filter(Predicate.not(String::isEmpty))
-                   .forEach(line -> ret.append("\n").append(filler).append("\t").append(line));
+            ret.append(" - ").append(abbrev).append(": ").append(message.get(0).strip());
         }
         return ret.toString();
     }
@@ -55,6 +48,10 @@ class ArchiveMessages {
                      .collect(Collectors.joining("\n"));
     }
 
+    private static String replyFooter(PullRequestInstance prInstance) {
+        return "PR: " + prInstance.pr().getWebUrl();
+    }
+
     static String composeConversation(PullRequestInstance prInstance, URI webrev) {
         var commitMessages = prInstance.formatCommitMessages(prInstance.baseHash(), prInstance.headHash(), ArchiveMessages::formatCommit);
         var filteredBody = filterComments(prInstance.pr().getBody());
@@ -65,14 +62,12 @@ class ArchiveMessages {
                 infoSeparator + "\n\n" +
                 "Commits:\n" +
                 commitMessages + "\n\n" +
-                "Pull request:\n" +
-                prInstance.pr().getWebUrl() + "\n\n" +
-                "Webrev:\n" +
-                webrev.toString() + "\n\n" +
-                "Patch:\n" +
-                prInstance.diffUrl() + "\n\n" +
-                "Fetch command:\n" +
-                prInstance.fetchCommand();
+                "  Stats: " + prInstance.stats(prInstance.baseHash(), prInstance.headHash()) + "\n" +
+                "Changes: " + prInstance.changeUrl() + "\n" +
+                " Webrev: " + webrev.toString() + "\n" +
+                "  Patch: " + prInstance.diffUrl() + "\n" +
+                "  Fetch: " + prInstance.fetchCommand() + "\n\n" +
+                replyFooter(prInstance);
     }
 
     static String composeRebaseComment(PullRequestInstance prInstance, URI fullWebrev) {
@@ -81,15 +76,12 @@ class ArchiveMessages {
                 infoSeparator + "\n\n" +
                 "Commits:\n" +
                 commitMessages + "\n\n" +
-                "Pull request:\n" +
-                prInstance.pr().getWebUrl() + "\n\n" +
-                "Webrev:\n" +
-                fullWebrev.toString() + "\n\n" +
-                "Updated full patch:\n" +
-                prInstance.diffUrl() + "\n\n" +
-                "Fetch command:\n" +
-                prInstance.fetchCommand();
-    }
+                "  Stats: " + prInstance.stats(prInstance.baseHash(), prInstance.headHash()) + "\n" +
+                "Changes: " + prInstance.changeUrl() + "\n" +
+                " Webrev: " + fullWebrev.toString() + "\n" +
+                "  Patch: " + prInstance.diffUrl() + "\n" +
+                "  Fetch: " + prInstance.fetchCommand() + "\n\n" +
+                replyFooter(prInstance);    }
 
     static String composeIncrementalComment(Hash lastHead, PullRequestInstance prInstance, URI fullWebrev, URI incrementalWebrev) {
         var newCommitMessages = prInstance.formatCommitMessages(lastHead, prInstance.headHash(), ArchiveMessages::formatCommit);
@@ -97,23 +89,20 @@ class ArchiveMessages {
                 infoSeparator + "\n\n" +
                 "Added commits:\n" +
                 newCommitMessages + "\n\n" +
-                "Pull request:\n" +
-                prInstance.pr().getWebUrl() + "\n\n" +
+                "  Stats: " + prInstance.stats(lastHead, prInstance.headHash()) + "\n" +
+                "Changes:\n\n" +
+                "  - all: " + prInstance.pr().getWebUrl() + "/files\n" +
+                "  - new: " + prInstance.changeUrl(lastHead, prInstance.headHash()) + "\n" +
                 "Webrevs:\n" +
                 " - full: " + fullWebrev.toString() + "\n" +
-                " - inc: " + incrementalWebrev.toString() + "\n\n" +
-                "Updated full patch:\n" +
-                prInstance.diffUrl() + "\n\n" +
-                "Fetch command:\n" +
-                prInstance.fetchCommand();
-    }
-
-    private static String composeReplyFooter(PullRequestInstance prInstance) {
-        return "PR: " + prInstance.pr().getWebUrl();
+                " - incr: " + incrementalWebrev.toString() + "\n" +
+                "  Patch: " + prInstance.diffUrl() + "\n" +
+                "  Fetch: " + prInstance.fetchCommand() + "\n\n" +
+                replyFooter(prInstance);
     }
 
     private static String filterParentBody(Email parent, PullRequestInstance prInstance) {
-        var parentFooter = ArchiveMessages.composeReplyFooter(prInstance);
+        var parentFooter = ArchiveMessages.replyFooter(prInstance);
         var filteredParentBody = parent.body().strip();
         if (filteredParentBody.endsWith(parentFooter)) {
             return filteredParentBody.substring(0, filteredParentBody.length() - parentFooter.length()).strip();
@@ -129,7 +118,7 @@ class ArchiveMessages {
                 "\n\n" +
                 filterComments(body) +
                 "\n\n" +
-                composeReplyFooter(prInstance);
+                replyFooter(prInstance);
     }
 
     static String composeCombinedReply(Email parent, String body, PullRequestInstance prInstance) {
@@ -137,7 +126,7 @@ class ArchiveMessages {
                 "\n\n" +
                 filterComments(body) +
                 "\n\n" +
-                composeReplyFooter(prInstance);
+                replyFooter(prInstance);
     }
 
     static String reviewCommentBody(String body, Review.Verdict verdict, String user, String role) {
