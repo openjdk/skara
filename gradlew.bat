@@ -20,41 +20,47 @@ rem Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
 rem or visit www.oracle.com if you need additional information or have any
 rem questions.
 
-if exist %~dp0\.jdk\openjdk-12_windows-x64_bin goto gradle
+for /f "tokens=1,2 delims==" %%A in (deps.env) do (set %%A=%%~B)
+for /f %%i in ("%JDK_WINDOWS_URL%") do set JDK_WINDOWS_DIR=%%~ni
+for /f %%i in ("%GRADLE_URL%") do set GRADLE_DIR=%%~ni
+
+if exist %~dp0\.jdk\%JDK_WINDOWS_DIR% goto gradle
 
 echo Downloading JDK...
-mkdir %~dp0\.jdk
-curl -O https://download.java.net/java/GA/jdk12/GPL/openjdk-12_windows-x64_bin.zip -o openjdk-12_windows-x64_bin.zip
-move openjdk-12_windows-x64_bin.zip %~dp0\.jdk\
-for /f "tokens=*" %%i in ('@certutil -hashfile %~dp0/.jdk/openjdk-12_windows-x64_bin.zip sha256 ^| find /v "hash of file" ^| find /v "CertUtil"') do set SHA256JDK=%%i
-if "%SHA256JDK%" == "35a8d018f420fb05fe7c2aa9933122896ca50bd23dbd373e90d8e2f3897c4e92" (goto extractJdk)
+mkdir %~dp0\.jdk\temp
+curl -L %JDK_WINDOWS_URL% -o %JDK_WINDOWS_DIR%.zip
+move %JDK_WINDOWS_DIR%.zip %~dp0\.jdk\
+for /f "tokens=*" %%i in ('@certutil -hashfile %~dp0/.jdk/%JDK_WINDOWS_DIR%.zip sha256 ^| find /v "hash of file" ^| find /v "CertUtil"') do set SHA256JDK=%%i
+if "%SHA256JDK%" == "%JDK_WINDOWS_SHA256%" (goto extractJdk)
 echo Invalid SHA256 for JDK detected (%SHA256JDK%)
 goto done
 
 :extractJdk
 echo Extracting JDK...
-tar -xf %~dp0/.jdk/openjdk-12_windows-x64_bin.zip -C %~dp0/.jdk
-ren %~dp0\.jdk\jdk-12 openjdk-12_windows-x64_bin
+tar -xf %~dp0/.jdk/%JDK_WINDOWS_DIR%.zip -C %~dp0/.jdk/temp
+for /d %%i in (%~dp0\.jdk\temp\*) do move %%i %~dp0\.jdk\%JDK_WINDOWS_DIR%
+rmdir %~dp0\.jdk\temp
 
 :gradle
-if exist %~dp0\.gradle\gradle-5.2.1-bin goto run
+if exist %~dp0\.gradle\%GRADLE_DIR% goto run
 
 echo Downloading Gradle...
-mkdir %~dp0\.gradle
-curl -OL https://services.gradle.org/distributions/gradle-5.2.1-bin.zip -o gradle-5.2.1-bin.zip
-move gradle-5.2.1-bin.zip %~dp0\.gradle\
-for /f "tokens=*" %%i in ('@certutil -hashfile %~dp0/.gradle/gradle-5.2.1-bin.zip sha256 ^| find /v "hash of file" ^| find /v "CertUtil"') do set SHA256GRADLE=%%i
-if "%SHA256GRADLE%" == "748c33ff8d216736723be4037085b8dc342c6a0f309081acf682c9803e407357" (goto extractGradle)
+mkdir %~dp0\.gradle\temp
+curl -L %GRADLE_URL% -o %GRADLE_DIR%.zip
+move %GRADLE_DIR%.zip %~dp0\.gradle\
+for /f "tokens=*" %%i in ('@certutil -hashfile %~dp0/.gradle/%GRADLE_DIR%.zip sha256 ^| find /v "hash of file" ^| find /v "CertUtil"') do set SHA256GRADLE=%%i
+if "%SHA256GRADLE%" == "%GRADLE_SHA256%" (goto extractGradle)
 echo Invalid SHA256 for Gradle detected (%SHA256GRADLE%)
 goto done
 
 :extractGradle
 echo Extracting Gradle...
-tar -xf %~dp0/.gradle/gradle-5.2.1-bin.zip -C %~dp0/.gradle
-ren %~dp0\.gradle\gradle-5.2.1 gradle-5.2.1-bin
+tar -xf %~dp0/.gradle/%GRADLE_DIR%.zip -C %~dp0/.gradle/temp
+for /d %%i in (%~dp0\.gradle\temp\*) do move %%i %~dp0\.gradle\%GRADLE_DIR%
+rmdir %~dp0\.gradle\temp
 
 :run
-set JAVA_HOME=%~dp0/.jdk/openjdk-12_windows-x64_bin
-%~dp0\.gradle\gradle-5.2.1-bin\bin\gradle %*
+set JAVA_HOME=%~dp0/.jdk/%JDK_WINDOWS_DIR%
+%~dp0\.gradle\%GRADLE_DIR%\bin\gradle %*
 
 :done

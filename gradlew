@@ -67,10 +67,9 @@ checksum() {
 extract_tar() {
     FILENAME="$1"
     DIRECTORY="$2"
-    STRIP="$3"
     mkdir -p "${DIRECTORY}"
 
-    tar -xf "${FILENAME}" --strip-components=${STRIP} -C "${DIRECTORY}"
+    tar -xf "${FILENAME}" -C "${DIRECTORY}"
 }
 
 extract_zip() {
@@ -78,37 +77,38 @@ extract_zip() {
     DIRECTORY="$2"
 
     mkdir -p "${DIRECTORY}"
-    unzip "${FILENAME}" -d "${DIRECTORY}"
+    unzip "${FILENAME}" -d "${DIRECTORY}" > /dev/null
 }
 
 DIR=$(dirname $0)
 OS=$(uname)
 
-if [ "$1" = "--jdk" ]; then
-    JDK_URL="$2"
-    JDK_SHA256=''
-    shift
-    shift
-else
-    if [ "${OS}" = "Linux" ]; then
-        JDK_URL='https://download.java.net/java/GA/jdk12/GPL/openjdk-12_linux-x64_bin.tar.gz'
-        JDK_SHA256='b43bc15f4934f6d321170419f2c24451486bc848a2179af5e49d10721438dd56'
-    elif [ "${OS}" = "Darwin" ]; then
-        JDK_URL='https://download.java.net/java/GA/jdk12/GPL/openjdk-12_osx-x64_bin.tar.gz'
-        JDK_SHA256='52164a04db4d3fdfe128cfc7b868bc4dae52d969f03d53ae9d4239fe783e1a3a'
-    else
-        die "error: unknown operating system: ${OS}"
-    fi
-fi
-
-if [ "${OS}" = "Linux" ]; then
-    STRIP=1
-elif [ "${OS}" = "Darwin" ]; then
-    STRIP=2
-fi
+. $(dirname "${0}")/deps.env
+case "${OS}" in
+    Linux )
+        JDK_URL="${JDK_LINUX_URL}"
+        JDK_SHA256="${JDK_LINUX_SHA256}"
+        ;;
+    Darwin )
+        JDK_URL="${JDK_MACOS_URL}"
+        JDK_SHA256="${JDK_MACOS_SHA256}"
+        ;;
+    CYGWIN_NT* )
+        JDK_URL="${JDK_WINDOWS_URL}"
+        JDK_SHA256="${JDK_WINDOWS_SHA256}"
+        ;;
+    *)
+        echo "error: unknown operating system ${OS}"
+        exit 1
+        ;;
+esac
 
 JDK_FILENAME="${DIR}/.jdk/$(basename ${JDK_URL})"
-JDK_DIR="${DIR}/.jdk/$(basename -s '.tar.gz' ${JDK_URL})"
+if [ "${OS}" = "Linux" -o "${OS}" = "Darwin" ]; then
+    JDK_DIR="${DIR}/.jdk/$(basename -s '.tar.gz' ${JDK_URL})"
+else
+    JDK_DIR="${DIR}/.jdk/$(basename -s '.zip' ${JDK_URL})"
+fi
 
 if [ ! -d "${JDK_DIR}" ]; then
     mkdir -p ${DIR}/.jdk
@@ -123,11 +123,26 @@ if [ ! -d "${JDK_DIR}" ]; then
         fi
     fi
     echo "Extracting JDK..."
-    extract_tar "${JDK_FILENAME}" "${JDK_DIR}" ${STRIP}
+    if [ "${OS}" = "Linux" -o "${OS}" = "Darwin" ]; then
+        extract_tar "${JDK_FILENAME}" "${JDK_DIR}"
+    else
+        extract_zip "${JDK_FILENAME}" "${JDK_DIR}"
+    fi
 fi
 
-GRADLE_URL="https://services.gradle.org/distributions/gradle-5.2.1-bin.zip"
-GRADLE_SHA256="748c33ff8d216736723be4037085b8dc342c6a0f309081acf682c9803e407357"
+if [ "${OS}" = "Darwin" ]; then
+    EXECUTABLE_FILTER='-perm +111'
+    LAUNCHER='java'
+elif [ "${OS}" = "Linux" ]; then
+    EXECUTABLE_FILTER='-executable'
+    LAUNCHER='java'
+else
+    LAUNCHER='java.exe'
+fi
+
+JAVA_LAUNCHER=$(find "${JDK_DIR}" -type f ${EXECUTABLE_FILTER} | grep ".*/bin/${LAUNCHER}$")
+export JAVA_HOME="$(dirname $(dirname ${JAVA_LAUNCHER}))"
+
 GRADLE_FILENAME="${DIR}/.gradle/$(basename ${GRADLE_URL})"
 GRADLE_DIR="${DIR}/.gradle/$(basename -s '.zip' ${GRADLE_URL})"
 
@@ -139,13 +154,16 @@ if [ ! -d "${GRADLE_DIR}" ]; then
     fi
     checksum ${GRADLE_FILENAME} ${GRADLE_SHA256}
     echo "Extracting Gradle..."
-    extract_zip "${GRADLE_FILENAME}" "${GRADLE_DIR}"
+    "${JAVA_LAUNCHER}" "${DIR}"/Unzip.java "${GRADLE_FILENAME}" "${GRADLE_DIR}"
 fi
 
-if [ "${OS}" = "Darwin" ]; then
-    export JAVA_HOME="${JDK_DIR}/Contents/Home"
-elif [ "${OS}" = "Linux" ]; then
-    export JAVA_HOME="${JDK_DIR}"
+GRADLE_LAUNCHER=$(find "${GRADLE_DIR}" | grep '.*/bin/gradle$')
+chmod u+x "${GRADLE_LAUNCHER}"
+
+if [ "${OS}" = "Linux" ]; then
+    export LC_ALL=en_US.UTF-8
+    export LANG=en_US.UTF-8
+    export LANGUAGE=en_US.UTF-8
 fi
 
-exec "${GRADLE_DIR}/gradle-5.2.1/bin/gradle" "$@"
+exec "${GRADLE_LAUNCHER}" "$@"
