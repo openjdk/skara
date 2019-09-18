@@ -19,7 +19,7 @@
 # or visit www.oracle.com if you need additional information or have any
 # questions.
 
-FROM oraclelinux:7.5 as prerequisites-runtime
+FROM oraclelinux:7.6 as prerequisites-runtime
 
 WORKDIR /bots-build
 
@@ -46,7 +46,7 @@ RUN curl -sSO https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VER
     make install
 
 
-FROM oraclelinux:7.5
+FROM oraclelinux:7.6
 
 WORKDIR /bots-build
 
