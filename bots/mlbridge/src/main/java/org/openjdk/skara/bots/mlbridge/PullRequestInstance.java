@@ -67,9 +67,38 @@ class PullRequestInstance {
         return pr.getWebUrl() + ".diff";
     }
 
+    String changeUrl() {
+        return pr.getWebUrl() + "/files";
+    }
+
+    String changeUrl(Hash base, Hash head) {
+        return pr.getWebUrl() + "/files/" + base.abbreviate() + ".." + head.abbreviate();
+    }
+
     String fetchCommand() {
         var repoUrl = pr.repository().getWebUrl();
         return "git fetch " + repoUrl + " " + pr.getSourceRef() + ":pull/" + pr.getId();
+    }
+
+    String stats(Hash base, Hash head) {
+        try {
+            var diff = localRepo.diff(base, head);
+            var inserted = diff.added();
+            var deleted = diff.removed();
+            var modified = diff.modified();
+            var linesChanged = inserted + deleted + modified;
+            var filesChanged = diff.patches().size();
+            return String.format("%d line%ss in %d file%s changed: %d ins; %d del; %d mod",
+                                 linesChanged,
+                                 linesChanged == 1 ? "" : "s",
+                                 filesChanged,
+                                 filesChanged == 1 ? "" : "s",
+                                 inserted,
+                                 deleted,
+                                 modified);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @FunctionalInterface

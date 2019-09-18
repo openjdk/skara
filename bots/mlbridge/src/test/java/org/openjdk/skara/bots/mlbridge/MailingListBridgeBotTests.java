@@ -166,13 +166,13 @@ class MailingListBridgeBotTests {
             assertTrue(archiveContains(archiveFolder.path(), "This is a pull request"));
             assertTrue(archiveContains(archiveFolder.path(), "This should now be ready"));
             assertTrue(archiveContains(archiveFolder.path(), "Patch:"));
-            assertTrue(archiveContains(archiveFolder.path(), "Pull request:"));
+            assertTrue(archiveContains(archiveFolder.path(), "Changes:"));
             assertTrue(archiveContains(archiveFolder.path(), "Webrev:"));
             assertTrue(archiveContains(archiveFolder.path(), "http://www.test.test/"));
             assertTrue(archiveContains(archiveFolder.path(), "webrev.00"));
-            assertTrue(archiveContains(archiveFolder.path(), "Fetch command:"));
-            assertTrue(archiveContains(archiveFolder.path(), "^ - " + editHash.abbreviate() + ":\tChange msg"));
-            assertTrue(archiveContains(archiveFolder.path(), "^\t\t\tWith several lines"));
+            assertTrue(archiveContains(archiveFolder.path(), "Fetch:"));
+            assertTrue(archiveContains(archiveFolder.path(), "^ - " + editHash.abbreviate() + ": Change msg"));
+            assertFalse(archiveContains(archiveFolder.path(), "With several lines"));
 
             // The mailing list as well
             listServer.processIncoming();
@@ -742,7 +742,7 @@ class MailingListBridgeBotTests {
             assertTrue(archiveContains(archiveFolder.path(), "additional changes"));
             assertTrue(archiveContains(archiveFolder.path(), "full.*/" + pr.getId() + "/webrev.01"));
             assertTrue(archiveContains(archiveFolder.path(), "inc.*/" + pr.getId() + "/webrev.00-01"));
-            assertTrue(archiveContains(archiveFolder.path(), "Updated full patch"));
+            assertTrue(archiveContains(archiveFolder.path(), "Patch"));
             assertTrue(archiveContains(archiveFolder.path(), "Fetch"));
             assertTrue(archiveContains(archiveFolder.path(), "Fixing"));
 
@@ -860,7 +860,7 @@ class MailingListBridgeBotTests {
             assertTrue(archiveContains(archiveFolder.path(), "complete new set of changes"));
             assertTrue(archiveContains(archiveFolder.path(), pr.getId() + "/webrev.01"));
             assertFalse(archiveContains(archiveFolder.path(), "Incremental"));
-            assertTrue(archiveContains(archiveFolder.path(), "Updated full patch"));
+            assertTrue(archiveContains(archiveFolder.path(), "Patch"));
             assertTrue(archiveContains(archiveFolder.path(), "Fetch"));
             assertTrue(archiveContains(archiveFolder.path(), "Original msg"));
             assertTrue(archiveContains(archiveFolder.path(), "Replaced msg"));
