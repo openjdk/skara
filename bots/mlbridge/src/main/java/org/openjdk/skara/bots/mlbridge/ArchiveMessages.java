@@ -63,9 +63,9 @@ class ArchiveMessages {
                 infoSeparator + "\n\n" +
                 "Commits:\n" +
                 commitMessages + "\n\n" +
-                "  Stats: " + prInstance.stats(prInstance.baseHash(), prInstance.headHash()) + "\n" +
                 "Changes: " + prInstance.changeUrl() + "\n" +
                 " Webrev: " + webrev.toString() + "\n" +
+                "  Stats: " + prInstance.stats(prInstance.baseHash(), prInstance.headHash()) + "\n" +
                 "  Patch: " + prInstance.diffUrl() + "\n" +
                 "  Fetch: " + prInstance.fetchCommand() + "\n\n" +
                 replyFooter(prInstance);
@@ -77,9 +77,9 @@ class ArchiveMessages {
                 infoSeparator + "\n\n" +
                 "Commits:\n" +
                 commitMessages + "\n\n" +
-                "  Stats: " + prInstance.stats(prInstance.baseHash(), prInstance.headHash()) + "\n" +
                 "Changes: " + prInstance.changeUrl() + "\n" +
                 " Webrev: " + fullWebrev.toString() + "\n" +
+                "  Stats: " + prInstance.stats(prInstance.baseHash(), prInstance.headHash()) + "\n" +
                 "  Patch: " + prInstance.diffUrl() + "\n" +
                 "  Fetch: " + prInstance.fetchCommand() + "\n\n" +
                 replyFooter(prInstance);    }
@@ -90,13 +90,13 @@ class ArchiveMessages {
                 infoSeparator + "\n\n" +
                 "Added commits:\n" +
                 newCommitMessages + "\n\n" +
-                "  Stats: " + prInstance.stats(lastHead, prInstance.headHash()) + "\n" +
-                "Changes:\n\n" +
+                "Changes:\n" +
                 "  - all: " + prInstance.pr().getWebUrl() + "/files\n" +
-                "  - new: " + prInstance.changeUrl(lastHead, prInstance.headHash()) + "\n" +
+                "  - new: " + prInstance.changeUrl(lastHead, prInstance.headHash()) + "\n\n" +
                 "Webrevs:\n" +
                 " - full: " + fullWebrev.toString() + "\n" +
-                " - incr: " + incrementalWebrev.toString() + "\n" +
+                " - incr: " + incrementalWebrev.toString() + "\n\n" +
+                "  Stats: " + prInstance.stats(lastHead, prInstance.headHash()) + "\n" +
                 "  Patch: " + prInstance.diffUrl() + "\n" +
                 "  Fetch: " + prInstance.fetchCommand() + "\n\n" +
                 replyFooter(prInstance);
