@@ -398,7 +398,7 @@ class UpdaterTests {
             assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
 
             // Simulate an RFR email
-            var rfr = Email.create(sender, "RFR: My PR", "PR:\n" + pr.getWebUrl().toString())
+            var rfr = Email.create(sender, "RFR: My PR", "PR: " + pr.getWebUrl().toString())
                     .recipient(listAddress)
                     .build();
             mailmanList.post(rfr);
@@ -471,7 +471,7 @@ class UpdaterTests {
             assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
 
             // Simulate an RFR email
-            var rfr = Email.create(sender, "RFR: My PR", "PR:\n" + pr.getWebUrl().toString())
+            var rfr = Email.create(sender, "RFR: My PR", "PR: " + pr.getWebUrl().toString())
                            .recipient(listAddress)
                            .build();
             mailmanList.post(rfr);

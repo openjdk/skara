@@ -131,7 +131,7 @@ public class MailingListUpdater implements UpdateConsumer {
 
             var candidate = candidates.get(0);
             var prLink = candidate.getWebUrl();
-            var prLinkPattern = Pattern.compile("^" + Pattern.quote(prLink.toString()), Pattern.MULTILINE);
+            var prLinkPattern = Pattern.compile("^PR: " + Pattern.quote(prLink.toString()), Pattern.MULTILINE);
 
             var rfrCandidates = rfrs.stream()
                                     .filter(email -> prLinkPattern.matcher(email.body()).find())
