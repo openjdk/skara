@@ -25,7 +25,7 @@ package org.openjdk.skara.bots.mlbridge;
 import java.util.regex.Pattern;
 
 public class MarkdownToText {
-    private static final Pattern emojiPattern = Pattern.compile("(:([0-9a-z_]+):)");
+    private static final Pattern emojiPattern = Pattern.compile("(:([0-9a-z_+-]+):)");
     private static final Pattern codePattern = Pattern.compile("^```(\\w*)\\R(.*)\\R```", Pattern.DOTALL | Pattern.MULTILINE);
 
     private static String removeEmojis(String markdown) {

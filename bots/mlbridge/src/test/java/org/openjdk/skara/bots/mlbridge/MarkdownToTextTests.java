@@ -24,7 +24,7 @@ package org.openjdk.skara.bots.mlbridge;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 class MarkdownToTextTests {
     @Test
@@ -34,6 +34,14 @@ class MarkdownToTextTests {
         assertEquals("😄\n😄", MarkdownToText.removeFormatting(":smile:\n:smile:"));
         assertEquals("😄 🙁", MarkdownToText.removeFormatting(":smile: :slight_frown:"));
         assertEquals("😄 🙁 :meh:", MarkdownToText.removeFormatting(":smile: :slight_frown: :meh:"));
+    }
+
+    @Test
+    void patterns() {
+        for (var emojiMap : EmojiTable.mapping.entrySet()) {
+            var pattern = ":" + emojiMap.getKey() + ":";
+            assertNotEquals(pattern, MarkdownToText.removeFormatting(pattern));
+        }
     }
 
     @Test
