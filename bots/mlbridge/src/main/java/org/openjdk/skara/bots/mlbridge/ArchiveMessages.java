@@ -52,6 +52,7 @@ class ArchiveMessages {
         return "PR: " + prInstance.pr().getWebUrl();
     }
 
+    // When changing this, ensure that the PR pattern in the notifier still matches
     static String composeConversation(PullRequestInstance prInstance, URI webrev) {
         var commitMessages = prInstance.formatCommitMessages(prInstance.baseHash(), prInstance.headHash(), ArchiveMessages::formatCommit);
         var filteredBody = filterComments(prInstance.pr().getBody());
