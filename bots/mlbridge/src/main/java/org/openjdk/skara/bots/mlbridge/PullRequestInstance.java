@@ -88,7 +88,7 @@ class PullRequestInstance {
             var modified = diff.modified();
             var linesChanged = inserted + deleted + modified;
             var filesChanged = diff.patches().size();
-            return String.format("%d line%ss in %d file%s changed: %d ins; %d del; %d mod",
+            return String.format("%d line%s in %d file%s changed: %d ins; %d del; %d mod",
                                  linesChanged,
                                  linesChanged == 1 ? "" : "s",
                                  filesChanged,
