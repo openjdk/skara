@@ -23,6 +23,7 @@
 package org.openjdk.skara.webrev;
 
 import org.openjdk.skara.vcs.TextualPatch;
+import org.openjdk.skara.vcs.BinaryPatch;
 
 import java.io.*;
 import java.nio.file.*;
@@ -30,33 +31,69 @@ import java.nio.file.*;
 class AddedPatchView implements View {
     private final Path out;
     private final Path file;
-    private final TextualPatch patch;
+    private final TextualPatch textualPatch;
+    private final BinaryPatch binaryPatch;
 
     public AddedPatchView(Path out, Path file, TextualPatch patch) {
         this.out = out;
         this.file = file;
-        this.patch = patch;
+        this.textualPatch = patch;
+        this.binaryPatch = null;
     }
 
+    public AddedPatchView(Path out, Path file, BinaryPatch patch) {
+        this.out = out;
+        this.file = file;
+        this.textualPatch = null;
+        this.binaryPatch = patch;
+    }
+
+    @Override
     public void render(Writer w) throws IOException {
         var patchFile = out.resolve(file.toString() + ".patch");
         Files.createDirectories(patchFile.getParent());
 
+        if (binaryPatch != null) {
+            renderBinary(patchFile);
+        } else {
+            renderTextual(patchFile);
+        }
+
+        w.write("<a href=\"");
+        w.write(Webrev.relativeToIndex(out, patchFile));
+        w.write("\">Patch</a>\n");
+    }
+
+    private void renderBinary(Path patchFile) throws IOException {
+        try (var fw = Files.newBufferedWriter(patchFile)) {
+            var targetPath = ViewUtils.pathWithUnixSeps(binaryPatch.target().path().get());
+            fw.write("diff a/");
+            fw.write(targetPath);
+            fw.write(" b/");
+            fw.write(targetPath);
+            fw.write("\n");
+            fw.write("Binary files /dev/null and ");
+            fw.write(targetPath);
+            fw.write(" differ\n");
+        }
+    }
+
+    private void renderTextual(Path patchFile) throws IOException {
         try (var fw = Files.newBufferedWriter(patchFile)) {
             fw.write("diff a/");
-            fw.write(ViewUtils.pathWithUnixSeps(patch.target().path().get()));
+            fw.write(ViewUtils.pathWithUnixSeps(textualPatch.target().path().get()));
             fw.write(" b/");
-            fw.write(ViewUtils.pathWithUnixSeps(patch.target().path().get()));
+            fw.write(ViewUtils.pathWithUnixSeps(textualPatch.target().path().get()));
             fw.write("\n");
             fw.write("--- /dev/null");
             fw.write("\n");
             fw.write("+++ b/");
-            fw.write(ViewUtils.pathWithUnixSeps(patch.target().path().get()));
+            fw.write(ViewUtils.pathWithUnixSeps(textualPatch.target().path().get()));
             fw.write("\n");
 
-            assert patch.hunks().size() == 1;
+            assert textualPatch.hunks().size() == 1;
 
-            var hunk = patch.hunks().get(0);
+            var hunk = textualPatch.hunks().get(0);
 
             assert hunk.source().range().start() == 0;
             assert hunk.source().range().count() == 0;
@@ -78,10 +115,6 @@ class AddedPatchView implements View {
                 fw.write("\n");
             }
         }
-
-        w.write("<a href=\"");
-        w.write(Webrev.relativeToIndex(out, patchFile));
-        w.write("\">Patch</a>\n");
     }
 }
 

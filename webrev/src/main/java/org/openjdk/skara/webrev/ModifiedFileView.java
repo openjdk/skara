@@ -120,7 +120,10 @@ class ModifiedFileView implements FileView {
     }
 
     private void renderBinary(Writer w) throws IOException {
-        w.write("------ ------ ------ ------ --- --- ----- ");
+        w.write("------ ------ ------ ------ --- --- ");
+
+        var patchView = new PatchView(out, patch.target().path().get(), patch.asBinaryPatch());
+        patchView.render(w);
 
         var rawView = new RawView(out, patch.target().path().get(), binaryContent);
         rawView.render(w);
