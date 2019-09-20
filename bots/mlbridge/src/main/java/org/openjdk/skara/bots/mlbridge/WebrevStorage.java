@@ -62,9 +62,13 @@ class WebrevStorage {
             // Try to push 1000 files at a time
             var batches = files.filter(Files::isRegularFile)
                                .filter(file -> {
-                                   // Huge files are not that useful in a webrev
+                                   // Huge files are not that useful in a webrev - but make an exception for the index
                                    try {
-                                       return Files.size(file) < 1000 * 1000;
+                                       if (file.getFileName().toString().equals("index.html")) {
+                                           return true;
+                                       } else {
+                                           return Files.size(file) < 1000 * 1000;
+                                       }
                                    } catch (IOException e) {
                                        return false;
                                    }
