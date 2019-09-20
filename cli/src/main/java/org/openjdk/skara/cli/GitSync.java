@@ -38,12 +38,32 @@ public class GitSync {
         return new IOException("will never reach here");
     }
 
-    public static void main(String[] args) throws IOException {
+    private static int fetch() throws IOException, InterruptedException {
+        var pb = new ProcessBuilder("git", "fetch");
+        pb.inheritIO();
+        return pb.start().waitFor();
+    }
+
+    private static int pull() throws IOException, InterruptedException {
+        var pb = new ProcessBuilder("git", "pull");
+        pb.inheritIO();
+        return pb.start().waitFor();
+    }
+
+    public static void main(String[] args) throws IOException, InterruptedException {
         var flags = List.of(
             Option.shortcut("")
                   .fullname("branches")
                   .describe("BRANCHES")
                   .helptext("Comma separated list of branches to sync")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("pull")
+                  .helptext("Pull current branch from origin after successful sync")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("fetch")
+                  .helptext("Fetch current branch from origin after successful sync")
                   .optional(),
             Switch.shortcut("m")
                   .fullname("mercurial")
@@ -67,7 +87,7 @@ public class GitSync {
             Input.position(0)
                  .describe("REMOTE")
                  .singular()
-                 .required()
+                 .optional()
         );
 
         var parser = new ArgumentParser("git sync", flags, inputs);
@@ -88,8 +108,20 @@ public class GitSync {
                 die("error: no repository found at " + cwd.toString())
         );
 
-        var upstream = arguments.at(0).asString();
         var remotes = repo.remotes();
+
+        String upstream = null;
+        if (arguments.at(0).isPresent()) {
+            upstream = arguments.at(0).asString();
+        } else {
+            var lines = repo.config("sync.remote");
+            if (lines.size() == 1 && remotes.contains(lines.get(0))) {
+                upstream = lines.get(0);
+            } else {
+                die("No remote provided to sync with");
+            }
+        }
+
         var upstreamPullPath = remotes.contains(upstream) ?
             Remote.toURI(repo.pullPath(upstream)) : URI.create(upstream);
         var origin = "origin";
@@ -113,6 +145,20 @@ public class GitSync {
             var fetchHead = repo.fetch(upstreamPullPath, branch.hash().hex());
             repo.push(fetchHead, originPushPath, name);
             System.out.println("done");
+        }
+
+        if (arguments.contains("fetch")) {
+            int err = fetch();
+            if (err != 0) {
+                System.exit(err);
+            }
+        }
+
+        if (arguments.contains("pull")) {
+            int err = pull();
+            if (err != 0) {
+                System.exit(err);
+            }
         }
     }
 }
