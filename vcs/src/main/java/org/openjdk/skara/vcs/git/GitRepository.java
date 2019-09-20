@@ -1065,4 +1065,28 @@ public class GitRepository implements Repository {
 
         return false;
     }
+
+    @Override
+    public List<Reference> remoteBranches(String remote) throws IOException {
+        var refs = new ArrayList<Reference>();
+        try (var p = capture("git", "ls-remote", "--heads", "--refs", remote)) {
+            for (var line : await(p).stdout()) {
+                var parts = line.split("\t");
+                var name = parts[1].replace("refs/heads/", "");
+                refs.add(new Reference(name, new Hash(parts[0])));
+            }
+        }
+        return refs;
+    }
+
+    @Override
+    public List<String> remotes() throws IOException {
+        var remotes = new ArrayList<String>();
+        try (var p = capture("git", "remote")) {
+            for (var line : await(p).stdout()) {
+                remotes.add(line);
+            }
+        }
+        return remotes;
+    }
 }

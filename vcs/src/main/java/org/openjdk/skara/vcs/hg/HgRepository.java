@@ -1092,4 +1092,38 @@ public class HgRepository implements Repository {
             return line.equals(b.name());
         }
     }
+
+    @Override
+    public List<Reference> remoteBranches(String remote) throws IOException {
+        var refs = new ArrayList<Reference>();
+
+        var ext = Files.createTempFile("ext", ".py");
+        copyResource(EXT_PY, ext);
+
+        try (var p = capture("hg", "--config", "extensions.ls-remote=" + ext, "ls-remote", remote)) {
+            var res = await(p);
+            for (var line : res.stdout()) {
+                var parts = line.split("\t");
+                refs.add(new Reference(parts[1], new Hash(parts[0])));
+            }
+        }
+        return refs;
+    }
+
+    @Override
+    public List<String> remotes() throws IOException {
+        var remotes = new ArrayList<String>();
+        try (var p = capture("hg", "paths")) {
+            for (var line : await(p).stdout()) {
+                var parts = line.split(" = ");
+                var name = parts[0];
+                if (name.endsWith("-push") || name.endsWith(":push")) {
+                    continue;
+                } else {
+                    remotes.add(name);
+                }
+            }
+        }
+        return remotes;
+    }
 }

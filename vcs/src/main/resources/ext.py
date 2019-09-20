@@ -23,6 +23,8 @@ import mercurial
 import mercurial.patch
 import mercurial.mdiff
 import mercurial.util
+import mercurial.hg
+import mercurial.node
 import difflib
 import sys
 
@@ -288,3 +290,12 @@ def ls_tree(ui, repo, rev, **opts):
         write(nullHash)
         write('\t')
         writeln(filename)
+
+@command('ls-remote', [],  'hg ls-remote PATH')
+def ls_remote(ui, repo, path, **opts):
+    peer = mercurial.hg.peer(ui or repo, opts, ui.expandpath(path))
+    for branch, heads in peer.branchmap().iteritems():
+        for head in heads:
+            write(mercurial.node.hex(head))
+            write("\t")
+            writeln(branch)

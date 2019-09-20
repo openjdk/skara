@@ -212,46 +212,6 @@ public class GitPr {
         await(pb.start());
     }
 
-    private static URI toURI(String remotePath) throws IOException {
-        if (remotePath.startsWith("git+")) {
-            remotePath = remotePath.substring("git+".length());
-        }
-        if (remotePath.startsWith("http")) {
-            return URI.create(remotePath);
-        } else {
-            if (remotePath.startsWith("ssh://")) {
-                remotePath = remotePath.substring("ssh://".length()).replaceFirst("/", ":");
-            }
-            var indexOfColon = remotePath.indexOf(':');
-            var indexOfSlash = remotePath.indexOf('/');
-            if (indexOfColon != -1) {
-                if (indexOfSlash == -1 || indexOfColon < indexOfSlash) {
-                    var path = remotePath.contains("@") ? remotePath.split("@")[1] : remotePath;
-                    var name = path.split(":")[0];
-
-                    // Could be a Host in the ~/.ssh/config file
-                    var sshConfig = Path.of(System.getProperty("user.home"), ".ssh", "config");
-                    if (Files.exists(sshConfig)) {
-                        for (var host : SSHConfig.parse(sshConfig).hosts()) {
-                            if (host.name().equals(name)) {
-                                var hostName = host.hostName();
-                                if (hostName != null) {
-                                    return URI.create("https://" + hostName + "/" + path.split(":")[1]);
-                                }
-                            }
-                        }
-                    }
-
-                    // Otherwise is must be a domain
-                    return URI.create("https://" + path.replace(":", "/"));
-                }
-            }
-        }
-
-        exit("error: cannot find remote repository for " + remotePath);
-        return null; // will never reach here
-    }
-
     private static int longest(List<String> strings) {
         return strings.stream().mapToInt(String::length).max().orElse(0);
     }
@@ -347,7 +307,7 @@ public class GitPr {
         var remotePullPath = repo.pullPath(remote);
         var username = arguments.contains("username") ? arguments.get("username").asString() : null;
         var token = isMercurial ? System.getenv("HG_TOKEN") :  System.getenv("GIT_TOKEN");
-        var uri = toURI(remotePullPath);
+        var uri = Remote.toWebURI(remotePullPath);
         var credentials = GitCredentials.fill(uri.getHost(), uri.getPath(), username, token, uri.getScheme());
         var host = Host.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
 
