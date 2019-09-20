@@ -367,7 +367,7 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
 
             // Make two file specific comments
-            pr.addReviewComment(masterHash, editHash, reviewFile.toString(), 2, "Review comment");
+            var first = pr.addReviewComment(masterHash, editHash, reviewFile.toString(), 2, "Review comment");
             pr.addReviewComment(masterHash, editHash, reviewFile.toString(), 2, "Another review comment");
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
@@ -395,6 +395,15 @@ class MailingListBridgeBotTests {
             assertEquals("Re: RFR: This is a pull request", reviewReply.subject());
             assertTrue(reviewReply.body().contains("Review comment\n\n"), reviewReply.body());
             assertTrue(reviewReply.body().contains("Another review comment"), reviewReply.body());
+
+            // Now reply to the first (collapsed) comment
+            pr.addReviewCommentReply(first, "I agree");
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // The archive should contain a new entry
+            Repository.materialize(archiveFolder.path(), archive.getUrl(), "master");
+            assertEquals(3, archiveContainsCount(archiveFolder.path(), "^On.*wrote:"));
         }
     }
 
