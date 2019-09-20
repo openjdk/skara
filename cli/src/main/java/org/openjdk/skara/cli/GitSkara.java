@@ -116,6 +116,7 @@ public class GitSkara {
         commands.put("token", GitToken::main);
         commands.put("info", GitInfo::main);
         commands.put("translate", GitTranslate::main);
+        commands.put("sync", GitSync::main);
         commands.put("update", GitSkara::update);
         commands.put("help", GitSkara::usage);
 
