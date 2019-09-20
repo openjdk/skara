@@ -72,8 +72,7 @@ class RemovedFileView implements FileView {
             var rawView = new RawView(out, patch.source().path().get(), oldContent);
             rawView.render(w);
         } else {
-            w.write("------ ------ ------ ------ --- --- ");
-
+            w.write(" --- --- ");
             var patchView = new RemovedPatchView(out, patch.source().path().get(), patch.asBinaryPatch());
             patchView.render(w);
 
