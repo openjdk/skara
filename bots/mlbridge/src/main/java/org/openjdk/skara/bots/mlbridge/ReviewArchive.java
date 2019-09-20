@@ -112,7 +112,8 @@ class ReviewArchive {
             var parentId = getStableMessageId(getMessageId(reviewComment.parent().get()));
             var last = Stream.concat(existing.stream(), generated.stream())
                              .filter(email -> (email.hasHeader("References") && email.headerValue("References").contains(parentId)) ||
-                                     (getStableMessageId(email.id()).equals(parentId)))
+                                     (getStableMessageId(email.id()).equals(parentId)) ||
+                                     (email.hasHeader("PR-Collapsed-IDs") && email.headerValue("PR-Collapsed-IDs").contains(parentId)))
                              .max(Comparator.comparingInt(email -> Integer.parseInt(email.headerValue("PR-Sequence"))));
 
             if (last.isEmpty()) {
