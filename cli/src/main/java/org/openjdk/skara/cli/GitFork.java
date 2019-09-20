@@ -29,7 +29,7 @@ import org.openjdk.skara.proxy.HttpProxy;
 
 import java.io.IOException;
 import java.net.URI;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -175,6 +175,14 @@ public class GitFork {
                 upstreamUrl = "git+" + upstreamUrl;
             }
             repo.addRemote("upstream", upstreamUrl);
+            var gitConfig = repo.root().resolve(".git").resolve("config");
+            if (!isMercurial && Files.exists(gitConfig)) {
+                var lines = List.of(
+                    "[sync]",
+                    "        remote = upstream"
+                );
+                Files.write(gitConfig, lines, StandardOpenOption.WRITE, StandardOpenOption.APPEND);
+            }
             System.out.println("done");
         } else {
             System.out.println(webUrl);
