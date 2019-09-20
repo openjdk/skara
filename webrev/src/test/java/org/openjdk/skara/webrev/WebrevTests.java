@@ -115,4 +115,62 @@ class WebrevTests {
             assertContains(webrevFolder.path().resolve("index.html"), "<td>4 lines changed; 0 ins; 4 del; 0 mod; 1 unchg</td>");
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void removeBinaryFile(VCS vcs) throws IOException {
+        try (var tmp = new TemporaryDirectory()) {
+            var repo = Repository.init(tmp.path().resolve("repo"), vcs);
+            var binaryFile = repo.root().resolve("x.jpg");
+            byte[] contents = {0x1, 0x2, 0x3, 0x4, 0x5, 0x0, 0x2, 0x3, 0x4, 0x5};
+            Files.write(binaryFile, contents);
+            repo.add(binaryFile);
+            var hash1 = repo.commit("Added binary file", "a", "a@a.a");
+            repo.remove(binaryFile);
+            var hash2 = repo.commit("Removed binary file", "a", "a@a.a");
+
+            new Webrev.Builder(repo, tmp.path().resolve("webrev")).generate(hash1, hash2);
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void addBinaryFile(VCS vcs) throws IOException {
+        try (var tmp = new TemporaryDirectory()) {
+            var repo = Repository.init(tmp.path().resolve("repo"), vcs);
+            var readme = repo.root().resolve("README");
+            Files.writeString(readme, "Hello\n");
+            repo.add(readme);
+            var hash1 = repo.commit("Added readme", "a", "a@a");
+
+            var binaryFile = repo.root().resolve("x.jpg");
+            byte[] contents = {0x1, 0x2, 0x3, 0x4, 0x5, 0x0, 0x2, 0x3, 0x4, 0x5};
+            Files.write(binaryFile, contents);
+            repo.add(binaryFile);
+            var hash2 = repo.commit("Added binary file", "a", "a@a.a");
+
+            new Webrev.Builder(repo, tmp.path().resolve("webrev")).generate(hash1, hash2);
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void modifyBinaryFile(VCS vcs) throws IOException {
+        try (var tmp = new TemporaryDirectory()) {
+            var repo = Repository.init(tmp.path().resolve("repo"), vcs);
+            var readme = repo.root().resolve("README");
+            var binaryFile = repo.root().resolve("x.jpg");
+            byte[] contents = {0x1, 0x2, 0x3, 0x4, 0x5, 0x0, 0x2, 0x3, 0x4, 0x5};
+            Files.write(binaryFile, contents);
+            repo.add(binaryFile);
+            var hash1 = repo.commit("Added binary file", "a", "a@a.a");
+
+            byte[] newContent =  {0x1, 0x2, 0x3, 0x4, 0x5, 0x0, 0x2, 0x3, 0x4, 0x5, 0x6};
+            Files.write(binaryFile, newContent);
+            repo.add(binaryFile);
+            var hash2 = repo.commit("Modified binary file", "a", "a@a.a");
+
+            new Webrev.Builder(repo, tmp.path().resolve("webrev")).generate(hash1, hash2);
+        }
+    }
 }

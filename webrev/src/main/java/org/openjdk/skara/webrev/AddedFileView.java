@@ -79,7 +79,10 @@ class AddedFileView implements FileView {
             var rawView = new RawView(out, patch.target().path().get(), newContent);
             rawView.render(w);
         } else {
-            w.write("------ ------ ------ ------ --- --- ----- ");
+            w.write("------ ------ ------ ------ --- --- ");
+
+            var addedPatchView = new AddedPatchView(out, patch.target().path().get(), patch.asBinaryPatch());
+            addedPatchView.render(w);
 
             var rawView = new RawView(out, patch.target().path().get(), binaryContent);
             rawView.render(w);
