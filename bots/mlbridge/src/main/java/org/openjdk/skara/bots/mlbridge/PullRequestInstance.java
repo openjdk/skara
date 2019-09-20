@@ -23,10 +23,14 @@
 package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.host.PullRequest;
+import org.openjdk.skara.host.network.URIBuilder;
 import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.vcs.openjdk.Issue;
 
 import java.io.*;
+import java.net.URI;
 import java.nio.file.Path;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 class PullRequestInstance {
@@ -35,9 +39,13 @@ class PullRequestInstance {
     private final Hash targetHash;
     private final Hash headHash;
     private final Hash baseHash;
+    private final URI issueTracker;
+    private final String projectPrefix;
 
-    PullRequestInstance(Path localRepoPath, PullRequest pr) {
+    PullRequestInstance(Path localRepoPath, PullRequest pr, URI issueTracker, String projectPrefix) {
         this.pr = pr;
+        this.issueTracker = issueTracker;
+        this.projectPrefix = projectPrefix;
 
         // Materialize the PR's target ref
         try {
@@ -99,6 +107,11 @@ class PullRequestInstance {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    Optional<String> issueUrl() {
+        var issue = Issue.fromString(pr.getTitle());
+        return issue.map(value -> URIBuilder.base(issueTracker).appendPath(projectPrefix + "-" + value.id()).build().toString());
     }
 
     @FunctionalInterface
