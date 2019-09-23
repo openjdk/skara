@@ -48,6 +48,7 @@ class MarkdownToTextTests {
     void code() {
         assertEquals("Just some text", MarkdownToText.removeFormatting("```\nJust some text\n```"));
         assertEquals("Multi\nline", MarkdownToText.removeFormatting("```\nMulti\nline\n```"));
+        assertEquals("Script", MarkdownToText.removeFormatting("```bash\nScript\n```"));
     }
 
     @Test
