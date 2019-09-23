@@ -227,7 +227,12 @@ class ArchiveWorkItem implements WorkItem {
         }
 
         var census = CensusInstance.create(bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr);
-        var prInstance = new PullRequestInstance(scratchPath.resolve("mlbridge-mergebase"), pr);
+        var jbs = census.configuration().general().jbs();
+        if (jbs == null) {
+            jbs = census.configuration().general().project();
+        }
+        var prInstance = new PullRequestInstance(scratchPath.resolve("mlbridge-mergebase"), pr, bot.issueTracker(),
+                                                 jbs.toUpperCase());
         var reviewArchive = new ReviewArchive(bot.emailAddress(), prInstance, census, sentMails);
         var webrevPath = scratchPath.resolve("mlbridge-webrevs");
         var listServer = MailingListServerFactory.createMailmanServer(bot.listArchive(), bot.smtpServer());

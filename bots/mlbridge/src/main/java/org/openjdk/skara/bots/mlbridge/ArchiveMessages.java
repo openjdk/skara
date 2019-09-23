@@ -59,12 +59,14 @@ class ArchiveMessages {
         if (filteredBody.isEmpty()) {
             filteredBody = prInstance.pr().getTitle().strip();
         }
+        var issueString = prInstance.issueUrl().map(url -> "  Issue: " + url + "\n").orElse("");
         return filteredBody + "\n\n" +
                 infoSeparator + "\n\n" +
                 "Commits:\n" +
                 commitMessages + "\n\n" +
                 "Changes: " + prInstance.changeUrl() + "\n" +
                 " Webrev: " + webrev.toString() + "\n" +
+                issueString +
                 "  Stats: " + prInstance.stats(prInstance.baseHash(), prInstance.headHash()) + "\n" +
                 "  Patch: " + prInstance.diffUrl() + "\n" +
                 "  Fetch: " + prInstance.fetchCommand() + "\n\n" +
@@ -73,12 +75,14 @@ class ArchiveMessages {
 
     static String composeRebaseComment(PullRequestInstance prInstance, URI fullWebrev) {
         var commitMessages = prInstance.formatCommitMessages(prInstance.baseHash(), prInstance.headHash(), ArchiveMessages::formatCommit);
+        var issueString = prInstance.issueUrl().map(url -> "  Issue: " + url + "\n").orElse("");
         return "The pull request has been updated with a complete new set of changes (possibly due to a rebase).\n\n" +
                 infoSeparator + "\n\n" +
                 "Commits:\n" +
                 commitMessages + "\n\n" +
                 "Changes: " + prInstance.changeUrl() + "\n" +
                 " Webrev: " + fullWebrev.toString() + "\n" +
+                issueString +
                 "  Stats: " + prInstance.stats(prInstance.baseHash(), prInstance.headHash()) + "\n" +
                 "  Patch: " + prInstance.diffUrl() + "\n" +
                 "  Fetch: " + prInstance.fetchCommand() + "\n\n" +
@@ -86,6 +90,7 @@ class ArchiveMessages {
 
     static String composeIncrementalComment(Hash lastHead, PullRequestInstance prInstance, URI fullWebrev, URI incrementalWebrev) {
         var newCommitMessages = prInstance.formatCommitMessages(lastHead, prInstance.headHash(), ArchiveMessages::formatCommit);
+        var issueString = prInstance.issueUrl().map(url -> "  Issue: " + url + "\n").orElse("");
         return "The pull request has been updated with additional changes.\n\n" +
                 infoSeparator + "\n\n" +
                 "Added commits:\n" +
@@ -96,6 +101,7 @@ class ArchiveMessages {
                 "Webrevs:\n" +
                 " - full: " + fullWebrev.toString() + "\n" +
                 " - incr: " + incrementalWebrev.toString() + "\n\n" +
+                issueString +
                 "  Stats: " + prInstance.stats(lastHead, prInstance.headHash()) + "\n" +
                 "  Patch: " + prInstance.diffUrl() + "\n" +
                 "  Fetch: " + prInstance.fetchCommand() + "\n\n" +

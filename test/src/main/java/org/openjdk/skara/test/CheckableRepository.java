@@ -59,6 +59,7 @@ public class CheckableRepository {
         try (var output = Files.newBufferedWriter(checkConf)) {
             output.append("[general]\n");
             output.append("project=test\n");
+            output.append("jbs=tstprj\n");
             output.append("\n");
             output.append("[checks]\n");
             output.append("error=");

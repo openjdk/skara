@@ -70,12 +70,13 @@ public class JCheckConfiguration {
         var config = new ArrayList<String>();
         config.add("[general]");
         config.add("project=" + project);
+        config.add("jbs=JDK");
 
         config.add("[checks]");
         var error = "error=blacklist,author,committer,reviewers,merge,hg-tag,message,issues,executable";
         var shouldCheckWhitespace = false;
         var checkWhitespace = old.get("whitespace");
-        if (checkWhitespace == null || !checkWhitespace.equals("lax")) {
+        if (checkWhitespace == null || !checkWhitespace.asString().equals("lax")) {
             error += ",whitespace";
             shouldCheckWhitespace = true;
         }
@@ -86,7 +87,7 @@ public class JCheckConfiguration {
 
             var tags = "tags=";
             var checkTags = old.get("tags");
-            if (checkTags == null || !checkTags.equals("lax")) {
+            if (checkTags == null || !checkTags.asString().equals("lax")) {
                 var jdkTag = "(?:jdk-(?:[1-9]([0-9]*)(?:\\.(?:0|[1-9][0-9]*)){0,4})(?:\\+(?:(?:[0-9]+))|(?:-ga)))";
                 var jdkuTag = "(?:jdk[4-9](?:u\\d{1,3})?-(?:(?:b\\d{2,3})|(?:ga)))";
                 var hsTag = "(?:hs\\d\\d(?:\\.\\d{1,2})?-b\\d\\d)";
@@ -98,7 +99,7 @@ public class JCheckConfiguration {
 
             var branches = "branches=";
             var checkBranches = old.get("branches");
-            if (checkBranches != null && checkBranches.equals("lax")) {
+            if (checkBranches != null && checkBranches.asString().equals("lax")) {
                 branches += ".*\n";
             }
             config.add(branches);
