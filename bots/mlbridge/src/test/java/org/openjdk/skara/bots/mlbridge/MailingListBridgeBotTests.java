@@ -111,7 +111,8 @@ class MailingListBridgeBotTests {
                                                  archive, "webrev", Path.of("test"),
                                                  URIBuilder.base("http://www.test.test/").build(),
                                                  Set.of("rfr"), Map.of(ignored.host().getCurrentUserDetails().userName(),
-                                                                       Pattern.compile("ready")));
+                                                                       Pattern.compile("ready")),
+                                                 Map.of("Extra1", "val1", "Extra2", "val2"));
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
@@ -185,6 +186,8 @@ class MailingListBridgeBotTests {
             assertEquals(pr.getAuthor().fullName(), mail.author().fullName().orElseThrow());
             assertEquals(noreplyAddress(archive), mail.author().address());
             assertEquals(from, mail.sender());
+            assertEquals("val1", mail.headerValue("Extra1"));
+            assertEquals("val2", mail.headerValue("Extra2"));
 
             // And there should be a webrev
             Repository.materialize(webrevFolder.path(), archive.getUrl(), "webrev");
@@ -260,7 +263,7 @@ class MailingListBridgeBotTests {
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
                                                  URIBuilder.base("http://www.test.test/").build(),
-                                                 Set.of(), Map.of());
+                                                 Set.of(), Map.of(), Map.of());
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -346,7 +349,7 @@ class MailingListBridgeBotTests {
                                                  listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
                                                  URIBuilder.base("http://www.test.test/").build(),
-                                                 Set.of(), Map.of());
+                                                 Set.of(), Map.of(), Map.of());
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -427,7 +430,7 @@ class MailingListBridgeBotTests {
                                                  listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
                                                  URIBuilder.base("http://www.test.test/").build(),
-                                                 Set.of(), Map.of());
+                                                 Set.of(), Map.of(), Map.of());
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -535,7 +538,7 @@ class MailingListBridgeBotTests {
                                                  listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
                                                  URIBuilder.base("http://www.test.test/").build(),
-                                                 Set.of(), Map.of());
+                                                 Set.of(), Map.of(), Map.of());
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -584,7 +587,7 @@ class MailingListBridgeBotTests {
                                                  listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
                                                  URIBuilder.base("http://www.test.test/").build(),
-                                                 Set.of(), Map.of());
+                                                 Set.of(), Map.of(), Map.of());
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -651,7 +654,7 @@ class MailingListBridgeBotTests {
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
                                                  URIBuilder.base("http://www.test.test/").build(),
-                                                 Set.of(), Map.of());
+                                                 Set.of(), Map.of(), Map.of());
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -708,7 +711,7 @@ class MailingListBridgeBotTests {
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
                                                  URIBuilder.base("http://www.test.test/").build(),
-                                                 Set.of(), Map.of());
+                                                 Set.of(), Map.of(), Map.of());
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -827,7 +830,7 @@ class MailingListBridgeBotTests {
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
                                                  URIBuilder.base("http://www.test.test/").build(),
-                                                 Set.of(), Map.of());
+                                                 Set.of(), Map.of(), Map.of());
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -918,7 +921,7 @@ class MailingListBridgeBotTests {
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
                                                  URIBuilder.base("http://www.test.test/").build(),
-                                                 Set.of(), Map.of());
+                                                 Set.of(), Map.of(), Map.of());
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
@@ -989,7 +992,7 @@ class MailingListBridgeBotTests {
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
                                                  URIBuilder.base("http://www.test.test/").build(),
-                                                 Set.of(), Map.of());
+                                                 Set.of(), Map.of(), Map.of());
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -1071,7 +1074,7 @@ class MailingListBridgeBotTests {
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
                                                  URIBuilder.base("http://www.test.test/").build(),
-                                                 Set.of(), Map.of());
+                                                 Set.of(), Map.of(), Map.of());
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");

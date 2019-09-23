@@ -78,13 +78,19 @@ public class MailingListBridgeBotFactory implements BotFactory {
             var censusRepo = configuration.repository(repoConfig.get("census").asString());
             var censusRef = configuration.repositoryRef(repoConfig.get("census").asString());
 
+            Map<String, String> headers = repoConfig.contains("headers") ?
+                    repoConfig.get("headers").fields().stream()
+                              .collect(Collectors.toMap(JSONObject.Field::name, field -> field.value().asString())) :
+                    Map.of();
+
             var list = EmailAddress.parse(repoConfig.get("list").asString());
             var folder = repoConfig.contains("folder") ? repoConfig.get("folder").asString() : configuration.repositoryName(repo);
             var bot = new MailingListBridgeBot(from, configuration.repository(repo), archiveRepo,
                                                censusRepo, censusRef,
                                                list, ignoredUsers, ignoredComments, listArchive, listSmtp,
                                                webrevRepo, webrevRef, Path.of(folder),
-                                               URIBuilder.base(webrevWeb).build(), readyLabels, readyComments);
+                                               URIBuilder.base(webrevWeb).build(), readyLabels, readyComments,
+                                               headers);
             ret.add(bot);
 
             allListNames.add(list);
