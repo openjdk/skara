@@ -81,13 +81,13 @@ class PullRequestInstance {
                                                  .collect(Collectors.toList());
 
         var summary = Summary.summary(pr.repository().host().getCurrentUserDetails(), comments);
-
-        var commitMessage = CommitMessage.title(isMerge ? "Merge" : pr.getTitle())
-                                         .contributors(additionalContributors)
+        var issue = Issue.fromString(pr.getTitle());
+        var commitMessageBuilder = issue.map(CommitMessage::title).orElseGet(() -> CommitMessage.title(isMerge ? "Merge" : pr.getTitle()));
+        commitMessageBuilder.contributors(additionalContributors)
                                          .reviewers(reviewers);
-        summary.ifPresent(commitMessage::summary);
+        summary.ifPresent(commitMessageBuilder::summary);
 
-        return String.join("\n", commitMessage.format(CommitMessageFormatters.v1));
+        return String.join("\n", commitMessageBuilder.format(CommitMessageFormatters.v1));
     }
 
     private Hash commitSquashed(List<Review> activeReviews, Namespace namespace, String censusDomain, String sponsorId) throws IOException {

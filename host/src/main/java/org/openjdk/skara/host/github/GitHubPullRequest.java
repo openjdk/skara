@@ -213,6 +213,11 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
+    public void setTitle(String title) {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
     public String getBody() {
         var body = json.get("body").asString();
         if (body == null) {

@@ -110,6 +110,12 @@ public interface PullRequest {
     String getTitle();
 
     /**
+     * Update the title of the request.
+     * @param title
+     */
+    void setTitle(String title);
+
+    /**
      * The main body of the request.
      * @return
      */
