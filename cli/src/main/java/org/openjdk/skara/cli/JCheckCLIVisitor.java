@@ -228,4 +228,8 @@ class JCheckCLIVisitor implements IssueVisitor {
     public void visit(BlacklistIssue i) {
         println(i, "commit is blacklisted");
     }
+
+    public void visit(BinaryIssue i) {
+        println(i, "adds binary file: " + i.path().toString());
+    }
 }

@@ -207,4 +207,9 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     public void visit(BlacklistIssue issue) {
         log.fine("ignored: blacklisted commit");
     }
+
+    @Override
+    public void visit(BinaryIssue issue) {
+        log.fine("ignored: binary file");
+    }
 }
