@@ -53,6 +53,16 @@ public class GitSync {
     public static void main(String[] args) throws IOException, InterruptedException {
         var flags = List.of(
             Option.shortcut("")
+                  .fullname("from")
+                  .describe("REMOTE")
+                  .helptext("Fetch changes from this remote")
+                  .optional(),
+            Option.shortcut("")
+                  .fullname("to")
+                  .describe("REMOTE")
+                  .helptext("Push changes to this remote")
+                  .optional(),
+            Option.shortcut("")
                   .fullname("branches")
                   .describe("BRANCHES")
                   .helptext("Comma separated list of branches to sync")
@@ -83,14 +93,7 @@ public class GitSync {
                   .optional()
         );
 
-        var inputs = List.of(
-            Input.position(0)
-                 .describe("REMOTE")
-                 .singular()
-                 .optional()
-        );
-
-        var parser = new ArgumentParser("git sync", flags, inputs);
+        var parser = new ArgumentParser("git sync", flags);
         var arguments = parser.parse(args);
 
         if (arguments.contains("version")) {
@@ -111,20 +114,34 @@ public class GitSync {
         var remotes = repo.remotes();
 
         String upstream = null;
-        if (arguments.at(0).isPresent()) {
-            upstream = arguments.at(0).asString();
+        if (arguments.contains("from")) {
+            upstream = arguments.get("from").asString();
         } else {
-            var lines = repo.config("sync.remote");
+            var lines = repo.config("sync.from");
             if (lines.size() == 1 && remotes.contains(lines.get(0))) {
                 upstream = lines.get(0);
             } else {
-                die("No remote provided to sync with");
+                die("No remote provided to fetch from, please set the --from flag");
             }
         }
-
         var upstreamPullPath = remotes.contains(upstream) ?
             Remote.toURI(repo.pullPath(upstream)) : URI.create(upstream);
-        var origin = "origin";
+
+        String origin = null;
+        if (arguments.contains("to")) {
+            origin = arguments.get("to").asString();
+        } else {
+            var lines = repo.config("sync.to");
+            if (lines.size() == 1) {
+                if (!remotes.contains(lines.get(0))) {
+                    die("The given remote to push to, " + lines.get(0) + ", does not exist");
+                } else {
+                    origin = lines.get(0);
+                }
+            } else {
+                origin = "origin";
+            }
+        }
         var originPushPath = Remote.toURI(repo.pushPath(origin));
 
         var branches = new HashSet<String>();
