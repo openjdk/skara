@@ -26,6 +26,9 @@ package org.openjdk.skara.gradle.images;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.tasks.TaskAction;
+import org.gradle.api.tasks.OutputDirectory;
+import org.gradle.api.tasks.Input;
+import org.gradle.api.provider.Property;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -42,20 +45,29 @@ import java.io.File;
 import java.util.Comparator;
 
 public class DownloadJDKTask extends DefaultTask {
-    private String url;
-    private String sha256;
-    private Path toDir;
+    private final Property<String> url;
+    private final Property<String> sha256;
+    private final Property<Path> toDir;
 
-    void setUrl(String url) {
-        this.url = url;
+    public DownloadJDKTask() {
+        url = getProject().getObjects().property(String.class);
+        sha256 = getProject().getObjects().property(String.class);
+        toDir = getProject().getObjects().property(Path.class);
     }
 
-    void setSha256(String sha256) {
-        this.sha256 = sha256;
+    @Input
+    Property<String> getUrl() {
+        return url;
     }
 
-    void setToDir(Path toDir) {
-        this.toDir = toDir;
+    @Input
+    Property<String> getSha256() {
+        return sha256;
+    }
+
+    @OutputDirectory
+    Property<Path> getToDir() {
+        return toDir;
     }
 
     private static String checksum(Path file) throws IOException {
@@ -101,10 +113,10 @@ public class DownloadJDKTask extends DefaultTask {
 
     @TaskAction
     void download() throws IOException, InterruptedException {
-        var uri = URI.create(url);
+        var uri = URI.create(url.get());
         var filename = Path.of(uri.getPath()).getFileName().toString();
-        var file = toDir.resolve(filename).toAbsolutePath();
-        var dist = toDir.resolve(filename.replace(".zip", "").replace(".tar.gz", ""));
+        var file = toDir.get().resolve(filename).toAbsolutePath();
+        var dist = toDir.get().resolve(filename.replace(".zip", "").replace(".tar.gz", ""));
 
         if (Files.exists(dist) && Files.isDirectory(dist)) {
             return;
@@ -112,7 +124,7 @@ public class DownloadJDKTask extends DefaultTask {
 
         if (Files.exists(file)) {
             var sum = checksum(file);
-            if (sum.equals(sha256)) {
+            if (sum.equals(sha256.get())) {
                 unpack(file, dist);
                 return;
             } else {
@@ -120,8 +132,8 @@ public class DownloadJDKTask extends DefaultTask {
             }
         }
 
-        if (!Files.exists(toDir)) {
-            Files.createDirectories(toDir);
+        if (!Files.exists(toDir.get())) {
+            Files.createDirectories(toDir.get());
         }
 
         var client = HttpClient.newHttpClient();
@@ -131,11 +143,11 @@ public class DownloadJDKTask extends DefaultTask {
 
         var res = client.send(req, BodyHandlers.ofFile(file));
         if (res.statusCode() >= 300) {
-            throw new GradleException("could not download " + url + ", got " + res.statusCode());
+            throw new GradleException("could not download " + url.get() + ", got " + res.statusCode());
         }
 
         var sum = checksum(file);
-        if (!sum.equals(sha256)) {
+        if (!sum.equals(sha256.get())) {
             throw new GradleException("checksums do not match, actual: " + sum + ", expected: " + sha256);
         }
 

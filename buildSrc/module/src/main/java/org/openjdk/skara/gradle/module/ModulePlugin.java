@@ -28,6 +28,7 @@ import org.gradle.api.Project;
 import org.gradle.api.GradleException;
 import org.gradle.api.Action;
 import org.gradle.api.DefaultTask;
+import org.gradle.api.Task;
 import org.gradle.api.tasks.compile.JavaCompile;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.testing.Test;
@@ -48,10 +49,14 @@ public class ModulePlugin implements Plugin<Project> {
             for (var task : project.getTasksByName("compileJava", false)) {
                 if (task instanceof JavaCompile) {
                     var compileJavaTask = (JavaCompile) task;
-                    compileJavaTask.doFirst(t -> {
-                        var classpath = compileJavaTask.getClasspath().getAsPath();
-                        compileJavaTask.getOptions().getCompilerArgs().addAll(List.of("--module-path", classpath));
-                        compileJavaTask.setClasspath(project.files());
+                    compileJavaTask.doFirst(new Action<Task>() {
+                        @Override
+                        public void execute(Task at) {
+                            var t = (JavaCompile) at;
+                            var classpath = compileJavaTask.getClasspath().getAsPath();
+                            compileJavaTask.getOptions().getCompilerArgs().addAll(List.of("--module-path", classpath));
+                            compileJavaTask.setClasspath(project.files());
+                        }
                     });
                 }
             }
@@ -59,31 +64,35 @@ public class ModulePlugin implements Plugin<Project> {
             for (var task : project.getTasksByName("compileTestJava", false)) {
                 if (task instanceof JavaCompile) {
                     var compileTestJavaTask = (JavaCompile) task;
-                    compileTestJavaTask.doFirst(t -> {
-                        var maybeModuleName = extension.getName().get();
-                        if (maybeModuleName == null) {
-                            throw new GradleException("project " + p.getName() + " has not set ext.moduleName");
+                    compileTestJavaTask.doFirst(new Action<Task>() {
+                        @Override
+                        public void execute(Task at) {
+                            var t = (JavaCompile) at;
+                            var maybeModuleName = extension.getName().get();
+                            if (maybeModuleName == null) {
+                                throw new GradleException("project " + p.getName() + " has not set ext.moduleName");
+                            }
+                            var moduleName = maybeModuleName.toString();
+                            var testSourceSet = project.getConvention().getPlugin(JavaPluginConvention.class).getSourceSets().getByName("test");
+                            var testSourceDirs = testSourceSet.getAllJava().getSrcDirs().stream().map(File::toString).collect(Collectors.joining(":"));
+                            var classpath = compileTestJavaTask.getClasspath().getAsPath();
+
+                            var opts = new ArrayList<String>(compileTestJavaTask.getOptions().getCompilerArgs());
+                            opts.addAll(List.of(
+                                    "--module-path", classpath,
+                                    "--patch-module", moduleName + "=" + testSourceDirs
+                            ));
+
+                            for (var module : extension.getRequires()) {
+                                opts.add("--add-modules");
+                                opts.add(module);
+                                opts.add("--add-reads");
+                                opts.add(moduleName + "=" + module);
+                            }
+
+                            compileTestJavaTask.getOptions().setCompilerArgs(opts);
+                            compileTestJavaTask.setClasspath(project.files());
                         }
-                        var moduleName = maybeModuleName.toString();
-                        var testSourceSet = project.getConvention().getPlugin(JavaPluginConvention.class).getSourceSets().getByName("test");
-                        var testSourceDirs = testSourceSet.getAllJava().getSrcDirs().stream().map(File::toString).collect(Collectors.joining(":"));
-                        var classpath = compileTestJavaTask.getClasspath().getAsPath();
-
-                        var opts = new ArrayList<String>(compileTestJavaTask.getOptions().getCompilerArgs());
-                        opts.addAll(List.of(
-                                "--module-path", classpath,
-                                "--patch-module", moduleName + "=" + testSourceDirs
-                        ));
-
-                        for (var module : extension.getRequires()) {
-                            opts.add("--add-modules");
-                            opts.add(module);
-                            opts.add("--add-reads");
-                            opts.add(moduleName + "=" + module);
-                        }
-
-                        compileTestJavaTask.getOptions().setCompilerArgs(opts);
-                        compileTestJavaTask.setClasspath(project.files());
                     });
                 }
             }
@@ -91,41 +100,45 @@ public class ModulePlugin implements Plugin<Project> {
             for (var task : project.getTasksByName("test", false)) {
                 if (task instanceof Test) {
                     var testTask = (Test) task;
-                    testTask.doFirst(t -> {
-                        var maybeModuleName = extension.getName().get();
-                        if (maybeModuleName == null) {
-                            throw new GradleException("project " + p.getName() + " has not set ext.moduleName");
-                        }
-                        var moduleName = maybeModuleName.toString();
-                        var testSourceSet = project.getConvention().getPlugin(JavaPluginConvention.class).getSourceSets().getByName("test");
-                        var outputDir = testSourceSet.getJava().getOutputDir().toString();
-                        var classpath = testTask.getClasspath().getAsPath();
-
-                        var jvmArgs = new ArrayList<String>(testTask.getJvmArgs());
-                        jvmArgs.addAll(List.of(
-                                "-Djunit.jupiter.extensions.autodetection.enabled=true",
-                                "--module-path", classpath,
-                                "--add-modules", "ALL-MODULE-PATH",
-                                "--patch-module", moduleName + "=" + outputDir,
-                                "--illegal-access=deny"
-                        ));
-
-                        var opens = extension.getOpens();
-                        for (var pkg : opens.keySet()) {
-                            var modules = opens.get(pkg);
-                            for (var module : modules) {
-                                jvmArgs.add("--add-opens");
-                                jvmArgs.add(moduleName + "/" + pkg + "=" + module);
+                    testTask.doFirst(new Action<Task>() {
+                        @Override
+                        public void execute(Task at) {
+                            var t = (Test) at;
+                            var maybeModuleName = extension.getName().get();
+                            if (maybeModuleName == null) {
+                                throw new GradleException("project " + p.getName() + " has not set ext.moduleName");
                             }
-                        }
+                            var moduleName = maybeModuleName.toString();
+                            var testSourceSet = project.getConvention().getPlugin(JavaPluginConvention.class).getSourceSets().getByName("test");
+                            var outputDir = testSourceSet.getJava().getOutputDir().toString();
+                            var classpath = testTask.getClasspath().getAsPath();
 
-                        for (var module : extension.getRequires()) {
-                            jvmArgs.add("--add-reads");
-                            jvmArgs.add(moduleName + "=" + module);
-                        }
+                            var jvmArgs = new ArrayList<String>(testTask.getJvmArgs());
+                            jvmArgs.addAll(List.of(
+                                    "-Djunit.jupiter.extensions.autodetection.enabled=true",
+                                    "--module-path", classpath,
+                                    "--add-modules", "ALL-MODULE-PATH",
+                                    "--patch-module", moduleName + "=" + outputDir,
+                                    "--illegal-access=deny"
+                            ));
 
-                        testTask.setJvmArgs(jvmArgs);
-                        testTask.setClasspath(project.files());
+                            var opens = extension.getOpens();
+                            for (var pkg : opens.keySet()) {
+                                var modules = opens.get(pkg);
+                                for (var module : modules) {
+                                    jvmArgs.add("--add-opens");
+                                    jvmArgs.add(moduleName + "/" + pkg + "=" + module);
+                                }
+                            }
+
+                            for (var module : extension.getRequires()) {
+                                jvmArgs.add("--add-reads");
+                                jvmArgs.add(moduleName + "=" + module);
+                            }
+
+                            testTask.setJvmArgs(jvmArgs);
+                            testTask.setClasspath(project.files());
+                        }
                     });
                 }
             }

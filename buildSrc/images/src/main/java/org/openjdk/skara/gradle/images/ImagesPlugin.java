@@ -24,9 +24,12 @@
 package org.openjdk.skara.gradle.images;
 
 import org.gradle.api.*;
+import org.gradle.api.file.Directory;
 import org.gradle.api.tasks.bundling.*;
+import org.gradle.api.artifacts.UnknownConfigurationException;
 
 import java.util.ArrayList;
+import java.io.File;
 
 public class ImagesPlugin implements Plugin<Project> {
     @Override
@@ -51,21 +54,31 @@ public class ImagesPlugin implements Plugin<Project> {
 
                 var downloadTaskName = "download" + subName + "JDK";
                 project.getTasks().register(downloadTaskName, DownloadJDKTask.class, (task) -> {
-                    task.setUrl(env.getUrl());
-                    task.setSha256(env.getSha256());
-                    task.setToDir(rootDir.resolve(".jdk"));
+                    task.getUrl().set(env.getUrl());
+                    task.getSha256().set(env.getSha256());
+                    task.getToDir().set(rootDir.resolve(".jdk"));
                 });
 
                 var linkTaskName = "link" + subName;
                 project.getTasks().register(linkTaskName, LinkTask.class, (task) -> {
-                    for (var build : project.getRootProject().getGradle().getIncludedBuilds()) {
-                        task.dependsOn(build.task(":jar"));
+                    for (var jarTask : project.getTasksByName("jar", true)) {
+                        if (jarTask instanceof Jar) {
+                            task.getModulePath().add(((Jar) jarTask).getArchiveFile());
+                        }
                     }
-                    task.dependsOn(project.getRootProject().getTasksByName("jar", true));
+
+                    try {
+                        var runtimeClasspath = project.getConfigurations().getByName("runtimeClasspath");
+                        task.getRuntimeModules().addAll(runtimeClasspath.getElements());
+                        task.dependsOn(runtimeClasspath);
+                    } catch (UnknownConfigurationException e) {
+                        // ignored
+                    }
+
                     task.dependsOn(projectPath + ":" + downloadTaskName);
-                    task.setToDir(buildDir.resolve("images"));
-                    task.setUrl(env.getUrl());
-                    task.setOS(name);
+                    task.getToDir().set(buildDir.resolve("images"));
+                    task.getUrl().set(env.getUrl());
+                    task.getOS().set(name);
                     task.getLaunchers().set(env.getLaunchers());
                     task.getModules().set(env.getModules());
                 });
@@ -73,9 +86,9 @@ public class ImagesPlugin implements Plugin<Project> {
                 var launchersTaskName = "launchers" + subName;
                 project.getTasks().register(launchersTaskName, LaunchersTask.class, (task) -> {
                     task.getLaunchers().set(env.getLaunchers());
-                    task.setOptions(env.getOptions());
-                    task.setToDir(buildDir.resolve("launchers"));
-                    task.setOS(name);
+                    task.getOptions().set(env.getOptions());
+                    task.getToDir().set(buildDir.resolve("launchers"));
+                    task.getOS().set(name);
                 });
 
                 var zipTaskName = "bundleZip" + subName;

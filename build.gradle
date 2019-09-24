@@ -91,29 +91,27 @@ configure(subprojects.findAll() { it.name != 'bots' }) {
     }
 }
 
-task jar {
-    subprojects.findAll() { it.name != 'bots' }.each { dependsOn "${it.path}:jar" }
+task test {
+    subprojects.findAll() { !it.getTasksByName('test', false).isEmpty() }.each { dependsOn "${it.path}:test" }
 }
 
-task test {
-    subprojects.findAll() { it.name != 'bots' }.each { dependsOn "${it.path}:test" }
+task clean {
+    subprojects.findAll() { !it.getTasksByName('clean', false).isEmpty() }.each { dependsOn "${it.path}:clean" }
 }
 
 reproduce {
     dockerfile = 'test.dockerfile'
 }
 
-task deleteBuildDir(type: Delete) {
-    delete project.buildDir
-}
-
 task local(type: Copy) {
+    doFirst {
+        delete project.buildDir
+    }
     def os = System.getProperty('os.name').toLowerCase()
     def osName = os.startsWith('win') ? 'Windows' :
         os.startsWith('mac') ? 'Macos' : 'Linux'
 
     dependsOn ':cli:image' + osName
-    dependsOn deleteBuildDir
     from zipTree(file(project.rootDir.toString() +
                       '/cli/build/distributions/cli' +
                       '-' + project.version + '-' +

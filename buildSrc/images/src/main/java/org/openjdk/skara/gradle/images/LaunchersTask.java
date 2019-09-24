@@ -35,27 +35,32 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Comparator;
 
 public class LaunchersTask extends DefaultTask {
-    private Path toDir;
-    private String os;
+    private Property<Path> toDir;
+    private Property<String> os;
     private MapProperty<String, String> launchers;
     private ListProperty<String> options;
 
     @Inject
     public LaunchersTask(ObjectFactory factory) {
-        this.launchers = factory.mapProperty(String.class, String.class);
+        toDir = factory.property(Path.class);
+        os = factory.property(String.class);
+        launchers = factory.mapProperty(String.class, String.class);
         options = factory.listProperty(String.class);
     }
 
-    void setOptions(ListProperty<String> options) {
-        this.options.set(options);
+    @Input
+    ListProperty<String> getOptions() {
+        return options;
     }
 
-    void setToDir(Path toDir) {
-        this.toDir = toDir;
+    @OutputDirectory
+    Property<Path> getToDir() {
+        return toDir;
     }
 
-    void setOS(String os) {
-        this.os = os;
+    @Input
+    Property<String> getOS() {
+        return os;
     }
 
     @Input
@@ -72,7 +77,7 @@ public class LaunchersTask extends DefaultTask {
 
     @TaskAction
     void generate() throws IOException {
-        var dest = toDir.resolve(os);
+        var dest = toDir.get().resolve(os.get());
         if (Files.isDirectory(dest)) {
             clearDirectory(dest);
         }
