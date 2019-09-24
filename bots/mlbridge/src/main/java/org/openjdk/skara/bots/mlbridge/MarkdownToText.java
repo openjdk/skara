@@ -26,19 +26,25 @@ import java.util.regex.Pattern;
 
 public class MarkdownToText {
     private static final Pattern emojiPattern = Pattern.compile("(:([0-9a-z_+-]+):)");
-    private static final Pattern codePattern = Pattern.compile("^```(\\w*)\\R(.*)\\R```", Pattern.DOTALL | Pattern.MULTILINE);
+    private static final Pattern suggestionPattern = Pattern.compile("^```suggestion$", Pattern.MULTILINE);
+    private static final Pattern codePattern = Pattern.compile("^```(?:\\w+)?\\R?", Pattern.MULTILINE);
 
     private static String removeEmojis(String markdown) {
         var emojiMatcher = emojiPattern.matcher(markdown);
         return emojiMatcher.replaceAll(mr -> EmojiTable.mapping.getOrDefault(mr.group(2), mr.group(1)));
     }
 
+    private static String removeSuggestions(String markdown) {
+        var suggestionMatcher = suggestionPattern.matcher(markdown);
+        return suggestionMatcher.replaceAll("Suggestion:\n");
+    }
+
     private static String removeCode(String markdown) {
         var codeMatcher = codePattern.matcher(markdown);
-        return codeMatcher.replaceAll(mr -> (mr.group(1).equals("suggestion") ? "Suggestion:\n\n" : "") + mr.group(2));
+        return codeMatcher.replaceAll("");
     }
 
     static String removeFormatting(String markdown) {
-        return removeCode(removeEmojis(markdown));
+        return removeCode(removeSuggestions(removeEmojis(markdown))).strip();
     }
 }
