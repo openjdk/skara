@@ -30,6 +30,7 @@ import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.*;
 import org.gradle.api.tasks.*;
 import org.gradle.jvm.tasks.Jar;
+import org.gradle.api.file.*;
 
 import javax.inject.Inject;
 import java.io.*;
@@ -39,30 +40,39 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class LinkTask extends DefaultTask {
-    private Path toDir;
-    private String os;
-    private String url;
-    private MapProperty<String, String> launchers;
-    private ListProperty<String> modules;
+    private final Property<String> os;
+    private final Property<String> url;
+    private final Property<Path> toDir;
+    private final MapProperty<String, String> launchers;
+    private final ListProperty<String> modules;
+    private final SetProperty<RegularFile> modulePath;
+    private final SetProperty<FileSystemLocation> runtimeModules;
 
     @Inject
     public LinkTask(ObjectFactory factory) {
-        this.launchers = factory.mapProperty(String.class, String.class);
-        this.modules = factory.listProperty(String.class);
+        os = factory.property(String.class);
+        url = factory.property(String.class);
+        toDir = factory.property(Path.class);
+        launchers = factory.mapProperty(String.class, String.class);
+        modules = factory.listProperty(String.class);
+        modulePath = factory.setProperty(RegularFile.class);
+        runtimeModules = factory.setProperty(FileSystemLocation.class);
     }
 
-    void setToDir(Path toDir) {
-        this.toDir = toDir;
+    @OutputDirectory
+    Property<Path> getToDir() {
+        return toDir;
     }
 
-    void setOS(String os) {
-        this.os = os;
+    @Input
+    Property<String> getOS() {
+        return os;
     }
 
-    void setUrl(String url) {
-        this.url = url;
+    @Input
+    Property<String> getUrl() {
+        return url;
     }
-
 
     @Input
     MapProperty<String, String> getLaunchers() {
@@ -72,6 +82,16 @@ public class LinkTask extends DefaultTask {
     @Input
     ListProperty<String> getModules() {
         return modules;
+    }
+
+    @InputFiles
+    SetProperty<RegularFile> getModulePath() {
+        return modulePath;
+    }
+
+    @InputFiles
+    SetProperty<FileSystemLocation> getRuntimeModules() {
+        return runtimeModules;
     }
 
     private static void clearDirectory(Path directory) {
@@ -89,26 +109,15 @@ public class LinkTask extends DefaultTask {
     void link() throws IOException {
         var project = getProject().getRootProject();
 
-        var jars = new ArrayList<String>();
-        for (var subProject : project.getSubprojects()) {
-            for (var task : subProject.getTasksByName("jar", false)) {
-                if (task instanceof Jar) {
-                    var jarTask = (Jar) task;
-                    jars.add(jarTask.getArchiveFile().get().getAsFile().toString());
-                }
-            }
-
-            try {
-                jars.addAll(subProject.getConfigurations()
-                                      .getByName("runtimeClasspath")
-                                      .getFiles()
-                                      .stream()
-                                      .map(File::toString)
-                                      .collect(Collectors.toList()));
-            } catch (UnknownConfigurationException ignored) {}
+        var modularJars = new ArrayList<String>();
+        for (var jar : modulePath.get()) {
+            modularJars.add(jar.getAsFile().toString());
+        }
+        for (var jar : runtimeModules.get()) {
+            modularJars.add(jar.getAsFile().toString());
         }
 
-        var filename = Path.of(URI.create(url).getPath()).getFileName().toString();
+        var filename = Path.of(URI.create(url.get()).getPath()).getFileName().toString();
         var dirname = filename.replace(".zip", "").replace(".tar.gz", "");
         var jdk = project.getRootDir().toPath().toAbsolutePath().resolve(".jdk").resolve(dirname);
         var dirs = Files.walk(jdk)
@@ -123,7 +132,7 @@ public class LinkTask extends DefaultTask {
 
         var modulePath = new ArrayList<String>();
         modulePath.add(jmodsDir.toString());
-        modulePath.addAll(jars);
+        modulePath.addAll(modularJars);
 
         var uniqueModules = new HashSet<String>();
         for (var entry : launchers.get().values()) {
@@ -133,8 +142,8 @@ public class LinkTask extends DefaultTask {
         uniqueModules.addAll(modules.get());
         var allModules = new ArrayList<String>(uniqueModules);
 
-        Files.createDirectories(toDir);
-        var dest = toDir.resolve(os);
+        Files.createDirectories(toDir.get());
+        var dest = toDir.get().resolve(os.get());
         if (Files.exists(dest) && Files.isDirectory(dest)) {
             clearDirectory(dest);
         }
@@ -154,14 +163,14 @@ public class LinkTask extends DefaultTask {
         });
 
         var currentOS = System.getProperty("os.name").toLowerCase().substring(0, 3);
-        if (currentOS.equals(os.substring(0, 3))) {
+        if (currentOS.equals(os.get().substring(0, 3))) {
             var ext = currentOS.startsWith("win") ? ".exe" : "";
             var javaLaunchers = Files.walk(dest)
                                      .filter(Files::isExecutable)
                                      .filter(p -> p.getFileName().toString().equals("java" + ext))
                                      .collect(Collectors.toList());
             if (javaLaunchers.size() != 1) {
-                throw new GradleException("Multiple or no java launchers generated for " + os + " image");
+                throw new GradleException("Multiple or no java launchers generated for " + os.get() + " image");
             }
             var java = javaLaunchers.get(0);
             project.exec((spec) -> {
