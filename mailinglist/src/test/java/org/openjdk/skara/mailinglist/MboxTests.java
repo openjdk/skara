@@ -176,7 +176,7 @@ class MboxTests {
                                       "\n", StandardCharsets.UTF_8);
             var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
             var list = mbox.getList("test");
-            var conversations = list.conversations(Duration.ofDays(30));
+            var conversations = list.conversations(Duration.ofDays(365 * 100));
             assertEquals(1, conversations.size());
             var conversation = conversations.get(0);
             assertEquals(1, conversation.allMessages().size());
