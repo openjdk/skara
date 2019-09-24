@@ -86,18 +86,19 @@ class SummaryTests {
             // The bot should reply with a success message
             assertLastCommentContains(pr,"Setting summary to");
 
-            // Now update it
-            pr.addComment("/summary Third time is surely the charm");
-            TestBotRunner.runPeriodicItems(prBot);
-
-            // The bot should reply with a success message
-            assertLastCommentContains(pr,"Updating existing summary");
-
             // Approve it as another user
             var approvalPr = integrator.getPullRequest(pr.getId());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
+
+            // Now update it
+            pr.addComment("/summary Third time is surely the charm");
+            TestBotRunner.runPeriodicItems(prBot);
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr,"Updating existing summary");
 
             // The commit message preview should contain the final summary
             var summaryLine = pr.getComments().stream()
