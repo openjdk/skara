@@ -314,6 +314,7 @@ class ArchiveWorkItem implements WorkItem {
                                                                    newMail::headerValue));
             var filteredEmail = Email.from(newMail)
                                      .replaceHeaders(filteredHeaders)
+                                     .headers(bot.headers())
                                      .build();
             list.post(filteredEmail);
         }

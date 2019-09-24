@@ -72,7 +72,8 @@ class MailingListArchiveReaderBotTests {
                                                  archive, "webrev", Path.of("test"),
                                                  URIBuilder.base("http://www.test.test/").build(),
                                                  Set.of(), Map.of(),
-                                                 URIBuilder.base("http://issues.test/browse/").build());
+                                                 URIBuilder.base("http://issues.test/browse/").build(),
+                                                 Map.of());
 
             // The mailing list as well
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP());
@@ -136,7 +137,8 @@ class MailingListArchiveReaderBotTests {
                                                  archive, "webrev", Path.of("test"),
                                                  URIBuilder.base("http://www.test.test/").build(),
                                                  Set.of(), Map.of(),
-                                                 URIBuilder.base("http://issues.test/browse/").build());
+                                                 URIBuilder.base("http://issues.test/browse/").build(),
+                                                 Map.of());
 
             // The mailing list as well
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP());
