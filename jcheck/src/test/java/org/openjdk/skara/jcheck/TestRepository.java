@@ -224,4 +224,12 @@ class TestRepository implements ReadOnlyRepository {
     public boolean contains(Branch b, Hash h) throws IOException {
         return false;
     }
+
+    public List<Reference> remoteBranches(String remote) throws IOException {
+        return null;
+    }
+
+    public List<String> remotes() throws IOException {
+        return null;
+    }
 }

@@ -84,6 +84,8 @@ public interface ReadOnlyRepository {
     String pushPath(String remote) throws IOException;
     boolean isValidRevisionRange(String expression) throws IOException;
     Optional<String> upstreamFor(Branch branch) throws IOException;
+    List<Reference> remoteBranches(String remote) throws IOException;
+    List<String> remotes() throws IOException;
 
     static Optional<ReadOnlyRepository> get(Path p) throws IOException {
         return Repository.get(p).map(r -> r);

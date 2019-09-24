@@ -1817,4 +1817,35 @@ public class RepositoryTests {
             assertEquals(1, repo.commits().asList().size());
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testRemotes(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var repo = Repository.init(dir.path(), vcs);
+            assertEquals(List.of(), repo.remotes());
+            repo.addRemote("foobar", "https://foo/bar");
+            assertEquals(List.of("foobar"), repo.remotes());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testRemoteBranches(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var upstream = Repository.init(dir.path().resolve("upstream"), vcs);
+            var readme = upstream.root().resolve("README");
+            Files.writeString(readme, "Hello\n");
+            upstream.add(readme);
+            var head = upstream.commit("Added README", "duke", "duke@openjdk.org");
+
+            var fork = Repository.init(dir.path().resolve("fork"), vcs);
+            fork.addRemote("upstream", "file://" + upstream.root());
+            var refs = fork.remoteBranches("upstream");
+            assertEquals(1, refs.size());
+            var ref = refs.get(0);
+            assertEquals(head, ref.hash());
+            assertEquals(upstream.defaultBranch().name(), ref.name());
+        }
+    }
 }
