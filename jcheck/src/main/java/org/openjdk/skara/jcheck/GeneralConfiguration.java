@@ -25,14 +25,16 @@ package org.openjdk.skara.jcheck;
 import org.openjdk.skara.ini.Section;
 
 public class GeneralConfiguration {
-    private static final GeneralConfiguration DEFAULT = new GeneralConfiguration(null, null);
+    private static final GeneralConfiguration DEFAULT = new GeneralConfiguration(null, null, null);
 
     private final String project;
     private final String repository;
+    private final String jbs;
 
-    GeneralConfiguration(String project, String repository) {
+    private GeneralConfiguration(String project, String repository, String jbs) {
         this.project = project;
         this.repository = repository;
+        this.jbs = jbs;
     }
 
     public String project() {
@@ -41,6 +43,10 @@ public class GeneralConfiguration {
 
     public String repository() {
         return repository;
+    }
+
+    public String jbs() {
+        return jbs;
     }
 
     static String name() {
@@ -54,6 +60,7 @@ public class GeneralConfiguration {
 
         var project = s.get("project", DEFAULT.project());
         var repository = s.get("repository", DEFAULT.repository());
-        return new GeneralConfiguration(project, repository);
+        var jbs = s.get("jbs", DEFAULT.jbs());
+        return new GeneralConfiguration(project, repository, jbs);
     }
 }

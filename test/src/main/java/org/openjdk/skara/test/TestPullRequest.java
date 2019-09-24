@@ -39,14 +39,13 @@ public class TestPullRequest implements PullRequest {
     private final HostUserDetails user;
     private final String targetRef;
     private final String sourceRef;
-    private final String title;
-    private final List<String> body;
     private final PullRequestData data;
 
     private static class PullRequestData {
         private Hash headHash;
         PullRequest.State state = PullRequest.State.OPEN;
         String body = "";
+        String title = "";
         final List<Comment> comments = new ArrayList<>();
         final List<ReviewComment> reviewComments = new ArrayList<>();
         final Set<Check> checks = new HashSet<>();
@@ -56,15 +55,13 @@ public class TestPullRequest implements PullRequest {
         ZonedDateTime lastUpdate = created;
     }
 
-    private TestPullRequest(TestHostedRepository repository, String id, HostUserDetails author, HostUserDetails user, String targetRef, String sourceRef, String title, List<String> body, PullRequestData data) {
+    private TestPullRequest(TestHostedRepository repository, String id, HostUserDetails author, HostUserDetails user, String targetRef, String sourceRef, PullRequestData data) {
         this.repository = repository;
         this.id = id;
         this.author = author;
         this.user = user;
         this.targetRef = targetRef;
         this.sourceRef = sourceRef;
-        this.title = title;
-        this.body = body;
         this.data = data;
 
         try {
@@ -80,13 +77,14 @@ public class TestPullRequest implements PullRequest {
 
     static TestPullRequest createNew(TestHostedRepository repository, String id, String targetRef, String sourceRef, String title, List<String> body) {
         var data = new PullRequestData();
+        data.title = title;
         data.body = String.join("\n", body);
-        var pr = new TestPullRequest(repository, id, repository.host().getCurrentUserDetails(), repository.host().getCurrentUserDetails(), targetRef, sourceRef, title, body, data);
+        var pr = new TestPullRequest(repository, id, repository.host().getCurrentUserDetails(), repository.host().getCurrentUserDetails(), targetRef, sourceRef, data);
         return pr;
     }
 
     static TestPullRequest createFrom(TestHostedRepository repository, TestPullRequest other) {
-        var pr = new TestPullRequest(repository, other.id, other.author, repository.host().getCurrentUserDetails(), other.targetRef, other.sourceRef, other.title, other.body, other.data);
+        var pr = new TestPullRequest(repository, other.id, other.author, repository.host().getCurrentUserDetails(), other.targetRef, other.sourceRef, other.data);
         return pr;
     }
 
@@ -172,7 +170,13 @@ public class TestPullRequest implements PullRequest {
 
     @Override
     public String getTitle() {
-        return title;
+        return data.title;
+    }
+
+    @Override
+    public void setTitle(String title) {
+        data.title = title;
+        data.lastUpdate = ZonedDateTime.now();
     }
 
     @Override

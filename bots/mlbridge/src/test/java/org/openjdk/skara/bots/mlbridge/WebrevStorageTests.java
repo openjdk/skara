@@ -62,7 +62,7 @@ class WebrevStorageTests {
                                             URIBuilder.base("http://www.test.test/").build(), from);
 
             var prFolder = tempFolder.path().resolve("pr");
-            var prInstance = new PullRequestInstance(prFolder, pr);
+            var prInstance = new PullRequestInstance(prFolder, pr, URIBuilder.base("http://issues.test/browse/").build(), "TEST");
             var scratchFolder = tempFolder.path().resolve("scratch");
             storage.createAndArchive(prInstance, scratchFolder, masterHash, editHash, "00");
 

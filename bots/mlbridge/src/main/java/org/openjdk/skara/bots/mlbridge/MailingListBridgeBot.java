@@ -46,6 +46,7 @@ public class MailingListBridgeBot implements Bot {
     private final Set<String> readyLabels;
     private final Map<String, Pattern> readyComments;
     private final Map<String, String> headers;
+    private final URI issueTracker;
     private final PullRequestUpdateCache updateCache;
 
     MailingListBridgeBot(EmailAddress from, HostedRepository repo, HostedRepository archive,
@@ -53,7 +54,7 @@ public class MailingListBridgeBot implements Bot {
                          Set<String> ignoredUsers, Set<Pattern> ignoredComments, URI listArchive, String smtpServer,
                          HostedRepository webrevStorageRepository, String webrevStorageRef,
                          Path webrevStorageBase, URI webrevStorageBaseUri, Set<String> readyLabels,
-                         Map<String, Pattern> readyComments, Map<String, String> headers) {
+                         Map<String, Pattern> readyComments, URI issueTracker, Map<String, String> headers) {
         emailAddress = from;
         codeRepo = repo;
         archiveRepo = archive;
@@ -67,6 +68,7 @@ public class MailingListBridgeBot implements Bot {
         this.readyLabels = readyLabels;
         this.readyComments = readyComments;
         this.headers = headers;
+        this.issueTracker = issueTracker;
 
         this.webrevStorage = new WebrevStorage(webrevStorageRepository, webrevStorageRef, webrevStorageBase,
                                                webrevStorageBaseUri, from);
@@ -127,6 +129,10 @@ public class MailingListBridgeBot implements Bot {
 
     Map<String, String> headers() {
         return headers;
+    }
+
+    URI issueTracker() {
+        return issueTracker;
     }
 
     @Override

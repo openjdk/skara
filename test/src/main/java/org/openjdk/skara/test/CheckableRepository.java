@@ -24,9 +24,10 @@ package org.openjdk.skara.test;
 
 import org.openjdk.skara.vcs.*;
 
-import java.io.*;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.util.Set;
 
 public class CheckableRepository {
     private static String markerLine = "The very first line\n";
@@ -38,7 +39,7 @@ public class CheckableRepository {
         }
     }
 
-    public static Repository init(Path path, VCS vcs, Path appendableFilePath) throws IOException {
+    public static Repository init(Path path, VCS vcs, Path appendableFilePath, Set<String> checks) throws IOException {
         var repo = Repository.init(path, vcs);
 
         Files.createDirectories(path.resolve(".checkable"));
@@ -58,10 +59,12 @@ public class CheckableRepository {
         try (var output = Files.newBufferedWriter(checkConf)) {
             output.append("[general]\n");
             output.append("project=test\n");
+            output.append("jbs=tstprj\n");
             output.append("\n");
             output.append("[checks]\n");
-            output.append("error=author,reviewers,whitespace\n");
-            output.append("\n");
+            output.append("error=");
+            output.append(String.join(",", checks));
+            output.append("\n\n");
             output.append("[census]\n");
             output.append("version=0\n");
             output.append("domain=openjdk.java.net\n");
@@ -77,6 +80,10 @@ public class CheckableRepository {
         repo.commit("Initial commit", "testauthor", "ta@none.none");
 
         return repo;
+    }
+
+    public static Repository init(Path path, VCS vcs, Path appendableFilePath) throws IOException {
+        return init(path, vcs, appendableFilePath, Set.of("author", "reviewers", "whitespace"));
     }
 
     public static Repository init(Path path, VCS vcs) throws IOException {

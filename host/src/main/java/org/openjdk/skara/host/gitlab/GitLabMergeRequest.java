@@ -255,6 +255,11 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
+    public void setTitle(String title) {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
     public String getBody() {
         var body = json.get("description").asString();
         if (body == null) {
