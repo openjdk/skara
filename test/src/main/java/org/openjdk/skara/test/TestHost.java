@@ -38,8 +38,10 @@ public class TestHost implements Host {
     private static class HostData {
         final List<HostUserDetails> users = new ArrayList<>();
         final Map<String, Repository> repositories = new HashMap<>();
+        final Map<String, IssueProject> issueProjects = new HashMap<>();
         final Set<TemporaryDirectory> folders = new HashSet<>();
         private final Map<String, TestPullRequest> pullRequests = new HashMap<>();
+        private final Map<String, TestIssue> issues = new HashMap<>();
     }
 
     private Repository createLocalRepository() {
@@ -96,6 +98,20 @@ public class TestHost implements Host {
     }
 
     @Override
+    public IssueProject getIssueProject(String name) {
+        if (data.issueProjects.containsKey(name)) {
+            return data.issueProjects.get(name);
+        } else {
+            if (data.issueProjects.size() > 0) {
+                throw new RuntimeException("A test host can only manage a single issue project");
+            }
+            var issueProject = new TestIssueProject(this, name);
+            data.issueProjects.put(name, issueProject);
+            return issueProject;
+        }
+    }
+
+    @Override
     public HostUserDetails getUserDetails(String username) {
         return data.users.stream()
                     .filter(user -> user.userName().equals(username))
@@ -137,5 +153,25 @@ public class TestHost implements Host {
                                 .map(pr -> getPullRequest(repository, pr.getKey()))
                                 .filter(TestPullRequest::isOpen)
                                 .collect(Collectors.toList());
+    }
+
+    TestIssue createIssue(TestIssueProject issueProject, String title, List<String> body) {
+        var id = String.valueOf(data.issues.size() + 1);
+        var issue = TestIssue.createNew(issueProject, id, title, body);
+        data.issues.put(id ,issue);
+        return issue;
+    }
+
+    TestIssue getIssue(TestIssueProject issueProject, String id) {
+        var original = data.issues.get(id);
+        return TestIssue.createFrom(issueProject, original);
+    }
+
+    List<TestIssue> getIssues(TestIssueProject issueProject) {
+        return data.issues.entrySet().stream()
+                          .sorted(Comparator.comparing(Map.Entry::getKey))
+                          .map(issue -> getIssue(issueProject, issue.getKey()))
+                          .filter(TestIssue::isOpen)
+                          .collect(Collectors.toList());
     }
 }

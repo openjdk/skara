@@ -50,6 +50,7 @@ public class HostCredentials implements AutoCloseable {
     private interface Credentials {
         Host createNewHost(int userIndex);
         HostedRepository getHostedRepository(Host host);
+        IssueProject getIssueProject(Host host);
         String getNamespaceName();
         default void close() {}
     }
@@ -82,6 +83,11 @@ public class HostCredentials implements AutoCloseable {
         }
 
         @Override
+        public IssueProject getIssueProject(Host host) {
+            return host.getIssueProject(config.get("project").asString());
+        }
+
+        @Override
         public String getNamespaceName() {
             return config.get("namespace").asString();
         }
@@ -106,6 +112,11 @@ public class HostCredentials implements AutoCloseable {
         @Override
         public HostedRepository getHostedRepository(Host host) {
             return host.getRepository(config.get("project").asString());
+        }
+
+        @Override
+        public IssueProject getIssueProject(Host host) {
+            return host.getIssueProject(config.get("project").asString());
         }
 
         @Override
@@ -136,6 +147,11 @@ public class HostCredentials implements AutoCloseable {
         @Override
         public HostedRepository getHostedRepository(Host host) {
             return host.getRepository("test");
+        }
+
+        @Override
+        public IssueProject getIssueProject(Host host) {
+            return host.getIssueProject("test");
         }
 
         @Override
@@ -258,6 +274,11 @@ public class HostCredentials implements AutoCloseable {
             }
         }
         return repo;
+    }
+
+    public IssueProject getIssueProject() {
+        var host = getHost();
+        return credentials.getIssueProject(host);
     }
 
     public PullRequest createPullRequest(HostedRepository hostedRepository, String targetRef, String sourceRef, String title) {

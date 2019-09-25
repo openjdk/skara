@@ -32,34 +32,15 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class TestPullRequest implements PullRequest {
+public class TestPullRequest extends TestIssue implements PullRequest {
     private final TestHostedRepository repository;
-    private final String id;
-    private final HostUserDetails author;
-    private final HostUserDetails user;
     private final String targetRef;
     private final String sourceRef;
     private final PullRequestData data;
 
-    private static class PullRequestData {
-        private Hash headHash;
-        PullRequest.State state = PullRequest.State.OPEN;
-        String body = "";
-        String title = "";
-        final List<Comment> comments = new ArrayList<>();
-        final List<ReviewComment> reviewComments = new ArrayList<>();
-        final Set<Check> checks = new HashSet<>();
-        final Set<String> labels = new HashSet<>();
-        final List<Review> reviews = new ArrayList<>();
-        ZonedDateTime created = ZonedDateTime.now();
-        ZonedDateTime lastUpdate = created;
-    }
-
     private TestPullRequest(TestHostedRepository repository, String id, HostUserDetails author, HostUserDetails user, String targetRef, String sourceRef, PullRequestData data) {
+        super(repository, id, author, user, data);
         this.repository = repository;
-        this.id = id;
-        this.author = author;
-        this.user = user;
         this.targetRef = targetRef;
         this.sourceRef = sourceRef;
         this.data = data;
@@ -94,13 +75,8 @@ public class TestPullRequest implements PullRequest {
     }
 
     @Override
-    public String getId() {
-        return id;
-    }
-
-    @Override
-    public HostUserDetails getAuthor() {
-        return author;
+    public IssueProject project() {
+        return null;
     }
 
     @Override
@@ -169,69 +145,6 @@ public class TestPullRequest implements PullRequest {
     }
 
     @Override
-    public String getTitle() {
-        return data.title;
-    }
-
-    @Override
-    public void setTitle(String title) {
-        data.title = title;
-        data.lastUpdate = ZonedDateTime.now();
-    }
-
-    @Override
-    public String getBody() {
-        return data.body;
-    }
-
-    @Override
-    public void setBody(String body) {
-        data.body = body;
-        data.lastUpdate = ZonedDateTime.now();
-    }
-
-    @Override
-    public List<Comment> getComments() {
-        return new ArrayList<>(data.comments);
-    }
-
-    @Override
-    public Comment addComment(String body) {
-        var comment = new Comment(String.valueOf(data.comments.size()),
-                                  body,
-                                  user,
-                                  ZonedDateTime.now(),
-                                  ZonedDateTime.now());
-        data.comments.add(comment);
-        data.lastUpdate = ZonedDateTime.now();
-        return comment;
-    }
-
-    @Override
-    public Comment updateComment(String id, String body) {
-        var originalComment = data.comments.get(Integer.parseInt(id));
-        var comment = new Comment(originalComment.id(),
-                                  body,
-                                  originalComment.author(),
-                                  originalComment.createdAt(),
-                                  ZonedDateTime.now());
-        data.comments.remove(Integer.parseInt(id));
-        data.comments.add(Integer.parseInt(id), comment);
-        data.lastUpdate = ZonedDateTime.now();
-        return comment;
-    }
-
-    @Override
-    public ZonedDateTime getCreated() {
-        return data.created;
-    }
-
-    @Override
-    public ZonedDateTime getUpdated() {
-        return data.lastUpdate;
-    }
-
-    @Override
     public Map<String, Check> getChecks(Hash hash) {
         return data.checks.stream()
                 .filter(check -> check.hash().equals(hash))
@@ -261,48 +174,11 @@ public class TestPullRequest implements PullRequest {
     }
 
     @Override
-    public void setState(State state) {
-        data.state = state;
-        data.lastUpdate = ZonedDateTime.now();
-    }
-
-    boolean isOpen() {
-        return data.state.equals(PullRequest.State.OPEN);
-    }
-
-    @Override
-    public void addLabel(String label) {
-        data.labels.add(label);
-        data.lastUpdate = ZonedDateTime.now();
-    }
-
-    @Override
-    public void removeLabel(String label) {
-        data.labels.remove(label);
-        data.lastUpdate = ZonedDateTime.now();
-    }
-
-    @Override
-    public List<String> getLabels() {
-        return new ArrayList<>(data.labels);
-    }
-
-    @Override
     public URI getWebUrl() {
         try {
             return new URI(repository.getUrl().toString() + "/pr/" + getId());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @Override
-    public List<HostUserDetails> getAssignees() {
-        throw new RuntimeException("not implemented yet");
-    }
-
-    @Override
-    public void setAssignees(List<HostUserDetails> assignees) {
-        throw new RuntimeException("not implemented yet");
     }
 }
