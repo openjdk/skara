@@ -87,15 +87,16 @@ public class Email {
             unparsedDate = redundantTimeZonePatternMatcher.group(1);
         }
         var date = ZonedDateTime.parse(unparsedDate, DateTimeFormatter.RFC_1123_DATE_TIME);
-        var subject = message.headers.get("Subject");
-        var author = EmailAddress.parse(message.headers.get("From"));
+        var subject = MimeText.decode(message.headers.get("Subject"));
+        var author = EmailAddress.parse(MimeText.decode(message.headers.get("From")));
         var sender = author;
         if (message.headers.containsKey("Sender")) {
-            sender = EmailAddress.parse(message.headers.get("Sender"));
+            sender = EmailAddress.parse(MimeText.decode(message.headers.get("Sender")));
         }
         List<EmailAddress> recipients;
         if (message.headers.containsKey("To")) {
             recipients = Arrays.stream(message.headers.get("To").split(","))
+                               .map(MimeText::decode)
                                .map(EmailAddress::parse)
                                .collect(Collectors.toList());
         } else {
@@ -110,9 +111,10 @@ public class Email {
                                              .filter(entry -> !entry.getKey().equalsIgnoreCase("From"))
                                              .filter(entry -> !entry.getKey().equalsIgnoreCase("Sender"))
                                              .filter(entry -> !entry.getKey().equalsIgnoreCase("To"))
-                                             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                                             .collect(Collectors.toMap(Map.Entry::getKey,
+                                                                       entry -> MimeText.decode(entry.getValue())));
 
-        return new Email(id, date, recipients, author, sender, subject, message.body, filteredHeaders);
+        return new Email(id, date, recipients, author, sender, subject, MimeText.decode(message.body), filteredHeaders);
     }
 
     public static EmailBuilder create(EmailAddress author, String subject, String body) {

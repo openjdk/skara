@@ -57,17 +57,17 @@ public class SMTP {
             session.sendCommand("MAIL FROM:" + email.sender().address(), mailReply);
             session.sendCommand("RCPT TO:<" + recipient.address() + ">", rcptReply);
             session.sendCommand("DATA", dataReply);
-            session.sendCommand("From: " + email.author());
+            session.sendCommand("From: " + MimeText.encode(email.author().toString()));
             session.sendCommand("Message-Id: " + email.id());
             session.sendCommand("Date: " + email.date().format(DateTimeFormatter.RFC_1123_DATE_TIME));
-            session.sendCommand("Sender: " + email.sender());
-            session.sendCommand("To: " + recipient);
+            session.sendCommand("Sender: " + MimeText.encode(email.sender().toString()));
+            session.sendCommand("To: " + MimeText.encode(recipient.toString()));
             for (var header : email.headers()) {
-                session.sendCommand(header + ": " + email.headerValue(header));
+                session.sendCommand(header + ": " + MimeText.encode(email.headerValue(header)));
             }
-            session.sendCommand("Subject: " + email.subject());
+            session.sendCommand("Subject: " + MimeText.encode(email.subject()));
             session.sendCommand("");
-            session.sendCommand(email.body());
+            session.sendCommand(MimeText.encode(email.body()));
             session.sendCommand(".", doneReply);
             session.sendCommand("QUIT");
         }

@@ -112,4 +112,24 @@ class EmailTests {
         assertEquals("The body", mail.body());
     }
 
+    @Test
+    void parseEncoded() {
+        var mail = Email.parse("Message-Id: <a@b.c>\n" +
+                                       "Date: Wed, 27 Mar 2019 14:31:00 +0100\n" +
+                                       "Subject: hello\n" +
+                                       "From: r.b at c.d (r =?iso-8859-1?Q?b=E4?=)\n" +
+                                       "To: C <c@c.c>, <d@d.c>\n" +
+                                       "\n" +
+                                       "The body"
+        );
+
+        assertEquals(EmailAddress.from("a@b.c"), mail.id());
+        assertEquals("hello", mail.subject());
+        assertEquals(EmailAddress.from("r bä", "r.b@c.d"), mail.author());
+        assertEquals(EmailAddress.from("r bä", "r.b@c.d"), mail.sender());
+        assertEquals(List.of(EmailAddress.from("C", "c@c.c"),
+                             EmailAddress.from("d@d.c")),
+                     mail.recipients());
+        assertEquals("The body", mail.body());
+    }
 }
