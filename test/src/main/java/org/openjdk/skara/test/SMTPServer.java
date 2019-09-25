@@ -42,6 +42,8 @@ public class SMTPServer implements AutoCloseable {
     private static Pattern messageEndPattern = Pattern.compile("^\\.$");
     private static Pattern quitPattern = Pattern.compile("^QUIT$");
 
+    private final static Pattern encodeQuotedPrintablePattern = Pattern.compile("([^\\x00-\\x7f]+)");
+
     private class AcceptThread implements Runnable {
         private void handleSession(SMTPSession session) throws IOException {
             session.sendCommand("220 localhost SMTP", ehloPattern);
@@ -52,7 +54,11 @@ public class SMTPServer implements AutoCloseable {
             var message = session.readLinesUntil(messageEndPattern);
             session.sendCommand("250 MESSAGE OK", quitPattern);
 
-            var email = Email.parse(String.join("\n", message));
+            // SMTP is only 7-bit safe, ensure that we break any high ascii passing through here
+            var quoteMatcher = encodeQuotedPrintablePattern.matcher(String.join("\n", message));
+            var ascii7message = quoteMatcher.replaceAll(mo -> "HIGH_ASCII");
+
+            var email = Email.parse(ascii7message);
             emails.addLast(email);
         }
 

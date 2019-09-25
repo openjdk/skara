@@ -25,7 +25,6 @@ package org.openjdk.skara.mailinglist;
 import org.openjdk.skara.email.*;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Function;
@@ -42,8 +41,6 @@ public class Mbox {
             "EEE LLL dd HH:mm:ss yyyy", Locale.US);
     private final static Pattern fromStringEncodePattern = Pattern.compile("^(>*From )", Pattern.MULTILINE);
     private final static Pattern fromStringDecodePattern = Pattern.compile("^>(>*From )", Pattern.MULTILINE);
-    private final static Pattern encodeQuotedPrintablePattern = Pattern.compile("([^\\x00-\\x7f]+)");
-    private final static Pattern decodedQuotedPrintablePattern = Pattern.compile("=\\?utf-8\\?b\\?(.*?)\\?=");
 
     private static List<Email> splitMbox(String mbox) {
         // Initial split
@@ -51,7 +48,6 @@ public class Mbox {
                                          .map(match -> match.group(1))
                                          .filter(message -> message.length() > 0)
                                          .map(Mbox::decodeFromStrings)
-                                         .map(Mbox::decodeQuotedPrintable)
                                          .collect(Collectors.toList());
 
         // Pipermail can occasionally fail to encode 'From ' in message bodies, try to handle this
@@ -80,16 +76,6 @@ public class Mbox {
     private static String decodeFromStrings(String body) {
         var fromStringMatcher = fromStringDecodePattern.matcher(body);
         return fromStringMatcher.replaceAll("$1");
-    }
-
-    private static String encodeQuotedPrintable(String raw) {
-        var quoteMatcher = encodeQuotedPrintablePattern.matcher(raw);
-        return quoteMatcher.replaceAll(mo -> "=?utf-8?b?" + Base64.getEncoder().encodeToString(String.valueOf(mo.group(1)).getBytes(StandardCharsets.UTF_8)) + "?=");
-    }
-
-    private static String decodeQuotedPrintable(String raw) {
-        var quotedMatcher = decodedQuotedPrintablePattern.matcher(raw);
-        return quotedMatcher.replaceAll(mo -> new String(Base64.getDecoder().decode(mo.group(1)), StandardCharsets.UTF_8));
     }
 
     public static List<Conversation> parseMbox(String mbox) {
@@ -128,22 +114,23 @@ public class Mbox {
 
         mboxMail.println();
         mboxMail.println("From " + mail.sender().address() + "  " + mail.date().format(ctimeFormat));
-        mboxMail.println("From: " + mail.author().toObfuscatedString());
+        mboxMail.println("From: " + MimeText.encode(mail.author().toObfuscatedString()));
         if (!mail.author().equals(mail.sender())) {
-            mboxMail.println("Sender: " + mail.sender().toObfuscatedString());
+            mboxMail.println("Sender: " + MimeText.encode(mail.sender().toObfuscatedString()));
         }
         if (!mail.recipients().isEmpty()) {
             mboxMail.println("To: " + mail.recipients().stream()
                                           .map(EmailAddress::toString)
+                                          .map(MimeText::encode)
                                           .collect(Collectors.joining(", ")));
         }
         mboxMail.println("Date: " + mail.date().format(DateTimeFormatter.RFC_1123_DATE_TIME));
-        mboxMail.println("Subject: " + mail.subject());
+        mboxMail.println("Subject: " + MimeText.encode(mail.subject()));
         mboxMail.println("Message-Id: " + mail.id());
-        mail.headers().forEach(header -> mboxMail.println(header + ": " + mail.headerValue(header)));
+        mail.headers().forEach(header -> mboxMail.println(header + ": " + MimeText.encode(mail.headerValue(header))));
         mboxMail.println();
-        mboxMail.println(encodeFromStrings(mail.body()));
+        mboxMail.println(encodeFromStrings(MimeText.encode(mail.body())));
 
-        return encodeQuotedPrintable(mboxString.toString());
+        return mboxString.toString();
     }
 }

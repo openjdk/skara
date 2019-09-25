@@ -67,4 +67,21 @@ class SMTPTests {
             assertEquals(sentMail, email);
         }
     }
+
+    @Test
+    void encoded() throws IOException {
+        log.info("Hello");
+        try (var server = new SMTPServer()) {
+            var sender = EmailAddress.from("Señor Dévèlöper", "test@test.email");
+            var recipient = EmailAddress.from("Dêst", "dest@dest.email");
+            var sentMail = Email.create(sender, "Sübject", "Bödÿ")
+                                .recipient(recipient)
+                                .header("Something", "Öthè®")
+                                .build();
+
+            SMTP.send(server.address(), recipient, sentMail);
+            var email = server.receive(Duration.ofSeconds(10));
+            assertEquals(sentMail, email);
+        }
+    }
 }
