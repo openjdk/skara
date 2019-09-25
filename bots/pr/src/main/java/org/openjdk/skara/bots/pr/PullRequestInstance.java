@@ -26,6 +26,7 @@ import org.openjdk.skara.census.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.jcheck.JCheck;
 import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.vcs.openjdk.Issue;
 import org.openjdk.skara.vcs.openjdk.*;
 
 import java.io.*;

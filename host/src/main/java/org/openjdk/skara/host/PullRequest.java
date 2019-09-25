@@ -24,25 +24,10 @@ package org.openjdk.skara.host;
 
 import org.openjdk.skara.vcs.Hash;
 
-import java.net.URI;
-import java.time.ZonedDateTime;
 import java.util.*;
 
-public interface PullRequest {
-
+public interface PullRequest extends Issue {
     HostedRepository repository();
-
-    /**
-     * The repository-specific identifier.
-     * @return
-     */
-    String getId();
-
-    /**
-     * The host-specific author name.
-     * @return
-     */
-    HostUserDetails getAuthor();
 
     /**
      * List of reviews, in descending chronological order.
@@ -103,60 +88,6 @@ public interface PullRequest {
      */
     Hash getTargetHash();
 
-    /**
-     * Title of the request.
-     * @return
-     */
-    String getTitle();
-
-    /**
-     * Update the title of the request.
-     * @param title
-     */
-    void setTitle(String title);
-
-    /**
-     * The main body of the request.
-     * @return
-     */
-    String getBody();
-
-    /**
-     * Update the main body of the request.
-     * @param body
-     */
-    void setBody(String body);
-
-    /**
-     * All comments on the issue, in ascending creation time order.
-     * @return
-     */
-    List<Comment> getComments();
-
-    /**
-     * Posts a new comment.
-     * @param body
-     */
-    Comment addComment(String body);
-
-    /**
-     * Updates an existing comment.
-     * @param id
-     * @param body
-     */
-    Comment updateComment(String id, String body);
-
-    /**
-     * When the request was created.
-     * @return
-     */
-    ZonedDateTime getCreated();
-
-    /**
-     * When the request was last updated.
-     * @return
-     */
-    ZonedDateTime getUpdated();
 
     /**
      * List of completed checks on the given hash.
@@ -175,49 +106,4 @@ public interface PullRequest {
      * @param check
      */
     void updateCheck(Check check);
-
-    enum State {
-        OPEN,
-        CLOSED
-    }
-
-    /**
-     * Set the state.
-     * @param state Desired state
-     */
-    void setState(State state);
-
-    /**
-     * Adds the given label.
-     * @param label
-     */
-    void addLabel(String label);
-
-    /**
-     * Removes the given label.
-     * @param label
-     */
-    void removeLabel(String label);
-
-    /**
-     * Retrieves all the currently set labels.
-     * @return
-     */
-    List<String> getLabels();
-
-    /**
-     * Returns a link that will lead to the PR.
-     */
-    URI getWebUrl();
-
-    /**
-     * Returns all usernames assigned to the PR.
-     */
-    List<HostUserDetails> getAssignees();
-
-    /**
-     * Update the list of assignees.
-     * @param assignees
-     */
-    void setAssignees(List<HostUserDetails> assignees);
 }
