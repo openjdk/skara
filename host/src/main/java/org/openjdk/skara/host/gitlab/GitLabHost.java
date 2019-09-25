@@ -92,6 +92,11 @@ public class GitLabHost implements Host {
         return new GitLabRepository(this, name);
     }
 
+    @Override
+    public IssueProject getIssueProject(String name) {
+        throw new RuntimeException("not implemented yet");
+    }
+
     private HostUserDetails parseUserDetails(JSONObject details) {
         var id = details.get("id").asInt();
         var username = details.get("username").asString();
