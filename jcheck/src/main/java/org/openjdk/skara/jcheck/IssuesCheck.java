@@ -27,6 +27,7 @@ import org.openjdk.skara.vcs.openjdk.CommitMessage;
 
 import java.util.Iterator;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 public class IssuesCheck extends CommitCheck {
     private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck.issues");
@@ -42,10 +43,17 @@ public class IssuesCheck extends CommitCheck {
             return iterator();
         }
 
+        var metadata = CommitIssue.metadata(commit, message, conf, this);
         if (commit.message().isEmpty() || message.issues().isEmpty()) {
-            var metadata = CommitIssue.metadata(commit, message, conf, this);
             log.finer("isuse: no reference to a JBS issue");
             return iterator(new IssuesIssue(metadata));
+        }
+
+        var pattern = Pattern.compile(conf.checks().issues().pattern());
+        for (var issue : message.issues()) {
+            if (!pattern.matcher(issue.toString()).matches()) {
+                return iterator(new IssuesIssue(metadata));
+            }
         }
 
         return iterator();
