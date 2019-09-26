@@ -125,6 +125,9 @@ public class JCheckConfiguration {
         config.add("[checks \"committer\"]");
         config.add("role=contributor");
 
+        config.add("[checks \"issues\"]");
+        config.add("pattern=^([124-8][0-9]{6}): (\\S.*)$");
+
         return INI.parse(config);
     }
 

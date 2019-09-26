@@ -35,7 +35,8 @@ public class ChecksConfiguration {
                                 WhitespaceConfiguration.DEFAULT,
                                 ReviewersConfiguration.DEFAULT,
                                 MergeConfiguration.DEFAULT,
-                                CommitterConfiguration.DEFAULT);
+                                CommitterConfiguration.DEFAULT,
+                                IssuesConfiguration.DEFAULT);
 
     private final List<String> error;
     private final List<String> warning;
@@ -43,19 +44,22 @@ public class ChecksConfiguration {
     private final ReviewersConfiguration reviewers;
     private final MergeConfiguration merge;
     private final CommitterConfiguration committer;
+    private final IssuesConfiguration issues;
 
     ChecksConfiguration(List<String> error,
                         List<String> warning,
                         WhitespaceConfiguration whitespace,
                         ReviewersConfiguration reviewers,
                         MergeConfiguration merge,
-                        CommitterConfiguration committer) {
+                        CommitterConfiguration committer,
+                        IssuesConfiguration issues) {
         this.error = error;
         this.warning = warning;
         this.whitespace = whitespace;
         this.reviewers = reviewers;
         this.merge = merge;
         this.committer = committer;
+        this.issues = issues;
     }
 
     public List<String> error() {
@@ -100,6 +104,10 @@ public class ChecksConfiguration {
         return committer;
     }
 
+    public IssuesConfiguration issues() {
+        return issues;
+    }
+
     static String name() {
         return "checks";
     }
@@ -116,7 +124,8 @@ public class ChecksConfiguration {
         var reviewers = ReviewersConfiguration.parse(s.subsection(ReviewersConfiguration.name()));
         var merge = MergeConfiguration.parse(s.subsection(MergeConfiguration.name()));
         var committer = CommitterConfiguration.parse(s.subsection(CommitterConfiguration.name()));
+        var issues = IssuesConfiguration.parse(s.subsection(IssuesConfiguration.name()));
 
-        return new ChecksConfiguration(error, warning, whitespace, reviewers, merge, committer);
+        return new ChecksConfiguration(error, warning, whitespace, reviewers, merge, committer, issues);
     }
 }
