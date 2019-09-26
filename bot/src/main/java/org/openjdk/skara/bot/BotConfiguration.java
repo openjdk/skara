@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.bot;
 
-import org.openjdk.skara.host.HostedRepository;
+import org.openjdk.skara.host.*;
 import org.openjdk.skara.json.JSONObject;
 
 import java.nio.file.Path;
@@ -40,6 +40,13 @@ public interface BotConfiguration {
      * @return
      */
     HostedRepository repository(String name);
+
+    /**
+     * Configuration-specific name mapped to a IssueProject.
+     * @param name
+     * @return
+     */
+    IssueProject issueProject(String name);
 
     /**
      * Retrieves the ref name that optionally follows the configuration-specific repository name.

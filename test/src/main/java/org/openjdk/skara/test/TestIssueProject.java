@@ -53,8 +53,8 @@ public class TestIssueProject implements IssueProject {
     }
 
     @Override
-    public Issue getIssue(String id) {
-        return host.getIssue(this, id);
+    public Optional<Issue> getIssue(String id) {
+        return Optional.ofNullable(host.getIssue(this, id));
     }
 
     @Override

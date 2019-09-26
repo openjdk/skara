@@ -780,4 +780,71 @@ class CheckTests {
             assertEquals(CheckStatus.SUCCESS, check.status());
         }
     }
+
+    @Test
+    void issueInSummary(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.host().getCurrentUserDetails().id())
+                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master", Map.of(), Map.of(),
+                                              Map.of(), Set.of(), Map.of(), issues);
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType(), Path.of("appendable.txt"),
+                                                     Set.of("issues"));
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.getUrl(), "master", true);
+
+            var issue1 = issues.createIssue("My first issue", List.of("Hello"));
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.getUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue1.getId() + ": This is a pull request");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The check should be successful
+            var checks = pr.getChecks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            assertEquals(CheckStatus.SUCCESS, check.status());
+
+            // And the body should contain the issue title
+            assertTrue(pr.getBody().contains("My first issue"));
+
+            // Change the issue
+            var issue2 = issues.createIssue("My second issue", List.of("Body"));
+            pr.setTitle(issue2.getId() + ": This is a pull request");
+
+            // Check the status again
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The body should contain the updated issue title
+            assertFalse(pr.getBody().contains("My first issue"));
+            assertTrue(pr.getBody().contains("My second issue"));
+
+            // Now enter an invalid issue id
+            pr.setTitle("2384848: This is a pull request");
+
+            // Check the status again
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertFalse(pr.getBody().contains("My first issue"));
+            assertFalse(pr.getBody().contains("My second issue"));
+            assertTrue(pr.getBody().contains("Failed to retrieve"));
+
+            // The check should still be successful though
+            checks = pr.getChecks(editHash);
+            assertEquals(1, checks.size());
+            check = checks.get("jcheck");
+            assertEquals(CheckStatus.SUCCESS, check.status());
+        }
+    }
 }
