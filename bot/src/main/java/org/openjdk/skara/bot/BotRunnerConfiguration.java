@@ -86,6 +86,10 @@ public class BotRunnerConfiguration {
                     var pat = new PersonalAccessToken(github.get("username").asString(), github.get("pat").asString());
                     ret.put(entry.name(), HostFactory.createGitHubHost(uri, pat));
                 }
+            } else if (entry.value().contains("jira")) {
+                var jira = entry.value().get("jira");
+                var uri = URIBuilder.base(jira.get("url").asString()).build();
+                ret.put(entry.name(), HostFactory.createJiraHost(uri, null));
             } else {
                 throw new ConfigurationError("Host " + entry.name());
             }

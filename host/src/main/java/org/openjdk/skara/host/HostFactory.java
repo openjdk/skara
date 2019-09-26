@@ -24,6 +24,7 @@ package org.openjdk.skara.host;
 
 import org.openjdk.skara.host.github.*;
 import org.openjdk.skara.host.gitlab.GitLabHost;
+import org.openjdk.skara.host.jira.JiraHost;
 
 import java.net.URI;
 import java.util.regex.Pattern;
@@ -48,6 +49,13 @@ public class HostFactory {
         } else {
             return new GitLabHost(uri);
         }
+    }
+
+    public static Host createJiraHost(URI uri, PersonalAccessToken pat) {
+        if (pat != null) {
+            throw new RuntimeException("authentication not implemented yet");
+        }
+        return new JiraHost(uri);
     }
 
     public static Host createFromURI(URI uri, PersonalAccessToken pat) throws IllegalArgumentException {
