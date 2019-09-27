@@ -22,16 +22,18 @@
  */
 package org.openjdk.skara.bot;
 
-import org.junit.jupiter.api.*;
-import org.openjdk.skara.host.HostedRepository;
-import org.openjdk.skara.json.*;
+import org.openjdk.skara.json.JSON;
 
-import java.nio.file.*;
+import org.junit.jupiter.api.*;
+
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.function.Supplier;
 import java.util.logging.*;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 class TestWorkItem implements WorkItem {
     private final ConcurrencyCheck concurrencyCheck;
@@ -75,12 +77,36 @@ class TestWorkItemChild extends TestWorkItem {
     }
 }
 
+class TestBlockedWorkItem implements WorkItem {
+    private final CountDownLatch countDownLatch;
+
+    TestBlockedWorkItem(CountDownLatch countDownLatch) {
+        this.countDownLatch = countDownLatch;
+    }
+
+    @Override
+    public boolean concurrentWith(WorkItem other) {
+        return false;
+    }
+
+    @Override
+    public void run(Path scratchPath) {
+        System.out.println("Starting to wait...");;
+        try {
+            countDownLatch.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println("Done waiting");
+    }
+}
+
 class TestBot implements Bot {
 
     private final List<WorkItem> items;
     private final Supplier<List<WorkItem>> itemSupplier;
 
-    TestBot(TestWorkItem... items) {
+    TestBot(WorkItem... items) {
         this.items = Arrays.asList(items);
         itemSupplier = null;
     }
@@ -122,6 +148,14 @@ class BotRunnerTests {
         }
     }
 
+    private BotRunnerConfiguration config(String json) {
+        var config = JSON.parse(json).asObject();
+        try {
+            return BotRunnerConfiguration.parse(config);
+        } catch (ConfigurationError configurationError) {
+            throw new RuntimeException(configurationError);
+        }
+    }
     @Test
     void simpleConcurrent() throws TimeoutException {
         var item1 = new TestWorkItem(i -> true, "Item 1");
@@ -131,8 +165,8 @@ class BotRunnerTests {
 
         runner.runOnce(Duration.ofSeconds(10));
 
-        Assertions.assertTrue(item1.hasRun);
-        Assertions.assertTrue(item2.hasRun);
+        assertTrue(item1.hasRun);
+        assertTrue(item2.hasRun);
     }
 
     @Test
@@ -144,8 +178,8 @@ class BotRunnerTests {
 
         runner.runOnce(Duration.ofSeconds(10));
 
-        Assertions.assertTrue(item1.hasRun);
-        Assertions.assertTrue(item2.hasRun);
+        assertTrue(item1.hasRun);
+        assertTrue(item2.hasRun);
     }
 
     @Test
@@ -160,7 +194,7 @@ class BotRunnerTests {
         runner.runOnce(Duration.ofSeconds(10));
 
         for (var item : items) {
-            Assertions.assertTrue(item.hasRun);
+            assertTrue(item.hasRun);
         }
     }
 
@@ -195,8 +229,8 @@ class BotRunnerTests {
         Assertions.assertFalse(item2.hasRun);
 
         new BotRunner(config(), List.of(bot)).runOnce(Duration.ofSeconds(10));
-        Assertions.assertTrue(item1.hasRun);
-        Assertions.assertTrue(item2.hasRun);
+        assertTrue(item1.hasRun);
+        assertTrue(item2.hasRun);
     }
 
     @Test
@@ -210,10 +244,10 @@ class BotRunnerTests {
 
         runner.runOnce(Duration.ofSeconds(10));
 
-        Assertions.assertTrue(item1.hasRun);
+        assertTrue(item1.hasRun);
         Assertions.assertFalse(item2.hasRun);
         Assertions.assertFalse(item3.hasRun);
-        Assertions.assertTrue(item4.hasRun);
+        assertTrue(item4.hasRun);
     }
 
     @Test
@@ -230,12 +264,44 @@ class BotRunnerTests {
 
         runner.runOnce(Duration.ofSeconds(10));
 
-        Assertions.assertTrue(item1.hasRun);
+        assertTrue(item1.hasRun);
         Assertions.assertFalse(item2.hasRun);
         Assertions.assertFalse(item3.hasRun);
-        Assertions.assertTrue(item4.hasRun);
+        assertTrue(item4.hasRun);
         Assertions.assertFalse(item5.hasRun);
         Assertions.assertFalse(item6.hasRun);
-        Assertions.assertTrue(item7.hasRun);
+        assertTrue(item7.hasRun);
+    }
+
+    @Test
+    void watchdogTrigger() throws TimeoutException {
+        var countdownLatch = new CountDownLatch(1);
+        var item = new TestBlockedWorkItem(countdownLatch);
+        var bot = new TestBot(item);
+        var runner = new BotRunner(config("{ \"runner\": { \"watchdog\": \"PT0.01S\" } }"), List.of(bot));
+
+        var errors = new ArrayList<String>();
+        var log = Logger.getLogger("org.openjdk.skara.bot");
+        log.addHandler(new Handler() {
+            @Override
+            public void publish(LogRecord record) {
+                if (record.getLevel().equals(Level.SEVERE)) {
+                    errors.add(record.getMessage());
+                }
+            }
+
+            @Override
+            public void flush() {
+            }
+
+            @Override
+            public void close() throws SecurityException {
+            }
+        });
+
+        assertThrows(TimeoutException.class, () -> runner.runOnce(Duration.ofMillis(100)));
+        assertTrue(errors.size() > 0);
+        assertTrue(errors.size() <= 10);
+        countdownLatch.countDown();
     }
 }
