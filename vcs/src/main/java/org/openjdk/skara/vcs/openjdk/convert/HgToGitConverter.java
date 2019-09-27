@@ -32,6 +32,7 @@ import java.nio.file.*;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -77,6 +78,15 @@ public class HgToGitConverter implements Converter {
 
         Path stderr() {
             return stderr;
+        }
+
+        int waitForProcess() throws InterruptedException {
+            var finished = process.waitFor(12, TimeUnit.HOURS);
+            if (!finished) {
+                process.destroyForcibly().waitFor();
+                throw new RuntimeException("Command '" + String.join(" ", command) + "' did not finish in 12 hours");
+            }
+            return process.exitValue();
         }
 
         @Override
@@ -605,7 +615,7 @@ public class HgToGitConverter implements Converter {
 
     private void await(ProcessInfo p) throws IOException {
         try {
-            int res = p.process().waitFor();
+            int res = p.waitForProcess();
             if (res != 0) {
                 var msg = String.join(" ", p.command()) + " exited with status " + res;
                 log.severe(msg);
