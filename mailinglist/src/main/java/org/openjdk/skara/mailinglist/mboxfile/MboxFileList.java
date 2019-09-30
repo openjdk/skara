@@ -55,10 +55,10 @@ public class MboxFileList implements MailingList {
             }
         }
         try {
-            Files.writeString(file, mboxMail, StandardCharsets.US_ASCII, StandardOpenOption.APPEND);
+            Files.writeString(file, mboxMail, StandardCharsets.UTF_8, StandardOpenOption.APPEND);
         } catch (IOException e) {
             try {
-                Files.writeString(file, mboxMail, StandardCharsets.US_ASCII, StandardOpenOption.CREATE_NEW);
+                Files.writeString(file, mboxMail, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
             } catch (IOException e1) {
                 throw new UncheckedIOException(e);
             }
@@ -68,7 +68,7 @@ public class MboxFileList implements MailingList {
     private void postReply(Email mail) {
         var mboxMail = Mbox.fromMail(mail);
         try {
-            Files.writeString(file, mboxMail, StandardCharsets.US_ASCII, StandardOpenOption.APPEND);
+            Files.writeString(file, mboxMail, StandardCharsets.UTF_8, StandardOpenOption.APPEND);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -87,7 +87,7 @@ public class MboxFileList implements MailingList {
     public List<Conversation> conversations(Duration maxAge) {
         String mbox;
         try {
-            mbox = Files.readString(file, StandardCharsets.US_ASCII);
+            mbox = Files.readString(file, StandardCharsets.UTF_8);
         } catch (IOException e) {
             log.info("Failed to open mbox file");
             log.throwing("MboxFileList", "conversations", e);
