@@ -129,7 +129,7 @@ public class Mbox {
         mboxMail.println("Message-Id: " + mail.id());
         mail.headers().forEach(header -> mboxMail.println(header + ": " + MimeText.encode(mail.headerValue(header))));
         mboxMail.println();
-        mboxMail.println(encodeFromStrings(MimeText.encode(mail.body())));
+        mboxMail.println(encodeFromStrings(mail.body()));
 
         return mboxString.toString();
     }

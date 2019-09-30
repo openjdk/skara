@@ -111,10 +111,11 @@ public class Email {
                                              .filter(entry -> !entry.getKey().equalsIgnoreCase("From"))
                                              .filter(entry -> !entry.getKey().equalsIgnoreCase("Sender"))
                                              .filter(entry -> !entry.getKey().equalsIgnoreCase("To"))
+                                             .filter(entry -> !entry.getKey().equalsIgnoreCase("Content-type"))
                                              .collect(Collectors.toMap(Map.Entry::getKey,
                                                                        entry -> MimeText.decode(entry.getValue())));
 
-        return new Email(id, date, recipients, author, sender, subject, MimeText.decode(message.body), filteredHeaders);
+        return new Email(id, date, recipients, author, sender, subject, message.body, filteredHeaders);
     }
 
     public static EmailBuilder create(EmailAddress author, String subject, String body) {
