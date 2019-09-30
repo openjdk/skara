@@ -263,4 +263,13 @@ public class BotRunnerConfiguration {
         }
         return Optional.of(config.get("webhooks").get("port").asInt());
     }
+
+    Duration watchdogTimeout() {
+        if (!config.contains("runner") || !config.get("runner").contains("watchdog")) {
+            log.info("No WorkItem watchdog timeout defined, using default value");
+            return Duration.ofHours(1);
+        } else {
+            return Duration.parse(config.get("runner").get("watchdog").asString());
+        }
+    }
 }

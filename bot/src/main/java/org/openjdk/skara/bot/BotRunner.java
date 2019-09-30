@@ -44,7 +44,6 @@ class BotRunnerError extends RuntimeException {
 }
 
 public class BotRunner {
-
     enum TaskPhases {
         BEGIN,
         END
@@ -91,14 +90,14 @@ public class BotRunner {
 
                 // Some of the pending items may now be eligible for execution
                 var candidateItems = pending.entrySet().stream()
-                                            .filter(e -> !e.getValue().isPresent() || !active.contains(e.getValue().get()))
+                                            .filter(e -> e.getValue().isEmpty() || !active.containsKey(e.getValue().get()))
                                             .map(Map.Entry::getKey)
                                             .collect(Collectors.toList());
 
                 // Try the candidates against the current active set
                 for (var candidate : candidateItems) {
                     boolean maySubmit = true;
-                    for (var activeItem : active) {
+                    for (var activeItem : active.keySet()) {
                         if (!activeItem.concurrentWith(candidate)) {
                             // Still can't run this candidate, leave it pending
                             log.finer("Cannot submit candidate " + candidate + " - not concurrent with " + activeItem);
@@ -110,23 +109,21 @@ public class BotRunner {
                     if (maySubmit) {
                         pending.remove(candidate);
                         executor.submit(new RunnableWorkItem(candidate));
-                        active.add(candidate);
+                        active.put(candidate, Instant.now());
                         log.finer("Submitting candidate: " + candidate);
                     }
                 }
             }
-
         }
     }
 
     private final Map<WorkItem, Optional<WorkItem>> pending;
-    private final Set<WorkItem> active;
+    private final Map<WorkItem, Instant> active;
     private final Deque<Path> scratchPaths;
 
     private void submitOrSchedule(WorkItem item) {
-
         synchronized (executor) {
-            for (var activeItem : active) {
+            for (var activeItem : active.keySet()) {
                 if (!activeItem.concurrentWith(item)) {
 
                     for (var pendingItem : pending.entrySet()) {
@@ -146,12 +143,11 @@ public class BotRunner {
             }
 
             executor.submit(new RunnableWorkItem(item));
-            active.add(item);
+            active.put(item, Instant.now());
         }
     }
 
     private void drain(Duration timeout) throws TimeoutException {
-
         Instant start = Instant.now();
 
         while (Instant.now().isBefore(start.plus(timeout))) {
@@ -181,6 +177,7 @@ public class BotRunner {
             }
             try {
                 Thread.sleep(1);
+                watchdog();
             } catch (InterruptedException e) {
                 log.warning("Exception during queue drain");
                 log.throwing("BotRunner", "drain", e);
@@ -200,7 +197,7 @@ public class BotRunner {
         this.bots = bots;
 
         pending = new HashMap<>();
-        active = new HashSet<>();
+        active = new HashMap<>();
         scratchPaths = new LinkedList<>();
 
         for (int i = 0; i < config.concurrency(); ++i) {
@@ -226,6 +223,20 @@ public class BotRunner {
             log.throwing("BotRunner", "checkPeriodicItems", e);
         } finally {
             log.log(Level.FINE, "Done checking periodic items", TaskPhases.END);
+        }
+    }
+
+    private void watchdog() {
+        synchronized (executor) {
+            for (var activeItem : active.entrySet()) {
+                var activeDuration = Duration.between(activeItem.getValue(), Instant.now());
+                if (activeDuration.compareTo(config.watchdogTimeout()) > 0) {
+                    log.severe("Item " + activeItem.getKey() + " has been active more than " + activeDuration +
+                                       " - this may be an error!");
+                    // Reset the counter to avoid continuous reporting - once every watchdogTimeout is enough
+                    activeItem.setValue(Instant.now());
+                }
+            }
         }
     }
 
@@ -263,6 +274,8 @@ public class BotRunner {
             }
         }
 
+        executor.scheduleAtFixedRate(this::watchdog, 0,
+                                     config.scheduledExecutionPeriod().toMillis(), TimeUnit.MILLISECONDS);
         executor.scheduleAtFixedRate(this::checkPeriodicItems, 0,
                                      config.scheduledExecutionPeriod().toMillis(), TimeUnit.MILLISECONDS);
 
