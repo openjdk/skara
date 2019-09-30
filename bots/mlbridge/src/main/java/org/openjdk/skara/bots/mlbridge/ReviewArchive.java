@@ -266,7 +266,7 @@ class ReviewArchive {
             generated.remove(parentEmail);
             generatedIds.remove(getStableMessageId(parentEmail.id()));
 
-            var collapsed = parentEmail.hasHeader("PR-Collapsed-IDs") ? parentEmail.headerValue("PR-Collapsed-IDs") : "";
+            var collapsed = parentEmail.hasHeader("PR-Collapsed-IDs") ? parentEmail.headerValue("PR-Collapsed-IDs") + " " : "";
             collapsed += getStableMessageId(parentEmail.id());
 
             var reply = ArchiveMessages.composeCombinedReply(parentEmail, body, prInstance);
