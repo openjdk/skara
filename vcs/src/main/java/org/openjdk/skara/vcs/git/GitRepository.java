@@ -108,6 +108,7 @@ public class GitRepository implements Repository {
     }
 
     public GitRepository(Path dir) {
+        System.err.println("DEBUG: GitRepository: dir = " + dir);
         this.dir = dir.toAbsolutePath();
     }
 
@@ -446,12 +447,23 @@ public class GitRepository implements Repository {
                     if (res2.stdout().size() != 1) {
                         throw new IOException("Unexpected output\n" + res2);
                     }
+                    // CYGWIN: FIXME: map cygwin path to Windows path
                     cachedRoot = dir.resolve(Path.of(res2.stdout().get(0)));
                     return cachedRoot;
                 }
             }
 
-            cachedRoot = Path.of(res.stdout().get(0));
+            // CYGWIN: map cygwin path to Windows path (OK to use `/`)
+            // FIXME: only do this if using Cygwin git, and use cygpath
+            var cygPrefix = "/cygdrive/c";
+            var dirString = res.stdout().get(0);
+            System.err.println("DEBUG: root dir = " + dirString);
+            if (dirString.startsWith(cygPrefix + "/")) {
+                dirString = "C:" + dirString.substring(cygPrefix.length());
+                System.err.println("DEBUG: converted root dir = " + dirString);
+            }
+            cachedRoot = Path.of(dirString);
+            System.err.println("DEBUG: root path = " + cachedRoot);
             return cachedRoot;
         }
     }
@@ -651,7 +663,9 @@ public class GitRepository implements Repository {
 
     @Override
     public Optional<Hash> resolve(String ref) throws IOException {
-        try (var p = capture("git", "rev-parse", ref + "^{commit}")) {
+        // CYGWIN: need to escape the { and }
+        // FIXME: only do this if using Cygwin git
+        try (var p = capture("git", "rev-parse", ref + "^\\{commit\\}")) {
             var res = p.await();
             if (res.status() == 0 && res.stdout().size() == 1) {
                 return Optional.of(new Hash(res.stdout().get(0)));
@@ -701,7 +715,7 @@ public class GitRepository implements Repository {
     }
 
     private String treeEntry(Path path, Hash hash) throws IOException {
-        try (var p = Process.capture("git", "ls-tree", hash.hex(), path.toString())
+        try (var p = Process.capture("git", "ls-tree", hash.hex(), path.toString().replace("\\", "/"))
                             .workdir(root())
                             .execute()) {
             var res = await(p);
@@ -719,7 +733,9 @@ public class GitRepository implements Repository {
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("git", "ls-tree", "-r"));
         cmd.add(hash.hex());
-        cmd.addAll(paths.stream().map(Path::toString).collect(Collectors.toList()));
+        // CYGWIN: map `\` to `/`
+        // FIXME: only do this if using Cygwin git
+        cmd.addAll(paths.stream().map(Path::toString).map(s -> s.replace("\\", "/")).collect(Collectors.toList()));
         try (var p = Process.capture(cmd.toArray(new String[0]))
                             .workdir(root())
                             .execute()) {

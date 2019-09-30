@@ -24,7 +24,14 @@
 DIR=$(dirname "${0}")
 OS=$(uname)
 
-if [ "${OS}" = "Linux" -o "${OS}" = "Darwin" ]; then
+case "${OS}" in
+    Linux) USEBAT=0 ;;
+    Darwin) USEBAT=0 ;;
+    CYGWIN*) USEBAT=0 ;;
+    *) USEBAT=1 ;;
+esac
+
+if [ ${USEBAT} -eq 0 ]; then
     if [ ! -x "${DIR}/bin/bin/git-skara" ]; then
         echo "Compiling ..."
         (cd "${DIR}" && sh gradlew)
@@ -42,7 +49,7 @@ if [ -d "${DIR}/build" ]; then
     mv "${DIR}/build" "${DIR}/bin"
 fi
 
-if [ "${OS}" = "Linux" -o "${OS}" = "Darwin" ]; then
+if [ ${USEBAT} -eq 0 ]; then
     exec "${DIR}/bin/bin/git-skara" "${@}"
 else
     exec "${DIR}/bin/bin/git-skara.bat" "${@}"
