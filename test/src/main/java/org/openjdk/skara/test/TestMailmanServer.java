@@ -69,9 +69,10 @@ public class TestMailmanServer implements AutoCloseable {
                     }
                 }
 
-                exchange.sendResponseHeaders(200, response.length());
+                var responseBytes = response.getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, responseBytes.length);
                 OutputStream outputStream = exchange.getResponseBody();
-                outputStream.write(response.getBytes());
+                outputStream.write(responseBytes);
                 outputStream.close();
             } catch (NoSuchAlgorithmException e) {
                 throw new RuntimeException(e);
