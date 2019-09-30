@@ -715,6 +715,8 @@ public class GitRepository implements Repository {
     }
 
     private String treeEntry(Path path, Hash hash) throws IOException {
+        // CYGWIN: map `\` to `/`
+        // FIXME: only do this if using Cygwin git
         try (var p = Process.capture("git", "ls-tree", hash.hex(), path.toString().replace("\\", "/"))
                             .workdir(root())
                             .execute()) {
