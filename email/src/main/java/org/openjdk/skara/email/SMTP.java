@@ -24,6 +24,7 @@ package org.openjdk.skara.email;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
 import java.util.regex.Pattern;
 
@@ -47,8 +48,8 @@ public class SMTP {
             port = Integer.parseInt(parts[1]);
         }
         try (var socket = new Socket(server, port);
-             var out = new OutputStreamWriter(socket.getOutputStream());
-             var in = new InputStreamReader(socket.getInputStream())) {
+             var out = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8);
+             var in = new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8)) {
 
             var session = new SMTPSession(in, out);
 
@@ -66,8 +67,9 @@ public class SMTP {
                 session.sendCommand(header + ": " + MimeText.encode(email.headerValue(header)));
             }
             session.sendCommand("Subject: " + MimeText.encode(email.subject()));
+            session.sendCommand("Content-type: text/plain; charset=utf-8");
             session.sendCommand("");
-            session.sendCommand(MimeText.encode(email.body()));
+            session.sendCommand(email.body());
             session.sendCommand(".", doneReply);
             session.sendCommand("QUIT");
         }

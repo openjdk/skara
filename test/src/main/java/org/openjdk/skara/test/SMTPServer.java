@@ -43,6 +43,7 @@ public class SMTPServer implements AutoCloseable {
     private static Pattern quitPattern = Pattern.compile("^QUIT$");
 
     private final static Pattern encodeQuotedPrintablePattern = Pattern.compile("([^\\x00-\\x7f]+)");
+    private final static Pattern headerPattern = Pattern.compile("[^A-Za-z0-9-]+: .+");
 
     private class AcceptThread implements Runnable {
         private void handleSession(SMTPSession session) throws IOException {
@@ -54,11 +55,27 @@ public class SMTPServer implements AutoCloseable {
             var message = session.readLinesUntil(messageEndPattern);
             session.sendCommand("250 MESSAGE OK", quitPattern);
 
-            // SMTP is only 7-bit safe, ensure that we break any high ascii passing through here
-            var quoteMatcher = encodeQuotedPrintablePattern.matcher(String.join("\n", message));
-            var ascii7message = quoteMatcher.replaceAll(mo -> "HIGH_ASCII");
+            // Email headers are only 7-bit safe, ensure that we break any high ascii passing through
+            var inHeader = true;
+            var mailBody = new StringBuilder();
+            for (var line : message) {
+                if (inHeader) {
+                    var headerMatcher = headerPattern.matcher(line);
+                    if (headerMatcher.matches()) {
+                        var quoteMatcher = encodeQuotedPrintablePattern.matcher(String.join("\n", message));
+                        var ascii7line = quoteMatcher.replaceAll(mo -> "HIGH_ASCII");
+                        mailBody.append(ascii7line);
+                        mailBody.append("\n");
+                        continue;
+                    } else {
+                        inHeader = false;
+                    }
+                }
+                mailBody.append(line);
+                mailBody.append("\n");
+            }
 
-            var email = Email.parse(ascii7message);
+            var email = Email.parse(mailBody.toString());
             emails.addLast(email);
         }
 
