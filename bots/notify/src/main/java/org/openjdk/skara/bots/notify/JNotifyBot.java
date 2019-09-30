@@ -90,6 +90,20 @@ class JNotifyBot implements Bot, WorkItem {
         }
     }
 
+    private Optional<OpenJDKTag> existingPrevious(OpenJDKTag tag, Set<OpenJDKTag> allJdkTags) {
+        while (true) {
+            var candidate = tag.previous();
+            if (candidate.isEmpty()) {
+                return Optional.empty();
+            }
+            tag = candidate.get();
+            if (!allJdkTags.contains(tag)) {
+                continue;
+            }
+            return Optional.of(tag);
+        }
+    }
+
     private void handleTags(Repository localRepo, UpdateHistory history) throws IOException {
         var tags = localRepo.tags();
         var newTags = tags.stream()
@@ -104,16 +118,21 @@ class JNotifyBot implements Bot, WorkItem {
             return;
         }
 
-        var jdkTags = newTags.stream()
+        var allJdkTags = tags.stream()
+                             .map(OpenJDKTag::create)
+                             .filter(Optional::isPresent)
+                             .map(Optional::get)
+                             .collect(Collectors.toSet());
+        var newJdkTags = newTags.stream()
                              .map(OpenJDKTag::create)
                              .filter(Optional::isPresent)
                              .map(Optional::get)
                              .sorted(Comparator.comparingInt(OpenJDKTag::buildNum))
                              .collect(Collectors.toList());
 
-        for (var tag : jdkTags) {
-            var previous = tag.previous();
-            if (!previous.isPresent()) {
+        for (var tag : newJdkTags) {
+            var previous = existingPrevious(tag, allJdkTags);
+            if (previous.isEmpty()) {
                 log.warning("No previous tag found for '" + tag.tag() + "' - ignoring");
                 continue;
             }

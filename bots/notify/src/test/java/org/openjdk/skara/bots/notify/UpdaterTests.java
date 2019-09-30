@@ -123,25 +123,42 @@ class UpdaterTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
             localRepo.fetch(repo.getUrl(), "history:history");
             localRepo.tag(editHash, "jdk-12+2", "Added tag 2", "Duke", "duke@openjdk.java.net");
+            var editHash2 = CheckableRepository.appendAndCommit(localRepo, "Another line", "34567890: Even more fixes");
+            localRepo.tag(editHash2, "jdk-12+4", "Added tag 3", "Duke", "duke@openjdk.java.net");
             localRepo.pushAll(repo.getUrl());
 
             TestBotRunner.runPeriodicItems(notifyBot);
             var jsonFiles = findJsonFiles(jsonFolder, "");
-            assertEquals(2, jsonFiles.size());
+            assertEquals(3, jsonFiles.size());
 
             for (var file : jsonFiles) {
                 var jsonData = Files.readString(file, StandardCharsets.UTF_8);
                 var json = JSON.parse(jsonData);
-                assertEquals(1, json.asArray().size());
-                assertEquals(List.of("23456789"), json.asArray().get(0).get("issue").asArray().stream()
-                                                      .map(JSONValue::asString)
-                                                      .collect(Collectors.toList()));
 
                 if (json.asArray().get(0).contains("date")) {
+                    assertEquals(2, json.asArray().size());
+                    assertEquals(List.of("23456789"), json.asArray().get(0).get("issue").asArray().stream()
+                                                          .map(JSONValue::asString)
+                                                          .collect(Collectors.toList()));
                     assertEquals(repo.getWebUrl(editHash).toString(), json.asArray().get(0).get("url").asString());
                     assertEquals("team", json.asArray().get(0).get("build").asString());
+                    assertEquals(List.of("34567890"), json.asArray().get(1).get("issue").asArray().stream()
+                                                          .map(JSONValue::asString)
+                                                          .collect(Collectors.toList()));
+                    assertEquals(repo.getWebUrl(editHash2).toString(), json.asArray().get(1).get("url").asString());
+                    assertEquals("team", json.asArray().get(1).get("build").asString());
                 } else {
-                    assertEquals("b02", json.asArray().get(0).get("build").asString());
+                    assertEquals(1, json.asArray().size());
+                    if (json.asArray().get(0).get("build").asString().equals("b02")) {
+                        assertEquals(List.of("23456789"), json.asArray().get(0).get("issue").asArray().stream()
+                                                              .map(JSONValue::asString)
+                                                              .collect(Collectors.toList()));
+                    } else {
+                        assertEquals("b04", json.asArray().get(0).get("build").asString());
+                        assertEquals(List.of("34567890"), json.asArray().get(0).get("issue").asArray().stream()
+                                                              .map(JSONValue::asString)
+                                                              .collect(Collectors.toList()));
+                    }
                 }
             }
         }

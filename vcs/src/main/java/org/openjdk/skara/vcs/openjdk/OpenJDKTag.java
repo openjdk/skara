@@ -106,7 +106,7 @@ public class OpenJDKTag {
      * @return
      */
     public int buildNum() {
-        return Integer.valueOf(buildNum);
+        return Integer.parseInt(buildNum);
     }
 
     /**
@@ -125,5 +125,26 @@ public class OpenJDKTag {
         var tagName = prefix + buildPrefix + formattedBuildNum;
         var tag = new Tag(tagName);
         return create(tag);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        OpenJDKTag that = (OpenJDKTag) o;
+        return tag.equals(that.tag) &&
+                prefix.equals(that.prefix) &&
+                version.equals(that.version) &&
+                buildPrefix.equals(that.buildPrefix) &&
+                buildNum.equals(that.buildNum);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(tag, prefix, version, buildPrefix, buildNum);
     }
 }
