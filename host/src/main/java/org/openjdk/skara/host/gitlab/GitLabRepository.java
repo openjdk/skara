@@ -66,6 +66,21 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
+    public Issue createIssue(String title, List<String> body) {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
+    public Issue getIssue(String id) {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
+    public List<Issue> getIssues() {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
     public Optional<HostedRepository> getParent() {
         if (json.contains("forked_from_project")) {
             var parent = json.get("forked_from_project").get("path_with_namespace").asString();

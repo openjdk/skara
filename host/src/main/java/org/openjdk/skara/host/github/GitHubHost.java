@@ -160,6 +160,11 @@ public class GitHubHost implements Host {
     }
 
     @Override
+    public IssueProject getIssueProject(String name) {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
     public HostUserDetails getUserDetails(String username) {
         var details = request.get("users/" + URLEncoder.encode(username, StandardCharsets.UTF_8)).execute().asObject();
 

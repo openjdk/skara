@@ -33,13 +33,14 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class TestHostedRepository implements HostedRepository {
+public class TestHostedRepository extends TestIssueProject implements HostedRepository {
     private final TestHost host;
     private final String projectName;
     private final Repository localRepository;
     private final Pattern pullRequestPattern;
 
     public TestHostedRepository(TestHost host, String projectName, Repository localRepository) {
+        super(host, projectName);
         this.host = host;
         this.projectName = projectName;
         this.localRepository = localRepository;

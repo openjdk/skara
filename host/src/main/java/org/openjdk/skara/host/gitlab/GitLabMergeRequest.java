@@ -54,6 +54,11 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
+    public IssueProject project() {
+        return repository;
+    }
+
+    @Override
     public String getId() {
         return json.get("iid").toString();
     }

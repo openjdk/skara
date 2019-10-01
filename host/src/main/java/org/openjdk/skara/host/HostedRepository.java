@@ -28,7 +28,7 @@ import org.openjdk.skara.vcs.*;
 import java.net.URI;
 import java.util.*;
 
-public interface HostedRepository {
+public interface HostedRepository extends IssueProject {
     Host host();
     PullRequest createPullRequest(HostedRepository target,
                                   String targetRef,
@@ -42,7 +42,6 @@ public interface HostedRepository {
     String getName();
     Optional<HostedRepository> getParent();
     URI getUrl();
-    URI getWebUrl();
     URI getWebUrl(Hash hash);
     VCS getRepositoryType();
     String getFileContents(String filename, String ref);

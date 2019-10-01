@@ -73,6 +73,21 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
+    public Issue createIssue(String title, List<String> body) {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
+    public Issue getIssue(String id) {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
+    public List<Issue> getIssues() {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
     public PullRequest createPullRequest(HostedRepository target,
                                          String targetRef,
                                          String sourceRef,

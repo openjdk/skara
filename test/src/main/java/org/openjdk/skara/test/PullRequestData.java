@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,23 +20,16 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.host;
+package org.openjdk.skara.test;
 
-import java.net.URI;
+import org.openjdk.skara.host.*;
+import org.openjdk.skara.vcs.Hash;
 
-public interface Host {
-    boolean isValid();
-    HostedRepository getRepository(String name);
-    IssueProject getIssueProject(String name);
-    HostUserDetails getUserDetails(String username);
-    HostUserDetails getCurrentUserDetails();
-    boolean supportsReviewBody();
+import java.util.*;
 
-    static Host from(URI uri, PersonalAccessToken pat) {
-        return HostFactory.createFromURI(uri, pat);
-    }
-
-    static Host from(URI uri) {
-        return HostFactory.createFromURI(uri, null);
-    }
+class PullRequestData extends IssueData {
+    Hash headHash;
+    final List<ReviewComment> reviewComments = new ArrayList<>();
+    final Set<Check> checks = new HashSet<>();
+    final List<Review> reviews = new ArrayList<>();
 }

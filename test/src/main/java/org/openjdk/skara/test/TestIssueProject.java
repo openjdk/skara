@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,23 +20,45 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.host;
+package org.openjdk.skara.test;
+
+import org.openjdk.skara.host.*;
+import org.openjdk.skara.host.network.URIBuilder;
 
 import java.net.URI;
+import java.util.*;
 
-public interface Host {
-    boolean isValid();
-    HostedRepository getRepository(String name);
-    IssueProject getIssueProject(String name);
-    HostUserDetails getUserDetails(String username);
-    HostUserDetails getCurrentUserDetails();
-    boolean supportsReviewBody();
+public class TestIssueProject implements IssueProject {
+    private final String projectName;
+    private final TestHost host;
 
-    static Host from(URI uri, PersonalAccessToken pat) {
-        return HostFactory.createFromURI(uri, pat);
+    @Override
+    public Host host() {
+        return host;
     }
 
-    static Host from(URI uri) {
-        return HostFactory.createFromURI(uri, null);
+    @Override
+    public URI getWebUrl() {
+        return URIBuilder.base("http://localhost/project/" + projectName).build();
+    }
+
+    public TestIssueProject(TestHost host, String projectName) {
+        this.host = host;
+        this.projectName = projectName;
+    }
+
+    @Override
+    public Issue createIssue(String title, List<String> body) {
+        return host.createIssue(this, title, body);
+    }
+
+    @Override
+    public Issue getIssue(String id) {
+        return host.getIssue(this, id);
+    }
+
+    @Override
+    public List<Issue> getIssues() {
+        return new ArrayList<>(host.getIssues(this));
     }
 }
