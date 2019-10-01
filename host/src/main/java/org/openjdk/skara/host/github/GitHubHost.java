@@ -199,4 +199,17 @@ public class GitHubHost implements Host {
     public boolean supportsReviewBody() {
         return true;
     }
+
+    @Override
+    public boolean isMemberOf(long groupId, HostUserDetails user) {
+        var username = URLEncoder.encode(user.userName(), StandardCharsets.UTF_8);
+        var orgs = request.get("users/" + username + "/orgs").execute().asArray();
+        for (var org : orgs) {
+            if (org.get("id").asLong() == groupId) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

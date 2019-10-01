@@ -142,4 +142,13 @@ public class GitLabHost implements Host {
             throw new RuntimeException("Project does not seem to be a fork");
         }
     }
+
+    @Override
+    public boolean isMemberOf(long groupId, HostUserDetails user) {
+        var details = request.get("groups/" + groupId + "/members/" + user.id())
+                             .onError(r -> JSON.of())
+                             .execute()
+                             .asObject();
+        return !details.isNull();
+    }
 }
