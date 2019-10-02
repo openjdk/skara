@@ -31,7 +31,7 @@ public interface Host {
     HostUserDetails getUserDetails(String username);
     HostUserDetails getCurrentUserDetails();
     boolean supportsReviewBody();
-    boolean isMemberOf(long groupId, HostUserDetails user);
+    boolean isMemberOf(String groupId, HostUserDetails user);
 
     static Host from(URI uri, PersonalAccessToken pat) {
         return HostFactory.createFromURI(uri, pat);

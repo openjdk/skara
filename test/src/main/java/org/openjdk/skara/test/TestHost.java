@@ -130,7 +130,7 @@ public class TestHost implements Host {
     }
 
     @Override
-    public boolean isMemberOf(long groupId, HostUserDetails user) {
+    public boolean isMemberOf(String groupId, HostUserDetails user) {
         return false;
     }
 
