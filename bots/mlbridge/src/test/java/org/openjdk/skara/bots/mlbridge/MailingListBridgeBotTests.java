@@ -42,29 +42,37 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MailingListBridgeBotTests {
+    private Optional<String> archiveContents(Path archive) {
+        try {
+            var mbox = Files.find(archive, 50, (path, attrs) -> path.toString().endsWith(".mbox")).findAny();
+            if (mbox.isEmpty()) {
+                return Optional.empty();
+            }
+            return Optional.of(Files.readString(mbox.get(), StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            return Optional.empty();
+        }
+
+    }
+
     private boolean archiveContains(Path archive, String text) {
         return archiveContainsCount(archive, text) > 0;
     }
 
     private int archiveContainsCount(Path archive, String text) {
-        try {
-            var mbox = Files.find(archive, 50, (path, attrs) -> path.toString().endsWith(".mbox")).findAny();
-            if (mbox.isEmpty()) {
-                return 0;
-            }
-            var lines = Files.readString(mbox.get(), StandardCharsets.UTF_8);
-            var pattern = Pattern.compile(text);
-            int count = 0;
-            for (var line : lines.split("\\R")) {
-                var matcher = pattern.matcher(line);
-                if (matcher.find()) {
-                    count++;
-                }
-            }
-            return count;
-        } catch (IOException e) {
+        var lines = archiveContents(archive);
+        if (lines.isEmpty()) {
             return 0;
         }
+        var pattern = Pattern.compile(text);
+        int count = 0;
+        for (var line : lines.get().split("\\R")) {
+            var matcher = pattern.matcher(line);
+            if (matcher.find()) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private boolean webrevContains(Path webrev, String text) {
@@ -480,16 +488,22 @@ class MailingListBridgeBotTests {
             listServer.processIncoming();
             listServer.processIncoming();
 
-            // Finally some approvals
+            // Finally some approvals and another comment
             pr.addReview(Review.Verdict.APPROVED, "Nice");
             reviewPr.addReview(Review.Verdict.APPROVED, "Looks fine");
+            reviewPr.addReviewCommentReply(comment2, "You are welcome");
             TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
             listServer.processIncoming();
             listServer.processIncoming();
 
             // Sanity check the archive
             Repository.materialize(archiveFolder.path(), archive.getUrl(), "master");
-            assertEquals(8, archiveContainsCount(archiveFolder.path(), "^On.*wrote:"));
+            assertEquals(9, archiveContainsCount(archiveFolder.path(), "^On.*wrote:"));
+
+            // File specific comments should appear before the approval
+            var archiveText = archiveContents(archiveFolder.path()).orElseThrow();
+            assertTrue(archiveText.indexOf("Looks fine") > archiveText.indexOf("You are welcome"));
 
             // Check the mailing list
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP());
@@ -498,7 +512,7 @@ class MailingListBridgeBotTests {
             assertEquals(1, conversations.size());
             var mail = conversations.get(0).first();
             assertEquals("RFR: This is a pull request", mail.subject());
-            assertEquals(9, conversations.get(0).allMessages().size());
+            assertEquals(10, conversations.get(0).allMessages().size());
 
             // There should be four separate threads
             var thread1 = conversations.get(0).replies(mail).get(0);
@@ -527,6 +541,7 @@ class MailingListBridgeBotTests {
             var thread2reply2 = conversations.get(0).replies(thread2reply1).get(0);
             assertTrue(thread2reply2.body().contains("Thanks"));
 
+            var replies = conversations.get(0).replies(mail);
             var thread3 = conversations.get(0).replies(mail).get(2);
             assertEquals("Re: RFR: This is a pull request", thread3.subject());
             var thread4 = conversations.get(0).replies(mail).get(3);
