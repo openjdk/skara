@@ -254,14 +254,12 @@ class CheckRun {
 
     private String getStatusMessage(List<Review> reviews, PullRequestCheckIssueVisitor visitor) {
         var progressBody = new StringBuilder();
-        progressBody.append("Progress\n");
-        progressBody.append("--------\n");
+        progressBody.append("## Progress\n");
         progressBody.append(getChecksList(visitor));
 
         var issue = Issue.fromString(pr.getTitle());
         if (issueProject != null && issue.isPresent()) {
-            progressBody.append("\n\nIssue\n");
-            progressBody.append("--------\n");
+            progressBody.append("\n\n## Issue\n");
             var iss = issueProject.getIssue(issue.get().id());
             if (iss.isPresent()) {
                 progressBody.append("[");
@@ -279,8 +277,7 @@ class CheckRun {
         }
 
         getReviewersList(reviews).ifPresent(reviewers -> {
-            progressBody.append("\n\nApprovers\n");
-            progressBody.append("---------\n");
+            progressBody.append("\n\n## Approvers\n");
             progressBody.append(reviewers);
         });
 
