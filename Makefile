@@ -38,6 +38,7 @@ test:
 	@sh gradlew test
 
 install: all $(LAUNCHERS) $(MANPAGES) $(sharedir)/skara
+	@echo "Successfully installed to $(prefix)"
 
 $(mandir)/man1/%: $(BUILD)/bin/man/man1/%
 	@mkdir -p $(mandir)/man1
