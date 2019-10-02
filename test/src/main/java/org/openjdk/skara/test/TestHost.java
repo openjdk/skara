@@ -164,6 +164,9 @@ public class TestHost implements Host {
 
     TestIssue getIssue(TestIssueProject issueProject, String id) {
         var original = data.issues.get(id);
+        if (original == null) {
+            return null;
+        }
         return TestIssue.createFrom(issueProject, original);
     }
 

@@ -149,6 +149,21 @@ public class BotRunnerConfiguration {
         return ret;
     }
 
+    private IssueProject parseIssueProjectEntry(String entry) throws ConfigurationError {
+        var hostSeparatorIndex = entry.indexOf('/');
+        if (hostSeparatorIndex >= 0) {
+            var hostName = entry.substring(0, hostSeparatorIndex);
+            var host = hosts.get(hostName);
+            if (!hosts.containsKey(hostName)) {
+                throw new ConfigurationError("Issue project entry " + entry + " uses undefined host '" + hostName + "'");
+            }
+            var issueProjectName = entry.substring(hostSeparatorIndex + 1);
+            return host.getIssueProject(issueProjectName);
+        } else {
+            throw new ConfigurationError("Malformed issue project entry");
+        }
+    }
+
     public static BotRunnerConfiguration parse(JSONObject config, Path cwd) throws ConfigurationError {
         return new BotRunnerConfiguration(config, cwd);
     }
@@ -182,6 +197,15 @@ public class BotRunnerConfiguration {
                     return entry.repository;
                 } catch (ConfigurationError configurationError) {
                     throw new RuntimeException("Couldn't find repository with name: " + name, configurationError);
+                }
+            }
+
+            @Override
+            public IssueProject issueProject(String name) {
+                try {
+                    return parseIssueProjectEntry(name);
+                } catch (ConfigurationError configurationError) {
+                    throw new RuntimeException("Couldn't find issue project with name: " + name, configurationError);
                 }
             }
 

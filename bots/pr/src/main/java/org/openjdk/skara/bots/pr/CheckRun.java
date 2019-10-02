@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.vcs.openjdk.Issue;
 
 import java.io.IOException;
 import java.util.*;
@@ -41,6 +42,7 @@ class CheckRun {
     private final Set<String> labels;
     private final CensusInstance censusInstance;
     private final Map<String, String> blockingLabels;
+    private final IssueProject issueProject;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     private final String progressMarker = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
@@ -50,7 +52,7 @@ class CheckRun {
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, PullRequestInstance prInstance, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
-                     CensusInstance censusInstance, Map<String, String> blockingLabels) {
+                     CensusInstance censusInstance, Map<String, String> blockingLabels, IssueProject issueProject) {
         this.workItem = workItem;
         this.pr = pr;
         this.prInstance = prInstance;
@@ -61,11 +63,13 @@ class CheckRun {
         this.newLabels = new HashSet<>(labels);
         this.censusInstance = censusInstance;
         this.blockingLabels = blockingLabels;
+        this.issueProject = issueProject;
     }
 
     static void execute(CheckWorkItem workItem, PullRequest pr, PullRequestInstance prInstance, List<Comment> comments,
-                        List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance, Map<String, String> blockingLabels) {
-        var run = new CheckRun(workItem, pr, prInstance, comments, allReviews, activeReviews, labels, censusInstance, blockingLabels);
+                        List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance, Map<String, String> blockingLabels,
+                        IssueProject issueProject) {
+        var run = new CheckRun(workItem, pr, prInstance, comments, allReviews, activeReviews, labels, censusInstance, blockingLabels, issueProject);
         run.checkStatus();
     }
 
@@ -248,15 +252,32 @@ class CheckRun {
         }
     }
 
-    private String getStatusMessage(List<Review> reviews, PullRequestCheckIssueVisitor visitor) throws IOException {
+    private String getStatusMessage(List<Review> reviews, PullRequestCheckIssueVisitor visitor) {
         var progressBody = new StringBuilder();
-        progressBody.append("Progress\n");
-        progressBody.append("--------\n");
-
+        progressBody.append("## Progress\n");
         progressBody.append(getChecksList(visitor));
+
+        var issue = Issue.fromString(pr.getTitle());
+        if (issueProject != null && issue.isPresent()) {
+            progressBody.append("\n\n## Issue\n");
+            var iss = issueProject.getIssue(issue.get().id());
+            if (iss.isPresent()) {
+                progressBody.append("[");
+                progressBody.append(iss.get().getId());
+                progressBody.append("](");
+                progressBody.append(iss.get().getWebUrl());
+                progressBody.append("]: ");
+                progressBody.append(iss.get().getTitle());
+                progressBody.append("\n");
+            } else {
+                progressBody.append("⚠️ Failed to retrieve information on issue `");
+                progressBody.append(issue.get().toString());
+                progressBody.append("`.\n");
+            }
+        }
+
         getReviewersList(reviews).ifPresent(reviewers -> {
-            progressBody.append("\n\nApprovers\n");
-            progressBody.append("---------\n");
+            progressBody.append("\n\n## Approvers\n");
             progressBody.append(reviewers);
         });
 

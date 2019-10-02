@@ -23,12 +23,12 @@
 package org.openjdk.skara.host;
 
 import java.net.URI;
-import java.util.List;
+import java.util.*;
 
 public interface IssueProject {
     Host host();
     URI getWebUrl();
     Issue createIssue(String title, List<String> body);
-    Issue getIssue(String id);
+    Optional<Issue> getIssue(String id);
     List<Issue> getIssues();
 }

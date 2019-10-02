@@ -76,8 +76,11 @@ public class PullRequestBotFactory implements BotFactory {
                     labelPatterns.put(label.name(), patterns);
                 }
             }
+            var issueProject = repo.value().contains("issues") ?
+                    configuration.issueProject(repo.value().get("issues").asString()) :
+                    null;
             var bot = new PullRequestBot(configuration.repository(repo.name()), censusRepo, censusRef, labelPatterns,
-                                         external, blockers, readyLabels, readyComments);
+                                         external, blockers, readyLabels, readyComments, issueProject);
             ret.add(bot);
         }
 

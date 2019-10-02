@@ -78,7 +78,7 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public Issue getIssue(String id) {
+    public Optional<Issue> getIssue(String id) {
         throw new RuntimeException("not implemented yet");
     }
 

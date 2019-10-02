@@ -41,6 +41,7 @@ class PullRequestBot implements Bot {
     private final Map<String, String> blockingLabels;
     private final Set<String> readyLabels;
     private final Map<String, Pattern> readyComments;
+    private final IssueProject issueProject;
     private final ConcurrentMap<Hash, Boolean> currentLabels = new ConcurrentHashMap<>();
     private final PullRequestUpdateCache updateCache;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
@@ -48,7 +49,7 @@ class PullRequestBot implements Bot {
     PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef,
                    Map<String, List<Pattern>> labelPatterns, Map<String, String> externalCommands,
                    Map<String, String> blockingLabels, Set<String> readyLabels,
-                   Map<String, Pattern> readyComments) {
+                   Map<String, Pattern> readyComments, IssueProject issueProject) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -56,12 +57,20 @@ class PullRequestBot implements Bot {
         this.externalCommands = externalCommands;
         this.blockingLabels = blockingLabels;
         this.readyLabels = readyLabels;
+        this.issueProject = issueProject;
         this.readyComments = readyComments;
         this.updateCache = new PullRequestUpdateCache();
     }
 
+    PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef,
+                   Map<String, List<Pattern>> labelPatterns, Map<String, String> externalCommands,
+                   Map<String, String> blockingLabels, Set<String> readyLabels,
+                   Map<String, Pattern> readyComments) {
+        this(repo, censusRepo, censusRef, labelPatterns, externalCommands, blockingLabels, readyLabels, readyComments, null);
+    }
+
     PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef) {
-        this(repo, censusRepo, censusRef, Map.of(), Map.of(), Map.of(), Set.of(), Map.of());
+        this(repo, censusRepo, censusRef, Map.of(), Map.of(), Map.of(), Set.of(), Map.of(), null);
     }
 
     private boolean isReady(PullRequest pr) {
@@ -103,7 +112,7 @@ class PullRequestBot implements Bot {
                     continue;
                 }
 
-                ret.add(new CheckWorkItem(pr, censusRepo, censusRef, blockingLabels, e -> updateCache.invalidate(pr)));
+                ret.add(new CheckWorkItem(pr, censusRepo, censusRef, blockingLabels, e -> updateCache.invalidate(pr), issueProject));
                 ret.add(new CommandWorkItem(pr, censusRepo, censusRef, externalCommands, e -> updateCache.invalidate(pr)));
                 ret.add(new LabelerWorkItem(pr, labelPatterns, currentLabels, e -> updateCache.invalidate(pr)));
             }

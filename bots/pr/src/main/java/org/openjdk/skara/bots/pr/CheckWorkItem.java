@@ -40,15 +40,18 @@ class CheckWorkItem extends PullRequestWorkItem {
     private final HostedRepository censusRepo;
     private final String censusRef;
     private final Map<String, String> blockingLabels;
+    private final IssueProject issueProject;
 
     private final Pattern metadataComments = Pattern.compile("<!-- (?:(add|remove) contributor)|(?:summary: ')");
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
-    CheckWorkItem(PullRequest pr, HostedRepository censusRepo, String censusRef, Map<String, String> blockingLabels, Consumer<RuntimeException> errorHandler) {
+    CheckWorkItem(PullRequest pr, HostedRepository censusRepo, String censusRef, Map<String, String> blockingLabels,
+                  Consumer<RuntimeException> errorHandler, IssueProject issueProject) {
         super(pr, errorHandler);
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
         this.blockingLabels = blockingLabels;
+        this.issueProject = issueProject;
     }
 
     private String encodeReviewer(HostUserDetails reviewer, CensusInstance censusInstance) {
@@ -153,7 +156,8 @@ class CheckWorkItem extends PullRequestWorkItem {
 
             try {
                 var prInstance = new PullRequestInstance(scratchPath.resolve("pr"), pr);
-                CheckRun.execute(this, pr, prInstance, comments, allReviews, activeReviews, labels, census, blockingLabels);
+                CheckRun.execute(this, pr, prInstance, comments, allReviews, activeReviews, labels, census,
+                                 blockingLabels, issueProject);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
