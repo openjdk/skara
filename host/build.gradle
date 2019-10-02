@@ -27,6 +27,7 @@ module {
         requires 'org.openjdk.skara.test'
         requires 'org.junit.jupiter.api'
         requires 'jdk.httpserver'
+        opens 'org.openjdk.skara.host' to 'org.junit.platform.commons'
         opens 'org.openjdk.skara.host.network' to 'org.junit.platform.commons'
         opens 'org.openjdk.skara.host.github' to 'org.junit.platform.commons'
     }

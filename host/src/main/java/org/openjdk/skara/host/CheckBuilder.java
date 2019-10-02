@@ -53,6 +53,28 @@ public class CheckBuilder {
         return new CheckBuilder(name, hash);
     }
 
+    public static CheckBuilder from(Check c) {
+        var builder = new CheckBuilder(c.name(), c.hash());
+        builder.startedAt = c.startedAt();
+        builder.status = c.status();
+        builder.annotations = c.annotations();
+
+        if (c.title().isPresent()) {
+            builder.title = c.title().get();
+        }
+        if (c.summary().isPresent()) {
+            builder.summary = c.summary().get();
+        }
+        if (c.completedAt().isPresent()) {
+            builder.completedAt = c.completedAt().get();
+        }
+        if (c.metadata().isPresent()) {
+            builder.metadata = c.metadata().get();
+        }
+
+        return builder;
+    }
+
     public CheckBuilder metadata(String metadata) {
         this.metadata = metadata;
         return this;
