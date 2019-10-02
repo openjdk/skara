@@ -22,12 +22,13 @@
  */
 package org.openjdk.skara.storage;
 
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.openjdk.skara.vcs.*;
 
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.stream.*;
 
@@ -35,13 +36,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class RepositoryStorageTests {
     private RepositoryStorage<String> stringStorage(Repository repository) {
-        return new RepositoryStorage<String>(repository, "db.txt", "Duke", "duke@openjdk.java.net", "Test update",
-                                             (added, cur) -> Stream.concat(cur.stream(), Stream.of(added))
-                                                                   .sorted()
-                                                                   .collect(Collectors.joining(";")),
-                                             cur -> Arrays.stream(cur.split(";"))
-                                                          .filter(str -> !str.isEmpty())
-                                                          .collect(Collectors.toSet()));
+        return new RepositoryStorage<>(repository, "db.txt", "Duke", "duke@openjdk.java.net", "Test update",
+                                       (added, cur) -> Stream.concat(cur.stream(), added.stream())
+                                                             .sorted()
+                                                             .collect(Collectors.joining(";")),
+                                       cur -> Arrays.stream(cur.split(";"))
+                                                    .filter(str -> !str.isEmpty())
+                                                    .collect(Collectors.toSet()));
     }
 
     @ParameterizedTest
@@ -54,6 +55,18 @@ class RepositoryStorageTests {
         assertEquals(Set.of(), storage.current());
         storage.put("hello there");
         assertEquals(Set.of("hello there"), storage.current());
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void multiple(VCS vcs) throws IOException {
+        var tmpDir = Files.createTempDirectory("repositorystorage");
+        var repository = Repository.init(tmpDir, vcs);
+        var storage = stringStorage(repository);
+
+        assertEquals(Set.of(), storage.current());
+        storage.put(Set.of("hello", "there"));
+        assertEquals(Set.of("hello", "there"), storage.current());
     }
 
     @ParameterizedTest

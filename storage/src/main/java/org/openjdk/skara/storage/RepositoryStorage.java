@@ -25,7 +25,7 @@ package org.openjdk.skara.storage;
 import org.openjdk.skara.vcs.Repository;
 
 import java.io.*;
-import java.util.Set;
+import java.util.*;
 
 class RepositoryStorage<T> implements Storage<T> {
     private final Repository repository;
@@ -66,8 +66,8 @@ class RepositoryStorage<T> implements Storage<T> {
     }
 
     @Override
-    public void put(T item) {
-        fileStorage.put(item);
+    public void put(Collection<T> items) {
+        fileStorage.put(items);
         var updated = current();
         if (current.equals(updated)) {
             return;

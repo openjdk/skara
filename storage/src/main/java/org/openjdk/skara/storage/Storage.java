@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.storage;
 
-import java.util.Set;
+import java.util.*;
 
 public interface Storage<T> {
     /**
@@ -33,10 +33,14 @@ public interface Storage<T> {
     Set<T> current();
 
     /**
-     * Add a new item or update an existing one. Flushes to permanent storage if needed. The
+     * Add new items and/or update existing ones. Flushes to permanent storage if needed. The
      * Storage instance may not be used concurrently, but the backing storage may have been updated
      * concurrently from a different instance. In that case the put operation will be retried.
      * @param item
      */
-    void put(T item);
+    void put(Collection<T> item);
+
+    default void put(T item) {
+        put(List.of(item));
+    }
 }

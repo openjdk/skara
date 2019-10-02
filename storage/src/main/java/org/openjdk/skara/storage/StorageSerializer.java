@@ -22,8 +22,8 @@
  */
 package org.openjdk.skara.storage;
 
-import java.util.Set;
+import java.util.*;
 
 public interface StorageSerializer<T> {
-    String serialize(T added, Set<T> existing);
+    String serialize(Collection<T> added, Set<T> existing);
 }
