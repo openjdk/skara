@@ -27,7 +27,7 @@ import org.openjdk.skara.vcs.*;
 
 import java.io.*;
 import java.nio.file.*;
-import java.util.Set;
+import java.util.*;
 
 class HostedRepositoryStorage<T> implements Storage<T> {
     private final HostedRepository hostedRepository;
@@ -80,14 +80,14 @@ class HostedRepositoryStorage<T> implements Storage<T> {
     }
 
     @Override
-    public void put(T item) {
+    public void put(Collection<T> items) {
         int retryCount = 0;
         IOException lastException = null;
         Hash lastRemoteHash = null;
 
         while (retryCount < 10) {
             // Update our local storage
-            repositoryStorage.put(item);
+            repositoryStorage.put(items);
             var updated = repositoryStorage.current();
             if (current.equals(updated)) {
                 return;

@@ -52,8 +52,8 @@ class FileStorage<T> implements Storage<T> {
     }
 
     @Override
-    public void put(T item) {
-        var updated = serializer.serialize(item, current());
+    public void put(Collection<T> items) {
+        var updated = serializer.serialize(items, current());
         if (current.equals(updated)) {
             return;
         }

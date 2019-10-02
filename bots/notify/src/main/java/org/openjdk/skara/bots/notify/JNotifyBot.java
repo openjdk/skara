@@ -113,7 +113,7 @@ class JNotifyBot implements Bot, WorkItem {
         if (tags.size() == newTags.size()) {
             if (tags.size() > 0) {
                 log.warning("No previous tag history found - ignoring all current tags");
-                tags.forEach(history::addTag);
+                history.addTags(tags);
             }
             return;
         }
@@ -142,7 +142,7 @@ class JNotifyBot implements Bot, WorkItem {
             }
 
             // Update the history first - if there is a problem here we don't want to send out multiple updates
-            history.addTag(tag.tag());
+            history.addTags(List.of(tag.tag()));
 
             Collections.reverse(commits);
             for (var updater : updaters) {

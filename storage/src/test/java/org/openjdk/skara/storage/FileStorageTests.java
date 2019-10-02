@@ -33,12 +33,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class FileStorageTests {
     private FileStorage<String> stringStorage(Path fileName) {
-        return new FileStorage<String>(fileName, (added, cur) -> Stream.concat(cur.stream(), Stream.of(added))
-                                                                       .sorted()
-                                                                       .collect(Collectors.joining(";")),
-                                       cur -> Arrays.stream(cur.split(";"))
-                                                    .filter(str -> !str.isEmpty())
-                                                    .collect(Collectors.toSet()));
+        return new FileStorage<>(fileName, (added, cur) -> Stream.concat(cur.stream(), added.stream())
+                                                                 .sorted()
+                                                                 .collect(Collectors.joining(";")),
+                                 cur -> Arrays.stream(cur.split(";"))
+                                              .filter(str -> !str.isEmpty())
+                                              .collect(Collectors.toSet()));
     }
 
     @Test
@@ -49,6 +49,18 @@ class FileStorageTests {
         assertEquals(Set.of(), storage.current());
         storage.put("hello there");
         assertEquals(Set.of("hello there"), storage.current());
+
+        Files.delete(tmpFile);
+    }
+
+    @Test
+    void multiple() throws IOException {
+        var tmpFile = Files.createTempFile("filestorage", ".txt");
+        var storage = stringStorage(tmpFile);
+
+        assertEquals(Set.of(), storage.current());
+        storage.put(List.of("hello", "there"));
+        assertEquals(Set.of("hello", "there"), storage.current());
 
         Files.delete(tmpFile);
     }

@@ -44,11 +44,11 @@ class UpdateHistory {
                       .collect(Collectors.toSet());
     }
 
-    private String serializeBranches(ResolvedBranch added, Set<ResolvedBranch> existing) {
+    private String serializeBranches(Collection<ResolvedBranch> added, Set<ResolvedBranch> existing) {
         var updatedBranches = existing.stream()
-                .collect(Collectors.toMap(ResolvedBranch::branch,
-                                          ResolvedBranch::hash));
-        updatedBranches.put(added.branch(), added.hash());
+                                      .collect(Collectors.toMap(ResolvedBranch::branch,
+                                                                ResolvedBranch::hash));
+        added.forEach(a -> updatedBranches.put(a.branch(), a.hash()));
         return updatedBranches.entrySet().stream()
                               .map(entry -> entry.getKey().toString() + " " + entry.getValue().toString())
                               .sorted()
@@ -61,9 +61,9 @@ class UpdateHistory {
                       .collect(Collectors.toSet());
     }
 
-    private String serializeTags(Tag added, Set<Tag> existing) {
+    private String serializeTags(Collection<Tag> added, Set<Tag> existing) {
         return Stream.concat(existing.stream(),
-                             Stream.of(added))
+                             added.stream())
                      .map(Tag::toString)
                      .sorted()
                      .collect(Collectors.joining("\n"));
@@ -97,12 +97,12 @@ class UpdateHistory {
         return new UpdateHistory(tagStorageBuilder, tagLocation, branchStorageBuilder, branchLocation);
     }
 
-    void addTag(Tag tag) {
-        tagStorage.put(tag);
+    void addTags(Collection<Tag> addedTags) {
+        tagStorage.put(addedTags);
         var newTags = currentTags();
 
-        if (tags != null) {
-            for (var existingTag : tags) {
+        if (addedTags != null) {
+            for (var existingTag : addedTags) {
                 if (!newTags.contains(existingTag)) {
                     throw new RuntimeException("Tag '" + existingTag + "' has been removed");
                 }

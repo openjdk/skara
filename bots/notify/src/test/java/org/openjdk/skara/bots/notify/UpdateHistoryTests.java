@@ -22,19 +22,19 @@
  */
 package org.openjdk.skara.bots.notify;
 
-import org.junit.jupiter.api.*;
-
 import org.openjdk.skara.host.HostedRepository;
 import org.openjdk.skara.storage.StorageBuilder;
-import org.openjdk.skara.test.*;
-import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.test.HostCredentials;
 import org.openjdk.skara.vcs.Tag;
+import org.openjdk.skara.vcs.*;
+
+import org.junit.jupiter.api.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class UpdateHistoryTests {
     private String resetHostedRepository(HostedRepository repository) throws IOException {
@@ -64,8 +64,7 @@ class UpdateHistoryTests {
             var ref = resetHostedRepository(repository);
             var history = createHistory(repository, ref);
 
-            history.addTag(new Tag("1"));
-            history.addTag(new Tag("2"));
+            history.addTags(List.of(new Tag("1"), new Tag("2")));
 
             assertTrue(history.hasTag(new Tag("1")));
             assertTrue(history.hasTag(new Tag("2")));
@@ -106,8 +105,7 @@ class UpdateHistoryTests {
             var ref = resetHostedRepository(repository);
             var history = createHistory(repository, ref);
 
-            history.addTag(new Tag("1"));
-            history.addTag(new Tag("2"));
+            history.addTags(List.of(new Tag("1"), new Tag("2")));
 
             assertTrue(history.hasTag(new Tag("1")));
             assertTrue(history.hasTag(new Tag("2")));
@@ -124,8 +122,8 @@ class UpdateHistoryTests {
             assertFalse(history2.hasTag(new Tag("3")));
             assertFalse(history2.hasTag(new Tag("4")));
 
-            history1.addTag(new Tag("3"));
-            history2.addTag(new Tag("4"));
+            history1.addTags(Set.of(new Tag("3")));
+            history2.addTags(Set.of(new Tag("4")));
 
             assertTrue(history1.hasTag(new Tag("3")));
             assertFalse(history1.hasTag(new Tag("4")));
