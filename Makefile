@@ -40,6 +40,11 @@ test:
 install: all $(LAUNCHERS) $(MANPAGES) $(sharedir)/skara
 	@echo "Successfully installed to $(prefix)"
 
+uninstall:
+	@rm -rf $(sharedir)/skara
+	@rm $(LAUNCHERS)
+	@rm $(MANPAGES)
+
 $(mandir)/man1/%: $(BUILD)/bin/man/man1/%
 	@mkdir -p $(mandir)/man1
 	@cp $< $@
@@ -54,4 +59,4 @@ $(bindir)/%: $(BUILD)/bin/%
 	@sed 's~export JAVA_HOME=.*$$~export JAVA_HOME\=$(sharedir)\/skara~' < $< > $@
 	@chmod 755 $@
 
-.PHONY: all check install test
+.PHONY: all check install test uninstall
