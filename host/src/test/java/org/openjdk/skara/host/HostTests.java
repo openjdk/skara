@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,22 +22,21 @@
  */
 package org.openjdk.skara.host;
 
-import java.net.URI;
+import java.io.IOException;
 
-public interface Host {
-    boolean isValid();
-    HostedRepository getRepository(String name);
-    IssueProject getIssueProject(String name);
-    HostUserDetails getUserDetails(String username);
-    HostUserDetails getCurrentUserDetails();
-    boolean supportsReviewBody();
-    boolean isMemberOf(String groupId, HostUserDetails user);
+import org.openjdk.skara.test.HostCredentials;
 
-    static Host from(URI uri, PersonalAccessToken pat) {
-        return HostFactory.createFromURI(uri, pat);
-    }
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
-    static Host from(URI uri) {
-        return HostFactory.createFromURI(uri, null);
+public class HostTests {
+    @Test
+    public void isMemberOfNegativeTests(TestInfo info) throws IOException {
+        try (var credentials = new HostCredentials(info)) {
+            var host = credentials.getHostedRepository().host();
+            var madeUpGroupIdThatCannotContainTestMember = "1234567890";
+            assertFalse(host.isMemberOf(madeUpGroupIdThatCannotContainTestMember, host.getCurrentUserDetails()));
+        }
     }
 }

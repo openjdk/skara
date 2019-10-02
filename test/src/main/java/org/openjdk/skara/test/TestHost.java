@@ -129,6 +129,11 @@ public class TestHost implements Host {
         return true;
     }
 
+    @Override
+    public boolean isMemberOf(String groupId, HostUserDetails user) {
+        return false;
+    }
+
     void close() {
         if (currentUser == 0) {
             data.folders.forEach(TemporaryDirectory::close);

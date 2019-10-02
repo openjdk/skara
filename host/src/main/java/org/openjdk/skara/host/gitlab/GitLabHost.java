@@ -142,4 +142,19 @@ public class GitLabHost implements Host {
             throw new RuntimeException("Project does not seem to be a fork");
         }
     }
+
+    @Override
+    public boolean isMemberOf(String groupId, HostUserDetails user) {
+        long gid = 0L;
+        try {
+            gid = Long.parseLong(groupId);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Group id is not a number: " + groupId);
+        }
+        var details = request.get("groups/" + gid + "/members/" + user.id())
+                             .onError(r -> JSON.of())
+                             .execute()
+                             .asObject();
+        return !details.isNull();
+    }
 }

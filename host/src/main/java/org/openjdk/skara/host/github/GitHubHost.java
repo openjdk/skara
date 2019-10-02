@@ -199,4 +199,23 @@ public class GitHubHost implements Host {
     public boolean supportsReviewBody() {
         return true;
     }
+
+    @Override
+    public boolean isMemberOf(String groupId, HostUserDetails user) {
+        long gid = 0L;
+        try {
+            gid = Long.parseLong(groupId);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Group id is not a number: " + groupId);
+        }
+        var username = URLEncoder.encode(user.userName(), StandardCharsets.UTF_8);
+        var orgs = request.get("users/" + username + "/orgs").execute().asArray();
+        for (var org : orgs) {
+            if (org.get("id").asLong() == gid) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
