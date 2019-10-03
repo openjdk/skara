@@ -77,4 +77,9 @@ public class JiraHost implements Host {
     public boolean supportsReviewBody() {
         return false;
     }
+
+    @Override
+    public boolean isMemberOf(String groupId, HostUserDetails user) {
+        throw new RuntimeException("not implemented yet");
+    }
 }
