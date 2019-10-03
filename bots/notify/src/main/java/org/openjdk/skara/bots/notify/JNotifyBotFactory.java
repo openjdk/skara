@@ -25,15 +25,14 @@ package org.openjdk.skara.bots.notify;
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.host.network.URIBuilder;
-import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
 import org.openjdk.skara.storage.StorageBuilder;
-import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.vcs.Tag;
 
 import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
 public class JNotifyBotFactory implements BotFactory {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
@@ -56,9 +55,15 @@ public class JNotifyBotFactory implements BotFactory {
 
         for (var repo : specific.get("repositories").fields()) {
             var repoName = repo.name();
-            var branches = repo.value().get("branches").stream()
-                               .map(JSONValue::asString)
-                               .collect(Collectors.toList());
+            var branchPattern = Pattern.compile("^master$");
+            if (repo.value().contains("branches")) {
+                branchPattern = Pattern.compile(repo.value().get("branches").asString());
+            }
+
+            var includeBranchNames = false;
+            if (repo.value().contains("branchnames")) {
+                includeBranchNames = repo.value().get("branchnames").asBoolean();
+            }
 
             var updaters = new ArrayList<UpdateConsumer>();
             if (repo.value().contains("json")) {
@@ -94,7 +99,7 @@ public class JNotifyBotFactory implements BotFactory {
                         }
                     }
 
-                    updaters.add(new MailingListUpdater(listServer.getList(recipient), recipientAddress, sender, branches.size() > 1, mode));
+                    updaters.add(new MailingListUpdater(listServer.getList(recipient), recipientAddress, sender, includeBranchNames, mode));
                 }
             }
 
@@ -109,7 +114,7 @@ public class JNotifyBotFactory implements BotFactory {
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added tag for " + repoName);
             var branchStorageBuilder = new StorageBuilder<ResolvedBranch>(baseName + ".branches.txt")
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added branch hash for " + repoName);
-            var bot = new JNotifyBot(configuration.repository(repoName), configuration.storageFolder(), branches, tagStorageBuilder, branchStorageBuilder, updaters);
+            var bot = new JNotifyBot(configuration.repository(repoName), configuration.storageFolder(), branchPattern, tagStorageBuilder, branchStorageBuilder, updaters);
             ret.add(bot);
         }
 

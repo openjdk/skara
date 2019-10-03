@@ -37,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.Duration;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -76,7 +77,7 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var updater = new JsonUpdater(jsonFolder, "12", "team");
-            var notifyBot = new JNotifyBot(repo, storageFolder, List.of("master"), tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
             TestBotRunner.runPeriodicItems(notifyBot);
             assertEquals(List.of(), findJsonFiles(jsonFolder, ""));
@@ -115,7 +116,7 @@ class UpdaterTests {
             var storageFolder =tempFolder.path().resolve("storage");
 
             var updater = new JsonUpdater(jsonFolder, "12", "team");
-            var notifyBot = new JNotifyBot(repo, storageFolder, List.of("master"), tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
             TestBotRunner.runPeriodicItems(notifyBot);
             assertEquals(List.of(), findJsonFiles(jsonFolder, ""));
@@ -185,7 +186,7 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, false, MailingListUpdater.Mode.ALL);
-            var notifyBot = new JNotifyBot(repo, storageFolder, List.of("master"), tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -230,7 +231,7 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, false, MailingListUpdater.Mode.ALL);
-            var notifyBot = new JNotifyBot(repo, storageFolder, List.of("master"), tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -279,7 +280,7 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, false, MailingListUpdater.Mode.ALL);
-            var notifyBot = new JNotifyBot(repo, storageFolder, List.of("master"), tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -326,7 +327,7 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, true, MailingListUpdater.Mode.ALL);
-            var notifyBot = new JNotifyBot(repo, storageFolder, List.of("master", "another"), tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master|another"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -395,7 +396,7 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, false, MailingListUpdater.Mode.PR_ONLY);
-            var notifyBot = new JNotifyBot(repo, storageFolder, List.of("master"), tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -468,7 +469,7 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, false, MailingListUpdater.Mode.PR);
-            var notifyBot = new JNotifyBot(repo, storageFolder, List.of("master"), tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -510,7 +511,7 @@ class UpdaterTests {
             assertEquals(2, conversations.size());
 
             var prConversation = conversations.get(0);
-            var pushConverstaion = conversations.get(1);
+            var pushConversation = conversations.get(1);
 
             var prEmail = prConversation.replies(prConversation.first()).get(0);
             assertEquals(prEmail.sender(), sender);
@@ -522,7 +523,7 @@ class UpdaterTests {
             assertFalse(prEmail.body().contains("Committer"));
             assertFalse(prEmail.body().contains(masterHash.abbreviate()));
 
-            var pushEmail = pushConverstaion.first();
+            var pushEmail = pushConversation.first();
             assertEquals(pushEmail.sender(), sender);
             assertEquals(pushEmail.recipients(), List.of(listAddress));
             assertTrue(pushEmail.subject().contains("23456789: More fixes"));
