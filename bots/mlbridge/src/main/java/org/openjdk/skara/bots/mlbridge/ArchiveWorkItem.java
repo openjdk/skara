@@ -279,15 +279,6 @@ class ArchiveWorkItem implements WorkItem {
             reviewArchive.addComment(comment);
         }
 
-        // Review comments
-        var reviews = pr.getReviews();
-        for (var review : reviews) {
-            if (ignoreComment(review.reviewer(), review.body().orElse(""))) {
-                continue;
-            }
-            reviewArchive.addReview(review);
-        }
-
         // File specific comments
         var reviewComments = pr.getReviewComments();
         for (var reviewComment : reviewComments) {
@@ -295,6 +286,15 @@ class ArchiveWorkItem implements WorkItem {
                 continue;
             }
             reviewArchive.addReviewComment(reviewComment);
+        }
+
+        // Review comments
+        var reviews = pr.getReviews();
+        for (var review : reviews) {
+            if (ignoreComment(review.reviewer(), review.body().orElse(""))) {
+                continue;
+            }
+            reviewArchive.addReview(review);
         }
 
         var newMails = reviewArchive.generatedEmails();
