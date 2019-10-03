@@ -97,6 +97,18 @@ public class CheckBuilder {
         return this;
     }
 
+    public CheckBuilder cancel() {
+        status = CheckStatus.CANCELLED;
+        completedAt = ZonedDateTime.now();
+        return this;
+    }
+
+    public CheckBuilder cancel(ZonedDateTime completedAt) {
+        status = CheckStatus.CANCELLED;
+        this.completedAt = completedAt;
+        return this;
+    }
+
     public CheckBuilder startedAt(ZonedDateTime startedAt) {
         this.startedAt = startedAt;
         return this;

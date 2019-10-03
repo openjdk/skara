@@ -292,8 +292,21 @@ public class GitHubPullRequest implements PullRequest {
 
                             var completed = c.get("status").asString().equals("completed");
                             if (completed) {
-                                checkBuilder.complete(c.get("conclusion").asString().equals("success"),
-                                        ZonedDateTime.parse(c.get("completed_at").asString()));
+                                var conclusion = c.get("conclusion").asString();
+                                var completedAt = ZonedDateTime.parse(c.get("completed_at").asString());
+                                switch (conclusion) {
+                                    case "cancelled":
+                                        checkBuilder.cancel(completedAt);
+                                        break;
+                                    case "success":
+                                        checkBuilder.complete(true, completedAt);
+                                        break;
+                                    case "failure":
+                                        checkBuilder.complete(false, completedAt);
+                                        break;
+                                    default:
+                                        throw new IllegalStateException("Unexpected conclusion: " + conclusion);
+                                }
                             }
                             if (c.contains("external_id")) {
                                 checkBuilder.metadata(c.get("external_id").asString());
@@ -314,22 +327,21 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public void createCheck(Check check) {
-        var checkQuery = JSON.object();
-        checkQuery.put("name", check.name());
-        checkQuery.put("head_branch", json.get("head").get("ref").asString());
-        checkQuery.put("head_sha", check.hash().hex());
-        checkQuery.put("started_at", check.startedAt().format(DateTimeFormatter.ISO_INSTANT));
-        checkQuery.put("status", "in_progress");
-        check.metadata().ifPresent(metadata -> checkQuery.put("external_id", metadata));
-
-        request.post("check-runs").body(checkQuery).execute();
+        // update and create are currenly identical operations, both do an HTTP
+        // POST to the /repos/:owner/:repo/check-runs endpoint. There is an additional
+        // endpoint explicitly for updating check-runs, but that is not currently used.
+        updateCheck(check);
     }
 
     @Override
     public void updateCheck(Check check) {
-        JSONObject outputQuery = null;
+        var completedQuery = JSON.object();
+        completedQuery.put("name", check.name());
+        completedQuery.put("head_branch", json.get("head").get("ref"));
+        completedQuery.put("head_sha", check.hash().hex());
+
         if (check.title().isPresent() && check.summary().isPresent()) {
-            outputQuery = JSON.object();
+            var outputQuery = JSON.object();
             outputQuery.put("title", check.title().get());
             outputQuery.put("summary", check.summary().get());
 
@@ -359,25 +371,20 @@ public class GitHubPullRequest implements PullRequest {
             }
 
             outputQuery.put("annotations", annotations);
+            completedQuery.put("output", outputQuery);
         }
 
-        var completedQuery = JSON.object();
-        completedQuery.put("name", check.name());
-        completedQuery.put("head_branch", json.get("head").get("ref"));
-        completedQuery.put("head_sha", check.hash().hex());
-        completedQuery.put("status", "completed");
-        completedQuery.put("started_at", check.startedAt().format(DateTimeFormatter.ISO_INSTANT));
-        check.metadata().ifPresent(metadata -> completedQuery.put("external_id", metadata));
-
-        if (check.status() != CheckStatus.IN_PROGRESS) {
-            completedQuery.put("conclusion", check.status() == CheckStatus.SUCCESS ? "success" : "failure");
+        if (check.status() == CheckStatus.IN_PROGRESS) {
+            completedQuery.put("status", "in_progress");
+        } else {
+            completedQuery.put("status", "completed");
+            completedQuery.put("conclusion", check.status().name().toLowerCase());
             completedQuery.put("completed_at", check.completedAt().orElse(ZonedDateTime.now(ZoneOffset.UTC))
                     .format(DateTimeFormatter.ISO_INSTANT));
         }
 
-        if (outputQuery != null) {
-            completedQuery.put("output", outputQuery);
-        }
+        completedQuery.put("started_at", check.startedAt().format(DateTimeFormatter.ISO_INSTANT));
+        check.metadata().ifPresent(metadata -> completedQuery.put("external_id", metadata));
 
         request.post("check-runs").body(completedQuery).execute();
     }
