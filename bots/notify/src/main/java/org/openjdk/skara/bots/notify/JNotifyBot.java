@@ -174,8 +174,7 @@ class JNotifyBot implements Bot, WorkItem {
             handleTags(localRepo, history);
 
             for (var ref : localRepo.remoteBranches("origin")) {
-                var branchMatcher = branches.matcher(ref.name());
-                if (branchMatcher.matches()) {
+                if (branches.matcher(ref.name()).matches()) {
                     var branch = new Branch(ref.name());
                     handleBranch(localRepo, history, branch, ref.hash());
                 }
