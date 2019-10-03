@@ -26,21 +26,27 @@ import java.util.Objects;
 import java.util.function.Supplier;
 
 public class HostUserDetails {
-    private final int id;
+    private final String id;
     private final String username;
     private final Supplier<String> nameSupplier;
     private String name;
 
-    public HostUserDetails(int id, String username, String name) {
-        this.id = id;
-        this.username = username;
-        this.nameSupplier = () -> name;
-    }
-
-    public HostUserDetails(int id, String username, Supplier<String> nameSupplier) {
+    public HostUserDetails(String id, String username, Supplier<String> nameSupplier) {
         this.id = id;
         this.username = username;
         this.nameSupplier = nameSupplier;
+    }
+
+    public HostUserDetails(String id, String username, String name) {
+        this(id, username, () -> name);
+    }
+
+    public HostUserDetails(int id, String username, String name) {
+        this(String.valueOf(id), username, name);
+    }
+
+    public HostUserDetails(int id, String username, Supplier<String> nameSupplier) {
+        this(String.valueOf(id), username, nameSupplier);
     }
 
     @Override
@@ -52,7 +58,7 @@ public class HostUserDetails {
             return false;
         }
         HostUserDetails that = (HostUserDetails) o;
-        return id == that.id &&
+        return id.equals(that.id) &&
                 Objects.equals(username, that.username);
     }
 
@@ -62,7 +68,7 @@ public class HostUserDetails {
     }
 
     public String id() {
-        return String.valueOf(id);
+        return id;
     }
 
     public String userName() {
