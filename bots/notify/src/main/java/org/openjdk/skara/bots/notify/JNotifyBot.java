@@ -23,34 +23,33 @@
 package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.bot.*;
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.host.HostedRepository;
 import org.openjdk.skara.storage.StorageBuilder;
 import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.vcs.openjdk.*;
+import org.openjdk.skara.vcs.openjdk.OpenJDKTag;
 
 import java.io.*;
-import java.net.URLEncoder;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.*;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 class JNotifyBot implements Bot, WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final HostedRepository repository;
     private final Path storagePath;
-    private final List<Branch> branches;
+    private final Pattern branches;
     private final StorageBuilder<Tag> tagStorageBuilder;
     private final StorageBuilder<ResolvedBranch> branchStorageBuilder;
     private final List<UpdateConsumer> updaters;
 
-    JNotifyBot(HostedRepository repository, Path storagePath, List<String> branches, StorageBuilder<Tag> tagStorageBuilder, StorageBuilder<ResolvedBranch> branchStorageBuilder, List<UpdateConsumer> updaters) {
+    JNotifyBot(HostedRepository repository, Path storagePath, Pattern branches, StorageBuilder<Tag> tagStorageBuilder, StorageBuilder<ResolvedBranch> branchStorageBuilder, List<UpdateConsumer> updaters) {
         this.repository = repository;
         this.storagePath = storagePath;
-        this.branches = branches.stream()
-                                .map(Branch::new)
-                                .collect(Collectors.toList());
+        this.branches = branches;
         this.tagStorageBuilder = tagStorageBuilder;
         this.branchStorageBuilder = branchStorageBuilder;
         this.updaters = updaters;
@@ -151,20 +150,34 @@ class JNotifyBot implements Bot, WorkItem {
         }
     }
 
+    private Repository fetchAll(Path dir, URI remote) throws IOException {
+        Repository repo = null;
+        if (!Files.exists(dir)) {
+            Files.createDirectories(dir);
+            repo = Repository.clone(remote, dir);
+        } else {
+            repo = Repository.get(dir).orElseThrow(() -> new RuntimeException("Repository in " + dir + " has vanished"));
+        }
+        repo.fetchAll();
+        return repo;
+    }
+
     @Override
     public void run(Path scratchPath) {
-        var sanitizedUrl = URLEncoder.encode(repository.getWebUrl().toString(), StandardCharsets.UTF_8);
+        var sanitizedUrl = URLEncoder.encode(repository.getWebUrl().toString() + "v2", StandardCharsets.UTF_8);
         var path = storagePath.resolve(sanitizedUrl);
         var historyPath = scratchPath.resolve("notify").resolve("history");
 
         try {
-            var localRepo = Repository.materialize(path, repository.getUrl(), "master", false);
+            var localRepo = fetchAll(path, repository.getUrl());
             var history = UpdateHistory.create(tagStorageBuilder, historyPath.resolve("tags"), branchStorageBuilder, historyPath.resolve("branches"));
             handleTags(localRepo, history);
 
-            for (var branch : branches) {
-                var hash = localRepo.fetch(repository.getUrl(), branch.name());
-                handleBranch(localRepo, history, branch, hash);
+            for (var ref : localRepo.remoteBranches("origin")) {
+                if (branches.matcher(ref.name()).matches()) {
+                    var branch = new Branch(ref.name());
+                    handleBranch(localRepo, history, branch, ref.hash());
+                }
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
