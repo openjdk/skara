@@ -153,8 +153,7 @@ public class GitLabHost implements Host {
         }
         var details = request.get("groups/" + gid + "/members/" + user.id())
                              .onError(r -> JSON.of())
-                             .execute()
-                             .asObject();
+                             .execute();
         return !details.isNull();
     }
 }
