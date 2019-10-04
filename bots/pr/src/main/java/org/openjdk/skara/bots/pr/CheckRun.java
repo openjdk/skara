@@ -266,7 +266,7 @@ class CheckRun {
                 progressBody.append(iss.get().getId());
                 progressBody.append("](");
                 progressBody.append(iss.get().getWebUrl());
-                progressBody.append("]: ");
+                progressBody.append("): ");
                 progressBody.append(iss.get().getTitle());
                 progressBody.append("\n");
             } else {
