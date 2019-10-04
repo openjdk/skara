@@ -32,6 +32,10 @@ public class TestIssueProject implements IssueProject {
     private final String projectName;
     private final TestHost host;
 
+    String projectName() {
+        return projectName;
+    }
+
     @Override
     public Host host() {
         return host;
@@ -54,6 +58,10 @@ public class TestIssueProject implements IssueProject {
 
     @Override
     public Optional<Issue> getIssue(String id) {
+        if (id.indexOf('-') < 0) {
+            id = projectName.toUpperCase() + "-" + id;
+        }
+
         return Optional.ofNullable(host.getIssue(this, id));
     }
 

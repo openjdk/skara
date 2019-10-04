@@ -57,6 +57,9 @@ public class JiraProject implements IssueProject {
 
     @Override
     public Optional<Issue> getIssue(String id) {
+        if (id.indexOf('-') < 0) {
+            id = projectName.toUpperCase() + "-" + id;
+        }
         var issue = request.get("issue/" + id)
                            .onError(r -> r.statusCode() == 404 ? JSON.object().put("NOT_FOUND", true) : null)
                            .execute();
