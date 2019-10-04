@@ -75,8 +75,8 @@ class CensusInstance {
         return namespace;
     }
 
-    private static JCheckConfiguration configuration(HostedRepository remoteRepo, Hash hash) {
-        var confFile = remoteRepo.getFileContents(".jcheck/conf", hash.hex());
+    private static JCheckConfiguration configuration(HostedRepository remoteRepo, String ref) {
+        var confFile = remoteRepo.getFileContents(".jcheck/conf", ref);
         return JCheckConfiguration.parse(confFile.lines().collect(Collectors.toList()));
     }
 
@@ -94,7 +94,7 @@ class CensusInstance {
         }
 
         try {
-            var configuration = configuration(pr.repository(), pr.getHeadHash());
+            var configuration = configuration(pr.repository(), pr.getTargetRef());
             var census = Census.parse(repoFolder);
             var project = project(configuration, census);
             var namespace = namespace(census, pr.repository().getNamespace());
@@ -102,10 +102,6 @@ class CensusInstance {
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot parse census at " + repoFolder, e);
         }
-    }
-
-    Census census() {
-        return census;
     }
 
     JCheckConfiguration configuration() {
