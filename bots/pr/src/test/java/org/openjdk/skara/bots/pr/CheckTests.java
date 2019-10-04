@@ -831,6 +831,25 @@ class CheckTests {
             assertFalse(pr.getBody().contains("My first issue"));
             assertTrue(pr.getBody().contains("My second issue"));
 
+            // Use an invalid issue key
+            var issueKey = issue1.getId().replace("TEST", "BADPROJECT");
+            pr.setTitle(issueKey + ": This is a pull request");
+
+            // Check the status again
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertFalse(pr.getBody().contains("My first issue"));
+            assertFalse(pr.getBody().contains("My second issue"));
+            assertTrue(pr.getBody().contains("Failed to retrieve"));
+
+            // Now drop the issue key
+            issueKey = issue1.getId().replace("TEST-", "");
+            pr.setTitle(issueKey + ": This is a pull request");
+
+            // The body should now contain the updated issue title
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertTrue(pr.getBody().contains("My first issue"));
+            assertFalse(pr.getBody().contains("My second issue"));
+
             // Now enter an invalid issue id
             pr.setTitle("2384848: This is a pull request");
 

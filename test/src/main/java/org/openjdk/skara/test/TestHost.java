@@ -161,7 +161,7 @@ public class TestHost implements Host {
     }
 
     TestIssue createIssue(TestIssueProject issueProject, String title, List<String> body) {
-        var id = String.valueOf(data.issues.size() + 1);
+        var id = issueProject.projectName().toUpperCase() + "-" + (data.issues.size() + 1);
         var issue = TestIssue.createNew(issueProject, id, title, body);
         data.issues.put(id ,issue);
         return issue;
