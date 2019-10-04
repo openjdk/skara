@@ -440,7 +440,7 @@ public class GitLabMergeRequest implements PullRequest {
                 body = ":warning: The merge request check **" + check.name() + "** identified the following issues:";
                 break;
             case CANCELLED:
-                body = ":x: The merge request check **" + check.name() + "** has been cancelled";
+                body = ":x: The merge request check **" + check.name() + "** has been cancelled.";
                 break;
             default:
                 throw new RuntimeException("Unknown check status");
