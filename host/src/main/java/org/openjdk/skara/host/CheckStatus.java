@@ -25,5 +25,6 @@ package org.openjdk.skara.host;
 public enum CheckStatus {
     IN_PROGRESS,
     SUCCESS,
-    FAILURE
+    FAILURE,
+    CANCELLED
 }

@@ -364,41 +364,59 @@ public class GitLabMergeRequest implements PullRequest {
                         entry -> {
                             var checkBuilder = CheckBuilder.create(entry.getValue().group(1), hash);
                             checkBuilder.startedAt(entry.getKey().createdAt());
-                            if (!entry.getValue().group(2).equals("RUNNING")) {
-                                checkBuilder.complete(entry.getValue().group(2).equals("SUCCESS"), entry.getKey().updatedAt());
+                            var status = entry.getValue().group(2);
+                            var completedAt = entry.getKey().updatedAt();
+                            switch (status) {
+                                case "RUNNING":
+                                    // do nothing
+                                    break;
+                                case "SUCCESS":
+                                    checkBuilder.complete(true, completedAt);
+                                    break;
+                                case "FAILURE":
+                                    checkBuilder.complete(false, completedAt);
+                                    break;
+                                case "CANCELLED":
+                                    checkBuilder.cancel(completedAt);
+                                    break;
+                                default:
+                                    throw new IllegalStateException("Unknown status: " + status);
                             }
                             if (!entry.getValue().group(3).equals("NONE")) {
                                 checkBuilder.metadata(new String(Base64.getDecoder().decode(entry.getValue().group(3)), StandardCharsets.UTF_8));
                             }
                             var checkBodyMatcher = checkBodyPattern.matcher(entry.getKey().body());
                             if (checkBodyMatcher.find()) {
-                                checkBuilder.title(checkBodyMatcher.group(1));
+                                // escapeMarkdown adds an additional space before the newline
+                                var title = checkBodyMatcher.group(1);
+                                var nonEscapedTitle = title.substring(0, title.length() - 2);
+                                checkBuilder.title(nonEscapedTitle);
                                 checkBuilder.summary(checkBodyMatcher.group(2));
                             }
                             return checkBuilder.build();
                         }));
     }
 
-    @Override
-    public void createCheck(Check check) {
-        log.info("Looking for previous status check comment");
-
-        var previous = getStatusCheckComment(check.name());
-        var body = ":hourglass_flowing_sand: The merge request check **" + check.name() + "** is currently running...";
-        var metadata = "NONE";
-        if (check.metadata().isPresent()) {
-            metadata = Base64.getEncoder().encodeToString(check.metadata().get().getBytes(StandardCharsets.UTF_8));
+    private String statusFor(Check check) {
+        switch (check.status()) {
+            case IN_PROGRESS:
+                return "RUNNING";
+            case SUCCESS:
+                return "SUCCESS";
+            case FAILURE:
+                return "FAILURE";
+            case CANCELLED:
+                return "CANCELLED";
+            default:
+                throw new RuntimeException("Unknown check status");
         }
-        var message = String.format(checkMarker, check.name()) + "\n" +
-                String.format(checkResultMarker,
-                        check.name(),
-                        "RUNNING",
-                        check.hash(),
-                        metadata
-                        ) + "\n" + encodeMarkdown(body);
+    }
 
-        previous.ifPresentOrElse(p -> updateComment(p.id(), message),
-                () -> addComment(message));
+    private String metadataFor(Check check) {
+        if (check.metadata().isPresent()) {
+            return Base64.getEncoder().encodeToString(check.metadata().get().getBytes(StandardCharsets.UTF_8));
+        }
+        return "NONE";
     }
 
     private String linkToDiff(String path, Hash hash, int line) {
@@ -408,70 +426,86 @@ public class GitLabMergeRequest implements PullRequest {
                          .build() + "#L" + Integer.toString(line) + ")";
     }
 
+    private String bodyFor(Check check) {
+        var status = check.status();
+        String body;
+        switch (status) {
+            case IN_PROGRESS:
+                body = ":hourglass_flowing_sand: The merge request check **" + check.name() + "** is currently running...";
+                break;
+            case SUCCESS:
+                body = ":tada: The merge request check **" + check.name() + "** completed successfully!";
+                break;
+            case FAILURE:
+                body = ":warning: The merge request check **" + check.name() + "** identified the following issues:";
+                break;
+            case CANCELLED:
+                body = ":x: The merge request check **" + check.name() + "** has been cancelled.";
+                break;
+            default:
+                throw new RuntimeException("Unknown check status");
+        }
+
+        if ( check.title().isPresent() && check.summary().isPresent()) {
+            body += encodeMarkdown("\n" + "##### " + check.title().get() + "\n" + check.summary().get());
+
+            for (var annotation : check.annotations()) {
+                var annotationString = "  - ";
+                switch (annotation.level()) {
+                    case NOTICE:
+                        annotationString += "Notice: ";
+                        break;
+                    case WARNING:
+                        annotationString += "Warning: ";
+                        break;
+                    case FAILURE:
+                        annotationString += "Failure: ";
+                        break;
+                }
+                annotationString += linkToDiff(annotation.path(), check.hash(), annotation.startLine());
+                annotationString += "\n    - " + annotation.message().lines().collect(Collectors.joining("\n    - "));
+
+                body += "\n" + annotationString;
+            }
+        }
+
+        return body;
+    }
+
+    private void updateCheckComment(Optional<Comment> previous, Check check) {
+        var status = statusFor(check);
+        var metadata = metadataFor(check);
+        var markers = String.format(checkMarker, check.name()) + "\n" +
+                      String.format(checkResultMarker,
+                                    check.name(),
+                                    status,
+                                    check.hash(),
+                                    metadata);
+
+        var body = bodyFor(check);
+        var message = markers + "\n" + body;
+        previous.ifPresentOrElse(
+                p  -> updateComment(p.id(), message),
+                () -> addComment(message));
+    }
+
+    @Override
+    public void createCheck(Check check) {
+        log.info("Looking for previous status check comment");
+
+        var previous = getStatusCheckComment(check.name());
+        updateCheckComment(previous, check);
+    }
+
     @Override
     public void updateCheck(Check check) {
         log.info("Looking for previous status check comment");
 
         var previous = getStatusCheckComment(check.name())
                 .orElseGet(() -> addComment("Progress deleted?"));
-
-        String status;
-        switch (check.status()) {
-            case IN_PROGRESS:
-                status = "RUNNING";
-                break;
-            case SUCCESS:
-                status = "SUCCESS";
-                break;
-            case FAILURE:
-                status = "FAILURE";
-                break;
-            default:
-                throw new RuntimeException("Unknown check status");
-        }
-
-        var metadata = "NONE";
-        if (check.metadata().isPresent()) {
-            metadata = Base64.getEncoder().encodeToString(check.metadata().get().getBytes(StandardCharsets.UTF_8));
-        }
-        var markers = String.format(checkMarker, check.name()) + "\n" + String.format(checkResultMarker, check.name(),
-                status, check.hash(), metadata);
-
-        String body;
-        if (check.status() == CheckStatus.SUCCESS) {
-            body = ":tada: The merge request check **" + check.name() + "** completed successfully!";
-        } else {
-            if (check.status() == CheckStatus.IN_PROGRESS) {
-                body = ":hourglass_flowing_sand: The merge request check **" + check.name() + "** is currently running...";
-            } else {
-                body = ":warning: The merge request check **" + check.name() + "** identified the following issues:";
-            }
-            if (check.title().isPresent() && check.summary().isPresent()) {
-                body += encodeMarkdown("\n" + "##### " + check.title().get() + "\n" + check.summary().get());
-
-                for (var annotation : check.annotations()) {
-                    var annotationString = "  - ";
-                    switch (annotation.level()) {
-                        case NOTICE:
-                            annotationString += "Notice: ";
-                            break;
-                        case WARNING:
-                            annotationString += "Warning: ";
-                            break;
-                        case FAILURE:
-                            annotationString += "Failure: ";
-                            break;
-                    }
-                    annotationString += linkToDiff(annotation.path(), check.hash(), annotation.startLine());
-                    annotationString += "\n    - " + annotation.message().lines().collect(Collectors.joining("\n    - "));
-
-                    body += "\n" + annotationString;
-                }
-            }
-        }
-
-        updateComment(previous.id(), markers + "\n" + body);
+        updateCheckComment(Optional.of(previous), check);
     }
+
 
     @Override
     public void setState(State state) {

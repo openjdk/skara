@@ -847,4 +847,51 @@ class CheckTests {
             assertEquals(CheckStatus.SUCCESS, check.status());
         }
     }
+
+    @Test
+    void cancelCheck(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.getUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Verify no checks exists
+            var checks = pr.getChecks(editHash);
+            assertEquals(0, checks.size());
+
+            // Create a check that is running
+            var original = CheckBuilder.create("jcheck", editHash)
+                                       .title("jcheck title")
+                                       .summary("jcheck summary")
+                                       .build();
+            pr.createCheck(original);
+
+            // Verify check is created
+            checks = pr.getChecks(editHash);
+            assertEquals(1, checks.size());
+            var retrieved = checks.get("jcheck");
+            assertEquals("jcheck title", retrieved.title().get());
+            assertEquals("jcheck summary", retrieved.summary().get());
+            assertEquals(CheckStatus.IN_PROGRESS, retrieved.status());
+
+            // Cancel the check
+            var cancelled = CheckBuilder.from(retrieved).cancel().build();
+            pr.updateCheck(cancelled);
+            checks = pr.getChecks(editHash);
+            assertEquals(1, checks.size());
+            retrieved = checks.get("jcheck");
+            assertEquals("jcheck title", retrieved.title().get());
+            assertEquals("jcheck summary", retrieved.summary().get());
+            assertEquals(CheckStatus.CANCELLED, retrieved.status());
+        }
+    }
 }
