@@ -24,6 +24,7 @@ package org.openjdk.skara.host;
 
 import org.openjdk.skara.vcs.Hash;
 
+import java.net.URI;
 import java.util.*;
 
 public interface PullRequest extends Issue {
@@ -88,7 +89,6 @@ public interface PullRequest extends Issue {
      */
     Hash getTargetHash();
 
-
     /**
      * List of completed checks on the given hash.
      * @return
@@ -106,4 +106,14 @@ public interface PullRequest extends Issue {
      * @param check
      */
     void updateCheck(Check check);
+
+    /**
+     * Returns a link that will lead to the list of changes done in the request.
+     */
+    URI getChangeUrl();
+
+    /**
+     * Returns a link that will lead to the list of changes with the specified base.
+     */
+    URI getChangeUrl(Hash base);
 }

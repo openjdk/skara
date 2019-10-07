@@ -23,6 +23,7 @@
 package org.openjdk.skara.test;
 
 import org.openjdk.skara.host.*;
+import org.openjdk.skara.host.network.URIBuilder;
 import org.openjdk.skara.vcs.Hash;
 
 import java.io.*;
@@ -171,6 +172,16 @@ public class TestPullRequest extends TestIssue implements PullRequest {
         data.checks.remove(existing);
         data.checks.add(updated);
         data.lastUpdate = ZonedDateTime.now();
+    }
+
+    @Override
+    public URI getChangeUrl() {
+        return URIBuilder.base(getWebUrl()).appendPath("/files").build();
+    }
+
+    @Override
+    public URI getChangeUrl(Hash base) {
+        return URIBuilder.base(getWebUrl()).appendPath("/files/" + base.abbreviate()).build();
     }
 
     @Override

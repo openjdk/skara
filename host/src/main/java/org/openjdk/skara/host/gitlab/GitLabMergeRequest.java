@@ -506,6 +506,18 @@ public class GitLabMergeRequest implements PullRequest {
         updateCheckComment(Optional.of(previous), check);
     }
 
+    @Override
+    public URI getChangeUrl() {
+        return URIBuilder.base(getWebUrl()).appendPath("/diffs").build();
+    }
+
+    @Override
+    public URI getChangeUrl(Hash base) {
+        return URIBuilder.base(getWebUrl()).appendPath("/diffs")
+                         .setQuery(Map.of("start_sha", base.hex()))
+                         .build();
+    }
+
 
     @Override
     public void setState(State state) {

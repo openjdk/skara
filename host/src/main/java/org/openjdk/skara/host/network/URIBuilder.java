@@ -55,7 +55,7 @@ public class URIBuilder {
             var uriString = uri.toString();
             scheme = uri.getScheme();
             host = uri.getHost();
-            var pathStart = uriString.indexOf(host) + host.length();
+            var pathStart = host != null ? uriString.indexOf(host) + host.length() : scheme.length() + 3;
             if (uri.getPort() != -1) {
                 pathStart += Integer.toString(uri.getPort()).length() + 1;
             }

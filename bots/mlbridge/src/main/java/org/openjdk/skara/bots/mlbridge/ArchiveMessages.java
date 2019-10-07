@@ -64,7 +64,7 @@ class ArchiveMessages {
                 infoSeparator + "\n\n" +
                 "Commits:\n" +
                 commitMessages + "\n\n" +
-                "Changes: " + prInstance.changeUrl() + "\n" +
+                "Changes: " + prInstance.pr().getChangeUrl() + "\n" +
                 " Webrev: " + webrev.toString() + "\n" +
                 issueString +
                 "  Stats: " + prInstance.stats(prInstance.baseHash(), prInstance.headHash()) + "\n" +
@@ -80,7 +80,7 @@ class ArchiveMessages {
                 infoSeparator + "\n\n" +
                 "Commits:\n" +
                 commitMessages + "\n\n" +
-                "Changes: " + prInstance.changeUrl() + "\n" +
+                "Changes: " + prInstance.pr().getChangeUrl() + "\n" +
                 " Webrev: " + fullWebrev.toString() + "\n" +
                 issueString +
                 "  Stats: " + prInstance.stats(prInstance.baseHash(), prInstance.headHash()) + "\n" +
@@ -96,8 +96,8 @@ class ArchiveMessages {
                 "Added commits:\n" +
                 newCommitMessages + "\n\n" +
                 "Changes:\n" +
-                "  - all: " + prInstance.pr().getWebUrl() + "/files\n" +
-                "  - new: " + prInstance.changeUrl(lastHead, prInstance.headHash()) + "\n\n" +
+                "  - all: " + prInstance.pr().getChangeUrl() + "\n" +
+                "  - new: " + prInstance.pr().getChangeUrl(lastHead) + "\n\n" +
                 "Webrevs:\n" +
                 " - full: " + fullWebrev.toString() + "\n" +
                 " - incr: " + incrementalWebrev.toString() + "\n\n" +

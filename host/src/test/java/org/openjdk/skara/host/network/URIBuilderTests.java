@@ -26,8 +26,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class URIBuilderTests {
-
+class URIBuilderTests {
     private final String validHost = "http://www.test.com";
 
     @Test
@@ -46,8 +45,6 @@ public class URIBuilderTests {
     void appendPathSimple() {
         var a = URIBuilder.base(validHost).setPath("/a").build();
         var aPlusB = URIBuilder.base(a).appendPath("/b").build();
-
-        var x = new URIBuilderException();
 
         assertEquals("/a", a.getPath());
         assertEquals("/a/b", aPlusB.getPath());
@@ -69,5 +66,11 @@ public class URIBuilderTests {
     void invalidAppendPath() {
         assertThrows(URIBuilderException.class,
                 () -> URIBuilder.base(validHost).appendPath("\\c").build());
+    }
+
+    @Test
+    void noHost() {
+        var a = URIBuilder.base("file:///a/b/c").build();
+        assertEquals("/a/b/c", a.getPath());
     }
 }
