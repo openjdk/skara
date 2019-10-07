@@ -25,6 +25,7 @@ package org.openjdk.skara.bots.notify;
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.host.network.URIBuilder;
+import org.openjdk.skara.json.JSONObject;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
 import org.openjdk.skara.storage.StorageBuilder;
 import org.openjdk.skara.vcs.Tag;
@@ -33,6 +34,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class JNotifyBotFactory implements BotFactory {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
@@ -99,7 +101,13 @@ public class JNotifyBotFactory implements BotFactory {
                         }
                     }
 
-                    updaters.add(new MailingListUpdater(listServer.getList(recipient), recipientAddress, sender, includeBranchNames, mode));
+                    Map<String, String> headers = mailinglist.contains("headers") ?
+                            mailinglist.get("headers").fields().stream()
+                                       .collect(Collectors.toMap(JSONObject.Field::name, field -> field.value().asString())) :
+                            Map.of();
+
+                    updaters.add(new MailingListUpdater(listServer.getList(recipient), recipientAddress, sender,
+                                                        includeBranchNames, mode, headers));
                 }
             }
 

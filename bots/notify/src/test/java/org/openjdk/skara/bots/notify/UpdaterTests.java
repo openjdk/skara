@@ -185,7 +185,8 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, false, MailingListUpdater.Mode.ALL);
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, false, MailingListUpdater.Mode.ALL,
+                                                 Map.of("extra1", "value1", "extra2", "value2"));
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
@@ -207,6 +208,10 @@ class UpdaterTests {
             assertTrue(email.body().contains("23456789: More fixes"));
             assertFalse(email.body().contains("Committer"));
             assertFalse(email.body().contains(masterHash.abbreviate()));
+            assertTrue(email.hasHeader("extra1"));
+            assertEquals("value1", email.headerValue("extra1"));
+            assertTrue(email.hasHeader("extra2"));
+            assertEquals("value2", email.headerValue("extra2"));
         }
     }
 
@@ -230,7 +235,8 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, false, MailingListUpdater.Mode.ALL);
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, false,
+                                                 MailingListUpdater.Mode.ALL, Map.of());
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
@@ -279,7 +285,8 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, false, MailingListUpdater.Mode.ALL);
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, false,
+                                                 MailingListUpdater.Mode.ALL, Map.of());
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
@@ -326,7 +333,8 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, true, MailingListUpdater.Mode.ALL);
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, true,
+                                                 MailingListUpdater.Mode.ALL, Map.of());
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master|another"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
@@ -395,7 +403,8 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, false, MailingListUpdater.Mode.PR_ONLY);
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, false,
+                                                 MailingListUpdater.Mode.PR_ONLY, Map.of("extra1", "value1"));
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
@@ -440,6 +449,8 @@ class UpdaterTests {
             assertTrue(email.body().contains("23456789: More fixes"));
             assertFalse(email.body().contains("Committer"));
             assertFalse(email.body().contains(masterHash.abbreviate()));
+            assertTrue(email.hasHeader("extra1"));
+            assertEquals("value1", email.headerValue("extra1"));
 
             // Now push the other one without a matching PR - PR_ONLY will not generate a mail
             localRepo.push(otherHash, repo.getUrl(), "master");
@@ -468,7 +479,8 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, false, MailingListUpdater.Mode.PR);
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, false,
+                                                 MailingListUpdater.Mode.PR, Map.of());
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
