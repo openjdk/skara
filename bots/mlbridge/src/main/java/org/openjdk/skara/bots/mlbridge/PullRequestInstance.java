@@ -75,14 +75,6 @@ class PullRequestInstance {
         return pr.getWebUrl() + ".diff";
     }
 
-    String changeUrl() {
-        return pr.getWebUrl() + "/files";
-    }
-
-    String changeUrl(Hash base, Hash head) {
-        return pr.getWebUrl() + "/files/" + base.abbreviate() + ".." + head.abbreviate();
-    }
-
     String fetchCommand() {
         var repoUrl = pr.repository().getWebUrl();
         return "git fetch " + repoUrl + " " + pr.getSourceRef() + ":pull/" + pr.getId();

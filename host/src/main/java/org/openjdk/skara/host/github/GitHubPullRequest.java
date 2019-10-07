@@ -23,7 +23,7 @@
 package org.openjdk.skara.host.github;
 
 import org.openjdk.skara.host.*;
-import org.openjdk.skara.host.network.RestRequest;
+import org.openjdk.skara.host.network.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.vcs.Hash;
 
@@ -387,6 +387,16 @@ public class GitHubPullRequest implements PullRequest {
         check.metadata().ifPresent(metadata -> completedQuery.put("external_id", metadata));
 
         request.post("check-runs").body(completedQuery).execute();
+    }
+
+    @Override
+    public URI getChangeUrl() {
+        return URIBuilder.base(getWebUrl()).appendPath("/files").build();
+    }
+
+    @Override
+    public URI getChangeUrl(Hash base) {
+        return URIBuilder.base(getWebUrl()).appendPath("/files/" + base.abbreviate() + ".." + getHeadHash().abbreviate()).build();
     }
 
     @Override
