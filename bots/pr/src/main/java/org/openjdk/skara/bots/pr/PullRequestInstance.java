@@ -149,27 +149,13 @@ class PullRequestInstance {
         }
     }
 
-    boolean rebasePossible(Hash commitHash) {
-        try {
-            var commit = localRepo.lookup(commitHash);
-            if (commit.isEmpty()) {
-                return false;
-            }
-            localRepo.rebase(targetHash, commit.get().committer().name(), commit.get().committer().email());
-            var hash = localRepo.head();
-            return !hash.hex().equals(targetHash.hex());
-        } catch (IOException e) {
-            return false;
-        }
-    }
-
     Optional<Hash> rebase(Hash commitHash, PrintWriter reply) {
         var divergingCommits = divergingCommits();
         if (divergingCommits.size() > 0) {
             reply.print("The following commits have been pushed to ");
             reply.print(pr.getTargetRef());
             reply.println(" since your change was applied:");
-            divergingCommits.forEach(c -> reply.println(" * " + c.hash()));
+            divergingCommits.forEach(c -> reply.println(" * " + c.hash().hex() + ": " + c.message().get(0)));
 
             try {
                 var commit = localRepo.lookup(commitHash).orElseThrow();
@@ -177,17 +163,16 @@ class PullRequestInstance {
                 reply.println();
                 reply.println("Your commit was automatically rebased without conflicts.");
                 var hash = localRepo.head();
-                if (hash.hex().equals(targetHash.hex())) {
-                    reply.print("Warning! Your commit did not result in any changes! ");
-                    reply.println("No push attempt will be made.");
-                    return Optional.empty();
-                } else {
-                    return Optional.of(hash);
-                }
+                return Optional.of(hash);
             } catch (IOException e) {
                 reply.println();
                 reply.print("It was not possible to rebase your changes automatically. ");
                 reply.println("Please rebase your branch manually and try again.");
+                try {
+                    localRepo.checkout(commitHash, true);
+                } catch (IOException e2) {
+                    throw new UncheckedIOException(e2);
+                }
                 return Optional.empty();
             }
         } else {
