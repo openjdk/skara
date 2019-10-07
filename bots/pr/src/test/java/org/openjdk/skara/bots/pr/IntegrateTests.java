@@ -29,7 +29,8 @@ import org.openjdk.skara.vcs.Repository;
 import org.junit.jupiter.api.*;
 
 import java.io.IOException;
-import java.nio.file.Files;
+import java.nio.file.*;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -193,8 +194,9 @@ class IntegrateTests {
                                            .addAuthor(author.host().getCurrentUserDetails().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
-            // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            // Populate the projects repository - but without any checks enabled
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType(), Path.of("appendable.txt"),
+                                                     Set.of());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
             localRepo.push(masterHash, author.getUrl(), "master", true);
@@ -203,6 +205,13 @@ class IntegrateTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Now enable checks
+            localRepo.checkout(masterHash, true);
+            CheckableRepository.init(tempFolder.path(), author.getRepositoryType(), Path.of("appendable.txt"),
+                                     Set.of("author", "reviewers", "whitespace"));
+            var updatedHash = localRepo.resolve("HEAD").orElseThrow();
+            localRepo.push(updatedHash, author.getUrl(), "master", true);
 
             // Attempt a merge
             pr.addComment("/integrate");

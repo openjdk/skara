@@ -77,8 +77,19 @@ public class IntegrateCommand implements CommandHandler {
             var path = scratchPath.resolve("pr.integrate").resolve(sanitizedUrl);
 
             var prInstance = new PullRequestInstance(path, pr);
-            var hash = prInstance.commit(censusInstance.namespace(), censusInstance.configuration().census().domain(), null);
-            var issues = prInstance.executeChecks(hash, censusInstance);
+            var localHash = prInstance.commit(censusInstance.namespace(), censusInstance.configuration().census().domain(), null);
+            var rebaseMessage = new StringWriter();
+            var rebaseWriter = new PrintWriter(rebaseMessage);
+            var rebasedHash = prInstance.rebase(localHash, rebaseWriter);
+            if (rebasedHash.isEmpty()) {
+                return;
+            } else {
+                if (!rebasedHash.get().equals(localHash)) {
+                    localHash = rebasedHash.get();
+                }
+            }
+
+            var issues = prInstance.executeChecks(localHash, censusInstance);
             if (!issues.getMessages().isEmpty()) {
                 reply.print("Your merge request cannot be fulfilled at this time, as ");
                 reply.println("your changes failed the final jcheck:");
@@ -104,8 +115,8 @@ public class IntegrateCommand implements CommandHandler {
             }
 
             // Rebase and push it!
-            var rebasedHash = prInstance.rebase(hash, reply);
-            if (rebasedHash.isPresent() && !rebasedHash.get().equals(pr.getTargetHash())) {
+            if (!localHash.equals(pr.getTargetHash())) {
+                reply.println(rebaseMessage.toString());
                 reply.println("Pushed as commit " + rebasedHash.get().hex() + ".");
                 prInstance.localRepo().push(rebasedHash.get(), pr.repository().getUrl(), pr.getTargetRef());
                 pr.setState(PullRequest.State.CLOSED);
@@ -115,7 +126,6 @@ public class IntegrateCommand implements CommandHandler {
                 reply.print("Warning! Your commit did not result in any changes! ");
                 reply.println("No push attempt will be made.");
             }
-
         } catch (Exception e) {
             log.throwing("IntegrateCommand", "handle", e);
             reply.println("An error occurred during final integration jcheck");
