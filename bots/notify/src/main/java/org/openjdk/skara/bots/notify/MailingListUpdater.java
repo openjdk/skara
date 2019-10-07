@@ -42,6 +42,7 @@ public class MailingListUpdater implements UpdateConsumer {
     private final EmailAddress sender;
     private final boolean includeBranch;
     private final Mode mode;
+    private final Map<String, String> headers;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
     enum Mode {
@@ -50,12 +51,14 @@ public class MailingListUpdater implements UpdateConsumer {
         PR_ONLY
     }
 
-    MailingListUpdater(MailingList list, EmailAddress recipient, EmailAddress sender, boolean includeBranch, Mode mode) {
+    MailingListUpdater(MailingList list, EmailAddress recipient, EmailAddress sender, boolean includeBranch, Mode mode,
+                       Map<String, String> headers) {
         this.list = list;
         this.recipient = recipient;
         this.sender = sender;
         this.includeBranch = includeBranch;
         this.mode = mode;
+        this.headers = headers;
     }
 
     private String patchToText(Patch patch) {
@@ -146,6 +149,7 @@ public class MailingListUpdater implements UpdateConsumer {
             var email = Email.reply(rfr, "Re: [Integrated] " + rfr.subject(), body)
                              .author(sender)
                              .recipient(recipient)
+                             .headers(headers)
                              .build();
             list.post(email);
         }
@@ -168,6 +172,7 @@ public class MailingListUpdater implements UpdateConsumer {
         var subject = commitsToSubject(repository, commits, branch);
         var email = Email.create(sender, subject, writer.toString())
                          .recipient(recipient)
+                         .headers(headers)
                          .build();
 
         list.post(email);
