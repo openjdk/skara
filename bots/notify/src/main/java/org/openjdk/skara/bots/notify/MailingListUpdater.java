@@ -97,6 +97,11 @@ public class MailingListUpdater implements UpdateConsumer {
         return writer.toString();
     }
 
+    private EmailAddress commitsToSender(List<Commit> commits) {
+        var commit = commits.get(commits.size() - 1);
+        return EmailAddress.from(commit.committer().name(), commit.committer().email());
+    }
+
     private String commitsToSubject(HostedRepository repository, List<Commit> commits, Branch branch) {
         var subject = new StringBuilder();
         subject.append(repository.getRepositoryType().shortName());
@@ -145,9 +150,10 @@ public class MailingListUpdater implements UpdateConsumer {
                 continue;
             }
             var rfr = rfrCandidates.get(0);
+            var author = sender != null ? sender : commitsToSender(commits);
             var body = commitToText(repository, commit);
             var email = Email.reply(rfr, "Re: [Integrated] " + rfr.subject(), body)
-                             .author(sender)
+                             .author(author)
                              .recipient(recipient)
                              .headers(headers)
                              .build();
@@ -170,7 +176,9 @@ public class MailingListUpdater implements UpdateConsumer {
         }
 
         var subject = commitsToSubject(repository, commits, branch);
-        var email = Email.create(sender, subject, writer.toString())
+        var author = sender != null ? sender : commitsToSender(commits);
+        var email = Email.create(subject, writer.toString())
+                         .author(author)
                          .recipient(recipient)
                          .headers(headers)
                          .build();

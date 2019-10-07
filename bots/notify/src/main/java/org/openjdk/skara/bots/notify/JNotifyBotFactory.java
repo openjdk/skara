@@ -78,9 +78,6 @@ public class JNotifyBotFactory implements BotFactory {
                 var email = specific.get("email").asObject();
                 var smtp = email.get("smtp").asString();
                 var archive = URIBuilder.base(email.get("archive").asString()).build();
-                var senderName = email.get("name").asString();
-                var senderMail = email.get("address").asString();
-                var sender = EmailAddress.from(senderName, senderMail);
                 var listServer = MailingListServerFactory.createMailmanServer(archive, smtp);
 
                 for (var mailinglist : repo.value().get("mailinglists").asArray()) {
@@ -105,7 +102,7 @@ public class JNotifyBotFactory implements BotFactory {
                             mailinglist.get("headers").fields().stream()
                                        .collect(Collectors.toMap(JSONObject.Field::name, field -> field.value().asString())) :
                             Map.of();
-
+                    var sender = mailinglist.contains("sender") ? EmailAddress.parse(mailinglist.get("sender").asString()) : null;
                     updaters.add(new MailingListUpdater(listServer.getList(recipient), recipientAddress, sender,
                                                         includeBranchNames, mode, headers));
                 }
