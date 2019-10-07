@@ -583,6 +583,12 @@ class CheckTests {
             // The PR should be flagged as outdated
             assertTrue(pr.getLabels().contains("outdated"));
 
+            // But it should still pass jcheck
+            var checks = pr.getChecks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            assertEquals(CheckStatus.SUCCESS, check.status());
+
             // Restore the master branch
             localRepo.push(masterHash, author.getUrl(), "master", true);
 
@@ -911,6 +917,57 @@ class CheckTests {
             assertEquals("jcheck title", retrieved.title().get());
             assertEquals("jcheck summary", retrieved.summary().get());
             assertEquals(CheckStatus.CANCELLED, retrieved.status());
+        }
+    }
+
+    @Test
+    void rebaseBeforeCheck(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.host().getCurrentUserDetails().id())
+                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.getUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Enable a new check in the target branch
+            localRepo.checkout(masterHash, true);
+            CheckableRepository.init(tempFolder.path(), author.getRepositoryType(), Path.of("appendable.txt"),
+                                     Set.of("author", "reviewers", "whitespace", "issues"));
+            var headHash = localRepo.resolve("HEAD").orElseThrow();
+            localRepo.push(headHash, author.getUrl(), "master", true);
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that the check failed
+            var checks = pr.getChecks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            assertTrue(check.summary().orElseThrow().contains("commit message does not reference any issue"));
+            assertEquals(CheckStatus.FAILURE, check.status());
+
+            // Adjust the title to conform and check the status again
+            pr.setTitle("12345: This is a pull request");
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that the check passed
+            checks = pr.getChecks(editHash);
+            assertEquals(1, checks.size());
+            check = checks.get("jcheck");
+            assertEquals(CheckStatus.SUCCESS, check.status());
         }
     }
 }

@@ -105,12 +105,15 @@ public class IntegrateCommand implements CommandHandler {
 
             // Rebase and push it!
             var rebasedHash = prInstance.rebase(hash, reply);
-            if (rebasedHash.isPresent()) {
+            if (rebasedHash.isPresent() && !rebasedHash.get().equals(pr.getTargetHash())) {
                 reply.println("Pushed as commit " + rebasedHash.get().hex() + ".");
                 prInstance.localRepo().push(rebasedHash.get(), pr.repository().getUrl(), pr.getTargetRef());
                 pr.setState(PullRequest.State.CLOSED);
                 pr.addLabel("integrated");
                 pr.removeLabel("ready");
+            } else {
+                reply.print("Warning! Your commit did not result in any changes! ");
+                reply.println("No push attempt will be made.");
             }
 
         } catch (Exception e) {

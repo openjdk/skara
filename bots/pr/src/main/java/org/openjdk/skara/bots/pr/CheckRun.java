@@ -26,7 +26,7 @@ import org.openjdk.skara.host.*;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -449,12 +449,21 @@ class CheckRun {
             pr.createCheck(checkBuilder.build());
             var localHash = prInstance.commit(censusInstance.namespace(), censusDomain, null);
 
+            // Try to rebase
+            boolean rebasePossible = true;
+            var ignored = new PrintWriter(new StringWriter());
+            var rebasedHash = prInstance.rebase(localHash, ignored);
+            if (rebasedHash.isEmpty()) {
+                rebasePossible = false;
+            } else {
+                localHash = rebasedHash.get();
+            }
+
             // Determine current status
             var visitor = prInstance.executeChecks(localHash, censusInstance);
             var additionalErrors = botSpecificChecks();
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
             updateReadyForReview(visitor, additionalErrors);
-            var rebasePossible = prInstance.rebasePossible(localHash);
 
             // Calculate and update the status message if needed
             var statusMessage = getStatusMessage(activeReviews, visitor);
