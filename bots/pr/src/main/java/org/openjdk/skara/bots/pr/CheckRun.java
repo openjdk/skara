@@ -492,7 +492,7 @@ class CheckRun {
             // Ensure that the ready for sponsor label is up to date
             newLabels.remove("sponsor");
             var readyHash = ReadyForSponsorTracker.latestReadyForSponsor(pr.repository().host().getCurrentUserDetails(), comments);
-            if (readyHash.isPresent()) {
+            if (readyHash.isPresent() && readyForIntegration) {
                 var acceptedHash = readyHash.get();
                 if (pr.getHeadHash().equals(acceptedHash)) {
                     newLabels.add("sponsor");
