@@ -26,7 +26,9 @@ class ReviewArchive {
         var contributor = censusInstance.namespace().get(originalAuthor.id());
         if (contributor == null) {
             return EmailAddress.from(originalAuthor.fullName(),
-                                     originalAuthor.id() + "+" + originalAuthor.userName() + "@users.noreply." + censusInstance.namespace().name());
+                                     censusInstance.namespace().name() + "+" +
+                                             originalAuthor.id() + "+" + originalAuthor.userName() + "@" +
+                                             censusInstance.configuration().census().domain());
         } else {
             return EmailAddress.from(contributor.fullName().orElse(originalAuthor.fullName()),
                                      contributor.username() + "@" + censusInstance.configuration().census().domain());
