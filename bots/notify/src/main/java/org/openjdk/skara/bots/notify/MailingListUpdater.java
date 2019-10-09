@@ -40,6 +40,7 @@ public class MailingListUpdater implements UpdateConsumer {
     private final MailingList list;
     private final EmailAddress recipient;
     private final EmailAddress sender;
+    private final EmailAddress author;
     private final boolean includeBranch;
     private final Mode mode;
     private final Map<String, String> headers;
@@ -51,11 +52,12 @@ public class MailingListUpdater implements UpdateConsumer {
         PR_ONLY
     }
 
-    MailingListUpdater(MailingList list, EmailAddress recipient, EmailAddress sender, boolean includeBranch, Mode mode,
-                       Map<String, String> headers) {
+    MailingListUpdater(MailingList list, EmailAddress recipient, EmailAddress sender, EmailAddress author,
+                       boolean includeBranch, Mode mode, Map<String, String> headers) {
         this.list = list;
         this.recipient = recipient;
         this.sender = sender;
+        this.author = author;
         this.includeBranch = includeBranch;
         this.mode = mode;
         this.headers = headers;
@@ -97,7 +99,7 @@ public class MailingListUpdater implements UpdateConsumer {
         return writer.toString();
     }
 
-    private EmailAddress commitsToSender(List<Commit> commits) {
+    private EmailAddress commitsToAuthor(List<Commit> commits) {
         var commit = commits.get(commits.size() - 1);
         return EmailAddress.from(commit.committer().name(), commit.committer().email());
     }
@@ -150,10 +152,11 @@ public class MailingListUpdater implements UpdateConsumer {
                 continue;
             }
             var rfr = rfrCandidates.get(0);
-            var author = sender != null ? sender : commitsToSender(commits);
+            var finalAuthor = author != null ? author : commitsToAuthor(commits);
             var body = commitToText(repository, commit);
             var email = Email.reply(rfr, "Re: [Integrated] " + rfr.subject(), body)
-                             .author(author)
+                             .sender(sender)
+                             .author(finalAuthor)
                              .recipient(recipient)
                              .headers(headers)
                              .build();
@@ -176,9 +179,10 @@ public class MailingListUpdater implements UpdateConsumer {
         }
 
         var subject = commitsToSubject(repository, commits, branch);
-        var author = sender != null ? sender : commitsToSender(commits);
+        var finalAuthor = author != null ? author : commitsToAuthor(commits);
         var email = Email.create(subject, writer.toString())
-                         .author(author)
+                         .sender(sender)
+                         .author(finalAuthor)
                          .recipient(recipient)
                          .headers(headers)
                          .build();
