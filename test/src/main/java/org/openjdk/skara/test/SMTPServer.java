@@ -86,7 +86,7 @@ public class SMTPServer implements AutoCloseable {
                     try (var socket = serverSocket.accept();
                          var input = new InputStreamReader(socket.getInputStream());
                          var output = new OutputStreamWriter(socket.getOutputStream())) {
-                        var session = new SMTPSession(input, output);
+                        var session = new SMTPSession(input, output, Duration.ofMinutes(10));
                         handleSession(session);
                     }
                 } catch (SocketException e) {

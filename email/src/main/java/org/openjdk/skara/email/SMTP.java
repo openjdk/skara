@@ -25,6 +25,7 @@ package org.openjdk.skara.email;
 import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.regex.Pattern;
 
@@ -34,13 +35,17 @@ import java.util.regex.Pattern;
  */
 public class SMTP {
     private static Pattern initReply = Pattern.compile("220 .*");
-    private static Pattern ehloReply = Pattern.compile("^250 HELP$");
+    private static Pattern ehloReply = Pattern.compile("^250 .*");
     private static Pattern mailReply = Pattern.compile("^250 .*");
     private static Pattern rcptReply = Pattern.compile("^250 .*");
     private static Pattern dataReply = Pattern.compile("354 Enter.*");
     private static Pattern doneReply = Pattern.compile("250 .*");
 
     public static void send(String server, EmailAddress recipient, Email email) throws IOException {
+        send(server, recipient, email, Duration.ofMinutes(30));
+    }
+
+    public static void send(String server, EmailAddress recipient, Email email, Duration timeout) throws IOException {
         var port = 25;
         if (server.contains(":")) {
             var parts = server.split(":", 2);
@@ -51,7 +56,7 @@ public class SMTP {
              var out = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8);
              var in = new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8)) {
 
-            var session = new SMTPSession(in, out);
+            var session = new SMTPSession(in, out, timeout);
 
             session.waitForPattern(initReply);
             session.sendCommand("EHLO " + email.sender().domain(), ehloReply);
