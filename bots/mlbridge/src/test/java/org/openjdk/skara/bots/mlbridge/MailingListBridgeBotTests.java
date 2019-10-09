@@ -93,9 +93,9 @@ class MailingListBridgeBotTests {
     }
 
     private String noreplyAddress(HostedRepository repository) {
-        return repository.host().getCurrentUserDetails().id() + "+" +
+        return "test+" + repository.host().getCurrentUserDetails().id() + "+" +
                 repository.host().getCurrentUserDetails().userName() +
-                "@users.noreply.test";
+                "@openjdk.java.net";
     }
 
     @Test
