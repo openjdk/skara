@@ -386,4 +386,84 @@ class SponsorTests {
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
         }
     }
+
+    @Test
+    void sponsorAfterFailingCheck(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+            var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.getUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.getUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Approve it as another user
+            var approvalPr = reviewer.getPullRequest(pr.getId());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // Let the bot see it
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // Flag it as ready for integration
+            pr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // Bot should have replied
+            var ready = pr.getComments().stream()
+                          .filter(comment -> comment.body().contains("now ready to be sponsored"))
+                          .filter(comment -> comment.body().contains("at version " + editHash.hex()))
+                          .count();
+            assertEquals(1, ready);
+            assertTrue(pr.getLabels().contains("sponsor"));
+
+            // The reviewer now changes their mind
+            approvalPr.addReview(Review.Verdict.DISAPPROVED, "No wait, disapproved");
+
+            // The label should have been dropped
+            TestBotRunner.runPeriodicItems(mergeBot);
+            assertFalse(pr.getLabels().contains("sponsor"));
+
+            // Reviewer now tries to sponsor
+            var reviewerPr = reviewer.getPullRequest(pr.getId());
+            reviewerPr.addComment("/sponsor");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an error message
+            var error = pr.getComments().stream()
+                          .filter(comment -> comment.body().contains("merge request cannot be fulfilled at this time"))
+                          .filter(comment -> comment.body().contains("failed the final jcheck"))
+                          .count();
+            assertEquals(1, error);
+
+            // Make it ready for integration again
+            approvalPr.addReview(Review.Verdict.APPROVED, "Sorry, wrong button");
+            TestBotRunner.runPeriodicItems(mergeBot);
+            assertTrue(pr.getLabels().contains("sponsor"));
+
+            // It should now be possible to sponsor
+            reviewerPr.addComment("/sponsor");
+            TestBotRunner.runPeriodicItems(mergeBot);
+            assertFalse(pr.getLabels().contains("sponsor"));
+
+            // The bot should have pushed the commit
+            var pushed = pr.getComments().stream()
+                           .filter(comment -> comment.body().contains("Pushed as commit"))
+                           .count();
+            assertEquals(1, pushed);
+        }
+    }
+
 }
