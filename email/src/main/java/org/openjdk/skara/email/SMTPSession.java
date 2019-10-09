@@ -23,6 +23,7 @@
 package org.openjdk.skara.email;
 
 import java.io.*;
+import java.time.*;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -31,14 +32,16 @@ public class SMTPSession {
     private final static Logger log = Logger.getLogger("org.openjdk.skara.email");;
     private final BufferedReader in;
     private final BufferedWriter out;
+    private final Instant timeout;
 
-    public SMTPSession(InputStreamReader in, OutputStreamWriter out) {
+    public SMTPSession(InputStreamReader in, OutputStreamWriter out, Duration timeout) {
         this.in = new BufferedReader(in);
         this.out = new BufferedWriter(out);
+        this.timeout = Instant.now().plus(timeout);
     }
 
-    public void waitForPattern(Pattern expectedReply) throws IOException {
-        while (true) {
+    void waitForPattern(Pattern expectedReply) throws IOException {
+        while (Instant.now().isBefore(timeout)) {
             while (!in.ready()) {
                 try {
                     Thread.sleep(10);
@@ -49,14 +52,15 @@ public class SMTPSession {
             var matcher = expectedReply.matcher(line);
             log.fine("< " + line);
             if (matcher.matches()) {
-                break;
+                return;
             }
         }
+        throw new RuntimeException("Timeout waiting for pattern: " + expectedReply);
     }
 
     public List<String> readLinesUntil(Pattern end) throws IOException {
         var ret = new ArrayList<String>();
-        while (true) {
+        while (Instant.now().isBefore(timeout)) {
             while (!in.ready()) {
                 try {
                     Thread.sleep(10);
@@ -71,6 +75,7 @@ public class SMTPSession {
             }
             ret.add(line);
         }
+        throw new RuntimeException("Timeout reading response lines: " + end);
     }
 
     public void sendCommand(String command, Pattern expectedReply) throws IOException {

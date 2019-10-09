@@ -30,7 +30,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.logging.Logger;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 class SMTPTests {
     private final static Logger log = Logger.getLogger("org.openjdk.skara.email");;
@@ -82,6 +82,18 @@ class SMTPTests {
             SMTP.send(server.address(), recipient, sentMail);
             var email = server.receive(Duration.ofSeconds(10));
             assertEquals(sentMail, email);
+        }
+    }
+
+    @Test
+    void timeout() throws IOException {
+        log.info("Hello");
+        try (var server = new SMTPServer()) {
+            var sender = EmailAddress.from("Test", "test@test.email");
+            var recipient = EmailAddress.from("Dest", "dest@dest.email");
+            var sentMail = Email.create(sender, "Subject", "Body").recipient(recipient).build();
+
+            assertThrows(RuntimeException.class, () -> SMTP.send(server.address(), recipient, sentMail, Duration.ZERO));
         }
     }
 }
