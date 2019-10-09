@@ -184,7 +184,8 @@ class UpdaterTests {
             var branchStorage = createBranchStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
-            var updater = new MailingListUpdater(mailmanList, listAddress, null, false, MailingListUpdater.Mode.ALL,
+            var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false, MailingListUpdater.Mode.ALL,
                                                  Map.of("extra1", "value1", "extra2", "value2"));
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
@@ -199,7 +200,8 @@ class UpdaterTests {
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             var email = conversations.get(0).first();
-            assertEquals(EmailAddress.from("testauthor", "ta@none.none"), email.sender());
+            assertEquals(sender, email.sender());
+            assertEquals(EmailAddress.from("testauthor", "ta@none.none"), email.author());
             assertEquals(email.recipients(), List.of(listAddress));
             assertTrue(email.subject().contains(": 23456789: More fixes"));
             assertFalse(email.subject().contains("master"));
@@ -233,7 +235,8 @@ class UpdaterTests {
             var branchStorage = createBranchStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
-            var updater = new MailingListUpdater(mailmanList, listAddress, null, false,
+            var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false,
                                                  MailingListUpdater.Mode.ALL, Map.of());
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
@@ -253,7 +256,8 @@ class UpdaterTests {
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             var email = conversations.get(0).first();
-            assertEquals(EmailAddress.from("another_author", "another@author.example.com"), email.sender());
+            assertEquals(sender, email.sender());
+            assertEquals(EmailAddress.from("another_author", "another@author.example.com"), email.author());
             assertEquals(email.recipients(), List.of(listAddress));
             assertTrue(email.subject().contains(": 2 new changesets"));
             assertFalse(email.subject().contains("master"));
@@ -284,7 +288,8 @@ class UpdaterTests {
             var branchStorage = createBranchStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
-            var updater = new MailingListUpdater(mailmanList, listAddress, null, false,
+            var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false,
                                                  MailingListUpdater.Mode.ALL, Map.of());
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
@@ -301,7 +306,8 @@ class UpdaterTests {
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             var email = conversations.get(0).first();
-            assertEquals(EmailAddress.from("committer", "committer@test.test"), email.sender());
+            assertEquals(sender, email.sender());
+            assertEquals(EmailAddress.from("committer", "committer@test.test"), email.author());
             assertEquals(email.recipients(), List.of(listAddress));
             assertTrue(email.body().contains("Changeset: " + editHash.abbreviate()));
             assertTrue(email.body().contains("23456789: More fixes"));
@@ -332,7 +338,8 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, true,
+            var author = EmailAddress.from("author", "author@duke.duke");
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, author, true,
                                                  MailingListUpdater.Mode.ALL, Map.of());
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master|another"), tagStorage, branchStorage, List.of(updater));
 
@@ -350,7 +357,8 @@ class UpdaterTests {
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             var email = conversations.get(0).first();
-            assertEquals(email.sender(), sender);
+            assertEquals(sender, email.sender());
+            assertEquals(author, email.author());
             assertEquals(email.recipients(), List.of(listAddress));
             assertFalse(email.subject().contains("another"));
             assertTrue(email.subject().contains(": master: 2 new changesets"));
@@ -402,7 +410,8 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, false,
+            var author = EmailAddress.from("author", "author@duke.duke");
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, author, false,
                                                  MailingListUpdater.Mode.PR_ONLY, Map.of("extra1", "value1"));
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
@@ -440,7 +449,8 @@ class UpdaterTests {
             assertEquals(1, conversations.size());
             var first = conversations.get(0).first();
             var email = conversations.get(0).replies(first).get(0);
-            assertEquals(email.sender(), sender);
+            assertEquals(sender, email.sender());
+            assertEquals(author, email.author());
             assertEquals(email.recipients(), List.of(listAddress));
             assertEquals("Re: [Integrated] RFR: My PR", email.subject());
             assertFalse(email.subject().contains("master"));
@@ -477,7 +487,8 @@ class UpdaterTests {
             var branchStorage = createBranchStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
-            var updater = new MailingListUpdater(mailmanList, listAddress, null, false,
+            var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false,
                                                  MailingListUpdater.Mode.PR, Map.of());
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
@@ -525,7 +536,8 @@ class UpdaterTests {
             var pushConversation = conversations.get(1);
 
             var prEmail = prConversation.replies(prConversation.first()).get(0);
-            assertEquals(EmailAddress.from("testauthor", "ta@none.none"), prEmail.sender());
+            assertEquals(sender, prEmail.sender());
+            assertEquals(EmailAddress.from("testauthor", "ta@none.none"), prEmail.author());
             assertEquals(prEmail.recipients(), List.of(listAddress));
             assertEquals("Re: [Integrated] RFR: My PR", prEmail.subject());
             assertFalse(prEmail.subject().contains("master"));
@@ -535,7 +547,8 @@ class UpdaterTests {
             assertFalse(prEmail.body().contains(masterHash.abbreviate()));
 
             var pushEmail = pushConversation.first();
-            assertEquals(EmailAddress.from("testauthor", "ta@none.none"), pushEmail.sender());
+            assertEquals(sender, pushEmail.sender());
+            assertEquals(EmailAddress.from("testauthor", "ta@none.none"), pushEmail.author());
             assertEquals(pushEmail.recipients(), List.of(listAddress));
             assertTrue(pushEmail.subject().contains("23456789: More fixes"));
         }
