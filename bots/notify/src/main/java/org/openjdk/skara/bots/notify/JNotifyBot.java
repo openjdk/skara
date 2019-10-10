@@ -130,18 +130,22 @@ class JNotifyBot implements Bot, WorkItem {
                              .collect(Collectors.toList());
 
         for (var tag : newJdkTags) {
-            var previous = existingPrevious(tag, allJdkTags);
-            if (previous.isEmpty()) {
-                log.warning("No previous tag found for '" + tag.tag() + "' - ignoring");
-                continue;
-            }
-            var commits = localRepo.commits(previous.get().tag() + ".." + tag.tag()).asList();
-            if (commits.size() == 0) {
-                continue;
-            }
-
             // Update the history first - if there is a problem here we don't want to send out multiple updates
             history.addTags(List.of(tag.tag()));
+
+            var commits = new ArrayList<Commit>();
+            var previous = existingPrevious(tag, allJdkTags);
+            if (previous.isEmpty()) {
+                var commit = localRepo.lookup(tag.tag());
+                if (commit.isEmpty()) {
+                    throw new RuntimeException("Failed to lookup tag '" + tag.toString() + "'");
+                } else {
+                    commits.add(commit.get());
+                    log.warning("No previous tag found for '" + tag.tag() + "'");
+                }
+            } else {
+                commits.addAll(localRepo.commits(previous.get().tag() + ".." + tag.tag()).asList());
+            }
 
             Collections.reverse(commits);
             for (var updater : updaters) {

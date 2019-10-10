@@ -123,6 +123,16 @@ public class MailingListUpdater implements UpdateConsumer {
         return subject.toString();
     }
 
+    private String tagToSubject(HostedRepository repository, Hash hash, OpenJDKTag tag) {
+        return repository.getRepositoryType().shortName() +
+                ": " +
+                repository.getName() +
+                ": Added tag " +
+                tag.tag() +
+                " for changeset " +
+                hash.abbreviate();
+    }
+
     private List<Commit> filterAndSendPrCommits(HostedRepository repository, List<Commit> commits) {
         var ret = new ArrayList<Commit>();
 
@@ -207,6 +217,29 @@ public class MailingListUpdater implements UpdateConsumer {
 
     @Override
     public void handleTagCommits(HostedRepository repository, List<Commit> commits, OpenJDKTag tag) {
+        var writer = new StringWriter();
+        var printer = new PrintWriter(writer);
 
+        printer.println("The following commits are included in " + tag.tag());
+        printer.println("========================================================");
+        for (var commit : commits) {
+            printer.print(commit.hash().abbreviate());
+            if (commit.message().size() > 0) {
+                printer.print(": " + commit.message().get(0));
+            }
+            printer.println();
+        }
+
+        var tagCommit = commits.get(commits.size() - 1);
+        var subject = tagToSubject(repository, tagCommit.hash(), tag);
+        var finalAuthor = author != null ? author : commitsToAuthor(commits);
+        var email = Email.create(subject, writer.toString())
+                         .sender(sender)
+                         .author(finalAuthor)
+                         .recipient(recipient)
+                         .headers(headers)
+                         .build();
+
+        list.post(email);
     }
 }
