@@ -553,4 +553,94 @@ class UpdaterTests {
             assertTrue(pushEmail.subject().contains("23456789: More fixes"));
         }
     }
+
+    @Test
+    void testMailinglistTag(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer()) {
+            var repo = credentials.getHostedRepository();
+            var localRepoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(localRepoFolder, repo.getRepositoryType());
+            credentials.commitLock(localRepo);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.tag(masterHash, "jdk-12+1", "Added tag 1", "Duke", "duke@openjdk.java.net");
+            localRepo.pushAll(repo.getUrl());
+
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP());
+            var mailmanList = mailmanServer.getList(listAddress.address());
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false, MailingListUpdater.Mode.ALL,
+                                                 Map.of("extra1", "value1", "extra2", "value2"));
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
+
+            // No mail should be sent on the first run as there is no history
+            TestBotRunner.runPeriodicItems(notifyBot);
+            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
+            localRepo.fetch(repo.getUrl(), "history:history");
+            localRepo.tag(editHash, "jdk-12+2", "Added tag 2", "Duke", "duke@openjdk.java.net");
+            CheckableRepository.appendAndCommit(localRepo, "Another line 1", "34567890: Even more fixes");
+            CheckableRepository.appendAndCommit(localRepo, "Another line 2", "45678901: Yet even more fixes");
+            var editHash2 = CheckableRepository.appendAndCommit(localRepo, "Another line 3", "56789012: Still even more fixes");
+            localRepo.tag(editHash2, "jdk-12+4", "Added tag 3", "Duke", "duke@openjdk.java.net");
+            CheckableRepository.appendAndCommit(localRepo, "Another line 4", "67890123: Brand new fixes");
+            var editHash3 = CheckableRepository.appendAndCommit(localRepo, "Another line 5", "78901234: More brand new fixes");
+            localRepo.tag(editHash3, "jdk-13+0", "Added tag 4", "Duke", "duke@openjdk.java.net");
+            localRepo.pushAll(repo.getUrl());
+
+            TestBotRunner.runPeriodicItems(notifyBot);
+            listServer.processIncoming();
+            listServer.processIncoming();
+            listServer.processIncoming();
+
+            var conversations = mailmanList.conversations(Duration.ofDays(1));
+            assertEquals(3, conversations.size());
+
+            for (var conversation : conversations) {
+                var email = conversation.first();
+                if (email.subject().equals("git: test: Added tag jdk-12+2 for changeset " + editHash.abbreviate())) {
+                    assertTrue(email.body().contains("23456789: More fixes"));
+                    assertFalse(email.body().contains("34567890: Even more fixes"));
+                    assertFalse(email.body().contains("45678901: Yet even more fixes"));
+                    assertFalse(email.body().contains("56789012: Still even more fixes"));
+                    assertFalse(email.body().contains("67890123: Brand new fixes"));
+                    assertFalse(email.body().contains("78901234: More brand new fixes"));
+                } else if (email.subject().equals("git: test: Added tag jdk-12+4 for changeset " + editHash2.abbreviate())) {
+                    assertFalse(email.body().contains("23456789: More fixes"));
+                    assertTrue(email.body().contains("34567890: Even more fixes"));
+                    assertTrue(email.body().contains("45678901: Yet even more fixes"));
+                    assertTrue(email.body().contains("56789012: Still even more fixes"));
+                    assertFalse(email.body().contains("67890123: Brand new fixes"));
+                    assertFalse(email.body().contains("78901234: More brand new fixes"));
+                } else if (email.subject().equals("git: test: Added tag jdk-13+0 for changeset " + editHash3.abbreviate())) {
+                    assertFalse(email.body().contains("23456789: More fixes"));
+                    assertFalse(email.body().contains("34567890: Even more fixes"));
+                    assertFalse(email.body().contains("45678901: Yet even more fixes"));
+                    assertFalse(email.body().contains("56789012: Still even more fixes"));
+                    assertFalse(email.body().contains("67890123: Brand new fixes"));
+                    assertTrue(email.body().contains("78901234: More brand new fixes"));
+                } else if (email.subject().equals("git: test: 4 new changesets")) {
+                    assertTrue(email.body().contains("23456789: More fixes"));
+                    assertTrue(email.body().contains("34567890: Even more fixes"));
+                    assertTrue(email.body().contains("45678901: Yet even more fixes"));
+                    assertTrue(email.body().contains("56789012: Still even more fixes"));
+                    assertTrue(email.body().contains("67890123: Brand new fixes"));
+                    assertTrue(email.body().contains("78901234: More brand new fixes"));
+                } else {
+                    fail("Mismatched subject: " + email.subject());
+                }
+                assertTrue(email.hasHeader("extra1"));
+                assertEquals("value1", email.headerValue("extra1"));
+                assertTrue(email.hasHeader("extra2"));
+                assertEquals("value2", email.headerValue("extra2"));
+            }
+        }
+    }
 }
