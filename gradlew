@@ -154,7 +154,11 @@ if [ ! -d "${GRADLE_DIR}" ]; then
     fi
     checksum ${GRADLE_FILENAME} ${GRADLE_SHA256}
     echo "Extracting Gradle..."
-    "${JAVA_LAUNCHER}" "${DIR}"/Unzip.java "${GRADLE_FILENAME}" "${GRADLE_DIR}"
+    if [ "${OS}" = "Linux" -o "${OS}" = "Darwin" ]; then
+        "${JAVA_LAUNCHER}" "${DIR}"/Unzip.java "${GRADLE_FILENAME}" "${GRADLE_DIR}"
+    else
+        extract_zip "${GRADLE_FILENAME}" "${GRADLE_DIR}"
+    fi
 fi
 
 GRADLE_LAUNCHER=$(find "${GRADLE_DIR}" | grep '.*/bin/gradle$')
