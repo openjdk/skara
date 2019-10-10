@@ -217,6 +217,9 @@ public class MailingListUpdater implements UpdateConsumer {
 
     @Override
     public void handleTagCommits(HostedRepository repository, List<Commit> commits, OpenJDKTag tag) {
+        if (mode == Mode.PR_ONLY) {
+            return;
+        }
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 

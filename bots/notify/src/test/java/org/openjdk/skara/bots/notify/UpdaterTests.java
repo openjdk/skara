@@ -577,7 +577,10 @@ class UpdaterTests {
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false, MailingListUpdater.Mode.ALL,
                                                  Map.of("extra1", "value1", "extra2", "value2"));
-            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
+            var prOnlyUpdater = new MailingListUpdater(mailmanList, listAddress, sender, null, false,
+                                                       MailingListUpdater.Mode.PR_ONLY, Map.of());
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
+                                           List.of(updater, prOnlyUpdater));
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
