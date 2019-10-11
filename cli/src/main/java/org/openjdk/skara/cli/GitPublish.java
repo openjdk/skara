@@ -40,7 +40,13 @@ public class GitPublish {
         };
     }
 
-    public static void main(String[] args) throws IOException {
+    private static int pushAndTrack(String remote, Branch b) throws IOException, InterruptedException {
+        var pb = new ProcessBuilder("git", "push", "--set-upstream", remote, b.name());
+        pb.inheritIO();
+        return pb.start().waitFor();
+    }
+
+    public static void main(String[] args) throws IOException, InterruptedException {
         var flags = List.of(
             Switch.shortcut("")
                   .fullname("verbose")
@@ -78,6 +84,7 @@ public class GitPublish {
         var cwd = Path.of("").toAbsolutePath();
         var repo = Repository.get(cwd).or(die("error: no repository found at " + cwd.toString())).get();
         var remote = arguments.at(0).orString("origin");
-        repo.push(repo.currentBranch(), remote, true);
+
+        System.exit(pushAndTrack(remote, repo.currentBranch()));
     }
 }
