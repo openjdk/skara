@@ -98,4 +98,9 @@ public class JsonUpdater implements UpdateConsumer {
             writer.write(json);
         }
     }
+
+    @Override
+    public void handleNewBranch(HostedRepository repository, List<Commit> commits, Branch parent, Branch branch) {
+
+    }
 }

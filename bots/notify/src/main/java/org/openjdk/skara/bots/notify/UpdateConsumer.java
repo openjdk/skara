@@ -31,4 +31,5 @@ import java.util.List;
 public interface UpdateConsumer {
     void handleCommits(HostedRepository repository, List<Commit> commits, Branch branch);
     void handleTagCommits(HostedRepository repository, List<Commit> commits, OpenJDKTag tag);
+    void handleNewBranch(HostedRepository repository, List<Commit> commits, Branch parent, Branch branch);
 }

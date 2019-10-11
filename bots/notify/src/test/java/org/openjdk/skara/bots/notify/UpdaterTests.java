@@ -643,4 +643,69 @@ class UpdaterTests {
             }
         }
     }
+
+    @Test
+    void testMailingListBranch(TestInfo testInfo) throws IOException {
+        try (var listServer = new TestMailmanServer();
+             var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.getRepositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.getUrl());
+
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP());
+            var mailmanList = mailmanServer.getList(listAddress.address());
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false, MailingListUpdater.Mode.ALL,
+                                                 Map.of("extra1", "value1", "extra2", "value2"));
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master|newbranch."), tagStorage, branchStorage, List.of(updater));
+
+            // No mail should be sent on the first run as there is no history
+            TestBotRunner.runPeriodicItems(notifyBot);
+            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+
+            CheckableRepository.appendAndCommit(localRepo, "Another line", "12345678: Some fixes");
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
+            localRepo.push(editHash, repo.getUrl(), "newbranch1");
+            TestBotRunner.runPeriodicItems(notifyBot);
+            listServer.processIncoming();
+
+            var conversations = mailmanList.conversations(Duration.ofDays(1));
+            var email = conversations.get(0).first();
+            assertEquals(sender, email.sender());
+            assertEquals(EmailAddress.from("testauthor", "ta@none.none"), email.author());
+            assertEquals(email.recipients(), List.of(listAddress));
+            assertEquals("git: test: created branch newbranch1 based on the branch master containing 2 unique commits", email.subject());
+            assertTrue(email.body().contains("12345678: Some fixes"));
+            assertTrue(email.hasHeader("extra1"));
+            assertEquals("value1", email.headerValue("extra1"));
+            assertTrue(email.hasHeader("extra2"));
+            assertEquals("value2", email.headerValue("extra2"));
+
+            TestBotRunner.runPeriodicItems(notifyBot);
+            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+
+            localRepo.push(editHash, repo.getUrl(), "newbranch2");
+            TestBotRunner.runPeriodicItems(notifyBot);
+            listServer.processIncoming();
+
+            var newConversation = mailmanList.conversations(Duration.ofDays(1)).stream()
+                                             .filter(c -> !c.equals(conversations.get(0)))
+                                             .findFirst().orElseThrow();
+            email = newConversation.first();
+            assertEquals(sender, email.sender());
+            assertEquals(sender, email.author());
+            assertEquals(email.recipients(), List.of(listAddress));
+            assertEquals("git: test: created branch newbranch2 based on the branch newbranch1 containing 0 unique commits", email.subject());
+            assertEquals("The new branch newbranch2 is currently identical to the newbranch1 branch.", email.body());
+        }
+    }
 }
