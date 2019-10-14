@@ -67,25 +67,54 @@ class JNotifyBot implements Bot, WorkItem {
         return false;
     }
 
-    private void handleBranch(Repository localRepo, UpdateHistory history, Branch branch, Hash curHead) throws IOException {
-        var lastRef = history.branchHash(branch);
-        if (lastRef.isEmpty()) {
-            log.warning("No previous history found for branch '" + branch + "' - resetting mark");
-            history.setBranchHash(branch, curHead);
+    private void handleNewRef(Repository localRepo, Reference ref, Collection<Reference> allRefs) {
+        // Figure out the best parent ref
+        var candidates = new HashSet<>(allRefs);
+        candidates.remove(ref);
+        if (candidates.size() == 0) {
+            log.warning("No parent candidates found for branch '" + ref.name() + "' - ignoring");
             return;
         }
 
-        var newCommits = localRepo.commits(lastRef.get() + ".." + curHead).asList();
-        if (newCommits.size() == 0) {
-            return;
-        }
-
-        // Update the history first - if there is a problem here we don't want to send out multiple updates
-        history.setBranchHash(branch, curHead);
-
-        Collections.reverse(newCommits);
+        var bestParent = candidates.stream()
+                                   .map(c -> {
+                                       try {
+                                           return new AbstractMap.SimpleEntry<>(c, localRepo.commits(c.hash().hex() + ".." + ref.hash(), true).asList());
+                                       } catch (IOException e) {
+                                           throw new UncheckedIOException(e);
+                                       }
+                                   })
+                                   .min(Comparator.comparingInt(entry -> entry.getValue().size()))
+                                   .orElseThrow();
         for (var updater : updaters) {
-            updater.handleCommits(repository, newCommits, branch);
+            var branch = new Branch(ref.name());
+            var parent = new Branch(bestParent.getKey().name());
+            updater.handleNewBranch(repository, bestParent.getValue(), parent, branch);
+        }
+    }
+
+    private void handleUpdatedRef(Repository localRepo, Reference ref, List<Commit> commits) {
+        for (var updater : updaters) {
+            var branch = new Branch(ref.name());
+            updater.handleCommits(repository, commits, branch);
+        }
+    }
+
+    private void handleRef(Repository localRepo, UpdateHistory history, Reference ref, Collection<Reference> allRefs) throws IOException {
+        var branch = new Branch(ref.name());
+        var lastHash = history.branchHash(branch);
+        if (lastHash.isEmpty()) {
+            log.warning("No previous history found for branch '" + branch + "' - resetting mark");
+            history.setBranchHash(branch, ref.hash());
+            handleNewRef(localRepo, ref, allRefs);
+        } else {
+            var commits = localRepo.commits(lastHash.get() + ".." + ref.hash()).asList();
+            if (commits.size() == 0) {
+                return;
+            }
+            history.setBranchHash(branch, ref.hash());
+            Collections.reverse(commits);
+            handleUpdatedRef(localRepo, ref, commits);
         }
     }
 
@@ -177,11 +206,12 @@ class JNotifyBot implements Bot, WorkItem {
             var history = UpdateHistory.create(tagStorageBuilder, historyPath.resolve("tags"), branchStorageBuilder, historyPath.resolve("branches"));
             handleTags(localRepo, history);
 
-            for (var ref : localRepo.remoteBranches("origin")) {
-                if (branches.matcher(ref.name()).matches()) {
-                    var branch = new Branch(ref.name());
-                    handleBranch(localRepo, history, branch, ref.hash());
-                }
+            var knownRefs = localRepo.remoteBranches("origin")
+                                     .stream()
+                                     .filter(ref -> branches.matcher(ref.name()).matches())
+                                     .collect(Collectors.toList());
+            for (var ref : knownRefs) {
+                handleRef(localRepo, history, ref, knownRefs);
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);

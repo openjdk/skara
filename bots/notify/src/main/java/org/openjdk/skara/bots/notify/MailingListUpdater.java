@@ -245,4 +245,53 @@ public class MailingListUpdater implements UpdateConsumer {
 
         list.post(email);
     }
+
+    private String newBranchSubject(HostedRepository repository, List<Commit> commits, Branch parent, Branch branch) {
+        var subject = new StringBuilder();
+        subject.append(repository.getRepositoryType().shortName());
+        subject.append(": ");
+        subject.append(repository.getName());
+        subject.append(": created branch ");
+        subject.append(branch);
+        subject.append(" based on the branch ");
+        subject.append(parent);
+        subject.append(" containing ");
+        subject.append(commits.size());
+        subject.append(" unique commit");
+        if (commits.size() != 1) {
+            subject.append("s");
+        }
+
+        return subject.toString();
+    }
+
+    @Override
+    public void handleNewBranch(HostedRepository repository, List<Commit> commits, Branch parent, Branch branch) {
+        var writer = new StringWriter();
+        var printer = new PrintWriter(writer);
+
+        if (commits.size() > 0) {
+            printer.println("The following commits are unique to the " + branch.name() + " branch");
+            printer.println("========================================================");
+            for (var commit : commits) {
+                printer.print(commit.hash().abbreviate());
+                if (commit.message().size() > 0) {
+                    printer.print(": " + commit.message().get(0));
+                }
+                printer.println();
+            }
+        } else {
+            printer.println("The new branch " + branch.name() + " is currently identical to the " + parent.name() + " branch.");
+        }
+
+        var subject = newBranchSubject(repository, commits, parent, branch);
+        var finalAuthor = author != null ? author : commits.size() > 0 ? commitsToAuthor(commits) : sender;
+        var email = Email.create(subject, writer.toString())
+                         .sender(sender)
+                         .author(finalAuthor)
+                         .recipient(recipient)
+                         .headers(headers)
+                         .build();
+        list.post(email);
+    }
 }
