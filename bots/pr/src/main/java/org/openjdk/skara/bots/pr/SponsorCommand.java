@@ -78,6 +78,7 @@ public class SponsorCommand implements CommandHandler {
             var rebaseWriter = new PrintWriter(rebaseMessage);
             var rebasedHash = prInstance.rebase(localHash, rebaseWriter);
             if (rebasedHash.isEmpty()) {
+                reply.println(rebaseMessage.toString());
                 return;
             } else {
                 if (!rebasedHash.get().equals(localHash)) {

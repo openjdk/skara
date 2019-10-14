@@ -528,4 +528,49 @@ class IntegrateTests {
             assertEquals(1, pushed);
         }
     }
+
+    @Test
+    void cannotRebase(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.host().getCurrentUserDetails().id())
+                                           .addReviewer(integrator.host().getCurrentUserDetails().id());
+            var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.getUrl(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.getUrl(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Approve it as another user
+            var approvalPr = integrator.getPullRequest(pr.getId());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // Push something conflicting to master
+            localRepo.checkout(masterHash, true);
+            var conflictingHash = CheckableRepository.appendAndCommit(localRepo, "This looks like a conflict");
+            localRepo.push(conflictingHash, author.getUrl(), "master");
+
+            // Attempt an integration
+            pr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an error message
+            var error = pr.getComments().stream()
+                          .filter(comment -> comment.body().contains("It was not possible to rebase your changes automatically."))
+                          .filter(comment -> comment.body().contains("Please merge `master`"))
+                          .count();
+            assertEquals(1, error);
+        }
+    }
 }
