@@ -87,7 +87,7 @@ public class LaunchersTask extends DefaultTask {
             var filename = entry.getKey();
             var clazz = entry.getValue();
 
-            if (os.equals("windows")) {
+            if (os.get().equals("windows")) {
                 var file = dest.resolve(filename + ".bat");
                 try (var w = Files.newBufferedWriter(file)) {
                     w.write("@echo off\r\n");
