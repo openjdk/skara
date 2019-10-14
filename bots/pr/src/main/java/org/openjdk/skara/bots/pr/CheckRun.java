@@ -194,6 +194,12 @@ class CheckRun {
             return;
         }
 
+        // Draft requests are not for review
+        if (pr.isDraft()) {
+            newLabels.remove("rfr");
+            return;
+        }
+
         // Check if the visitor found any issues that should be resolved before reviewing
         if (visitor.isReadyForReview()) {
             newLabels.add("rfr");

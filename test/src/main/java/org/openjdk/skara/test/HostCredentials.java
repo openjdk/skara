@@ -281,10 +281,14 @@ public class HostCredentials implements AutoCloseable {
         return credentials.getIssueProject(host);
     }
 
-    public PullRequest createPullRequest(HostedRepository hostedRepository, String targetRef, String sourceRef, String title) {
-        var pr = hostedRepository.createPullRequest(hostedRepository, targetRef, sourceRef, title, List.of());
+    public PullRequest createPullRequest(HostedRepository hostedRepository, String targetRef, String sourceRef, String title, boolean draft) {
+        var pr = hostedRepository.createPullRequest(hostedRepository, targetRef, sourceRef, title, List.of(), draft);
         pullRequestsToBeClosed.add(pr);
         return pr;
+    }
+
+    public PullRequest createPullRequest(HostedRepository hostedRepository, String targetRef, String sourceRef, String title) {
+        return createPullRequest(hostedRepository, targetRef, sourceRef, title, false);
     }
 
     public CensusBuilder getCensusBuilder() {

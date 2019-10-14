@@ -57,10 +57,11 @@ public class TestPullRequest extends TestIssue implements PullRequest {
         }
     }
 
-    static TestPullRequest createNew(TestHostedRepository repository, String id, String targetRef, String sourceRef, String title, List<String> body) {
+    static TestPullRequest createNew(TestHostedRepository repository, String id, String targetRef, String sourceRef, String title, List<String> body, boolean draft) {
         var data = new PullRequestData();
         data.title = title;
         data.body = String.join("\n", body);
+        data.draft = draft;
         var pr = new TestPullRequest(repository, id, repository.host().getCurrentUserDetails(), repository.host().getCurrentUserDetails(), targetRef, sourceRef, data);
         return pr;
     }
@@ -182,6 +183,11 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     @Override
     public URI getChangeUrl(Hash base) {
         return URIBuilder.base(getWebUrl()).appendPath("/files/" + base.abbreviate()).build();
+    }
+
+    @Override
+    public boolean isDraft() {
+        return data.draft;
     }
 
     @Override

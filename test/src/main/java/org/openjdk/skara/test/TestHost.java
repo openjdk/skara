@@ -140,9 +140,9 @@ public class TestHost implements Host {
         }
     }
 
-    TestPullRequest createPullRequest(TestHostedRepository repository, String targetRef, String sourceRef, String title, List<String> body) {
+    TestPullRequest createPullRequest(TestHostedRepository repository, String targetRef, String sourceRef, String title, List<String> body, boolean draft) {
         var id = String.valueOf(data.pullRequests.size() + 1);
-        var pr = TestPullRequest.createNew(repository, id, targetRef, sourceRef, title, body);
+        var pr = TestPullRequest.createNew(repository, id, targetRef, sourceRef, title, body, draft);
         data.pullRequests.put(id, pr);
         return pr;
     }

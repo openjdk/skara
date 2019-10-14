@@ -94,7 +94,8 @@ public class GitLabRepository implements HostedRepository {
                                          String targetRef,
                                          String sourceRef,
                                          String title,
-                                         List<String> body) {
+                                         List<String> body,
+                                         boolean draft) {
         if (!(target instanceof GitLabRepository)) {
             throw new IllegalArgumentException("target must be a GitLab repository");
         }
@@ -102,7 +103,7 @@ public class GitLabRepository implements HostedRepository {
         var pr = request.post("merge_requests")
                         .body("source_branch", sourceRef)
                         .body("target_branch", targetRef)
-                        .body("title", title)
+                        .body("title", draft ? "WIP: " : "" + title)
                         .body("description", String.join("\n", body))
                         .body("target_project_id", Long.toString(target.getId()))
                         .execute();

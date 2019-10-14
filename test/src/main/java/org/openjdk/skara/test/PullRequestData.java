@@ -32,4 +32,5 @@ class PullRequestData extends IssueData {
     final List<ReviewComment> reviewComments = new ArrayList<>();
     final Set<Check> checks = new HashSet<>();
     final List<Review> reviews = new ArrayList<>();
+    boolean draft;
 }

@@ -24,7 +24,7 @@ package org.openjdk.skara.host.github;
 
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.host.network.*;
-import org.openjdk.skara.json.JSONValue;
+import org.openjdk.skara.json.*;
 import org.openjdk.skara.vcs.*;
 
 import java.net.URI;
@@ -52,7 +52,8 @@ public class GitHubRepository implements HostedRepository {
         request = new RestRequest(apiBase, () -> Arrays.asList(
                 "Authorization", "token " + gitHubHost.getInstallationToken(),
                 "Accept", "application/vnd.github.machine-man-preview+json",
-                "Accept", "application/vnd.github.antiope-preview+json"));
+                "Accept", "application/vnd.github.antiope-preview+json",
+                "Accept", "application/vnd.github.shadow-cat-preview+json"));
         json = gitHubHost.getProjectInfo(repository);
         var urlPattern = gitHubHost.getWebURI("/" + repository + "/pull/").toString();
         pullRequestPattern = Pattern.compile(urlPattern + "(\\d+)");
@@ -92,7 +93,8 @@ public class GitHubRepository implements HostedRepository {
                                          String targetRef,
                                          String sourceRef,
                                          String title,
-                                         List<String> body) {
+                                         List<String> body,
+                                         boolean draft) {
         if (!(target instanceof GitHubRepository)) {
             throw new IllegalArgumentException("target repository must be a GitHub repository");
         }
@@ -100,11 +102,14 @@ public class GitHubRepository implements HostedRepository {
         var upstream = (GitHubRepository) target;
         var user = host().getCurrentUserDetails().userName();
         var namespace = user.endsWith("[bot]") ? "" : user + ":";
+        var params = JSON.object()
+                         .put("title", title)
+                         .put("head", namespace + sourceRef)
+                         .put("base", targetRef)
+                         .put("body", String.join("\n", body))
+                         .put("draft", draft);
         var pr = upstream.request.post("pulls")
-                                 .body("title", title)
-                                 .body("head", namespace + sourceRef)
-                                 .body("base", targetRef)
-                                 .body("body", String.join("\n", body))
+                                 .body(params)
                                  .execute();
 
         return new GitHubPullRequest(upstream, pr, request);
