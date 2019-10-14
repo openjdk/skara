@@ -37,7 +37,8 @@ class MailmanTests {
     void simple() throws IOException {
         try (var testServer = new TestMailmanServer()) {
             var listAddress = testServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP());
+            var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
+                                                                             Duration.ZERO);
             var mailmanList = mailmanServer.getList(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
             var mail = Email.create(sender, "Subject", "Body")
@@ -57,7 +58,8 @@ class MailmanTests {
     void replies() throws IOException {
         try (var testServer = new TestMailmanServer()) {
             var listAddress = testServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP());
+            var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
+                                                                             Duration.ZERO);
             var mailmanList = mailmanServer.getList(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
             var sentParent = Email.create(sender, "Subject", "Body")
@@ -95,7 +97,8 @@ class MailmanTests {
     void cached() throws IOException {
         try (var testServer = new TestMailmanServer()) {
             var listAddress = testServer.createList("test");
-            var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP());
+            var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
+                                                                             Duration.ZERO);
             var mailmanList = mailmanServer.getList(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
             var mail = Email.create(sender, "Subject", "Body")
@@ -118,6 +121,34 @@ class MailmanTests {
                 assertEquals(mail, conversation.first());
                 assertTrue(testServer.lastResponseCached());
             }
+        }
+    }
+
+    @Test
+    void interval() throws IOException {
+        try (var testServer = new TestMailmanServer()) {
+            var listAddress = testServer.createList("test");
+            var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
+                                                                             Duration.ofDays(1));
+            var mailmanList = mailmanServer.getList(listAddress);
+            var sender = EmailAddress.from("Test", "test@test.email");
+            var mail1 = Email.create(sender, "Subject 1", "Body 1")
+                            .recipient(EmailAddress.parse(listAddress))
+                            .build();
+            var mail2 = Email.create(sender, "Subject 2", "Body 2")
+                             .recipient(EmailAddress.parse(listAddress))
+                             .build();
+            new Thread(() -> {
+                mailmanList.post(mail1);
+                mailmanList.post(mail2);
+            }).start();
+            testServer.processIncoming();
+            assertThrows(RuntimeException.class, () -> testServer.processIncoming(Duration.ZERO));
+
+            var conversations = mailmanList.conversations(Duration.ofDays(1));
+            assertEquals(1, conversations.size());
+            var conversation = conversations.get(0);
+            assertEquals(mail1, conversation.first());
         }
     }
 }

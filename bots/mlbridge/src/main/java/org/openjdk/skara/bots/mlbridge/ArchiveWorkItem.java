@@ -235,7 +235,7 @@ class ArchiveWorkItem implements WorkItem {
                                                  jbs.toUpperCase());
         var reviewArchive = new ReviewArchive(bot.emailAddress(), prInstance, census, sentMails);
         var webrevPath = scratchPath.resolve("mlbridge-webrevs");
-        var listServer = MailingListServerFactory.createMailmanServer(bot.listArchive(), bot.smtpServer());
+        var listServer = MailingListServerFactory.createMailmanServer(bot.listArchive(), bot.smtpServer(), bot.sendInterval());
         var list = listServer.getList(bot.listAddress().address());
 
         // First post

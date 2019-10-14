@@ -30,6 +30,7 @@ import org.openjdk.skara.json.*;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -55,6 +56,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
                                       .collect(Collectors.toSet());
         var listArchive = URIBuilder.base(specific.get("server").get("archive").asString()).build();
         var listSmtp = specific.get("server").get("smtp").asString();
+        var interval = specific.get("server").contains("interval") ? Duration.parse(specific.get("server").get("interval").asString()) : Duration.ofSeconds(1);
 
         var webrevRepo = configuration.repository(specific.get("webrevs").get("repository").asString());
         var webrevRef = configuration.repositoryRef(specific.get("webrevs").get("repository").asString());
@@ -91,14 +93,14 @@ public class MailingListBridgeBotFactory implements BotFactory {
                                                list, ignoredUsers, ignoredComments, listArchive, listSmtp,
                                                webrevRepo, webrevRef, Path.of(folder),
                                                URIBuilder.base(webrevWeb).build(), readyLabels, readyComments,
-                                               issueTracker, headers);
+                                               issueTracker, headers, interval);
             ret.add(bot);
 
             allListNames.add(list);
             allRepositories.add(configuration.repository(repo));
         }
 
-        var mailmanServer = MailingListServerFactory.createMailmanServer(listArchive, listSmtp);
+        var mailmanServer = MailingListServerFactory.createMailmanServer(listArchive, listSmtp, Duration.ZERO);
         var allLists = allListNames.stream()
                                    .map(name -> mailmanServer.getList(name.toString()))
                                    .collect(Collectors.toSet());

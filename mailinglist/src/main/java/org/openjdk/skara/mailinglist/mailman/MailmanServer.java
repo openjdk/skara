@@ -28,17 +28,21 @@ import org.openjdk.skara.mailinglist.*;
 
 import java.io.*;
 import java.net.URI;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 public class MailmanServer implements MailingListServer {
     private final URI archive;
     private final String smtpServer;
+    private volatile Instant lastSend;
+    private Duration sendInterval;
 
-    public MailmanServer(URI archive, String smtpServer) {
+    public MailmanServer(URI archive, String smtpServer, Duration sendInterval) {
         this.archive = archive;
         this.smtpServer = smtpServer;
+        this.sendInterval = sendInterval;
+        lastSend = Instant.EPOCH;
     }
 
     URI getMbox(String listName, ZonedDateTime month) {
@@ -47,6 +51,13 @@ public class MailmanServer implements MailingListServer {
     }
 
     void sendMessage(EmailAddress recipientList, Email message) {
+        while (lastSend.plus(sendInterval).isAfter(Instant.now())) {
+            try {
+                Thread.sleep(sendInterval.dividedBy(10).toMillis());
+            } catch (InterruptedException ignored) {
+            }
+        }
+        lastSend = Instant.now();
         try {
             SMTP.send(smtpServer, recipientList, message);
         } catch (IOException e) {
