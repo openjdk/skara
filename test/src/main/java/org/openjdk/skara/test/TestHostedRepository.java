@@ -58,8 +58,8 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public PullRequest createPullRequest(HostedRepository target, String targetRef, String sourceRef, String title, List<String> body) {
-        return host.createPullRequest(this, targetRef, sourceRef, title, body);
+    public PullRequest createPullRequest(HostedRepository target, String targetRef, String sourceRef, String title, List<String> body, boolean draft) {
+        return host.createPullRequest(this, targetRef, sourceRef, title, body, draft);
     }
 
     @Override

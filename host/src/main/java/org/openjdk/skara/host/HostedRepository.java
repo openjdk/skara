@@ -34,7 +34,8 @@ public interface HostedRepository extends IssueProject {
                                   String targetRef,
                                   String sourceRef,
                                   String title,
-                                  List<String> body);
+                                  List<String> body,
+                                  boolean draft);
     PullRequest getPullRequest(String id);
     List<PullRequest> getPullRequests();
     List<PullRequest> findPullRequestsWithComment(String author, String body);
@@ -50,4 +51,12 @@ public interface HostedRepository extends IssueProject {
     HostedRepository fork();
     long getId();
     Hash getBranchHash(String ref);
+
+    default PullRequest createPullRequest(HostedRepository target,
+                                          String targetRef,
+                                          String sourceRef,
+                                          String title,
+                                          List<String> body) {
+        return createPullRequest(target, targetRef, sourceRef, title, body, false);
+    }
 }

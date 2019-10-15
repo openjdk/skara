@@ -116,4 +116,10 @@ public interface PullRequest extends Issue {
      * Returns a link that will lead to the list of changes with the specified base.
      */
     URI getChangeUrl(Hash base);
+
+    /**
+     * Returns true if the request is in draft mode.
+     * @return
+     */
+    boolean isDraft();
 }

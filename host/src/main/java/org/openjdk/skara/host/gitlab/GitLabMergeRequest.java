@@ -518,6 +518,11 @@ public class GitLabMergeRequest implements PullRequest {
                          .build();
     }
 
+    @Override
+    public boolean isDraft() {
+        return json.get("work_in_progress").asBoolean();
+    }
+
 
     @Override
     public void setState(State state) {

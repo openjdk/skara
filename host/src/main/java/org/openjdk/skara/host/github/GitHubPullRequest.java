@@ -400,6 +400,11 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
+    public boolean isDraft() {
+        return json.get("draft").asBoolean();
+    }
+
+    @Override
     public void setState(State state) {
         request.patch("pulls/" + json.get("number").toString())
                .body("state", state == State.CLOSED ? "closed" : "open")
