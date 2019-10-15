@@ -27,7 +27,6 @@ import org.openjdk.skara.host.*;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.*;
 import org.openjdk.skara.proxy.HttpProxy;
-import org.openjdk.skara.ssh.SSHConfig;
 
 import java.io.IOException;
 import java.net.URI;
@@ -105,8 +104,8 @@ public class GitPr {
         if (System.getenv("GIT_TOKEN") == null) {
             GitCredentials.approve(credentials);
         }
-        var remoteRepo = host.getRepository(projectName(uri));
-        var parentRepo = remoteRepo.getParent();
+        var remoteRepo = host.repository(projectName(uri));
+        var parentRepo = remoteRepo.parent();
         var targetRepo = parentRepo.isPresent() ? parentRepo.get() : remoteRepo;
         return targetRepo;
     }
@@ -116,7 +115,7 @@ public class GitPr {
             exit("error: missing pull request identifier");
         }
 
-        var pr = getHostedRepositoryFor(uri, credentials).getPullRequest(prId.asString());
+        var pr = getHostedRepositoryFor(uri, credentials).pullRequest(prId.asString());
         if (pr == null) {
             exit("error: could not fetch PR information");
         }
@@ -412,11 +411,11 @@ public class GitPr {
                     System.exit(1);
                 }
 
-                var remoteRepo = host.getRepository(projectName(uri));
+                var remoteRepo = host.repository(projectName(uri));
                 if (token == null) {
                     GitCredentials.approve(credentials);
                 }
-                var parentRepo = remoteRepo.getParent().orElseThrow(() ->
+                var parentRepo = remoteRepo.parent().orElseThrow(() ->
                         new IOException("error: remote repository " + remotePullPath + " is not a fork of any repository"));
 
                 var file = Files.createTempFile("PULL_REQUEST_", ".txt");
@@ -480,11 +479,11 @@ public class GitPr {
                 if (arguments.contains("assignees")) {
                     var usernames = Arrays.asList(arguments.get("assignees").asString().split(","));
                     var assignees = usernames.stream()
-                                             .map(host::getUserDetails)
+                                             .map(host::user)
                                              .collect(Collectors.toList());
                     pr.setAssignees(assignees);
                 }
-                System.out.println(pr.getWebUrl().toString());
+                System.out.println(pr.webUrl().toString());
                 Files.deleteIfExists(file);
 
                 System.exit(0);
@@ -569,11 +568,11 @@ public class GitPr {
                 System.exit(1);
             }
 
-            var remoteRepo = host.getRepository(projectName(uri));
+            var remoteRepo = host.repository(projectName(uri));
             if (token == null) {
                 GitCredentials.approve(credentials);
             }
-            var parentRepo = remoteRepo.getParent().orElseThrow(() ->
+            var parentRepo = remoteRepo.parent().orElseThrow(() ->
                     new IOException("error: remote repository " + remotePullPath + " is not a fork of any repository"));
 
             var file = Files.createTempFile("PULL_REQUEST_", ".txt");
@@ -637,11 +636,11 @@ public class GitPr {
             if (arguments.contains("assignees")) {
                 var usernames = Arrays.asList(arguments.get("assignees").asString().split(","));
                 var assignees = usernames.stream()
-                                         .map(host::getUserDetails)
+                                         .map(host::user)
                                          .collect(Collectors.toList());
                 pr.setAssignees(assignees);
             }
-            System.out.println(pr.getWebUrl().toString());
+            System.out.println(pr.webUrl().toString());
             Files.deleteIfExists(file);
         } else if (action.equals("integrate") || action.equals("approve")) {
             var pr = getPullRequest(uri, credentials, arguments.at(1));
@@ -655,7 +654,7 @@ public class GitPr {
             }
         } else if (action.equals("list")) {
             var remoteRepo = getHostedRepositoryFor(uri, credentials);
-            var prs = remoteRepo.getPullRequests();
+            var prs = remoteRepo.pullRequests();
 
             var ids = new ArrayList<String>();
             var titles = new ArrayList<String>();
@@ -692,26 +691,26 @@ public class GitPr {
                 }
             }
 
-            for (var pr : remoteRepo.getPullRequests()) {
-                var prAuthor = pr.getAuthor().userName();
+            for (var pr : remoteRepo.pullRequests()) {
+                var prAuthor = pr.author().userName();
                 if (!filterAuthors.isEmpty() && !filterAuthors.contains(prAuthor)) {
                     continue;
                 }
 
-                var prAssignees = pr.getAssignees().stream()
-                                   .map(HostUserDetails::userName)
-                                   .collect(Collectors.toSet());
+                var prAssignees = pr.assignees().stream()
+                                    .map(HostUser::userName)
+                                    .collect(Collectors.toSet());
                 if (!filterAssignees.isEmpty() && !filterAssignees.stream().anyMatch(prAssignees::contains)) {
                     continue;
                 }
 
-                var prLabels = new HashSet<>(pr.getLabels());
+                var prLabels = new HashSet<>(pr.labels());
                 if (!filterLabels.isEmpty() && !filterLabels.stream().anyMatch(prLabels::contains)) {
                     continue;
                 }
 
-                ids.add(pr.getId());
-                titles.add(pr.getTitle());
+                ids.add(pr.id());
+                titles.add(pr.title());
                 authors.add(prAuthor);
                 assignees.add(String.join(",", prAssignees));
                 labels.add(String.join(",", prLabels));
@@ -747,16 +746,16 @@ public class GitPr {
             }
 
             var remoteRepo = getHostedRepositoryFor(uri, credentials);
-            var pr = remoteRepo.getPullRequest(prId.asString());
-            var repoUrl = remoteRepo.getWebUrl();
-            var prHeadRef = pr.getSourceRef();
+            var pr = remoteRepo.pullRequest(prId.asString());
+            var repoUrl = remoteRepo.webUrl();
+            var prHeadRef = pr.sourceRef();
             var isHgGit = isMercurial && Repository.exists(repo.root().resolve(".hg").resolve("git"));
             if (isHgGit) {
                 var hgGitRepo = Repository.get(repo.root().resolve(".hg").resolve("git")).get();
                 var hgGitFetchHead = hgGitRepo.fetch(repoUrl, prHeadRef);
 
                 if (action.equals("show") || action.equals("apply")) {
-                    var target = hgGitRepo.fetch(repoUrl, pr.getTargetRef());
+                    var target = hgGitRepo.fetch(repoUrl, pr.targetRef());
                     var hgGitMergeBase = hgGitRepo.mergeBase(target, hgGitFetchHead);
 
                     if (action.equals("show")) {
@@ -791,7 +790,7 @@ public class GitPr {
                 return;
             }
 
-            var fetchHead = repo.fetch(repoUrl, pr.getSourceRef());
+            var fetchHead = repo.fetch(repoUrl, pr.sourceRef());
             if (action.equals("fetch")) {
                 if (arguments.contains("branch")) {
                     var branchName = arguments.get("branch").asString();
@@ -808,9 +807,9 @@ public class GitPr {
                     repo.checkout(fetchHead, false);
                 }
             } else if (action.equals("show")) {
-                show(pr.getTargetRef(), fetchHead);
+                show(pr.targetRef(), fetchHead);
             } else if (action.equals("apply")) {
-                var patch = diff(pr.getTargetRef(), fetchHead);
+                var patch = diff(pr.targetRef(), fetchHead);
                 apply(patch);
                 Files.deleteIfExists(patch);
             }
@@ -821,7 +820,7 @@ public class GitPr {
             }
 
             var remoteRepo = getHostedRepositoryFor(uri, credentials);
-            var pr = remoteRepo.getPullRequest(prId.asString());
+            var pr = remoteRepo.pullRequest(prId.asString());
             pr.setState(PullRequest.State.CLOSED);
         } else if (action.equals("update")) {
             var prId = arguments.at(1);
@@ -830,11 +829,11 @@ public class GitPr {
             }
 
             var remoteRepo = getHostedRepositoryFor(uri, credentials);
-            var pr = remoteRepo.getPullRequest(prId.asString());
+            var pr = remoteRepo.pullRequest(prId.asString());
             if (arguments.contains("assignees")) {
                 var usernames = Arrays.asList(arguments.get("assignees").asString().split(","));
                 var assignees = usernames.stream()
-                    .map(host::getUserDetails)
+                    .map(host::user)
                     .collect(Collectors.toList());
                 pr.setAssignees(assignees);
             }

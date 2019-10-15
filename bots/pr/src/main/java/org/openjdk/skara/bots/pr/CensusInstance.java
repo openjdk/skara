@@ -49,7 +49,7 @@ class CensusInstance {
 
     private static Repository initialize(HostedRepository repo, String ref, Path folder) {
         try {
-            return Repository.materialize(folder, repo.getUrl(), ref);
+            return Repository.materialize(folder, repo.url(), ref);
         } catch (IOException e) {
             throw new RuntimeException("Failed to retrieve census to " + folder, e);
         }
@@ -76,28 +76,28 @@ class CensusInstance {
     }
 
     private static JCheckConfiguration configuration(HostedRepository remoteRepo, String ref) {
-        var confFile = remoteRepo.getFileContents(".jcheck/conf", ref);
+        var confFile = remoteRepo.fileContents(".jcheck/conf", ref);
         return JCheckConfiguration.parse(confFile.lines().collect(Collectors.toList()));
     }
 
     static CensusInstance create(HostedRepository censusRepo, String censusRef, Path folder, PullRequest pr) {
-        var repoName = censusRepo.getUrl().getHost() + "/" + censusRepo.getName();
+        var repoName = censusRepo.url().getHost() + "/" + censusRepo.name();
         var repoFolder = folder.resolve(URLEncoder.encode(repoName, StandardCharsets.UTF_8));
         try {
             var localRepo = Repository.get(repoFolder)
                                       .or(() -> Optional.of(initialize(censusRepo, censusRef, repoFolder)))
                                       .orElseThrow();
-            var hash = localRepo.fetch(censusRepo.getUrl(), censusRef);
+            var hash = localRepo.fetch(censusRepo.url(), censusRef);
             localRepo.checkout(hash, true);
         } catch (IOException e) {
             initialize(censusRepo, censusRef, repoFolder);
         }
 
         try {
-            var configuration = configuration(pr.repository(), pr.getTargetRef());
+            var configuration = configuration(pr.repository(), pr.targetRef());
             var census = Census.parse(repoFolder);
             var project = project(configuration, census);
-            var namespace = namespace(census, pr.repository().getNamespace());
+            var namespace = namespace(census, pr.repository().namespace());
             return new CensusInstance(census, configuration, project, namespace);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot parse census at " + repoFolder, e);

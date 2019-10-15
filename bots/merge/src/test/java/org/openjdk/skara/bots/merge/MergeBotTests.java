@@ -42,7 +42,7 @@ class MergeBotTests {
     @Test
     void mergeMasterBranch(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUserDetails(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
@@ -102,14 +102,14 @@ class MergeBotTests {
             assertEquals("duke", merge.author().name());
             assertEquals("duke@openjdk.org", merge.author().email());
 
-            assertEquals(0, toHostedRepo.getPullRequests().size());
+            assertEquals(0, toHostedRepo.pullRequests().size());
         }
     }
 
     @Test
     void failingMergeTest(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUserDetails(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
@@ -161,17 +161,17 @@ class MergeBotTests {
             assertTrue(toHashes.contains(toHashA));
             assertTrue(toHashes.contains(toHashB));
 
-            var pullRequests = toHostedRepo.getPullRequests();
+            var pullRequests = toHostedRepo.pullRequests();
             assertEquals(1, pullRequests.size());
             var pr = pullRequests.get(0);
-            assertEquals("Cannot automatically merge test:master", pr.getTitle());
+            assertEquals("Cannot automatically merge test:master", pr.title());
         }
     }
 
     @Test
     void failingMergeShouldResultInOnlyOnePR(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUserDetails(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
@@ -224,17 +224,17 @@ class MergeBotTests {
             assertTrue(toHashes.contains(toHashA));
             assertTrue(toHashes.contains(toHashB));
 
-            var pullRequests = toHostedRepo.getPullRequests();
+            var pullRequests = toHostedRepo.pullRequests();
             assertEquals(1, pullRequests.size());
             var pr = pullRequests.get(0);
-            assertEquals("Cannot automatically merge test:master", pr.getTitle());
+            assertEquals("Cannot automatically merge test:master", pr.title());
         }
     }
 
     @Test
     void resolvedMergeConflictShouldResultInClosedPR(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory(false)) {
-            var host = TestHost.createNew(List.of(new HostUserDetails(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
@@ -287,12 +287,12 @@ class MergeBotTests {
             assertTrue(toHashes.contains(toHashA));
             assertTrue(toHashes.contains(toHashB));
 
-            var pullRequests = toHostedRepo.getPullRequests();
+            var pullRequests = toHostedRepo.pullRequests();
             assertEquals(1, pullRequests.size());
             var pr = pullRequests.get(0);
-            assertEquals("Cannot automatically merge test:master", pr.getTitle());
+            assertEquals("Cannot automatically merge test:master", pr.title());
 
-            var fetchHead = toLocalRepo.fetch(fromHostedRepo.getWebUrl(), "master");
+            var fetchHead = toLocalRepo.fetch(fromHostedRepo.webUrl(), "master");
             toLocalRepo.merge(fetchHead, "ours");
             toLocalRepo.commit("Merge", "duke", "duke@openjdk.org", now);
 
@@ -300,7 +300,7 @@ class MergeBotTests {
             assertEquals(4, toCommits.size());
 
             TestBotRunner.runPeriodicItems(bot);
-            pullRequests = toHostedRepo.getPullRequests();
+            pullRequests = toHostedRepo.pullRequests();
             assertEquals(0, pullRequests.size());
         }
     }
@@ -308,7 +308,7 @@ class MergeBotTests {
     @Test
     void resolvedMergeConflictAndThenNewConflict(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory(false)) {
-            var host = TestHost.createNew(List.of(new HostUserDetails(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
@@ -361,12 +361,12 @@ class MergeBotTests {
             assertTrue(toHashes.contains(toHashA));
             assertTrue(toHashes.contains(toHashB));
 
-            var pullRequests = toHostedRepo.getPullRequests();
+            var pullRequests = toHostedRepo.pullRequests();
             assertEquals(1, pullRequests.size());
             var pr = pullRequests.get(0);
-            assertEquals("Cannot automatically merge test:master", pr.getTitle());
+            assertEquals("Cannot automatically merge test:master", pr.title());
 
-            var fetchHead = toLocalRepo.fetch(fromHostedRepo.getWebUrl(), "master");
+            var fetchHead = toLocalRepo.fetch(fromHostedRepo.webUrl(), "master");
             toLocalRepo.merge(fetchHead, "ours");
             toLocalRepo.commit("Merge", "duke", "duke@openjdk.org", now);
 
@@ -374,7 +374,7 @@ class MergeBotTests {
             assertEquals(4, toCommits.size());
 
             TestBotRunner.runPeriodicItems(bot);
-            pullRequests = toHostedRepo.getPullRequests();
+            pullRequests = toHostedRepo.pullRequests();
             assertEquals(0, pullRequests.size());
 
             var fromFileC = fromDir.resolve("c.txt");
@@ -388,9 +388,9 @@ class MergeBotTests {
             toLocalRepo.commit("Adding c2", "duke", "duke@openjdk.org", now);
 
             TestBotRunner.runPeriodicItems(bot);
-            pullRequests = toHostedRepo.getPullRequests();
+            pullRequests = toHostedRepo.pullRequests();
             assertEquals(1, pullRequests.size());
-            assertEquals("Cannot automatically merge test:master", pr.getTitle());
+            assertEquals("Cannot automatically merge test:master", pr.title());
         }
     }
 }

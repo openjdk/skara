@@ -61,33 +61,33 @@ class ForwardBot implements Bot, WorkItem {
             return true;
         }
         var otherBot = (ForwardBot) other;
-        return !toHostedRepo.getName().equals(otherBot.toHostedRepo.getName());
+        return !toHostedRepo.name().equals(otherBot.toHostedRepo.name());
     }
 
     @Override
     public void run(Path scratchPath) {
         try {
             var sanitizedUrl =
-                URLEncoder.encode(toHostedRepo.getWebUrl().toString(), StandardCharsets.UTF_8);
+                URLEncoder.encode(toHostedRepo.webUrl().toString(), StandardCharsets.UTF_8);
             var toDir = storage.resolve(sanitizedUrl);
             Repository toLocalRepo = null;
             if (!Files.exists(toDir)) {
-                log.info("Cloning " + toHostedRepo.getName());
+                log.info("Cloning " + toHostedRepo.name());
                 Files.createDirectories(toDir);
-                toLocalRepo = Repository.clone(toHostedRepo.getUrl(), toDir, true);
+                toLocalRepo = Repository.clone(toHostedRepo.url(), toDir, true);
             } else {
-                log.info("Found existing scratch directory for " + toHostedRepo.getName());
+                log.info("Found existing scratch directory for " + toHostedRepo.name());
                 toLocalRepo = Repository.get(toDir).orElseThrow(() -> {
                         return new RuntimeException("Repository in " + toDir + " has vanished");
                 });
             }
 
-            log.info("Fetching " + fromHostedRepo.getName() + ":" + fromBranch.name() +
+            log.info("Fetching " + fromHostedRepo.name() + ":" + fromBranch.name() +
                      " to " + toBranch.name());
-            var fetchHead = toLocalRepo.fetch(fromHostedRepo.getUrl(),
+            var fetchHead = toLocalRepo.fetch(fromHostedRepo.url(),
                                               fromBranch.name() + ":" + toBranch.name());
-            log.info("Pushing " + toBranch.name() + " to " + toHostedRepo.getName());
-            toLocalRepo.push(fetchHead, toHostedRepo.getUrl(), toBranch.name(), false);
+            log.info("Pushing " + toBranch.name() + " to " + toHostedRepo.name());
+            toLocalRepo.push(fetchHead, toHostedRepo.url(), toBranch.name(), false);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -95,8 +95,8 @@ class ForwardBot implements Bot, WorkItem {
 
     @Override
     public String toString() {
-        return "FowardBot@(" + fromHostedRepo.getName() + ":" + fromBranch.name() +
-                           "-> " + toHostedRepo.getName() + ":" + toBranch.name() + ")";
+        return "FowardBot@(" + fromHostedRepo.name() + ":" + fromBranch.name() +
+                           "-> " + toHostedRepo.name() + ":" + toBranch.name() + ")";
     }
 
     @Override

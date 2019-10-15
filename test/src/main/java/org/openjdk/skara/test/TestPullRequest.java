@@ -39,7 +39,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     private final String sourceRef;
     private final PullRequestData data;
 
-    private TestPullRequest(TestHostedRepository repository, String id, HostUserDetails author, HostUserDetails user, String targetRef, String sourceRef, PullRequestData data) {
+    private TestPullRequest(TestHostedRepository repository, String id, HostUser author, HostUser user, String targetRef, String sourceRef, PullRequestData data) {
         super(repository, id, author, user, data);
         this.repository = repository;
         this.targetRef = targetRef;
@@ -62,12 +62,12 @@ public class TestPullRequest extends TestIssue implements PullRequest {
         data.title = title;
         data.body = String.join("\n", body);
         data.draft = draft;
-        var pr = new TestPullRequest(repository, id, repository.host().getCurrentUserDetails(), repository.host().getCurrentUserDetails(), targetRef, sourceRef, data);
+        var pr = new TestPullRequest(repository, id, repository.host().currentUser(), repository.host().currentUser(), targetRef, sourceRef, data);
         return pr;
     }
 
     static TestPullRequest createFrom(TestHostedRepository repository, TestPullRequest other) {
-        var pr = new TestPullRequest(repository, other.id, other.author, repository.host().getCurrentUserDetails(), other.targetRef, other.sourceRef, other.data);
+        var pr = new TestPullRequest(repository, other.id, other.author, repository.host().currentUser(), other.targetRef, other.sourceRef, other.data);
         return pr;
     }
 
@@ -82,14 +82,14 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     }
 
     @Override
-    public List<Review> getReviews() {
+    public List<Review> reviews() {
         return new ArrayList<>(data.reviews);
     }
 
     @Override
     public void addReview(Review.Verdict verdict, String body) {
         try {
-            var review = new Review(repository.host().getCurrentUserDetails(),
+            var review = new Review(repository.host().currentUser(),
                                     verdict, repository.localRepository().resolve(sourceRef).orElseThrow(),
                                     data.reviews.size(),
                                     body);
@@ -122,32 +122,32 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     }
 
     @Override
-    public List<ReviewComment> getReviewComments() {
+    public List<ReviewComment> reviewComments() {
         return new ArrayList<>(data.reviewComments);
     }
 
     @Override
-    public Hash getHeadHash() {
+    public Hash headHash() {
         return data.headHash;
     }
 
     @Override
-    public String getSourceRef() {
+    public String sourceRef() {
         return sourceRef;
     }
 
     @Override
-    public String getTargetRef() {
+    public String targetRef() {
         return targetRef;
     }
 
     @Override
-    public Hash getTargetHash() {
-        return repository.getBranchHash(targetRef);
+    public Hash targetHash() {
+        return repository.branchHash(targetRef);
     }
 
     @Override
-    public Map<String, Check> getChecks(Hash hash) {
+    public Map<String, Check> checks(Hash hash) {
         return data.checks.stream()
                 .filter(check -> check.hash().equals(hash))
                 .collect(Collectors.toMap(Check::name, Function.identity()));
@@ -176,13 +176,13 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     }
 
     @Override
-    public URI getChangeUrl() {
-        return URIBuilder.base(getWebUrl()).appendPath("/files").build();
+    public URI changeUrl() {
+        return URIBuilder.base(webUrl()).appendPath("/files").build();
     }
 
     @Override
-    public URI getChangeUrl(Hash base) {
-        return URIBuilder.base(getWebUrl()).appendPath("/files/" + base.abbreviate()).build();
+    public URI changeUrl(Hash base) {
+        return URIBuilder.base(webUrl()).appendPath("/files/" + base.abbreviate()).build();
     }
 
     @Override
@@ -191,9 +191,9 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     }
 
     @Override
-    public URI getWebUrl() {
+    public URI webUrl() {
         try {
-            return new URI(repository.getUrl().toString() + "/pr/" + getId());
+            return new URI(repository.url().toString() + "/pr/" + id());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }

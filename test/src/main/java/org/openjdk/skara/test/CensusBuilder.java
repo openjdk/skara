@@ -206,8 +206,8 @@ public class CensusBuilder {
 
     public HostedRepository build() {
         try {
-            var host = TestHost.createNew(List.of(new HostUserDetails(1, "cu", "Census User")));
-            var repository = host.getRepository("census");
+            var host = TestHost.createNew(List.of(new HostUser(1, "cu", "Census User")));
+            var repository = host.repository("census");
             var folder = Files.createTempDirectory("censusbuilder");
             var localRepository = Repository.init(folder, VCS.GIT);
 
@@ -220,7 +220,7 @@ public class CensusBuilder {
 
             localRepository.add(folder);
             var hash = localRepository.commit("Generated census", "Census User", "cu@test.test");
-            localRepository.push(hash, repository.getUrl(), "master", true);
+            localRepository.push(hash, repository.url(), "master", true);
             return repository;
 
         } catch (IOException e) {

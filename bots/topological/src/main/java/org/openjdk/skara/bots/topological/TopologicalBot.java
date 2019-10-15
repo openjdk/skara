@@ -61,22 +61,22 @@ class TopologicalBot implements Bot, WorkItem {
             return true;
         }
         var otherBot = (TopologicalBot) other;
-        return !hostedRepo.getName().equals(otherBot.hostedRepo.getName());
+        return !hostedRepo.name().equals(otherBot.hostedRepo.name());
     }
 
     @Override
     public void run(Path scratchPath) {
         log.info("Starting topobot run");
         try {
-            var sanitizedUrl = URLEncoder.encode(hostedRepo.getWebUrl().toString(), StandardCharsets.UTF_8);
+            var sanitizedUrl = URLEncoder.encode(hostedRepo.webUrl().toString(), StandardCharsets.UTF_8);
             var dir = storage.resolve(sanitizedUrl);
             Repository repo;
             if (!Files.exists(dir)) {
-                log.info("Cloning " + hostedRepo.getName());
+                log.info("Cloning " + hostedRepo.name());
                 Files.createDirectories(dir);
-                repo = Repository.clone(hostedRepo.getUrl(), dir);
+                repo = Repository.clone(hostedRepo.url(), dir);
             } else {
-                log.info("Found existing scratch directory for " + hostedRepo.getName());
+                log.info("Found existing scratch directory for " + hostedRepo.name());
                 repo = Repository.get(dir)
                         .orElseThrow(() -> new RuntimeException("Repository in " + dir + " has vanished"));
             }
@@ -166,7 +166,7 @@ class TopologicalBot implements Bot, WorkItem {
                             .collect(Collectors.joining("\n", "\n", "\n")));
             }
             try {
-                repo.push(repo.head(), hostedRepo.getUrl(), branch.name());
+                repo.push(repo.head(), hostedRepo.url(), branch.name());
             } catch (IOException e) {
                 log.severe("Pushing failed! Aborting...");
                 repo.reset(oldHead, true);

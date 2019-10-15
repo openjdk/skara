@@ -34,7 +34,7 @@ public interface PullRequest extends Issue {
      * List of reviews, in descending chronological order.
      * @return
      */
-    List<Review> getReviews();
+    List<Review> reviews();
 
     /**
      * Adds a review with the given verdict.
@@ -63,37 +63,37 @@ public interface PullRequest extends Issue {
      * Get all file specific comments.
      * @return
      */
-    List<ReviewComment> getReviewComments();
+    List<ReviewComment> reviewComments();
 
     /**
      * Hash of the current head of the request.
      * @return
      */
-    Hash getHeadHash();
+    Hash headHash();
 
     /**
      * Returns the name of the ref the request is created from.
      * @return
      */
-    String getSourceRef();
+    String sourceRef();
 
     /**
      * Returns the name of the ref the request is intended to be merged into.
      * @return
      */
-    String getTargetRef();
+    String targetRef();
 
     /**
      * Returns the current head of the ref the request is intended to be merged into.
      * @return
      */
-    Hash getTargetHash();
+    Hash targetHash();
 
     /**
      * List of completed checks on the given hash.
      * @return
      */
-    Map<String, Check> getChecks(Hash hash);
+    Map<String, Check> checks(Hash hash);
 
     /**
      * Creates a new check.
@@ -110,12 +110,12 @@ public interface PullRequest extends Issue {
     /**
      * Returns a link that will lead to the list of changes done in the request.
      */
-    URI getChangeUrl();
+    URI changeUrl();
 
     /**
      * Returns a link that will lead to the list of changes with the specified base.
      */
-    URI getChangeUrl(Hash base);
+    URI changeUrl(Hash base);
 
     /**
      * Returns true if the request is in draft mode.

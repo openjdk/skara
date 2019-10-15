@@ -59,17 +59,17 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
-    public String getId() {
+    public String id() {
         return json.get("iid").toString();
     }
 
     @Override
-    public HostUserDetails getAuthor() {
-        return repository.host().getUserDetails(json.get("author").get("username").asString());
+    public HostUser author() {
+        return repository.host().user(json.get("author").get("username").asString());
     }
 
     @Override
-    public List<Review> getReviews() {
+    public List<Review> reviews() {
 
         class CommitDate {
             private Hash hash;
@@ -97,7 +97,7 @@ public class GitLabMergeRequest implements PullRequest {
                               obj.get("name").asString().equals("thumbsdown") ||
                               obj.get("name").asString().equals("question"))
                       .map(obj -> {
-                          var reviewer = repository.host().getUserDetails(obj.get("user").get("username").asString());
+                          var reviewer = repository.host().user(obj.get("user").get("username").asString());
                           Review.Verdict verdict;
                           switch (obj.get("name").asString()) {
                               case "thumbsup":
@@ -134,7 +134,7 @@ public class GitLabMergeRequest implements PullRequest {
                             .filter(obj -> obj.get("name").asString().equals("thumbsup") ||
                                     obj.get("name").asString().equals("thumbsdown") ||
                                     obj.get("name").asString().equals("question"))
-                            .filter(obj -> obj.get("user").get("username").asString().equals(repository.host().getCurrentUserDetails().userName()))
+                            .filter(obj -> obj.get("user").get("username").asString().equals(repository.host().currentUser().userName()))
                             .map(obj -> obj.get("id").toString())
                             .collect(Collectors.toList());
         for (var award : awards) {
@@ -166,9 +166,9 @@ public class GitLabMergeRequest implements PullRequest {
                                         note.get("position").get("new_line").asInt(),
                                         note.get("id").toString(),
                                         note.get("body").asString(),
-                                        new HostUserDetails(note.get("author").get("id").asInt(),
-                                                            note.get("author").get("username").asString(),
-                                                            note.get("author").get("name").asString()),
+                                        new HostUser(note.get("author").get("id").asInt(),
+                                                     note.get("author").get("username").asString(),
+                                                     note.get("author").get("name").asString()),
                                         ZonedDateTime.parse(note.get("created_at").asString()),
                                         ZonedDateTime.parse(note.get("updated_at").asString()));
         return comment;
@@ -227,7 +227,7 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
-    public List<ReviewComment> getReviewComments() {
+    public List<ReviewComment> reviewComments() {
         return request.get("discussions").execute().stream()
                       .filter(entry -> !entry.get("individual_note").asBoolean())
                       .flatMap(entry -> parseDiscussion(entry.asObject()).stream())
@@ -235,27 +235,27 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
-    public Hash getHeadHash() {
+    public Hash headHash() {
         return new Hash(json.get("sha").asString());
     }
 
     @Override
-    public String getSourceRef() {
-        return "merge-requests/" + getId() + "/head";
+    public String sourceRef() {
+        return "merge-requests/" + id() + "/head";
     }
 
     @Override
-    public String getTargetRef() {
+    public String targetRef() {
         return json.get("target_branch").asString();
     }
 
     @Override
-    public Hash getTargetHash() {
-        return repository.getBranchHash(getTargetRef());
+    public Hash targetHash() {
+        return repository.branchHash(targetRef());
     }
 
     @Override
-    public String getTitle() {
+    public String title() {
         return json.get("title").asString();
     }
 
@@ -265,7 +265,7 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
-    public String getBody() {
+    public String body() {
         var body = json.get("description").asString();
         if (body == null) {
             body = "";
@@ -283,16 +283,16 @@ public class GitLabMergeRequest implements PullRequest {
     private Comment parseComment(JSONValue comment) {
         var ret = new Comment(comment.get("id").toString(),
                               comment.get("body").asString(),
-                              new HostUserDetails(comment.get("author").get("id").asInt(),
-                                                  comment.get("author").get("username").asString(),
-                                                  comment.get("author").get("name").asString()),
+                              new HostUser(comment.get("author").get("id").asInt(),
+                                           comment.get("author").get("username").asString(),
+                                           comment.get("author").get("name").asString()),
                               ZonedDateTime.parse(comment.get("created_at").asString()),
                               ZonedDateTime.parse(comment.get("updated_at").asString()));
         return ret;
     }
 
     @Override
-    public List<Comment> getComments() {
+    public List<Comment> comments() {
         return request.get("notes").param("sort", "asc").execute().stream()
                       .filter(entry -> !entry.contains("position")) // Ignore comments with a position - they are review comments
                       .filter(entry -> !entry.get("system").asBoolean()) // Ignore system generated comments
@@ -323,12 +323,12 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
-    public ZonedDateTime getCreated() {
+    public ZonedDateTime createdAt() {
         return ZonedDateTime.parse(json.get("created_at").asString());
     }
 
     @Override
-    public ZonedDateTime getUpdated() {
+    public ZonedDateTime updatedAt() {
         return ZonedDateTime.parse(json.get("updated_at").asString());
     }
 
@@ -339,9 +339,9 @@ public class GitLabMergeRequest implements PullRequest {
     private Optional<Comment> getStatusCheckComment(String name) {
         var marker = String.format(checkMarker, name);
 
-        return getComments().stream()
-                .filter(c -> c.body().contains(marker))
-                .findFirst();
+        return comments().stream()
+                         .filter(c -> c.body().contains(marker))
+                         .findFirst();
     }
 
     private String encodeMarkdown(String message) {
@@ -352,10 +352,10 @@ public class GitLabMergeRequest implements PullRequest {
                                                              Pattern.DOTALL | Pattern.MULTILINE);
 
     @Override
-    public Map<String, Check> getChecks(Hash hash) {
+    public Map<String, Check> checks(Hash hash) {
         var pattern = Pattern.compile(String.format(checkResultPattern, hash.hex()));
-        var matchers = getComments().stream()
-                .collect(Collectors.toMap(comment -> comment,
+        var matchers = comments().stream()
+                                 .collect(Collectors.toMap(comment -> comment,
                         comment -> pattern.matcher(comment.body())));
 
         return matchers.entrySet().stream()
@@ -420,8 +420,8 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     private String linkToDiff(String path, Hash hash, int line) {
-        return "[" + path + " line " + line + "](" + URIBuilder.base(repository.getUrl())
-                         .setPath("/" + repository.getName()+ "/blob/" + hash.hex() + "/" + path)
+        return "[" + path + " line " + line + "](" + URIBuilder.base(repository.url())
+                         .setPath("/" + repository.name()+ "/blob/" + hash.hex() + "/" + path)
                          .setAuthentication(null)
                          .build() + "#L" + Integer.toString(line) + ")";
     }
@@ -507,13 +507,13 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
-    public URI getChangeUrl() {
-        return URIBuilder.base(getWebUrl()).appendPath("/diffs").build();
+    public URI changeUrl() {
+        return URIBuilder.base(webUrl()).appendPath("/diffs").build();
     }
 
     @Override
-    public URI getChangeUrl(Hash base) {
-        return URIBuilder.base(getWebUrl()).appendPath("/diffs")
+    public URI changeUrl(Hash base) {
+        return URIBuilder.base(webUrl()).appendPath("/diffs")
                          .setQuery(Map.of("start_sha", base.hex()))
                          .build();
     }
@@ -558,7 +558,7 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
-    public List<String> getLabels() {
+    public List<String> labels() {
         var currentJson = request.get("").execute().asObject();
         return currentJson.get("labels").stream()
                 .map(JSONValue::asString)
@@ -567,36 +567,36 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
-    public URI getWebUrl() {
-        return URIBuilder.base(repository.getWebUrl())
-                         .setPath("/" + repository.getName() + "/merge_requests/" + getId())
+    public URI webUrl() {
+        return URIBuilder.base(repository.webUrl())
+                         .setPath("/" + repository.name() + "/merge_requests/" + id())
                          .build();
     }
 
     @Override
     public String toString() {
-        return "GitLabMergeRequest #" + getId() + " by " + getAuthor();
+        return "GitLabMergeRequest #" + id() + " by " + author();
     }
 
     @Override
-    public List<HostUserDetails> getAssignees() {
+    public List<HostUser> assignees() {
         var assignee = json.get("assignee").asObject();
         if (assignee != null) {
-            var user = repository.host().getUserDetails(assignee.get("username").asString());
+            var user = repository.host().user(assignee.get("username").asString());
             return List.of(user);
         }
         return Collections.emptyList();
     }
 
     @Override
-    public void setAssignees(List<HostUserDetails> assignees) {
+    public void setAssignees(List<HostUser> assignees) {
         var id = assignees.size() == 0 ? 0 : Integer.valueOf(assignees.get(0).id());
         var param = JSON.object().put("assignee_id", id);
         request.put().body(param).execute();
         if (assignees.size() > 1) {
             var rest = assignees.subList(1, assignees.size());
             var usernames = rest.stream()
-                                .map(HostUserDetails::userName)
+                                .map(HostUser::userName)
                                 .map(username -> "@" + username)
                                 .collect(Collectors.joining(" "));
             var comment = usernames + " can you have a look at this merge request?";

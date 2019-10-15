@@ -27,7 +27,6 @@ import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.*;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -44,7 +43,7 @@ class TopologicalBotTests {
     @Test
     void testTopoMerge() throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUserDetails(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var repo = Repository.init(fromDir, VCS.GIT);
@@ -58,7 +57,7 @@ class TopologicalBotTests {
             Files.writeString(readme, "Hello world\n");
             repo.add(readme);
             repo.commit("An initial commit", "duke", "duke@openjdk.org");
-            repo.pushAll(hostedRepo.getUrl());
+            repo.pushAll(hostedRepo.url());
 
             var aBranch = repo.branch(repo.head(), "A");
             // no deps -> depends on master
@@ -71,7 +70,7 @@ class TopologicalBotTests {
             Files.writeString(bDeps, "A");
             repo.add(bDeps);
             repo.commit("Adding deps file to B", "duke", "duke@openjdk.org");
-            repo.pushAll(hostedRepo.getUrl());
+            repo.pushAll(hostedRepo.url());
 
             var cBranch = repo.branch(repo.head(), "C");
             repo.checkout(cBranch);
@@ -79,14 +78,14 @@ class TopologicalBotTests {
             Files.writeString(cDeps, "B A");
             repo.add(cDeps);
             repo.commit("Adding deps file to C", "duke", "duke@openjdk.org");
-            repo.pushAll(hostedRepo.getUrl());
+            repo.pushAll(hostedRepo.url());
 
             repo.checkout(new Branch("master"));
             var newFile = fromDir.resolve("NewFile.txt");
             Files.writeString(newFile, "Hello world\n");
             repo.add(newFile);
             var preHash = repo.commit("An additional commit", "duke", "duke@openjdk.org");
-            repo.pushAll(hostedRepo.getUrl());
+            repo.pushAll(hostedRepo.url());
 
             var preCommits = repo.commits().asList();
             assertEquals(4, preCommits.size());
@@ -114,7 +113,7 @@ class TopologicalBotTests {
     @Test
     void testTopoMergeFailure() throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUserDetails(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var repo = Repository.init(fromDir, VCS.GIT);
@@ -127,14 +126,14 @@ class TopologicalBotTests {
             Files.writeString(readme, "Hello world\n");
             repo.add(readme);
             repo.commit("An initial commit", "duke", "duke@openjdk.org");
-            repo.pushAll(hostedRepo.getUrl());
+            repo.pushAll(hostedRepo.url());
 
             var aBranch = repo.branch(repo.head(), "A");
             repo.checkout(aBranch);
             Files.writeString(readme, "A conflicting line\n", APPEND);
             repo.add(readme);
             var aStartHash = repo.commit("A conflicting commit", "duke", "duke@openjdk.org");
-            repo.pushAll(hostedRepo.getUrl());
+            repo.pushAll(hostedRepo.url());
 
             var depsFileName = "deps.txt";
 
@@ -144,7 +143,7 @@ class TopologicalBotTests {
             Files.writeString(bDeps, "A");
             repo.add(bDeps);
             var bDepsHash = repo.commit("Adding deps file to B", "duke", "duke@openjdk.org");
-            repo.pushAll(hostedRepo.getUrl());
+            repo.pushAll(hostedRepo.url());
 
             var cBranch = repo.branch(repo.head(), "C");
             repo.checkout(cBranch);
@@ -152,13 +151,13 @@ class TopologicalBotTests {
             Files.writeString(cDeps, "B");
             repo.add(cDeps);
             var cDepsHash = repo.commit("Adding deps file to C", "duke", "duke@openjdk.org");
-            repo.pushAll(hostedRepo.getUrl());
+            repo.pushAll(hostedRepo.url());
 
             repo.checkout(new Branch("master"));
             Files.writeString(readme, "Goodbye world!\n", APPEND);
             repo.add(readme);
             var preHash = repo.commit("An additional commit", "duke", "duke@openjdk.org");
-            repo.pushAll(hostedRepo.getUrl());
+            repo.pushAll(hostedRepo.url());
 
             var preCommits = repo.commits().asList();
             assertEquals(5, preCommits.size());

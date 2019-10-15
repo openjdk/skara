@@ -38,7 +38,7 @@ public class Summary {
         return String.format(summaryMarker, encodedSummary);
     }
 
-    static Optional<String> summary(HostUserDetails botUser, List<Comment> comments) {
+    static Optional<String> summary(HostUser botUser, List<Comment> comments) {
         var summaryActions = comments.stream()
                                          .filter(comment -> comment.author().equals(botUser))
                                          .map(comment -> markerPattern.matcher(comment.body()))

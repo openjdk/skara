@@ -34,10 +34,10 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class VetoTests {
-    private static HostUserDetails createUser(int id) {
-        return new HostUserDetails(id,
-                                   String.format("noname_%d", id),
-                                   String.format("No Name %d", id));
+    private static HostUser createUser(int id) {
+        return new HostUser(id,
+                            String.format("noname_%d", id),
+                            String.format("No Name %d", id));
     }
 
     private static class Comments {
@@ -91,18 +91,18 @@ class VetoTests {
             var integrator = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().getCurrentUserDetails().id());
+                                           .addCommitter(author.host().currentUser().id());
             var prBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Issue an invalid command
@@ -110,7 +110,7 @@ class VetoTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with an error message
-            var error = pr.getComments().stream()
+            var error = pr.comments().stream()
                           .filter(comment -> comment.body().contains("reject your own changes"))
                           .count();
             assertEquals(1, error);
@@ -127,28 +127,28 @@ class VetoTests {
             var vetoer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().getCurrentUserDetails().id())
-                                           .addCommitter(vetoer.host().getCurrentUserDetails().id());
+                                           .addCommitter(author.host().currentUser().id())
+                                           .addCommitter(vetoer.host().currentUser().id());
             var prBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Try to veto as a non committer
-            var vetoPr = vetoer.getPullRequest(pr.getId());
+            var vetoPr = vetoer.pullRequest(pr.id());
             vetoPr.addComment("/reject");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with an error message
-            var error = pr.getComments().stream()
+            var error = pr.comments().stream()
                           .filter(comment -> comment.body().contains("are allowed to reject"))
                           .count();
             assertEquals(1, error);
@@ -165,32 +165,32 @@ class VetoTests {
             var vetoer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(vetoer.host().getCurrentUserDetails().id());
+                                           .addCommitter(author.host().currentUser().id())
+                                           .addReviewer(vetoer.host().currentUser().id());
 
             var prBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Place a veto
-            var vetoPr = vetoer.getPullRequest(pr.getId());
+            var vetoPr = vetoer.pullRequest(pr.id());
             vetoPr.addReview(Review.Verdict.APPROVED, "Approved");
             vetoPr.addComment("/reject");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should acknowledge
-            var ack = pr.getComments().stream()
-                          .filter(comment -> comment.body().contains("cannot be integrated"))
-                          .count();
+            var ack = pr.comments().stream()
+                        .filter(comment -> comment.body().contains("cannot be integrated"))
+                        .count();
             assertEquals(1, ack);
 
             // Now try to integrate
@@ -198,9 +198,9 @@ class VetoTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // There should be another error message
-            var error = pr.getComments().stream()
-                        .filter(comment -> comment.body().contains("change is currently blocked"))
-                        .count();
+            var error = pr.comments().stream()
+                          .filter(comment -> comment.body().contains("change is currently blocked"))
+                          .count();
             assertEquals(1, error);
 
             // Now drop the veto
@@ -208,9 +208,9 @@ class VetoTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // There should be an acknowledgement
-            var approve = pr.getComments().stream()
-                          .filter(comment -> comment.body().contains("now allowed to be integrated"))
-                          .count();
+            var approve = pr.comments().stream()
+                            .filter(comment -> comment.body().contains("now allowed to be integrated"))
+                            .count();
             assertEquals(1, approve);
 
             // Now try to integrate
@@ -218,7 +218,7 @@ class VetoTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with an ok message
-            var pushed = pr.getComments().stream()
+            var pushed = pr.comments().stream()
                            .filter(comment -> comment.body().contains("Pushed as commit"))
                            .count();
             assertEquals(1, pushed);
@@ -235,30 +235,30 @@ class VetoTests {
             var vetoer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(vetoer.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id())
+                                           .addReviewer(vetoer.host().currentUser().id());
 
             var prBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Place a veto
-            var vetoPr = vetoer.getPullRequest(pr.getId());
+            var vetoPr = vetoer.pullRequest(pr.id());
             vetoPr.addReview(Review.Verdict.APPROVED, "Approved");
             vetoPr.addComment("/reject");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should acknowledge
-            var ack = pr.getComments().stream()
+            var ack = pr.comments().stream()
                         .filter(comment -> comment.body().contains("cannot be integrated"))
                         .count();
             assertEquals(1, ack);
@@ -268,17 +268,17 @@ class VetoTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should acknowledge
-            var ready = pr.getComments().stream()
+            var ready = pr.comments().stream()
                           .filter(comment -> comment.body().contains("sponsor"))
                           .filter(comment -> comment.body().contains("your change"))
-                        .count();
+                          .count();
             assertEquals(1, ready);
 
             vetoPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(prBot);
 
             // There should be another error message
-            var error = pr.getComments().stream()
+            var error = pr.comments().stream()
                           .filter(comment -> comment.body().contains("change is currently blocked"))
                           .count();
             assertEquals(1, error);

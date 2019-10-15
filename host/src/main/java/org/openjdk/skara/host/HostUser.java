@@ -25,27 +25,27 @@ package org.openjdk.skara.host;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-public class HostUserDetails {
+public class HostUser {
     private final String id;
     private final String username;
     private final Supplier<String> nameSupplier;
     private String name;
 
-    public HostUserDetails(String id, String username, Supplier<String> nameSupplier) {
+    public HostUser(String id, String username, Supplier<String> nameSupplier) {
         this.id = id;
         this.username = username;
         this.nameSupplier = nameSupplier;
     }
 
-    public HostUserDetails(String id, String username, String name) {
+    public HostUser(String id, String username, String name) {
         this(id, username, () -> name);
     }
 
-    public HostUserDetails(int id, String username, String name) {
+    public HostUser(int id, String username, String name) {
         this(String.valueOf(id), username, name);
     }
 
-    public HostUserDetails(int id, String username, Supplier<String> nameSupplier) {
+    public HostUser(int id, String username, Supplier<String> nameSupplier) {
         this(String.valueOf(id), username, nameSupplier);
     }
 
@@ -57,7 +57,7 @@ public class HostUserDetails {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        HostUserDetails that = (HostUserDetails) o;
+        HostUser that = (HostUser) o;
         return id.equals(that.id) &&
                 Objects.equals(username, that.username);
     }

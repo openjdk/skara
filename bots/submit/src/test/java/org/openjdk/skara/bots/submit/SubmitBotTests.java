@@ -44,19 +44,19 @@ class SubmitBotTests {
             var bot = new SubmitBot(author, List.of(executor));
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             TestBotRunner.runPeriodicItems(bot);
 
             // Verify that the check passed
-            var checks = pr.getChecks(editHash);
+            var checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             var check = checks.get("test");
             assertEquals(CheckStatus.SUCCESS, check.status());
@@ -73,19 +73,19 @@ class SubmitBotTests {
             var bot = new SubmitBot(author, List.of(executor));
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             TestBotRunner.runPeriodicItems(bot);
 
             // Verify that the check failed
-            var checks = pr.getChecks(editHash);
+            var checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             var check = checks.get("test");
             assertEquals(CheckStatus.FAILURE, check.status());
@@ -102,13 +102,13 @@ class SubmitBotTests {
             var bot = new SubmitBot(author, List.of(executor));
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Create a fake check from a while back
@@ -122,7 +122,7 @@ class SubmitBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // Verify that the check is still listed as passed
-            var checks = pr.getChecks(editHash);
+            var checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             var check = checks.get("test");
             assertEquals(CheckStatus.SUCCESS, check.status());
@@ -138,13 +138,13 @@ class SubmitBotTests {
             var bot = new SubmitBot(author, List.of(executor));
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Create a fake check from a while back
@@ -158,7 +158,7 @@ class SubmitBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // Verify that the check passed
-            var checks = pr.getChecks(editHash);
+            var checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             var check = checks.get("test");
             assertEquals(CheckStatus.SUCCESS, check.status());

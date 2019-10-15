@@ -54,22 +54,22 @@ public class JiraHost implements Host {
     }
 
     @Override
-    public HostedRepository getRepository(String name) {
+    public HostedRepository repository(String name) {
         throw new RuntimeException("Jira does not support repositories");
     }
 
     @Override
-    public IssueProject getIssueProject(String name) {
+    public IssueProject issueProject(String name) {
         return new JiraProject(this, request, name);
     }
 
     @Override
-    public HostUserDetails getUserDetails(String username) {
+    public HostUser user(String username) {
         throw new RuntimeException("needs authentication; not implemented yet");
     }
 
     @Override
-    public HostUserDetails getCurrentUserDetails() {
+    public HostUser currentUser() {
         throw new RuntimeException("needs authentication; not implemented yet");
     }
 
@@ -79,7 +79,7 @@ public class JiraHost implements Host {
     }
 
     @Override
-    public boolean isMemberOf(String groupId, HostUserDetails user) {
+    public boolean isMemberOf(String groupId, HostUser user) {
         throw new RuntimeException("not implemented yet");
     }
 }

@@ -90,7 +90,7 @@ class WebrevStorage {
                     // where some of the files have already been committed. Ignore it and continue.
                     continue;
                 }
-                localStorage.push(hash, storage.getUrl(), storageRef);
+                localStorage.push(hash, storage.url(), storageRef);
             }
         }
     }
@@ -107,7 +107,7 @@ class WebrevStorage {
 
     URI createAndArchive(PullRequestInstance prInstance, Path scratchPath, Hash base, Hash head, String identifier) {
         try {
-            var localStorage = Repository.materialize(scratchPath, storage.getUrl(), storageRef);
+            var localStorage = Repository.materialize(scratchPath, storage.url(), storageRef);
             var relativeFolder = baseFolder.resolve(String.format("%s/webrev.%s", prInstance.id(), identifier));
             var outputFolder = scratchPath.resolve(relativeFolder);
             // If a previous operation was interrupted there may be content here already - overwrite if so

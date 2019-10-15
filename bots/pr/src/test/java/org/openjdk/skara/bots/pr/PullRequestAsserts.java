@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PullRequestAsserts {
     public static void assertLastCommentContains(PullRequest pr, String contains) {
-        var comments = pr.getComments();
+        var comments = pr.comments();
         assertTrue(!comments.isEmpty());
         var lastComment = comments.get(comments.size() - 1);
         assertTrue(lastComment.body().contains(contains), lastComment.body());

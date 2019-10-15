@@ -36,21 +36,21 @@ public interface HostedRepository extends IssueProject {
                                   String title,
                                   List<String> body,
                                   boolean draft);
-    PullRequest getPullRequest(String id);
-    List<PullRequest> getPullRequests();
+    PullRequest pullRequest(String id);
+    List<PullRequest> pullRequests();
     List<PullRequest> findPullRequestsWithComment(String author, String body);
     Optional<PullRequest> parsePullRequestUrl(String url);
-    String getName();
-    Optional<HostedRepository> getParent();
-    URI getUrl();
-    URI getWebUrl(Hash hash);
-    VCS getRepositoryType();
-    String getFileContents(String filename, String ref);
-    String getNamespace();
+    String name();
+    Optional<HostedRepository> parent();
+    URI url();
+    URI webUrl(Hash hash);
+    VCS repositoryType();
+    String fileContents(String filename, String ref);
+    String namespace();
     Optional<WebHook> parseWebHook(JSONValue body);
     HostedRepository fork();
-    long getId();
-    Hash getBranchHash(String ref);
+    long id();
+    Hash branchHash(String ref);
 
     default PullRequest createPullRequest(HostedRepository target,
                                           String targetRef,

@@ -50,9 +50,9 @@ class PullRequestInstance {
         // Materialize the PR's target ref
         try {
             var repository = pr.repository();
-            localRepo = Repository.materialize(localRepoPath, repository.getUrl(), pr.getTargetRef());
-            targetHash = localRepo.fetch(repository.getUrl(), pr.getTargetRef());
-            headHash = localRepo.fetch(repository.getUrl(), pr.getHeadHash().hex());
+            localRepo = Repository.materialize(localRepoPath, repository.url(), pr.targetRef());
+            targetHash = localRepo.fetch(repository.url(), pr.targetRef());
+            headHash = localRepo.fetch(repository.url(), pr.headHash().hex());
             baseHash = localRepo.mergeBase(targetHash, headHash);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -72,12 +72,12 @@ class PullRequestInstance {
     }
 
     String diffUrl() {
-        return pr.getWebUrl() + ".diff";
+        return pr.webUrl() + ".diff";
     }
 
     String fetchCommand() {
-        var repoUrl = pr.repository().getWebUrl();
-        return "git fetch " + repoUrl + " " + pr.getSourceRef() + ":pull/" + pr.getId();
+        var repoUrl = pr.repository().webUrl();
+        return "git fetch " + repoUrl + " " + pr.sourceRef() + ":pull/" + pr.id();
     }
 
     String stats(Hash base, Hash head) {
@@ -102,7 +102,7 @@ class PullRequestInstance {
     }
 
     Optional<String> issueUrl() {
-        var issue = Issue.fromString(pr.getTitle());
+        var issue = Issue.fromString(pr.title());
         return issue.map(value -> URIBuilder.base(issueTracker).appendPath(projectPrefix + "-" + value.id()).build().toString());
     }
 
@@ -122,7 +122,7 @@ class PullRequestInstance {
     }
 
     String id() {
-        return pr.getId();
+        return pr.id();
     }
 
     PullRequest pr() {

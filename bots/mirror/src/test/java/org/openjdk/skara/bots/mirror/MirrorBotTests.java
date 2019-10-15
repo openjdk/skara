@@ -40,7 +40,7 @@ class MirrorBotTests {
     @Test
     void mirrorMasterBranch(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUserDetails(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
@@ -77,7 +77,7 @@ class MirrorBotTests {
     @Test
     void mirrorMultipleBranches(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUserDetails(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
@@ -123,7 +123,7 @@ class MirrorBotTests {
     @Test
     void mirrorMultipleTags(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUserDetails(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
@@ -168,7 +168,7 @@ class MirrorBotTests {
     @Test
     void mirrorRemovingBranch(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUserDetails(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);

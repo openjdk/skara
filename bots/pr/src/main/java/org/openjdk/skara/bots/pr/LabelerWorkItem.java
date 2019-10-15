@@ -45,7 +45,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
 
     @Override
     public String toString() {
-        return "LabelerWorkItem@" + pr.repository().getName() + "#" + pr.getId();
+        return "LabelerWorkItem@" + pr.repository().name() + "#" + pr.id();
     }
 
     private Set<String> getLabels(PullRequestInstance prInstance) throws IOException {
@@ -67,15 +67,15 @@ public class LabelerWorkItem extends PullRequestWorkItem {
 
     @Override
     public void run(Path scratchPath) {
-        if (currentLabels.containsKey(pr.getHeadHash())) {
+        if (currentLabels.containsKey(pr.headHash())) {
             return;
         }
         try {
             var prInstance = new PullRequestInstance(scratchPath.resolve("labeler"), pr);
             var newLabels = getLabels(prInstance);
-            var currentLabels = pr.getLabels().stream()
-                    .filter(labelPatterns::containsKey)
-                    .collect(Collectors.toSet());
+            var currentLabels = pr.labels().stream()
+                                  .filter(labelPatterns::containsKey)
+                                  .collect(Collectors.toSet());
 
             // Add all labels not already set
             newLabels.stream()
@@ -87,7 +87,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                          .filter(label -> !newLabels.contains(label))
                          .forEach(pr::removeLabel);
 
-            this.currentLabels.put(pr.getHeadHash(), Boolean.TRUE);
+            this.currentLabels.put(pr.headHash(), Boolean.TRUE);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

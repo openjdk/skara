@@ -49,31 +49,31 @@ public class IntegrateCommand implements CommandHandler {
                 return Optional.of(failure);
             }
         }
-        return Optional.of(String.format(outdated, pr.getHeadHash()));
+        return Optional.of(String.format(outdated, pr.headHash()));
     }
 
     @Override
     public void handle(PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
-        if (!comment.author().equals(pr.getAuthor())) {
-            reply.println("Only the author (@" + pr.getAuthor().userName() + ") is allowed to issue the `integrate` command.");
+        if (!comment.author().equals(pr.author())) {
+            reply.println("Only the author (@" + pr.author().userName() + ") is allowed to issue the `integrate` command.");
             return;
         }
 
-        var problem = checkProblem(pr.getChecks(pr.getHeadHash()), "jcheck", pr);
+        var problem = checkProblem(pr.checks(pr.headHash()), "jcheck", pr);
         if (problem.isPresent()) {
             reply.print("Your merge request cannot be fulfilled at this time, as ");
             reply.println(problem.get());
             return;
         }
 
-        if (pr.getLabels().contains("rejected")) {
+        if (pr.labels().contains("rejected")) {
             reply.println("The change is currently blocked from integration by a rejection.");
             return;
         }
 
         // Run a final jcheck to ensure the change has been properly reviewed
         try {
-            var sanitizedUrl = URLEncoder.encode(pr.repository().getWebUrl().toString(), StandardCharsets.UTF_8);
+            var sanitizedUrl = URLEncoder.encode(pr.repository().webUrl().toString(), StandardCharsets.UTF_8);
             var path = scratchPath.resolve("pr.integrate").resolve(sanitizedUrl);
 
             var prInstance = new PullRequestInstance(path, pr);
@@ -101,25 +101,25 @@ public class IntegrateCommand implements CommandHandler {
             }
 
             // Finally check if the author is allowed to perform the actual push
-            if (!pr.getTitle().startsWith("Merge")) {
-                if (!ProjectPermissions.mayCommit(censusInstance, pr.getAuthor())) {
-                    reply.println(ReadyForSponsorTracker.addIntegrationMarker(pr.getHeadHash()));
-                    reply.println("Your change (at version " + pr.getHeadHash() + ") is now ready to be sponsored by a Committer.");
+            if (!pr.title().startsWith("Merge")) {
+                if (!ProjectPermissions.mayCommit(censusInstance, pr.author())) {
+                    reply.println(ReadyForSponsorTracker.addIntegrationMarker(pr.headHash()));
+                    reply.println("Your change (at version " + pr.headHash() + ") is now ready to be sponsored by a Committer.");
                     pr.addLabel("sponsor");
                     return;
                 }
             } else {
-                if (!ProjectPermissions.mayCommit(censusInstance, pr.getAuthor())) {
+                if (!ProjectPermissions.mayCommit(censusInstance, pr.author())) {
                     reply.println("Merges require Committer status.");
                     return;
                 }
             }
 
             // Rebase and push it!
-            if (!localHash.equals(pr.getTargetHash())) {
+            if (!localHash.equals(pr.targetHash())) {
                 reply.println(rebaseMessage.toString());
                 reply.println("Pushed as commit " + rebasedHash.get().hex() + ".");
-                prInstance.localRepo().push(rebasedHash.get(), pr.repository().getUrl(), pr.getTargetRef());
+                prInstance.localRepo().push(rebasedHash.get(), pr.repository().url(), pr.targetRef());
                 pr.setState(PullRequest.State.CLOSED);
                 pr.addLabel("integrated");
                 pr.removeLabel("ready");

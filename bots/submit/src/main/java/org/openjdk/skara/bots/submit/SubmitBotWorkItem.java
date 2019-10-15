@@ -45,7 +45,7 @@ public class SubmitBotWorkItem implements WorkItem {
 
     @Override
     public String toString() {
-        return "SubmitWorkItem@" + bot.repository().getName() + "#" + pr.getId() + ":" + executor.checkName();
+        return "SubmitWorkItem@" + bot.repository().name() + "#" + pr.id() + ":" + executor.checkName();
     }
 
     @Override
@@ -57,10 +57,10 @@ public class SubmitBotWorkItem implements WorkItem {
         if (!executor.checkName().equals(otherItem.executor.checkName())) {
             return true;
         }
-        if (!pr.getId().equals(otherItem.pr.getId())) {
+        if (!pr.id().equals(otherItem.pr.id())) {
             return true;
         }
-        if (!bot.repository().getName().equals(otherItem.bot.repository().getName())) {
+        if (!bot.repository().name().equals(otherItem.bot.repository().name())) {
             return true;
         }
         return false;
@@ -69,23 +69,23 @@ public class SubmitBotWorkItem implements WorkItem {
     @Override
     public void run(Path scratchPath) {
         // Is the check already up to date?
-        var checks = pr.getChecks(pr.getHeadHash());
+        var checks = pr.checks(pr.headHash());
         if (checks.containsKey(executor.checkName())) {
             var check = checks.get(executor.checkName());
             if (check.startedAt().isBefore(ZonedDateTime.now().minus(executor.timeout())) && check.status() == CheckStatus.IN_PROGRESS) {
-                log.info("Check for hash " + pr.getHeadHash() + " is too old - running again");
+                log.info("Check for hash " + pr.headHash() + " is too old - running again");
             } else {
-                log.fine("Hash " + pr.getHeadHash() + " already has a check - skipping");
+                log.fine("Hash " + pr.headHash() + " already has a check - skipping");
                 return;
             }
         }
 
-        var prFolder = scratchPath.resolve("submit").resolve(pr.repository().getName());
+        var prFolder = scratchPath.resolve("submit").resolve(pr.repository().name());
 
         // Materialize the PR's target ref
         try {
-            var localRepo = Repository.materialize(prFolder, pr.repository().getUrl(), pr.getTargetRef());
-            var headHash = localRepo.fetch(pr.repository().getUrl(), pr.getHeadHash().hex());
+            var localRepo = Repository.materialize(prFolder, pr.repository().url(), pr.targetRef());
+            var headHash = localRepo.fetch(pr.repository().url(), pr.headHash().hex());
 
             var checkBuilder = CheckBuilder.create(executor.checkName(), headHash);
             pr.createCheck(checkBuilder.build());

@@ -53,31 +53,31 @@ class MirrorBot implements Bot, WorkItem {
             return true;
         }
         var otherBot = (MirrorBot) other;
-        return !from.getName().equals(otherBot.from.getName());
+        return !from.name().equals(otherBot.from.name());
     }
 
     @Override
     public void run(Path scratchPath) {
         try {
             var sanitizedUrl =
-                URLEncoder.encode(from.getWebUrl().toString(), StandardCharsets.UTF_8);
+                URLEncoder.encode(from.webUrl().toString(), StandardCharsets.UTF_8);
             var dir = storage.resolve(sanitizedUrl);
             Repository repo = null;
             if (!Files.exists(dir)) {
-                log.info("Cloning " + from.getName());
+                log.info("Cloning " + from.name());
                 Files.createDirectories(dir);
-                repo = Repository.mirror(from.getUrl(), dir);
+                repo = Repository.mirror(from.url(), dir);
             } else {
-                log.info("Found existing scratch directory for " + from.getName());
+                log.info("Found existing scratch directory for " + from.name());
                 repo = Repository.get(dir).orElseThrow(() -> {
                         return new RuntimeException("Repository in " + dir + " has vanished");
                 });
             }
 
-            log.info("Pulling " + from.getName());
+            log.info("Pulling " + from.name());
             repo.fetchAll();
-            log.info("Pushing to " + to.getName());
-            repo.pushAll(to.getUrl());
+            log.info("Pushing to " + to.name());
+            repo.pushAll(to.url());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -85,7 +85,7 @@ class MirrorBot implements Bot, WorkItem {
 
     @Override
     public String toString() {
-        return "MirrorBot@(" + from.getName() + "-> " + to.getName() + ")";
+        return "MirrorBot@(" + from.name() + "-> " + to.name() + ")";
     }
 
     @Override

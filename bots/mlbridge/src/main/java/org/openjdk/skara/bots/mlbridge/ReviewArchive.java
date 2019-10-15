@@ -22,7 +22,7 @@ class ReviewArchive {
     private final List<Hash> reportedHeads;
     private final List<Hash> reportedBases;
 
-    private EmailAddress getAuthorAddress(HostUserDetails originalAuthor) {
+    private EmailAddress getAuthorAddress(HostUser originalAuthor) {
         var contributor = censusInstance.namespace().get(originalAuthor.id());
         if (contributor == null) {
             return EmailAddress.from(originalAuthor.fullName(),
@@ -37,13 +37,13 @@ class ReviewArchive {
 
     private EmailAddress getUniqueMessageId(String identifier) {
         try {
-            var prSpecific = prInstance.pr().repository().getName().replace("/", ".") + "." + prInstance.id();
+            var prSpecific = prInstance.pr().repository().name().replace("/", ".") + "." + prInstance.id();
             var digest = MessageDigest.getInstance("SHA-256");
             digest.update(prSpecific.getBytes(StandardCharsets.UTF_8));
             digest.update(identifier.getBytes(StandardCharsets.UTF_8));
             var encodedCommon = Base64.getUrlEncoder().encodeToString(digest.digest());
 
-            return EmailAddress.from(encodedCommon + "." + UUID.randomUUID() + "@" + prInstance.pr().repository().getUrl().getHost());
+            return EmailAddress.from(encodedCommon + "." + UUID.randomUUID() + "@" + prInstance.pr().repository().url().getHost());
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Cannot find SHA-256");
         }
@@ -174,9 +174,9 @@ class ReviewArchive {
     void create(URI webrev) {
         var body = ArchiveMessages.composeConversation(prInstance, webrev);
         var id = getMessageId();
-        var email = Email.create("RFR: " + prInstance.pr().getTitle(), body)
+        var email = Email.create("RFR: " + prInstance.pr().title(), body)
                          .sender(sender)
-                         .author(getAuthorAddress(prInstance.pr().getAuthor()))
+                         .author(getAuthorAddress(prInstance.pr().author()))
                          .id(id)
                          .header("PR-Head-Hash", prInstance.headHash().hex())
                          .header("PR-Base-Hash", prInstance.baseHash().hex())
@@ -193,9 +193,9 @@ class ReviewArchive {
         var body = ArchiveMessages.composeRebaseComment(prInstance, webrev);
         var id = getMessageId(prInstance.headHash());
         var parent = topEmail();
-        var email = Email.reply(parent, "Re: " + latestHeadPrefix() + " RFR: " + prInstance.pr().getTitle(), body)
+        var email = Email.reply(parent, "Re: " + latestHeadPrefix() + " RFR: " + prInstance.pr().title(), body)
                          .sender(sender)
-                         .author(getAuthorAddress(prInstance.pr().getAuthor()))
+                         .author(getAuthorAddress(prInstance.pr().author()))
                          .recipient(parent.author())
                          .id(id)
                          .header("PR-Head-Hash", prInstance.headHash().hex())
@@ -210,9 +210,9 @@ class ReviewArchive {
         var body = ArchiveMessages.composeIncrementalComment(latestHead(), prInstance, fullWebrev, incrementalWebrev);
         var id = getMessageId(prInstance.headHash());
         var parent = topEmail();
-        var email = Email.reply(parent, "Re: " + latestHeadPrefix() + " RFR: " + prInstance.pr().getTitle(), body)
+        var email = Email.reply(parent, "Re: " + latestHeadPrefix() + " RFR: " + prInstance.pr().title(), body)
                          .sender(sender)
-                         .author(getAuthorAddress(prInstance.pr().getAuthor()))
+                         .author(getAuthorAddress(prInstance.pr().author()))
                          .recipient(parent.author())
                          .id(id)
                          .header("PR-Head-Hash", prInstance.headHash().hex())
@@ -223,7 +223,7 @@ class ReviewArchive {
         generatedIds.put(getStableMessageId(id), email);
     }
 
-    private Optional<Email> findCollapsable(Email parent, HostUserDetails author, String subject) {
+    private Optional<Email> findCollapsable(Email parent, HostUser author, String subject) {
         var parentId = getStableMessageId(parent.id());
 
         // Is it a self-reply?
@@ -255,7 +255,7 @@ class ReviewArchive {
         return Optional.empty();
     }
 
-    private void addReplyCommon(Email parent, HostUserDetails author, String subject, String body, EmailAddress id) {
+    private void addReplyCommon(Email parent, HostUser author, String subject, String body, EmailAddress id) {
         if (!subject.startsWith("Re: ")) {
             subject = "Re: " + subject;
         }
@@ -302,7 +302,7 @@ class ReviewArchive {
         }
 
         var parent = latestGeneralComment();
-        addReplyCommon(parent, comment.author(), "Re: RFR: " + prInstance.pr().getTitle(), comment.body(), id);
+        addReplyCommon(parent, comment.author(), "Re: RFR: " + prInstance.pr().title(), comment.body(), id);
     }
 
     private String projectRole(Contributor contributor) {
@@ -335,7 +335,7 @@ class ReviewArchive {
         // Approvals by Reviewers get special treatment - post these as top-level comments
         if (review.verdict() == Review.Verdict.APPROVED && isReviewer) {
             parent = topEmail();
-            subject = "Re: [Approved] " + "RFR: " + prInstance.pr().getTitle();
+            subject = "Re: [Approved] " + "RFR: " + prInstance.pr().title();
         }
 
         var userName = contributor != null ? contributor.username() : review.reviewer().userName() + "@" + censusInstance.namespace().name();
@@ -356,7 +356,7 @@ class ReviewArchive {
 
         // Add some context to the first post
         if (reviewComment.parent().isEmpty()) {
-            var contents = prInstance.pr().repository().getFileContents(reviewComment.path(), reviewComment.hash().hex()).lines().collect(Collectors.toList());
+            var contents = prInstance.pr().repository().fileContents(reviewComment.path(), reviewComment.hash().hex()).lines().collect(Collectors.toList());
 
             body.append(reviewComment.path()).append(" line ").append(reviewComment.line()).append(":\n\n");
             for (int i = Math.max(0, reviewComment.line() - 2); i < Math.min(contents.size(), reviewComment.line() + 1); ++i) {

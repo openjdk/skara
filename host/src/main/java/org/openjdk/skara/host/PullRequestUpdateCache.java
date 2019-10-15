@@ -39,7 +39,7 @@ public class PullRequestUpdateCache {
         if (!repositoryIds.containsKey(repo)) {
             repositoryIds.put(repo, Integer.toString(repositoryIds.size()));
         }
-        return repositoryIds.get(repo) + ";" + pr.getId();
+        return repositoryIds.get(repo) + ";" + pr.id();
     }
 
     public synchronized boolean needsUpdate(PullRequest pr) {
@@ -49,7 +49,7 @@ public class PullRequestUpdateCache {
         }
 
         var uniqueId = getUniqueId(pr);
-        var update = pr.getUpdated();
+        var update = pr.updatedAt();
 
         if (!lastUpdates.containsKey(uniqueId)) {
             lastUpdates.put(uniqueId, update);
@@ -60,7 +60,7 @@ public class PullRequestUpdateCache {
             lastUpdates.put(uniqueId, update);
             return true;
         }
-        log.info("Skipping update for " + pr.repository().getName() + "#" + pr.getId());
+        log.info("Skipping update for " + pr.repository().name() + "#" + pr.id());
         return false;
     }
 

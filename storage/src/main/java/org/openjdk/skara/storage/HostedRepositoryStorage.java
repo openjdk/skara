@@ -57,10 +57,10 @@ class HostedRepositoryStorage<T> implements Storage<T> {
         try {
             Repository localRepository;
             try {
-                localRepository = Repository.materialize(localStorage, repository.getUrl(), ref);
+                localRepository = Repository.materialize(localStorage, repository.url(), ref);
             } catch (IOException e) {
                 // The remote ref may not yet exist
-                localRepository = Repository.init(localStorage, repository.getRepositoryType());
+                localRepository = Repository.init(localStorage, repository.repositoryType());
                 var storage = Files.writeString(localStorage.resolve(fileName), "");
                 localRepository.add(storage);
                 localRepository.commit(message, authorName, authorEmail);
@@ -96,7 +96,7 @@ class HostedRepositoryStorage<T> implements Storage<T> {
             // The local storage has changed, try to push it to the remote
             try {
                 var updatedHash = localRepository.head();
-                localRepository.push(updatedHash, hostedRepository.getUrl(), ref);
+                localRepository.push(updatedHash, hostedRepository.url(), ref);
                 hash = updatedHash;
                 current = updated;
                 return;
@@ -105,7 +105,7 @@ class HostedRepositoryStorage<T> implements Storage<T> {
 
                 // Check if the remote has changed
                 try {
-                    var remoteHash = localRepository.fetch(hostedRepository.getUrl(), ref);
+                    var remoteHash = localRepository.fetch(hostedRepository.url(), ref);
                     if (!remoteHash.equals(lastRemoteHash)) {
                         localRepository.checkout(remoteHash, true);
                         repositoryStorage = new RepositoryStorage<>(localRepository, fileName, authorName, authorEmail, message, serializer, deserializer);

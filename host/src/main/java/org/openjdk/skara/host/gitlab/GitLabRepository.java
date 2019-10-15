@@ -71,17 +71,17 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public Optional<Issue> getIssue(String id) {
+    public Optional<Issue> issue(String id) {
         throw new RuntimeException("not implemented yet");
     }
 
     @Override
-    public List<Issue> getIssues() {
+    public List<Issue> issues() {
         throw new RuntimeException("not implemented yet");
     }
 
     @Override
-    public Optional<HostedRepository> getParent() {
+    public Optional<HostedRepository> parent() {
         if (json.contains("forked_from_project")) {
             var parent = json.get("forked_from_project").get("path_with_namespace").asString();
             return Optional.of(new GitLabRepository(gitLabHost, parent));
@@ -105,7 +105,7 @@ public class GitLabRepository implements HostedRepository {
                         .body("target_branch", targetRef)
                         .body("title", draft ? "WIP: " : "" + title)
                         .body("description", String.join("\n", body))
-                        .body("target_project_id", Long.toString(target.getId()))
+                        .body("target_project_id", Long.toString(target.id()))
                         .execute();
 
         var targetRepo = (GitLabRepository) target;
@@ -113,13 +113,13 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public PullRequest getPullRequest(String id) {
+    public PullRequest pullRequest(String id) {
         var pr = request.get("merge_requests/" + id).execute();
         return new GitLabMergeRequest(this, pr, request);
     }
 
     @Override
-    public List<PullRequest> getPullRequests() {
+    public List<PullRequest> pullRequests() {
         return request.get("merge_requests")
                       .param("state", "opened")
                       .execute().stream()
@@ -136,19 +136,19 @@ public class GitLabRepository implements HostedRepository {
     public Optional<PullRequest> parsePullRequestUrl(String url) {
         var matcher = mergeRequestPattern.matcher(url);
         if (matcher.find()) {
-            return Optional.of(getPullRequest(matcher.group(1)));
+            return Optional.of(pullRequest(matcher.group(1)));
         } else {
             return Optional.empty();
         }
     }
 
     @Override
-    public String getName() {
+    public String name() {
         return projectName;
     }
 
     @Override
-    public URI getUrl() {
+    public URI url() {
         var builder = URIBuilder
                 .base(gitLabHost.getUri())
                 .setPath("/" + projectName + ".git");
@@ -157,26 +157,26 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public URI getWebUrl() {
+    public URI webUrl() {
         return URIBuilder.base(gitLabHost.getUri())
                          .setPath("/" + projectName)
                          .build();
     }
 
     @Override
-    public URI getWebUrl(Hash hash) {
+    public URI webUrl(Hash hash) {
         return URIBuilder.base(gitLabHost.getUri())
                          .setPath("/" + projectName + "/commit/" + hash.abbreviate())
                          .build();
     }
 
     @Override
-    public VCS getRepositoryType() {
+    public VCS repositoryType() {
         return VCS.GIT;
     }
 
     @Override
-    public String getFileContents(String filename, String ref) {
+    public String fileContents(String filename, String ref) {
         var confName = URLEncoder.encode(filename, StandardCharsets.UTF_8);
         var conf = request.get("repository/files/" + confName)
                           .param("ref", ref)
@@ -192,7 +192,7 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public String getNamespace() {
+    public String namespace() {
         return URIBuilder.base(gitLabHost.getUri()).build().getHost();
     }
 
@@ -225,7 +225,7 @@ public class GitLabRepository implements HostedRepository {
         }
 
         if (id != -1) {
-            var pr = getPullRequest(Integer.toString(id));
+            var pr = pullRequest(Integer.toString(id));
             var webHook = new WebHook(List.of(pr));
             return Optional.of(webHook);
         } else {
@@ -235,7 +235,7 @@ public class GitLabRepository implements HostedRepository {
 
     @Override
     public HostedRepository fork() {
-        var namespace = gitLabHost.getCurrentUserDetails().userName();
+        var namespace = gitLabHost.currentUser().userName();
         request.post("fork")
                .body("namespace", namespace)
                .onError(r -> r.statusCode() == 409 ? JSON.object().put("exists", true) : null)
@@ -250,16 +250,16 @@ public class GitLabRepository implements HostedRepository {
                 e.printStackTrace();
             }
         }
-        return gitLabHost.getRepository(forkedRepoName);
+        return gitLabHost.repository(forkedRepoName);
     }
 
     @Override
-    public long getId() {
+    public long id() {
         return json.get("id").asLong();
     }
 
     @Override
-    public Hash getBranchHash(String ref) {
+    public Hash branchHash(String ref) {
         var branch = request.get("repository/branches/" + ref).execute();
         return new Hash(branch.get("commit").get("id").asString());
     }

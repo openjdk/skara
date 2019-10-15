@@ -55,7 +55,7 @@ public class MirrorBotFactory implements BotFactory {
             var toName = repo.get("to").asString();
             var toRepo = configuration.repository(toName);
 
-            log.info("Setting up mirroring from " + fromRepo.getName() + "to " + toRepo.getName());
+            log.info("Setting up mirroring from " + fromRepo.name() + "to " + toRepo.name());
             bots.add(new MirrorBot(storage, fromRepo, toRepo));
         }
         return bots;

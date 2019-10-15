@@ -52,7 +52,7 @@ class ArchiveWorkItem implements WorkItem {
 
     @Override
     public String toString() {
-        return "ArchiveWorkItem@" + bot.codeRepo().getName() + "#" + pr.getId();
+        return "ArchiveWorkItem@" + bot.codeRepo().name() + "#" + pr.id();
     }
 
     @Override
@@ -61,10 +61,10 @@ class ArchiveWorkItem implements WorkItem {
             return true;
         }
         ArchiveWorkItem otherItem = (ArchiveWorkItem)other;
-        if (!pr.getId().equals(otherItem.pr.getId())) {
+        if (!pr.id().equals(otherItem.pr.id())) {
             return true;
         }
-        if (!bot.codeRepo().getName().equals(otherItem.bot.codeRepo().getName())) {
+        if (!bot.codeRepo().name().equals(otherItem.bot.codeRepo().name())) {
             return true;
         }
         return false;
@@ -74,7 +74,7 @@ class ArchiveWorkItem implements WorkItem {
         try {
             localRepo.add(localRepo.root().resolve("."));
             var hash = localRepo.commit(message, bot.emailAddress().fullName().orElseThrow(), bot.emailAddress().address());
-            localRepo.push(hash, bot.archiveRepo().getUrl(), "master");
+            localRepo.push(hash, bot.archiveRepo().url(), "master");
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -110,7 +110,7 @@ class ArchiveWorkItem implements WorkItem {
 
     private Repository materializeArchive(Path scratchPath) {
         try {
-            return Repository.materialize(scratchPath, bot.archiveRepo().getUrl(), pr.getTargetRef());
+            return Repository.materialize(scratchPath, bot.archiveRepo().url(), pr.targetRef());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -118,8 +118,8 @@ class ArchiveWorkItem implements WorkItem {
 
     private final static Pattern commandPattern = Pattern.compile("^/.*$");
 
-    private boolean ignoreComment(HostUserDetails author, String body) {
-        if (pr.repository().host().getCurrentUserDetails().equals(author)) {
+    private boolean ignoreComment(HostUser author, String body) {
+        if (pr.repository().host().currentUser().equals(author)) {
             return true;
         }
         if (bot.ignoredUsers().contains(author.userName())) {
@@ -144,7 +144,7 @@ class ArchiveWorkItem implements WorkItem {
 
     private void updateWebrevComment(List<Comment> comments, int index, URI fullWebrev, URI incWebrev) {
         var existing = comments.stream()
-                               .filter(comment -> comment.author().equals(pr.repository().host().getCurrentUserDetails()))
+                               .filter(comment -> comment.author().equals(pr.repository().host().currentUser()))
                                .filter(comment -> comment.body().contains(webrevCommentMarker))
                                .findAny();
         var comment = webrevCommentMarker + "\n";
@@ -155,7 +155,7 @@ class ArchiveWorkItem implements WorkItem {
         if (incWebrev != null) {
             comment += " - [Incremental](" + incWebrev.toString() + ")";
         }
-        comment += " (" + pr.getHeadHash() + ")\n";
+        comment += " (" + pr.headHash() + ")\n";
 
         if (existing.isPresent()) {
             if (existing.get().body().contains(fullWebrev.toString())) {
@@ -188,14 +188,14 @@ class ArchiveWorkItem implements WorkItem {
     public void run(Path scratchPath) {
         var path = scratchPath.resolve("mlbridge");
         var archiveRepo = materializeArchive(path);
-        var mboxBasePath = path.resolve(bot.codeRepo().getName());
+        var mboxBasePath = path.resolve(bot.codeRepo().name());
         var mbox = MailingListServerFactory.createMboxFileServer(mboxBasePath);
-        var reviewArchiveList = mbox.getList(pr.getId());
+        var reviewArchiveList = mbox.getList(pr.id());
         var sentMails = parseArchive(reviewArchiveList);
 
         // First determine if this PR should be inspected further or not
         if (sentMails.isEmpty()) {
-            var labels = new HashSet<>(pr.getLabels());
+            var labels = new HashSet<>(pr.labels());
             for (var readyLabel : bot.readyLabels()) {
                 if (!labels.contains(readyLabel)) {
                     log.fine("PR is not yet ready - missing label '" + readyLabel + "'");
@@ -205,7 +205,7 @@ class ArchiveWorkItem implements WorkItem {
         }
 
         // Also inspect comments before making the first post
-        var comments = pr.getComments();
+        var comments = pr.comments();
         if (sentMails.isEmpty()) {
             for (var readyComment : bot.readyComments().entrySet()) {
                 var commentFound = false;
@@ -249,8 +249,8 @@ class ArchiveWorkItem implements WorkItem {
             var latestHead = reviewArchive.latestHead();
 
             // Check if the head has changed
-            if (!pr.getHeadHash().equals(latestHead)) {
-                log.fine("Head hash change detected: current: " + pr.getHeadHash() + " - last: " + latestHead);
+            if (!pr.headHash().equals(latestHead)) {
+                log.fine("Head hash change detected: current: " + pr.headHash() + " - last: " + latestHead);
 
                 var latestBase = reviewArchive.latestBase();
                 if (!prInstance.baseHash().equals(latestBase)) {
@@ -280,7 +280,7 @@ class ArchiveWorkItem implements WorkItem {
         }
 
         // File specific comments
-        var reviewComments = pr.getReviewComments();
+        var reviewComments = pr.reviewComments();
         for (var reviewComment : reviewComments) {
             if (ignoreComment(reviewComment.author(), reviewComment.body())) {
                 continue;
@@ -289,7 +289,7 @@ class ArchiveWorkItem implements WorkItem {
         }
 
         // Review comments
-        var reviews = pr.getReviews();
+        var reviews = pr.reviews();
         for (var review : reviews) {
             if (ignoreComment(review.reviewer(), review.body().orElse(""))) {
                 continue;
@@ -304,7 +304,7 @@ class ArchiveWorkItem implements WorkItem {
 
         // Push all new mails to the archive repository
         newMails.forEach(reviewArchiveList::post);
-        pushMbox(archiveRepo, "Adding comments for PR " + bot.codeRepo().getName() + "/" + pr.getId());
+        pushMbox(archiveRepo, "Adding comments for PR " + bot.codeRepo().name() + "/" + pr.id());
 
         // Finally post all new mails to the actual list
         for (var newMail : newMails) {

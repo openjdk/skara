@@ -31,7 +31,7 @@ import java.util.List;
 public class AllowCommand implements CommandHandler {
     @Override
     public void handle(PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
-        var botUser = pr.repository().host().getCurrentUserDetails();
+        var botUser = pr.repository().host().currentUser();
         var vetoers = Veto.vetoers(botUser, allComments);
 
         if (!vetoers.contains(comment.author().id())) {

@@ -44,7 +44,7 @@ public class JsonUpdater implements UpdateConsumer {
 
     private JSONObject commitToChanges(HostedRepository repository, Commit commit, String build) {
         var ret = JSON.object();
-        ret.put("url",  repository.getWebUrl(commit.hash()).toString()); //FIXME
+        ret.put("url",  repository.webUrl(commit.hash()).toString()); //FIXME
         ret.put("version", version);
         ret.put("build", build);
 
@@ -77,7 +77,7 @@ public class JsonUpdater implements UpdateConsumer {
 
     @Override
     public void handleCommits(HostedRepository repository, List<Commit> commits, Branch branch) {
-        try (var writer = new JsonUpdateWriter(path, repository.getName())) {
+        try (var writer = new JsonUpdateWriter(path, repository.name())) {
             for (var commit : commits) {
                 var json = commitToChanges(repository, commit, defaultBuild);
                 writer.write(json);
@@ -88,7 +88,7 @@ public class JsonUpdater implements UpdateConsumer {
     @Override
     public void handleTagCommits(HostedRepository repository, List<Commit> commits, OpenJDKTag tag) {
         var build = String.format("b%02d", tag.buildNum());
-        try (var writer = new JsonUpdateWriter(path, repository.getName())) {
+        try (var writer = new JsonUpdateWriter(path, repository.name())) {
             var issues = new ArrayList<Issue>();
             for (var commit : commits) {
                 var parsedMessage = CommitMessageParsers.v1.parse(commit);

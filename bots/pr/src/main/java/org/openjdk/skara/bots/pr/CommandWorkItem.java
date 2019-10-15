@@ -82,7 +82,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
     }
 
     private List<AbstractMap.SimpleEntry<String, Comment>> findCommandComments(List<Comment> comments) {
-        var self = pr.repository().host().getCurrentUserDetails();
+        var self = pr.repository().host().currentUser();
         var handled = comments.stream()
                               .filter(comment -> comment.author().equals(self))
                               .map(comment -> commandReplyPattern.matcher(comment.body()))
@@ -136,12 +136,12 @@ public class CommandWorkItem extends PullRequestWorkItem {
     public void run(Path scratchPath) {
         log.info("Looking for merge commands");
 
-        if (pr.getLabels().contains("integrated")) {
+        if (pr.labels().contains("integrated")) {
             log.info("Skip checking for commands in integrated PR");
             return;
         }
 
-        var comments = pr.getComments();
+        var comments = pr.comments();
         var unprocessedCommands = findCommandComments(comments);
         if (unprocessedCommands.isEmpty()) {
             log.fine("No new merge commands found, stopping further processing");

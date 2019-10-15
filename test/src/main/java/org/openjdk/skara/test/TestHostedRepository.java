@@ -44,7 +44,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
         this.host = host;
         this.projectName = projectName;
         this.localRepository = localRepository;
-        pullRequestPattern = Pattern.compile(getUrl().toString() + "/pr/" + "(\\d+)");
+        pullRequestPattern = Pattern.compile(url().toString() + "/pr/" + "(\\d+)");
     }
 
     @Override
@@ -53,7 +53,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public Optional<HostedRepository> getParent() {
+    public Optional<HostedRepository> parent() {
         throw new RuntimeException("Not implemented yet");
     }
 
@@ -63,43 +63,43 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public PullRequest getPullRequest(String id) {
+    public PullRequest pullRequest(String id) {
         return host.getPullRequest(this, id);
     }
 
     @Override
-    public List<PullRequest> getPullRequests() {
+    public List<PullRequest> pullRequests() {
         return new ArrayList<>(host.getPullRequests(this));
     }
 
     @Override
     public List<PullRequest> findPullRequestsWithComment(String author, String body) {
-        return getPullRequests().stream()
-                                .filter(pr -> pr.getComments().stream()
-                                        .filter(comment -> author == null || comment.author().userName().equals(author))
-                                        .filter(comment -> comment == null ||comment.body().contains(body))
-                                        .count() > 0
+        return pullRequests().stream()
+                             .filter(pr -> pr.comments().stream()
+                                                .filter(comment -> author == null || comment.author().userName().equals(author))
+                                                .filter(comment -> comment == null ||comment.body().contains(body))
+                                                .count() > 0
                                 )
-                                .collect(Collectors.toList());
+                             .collect(Collectors.toList());
     }
 
     @Override
     public Optional<PullRequest> parsePullRequestUrl(String url) {
         var matcher = pullRequestPattern.matcher(url);
         if (matcher.find()) {
-            return Optional.of(getPullRequest(matcher.group(1)));
+            return Optional.of(pullRequest(matcher.group(1)));
         } else {
             return Optional.empty();
         }
     }
 
     @Override
-    public String getName() {
+    public String name() {
         return projectName;
     }
 
     @Override
-    public URI getUrl() {
+    public URI url() {
         try {
             // We need a URL without a trailing slash
             var fileName = localRepository.root().getFileName().toString();
@@ -110,26 +110,26 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public URI getWebUrl() {
-        return getUrl();
+    public URI webUrl() {
+        return url();
     }
 
     @Override
-    public URI getWebUrl(Hash hash) {
+    public URI webUrl(Hash hash) {
         try {
-            return new URI(getUrl().toString() + "/" + hash.hex());
+            return new URI(url().toString() + "/" + hash.hex());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
     }
 
     @Override
-    public VCS getRepositoryType() {
+    public VCS repositoryType() {
         return VCS.GIT;
     }
 
     @Override
-    public String getFileContents(String filename, String ref) {
+    public String fileContents(String filename, String ref) {
         try {
             var lines = localRepository.lines(Path.of(filename), localRepository.resolve(ref).orElseThrow());
             return String.join("\n", lines.orElseThrow());
@@ -139,7 +139,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public String getNamespace() {
+    public String namespace() {
         return "test";
     }
 
@@ -154,12 +154,12 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public long getId() {
+    public long id() {
         return 0L;
     }
 
     @Override
-    public Hash getBranchHash(String ref) {
+    public Hash branchHash(String ref) {
         try {
             var hash = localRepository.resolve(ref).orElseThrow();
             return hash;

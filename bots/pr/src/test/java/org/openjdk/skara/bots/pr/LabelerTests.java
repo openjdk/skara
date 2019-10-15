@@ -44,82 +44,82 @@ class LabelerTests {
             var labelPatterns = Map.of("test1", List.of(Pattern.compile("a.txt")),
                                        "test2", List.of(Pattern.compile("b.txt")));
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id())
+                                           .addReviewer(reviewer.host().currentUser().id());
             var labelBot = new PullRequestBot(author, censusBuilder.build(), "master", labelPatterns, Map.of(), Map.of(), Set.of(), Map.of());
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path();
-            var localRepo = CheckableRepository.init(localRepoFolder, author.getRepositoryType());
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status - only the rfr label should be set
             TestBotRunner.runPeriodicItems(labelBot);
-            assertEquals(Set.of("rfr"), new HashSet<>(pr.getLabels()));
+            assertEquals(Set.of("rfr"), new HashSet<>(pr.labels()));
 
             var fileA = localRepoFolder.resolve("a.txt");
             Files.writeString(fileA, "Hello");
             localRepo.add(fileA);
             var hashA = localRepo.commit("test1", "test", "test@test");
-            localRepo.push(hashA, author.getUrl(), "edit");
+            localRepo.push(hashA, author.url(), "edit");
 
             // Make sure that the push registered
-            var lastHeadHash = pr.getHeadHash();
+            var lastHeadHash = pr.headHash();
             var refreshCount = 0;
             do {
-                pr = author.getPullRequest(pr.getId());
+                pr = author.pullRequest(pr.id());
                 if (refreshCount++ > 100) {
                     fail("The PR did not update after the new push");
                 }
-            } while (pr.getHeadHash().equals(lastHeadHash));
+            } while (pr.headHash().equals(lastHeadHash));
 
             // Check the status - there should now be a test1 label
             TestBotRunner.runPeriodicItems(labelBot);
-            assertEquals(Set.of("rfr", "test1"), new HashSet<>(pr.getLabels()));
+            assertEquals(Set.of("rfr", "test1"), new HashSet<>(pr.labels()));
 
             var fileB = localRepoFolder.resolve("b.txt");
             Files.writeString(fileB, "Hello");
             localRepo.add(fileB);
             var hashB = localRepo.commit("test2", "test", "test@test");
-            localRepo.push(hashB, author.getUrl(), "edit");
+            localRepo.push(hashB, author.url(), "edit");
 
             // Make sure that the push registered
-            lastHeadHash = pr.getHeadHash();
+            lastHeadHash = pr.headHash();
             refreshCount = 0;
             do {
-                pr = author.getPullRequest(pr.getId());
+                pr = author.pullRequest(pr.id());
                 if (refreshCount++ > 100) {
                     fail("The PR did not update after the new push");
                 }
-            } while (pr.getHeadHash().equals(lastHeadHash));
+            } while (pr.headHash().equals(lastHeadHash));
 
             // Check the status - there should now be a test2 label
             TestBotRunner.runPeriodicItems(labelBot);
-            assertEquals(Set.of("rfr", "test1", "test2"), new HashSet<>(pr.getLabels()));
+            assertEquals(Set.of("rfr", "test1", "test2"), new HashSet<>(pr.labels()));
 
             localRepo.remove(fileA);
             var hashNoA = localRepo.commit("test2", "test", "test@test");
-            localRepo.push(hashNoA, author.getUrl(), "edit");
+            localRepo.push(hashNoA, author.url(), "edit");
 
             // Make sure that the push registered
-            lastHeadHash = pr.getHeadHash();
+            lastHeadHash = pr.headHash();
             refreshCount = 0;
             do {
-                pr = author.getPullRequest(pr.getId());
+                pr = author.pullRequest(pr.id());
                 if (refreshCount++ > 100) {
                     fail("The PR did not update after the new push");
                 }
-            } while (pr.getHeadHash().equals(lastHeadHash));
+            } while (pr.headHash().equals(lastHeadHash));
 
             // Check the status - the test1 label should be gone
             TestBotRunner.runPeriodicItems(labelBot);
-            assertEquals(Set.of("rfr", "test2"), new HashSet<>(pr.getLabels()));
+            assertEquals(Set.of("rfr", "test2"), new HashSet<>(pr.labels()));
         }
     }
 }

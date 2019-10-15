@@ -63,7 +63,7 @@ public class JBridgeBot implements Bot, WorkItem {
     }
 
     private void pushMarks(Path markSource, String destName, Path markScratchPath) throws IOException {
-        var marksRepo = Repository.materialize(markScratchPath, exporterConfig.marksRepo().getUrl(), exporterConfig.marksRef());
+        var marksRepo = Repository.materialize(markScratchPath, exporterConfig.marksRepo().url(), exporterConfig.marksRef());
 
         // We should never change existing marks
         var markDest = markScratchPath.resolve(destName);
@@ -87,7 +87,7 @@ public class JBridgeBot implements Bot, WorkItem {
         Files.writeString(markDest, updated, StandardCharsets.UTF_8);
         marksRepo.add(markDest);
         var hash = marksRepo.commit("Updated marks", exporterConfig.marksAuthorName(), exporterConfig.marksAuthorEmail());
-        marksRepo.push(hash, exporterConfig.marksRepo().getUrl(), exporterConfig.marksRef());
+        marksRepo.push(hash, exporterConfig.marksRepo().url(), exporterConfig.marksRef());
     }
 
     @Override
@@ -118,21 +118,21 @@ public class JBridgeBot implements Bot, WorkItem {
 
             IOException lastException = null;
             for (var destination : exporterConfig.destinations()) {
-                var markerBase = destination.getUrl().getHost() + "/" + destination.getName();
+                var markerBase = destination.url().getHost() + "/" + destination.name();
                 var successfulPushMarker = storage.resolve(URLEncoder.encode(markerBase, StandardCharsets.UTF_8) + ".success.txt");
                 if (exported.isPresent() || !successfulPushMarker.toFile().isFile()) {
                     var repo = exported.orElse(Exporter.current(storage).orElseThrow());
                     try {
                         Files.deleteIfExists(successfulPushMarker);
-                        repo.pushAll(destination.getUrl());
+                        repo.pushAll(destination.url());
                         storage.resolve(successfulPushMarker).toFile().createNewFile();
                     } catch (IOException e) {
-                        log.severe("Failed to push to " + destination.getUrl());
+                        log.severe("Failed to push to " + destination.url());
                         log.throwing("JBridgeBot", "run", e);
                         lastException = e;
                     }
                 } else {
-                    log.fine("No changes detected in " + exporterConfig.source() + " - skipping push to " + destination.getName());
+                    log.fine("No changes detected in " + exporterConfig.source() + " - skipping push to " + destination.name());
                 }
             }
             if (lastException != null) {

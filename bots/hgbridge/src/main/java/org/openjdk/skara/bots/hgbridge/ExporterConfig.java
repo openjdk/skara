@@ -168,7 +168,7 @@ class ExporterConfig {
     }
 
     public Converter resolve(Path scratchPath) throws IOException {
-        var localRepo = Repository.materialize(scratchPath, configurationRepo.getUrl(), configurationRef);
+        var localRepo = Repository.materialize(scratchPath, configurationRepo.url(), configurationRef);
 
         var replacements = parseMap(localRepo.root(), replacementsFile,
                                     field -> new Hash(field.name()),

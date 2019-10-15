@@ -85,7 +85,7 @@ public class MailingListUpdater implements UpdateConsumer {
             printer.println("Committer: " + commit.committer().name() + " <" + commit.committer().email() + ">");
         }
         printer.println("Date:      " + commit.date().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss +0000")));
-        printer.println("URL:       " + repository.getWebUrl(commit.hash()));
+        printer.println("URL:       " + repository.webUrl(commit.hash()));
         printer.println();
         printer.println(String.join("\n", commit.message()));
         printer.println();
@@ -106,9 +106,9 @@ public class MailingListUpdater implements UpdateConsumer {
 
     private String commitsToSubject(HostedRepository repository, List<Commit> commits, Branch branch) {
         var subject = new StringBuilder();
-        subject.append(repository.getRepositoryType().shortName());
+        subject.append(repository.repositoryType().shortName());
         subject.append(": ");
-        subject.append(repository.getName());
+        subject.append(repository.name());
         subject.append(": ");
         if (includeBranch) {
             subject.append(branch.name());
@@ -124,9 +124,9 @@ public class MailingListUpdater implements UpdateConsumer {
     }
 
     private String tagToSubject(HostedRepository repository, Hash hash, OpenJDKTag tag) {
-        return repository.getRepositoryType().shortName() +
+        return repository.repositoryType().shortName() +
                 ": " +
-                repository.getName() +
+                repository.name() +
                 ": Added tag " +
                 tag.tag() +
                 " for changeset " +
@@ -150,7 +150,7 @@ public class MailingListUpdater implements UpdateConsumer {
             }
 
             var candidate = candidates.get(0);
-            var prLink = candidate.getWebUrl();
+            var prLink = candidate.webUrl();
             var prLinkPattern = Pattern.compile("^(?:PR: )?" + Pattern.quote(prLink.toString()), Pattern.MULTILINE);
 
             var rfrCandidates = rfrs.stream()
@@ -248,9 +248,9 @@ public class MailingListUpdater implements UpdateConsumer {
 
     private String newBranchSubject(HostedRepository repository, List<Commit> commits, Branch parent, Branch branch) {
         var subject = new StringBuilder();
-        subject.append(repository.getRepositoryType().shortName());
+        subject.append(repository.repositoryType().shortName());
         subject.append(": ");
-        subject.append(repository.getName());
+        subject.append(repository.name());
         subject.append(": created branch ");
         subject.append(branch);
         subject.append(" based on the branch ");

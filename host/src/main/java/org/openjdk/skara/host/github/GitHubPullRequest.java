@@ -59,17 +59,17 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
-    public String getId() {
+    public String id() {
         return json.get("number").toString();
     }
 
     @Override
-    public HostUserDetails getAuthor() {
+    public HostUser author() {
         return host.parseUserField(json);
     }
 
     @Override
-    public List<Review> getReviews() {
+    public List<Review> reviews() {
         var reviews = request.get("pulls/" + json.get("number").toString() + "/reviews").execute().stream()
                              .map(JSONValue::asObject)
                              .filter(obj -> !(obj.get("state").asString().equals("COMMENTED") && obj.get("body").asString().isEmpty()))
@@ -167,7 +167,7 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
-    public List<ReviewComment> getReviewComments() {
+    public List<ReviewComment> reviewComments() {
         var rawDiff = request.get("pulls/" + json.get("number").toString())
                           .header("Accept", "application/vnd.github.v3.diff")
                           .executeUnparsed();
@@ -193,27 +193,27 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
-    public Hash getHeadHash() {
+    public Hash headHash() {
         return new Hash(json.get("head").get("sha").asString());
     }
 
     @Override
-    public String getSourceRef() {
-        return "pull/" + getId() + "/head";
+    public String sourceRef() {
+        return "pull/" + id() + "/head";
     }
 
     @Override
-    public String getTargetRef() {
+    public String targetRef() {
         return json.get("base").get("ref").asString();
     }
 
     @Override
-    public Hash getTargetHash() {
-        return repository.getBranchHash(getTargetRef());
+    public Hash targetHash() {
+        return repository.branchHash(targetRef());
     }
 
     @Override
-    public String getTitle() {
+    public String title() {
         return json.get("title").asString();
     }
 
@@ -223,7 +223,7 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
-    public String getBody() {
+    public String body() {
         var body = json.get("body").asString();
         if (body == null) {
             body = "";
@@ -248,7 +248,7 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
-    public List<Comment> getComments() {
+    public List<Comment> comments() {
         return request.get("issues/" + json.get("number").toString() + "/comments").execute().stream()
                 .map(this::parseComment)
                 .collect(Collectors.toList());
@@ -271,17 +271,17 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
-    public ZonedDateTime getCreated() {
+    public ZonedDateTime createdAt() {
         return ZonedDateTime.parse(json.get("created_at").asString());
     }
 
     @Override
-    public ZonedDateTime getUpdated() {
+    public ZonedDateTime updatedAt() {
         return ZonedDateTime.parse(json.get("updated_at").asString());
     }
 
     @Override
-    public Map<String, Check> getChecks(Hash hash) {
+    public Map<String, Check> checks(Hash hash) {
         var checks = request.get("commits/" + hash.hex() + "/check-runs").execute();
 
         return checks.get("check_runs").stream()
@@ -390,13 +390,13 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
-    public URI getChangeUrl() {
-        return URIBuilder.base(getWebUrl()).appendPath("/files").build();
+    public URI changeUrl() {
+        return URIBuilder.base(webUrl()).appendPath("/files").build();
     }
 
     @Override
-    public URI getChangeUrl(Hash base) {
-        return URIBuilder.base(getWebUrl()).appendPath("/files/" + base.abbreviate() + ".." + getHeadHash().abbreviate()).build();
+    public URI changeUrl(Hash base) {
+        return URIBuilder.base(webUrl()).appendPath("/files/" + base.abbreviate() + ".." + headHash().abbreviate()).build();
     }
 
     @Override
@@ -433,7 +433,7 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
-    public List<String> getLabels() {
+    public List<String> labels() {
         return request.get("issues/" + json.get("number").toString() + "/labels").execute().stream()
                       .map(JSONValue::asObject)
                       .map(obj -> obj.get("name").asString())
@@ -442,19 +442,19 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
-    public URI getWebUrl() {
+    public URI webUrl() {
         var host = (GitHubHost)repository.host();
-        var endpoint = "/" + repository.getName() + "/pull/" + getId();
+        var endpoint = "/" + repository.name() + "/pull/" + id();
         return host.getWebURI(endpoint);
     }
 
     @Override
     public String toString() {
-        return "GitHubPullRequest #" + getId() + " by " + getAuthor();
+        return "GitHubPullRequest #" + id() + " by " + author();
     }
 
     @Override
-    public List<HostUserDetails> getAssignees() {
+    public List<HostUser> assignees() {
         return json.get("assignees").asArray()
                                     .stream()
                                     .map(host::parseUserObject)
@@ -462,7 +462,7 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
-    public void setAssignees(List<HostUserDetails> assignees) {
+    public void setAssignees(List<HostUser> assignees) {
         var assignee_ids = JSON.array();
         for (var assignee : assignees) {
             assignee_ids.add(assignee.userName());

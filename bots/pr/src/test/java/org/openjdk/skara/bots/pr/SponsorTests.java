@@ -43,25 +43,25 @@ class SponsorTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+                                           .addReviewer(reviewer.host().currentUser().id());
             if (isAuthor) {
-                censusBuilder.addAuthor(author.host().getCurrentUserDetails().id());
+                censusBuilder.addAuthor(author.host().currentUser().id());
             }
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
-            var approvalPr = reviewer.getPullRequest(pr.getId());
+            var approvalPr = reviewer.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Let the bot see it
@@ -72,31 +72,31 @@ class SponsorTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply that a sponsor is required
-            var sponsor = pr.getComments().stream()
+            var sponsor = pr.comments().stream()
                             .filter(comment -> comment.body().contains("sponsor"))
                             .filter(comment -> comment.body().contains("your change"))
                             .count();
             assertEquals(1, sponsor);
 
             // The bot should not have pushed the commit
-            var notPushed = pr.getComments().stream()
+            var notPushed = pr.comments().stream()
                               .filter(comment -> comment.body().contains("Pushed as commit"))
                               .count();
             assertEquals(0, notPushed);
 
             // Reviewer now agrees to sponsor
-            var reviewerPr = reviewer.getPullRequest(pr.getId());
+            var reviewerPr = reviewer.pullRequest(pr.id());
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should have pushed the commit
-            var pushed = pr.getComments().stream()
+            var pushed = pr.comments().stream()
                            .filter(comment -> comment.body().contains("Pushed as commit"))
                            .count();
             assertEquals(1, pushed);
 
             // The change should now be present on the master branch
-            var pushedRepo = Repository.materialize(pushedFolder.path(), author.getUrl(), "master");
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
             var headHash = pushedRepo.resolve("HEAD").orElseThrow();
             var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
 
@@ -110,9 +110,9 @@ class SponsorTests {
 
             assertEquals("Generated Reviewer 1", headCommit.committer().name());
             assertEquals("integrationreviewer1@openjdk.java.net", headCommit.committer().email());
-            assertTrue(pr.getLabels().contains("integrated"));
-            assertFalse(pr.getLabels().contains("ready"));
-            assertFalse(pr.getLabels().contains("sponsor"));
+            assertTrue(pr.labels().contains("integrated"));
+            assertFalse(pr.labels().contains("ready"));
+            assertFalse(pr.labels().contains("sponsor"));
         }
     }
 
@@ -134,18 +134,18 @@ class SponsorTests {
             var integrator = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().getCurrentUserDetails().id());
+                                           .addCommitter(author.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Issue an invalid command
@@ -153,7 +153,7 @@ class SponsorTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an error message
-            var error = pr.getComments().stream()
+            var error = pr.comments().stream()
                           .filter(comment -> comment.body().contains("does not need sponsoring"))
                           .count();
             assertEquals(1, error);
@@ -168,18 +168,18 @@ class SponsorTests {
             var integrator = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Issue an invalid command
@@ -187,7 +187,7 @@ class SponsorTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an error message
-            var error = pr.getComments().stream()
+            var error = pr.comments().stream()
                           .filter(comment -> comment.body().contains("Committers"))
                           .filter(comment -> comment.body().contains("are allowed to sponsor"))
                           .count();
@@ -204,27 +204,27 @@ class SponsorTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+                                           .addReviewer(reviewer.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Reviewer now tries to sponsor
-            var reviewerPr = reviewer.getPullRequest(pr.getId());
+            var reviewerPr = reviewer.pullRequest(pr.id());
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an error message
-            var error = pr.getComments().stream()
+            var error = pr.comments().stream()
                           .filter(comment -> comment.body().contains("before the integration can be sponsored"))
                           .count();
             assertEquals(1, error);
@@ -240,22 +240,22 @@ class SponsorTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+                                           .addReviewer(reviewer.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
-            var approvalPr = reviewer.getPullRequest(pr.getId());
+            var approvalPr = reviewer.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Let the bot see it
@@ -266,38 +266,38 @@ class SponsorTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // Bot should have replied
-            var ready = pr.getComments().stream()
+            var ready = pr.comments().stream()
                           .filter(comment -> comment.body().contains("now ready to be sponsored"))
                           .filter(comment -> comment.body().contains("at version " + editHash.hex()))
                           .count();
             assertEquals(1, ready);
-            assertTrue(pr.getLabels().contains("sponsor"));
+            assertTrue(pr.labels().contains("sponsor"));
 
             // Push another change
             var updateHash = CheckableRepository.appendAndCommit(localRepo,"Yet more stuff");
-            localRepo.push(updateHash, author.getUrl(), "edit");
+            localRepo.push(updateHash, author.url(), "edit");
 
             // Make sure that the push registered
-            var lastHeadHash = pr.getHeadHash();
+            var lastHeadHash = pr.headHash();
             var refreshCount = 0;
             do {
-                pr = author.getPullRequest(pr.getId());
+                pr = author.pullRequest(pr.id());
                 if (refreshCount++ > 100) {
                     fail("The PR did not update after the new push");
                 }
-            } while (pr.getHeadHash().equals(lastHeadHash));
+            } while (pr.headHash().equals(lastHeadHash));
 
             // The label should have been dropped
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertFalse(pr.getLabels().contains("sponsor"));
+            assertFalse(pr.labels().contains("sponsor"));
 
             // Reviewer now tries to sponsor
-            var reviewerPr = reviewer.getPullRequest(pr.getId());
+            var reviewerPr = reviewer.pullRequest(pr.id());
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an error message
-            var error = pr.getComments().stream()
+            var error = pr.comments().stream()
                           .filter(comment -> comment.body().contains("The PR has been updated since the change"))
                           .count();
             assertEquals(1, error);
@@ -305,15 +305,15 @@ class SponsorTests {
             // Flag it as ready for integration again
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertTrue(pr.getLabels().contains("sponsor"));
+            assertTrue(pr.labels().contains("sponsor"));
 
             // It should now be possible to sponsor
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertFalse(pr.getLabels().contains("sponsor"));
+            assertFalse(pr.labels().contains("sponsor"));
 
             // The bot should have pushed the commit
-            var pushed = pr.getComments().stream()
+            var pushed = pr.comments().stream()
                            .filter(comment -> comment.body().contains("Pushed as commit"))
                            .count();
             assertEquals(1, pushed);
@@ -330,24 +330,24 @@ class SponsorTests {
             var integrator = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(integrator.host().getCurrentUserDetails().id())
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id())
+                                           .addReviewer(integrator.host().currentUser().id())
+                                           .addReviewer(reviewer.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
-            var approvalPr = integrator.getPullRequest(pr.getId());
+            var approvalPr = integrator.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Push something unrelated to master
@@ -356,33 +356,33 @@ class SponsorTests {
             Files.writeString(unrelated, "Hello");
             localRepo.add(unrelated);
             var unrelatedHash = localRepo.commit("Unrelated", "X", "x@y.z");
-            localRepo.push(unrelatedHash, author.getUrl(), "master");
+            localRepo.push(unrelatedHash, author.url(), "master");
 
             // Issue a merge command without being a Committer
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply that a sponsor is required
-            var sponsor = pr.getComments().stream()
+            var sponsor = pr.comments().stream()
                             .filter(comment -> comment.body().contains("sponsor"))
                             .filter(comment -> comment.body().contains("your change"))
                             .count();
             assertEquals(1, sponsor);
 
             // Reviewer now agrees to sponsor
-            var reviewerPr = reviewer.getPullRequest(pr.getId());
+            var reviewerPr = reviewer.pullRequest(pr.id());
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an ok message
-            var pushed = pr.getComments().stream()
+            var pushed = pr.comments().stream()
                            .filter(comment -> comment.body().contains("Pushed as commit"))
                            .filter(comment -> comment.body().contains("commit was automatically rebased without conflicts"))
                            .count();
             assertEquals(1, pushed);
 
             // The change should now be present on the master branch
-            var pushedRepo = Repository.materialize(pushedFolder.path(), author.getUrl(), "master");
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
         }
     }
@@ -396,22 +396,22 @@ class SponsorTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+                                           .addReviewer(reviewer.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
-            var approvalPr = reviewer.getPullRequest(pr.getId());
+            var approvalPr = reviewer.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Let the bot see it
@@ -422,27 +422,27 @@ class SponsorTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // Bot should have replied
-            var ready = pr.getComments().stream()
+            var ready = pr.comments().stream()
                           .filter(comment -> comment.body().contains("now ready to be sponsored"))
                           .filter(comment -> comment.body().contains("at version " + editHash.hex()))
                           .count();
             assertEquals(1, ready);
-            assertTrue(pr.getLabels().contains("sponsor"));
+            assertTrue(pr.labels().contains("sponsor"));
 
             // The reviewer now changes their mind
             approvalPr.addReview(Review.Verdict.DISAPPROVED, "No wait, disapproved");
 
             // The label should have been dropped
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertFalse(pr.getLabels().contains("sponsor"));
+            assertFalse(pr.labels().contains("sponsor"));
 
             // Reviewer now tries to sponsor
-            var reviewerPr = reviewer.getPullRequest(pr.getId());
+            var reviewerPr = reviewer.pullRequest(pr.id());
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an error message
-            var error = pr.getComments().stream()
+            var error = pr.comments().stream()
                           .filter(comment -> comment.body().contains("merge request cannot be fulfilled at this time"))
                           .filter(comment -> comment.body().contains("failed the final jcheck"))
                           .count();
@@ -451,15 +451,15 @@ class SponsorTests {
             // Make it ready for integration again
             approvalPr.addReview(Review.Verdict.APPROVED, "Sorry, wrong button");
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertTrue(pr.getLabels().contains("sponsor"));
+            assertTrue(pr.labels().contains("sponsor"));
 
             // It should now be possible to sponsor
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertFalse(pr.getLabels().contains("sponsor"));
+            assertFalse(pr.labels().contains("sponsor"));
 
             // The bot should have pushed the commit
-            var pushed = pr.getComments().stream()
+            var pushed = pr.comments().stream()
                            .filter(comment -> comment.body().contains("Pushed as commit"))
                            .count();
             assertEquals(1, pushed);
@@ -475,23 +475,23 @@ class SponsorTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id())
-                                           .addAuthor(author.host().getCurrentUserDetails().id());
+                                           .addReviewer(reviewer.host().currentUser().id())
+                                           .addAuthor(author.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
-            var approvalPr = reviewer.getPullRequest(pr.getId());
+            var approvalPr = reviewer.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Let the bot see it
@@ -502,14 +502,14 @@ class SponsorTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply that a sponsor is required
-            var sponsor = pr.getComments().stream()
+            var sponsor = pr.comments().stream()
                             .filter(comment -> comment.body().contains("sponsor"))
                             .filter(comment -> comment.body().contains("your change"))
                             .count();
             assertEquals(1, sponsor);
 
             // The bot should not have pushed the commit
-            var notPushed = pr.getComments().stream()
+            var notPushed = pr.comments().stream()
                               .filter(comment -> comment.body().contains("Pushed as commit"))
                               .count();
             assertEquals(0, notPushed);
@@ -517,15 +517,15 @@ class SponsorTests {
             // Push something conflicting to master
             localRepo.checkout(masterHash, true);
             var conflictingHash = CheckableRepository.appendAndCommit(localRepo, "This looks like a conflict");
-            localRepo.push(conflictingHash, author.getUrl(), "master");
+            localRepo.push(conflictingHash, author.url(), "master");
 
             // Reviewer now agrees to sponsor
-            var reviewerPr = reviewer.getPullRequest(pr.getId());
+            var reviewerPr = reviewer.pullRequest(pr.id());
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an error message
-            var error = pr.getComments().stream()
+            var error = pr.comments().stream()
                           .filter(comment -> comment.body().contains("It was not possible to rebase your changes automatically."))
                           .filter(comment -> comment.body().contains("Please merge `master`"))
                           .count();

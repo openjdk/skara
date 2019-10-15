@@ -111,7 +111,7 @@ public class BotRunnerConfiguration {
                 throw new ConfigurationError("Repository " + entry.name() + " uses undefined host '" + hostName + "'");
             }
             var host = hosts.get(hostName);
-            var repo = host.getRepository(entry.value().get("repository").asString());
+            var repo = host.repository(entry.value().get("repository").asString());
             ret.put(entry.name(), repo);
         }
 
@@ -138,7 +138,7 @@ public class BotRunnerConfiguration {
                 throw new ConfigurationError("Repository entry " + entry + " uses undefined host '" + hostName + "'");
             }
             var repositoryName = entry.substring(hostSeparatorIndex + 1);
-            ret.repository = host.getRepository(repositoryName);
+            ret.repository = host.repository(repositoryName);
         } else {
             if (!repositories.containsKey(entry)) {
                 throw new ConfigurationError("Repository " + entry + " is not defined!");
@@ -147,7 +147,7 @@ public class BotRunnerConfiguration {
         }
 
         if (ret.ref == null) {
-            ret.ref = ret.repository.getRepositoryType() == VCS.GIT ? "master" : "default";
+            ret.ref = ret.repository.repositoryType() == VCS.GIT ? "master" : "default";
         }
 
         return ret;
@@ -162,7 +162,7 @@ public class BotRunnerConfiguration {
                 throw new ConfigurationError("Issue project entry " + entry + " uses undefined host '" + hostName + "'");
             }
             var issueProjectName = entry.substring(hostSeparatorIndex + 1);
-            return host.getIssueProject(issueProjectName);
+            return host.issueProject(issueProjectName);
         } else {
             throw new ConfigurationError("Malformed issue project entry");
         }

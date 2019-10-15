@@ -34,7 +34,7 @@ public class ReviewComment extends Comment {
     private final String path;
     private final int line;
 
-    public ReviewComment(ReviewComment parent, String threadId, Hash hash, String path, int line, String id, String body, HostUserDetails author, ZonedDateTime createdAt, ZonedDateTime updatedAt) {
+    public ReviewComment(ReviewComment parent, String threadId, Hash hash, String path, int line, String id, String body, HostUser author, ZonedDateTime createdAt, ZonedDateTime updatedAt) {
         super(id, body, author, createdAt, updatedAt);
 
         this.parent = parent;

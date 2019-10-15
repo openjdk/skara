@@ -37,7 +37,7 @@ class ReadyForSponsorTracker {
         return String.format(marker, hash.hex());
     }
 
-    static Optional<Hash> latestReadyForSponsor(HostUserDetails botUser, List<Comment> comments) {
+    static Optional<Hash> latestReadyForSponsor(HostUser botUser, List<Comment> comments) {
         var ready = comments.stream()
                                          .filter(comment -> comment.author().equals(botUser))
                                          .map(comment -> markerPattern.matcher(comment.body()))

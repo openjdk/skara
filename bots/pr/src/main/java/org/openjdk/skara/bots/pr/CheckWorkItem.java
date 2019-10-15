@@ -54,7 +54,7 @@ class CheckWorkItem extends PullRequestWorkItem {
         this.issueProject = issueProject;
     }
 
-    private String encodeReviewer(HostUserDetails reviewer, CensusInstance censusInstance) {
+    private String encodeReviewer(HostUser reviewer, CensusInstance censusInstance) {
         var census = censusInstance.census();
         var project = censusInstance.project();
         var namespace = censusInstance.namespace();
@@ -79,7 +79,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                                         .sorted()
                                         .collect(Collectors.joining());
             var commentString = comments.stream()
-                                        .filter(comment -> comment.author().id().equals(pr.repository().host().getCurrentUserDetails().id()))
+                                        .filter(comment -> comment.author().id().equals(pr.repository().host().currentUser().id()))
                                         .flatMap(comment -> comment.body().lines())
                                         .filter(line -> metadataComments.matcher(line).find())
                                         .collect(Collectors.joining());
@@ -101,10 +101,10 @@ class CheckWorkItem extends PullRequestWorkItem {
     }
 
     private boolean currentCheckValid(CensusInstance censusInstance, List<Comment> comments, List<Review> reviews, Set<String> labels) {
-        var hash = pr.getHeadHash();
-        var targetHash = pr.getTargetHash();
-        var metadata = getMetadata(pr.getTitle(), pr.getBody(),comments, reviews, labels, censusInstance, targetHash);
-        var currentChecks = pr.getChecks(hash);
+        var hash = pr.headHash();
+        var targetHash = pr.targetHash();
+        var metadata = getMetadata(pr.title(), pr.body(), comments, reviews, labels, censusInstance, targetHash);
+        var currentChecks = pr.checks(hash);
 
         if (currentChecks.containsKey("jcheck")) {
             var check = currentChecks.get("jcheck");
@@ -135,16 +135,16 @@ class CheckWorkItem extends PullRequestWorkItem {
 
     @Override
     public String toString() {
-        return "CheckWorkItem@" + pr.repository().getName() + "#" + pr.getId();
+        return "CheckWorkItem@" + pr.repository().name() + "#" + pr.id();
     }
 
     @Override
     public void run(Path scratchPath) {
         // First determine if the current state of the PR has already been checked
         var census = CensusInstance.create(censusRepo, censusRef, scratchPath.resolve("census"), pr);
-        var comments = pr.getComments();
-        var allReviews = pr.getReviews();
-        var labels = new HashSet<>(pr.getLabels());
+        var comments = pr.comments();
+        var allReviews = pr.reviews();
+        var labels = new HashSet<>(pr.labels());
 
         // Filter out the active reviews
         var activeReviews = PullRequestInstance.filterActiveReviews(allReviews);

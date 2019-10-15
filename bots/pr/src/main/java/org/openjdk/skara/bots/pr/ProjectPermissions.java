@@ -22,10 +22,10 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.host.HostUserDetails;
+import org.openjdk.skara.host.HostUser;
 
 class ProjectPermissions {
-    static boolean mayCommit(CensusInstance censusInstance, HostUserDetails user) {
+    static boolean mayCommit(CensusInstance censusInstance, HostUser user) {
         var census = censusInstance.census();
         var project = censusInstance.project();
         var namespace = censusInstance.namespace();
@@ -40,7 +40,7 @@ class ProjectPermissions {
                 project.isLead(contributor.username(), version);
     }
 
-    static boolean mayReview(CensusInstance censusInstance, HostUserDetails user) {
+    static boolean mayReview(CensusInstance censusInstance, HostUser user) {
         var census = censusInstance.census();
         var project = censusInstance.project();
         var namespace = censusInstance.namespace();

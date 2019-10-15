@@ -44,49 +44,49 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id())
+                                           .addReviewer(reviewer.host().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Verify that the check succeeded
-            var checks = pr.getChecks(editHash);
+            var checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             var check = checks.get("jcheck");
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // The PR should now be ready for review
-            assertTrue(pr.getLabels().contains("rfr"));
-            assertFalse(pr.getLabels().contains("ready"));
+            assertTrue(pr.labels().contains("rfr"));
+            assertFalse(pr.labels().contains("ready"));
 
             // Approve it as another user
-            var approvalPr = reviewer.getPullRequest(pr.getId());
+            var approvalPr = reviewer.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The check should now be successful
-            checks = pr.getChecks(editHash);
+            checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             check = checks.get("jcheck");
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // The PR should not be flagged as ready for review, at it is already reviewed
-            assertFalse(pr.getLabels().contains("rfr"));
-            assertTrue(pr.getLabels().contains("ready"));
+            assertFalse(pr.labels().contains("rfr"));
+            assertTrue(pr.labels().contains("ready"));
         }
     }
 
@@ -99,64 +99,64 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id())
+                                           .addReviewer(reviewer.host().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A line with a trailing whitespace   ");
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should not be flagged as ready for review
-            assertFalse(pr.getLabels().contains("rfr"));
+            assertFalse(pr.labels().contains("rfr"));
 
             // Approve it as another user
-            var approvalPr = reviewer.getPullRequest(pr.getId());
+            var approvalPr = reviewer.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Verify that the check failed
-            var checks = pr.getChecks(editHash);
+            var checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             var check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
 
             // The PR should not still not be flagged as ready for review
-            assertFalse(pr.getLabels().contains("rfr"));
+            assertFalse(pr.labels().contains("rfr"));
 
             // Remove the trailing whitespace in a new commit
             editHash = CheckableRepository.replaceAndCommit(localRepo, "A line without a trailing whitespace");
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
 
             // Make sure that the push registered
-            var lastHeadHash = pr.getHeadHash();
+            var lastHeadHash = pr.headHash();
             var refreshCount = 0;
             do {
-                pr = author.getPullRequest(pr.getId());
+                pr = author.pullRequest(pr.id());
                 if (refreshCount++ > 100) {
                     fail("The PR did not update after the new push");
                 }
-            } while (pr.getHeadHash().equals(lastHeadHash));
+            } while (pr.headHash().equals(lastHeadHash));
 
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should not be flagged as ready for review, at it is already reviewed
-            assertFalse(pr.getLabels().contains("rfr"));
+            assertFalse(pr.labels().contains("rfr"));
 
             // The check should now be successful
-            checks = pr.getChecks(editHash);
+            checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             check = checks.get("jcheck");
             assertEquals(CheckStatus.SUCCESS, check.status());
@@ -173,76 +173,76 @@ class CheckTests {
             var commenter = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id())
-                                           .addReviewer(commenter.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id())
+                                           .addReviewer(reviewer.host().currentUser().id())
+                                           .addReviewer(commenter.host().currentUser().id());
 
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var authorPr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Let the status bot inspect the PR
             TestBotRunner.runPeriodicItems(checkBot);
-            assertFalse(authorPr.getBody().contains("Approvers"));
+            assertFalse(authorPr.body().contains("Approvers"));
 
             // Approve it
-            var reviewerPr = reviewer.getPullRequest(authorPr.getId());
+            var reviewerPr = reviewer.pullRequest(authorPr.id());
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Refresh the PR and check that it has been approved
-            authorPr = author.getPullRequest(authorPr.getId());
-            assertTrue(authorPr.getBody().contains("Approvers"));
+            authorPr = author.pullRequest(authorPr.id());
+            assertTrue(authorPr.body().contains("Approvers"));
 
             // Update the file after approval
             editHash = CheckableRepository.appendAndCommit(localRepo, "Now I've gone and changed it");
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
 
             // Make sure that the push registered
-            var lastHeadHash = authorPr.getHeadHash();
+            var lastHeadHash = authorPr.headHash();
             var refreshCount = 0;
             do {
-                authorPr = author.getPullRequest(authorPr.getId());
+                authorPr = author.pullRequest(authorPr.id());
                 if (refreshCount++ > 100) {
                     fail("The PR did not update after the new push");
                 }
-            } while (authorPr.getHeadHash().equals(lastHeadHash));
+            } while (authorPr.headHash().equals(lastHeadHash));
 
             // Check that the review is flagged as stale
             TestBotRunner.runPeriodicItems(checkBot);
-            authorPr = author.getPullRequest(authorPr.getId());
-            assertTrue(authorPr.getBody().contains("Note"));
+            authorPr = author.pullRequest(authorPr.id());
+            assertTrue(authorPr.body().contains("Note"));
 
             // Now we can approve it again
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Refresh the PR and check that it has been approved (once) and is no longer stale
-            authorPr = author.getPullRequest(authorPr.getId());
-            assertTrue(authorPr.getBody().contains("Approvers"));
-            assertEquals(1, authorPr.getBody().split("Generated Reviewer", -1).length - 1);
-            assertTrue(authorPr.getReviews().size() >= 1);
-            assertFalse(authorPr.getBody().contains("Note"));
+            authorPr = author.pullRequest(authorPr.id());
+            assertTrue(authorPr.body().contains("Approvers"));
+            assertEquals(1, authorPr.body().split("Generated Reviewer", -1).length - 1);
+            assertTrue(authorPr.reviews().size() >= 1);
+            assertFalse(authorPr.body().contains("Note"));
 
             // Add a review with disapproval
-            var commenterPr = commenter.getPullRequest(authorPr.getId());
+            var commenterPr = commenter.pullRequest(authorPr.id());
             commenterPr.addReview(Review.Verdict.DISAPPROVED, "Disapproved");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Refresh the PR and check that it still only approved once (but two reviews) and is no longer stale
-            authorPr = author.getPullRequest(authorPr.getId());
-            assertTrue(authorPr.getBody().contains("Approvers"));
-            assertEquals(1, authorPr.getBody().split("Generated Reviewer", -1).length - 1);
-            assertTrue(authorPr.getReviews().size() >= 2);
-            assertFalse(authorPr.getBody().contains("Note"));
+            authorPr = author.pullRequest(authorPr.id());
+            assertTrue(authorPr.body().contains("Approvers"));
+            assertEquals(1, authorPr.body().split("Generated Reviewer", -1).length - 1);
+            assertTrue(authorPr.reviews().size() >= 2);
+            assertFalse(authorPr.body().contains("Note"));
         }
     }
 
@@ -254,34 +254,34 @@ class CheckTests {
             var author = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addReviewer(author.host().getCurrentUserDetails().id());
+                                           .addReviewer(author.host().currentUser().id());
 
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var authorPr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Let the status bot inspect the PR
             TestBotRunner.runPeriodicItems(checkBot);
-            assertFalse(authorPr.getBody().contains("Approvers"));
+            assertFalse(authorPr.body().contains("Approvers"));
 
             // Approve it
             authorPr.addReview(Review.Verdict.APPROVED, "Approved");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Refresh the PR and check that it has been approved
-            authorPr = author.getPullRequest(authorPr.getId());
-            assertTrue(authorPr.getBody().contains("Approvers"));
+            authorPr = author.pullRequest(authorPr.id());
+            assertTrue(authorPr.body().contains("Approvers"));
 
             // Verify that the check failed
-            var checks = authorPr.getChecks(editHash);
+            var checks = authorPr.checks(editHash);
             assertEquals(1, checks.size());
             var check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
@@ -296,46 +296,46 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+                                           .addReviewer(reviewer.host().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make two changes with different authors
             CheckableRepository.appendAndCommit(localRepo, "First edit", "Edit by number 1",
                                                 "number1", "number1@none.none");
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Second edit", "Edit by number 2",
                                                                "number2", "number2@none.none");
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Verify that the check failed
-            var checks = pr.getChecks(editHash);
+            var checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             var check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
 
             // Approve it as another user
-            var approvalPr = reviewer.getPullRequest(pr.getId());
+            var approvalPr = reviewer.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The check should still be failing
-            checks = pr.getChecks(editHash);
+            checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
 
             // The PR should not be flagged as ready for review, as multiple committers is a problem
-            assertFalse(pr.getLabels().contains("rfr"));
+            assertFalse(pr.labels().contains("rfr"));
         }
     }
 
@@ -347,72 +347,72 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id())
+                                           .addReviewer(reviewer.host().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Verify that the check passed
-            var checks = pr.getChecks(editHash);
+            var checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             var check = checks.get("jcheck");
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // The PR should now be ready for review
-            assertTrue(pr.getLabels().contains("rfr"));
-            assertFalse(pr.getLabels().contains("ready"));
+            assertTrue(pr.labels().contains("rfr"));
+            assertFalse(pr.labels().contains("ready"));
 
             // Approve it as another user
-            var approvalPr = reviewer.getPullRequest(pr.getId());
+            var approvalPr = reviewer.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The check should now be successful
-            checks = pr.getChecks(editHash);
+            checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             check = checks.get("jcheck");
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // The PR should not be flagged as ready for review, at it is already reviewed
-            assertFalse(pr.getLabels().contains("rfr"));
-            assertTrue(pr.getLabels().contains("ready"));
+            assertFalse(pr.labels().contains("rfr"));
+            assertTrue(pr.labels().contains("ready"));
 
             var addedHash = CheckableRepository.appendAndCommit(localRepo, "trailing whitespace   ");
-            localRepo.push(addedHash, author.getUrl(), "edit");
+            localRepo.push(addedHash, author.url(), "edit");
 
             // Make sure that the push registered
-            var lastHeadHash = pr.getHeadHash();
+            var lastHeadHash = pr.headHash();
             var refreshCount = 0;
             do {
-                pr = author.getPullRequest(pr.getId());
+                pr = author.pullRequest(pr.id());
                 if (refreshCount++ > 100) {
                     fail("The PR did not update after the new push");
                 }
-            } while (pr.getHeadHash().equals(lastHeadHash));
+            } while (pr.headHash().equals(lastHeadHash));
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR is now neither ready for review nor integration
-            assertFalse(pr.getLabels().contains("rfr"));
-            assertFalse(pr.getLabels().contains("ready"));
+            assertFalse(pr.labels().contains("rfr"));
+            assertFalse(pr.labels().contains("ready"));
 
             // The check should now be failing
-            checks = pr.getChecks(addedHash);
+            checks = pr.checks(addedHash);
             assertEquals(1, checks.size());
             check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
@@ -430,37 +430,37 @@ class CheckTests {
             assumeTrue(!author.host().supportsReviewBody());
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id())
+                                           .addReviewer(reviewer.host().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
-            var comments = pr.getComments();
+            var comments = pr.comments();
             var commentCount = comments.size();
 
             // Approve it as another user
-            var approvalPr = reviewer.getPullRequest(pr.getId());
+            var approvalPr = reviewer.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
 
             // There should now be two additional comments
-            comments = pr.getComments();
+            comments = pr.comments();
             assertEquals(commentCount + 2, comments.size());
             var comment = comments.get(commentCount);
-            assertTrue(comment.body().contains(reviewer.host().getCurrentUserDetails().userName()));
+            assertTrue(comment.body().contains(reviewer.host().currentUser().userName()));
             assertTrue(comment.body().contains("approved"));
 
             // Drop the review
@@ -470,15 +470,15 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // There should now be yet another comment
-            comments = pr.getComments();
+            comments = pr.comments();
             assertEquals(commentCount + 3, comments.size());
             comment = comments.get(commentCount + 2);
-            assertTrue(comment.body().contains(reviewer.host().getCurrentUserDetails().userName()));
+            assertTrue(comment.body().contains(reviewer.host().currentUser().userName()));
             assertTrue(comment.body().contains("comment"));
 
             // No changes should not generate additional comments
             TestBotRunner.runPeriodicItems(checkBot);
-            comments = pr.getComments();
+            comments = pr.comments();
             assertEquals(commentCount + 3, comments.size());
         }
     }
@@ -492,23 +492,23 @@ class CheckTests {
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(integrator.host().getCurrentUserDetails().id());
+                                           .addCommitter(author.host().currentUser().id())
+                                           .addReviewer(integrator.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
-            var approvalPr = integrator.getPullRequest(pr.getId());
+            var approvalPr = integrator.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Get all messages up to date
@@ -520,13 +520,13 @@ class CheckTests {
             Files.writeString(unrelated, "Hello");
             localRepo.add(unrelated);
             var unrelatedHash = localRepo.commit("Unrelated", "X", "x@y.z");
-            localRepo.push(unrelatedHash, author.getUrl(), "master");
+            localRepo.push(unrelatedHash, author.url(), "master");
 
             // Let the bot see the changes
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an ok message
-            var updated = pr.getComments().stream()
+            var updated = pr.comments().stream()
                             .filter(comment -> comment.body().contains("there has been 1 commit"))
                             .filter(comment -> comment.body().contains("please merge"))
                             .count();
@@ -543,23 +543,23 @@ class CheckTests {
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(integrator.host().getCurrentUserDetails().id());
+                                           .addCommitter(author.host().currentUser().id())
+                                           .addReviewer(integrator.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
-            var approvalPr = integrator.getPullRequest(pr.getId());
+            var approvalPr = integrator.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Get all messages up to date
@@ -568,41 +568,41 @@ class CheckTests {
             // Push something conflicting to master
             localRepo.checkout(masterHash, true);
             var conflictingHash = CheckableRepository.appendAndCommit(localRepo, "This looks like a conflict");
-            localRepo.push(conflictingHash, author.getUrl(), "master");
+            localRepo.push(conflictingHash, author.url(), "master");
 
             // Let the bot see the changes
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with that there is a conflict
-            var updated = pr.getComments().stream()
+            var updated = pr.comments().stream()
                             .filter(comment -> comment.body().contains("there has been 1 commit"))
                             .filter(comment -> comment.body().contains("cannot be rebased automatically"))
                             .count();
             assertEquals(1, updated);
 
             // The PR should be flagged as outdated
-            assertTrue(pr.getLabels().contains("outdated"));
+            assertTrue(pr.labels().contains("outdated"));
 
             // But it should still pass jcheck
-            var checks = pr.getChecks(editHash);
+            var checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             var check = checks.get("jcheck");
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // Restore the master branch
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Let the bot see the changes
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should no longer detect a conflict
-            updated = pr.getComments().stream()
-                            .filter(comment -> comment.body().contains("change can now be integrated"))
-                            .count();
+            updated = pr.comments().stream()
+                        .filter(comment -> comment.body().contains("change can now be integrated"))
+                        .count();
             assertEquals(1, updated);
 
             // The PR should not be flagged as outdated
-            assertFalse(pr.getLabels().contains("outdated"));
+            assertFalse(pr.labels().contains("outdated"));
         }
     }
 
@@ -614,19 +614,19 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id())
+                                           .addReviewer(reviewer.host().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master", Map.of(), Map.of(),
                                               Map.of("block", "Test Blocker"), Set.of(), Map.of());
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
             pr.addLabel("block");
 
@@ -634,24 +634,24 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Verify that the check failed
-            var checks = pr.getChecks(editHash);
+            var checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             var check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
             assertTrue(check.summary().orElseThrow().contains("Test Blocker"));
 
             // The PR should not yet be ready for review
-            assertTrue(pr.getLabels().contains("block"));
-            assertFalse(pr.getLabels().contains("rfr"));
-            assertFalse(pr.getLabels().contains("ready"));
+            assertTrue(pr.labels().contains("block"));
+            assertFalse(pr.labels().contains("rfr"));
+            assertFalse(pr.labels().contains("ready"));
 
             // Check the status again
             pr.removeLabel("block");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should now be ready for review
-            assertTrue(pr.getLabels().contains("rfr"));
-            assertFalse(pr.getLabels().contains("ready"));
+            assertTrue(pr.labels().contains("rfr"));
+            assertFalse(pr.labels().contains("ready"));
         }
     }
 
@@ -663,37 +663,37 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id())
+                                           .addReviewer(reviewer.host().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master", Map.of(), Map.of(),
                                               Map.of(), Set.of("good-to-go"), Map.of());
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Verify that no checks have been run
-            var checks = pr.getChecks(editHash);
+            var checks = pr.checks(editHash);
             assertEquals(0, checks.size());
 
             // The PR should not yet be ready for review
-            assertFalse(pr.getLabels().contains("rfr"));
+            assertFalse(pr.labels().contains("rfr"));
 
             // Check the status again
             pr.addLabel("good-to-go");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should now be ready for review
-            assertTrue(pr.getLabels().contains("rfr"));
+            assertTrue(pr.labels().contains("rfr"));
         }
     }
 
@@ -705,38 +705,38 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id())
+                                           .addReviewer(reviewer.host().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master", Map.of(), Map.of(),
-                                              Map.of(), Set.of(), Map.of(reviewer.host().getCurrentUserDetails().userName(), Pattern.compile("proceed")));
+                                              Map.of(), Set.of(), Map.of(reviewer.host().currentUser().userName(), Pattern.compile("proceed")));
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Verify that no checks have been run
-            var checks = pr.getChecks(editHash);
+            var checks = pr.checks(editHash);
             assertEquals(0, checks.size());
 
             // The PR should not yet be ready for review
-            assertFalse(pr.getLabels().contains("rfr"));
+            assertFalse(pr.labels().contains("rfr"));
 
             // Check the status again
-            var reviewerPr = reviewer.getPullRequest(pr.getId());
+            var reviewerPr = reviewer.pullRequest(pr.id());
             reviewerPr.addComment("proceed");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should now be ready for review
-            assertTrue(pr.getLabels().contains("rfr"));
+            assertTrue(pr.labels().contains("rfr"));
         }
     }
 
@@ -748,27 +748,27 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id())
+                                           .addReviewer(reviewer.host().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master", Map.of(), Map.of(),
                                               Map.of(), Set.of(), Map.of());
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType(), Path.of("appendable.txt"),
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
                                                      Set.of("issues"));
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Verify that the check failed
-            var checks = pr.getChecks(editHash);
+            var checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             var check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
@@ -780,7 +780,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The check should now be successful
-            checks = pr.getChecks(editHash);
+            checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             check = checks.get("jcheck");
             assertEquals(CheckStatus.SUCCESS, check.status());
@@ -796,77 +796,77 @@ class CheckTests {
             var issues = credentials.getIssueProject();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id())
+                                           .addReviewer(reviewer.host().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master", Map.of(), Map.of(),
                                               Map.of(), Set.of(), Map.of(), issues);
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType(), Path.of("appendable.txt"),
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
                                                      Set.of("issues"));
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             var issue1 = issues.createIssue("My first issue", List.of("Hello"));
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", issue1.getId() + ": This is a pull request");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue1.id() + ": This is a pull request");
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The check should be successful
-            var checks = pr.getChecks(editHash);
+            var checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             var check = checks.get("jcheck");
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // And the body should contain the issue title
-            assertTrue(pr.getBody().contains("My first issue"));
+            assertTrue(pr.body().contains("My first issue"));
 
             // Change the issue
             var issue2 = issues.createIssue("My second issue", List.of("Body"));
-            pr.setTitle(issue2.getId() + ": This is a pull request");
+            pr.setTitle(issue2.id() + ": This is a pull request");
 
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The body should contain the updated issue title
-            assertFalse(pr.getBody().contains("My first issue"));
-            assertTrue(pr.getBody().contains("My second issue"));
+            assertFalse(pr.body().contains("My first issue"));
+            assertTrue(pr.body().contains("My second issue"));
 
             // Use an invalid issue key
-            var issueKey = issue1.getId().replace("TEST", "BADPROJECT");
+            var issueKey = issue1.id().replace("TEST", "BADPROJECT");
             pr.setTitle(issueKey + ": This is a pull request");
 
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
-            assertFalse(pr.getBody().contains("My first issue"));
-            assertFalse(pr.getBody().contains("My second issue"));
-            assertTrue(pr.getBody().contains("Failed to retrieve"));
+            assertFalse(pr.body().contains("My first issue"));
+            assertFalse(pr.body().contains("My second issue"));
+            assertTrue(pr.body().contains("Failed to retrieve"));
 
             // Now drop the issue key
-            issueKey = issue1.getId().replace("TEST-", "");
+            issueKey = issue1.id().replace("TEST-", "");
             pr.setTitle(issueKey + ": This is a pull request");
 
             // The body should now contain the updated issue title
             TestBotRunner.runPeriodicItems(checkBot);
-            assertTrue(pr.getBody().contains("My first issue"));
-            assertFalse(pr.getBody().contains("My second issue"));
+            assertTrue(pr.body().contains("My first issue"));
+            assertFalse(pr.body().contains("My second issue"));
 
             // Now enter an invalid issue id
             pr.setTitle("2384848: This is a pull request");
 
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
-            assertFalse(pr.getBody().contains("My first issue"));
-            assertFalse(pr.getBody().contains("My second issue"));
-            assertTrue(pr.getBody().contains("Failed to retrieve"));
+            assertFalse(pr.body().contains("My first issue"));
+            assertFalse(pr.body().contains("My second issue"));
+            assertTrue(pr.body().contains("Failed to retrieve"));
 
             // The check should still be successful though
-            checks = pr.getChecks(editHash);
+            checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             check = checks.get("jcheck");
             assertEquals(CheckStatus.SUCCESS, check.status());
@@ -880,17 +880,17 @@ class CheckTests {
             var author = credentials.getHostedRepository();
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Verify no checks exists
-            var checks = pr.getChecks(editHash);
+            var checks = pr.checks(editHash);
             assertEquals(0, checks.size());
 
             // Create a check that is running
@@ -901,7 +901,7 @@ class CheckTests {
             pr.createCheck(original);
 
             // Verify check is created
-            checks = pr.getChecks(editHash);
+            checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             var retrieved = checks.get("jcheck");
             assertEquals("jcheck title", retrieved.title().get());
@@ -911,7 +911,7 @@ class CheckTests {
             // Cancel the check
             var cancelled = CheckBuilder.from(retrieved).cancel().build();
             pr.updateCheck(cancelled);
-            checks = pr.getChecks(editHash);
+            checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             retrieved = checks.get("jcheck");
             assertEquals("jcheck title", retrieved.title().get());
@@ -928,32 +928,32 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id())
+                                           .addReviewer(reviewer.host().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Enable a new check in the target branch
             localRepo.checkout(masterHash, true);
-            CheckableRepository.init(tempFolder.path(), author.getRepositoryType(), Path.of("appendable.txt"),
+            CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
                                      Set.of("author", "reviewers", "whitespace", "issues"));
             var headHash = localRepo.resolve("HEAD").orElseThrow();
-            localRepo.push(headHash, author.getUrl(), "master", true);
+            localRepo.push(headHash, author.url(), "master", true);
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Verify that the check failed
-            var checks = pr.getChecks(editHash);
+            var checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             var check = checks.get("jcheck");
             assertTrue(check.summary().orElseThrow().contains("commit message does not reference any issue"));
@@ -964,7 +964,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Verify that the check passed
-            checks = pr.getChecks(editHash);
+            checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             check = checks.get("jcheck");
             assertEquals(CheckStatus.SUCCESS, check.status());
@@ -979,18 +979,18 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id())
+                                           .addReviewer(reviewer.host().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit",
                                                    "This is a pull request", true);
 
@@ -998,14 +998,14 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Verify that the check succeeded
-            var checks = pr.getChecks(editHash);
+            var checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             var check = checks.get("jcheck");
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // The PR should still not be ready for review as it is a draft
-            assertFalse(pr.getLabels().contains("rfr"));
-            assertFalse(pr.getLabels().contains("ready"));
+            assertFalse(pr.labels().contains("rfr"));
+            assertFalse(pr.labels().contains("ready"));
         }
     }
 }

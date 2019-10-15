@@ -42,20 +42,20 @@ class ContributorTests {
             var integrator = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addReviewer(integrator.host().getCurrentUserDetails().id())
-                                           .addCommitter(author.host().getCurrentUserDetails().id());
+                                           .addReviewer(integrator.host().currentUser().id())
+                                           .addCommitter(author.host().currentUser().id());
             var prBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
-            var localRepo = CheckableRepository.init(localRepoFolder, author.getRepositoryType());
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Issue an invalid command
@@ -91,13 +91,13 @@ class ContributorTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // Approve it as another user
-            var approvalPr = integrator.getPullRequest(pr.getId());
+            var approvalPr = integrator.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
 
             // The commit message preview should contain the contributor
-            var creditLine = pr.getComments().stream()
+            var creditLine = pr.comments().stream()
                                .flatMap(comment -> comment.body().lines())
                                .filter(line -> line.contains("Test Person <test@test.test>"))
                                .filter(line -> line.contains("Co-authored-by"))
@@ -105,7 +105,7 @@ class ContributorTests {
                                .orElseThrow();
             assertEquals("Co-authored-by: Test Person <test@test.test>", creditLine);
 
-            var pushed = pr.getComments().stream()
+            var pushed = pr.comments().stream()
                            .filter(comment -> comment.body().contains("change can now be integrated"))
                            .count();
             assertEquals(1, pushed);
@@ -115,12 +115,12 @@ class ContributorTests {
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
 
-            creditLine = pr.getComments().stream()
-                               .flatMap(comment -> comment.body().lines())
-                               .filter(line -> line.contains("Another Person <another@test.test>"))
-                               .filter(line -> line.contains("Co-authored-by"))
-                               .findAny()
-                               .orElseThrow();
+            creditLine = pr.comments().stream()
+                           .flatMap(comment -> comment.body().lines())
+                           .filter(line -> line.contains("Another Person <another@test.test>"))
+                           .filter(line -> line.contains("Co-authored-by"))
+                           .findAny()
+                           .orElseThrow();
             assertEquals("Co-authored-by: Another Person <another@test.test>", creditLine);
 
             // Integrate
@@ -132,7 +132,7 @@ class ContributorTests {
 
             // The change should now be present on the master branch
             var pushedFolder = tempFolder.path().resolve("pushed");
-            var pushedRepo = Repository.materialize(pushedFolder, author.getUrl(), "master");
+            var pushedRepo = Repository.materialize(pushedFolder, author.url(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
 
             var headHash = pushedRepo.resolve("HEAD").orElseThrow();
@@ -156,27 +156,27 @@ class ContributorTests {
             var external = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Issue a contributor command not as the PR author
-            var externalPr = external.getPullRequest(pr.getId());
+            var externalPr = external.pullRequest(pr.id());
             externalPr.addComment("/contributor add Test Person <test@test.test>");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an error message
-            var error = pr.getComments().stream()
+            var error = pr.comments().stream()
                           .filter(comment -> comment.body().contains("Only the author"))
                           .count();
             assertEquals(1, error);
