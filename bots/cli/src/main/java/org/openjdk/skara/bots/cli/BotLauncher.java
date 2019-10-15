@@ -39,10 +39,11 @@ import java.util.logging.*;
 import java.util.stream.*;
 
 public class BotLauncher {
+    private static Logger log;
 
     private static void applyLogging(JSONObject config) {
         LogManager.getLogManager().reset();
-        var log = Logger.getLogger("org.openjdk");
+        log = Logger.getLogger("org.openjdk");
         log.setLevel(Level.FINEST);
 
         if (!config.contains("log")) {
