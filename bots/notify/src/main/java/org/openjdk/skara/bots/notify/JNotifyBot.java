@@ -86,6 +86,10 @@ class JNotifyBot implements Bot, WorkItem {
                                    })
                                    .min(Comparator.comparingInt(entry -> entry.getValue().size()))
                                    .orElseThrow();
+        if (bestParent.getValue().size() > 1000) {
+            throw new RuntimeException("Excessive amount of unique commits on new branch " + ref.name() +
+                                               " detected (" + bestParent.getValue().size() + ") - skipping notifications");
+        }
         for (var updater : updaters) {
             var branch = new Branch(ref.name());
             var parent = new Branch(bestParent.getKey().name());
@@ -113,6 +117,10 @@ class JNotifyBot implements Bot, WorkItem {
                 return;
             }
             history.setBranchHash(branch, ref.hash());
+            if (commits.size() > 1000) {
+                throw new RuntimeException("Excessive amount of new commits on branch " + branch.name() +
+                                                   " detected (" + commits.size() + ") - skipping notifications");
+            }
             Collections.reverse(commits);
             handleUpdatedRef(localRepo, ref, commits);
         }
@@ -144,6 +152,12 @@ class JNotifyBot implements Bot, WorkItem {
                 history.addTags(tags);
             }
             return;
+        }
+
+        if (newTags.size() > 10) {
+            history.addTags(newTags);
+            throw new RuntimeException("Excessive amount of new tags detected (" + newTags.size() +
+                                               ") - skipping notifications");
         }
 
         var allJdkTags = tags.stream()
@@ -210,8 +224,16 @@ class JNotifyBot implements Bot, WorkItem {
                                      .stream()
                                      .filter(ref -> branches.matcher(ref.name()).matches())
                                      .collect(Collectors.toList());
+            boolean hasBranchHistory = knownRefs.stream()
+                                                .map(ref -> history.branchHash(new Branch(ref.name())))
+                                                .anyMatch(Optional::isPresent);
             for (var ref : knownRefs) {
-                handleRef(localRepo, history, ref, knownRefs);
+                if (!hasBranchHistory) {
+                    log.warning("No previous history found for any branch - resetting mark for '" + ref.name() + "'");
+                    history.setBranchHash(new Branch(ref.name()), ref.hash());
+                } else {
+                    handleRef(localRepo, history, ref, knownRefs);
+                }
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
