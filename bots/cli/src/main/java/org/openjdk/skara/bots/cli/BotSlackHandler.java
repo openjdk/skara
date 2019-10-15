@@ -23,7 +23,7 @@
 package org.openjdk.skara.bots.cli;
 
 import org.openjdk.skara.bot.BotTaskAggregationHandler;
-import org.openjdk.skara.host.network.*;
+import org.openjdk.skara.network.*;
 import org.openjdk.skara.json.JSON;
 
 import java.net.URI;

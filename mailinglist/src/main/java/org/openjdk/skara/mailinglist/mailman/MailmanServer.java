@@ -23,7 +23,7 @@
 package org.openjdk.skara.mailinglist.mailman;
 
 import org.openjdk.skara.email.*;
-import org.openjdk.skara.host.network.URIBuilder;
+import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.mailinglist.*;
 
 import java.io.*;

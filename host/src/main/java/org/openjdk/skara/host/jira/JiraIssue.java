@@ -23,7 +23,7 @@
 package org.openjdk.skara.host.jira;
 
 import org.openjdk.skara.host.*;
-import org.openjdk.skara.host.network.*;
+import org.openjdk.skara.network.*;
 import org.openjdk.skara.json.JSONValue;
 
 import java.net.URI;

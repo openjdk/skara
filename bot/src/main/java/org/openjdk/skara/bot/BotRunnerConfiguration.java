@@ -23,7 +23,7 @@
 package org.openjdk.skara.bot;
 
 import org.openjdk.skara.host.*;
-import org.openjdk.skara.host.network.URIBuilder;
+import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.json.JSONObject;
 import org.openjdk.skara.vcs.VCS;
 

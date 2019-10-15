@@ -30,6 +30,7 @@ module org.openjdk.skara.bots.mlbridge {
     requires org.openjdk.skara.json;
     requires org.openjdk.skara.email;
     requires org.openjdk.skara.webrev;
+    requires org.openjdk.skara.network;
     requires java.logging;
 
     provides org.openjdk.skara.bot.BotFactory with org.openjdk.skara.bots.mlbridge.MailingListBridgeBotFactory;

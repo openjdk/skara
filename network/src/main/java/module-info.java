@@ -20,11 +20,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-module org.openjdk.skara.bots.topological {
-    requires org.openjdk.skara.bot;
-    requires org.openjdk.skara.vcs;
-    requires org.openjdk.skara.json;
+module org.openjdk.skara.network {
     requires java.logging;
+    requires org.openjdk.skara.json;
+    requires java.net.http;
 
-    provides org.openjdk.skara.bot.BotFactory with org.openjdk.skara.bots.topological.TopologicalBotFactory;
+    exports org.openjdk.skara.network;
 }

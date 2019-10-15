@@ -49,6 +49,7 @@ dependencies {
     implementation project(':vcs')
     implementation project(':jcheck')
     implementation project(':host')
+    implementation project(':network')
     implementation project(':bot')
     implementation project(':census')
     implementation project(':json')

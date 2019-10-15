@@ -24,7 +24,7 @@ package org.openjdk.skara.bots.cli;
 
 import org.openjdk.skara.args.*;
 import org.openjdk.skara.bot.*;
-import org.openjdk.skara.host.network.URIBuilder;
+import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.proxy.HttpProxy;
 

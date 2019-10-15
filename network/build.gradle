@@ -20,11 +20,26 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-module org.openjdk.skara.bots.topological {
-    requires org.openjdk.skara.bot;
-    requires org.openjdk.skara.vcs;
-    requires org.openjdk.skara.json;
-    requires java.logging;
 
-    provides org.openjdk.skara.bot.BotFactory with org.openjdk.skara.bots.topological.TopologicalBotFactory;
+module {
+    name = 'org.openjdk.skara.network'
+    test {
+        requires 'org.openjdk.skara.test'
+        requires 'org.junit.jupiter.api'
+        requires 'jdk.httpserver'
+        opens 'org.openjdk.skara.network' to 'org.junit.platform.commons'
+    }
+}
+
+dependencies {
+    implementation project(':json')
+    testImplementation project(':test')
+}
+
+publishing {
+    publications {
+        network(MavenPublication) {
+            from components.java
+        }
+    }
 }

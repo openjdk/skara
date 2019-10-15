@@ -20,7 +20,9 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.host.network;
+package org.openjdk.skara.network;
+
+import org.openjdk.skara.network.*;
 
 import org.junit.jupiter.api.Test;
 
@@ -53,7 +55,7 @@ class URIBuilderTests {
     @Test
     void invalidBase() {
         assertThrows(URIBuilderException.class,
-                () -> URIBuilder.base("x:\\y").build());
+                     () -> URIBuilder.base("x:\\y").build());
     }
 
     @Test

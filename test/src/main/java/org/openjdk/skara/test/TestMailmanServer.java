@@ -24,7 +24,7 @@ package org.openjdk.skara.test;
 
 import com.sun.net.httpserver.*;
 import org.openjdk.skara.email.EmailAddress;
-import org.openjdk.skara.host.network.URIBuilder;
+import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.mailinglist.Mbox;
 
 import java.io.*;

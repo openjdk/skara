@@ -23,7 +23,7 @@
 package org.openjdk.skara.test;
 
 import org.openjdk.skara.host.*;
-import org.openjdk.skara.host.network.URIBuilder;
+import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.vcs.Hash;
 
 import java.io.*;

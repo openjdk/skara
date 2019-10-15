@@ -24,7 +24,7 @@ package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.host.HostedRepository;
-import org.openjdk.skara.host.network.URIBuilder;
+import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.webrev.Webrev;
 

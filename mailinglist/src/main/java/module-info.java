@@ -23,7 +23,7 @@
 module org.openjdk.skara.mailinglist {
     requires java.net.http;
     requires java.logging;
-    requires org.openjdk.skara.host;
+    requires org.openjdk.skara.network;
     requires org.openjdk.skara.vcs;
     requires org.openjdk.skara.email;
 
