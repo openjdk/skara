@@ -38,19 +38,21 @@ import java.util.regex.Pattern;
 public class BotRunnerConfiguration {
     private final Logger log;
     private final JSONObject config;
-    private final Map<String, Host> hosts;
+    private final Map<String, RepositoryHost> repositoryHosts;
+    private final Map<String, IssueHost> issueHosts;
     private final Map<String, HostedRepository> repositories;
 
     private BotRunnerConfiguration(JSONObject config, Path cwd) throws ConfigurationError {
         this.config = config;
         log = Logger.getLogger("org.openjdk.skara.bot");
 
-        hosts = parseHosts(config, cwd);
+        repositoryHosts = parseRepositoryHosts(config, cwd);
+        issueHosts = parseIssueHosts(config, cwd);
         repositories = parseRepositories(config);
     }
 
-    private Map<String, Host> parseHosts(JSONObject config, Path cwd) throws ConfigurationError {
-        Map<String, Host> ret = new HashMap<>();
+    private Map<String, RepositoryHost> parseRepositoryHosts(JSONObject config, Path cwd) throws ConfigurationError {
+        Map<String, RepositoryHost> ret = new HashMap<>();
 
         if (!config.contains("hosts")) {
             return ret;
@@ -86,7 +88,23 @@ public class BotRunnerConfiguration {
                     var pat = new PersonalAccessToken(github.get("username").asString(), github.get("pat").asString());
                     ret.put(entry.name(), HostFactory.createGitHubHost(uri, pat));
                 }
-            } else if (entry.value().contains("jira")) {
+            } else {
+                throw new ConfigurationError("Host " + entry.name());
+            }
+        }
+
+        return ret;
+    }
+
+    private Map<String, IssueHost> parseIssueHosts(JSONObject config, Path cwd) throws ConfigurationError {
+        Map<String, IssueHost> ret = new HashMap<>();
+
+        if (!config.contains("hosts")) {
+            return ret;
+        }
+
+        for (var entry : config.get("hosts").fields()) {
+            if (entry.value().contains("jira")) {
                 var jira = entry.value().get("jira");
                 var uri = URIBuilder.base(jira.get("url").asString()).build();
                 ret.put(entry.name(), HostFactory.createJiraHost(uri, null));
@@ -107,10 +125,10 @@ public class BotRunnerConfiguration {
 
         for (var entry : config.get("repositories").fields()) {
             var hostName = entry.value().get("host").asString();
-            if (!hosts.containsKey(hostName)) {
+            if (!repositoryHosts.containsKey(hostName)) {
                 throw new ConfigurationError("Repository " + entry.name() + " uses undefined host '" + hostName + "'");
             }
-            var host = hosts.get(hostName);
+            var host = repositoryHosts.get(hostName);
             var repo = host.repository(entry.value().get("repository").asString());
             ret.put(entry.name(), repo);
         }
@@ -133,8 +151,8 @@ public class BotRunnerConfiguration {
         var hostSeparatorIndex = entry.indexOf('/');
         if (hostSeparatorIndex >= 0) {
             var hostName = entry.substring(0, hostSeparatorIndex);
-            var host = hosts.get(hostName);
-            if (!hosts.containsKey(hostName)) {
+            var host = repositoryHosts.get(hostName);
+            if (!repositoryHosts.containsKey(hostName)) {
                 throw new ConfigurationError("Repository entry " + entry + " uses undefined host '" + hostName + "'");
             }
             var repositoryName = entry.substring(hostSeparatorIndex + 1);
@@ -157,12 +175,12 @@ public class BotRunnerConfiguration {
         var hostSeparatorIndex = entry.indexOf('/');
         if (hostSeparatorIndex >= 0) {
             var hostName = entry.substring(0, hostSeparatorIndex);
-            var host = hosts.get(hostName);
-            if (!hosts.containsKey(hostName)) {
+            var host = issueHosts.get(hostName);
+            if (!issueHosts.containsKey(hostName)) {
                 throw new ConfigurationError("Issue project entry " + entry + " uses undefined host '" + hostName + "'");
             }
             var issueProjectName = entry.substring(hostSeparatorIndex + 1);
-            return host.issueProject(issueProjectName);
+            return host.project(issueProjectName);
         } else {
             throw new ConfigurationError("Malformed issue project entry");
         }

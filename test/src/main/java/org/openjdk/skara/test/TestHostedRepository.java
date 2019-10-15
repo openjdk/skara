@@ -48,7 +48,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public Host host() {
+    public RepositoryHost host() {
         return host;
     }
 

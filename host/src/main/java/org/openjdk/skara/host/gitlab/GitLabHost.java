@@ -30,7 +30,7 @@ import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-public class GitLabHost implements Host {
+public class GitLabHost implements RepositoryHost {
     private final URI uri;
     private final PersonalAccessToken pat;
     private final RestRequest request;
@@ -90,11 +90,6 @@ public class GitLabHost implements Host {
     @Override
     public HostedRepository repository(String name) {
         return new GitLabRepository(this, name);
-    }
-
-    @Override
-    public IssueProject issueProject(String name) {
-        throw new RuntimeException("not implemented yet");
     }
 
     private HostUser parseUserDetails(JSONObject details) {

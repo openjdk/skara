@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,9 +24,14 @@ package org.openjdk.skara.host;
 
 import java.net.URI;
 
-public interface Host {
-    boolean isValid();
-    HostUser user(String username);
-    HostUser currentUser();
-    boolean isMemberOf(String groupId, HostUser user);
+public interface RepositoryHost extends Host {
+    HostedRepository repository(String name);
+    boolean supportsReviewBody();
+
+    static RepositoryHost from(URI uri, PersonalAccessToken pat) {
+        return HostFactory.createFromURI(uri, pat);
+    }
+    static RepositoryHost from(URI uri) {
+        return HostFactory.createFromURI(uri, null);
+    }
 }

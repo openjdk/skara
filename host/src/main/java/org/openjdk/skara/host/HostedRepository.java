@@ -29,7 +29,7 @@ import java.net.URI;
 import java.util.*;
 
 public interface HostedRepository extends IssueProject {
-    Host host();
+    RepositoryHost host();
     PullRequest createPullRequest(HostedRepository target,
                                   String targetRef,
                                   String sourceRef,

@@ -31,7 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.regex.Pattern;
 
-public class GitHubHost implements Host {
+public class GitHubHost implements RepositoryHost {
     private final URI uri;
     private final Pattern webUriPattern;
     private final String webUriReplacement;
@@ -157,11 +157,6 @@ public class GitHubHost implements Host {
     @Override
     public HostedRepository repository(String name) {
         return new GitHubRepository(this, name);
-    }
-
-    @Override
-    public IssueProject issueProject(String name) {
-        throw new RuntimeException("not implemented yet");
     }
 
     @Override

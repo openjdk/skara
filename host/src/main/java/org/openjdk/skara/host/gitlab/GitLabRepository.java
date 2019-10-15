@@ -61,7 +61,7 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public Host host() {
+    public RepositoryHost host() {
         return gitLabHost;
     }
 

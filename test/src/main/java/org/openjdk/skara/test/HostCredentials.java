@@ -48,9 +48,10 @@ public class HostCredentials implements AutoCloseable {
     private final Logger log = Logger.getLogger("org.openjdk.skara.test");
 
     private interface Credentials {
-        Host createNewHost(int userIndex);
-        HostedRepository getHostedRepository(Host host);
-        IssueProject getIssueProject(Host host);
+        RepositoryHost createRepositoryHost(int userIndex);
+        IssueHost createIssueHost(int userIndex);
+        HostedRepository getHostedRepository(RepositoryHost host);
+        IssueProject getIssueProject(IssueHost host);
         String getNamespaceName();
         default void close() {}
     }
@@ -65,7 +66,7 @@ public class HostCredentials implements AutoCloseable {
         }
 
         @Override
-        public Host createNewHost(int userIndex) {
+        public RepositoryHost createRepositoryHost(int userIndex) {
             var hostUri = URIBuilder.base(config.get("host").asString()).build();
             var apps = config.get("apps").asArray();
             var key = configDir.resolve(apps.get(userIndex).get("key").asString());
@@ -78,13 +79,18 @@ public class HostCredentials implements AutoCloseable {
         }
 
         @Override
-        public HostedRepository getHostedRepository(Host host) {
+        public IssueHost createIssueHost(int userIndex) {
+            throw new RuntimeException("not implemented yet");
+        }
+
+        @Override
+        public HostedRepository getHostedRepository(RepositoryHost host) {
             return host.repository(config.get("project").asString());
         }
 
         @Override
-        public IssueProject getIssueProject(Host host) {
-            return host.issueProject(config.get("project").asString());
+        public IssueProject getIssueProject(IssueHost host) {
+            return host.project(config.get("project").asString());
         }
 
         @Override
@@ -101,7 +107,7 @@ public class HostCredentials implements AutoCloseable {
         }
 
         @Override
-        public Host createNewHost(int userIndex) {
+        public RepositoryHost createRepositoryHost(int userIndex) {
             var hostUri = URIBuilder.base(config.get("host").asString()).build();
             var users = config.get("users").asArray();
             var pat = new PersonalAccessToken(users.get(userIndex).get("name").asString(),
@@ -110,13 +116,18 @@ public class HostCredentials implements AutoCloseable {
         }
 
         @Override
-        public HostedRepository getHostedRepository(Host host) {
+        public IssueHost createIssueHost(int userIndex) {
+            throw new RuntimeException("not implemented yet");
+        }
+
+        @Override
+        public HostedRepository getHostedRepository(RepositoryHost host) {
             return host.repository(config.get("project").asString());
         }
 
         @Override
-        public IssueProject getIssueProject(Host host) {
-            return host.issueProject(config.get("project").asString());
+        public IssueProject getIssueProject(IssueHost host) {
+            return host.project(config.get("project").asString());
         }
 
         @Override
@@ -134,8 +145,7 @@ public class HostCredentials implements AutoCloseable {
                 new HostUser(4, "user4", "User Number 4")
         );
 
-        @Override
-        public Host createNewHost(int userIndex) {
+        private TestHost createHost(int userIndex) {
             if (userIndex == 0) {
                 hosts.add(TestHost.createNew(users));
             } else {
@@ -145,13 +155,23 @@ public class HostCredentials implements AutoCloseable {
         }
 
         @Override
-        public HostedRepository getHostedRepository(Host host) {
+        public RepositoryHost createRepositoryHost(int userIndex) {
+            return createHost(userIndex);
+        }
+
+        @Override
+        public IssueHost createIssueHost(int userIndex) {
+            return createHost(userIndex);
+        }
+
+        @Override
+        public HostedRepository getHostedRepository(RepositoryHost host) {
             return host.repository("test");
         }
 
         @Override
-        public IssueProject getIssueProject(Host host) {
-            return host.issueProject("test");
+        public IssueProject getIssueProject(IssueHost host) {
+            return host.project("test");
         }
 
         @Override
@@ -180,8 +200,14 @@ public class HostCredentials implements AutoCloseable {
         }
     }
 
-    private Host getHost() {
-        var host = credentials.createNewHost(nextHostIndex);
+    private RepositoryHost getRepositoryHost() {
+        var host = credentials.createRepositoryHost(nextHostIndex);
+        nextHostIndex++;
+        return host;
+    }
+
+    private IssueHost getIssueHost() {
+        var host = credentials.createIssueHost(nextHostIndex);
         nextHostIndex++;
         return host;
     }
@@ -258,7 +284,7 @@ public class HostCredentials implements AutoCloseable {
     }
 
     public HostedRepository getHostedRepository() {
-        var host = getHost();
+        var host = getRepositoryHost();
         var repo = credentials.getHostedRepository(host);
 
         while (credentialsLock == null) {
@@ -277,7 +303,7 @@ public class HostCredentials implements AutoCloseable {
     }
 
     public IssueProject getIssueProject() {
-        var host = getHost();
+        var host = getIssueHost();
         return credentials.getIssueProject(host);
     }
 

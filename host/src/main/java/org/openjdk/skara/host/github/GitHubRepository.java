@@ -69,7 +69,7 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public Host host() {
+    public RepositoryHost host() {
         return gitHubHost;
     }
 

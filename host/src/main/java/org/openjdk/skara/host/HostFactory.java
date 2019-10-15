@@ -30,12 +30,12 @@ import java.net.URI;
 import java.util.regex.Pattern;
 
 public class HostFactory {
-    public static Host createGitHubHost(URI uri, Pattern webUriPattern, String webUriReplacement, String keyFile, String issue, String id) {
+    public static RepositoryHost createGitHubHost(URI uri, Pattern webUriPattern, String webUriReplacement, String keyFile, String issue, String id) {
         var app = new GitHubApplication(keyFile, issue, id);
         return new GitHubHost(uri, app, webUriPattern, webUriReplacement);
     }
 
-    public static Host createGitHubHost(URI uri, PersonalAccessToken pat) {
+    public static RepositoryHost createGitHubHost(URI uri, PersonalAccessToken pat) {
         if (pat != null) {
             return new GitHubHost(uri, pat);
         } else {
@@ -43,7 +43,7 @@ public class HostFactory {
         }
     }
 
-    public static Host createGitLabHost(URI uri, PersonalAccessToken pat) {
+    public static RepositoryHost createGitLabHost(URI uri, PersonalAccessToken pat) {
         if (pat != null) {
             return new GitLabHost(uri, pat);
         } else {
@@ -51,14 +51,14 @@ public class HostFactory {
         }
     }
 
-    public static Host createJiraHost(URI uri, PersonalAccessToken pat) {
+    public static IssueHost createJiraHost(URI uri, PersonalAccessToken pat) {
         if (pat != null) {
             throw new RuntimeException("authentication not implemented yet");
         }
         return new JiraHost(uri);
     }
 
-    public static Host createFromURI(URI uri, PersonalAccessToken pat) throws IllegalArgumentException {
+    public static RepositoryHost createFromURI(URI uri, PersonalAccessToken pat) throws IllegalArgumentException {
         // Short-circuit
         if (uri.toString().contains("github")) {
             return createGitHubHost(uri, pat);

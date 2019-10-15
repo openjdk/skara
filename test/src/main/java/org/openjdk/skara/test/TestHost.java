@@ -31,7 +31,7 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class TestHost implements Host {
+public class TestHost implements RepositoryHost, IssueHost {
     private final int currentUser;
     private HostData data;
 
@@ -98,7 +98,7 @@ public class TestHost implements Host {
     }
 
     @Override
-    public IssueProject issueProject(String name) {
+    public IssueProject project(String name) {
         if (data.issueProjects.containsKey(name)) {
             return data.issueProjects.get(name);
         } else {

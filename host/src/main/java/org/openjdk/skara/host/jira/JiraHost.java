@@ -28,7 +28,7 @@ import org.openjdk.skara.json.JSON;
 
 import java.net.URI;
 
-public class JiraHost implements Host {
+public class JiraHost implements IssueHost {
     private final URI uri;
     private final RestRequest request;
 
@@ -54,12 +54,7 @@ public class JiraHost implements Host {
     }
 
     @Override
-    public HostedRepository repository(String name) {
-        throw new RuntimeException("Jira does not support repositories");
-    }
-
-    @Override
-    public IssueProject issueProject(String name) {
+    public IssueProject project(String name) {
         return new JiraProject(this, request, name);
     }
 
@@ -71,11 +66,6 @@ public class JiraHost implements Host {
     @Override
     public HostUser currentUser() {
         throw new RuntimeException("needs authentication; not implemented yet");
-    }
-
-    @Override
-    public boolean supportsReviewBody() {
-        return false;
     }
 
     @Override

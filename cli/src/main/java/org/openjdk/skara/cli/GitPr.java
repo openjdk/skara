@@ -100,7 +100,7 @@ public class GitPr {
     }
 
     private static HostedRepository getHostedRepositoryFor(URI uri, GitCredentials credentials) throws IOException {
-        var host = Host.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
+        var host = RepositoryHost.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
         if (System.getenv("GIT_TOKEN") == null) {
             GitCredentials.approve(credentials);
         }
@@ -308,7 +308,7 @@ public class GitPr {
         var token = isMercurial ? System.getenv("HG_TOKEN") :  System.getenv("GIT_TOKEN");
         var uri = Remote.toWebURI(remotePullPath);
         var credentials = GitCredentials.fill(uri.getHost(), uri.getPath(), username, token, uri.getScheme());
-        var host = Host.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
+        var host = RepositoryHost.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
 
         var action = arguments.at(0).asString();
         if (action.equals("create")) {

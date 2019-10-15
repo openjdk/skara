@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,11 +22,6 @@
  */
 package org.openjdk.skara.host;
 
-import java.net.URI;
-
-public interface Host {
-    boolean isValid();
-    HostUser user(String username);
-    HostUser currentUser();
-    boolean isMemberOf(String groupId, HostUser user);
+public interface IssueHost extends Host {
+    IssueProject project(String name);
 }
