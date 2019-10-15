@@ -35,8 +35,8 @@ public class ContributorCommand implements CommandHandler {
 
     @Override
     public void handle(PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
-        if (!comment.author().equals(pr.getAuthor())) {
-            reply.println("Only the author (@" + pr.getAuthor().userName() + ") is allowed to issue the `contributor` command.");
+        if (!comment.author().equals(pr.author())) {
+            reply.println("Only the author (@" + pr.author().userName() + ") is allowed to issue the `contributor` command.");
             return;
         }
 
@@ -53,7 +53,7 @@ public class ContributorCommand implements CommandHandler {
                 reply.println("Contributor `" + contributor.toString() + "` successfully added.");
                 break;
             case "remove":
-                var existing = new HashSet<>(Contributors.contributors(pr.repository().host().getCurrentUserDetails(), allComments));
+                var existing = new HashSet<>(Contributors.contributors(pr.repository().host().currentUser(), allComments));
                 if (existing.contains(contributor)) {
                     reply.println(Contributors.removeContributorMarker(contributor));
                     reply.println("Contributor `" + contributor.toString() + "` successfully removed.");

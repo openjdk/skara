@@ -23,7 +23,7 @@
 package org.openjdk.skara.host.jira;
 
 import org.openjdk.skara.host.*;
-import org.openjdk.skara.host.network.*;
+import org.openjdk.skara.network.*;
 import org.openjdk.skara.json.JSONValue;
 
 import java.net.URI;
@@ -47,19 +47,19 @@ public class JiraIssue implements Issue {
     }
 
     @Override
-    public String getId() {
+    public String id() {
         return json.get("key").asString();
     }
 
     @Override
-    public HostUserDetails getAuthor() {
-        return new HostUserDetails(json.get("fields").get("creator").get("key").asString(),
-                                   json.get("fields").get("creator").get("name").asString(),
-                                   json.get("fields").get("creator").get("displayName").asString());
+    public HostUser author() {
+        return new HostUser(json.get("fields").get("creator").get("key").asString(),
+                            json.get("fields").get("creator").get("name").asString(),
+                            json.get("fields").get("creator").get("displayName").asString());
     }
 
     @Override
-    public String getTitle() {
+    public String title() {
         return json.get("fields").get("summary").asString();
     }
 
@@ -69,7 +69,7 @@ public class JiraIssue implements Issue {
     }
 
     @Override
-    public String getBody() {
+    public String body() {
         if (json.get("fields").get("description").isNull()) {
             return "";
         } else {
@@ -83,7 +83,7 @@ public class JiraIssue implements Issue {
     }
 
     @Override
-    public List<Comment> getComments() {
+    public List<Comment> comments() {
         throw new RuntimeException("not implemented yet");
     }
 
@@ -98,12 +98,12 @@ public class JiraIssue implements Issue {
     }
 
     @Override
-    public ZonedDateTime getCreated() {
+    public ZonedDateTime createdAt() {
         return ZonedDateTime.parse(json.get("fields").get("created").asString());
     }
 
     @Override
-    public ZonedDateTime getUpdated() {
+    public ZonedDateTime updatedAt() {
         return ZonedDateTime.parse(json.get("fields").get("updated").asString());
     }
 
@@ -123,24 +123,24 @@ public class JiraIssue implements Issue {
     }
 
     @Override
-    public List<String> getLabels() {
+    public List<String> labels() {
         throw new RuntimeException("not implemented yet");
     }
 
     @Override
-    public URI getWebUrl() {
-        return URIBuilder.base(jiraProject.getWebUrl())
-                         .setPath("/browse/" + getId())
+    public URI webUrl() {
+        return URIBuilder.base(jiraProject.webUrl())
+                         .setPath("/browse/" + id())
                          .build();
     }
 
     @Override
-    public List<HostUserDetails> getAssignees() {
+    public List<HostUser> assignees() {
         throw new RuntimeException("not implemented yet");
     }
 
     @Override
-    public void setAssignees(List<HostUserDetails> assignees) {
+    public void setAssignees(List<HostUser> assignees) {
         throw new RuntimeException("not implemented yet");
     }
 }

@@ -34,15 +34,15 @@ class Veto {
     private final static String approvalReplyMarker = "<!-- Approval marker (%s) -->";
     private final static Pattern approvalReplyPattern = Pattern.compile("<!-- Approval marker \\((\\S+)\\) -->");
 
-    static String addVeto(HostUserDetails vetoer) {
+    static String addVeto(HostUser vetoer) {
         return String.format(vetoReplyMarker, vetoer.id());
     }
 
-    static String removeVeto(HostUserDetails vetoer) {
+    static String removeVeto(HostUser vetoer) {
         return String.format(approvalReplyMarker, vetoer.id());
     }
 
-    static Set<String> vetoers(HostUserDetails botUser, List<Comment> allComments) {
+    static Set<String> vetoers(HostUser botUser, List<Comment> allComments) {
         var vetoers = new HashSet<String>();
         var botComments = allComments.stream()
                 .filter(comment -> comment.author().equals((botUser)))

@@ -30,6 +30,7 @@ module org.openjdk.skara.bots.cli {
     requires org.openjdk.skara.args;
     requires org.openjdk.skara.process;
     requires org.openjdk.skara.proxy;
+    requires org.openjdk.skara.network;
 
     requires java.sql;
 

@@ -27,13 +27,13 @@ import org.openjdk.skara.vcs.Hash;
 import java.util.Optional;
 
 public class Review {
-    private final HostUserDetails reviewer;
+    private final HostUser reviewer;
     private final Verdict verdict;
     private final Hash hash;
     private final int id;
     private final String body;
 
-    public Review(HostUserDetails reviewer, Verdict verdict, Hash hash, int id, String body) {
+    public Review(HostUser reviewer, Verdict verdict, Hash hash, int id, String body) {
         this.reviewer = reviewer;
         this.verdict = verdict;
         this.hash = hash;
@@ -41,7 +41,7 @@ public class Review {
         this.body = body;
     }
 
-    public HostUserDetails reviewer() {
+    public HostUser reviewer() {
         return reviewer;
     }
 

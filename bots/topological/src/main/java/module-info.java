@@ -23,6 +23,7 @@
 module org.openjdk.skara.bots.topological {
     requires org.openjdk.skara.bot;
     requires org.openjdk.skara.vcs;
+    requires org.openjdk.skara.json;
     requires java.logging;
 
     provides org.openjdk.skara.bot.BotFactory with org.openjdk.skara.bots.topological.TopologicalBotFactory;

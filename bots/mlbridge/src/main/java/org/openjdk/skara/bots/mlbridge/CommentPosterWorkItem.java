@@ -73,11 +73,11 @@ public class CommentPosterWorkItem implements WorkItem {
 
     @Override
     public void run(Path scratchPath) {
-        var comments = pr.getComments();
+        var comments = pr.comments();
 
         var alreadyBridged = new HashSet<EmailAddress>();
         for (var comment : comments) {
-            if (!comment.author().equals(pr.repository().host().getCurrentUserDetails())) {
+            if (!comment.author().equals(pr.repository().host().currentUser())) {
                 continue;
             }
             var matcher = bridgedMailId.matcher(comment.body());

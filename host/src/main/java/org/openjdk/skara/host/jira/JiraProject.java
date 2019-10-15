@@ -23,7 +23,7 @@
 package org.openjdk.skara.host.jira;
 
 import org.openjdk.skara.host.*;
-import org.openjdk.skara.host.network.*;
+import org.openjdk.skara.network.*;
 import org.openjdk.skara.json.JSON;
 
 import java.net.URI;
@@ -46,7 +46,7 @@ public class JiraProject implements IssueProject {
     }
 
     @Override
-    public URI getWebUrl() {
+    public URI webUrl() {
         return URIBuilder.base(jiraHost.getUri()).setPath("/projects/" + projectName).build();
     }
 
@@ -56,7 +56,7 @@ public class JiraProject implements IssueProject {
     }
 
     @Override
-    public Optional<Issue> getIssue(String id) {
+    public Optional<Issue> issue(String id) {
         if (id.indexOf('-') < 0) {
             id = projectName.toUpperCase() + "-" + id;
         }
@@ -71,7 +71,7 @@ public class JiraProject implements IssueProject {
     }
 
     @Override
-    public List<Issue> getIssues() {
+    public List<Issue> issues() {
         var ret = new ArrayList<Issue>();
         var issues = request.post("search")
                             .body("jql", "project = " + projectName + " AND status in (Open, New)")

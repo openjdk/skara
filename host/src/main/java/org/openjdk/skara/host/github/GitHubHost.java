@@ -23,7 +23,7 @@
 package org.openjdk.skara.host.github;
 
 import org.openjdk.skara.host.*;
-import org.openjdk.skara.host.network.*;
+import org.openjdk.skara.network.*;
 import org.openjdk.skara.json.*;
 
 import java.net.*;
@@ -31,14 +31,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.regex.Pattern;
 
-public class GitHubHost implements Host {
+public class GitHubHost implements RepositoryHost {
     private final URI uri;
     private final Pattern webUriPattern;
     private final String webUriReplacement;
     private final GitHubApplication application;
     private final PersonalAccessToken pat;
     private final RestRequest request;
-    private HostUserDetails currentUser;
+    private HostUser currentUser;
 
     public GitHubHost(URI uri, GitHubApplication application, Pattern webUriPattern, String webUriReplacement) {
         this.uri = uri;
@@ -119,18 +119,18 @@ public class GitHubHost implements Host {
     }
 
     private String getFullName(String userName) {
-        var details = getUserDetails(userName);
+        var details = user(userName);
         return details.fullName();
     }
 
     // Most GitHub API's return user information in this format
-    HostUserDetails parseUserField(JSONValue json) {
+    HostUser parseUserField(JSONValue json) {
         return parseUserObject(json.get("user"));
     }
 
-    HostUserDetails parseUserObject(JSONValue json) {
-        return new HostUserDetails(json.get("id").asInt(), json.get("login").asString(),
-                                   () -> getFullName(json.get("login").asString()));
+    HostUser parseUserObject(JSONValue json) {
+        return new HostUser(json.get("id").asInt(), json.get("login").asString(),
+                            () -> getFullName(json.get("login").asString()));
     }
 
     @Override
@@ -155,17 +155,12 @@ public class GitHubHost implements Host {
     }
 
     @Override
-    public HostedRepository getRepository(String name) {
+    public HostedRepository repository(String name) {
         return new GitHubRepository(this, name);
     }
 
     @Override
-    public IssueProject getIssueProject(String name) {
-        throw new RuntimeException("not implemented yet");
-    }
-
-    @Override
-    public HostUserDetails getUserDetails(String username) {
+    public HostUser user(String username) {
         var details = request.get("users/" + URLEncoder.encode(username, StandardCharsets.UTF_8)).execute().asObject();
 
         // Always present
@@ -176,18 +171,18 @@ public class GitHubHost implements Host {
         if (name == null) {
             name = login;
         }
-        return new HostUserDetails(id, login, name);
+        return new HostUser(id, login, name);
     }
 
     @Override
-    public HostUserDetails getCurrentUserDetails() {
+    public HostUser currentUser() {
         if (currentUser == null) {
             if (application != null) {
                 var appDetails = application.getAppDetails();
                 var appName = appDetails.get("name").asString() + "[bot]";
-                currentUser = getUserDetails(appName);
+                currentUser = user(appName);
             } else if (pat != null) {
-                currentUser = getUserDetails(pat.userName());
+                currentUser = user(pat.userName());
             } else {
                 throw new IllegalStateException("No credentials present");
             }
@@ -201,7 +196,7 @@ public class GitHubHost implements Host {
     }
 
     @Override
-    public boolean isMemberOf(String groupId, HostUserDetails user) {
+    public boolean isMemberOf(String groupId, HostUser user) {
         long gid = 0L;
         try {
             gid = Long.parseLong(groupId);

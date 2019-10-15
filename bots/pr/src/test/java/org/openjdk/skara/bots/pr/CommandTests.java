@@ -40,18 +40,18 @@ class CommandTests {
             var integrator = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Issue an invalid command
@@ -59,7 +59,7 @@ class CommandTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an error message
-            var error = pr.getComments().stream()
+            var error = pr.comments().stream()
                           .filter(comment -> comment.body().contains("Unknown command"))
                           .filter(comment -> comment.body().contains("help"))
                           .count();
@@ -75,18 +75,18 @@ class CommandTests {
             var integrator = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Issue an invalid command
@@ -94,7 +94,7 @@ class CommandTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with some help
-            var error = pr.getComments().stream()
+            var error = pr.comments().stream()
                           .filter(comment -> comment.body().contains("Available commands"))
                           .filter(comment -> comment.body().contains("help"))
                           .filter(comment -> comment.body().contains("integrate"))

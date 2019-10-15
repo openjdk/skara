@@ -42,10 +42,10 @@ abstract class PullRequestWorkItem implements WorkItem {
             return true;
         }
         PullRequestWorkItem otherItem = (PullRequestWorkItem)other;
-        if (!pr.getId().equals(otherItem.pr.getId())) {
+        if (!pr.id().equals(otherItem.pr.id())) {
             return true;
         }
-        if (!pr.repository().getName().equals(otherItem.pr.repository().getName())) {
+        if (!pr.repository().name().equals(otherItem.pr.repository().name())) {
             return true;
         }
         return false;

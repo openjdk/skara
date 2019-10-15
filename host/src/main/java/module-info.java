@@ -27,9 +27,9 @@ module org.openjdk.skara.host {
     requires org.openjdk.skara.ini;
     requires org.openjdk.skara.process;
     requires org.openjdk.skara.email;
+    requires org.openjdk.skara.network;
     requires java.net.http;
     requires java.logging;
 
     exports org.openjdk.skara.host;
-    exports org.openjdk.skara.host.network;
 }

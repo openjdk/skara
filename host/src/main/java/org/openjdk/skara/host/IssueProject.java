@@ -27,8 +27,8 @@ import java.util.*;
 
 public interface IssueProject {
     Host host();
-    URI getWebUrl();
+    URI webUrl();
     Issue createIssue(String title, List<String> body);
-    Optional<Issue> getIssue(String id);
-    List<Issue> getIssues();
+    Optional<Issue> issue(String id);
+    List<Issue> issues();
 }

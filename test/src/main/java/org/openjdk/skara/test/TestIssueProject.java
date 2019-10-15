@@ -23,7 +23,7 @@
 package org.openjdk.skara.test;
 
 import org.openjdk.skara.host.*;
-import org.openjdk.skara.host.network.URIBuilder;
+import org.openjdk.skara.network.URIBuilder;
 
 import java.net.URI;
 import java.util.*;
@@ -42,7 +42,7 @@ public class TestIssueProject implements IssueProject {
     }
 
     @Override
-    public URI getWebUrl() {
+    public URI webUrl() {
         return URIBuilder.base("http://localhost/project/" + projectName).build();
     }
 
@@ -57,7 +57,7 @@ public class TestIssueProject implements IssueProject {
     }
 
     @Override
-    public Optional<Issue> getIssue(String id) {
+    public Optional<Issue> issue(String id) {
         if (id.indexOf('-') < 0) {
             id = projectName.toUpperCase() + "-" + id;
         }
@@ -66,7 +66,7 @@ public class TestIssueProject implements IssueProject {
     }
 
     @Override
-    public List<Issue> getIssues() {
+    public List<Issue> issues() {
         return new ArrayList<>(host.getIssues(this));
     }
 }

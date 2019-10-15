@@ -49,22 +49,22 @@ class ArchiveMessages {
     }
 
     private static String replyFooter(PullRequestInstance prInstance) {
-        return "PR: " + prInstance.pr().getWebUrl();
+        return "PR: " + prInstance.pr().webUrl();
     }
 
     // When changing this, ensure that the PR pattern in the notifier still matches
     static String composeConversation(PullRequestInstance prInstance, URI webrev) {
         var commitMessages = prInstance.formatCommitMessages(prInstance.baseHash(), prInstance.headHash(), ArchiveMessages::formatCommit);
-        var filteredBody = filterComments(prInstance.pr().getBody());
+        var filteredBody = filterComments(prInstance.pr().body());
         if (filteredBody.isEmpty()) {
-            filteredBody = prInstance.pr().getTitle().strip();
+            filteredBody = prInstance.pr().title().strip();
         }
         var issueString = prInstance.issueUrl().map(url -> "  Issue: " + url + "\n").orElse("");
         return filteredBody + "\n\n" +
                 infoSeparator + "\n\n" +
                 "Commits:\n" +
                 commitMessages + "\n\n" +
-                "Changes: " + prInstance.pr().getChangeUrl() + "\n" +
+                "Changes: " + prInstance.pr().changeUrl() + "\n" +
                 " Webrev: " + webrev.toString() + "\n" +
                 issueString +
                 "  Stats: " + prInstance.stats(prInstance.baseHash(), prInstance.headHash()) + "\n" +
@@ -80,7 +80,7 @@ class ArchiveMessages {
                 infoSeparator + "\n\n" +
                 "Commits:\n" +
                 commitMessages + "\n\n" +
-                "Changes: " + prInstance.pr().getChangeUrl() + "\n" +
+                "Changes: " + prInstance.pr().changeUrl() + "\n" +
                 " Webrev: " + fullWebrev.toString() + "\n" +
                 issueString +
                 "  Stats: " + prInstance.stats(prInstance.baseHash(), prInstance.headHash()) + "\n" +
@@ -96,8 +96,8 @@ class ArchiveMessages {
                 "Added commits:\n" +
                 newCommitMessages + "\n\n" +
                 "Changes:\n" +
-                "  - all: " + prInstance.pr().getChangeUrl() + "\n" +
-                "  - new: " + prInstance.pr().getChangeUrl(lastHead) + "\n\n" +
+                "  - all: " + prInstance.pr().changeUrl() + "\n" +
+                "  - new: " + prInstance.pr().changeUrl(lastHead) + "\n\n" +
                 "Webrevs:\n" +
                 " - full: " + fullWebrev.toString() + "\n" +
                 " - incr: " + incrementalWebrev.toString() + "\n\n" +

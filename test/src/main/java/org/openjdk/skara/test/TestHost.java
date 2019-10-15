@@ -31,12 +31,12 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class TestHost implements Host {
+public class TestHost implements RepositoryHost, IssueHost {
     private final int currentUser;
     private HostData data;
 
     private static class HostData {
-        final List<HostUserDetails> users = new ArrayList<>();
+        final List<HostUser> users = new ArrayList<>();
         final Map<String, Repository> repositories = new HashMap<>();
         final Map<String, IssueProject> issueProjects = new HashMap<>();
         final Set<TemporaryDirectory> folders = new HashSet<>();
@@ -60,7 +60,7 @@ public class TestHost implements Host {
         }
     }
 
-    public static TestHost createNew(List<HostUserDetails> users) {
+    public static TestHost createNew(List<HostUser> users) {
         var data = new HostData();
         data.users.addAll(users);
         var host = new TestHost(data, 0);
@@ -83,7 +83,7 @@ public class TestHost implements Host {
     }
 
     @Override
-    public HostedRepository getRepository(String name) {
+    public HostedRepository repository(String name) {
         Repository localRepository;
         if (data.repositories.containsKey(name)) {
             localRepository = data.repositories.get(name);
@@ -98,7 +98,7 @@ public class TestHost implements Host {
     }
 
     @Override
-    public IssueProject getIssueProject(String name) {
+    public IssueProject project(String name) {
         if (data.issueProjects.containsKey(name)) {
             return data.issueProjects.get(name);
         } else {
@@ -112,7 +112,7 @@ public class TestHost implements Host {
     }
 
     @Override
-    public HostUserDetails getUserDetails(String username) {
+    public HostUser user(String username) {
         return data.users.stream()
                     .filter(user -> user.userName().equals(username))
                     .findAny()
@@ -120,7 +120,7 @@ public class TestHost implements Host {
     }
 
     @Override
-    public HostUserDetails getCurrentUserDetails() {
+    public HostUser currentUser() {
         return data.users.get(currentUser);
     }
 
@@ -130,7 +130,7 @@ public class TestHost implements Host {
     }
 
     @Override
-    public boolean isMemberOf(String groupId, HostUserDetails user) {
+    public boolean isMemberOf(String groupId, HostUser user) {
         return false;
     }
 

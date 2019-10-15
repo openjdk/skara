@@ -23,7 +23,7 @@
 package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.email.EmailAddress;
-import org.openjdk.skara.host.network.URIBuilder;
+import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Repository;
 
@@ -45,14 +45,14 @@ class WebrevStorageTests {
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
             var repoFolder = tempFolder.path().resolve("repo");
-            var localRepo = CheckableRepository.init(repoFolder, author.getRepositoryType(), reviewFile);
+            var localRepo = CheckableRepository.init(repoFolder, author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
-            localRepo.push(masterHash, archive.getUrl(), "webrev", true);
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.addLabel("rfr");
             pr.setBody("This is now ready");
@@ -67,13 +67,13 @@ class WebrevStorageTests {
             storage.createAndArchive(prInstance, scratchFolder, masterHash, editHash, "00");
 
             // Update the local repository and check that the webrev has been generated
-            Repository.materialize(repoFolder, archive.getUrl(), "webrev");
-            assertTrue(Files.exists(repoFolder.resolve("test/" + pr.getId() + "/webrev.00/index.html")));
+            Repository.materialize(repoFolder, archive.url(), "webrev");
+            assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/webrev.00/index.html")));
 
             // Create it again - it will overwrite the previous one
             storage.createAndArchive(prInstance, scratchFolder, masterHash, editHash, "00");
-            Repository.materialize(repoFolder, archive.getUrl(), "webrev");
-            assertTrue(Files.exists(repoFolder.resolve("test/" + pr.getId() + "/webrev.00/index.html")));
+            Repository.materialize(repoFolder, archive.url(), "webrev");
+            assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/webrev.00/index.html")));
         }
     }
 }

@@ -39,12 +39,12 @@ import static org.junit.jupiter.api.Assertions.*;
 class UpdateHistoryTests {
     private String resetHostedRepository(HostedRepository repository) throws IOException {
         var folder = Files.createTempDirectory("updatehistory");
-        var localRepository = Repository.init(folder, repository.getRepositoryType());
+        var localRepository = Repository.init(folder, repository.repositoryType());
         var firstFile = folder.resolve("first.txt");
         Files.writeString(firstFile, "First file to commit");
         localRepository.add(firstFile);
         var firstCommit = localRepository.commit("First commit", "Duke", "duke@openjdk.java.net");
-        localRepository.push(firstCommit, repository.getUrl(), localRepository.defaultBranch().toString(), true);
+        localRepository.push(firstCommit, repository.url(), localRepository.defaultBranch().toString(), true);
         return localRepository.defaultBranch().toString();
     }
 

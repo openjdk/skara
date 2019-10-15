@@ -42,7 +42,7 @@ class Contributors {
         return String.format(removeMarker, contributor.toString());
     }
 
-    static List<EmailAddress> contributors(HostUserDetails botUser, List<Comment> comments) {
+    static List<EmailAddress> contributors(HostUser botUser, List<Comment> comments) {
         var contributorActions = comments.stream()
                                          .filter(comment -> comment.author().equals(botUser))
                                          .map(comment -> markerPattern.matcher(comment.body()))

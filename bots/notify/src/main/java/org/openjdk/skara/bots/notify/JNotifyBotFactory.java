@@ -24,7 +24,7 @@ package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.email.EmailAddress;
-import org.openjdk.skara.host.network.URIBuilder;
+import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.json.JSONObject;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
 import org.openjdk.skara.storage.StorageBuilder;

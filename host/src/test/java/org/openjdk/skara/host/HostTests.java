@@ -36,7 +36,7 @@ public class HostTests {
         try (var credentials = new HostCredentials(info)) {
             var host = credentials.getHostedRepository().host();
             var madeUpGroupIdThatCannotContainTestMember = "1234567890";
-            assertFalse(host.isMemberOf(madeUpGroupIdThatCannotContainTestMember, host.getCurrentUserDetails()));
+            assertFalse(host.isMemberOf(madeUpGroupIdThatCannotContainTestMember, host.currentUser()));
         }
     }
 }

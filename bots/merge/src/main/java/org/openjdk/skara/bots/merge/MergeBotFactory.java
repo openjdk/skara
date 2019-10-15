@@ -56,8 +56,8 @@ public class MergeBotFactory implements BotFactory {
             var toRepo = configuration.repository(repo.get("to").asString());
             var toBranch = new Branch(configuration.repositoryRef(repo.get("to").asString()));
 
-            log.info("Setting up merging from " + fromRepo.getName() + ":" + fromBranch.name() +
-                     " to " + toRepo.getName() + ":" + toBranch.name());
+            log.info("Setting up merging from " + fromRepo.name() + ":" + fromBranch.name() +
+                     " to " + toRepo.name() + ":" + toBranch.name());
             bots.add(new MergeBot(storage, fromRepo, fromBranch, toRepo, toBranch));
         }
         return bots;

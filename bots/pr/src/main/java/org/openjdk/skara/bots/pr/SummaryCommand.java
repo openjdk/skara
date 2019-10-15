@@ -31,12 +31,12 @@ import java.util.List;
 public class SummaryCommand implements CommandHandler {
     @Override
     public void handle(PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
-        if (!comment.author().equals(pr.getAuthor())) {
-            reply.println("Only the author (@" + pr.getAuthor().userName() + ") is allowed to issue the `summary` command.");
+        if (!comment.author().equals(pr.author())) {
+            reply.println("Only the author (@" + pr.author().userName() + ") is allowed to issue the `summary` command.");
             return;
         }
 
-        var currentSummary = Summary.summary(pr.repository().host().getCurrentUserDetails(), allComments);
+        var currentSummary = Summary.summary(pr.repository().host().currentUser(), allComments);
 
         if (args.isBlank()) {
             if (currentSummary.isPresent()) {

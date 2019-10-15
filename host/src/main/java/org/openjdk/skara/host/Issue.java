@@ -37,19 +37,19 @@ public interface Issue {
      * The repository-specific identifier.
      * @return
      */
-    String getId();
+    String id();
 
     /**
      * The host-specific author name.
      * @return
      */
-    HostUserDetails getAuthor();
+    HostUser author();
 
     /**
      * Title of the request.
      * @return
      */
-    String getTitle();
+    String title();
 
     /**
      * Update the title of the request.
@@ -61,7 +61,7 @@ public interface Issue {
      * The main body of the request.
      * @return
      */
-    String getBody();
+    String body();
 
     /**
      * Update the main body of the request.
@@ -73,7 +73,7 @@ public interface Issue {
      * All comments on the issue, in ascending creation time order.
      * @return
      */
-    List<Comment> getComments();
+    List<Comment> comments();
 
     /**
      * Posts a new comment.
@@ -92,13 +92,13 @@ public interface Issue {
      * When the request was created.
      * @return
      */
-    ZonedDateTime getCreated();
+    ZonedDateTime createdAt();
 
     /**
      * When the request was last updated.
      * @return
      */
-    ZonedDateTime getUpdated();
+    ZonedDateTime updatedAt();
 
     enum State {
         OPEN,
@@ -127,21 +127,21 @@ public interface Issue {
      * Retrieves all the currently set labels.
      * @return
      */
-    List<String> getLabels();
+    List<String> labels();
 
     /**
      * Returns a link that will lead to the issue.
      */
-    URI getWebUrl();
+    URI webUrl();
 
     /**
      * Returns all usernames assigned to the issue.
      */
-    List<HostUserDetails> getAssignees();
+    List<HostUser> assignees();
 
     /**
      * Update the list of assignees.
      * @param assignees
      */
-    void setAssignees(List<HostUserDetails> assignees);
+    void setAssignees(List<HostUser> assignees);
 }

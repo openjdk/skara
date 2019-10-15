@@ -24,7 +24,7 @@ package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.host.PullRequest;
-import org.openjdk.skara.host.network.URIBuilder;
+import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.mailinglist.*;
 import org.openjdk.skara.test.*;
 
@@ -43,7 +43,7 @@ class MailingListArchiveReaderBotTests {
 
         var reply = "Looks good";
         var references = first.id().toString();
-        var email = Email.create(EmailAddress.from("Commenter", "<c@test.test>"), "Re: RFR: " + pr.getTitle(), reply)
+        var email = Email.create(EmailAddress.from("Commenter", "<c@test.test>"), "Re: RFR: " + pr.title(), reply)
                          .recipient(first.author())
                          .id(EmailAddress.from(UUID.randomUUID() + "@id.id"))
                          .header("In-Reply-To", first.id().toString())
@@ -62,11 +62,11 @@ class MailingListArchiveReaderBotTests {
             var ignored = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
             var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
                                                  listAddress,
-                                                 Set.of(ignored.host().getCurrentUserDetails().userName()),
+                                                 Set.of(ignored.host().currentUser().userName()),
                                                  Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
@@ -82,15 +82,15 @@ class MailingListArchiveReaderBotTests {
             var readerBot = new MailingListArchiveReaderBot(from, Set.of(mailmanList), Set.of(archive));
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
-            localRepo.push(masterHash, archive.getUrl(), "webrev", true);
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
                                                                "Change msg\n\nWith several lines");
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This should now be ready");
 
@@ -113,7 +113,7 @@ class MailingListArchiveReaderBotTests {
             TestBotRunner.runPeriodicItems(readerBot);
 
             // The bridge should now have processed the reply
-            var updated = pr.getComments();
+            var updated = pr.comments();
             assertEquals(2, updated.size());
         }
     }
@@ -128,11 +128,11 @@ class MailingListArchiveReaderBotTests {
             var ignored = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
             var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
                                                  listAddress,
-                                                 Set.of(ignored.host().getCurrentUserDetails().userName()),
+                                                 Set.of(ignored.host().currentUser().userName()),
                                                  Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
@@ -148,15 +148,15 @@ class MailingListArchiveReaderBotTests {
             var readerBot = new MailingListArchiveReaderBot(from, Set.of(mailmanList), Set.of(archive));
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
-            localRepo.push(masterHash, archive.getUrl(), "webrev", true);
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
                                                                "Change msg\n\nWith several lines");
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
             pr.setBody("This should now be ready");
 
@@ -175,7 +175,7 @@ class MailingListArchiveReaderBotTests {
             TestBotRunner.runPeriodicItems(readerBot);
 
             // The bridge should now have processed the reply
-            var updated = pr.getComments();
+            var updated = pr.comments();
             assertEquals(2, updated.size());
 
             var newReaderBot = new MailingListArchiveReaderBot(from, Set.of(mailmanList), Set.of(archive));
@@ -183,7 +183,7 @@ class MailingListArchiveReaderBotTests {
             TestBotRunner.runPeriodicItems(newReaderBot);
 
             // The new bridge should not have made duplicate posts
-            var notUpdated = pr.getComments();
+            var notUpdated = pr.comments();
             assertEquals(2, notUpdated.size());
         }
     }

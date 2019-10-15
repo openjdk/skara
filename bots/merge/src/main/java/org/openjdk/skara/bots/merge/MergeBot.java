@@ -59,22 +59,22 @@ class MergeBot implements Bot, WorkItem {
             return true;
         }
         var otherBot = (MergeBot) other;
-        return !to.getName().equals(otherBot.to.getName());
+        return !to.name().equals(otherBot.to.name());
     }
 
     @Override
     public void run(Path scratchPath) {
         try {
             var sanitizedUrl =
-                URLEncoder.encode(to.getWebUrl().toString(), StandardCharsets.UTF_8);
+                URLEncoder.encode(to.webUrl().toString(), StandardCharsets.UTF_8);
             var dir = storage.resolve(sanitizedUrl);
             Repository repo = null;
             if (!Files.exists(dir)) {
-                log.info("Cloning " + to.getName());
+                log.info("Cloning " + to.name());
                 Files.createDirectories(dir);
-                repo = Repository.clone(to.getUrl(), dir);
+                repo = Repository.clone(to.url(), dir);
             } else {
-                log.info("Found existing scratch directory for " + to.getName());
+                log.info("Found existing scratch directory for " + to.name());
                 repo = Repository.get(dir).orElseThrow(() -> {
                         return new RuntimeException("Repository in " + dir + " has vanished");
                 });
@@ -84,16 +84,16 @@ class MergeBot implements Bot, WorkItem {
             var originToBranch = new Branch("origin/" + toBranch.name());
 
             // Check if pull request already created
-            var title = "Cannot automatically merge " + from.getName() + ":" + fromBranch.name();
+            var title = "Cannot automatically merge " + from.name() + ":" + fromBranch.name();
             var marker = "<!-- MERGE CONFLICTS -->";
-            for (var pr : to.getPullRequests()) {
-                if (pr.getTitle().equals(title) &&
-                    pr.getBody().startsWith(marker) &&
-                    to.host().getCurrentUserDetails().equals(pr.getAuthor())) {
-                    var lines = pr.getBody().split("\n");
+            for (var pr : to.pullRequests()) {
+                if (pr.title().equals(title) &&
+                    pr.body().startsWith(marker) &&
+                    to.host().currentUser().equals(pr.author())) {
+                    var lines = pr.body().split("\n");
                     var head = new Hash(lines[1].substring(5, 45));
                     if (repo.contains(originToBranch, head)) {
-                        log.info("Closing resolved merge conflict PR " + pr.getId());
+                        log.info("Closing resolved merge conflict PR " + pr.id());
                         pr.addComment("Merge conflicts have been resolved, closing this PR");
                         pr.setState(PullRequest.State.CLOSED);
                     } else {
@@ -103,8 +103,8 @@ class MergeBot implements Bot, WorkItem {
                 }
             }
 
-            log.info("Fetching " + from.getName() + ":" + fromBranch.name());
-            var fetchHead = repo.fetch(from.getUrl(), fromBranch.name());
+            log.info("Fetching " + from.name() + ":" + fromBranch.name());
+            var fetchHead = repo.fetch(from.url(), fromBranch.name());
             var head = repo.resolve(toBranch.name()).orElseThrow(() ->
                     new IOException("Could not resolve branch " + toBranch.name())
             );
@@ -129,7 +129,7 @@ class MergeBot implements Bot, WorkItem {
                 if (!isAncestor) {
                     repo.commit("Merge", "duke", "duke@openjdk.org");
                 }
-                repo.push(toBranch, to.getUrl().toString(), false);
+                repo.push(toBranch, to.url().toString(), false);
             } else {
                 log.info("Got error: " + error.getMessage());
                 log.info("Aborting unsuccesful merge");
@@ -142,7 +142,7 @@ class MergeBot implements Bot, WorkItem {
                 var message = new ArrayList<String>();
                 message.add(marker);
                 message.add("<!-- " + fetchHead.hex() + " -->");
-                message.add("The following commits from `" + from.getName() + ":" + fromBranch.name() +
+                message.add("The following commits from `" + from.name() + ":" + fromBranch.name() +
                             "` could *not* be automatically merged into `" + toBranch.name() + "`:");
                 message.add("");
                 for (var commit : commits) {
@@ -150,11 +150,11 @@ class MergeBot implements Bot, WorkItem {
                 }
                 message.add("");
                 message.add("To manually resolve these merge conflicts, please create a personal fork of " +
-                            to.getWebUrl() + " and execute the following commands:");
+                            to.webUrl() + " and execute the following commands:");
                 message.add("");
                 message.add("```bash");
                 message.add("$ git checkout " + toBranch.name());
-                message.add("$ git pull " + from.getWebUrl() + " " + fromBranch.name());
+                message.add("$ git pull " + from.webUrl() + " " + fromBranch.name());
                 message.add("```");
                 message.add("");
                 message.add("When you have resolved the conflicts resulting from the above commands, run:");
@@ -181,8 +181,8 @@ class MergeBot implements Bot, WorkItem {
 
     @Override
     public String toString() {
-        return "MergeBot@(" + from.getName() + ":" + fromBranch.name() + "-> "
-                            + to.getName() + ":" + toBranch.name() + ")";
+        return "MergeBot@(" + from.name() + ":" + fromBranch.name() + "-> "
+                            + to.name() + ":" + toBranch.name() + ")";
     }
 
     @Override

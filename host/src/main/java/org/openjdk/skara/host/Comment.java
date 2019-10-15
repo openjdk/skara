@@ -28,11 +28,11 @@ public class Comment {
 
     private final String id;
     private final String body;
-    private final HostUserDetails author;
+    private final HostUser author;
     private final ZonedDateTime createdAt;
     private final ZonedDateTime updatedAt;
 
-    public Comment(String id, String body, HostUserDetails author, ZonedDateTime createdAt, ZonedDateTime updatedAt) {
+    public Comment(String id, String body, HostUser author, ZonedDateTime createdAt, ZonedDateTime updatedAt) {
         this.id = id;
         this.body = body;
         this.author = author;
@@ -48,7 +48,7 @@ public class Comment {
         return body;
     }
 
-    public HostUserDetails author() {
+    public HostUser author() {
         return author;
     }
 

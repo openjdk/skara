@@ -145,7 +145,7 @@ public class GitFork {
             exit("No username for host " + hostName + " found, use git-credentials or the flag --username");
         }
 
-        var host = Host.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
+        var host = RepositoryHost.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
         if (path.endsWith(".git")) {
             path = path.substring(0, path.length() - 4);
         }
@@ -153,18 +153,18 @@ public class GitFork {
             path = path.substring(1);
         }
 
-        var fork = host.getRepository(path).fork();
+        var fork = host.repository(path).fork();
 
         if (token == null) {
             GitCredentials.approve(credentials);
         }
 
-        var webUrl = fork.getWebUrl();
+        var webUrl = fork.webUrl();
         if (isMercurial) {
             webUrl = URI.create("git+" + webUrl.toString());
         }
         if (arguments.at(1).isPresent()) {
-            System.out.println("Fork available at: " + fork.getWebUrl());
+            System.out.println("Fork available at: " + fork.webUrl());
             var dest = arguments.at(1).asString();
             System.out.println("Cloning " + webUrl + "...");
             var repo = clone(webUrl, Path.of(dest), isMercurial);

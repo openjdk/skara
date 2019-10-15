@@ -37,6 +37,7 @@ dependencies {
     implementation project(':census')
     implementation project(':process')
     implementation project(':json')
+    implementation project(':network')
 
     testImplementation project(':test')
 }

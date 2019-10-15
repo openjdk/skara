@@ -147,7 +147,7 @@ public class MailingListBridgeBot implements Bot {
     public List<WorkItem> getPeriodicItems() {
         List<WorkItem> ret = new LinkedList<>();
 
-        for (var pr : codeRepo.getPullRequests()) {
+        for (var pr : codeRepo.pullRequests()) {
             if (updateCache.needsUpdate(pr)) {
                 ret.add(new ArchiveWorkItem(pr, this, e -> updateCache.invalidate(pr)));
             }

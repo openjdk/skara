@@ -28,7 +28,6 @@ import org.openjdk.skara.vcs.Branch;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -63,8 +62,8 @@ public class ForwardBotFactory implements BotFactory {
 
             var bot = new ForwardBot(storage, fromRepo, fromBranch, toRepo, toBranch);
             log.info("Setting up forwarding from " +
-                     fromRepo.getName() + ":" + fromBranch.name() +
-                     "to " + toRepo.getName() + ":" + toBranch.name());
+                     fromRepo.name() + ":" + fromBranch.name() +
+                     "to " + toRepo.name() + ":" + toBranch.name());
             ret.add(bot);
         }
 

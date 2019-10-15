@@ -31,6 +31,7 @@ dependencies {
     implementation project(':vcs')
     implementation project(':bot')
     implementation project(':host')
+    implementation project(':network')
     implementation project(':email')
     implementation project(':mailinglist')
     implementation project(':proxy')

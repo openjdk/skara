@@ -74,7 +74,7 @@ class PullRequestBot implements Bot {
     }
 
     private boolean isReady(PullRequest pr) {
-        var labels = new HashSet<>(pr.getLabels());
+        var labels = new HashSet<>(pr.labels());
         for (var readyLabel : readyLabels) {
             if (!labels.contains(readyLabel)) {
                 log.fine("PR is not yet ready - missing label '" + readyLabel + "'");
@@ -82,7 +82,7 @@ class PullRequestBot implements Bot {
             }
         }
 
-        var comments = pr.getComments();
+        var comments = pr.comments();
         for (var readyComment : readyComments.entrySet()) {
             var commentFound = false;
             for (var comment : comments) {
@@ -123,7 +123,7 @@ class PullRequestBot implements Bot {
 
     @Override
     public List<WorkItem> getPeriodicItems() {
-        return getWorkItems(remoteRepo.getPullRequests());
+        return getWorkItems(remoteRepo.pullRequests());
     }
 
     @Override

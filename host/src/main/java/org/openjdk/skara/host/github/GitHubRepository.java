@@ -23,7 +23,7 @@
 package org.openjdk.skara.host.github;
 
 import org.openjdk.skara.host.*;
-import org.openjdk.skara.host.network.*;
+import org.openjdk.skara.network.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.vcs.*;
 
@@ -60,7 +60,7 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public Optional<HostedRepository> getParent() {
+    public Optional<HostedRepository> parent() {
         if (json.get("fork").asBoolean()) {
             var parent = json.get("parent").get("full_name").asString();
             return Optional.of(new GitHubRepository(gitHubHost, parent));
@@ -69,7 +69,7 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public Host host() {
+    public RepositoryHost host() {
         return gitHubHost;
     }
 
@@ -79,12 +79,12 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public Optional<Issue> getIssue(String id) {
+    public Optional<Issue> issue(String id) {
         throw new RuntimeException("not implemented yet");
     }
 
     @Override
-    public List<Issue> getIssues() {
+    public List<Issue> issues() {
         throw new RuntimeException("not implemented yet");
     }
 
@@ -100,7 +100,7 @@ public class GitHubRepository implements HostedRepository {
         }
 
         var upstream = (GitHubRepository) target;
-        var user = host().getCurrentUserDetails().userName();
+        var user = host().currentUser().userName();
         var namespace = user.endsWith("[bot]") ? "" : user + ":";
         var params = JSON.object()
                          .put("title", title)
@@ -116,13 +116,13 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public PullRequest getPullRequest(String id) {
+    public PullRequest pullRequest(String id) {
         var pr = request.get("pulls/" + id).execute();
         return new GitHubPullRequest(this, pr, request);
     }
 
     @Override
-    public List<PullRequest> getPullRequests() {
+    public List<PullRequest> pullRequests() {
         return request.get("pulls").execute().asArray().stream()
                       .map(jsonValue -> new GitHubPullRequest(this, jsonValue, request))
                       .collect(Collectors.toList());
@@ -144,19 +144,19 @@ public class GitHubRepository implements HostedRepository {
     public Optional<PullRequest> parsePullRequestUrl(String url) {
         var matcher = pullRequestPattern.matcher(url);
         if (matcher.find()) {
-            return Optional.of(getPullRequest(matcher.group(1)));
+            return Optional.of(pullRequest(matcher.group(1)));
         } else {
             return Optional.empty();
         }
     }
 
     @Override
-    public String getName() {
+    public String name() {
         return repository;
     }
 
     @Override
-    public URI getUrl() {
+    public URI url() {
         return URIBuilder
                 .base(gitHubHost.getURI())
                 .setPath("/" + repository + ".git")
@@ -165,24 +165,24 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public URI getWebUrl() {
+    public URI webUrl() {
         var endpoint = "/" + repository;
         return gitHubHost.getWebURI(endpoint);
     }
 
     @Override
-    public URI getWebUrl(Hash hash) {
+    public URI webUrl(Hash hash) {
         var endpoint = "/" + repository + "/commit/" + hash.abbreviate();
         return gitHubHost.getWebURI(endpoint);
     }
 
     @Override
-    public VCS getRepositoryType() {
+    public VCS repositoryType() {
         return VCS.GIT;
     }
 
     @Override
-    public String getFileContents(String filename, String ref) {
+    public String fileContents(String filename, String ref) {
         var conf = request.get("contents/" + filename)
                           .param("ref", ref)
                           .execute().asObject();
@@ -193,7 +193,7 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public String getNamespace() {
+    public String namespace() {
         return URIBuilder.base(gitHubHost.getURI()).build().getHost();
     }
 
@@ -205,16 +205,16 @@ public class GitHubRepository implements HostedRepository {
     @Override
     public HostedRepository fork() {
         var response = request.post("forks").execute();
-        return gitHubHost.getRepository(response.get("full_name").asString());
+        return gitHubHost.repository(response.get("full_name").asString());
     }
 
     @Override
-    public long getId() {
+    public long id() {
         return json.get("id").asLong();
     }
 
     @Override
-    public Hash getBranchHash(String ref) {
+    public Hash branchHash(String ref) {
         var branch = request.get("branches/" + ref).execute();
         return new Hash(branch.get("commit").get("sha").asString());
     }

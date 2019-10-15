@@ -46,9 +46,9 @@ class PullRequestInstance {
         var repository = pr.repository();
 
         // Materialize the PR's target ref
-        localRepo = Repository.materialize(localRepoPath, repository.getUrl(), pr.getTargetRef());
-        targetHash = localRepo.fetch(repository.getUrl(), pr.getTargetRef());
-        headHash = localRepo.fetch(repository.getUrl(), pr.getHeadHash().hex());
+        localRepo = Repository.materialize(localRepoPath, repository.url(), pr.targetRef());
+        targetHash = localRepo.fetch(repository.url(), pr.targetRef());
+        headHash = localRepo.fetch(repository.url(), pr.headHash().hex());
         baseHash = localRepo.mergeBase(targetHash, headHash);
     }
 
@@ -59,7 +59,7 @@ class PullRequestInstance {
      * @return
      */
     static List<Review> filterActiveReviews(List<Review> allReviews) {
-        var reviewPerUser = new LinkedHashMap<HostUserDetails, Review>();
+        var reviewPerUser = new LinkedHashMap<HostUser, Review>();
         for (var review : allReviews) {
             reviewPerUser.put(review.reviewer(), review);
         }
@@ -75,15 +75,15 @@ class PullRequestInstance {
                           .map(Contributor::username)
                           .collect(Collectors.toList());
 
-        var comments = pr.getComments();
-        var additionalContributors = Contributors.contributors(pr.repository().host().getCurrentUserDetails(),
+        var comments = pr.comments();
+        var additionalContributors = Contributors.contributors(pr.repository().host().currentUser(),
                                                                comments).stream()
                                                  .map(email -> Author.fromString(email.toString()))
                                                  .collect(Collectors.toList());
 
-        var summary = Summary.summary(pr.repository().host().getCurrentUserDetails(), comments);
-        var issue = Issue.fromString(pr.getTitle());
-        var commitMessageBuilder = issue.map(CommitMessage::title).orElseGet(() -> CommitMessage.title(isMerge ? "Merge" : pr.getTitle()));
+        var summary = Summary.summary(pr.repository().host().currentUser(), comments);
+        var issue = Issue.fromString(pr.title());
+        var commitMessageBuilder = issue.map(CommitMessage::title).orElseGet(() -> CommitMessage.title(isMerge ? "Merge" : pr.title()));
         commitMessageBuilder.contributors(additionalContributors)
                                          .reviewers(reviewers);
         summary.ifPresent(commitMessageBuilder::summary);
@@ -97,7 +97,7 @@ class PullRequestInstance {
 
         Author committer;
         Author author;
-        var contributor = namespace.get(pr.getAuthor().id());
+        var contributor = namespace.get(pr.author().id());
 
         if (contributor == null) {
             // Use the information contained in the head commit - jcheck has verified that it contains sane values
@@ -121,7 +121,7 @@ class PullRequestInstance {
     private Hash commitMerge(List<Review> activeReviews, Namespace namespace, String censusDomain) throws IOException {
         localRepo.checkout(headHash, true);
 
-        var contributor = namespace.get(pr.getAuthor().id());
+        var contributor = namespace.get(pr.author().id());
         if (contributor == null) {
             throw new RuntimeException("Merges can only be performed by Committers");
         }
@@ -133,8 +133,8 @@ class PullRequestInstance {
     }
 
     Hash commit(Namespace namespace, String censusDomain, String sponsorId) throws IOException {
-        var activeReviews = filterActiveReviews(pr.getReviews());
-        if (!pr.getTitle().startsWith("Merge")) {
+        var activeReviews = filterActiveReviews(pr.reviews());
+        if (!pr.title().startsWith("Merge")) {
             return commitSquashed(activeReviews, namespace, censusDomain, sponsorId);
         } else {
             return commitMerge(activeReviews, namespace, censusDomain);
@@ -153,7 +153,7 @@ class PullRequestInstance {
         var divergingCommits = divergingCommits();
         if (divergingCommits.size() > 0) {
             reply.print("The following commits have been pushed to ");
-            reply.print(pr.getTargetRef());
+            reply.print(pr.targetRef());
             reply.println(" since your change was applied:");
             divergingCommits.forEach(c -> reply.println(" * " + c.hash().hex() + ": " + c.message().get(0)));
 
@@ -167,7 +167,7 @@ class PullRequestInstance {
             } catch (IOException e) {
                 reply.println();
                 reply.print("It was not possible to rebase your changes automatically. Please merge `");
-                reply.print(pr.getTargetRef());
+                reply.print(pr.targetRef());
                 reply.println("` into your branch and try again.");
                 try {
                     localRepo.checkout(commitHash, true);

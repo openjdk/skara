@@ -36,7 +36,7 @@ public class SponsorCommand implements CommandHandler {
 
     @Override
     public void handle(PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
-        if (ProjectPermissions.mayCommit(censusInstance, pr.getAuthor())) {
+        if (ProjectPermissions.mayCommit(censusInstance, pr.author())) {
             reply.println("This change does not need sponsoring - the author is allowed to integrate it.");
             return;
         }
@@ -45,30 +45,30 @@ public class SponsorCommand implements CommandHandler {
             return;
         }
 
-        var readyHash = ReadyForSponsorTracker.latestReadyForSponsor(pr.repository().host().getCurrentUserDetails(), allComments);
+        var readyHash = ReadyForSponsorTracker.latestReadyForSponsor(pr.repository().host().currentUser(), allComments);
         if (readyHash.isEmpty()) {
-            reply.println("The change author (@" + pr.getAuthor().userName() + ") must issue an `integrate` command before the integration can be sponsored.");
+            reply.println("The change author (@" + pr.author().userName() + ") must issue an `integrate` command before the integration can be sponsored.");
             return;
         }
 
         var acceptedHash = readyHash.get();
-        if (!pr.getHeadHash().equals(acceptedHash)) {
-            reply.print("The PR has been updated since the change author (@" + pr.getAuthor().userName() + ") ");
+        if (!pr.headHash().equals(acceptedHash)) {
+            reply.print("The PR has been updated since the change author (@" + pr.author().userName() + ") ");
             reply.println("issued the `integrate` command - the author must perform this command again.");
             return;
         }
 
-        if (pr.getLabels().contains("rejected")) {
+        if (pr.labels().contains("rejected")) {
             reply.println("The change is currently blocked from integration by a rejection.");
             return;
         }
 
         // Notify the author as well
-        reply.print("@" + pr.getAuthor().userName() + " ");
+        reply.print("@" + pr.author().userName() + " ");
 
         // Execute merge
         try {
-            var sanitizedUrl = URLEncoder.encode(pr.repository().getWebUrl().toString(), StandardCharsets.UTF_8);
+            var sanitizedUrl = URLEncoder.encode(pr.repository().webUrl().toString(), StandardCharsets.UTF_8);
             var path = scratchPath.resolve("pr.sponsor").resolve(sanitizedUrl);
 
             var prInstance = new PullRequestInstance(path, pr);
@@ -96,10 +96,10 @@ public class SponsorCommand implements CommandHandler {
                 return;
             }
 
-            if (!localHash.equals(pr.getTargetHash())) {
+            if (!localHash.equals(pr.targetHash())) {
                 reply.println(rebaseMessage.toString());
                 reply.println("Pushed as commit " + rebasedHash.get().hex() + ".");
-                prInstance.localRepo().push(rebasedHash.get(), pr.repository().getUrl(), pr.getTargetRef());
+                prInstance.localRepo().push(rebasedHash.get(), pr.repository().url(), pr.targetRef());
                 pr.setState(PullRequest.State.CLOSED);
                 pr.addLabel("integrated");
                 pr.removeLabel("sponsor");

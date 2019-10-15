@@ -75,7 +75,7 @@ class CheckRun {
 
     // For unknown contributors, check that all commits have the same name and email
     private boolean checkCommitAuthor(List<Commit> commits) throws IOException {
-        var author = censusInstance.namespace().get(pr.getAuthor().id());
+        var author = censusInstance.namespace().get(pr.author().id());
         if (author != null) {
             return true;
         }
@@ -92,7 +92,7 @@ class CheckRun {
     }
 
     private Optional<String> mergeSourceRepository() {
-        var repoMatcher = mergeSourcePattern.matcher(pr.getTitle());
+        var repoMatcher = mergeSourcePattern.matcher(pr.title());
         if (!repoMatcher.matches()) {
             return Optional.empty();
         }
@@ -100,7 +100,7 @@ class CheckRun {
     }
 
     private Optional<String> mergeSourceBranch() {
-        var branchMatcher = mergeSourcePattern.matcher(pr.getTitle());
+        var branchMatcher = mergeSourcePattern.matcher(pr.title());
         if (!branchMatcher.matches()) {
             return Optional.empty();
         }
@@ -113,7 +113,7 @@ class CheckRun {
         var ret = new ArrayList<String>();
 
         var baseHash = prInstance.baseHash();
-        var headHash = pr.getHeadHash();
+        var headHash = pr.headHash();
         var commits = prInstance.localRepo().commits(baseHash + ".." + headHash).asList();
 
         if (!checkCommitAuthor(commits)) {
@@ -123,7 +123,7 @@ class CheckRun {
             ret.add(error);
         }
 
-        if (pr.getTitle().startsWith("Merge")) {
+        if (pr.title().startsWith("Merge")) {
             if (commits.size() < 2) {
                 ret.add("A Merge PR must contain at least two commits that are not already present in the target.");
             } else {
@@ -135,9 +135,9 @@ class CheckRun {
                 var sourceBranch = mergeSourceBranch();
                 if (sourceBranch.isPresent() && sourceRepo.isPresent()) {
                     try {
-                        var mergeSourceRepo = pr.repository().host().getRepository(sourceRepo.get());
+                        var mergeSourceRepo = pr.repository().host().repository(sourceRepo.get());
                         try {
-                            var sourceHash = prInstance.localRepo().fetch(mergeSourceRepo.getUrl(), sourceBranch.get());
+                            var sourceHash = prInstance.localRepo().fetch(mergeSourceRepo.url(), sourceBranch.get());
                             if (!prInstance.localRepo().isAncestor(commits.get(1).hash(), sourceHash)) {
                                 ret.add("The merge contains commits that are not ancestors of the source");
                             }
@@ -222,7 +222,7 @@ class CheckRun {
         }
     }
 
-    private String formatReviewer(HostUserDetails reviewer) {
+    private String formatReviewer(HostUser reviewer) {
         var namespace = censusInstance.namespace();
         var contributor = namespace.get(reviewer.id());
         if (contributor == null) {
@@ -245,7 +245,7 @@ class CheckRun {
                                .filter(review -> review.verdict() == Review.Verdict.APPROVED)
                                .map(review -> {
                                    var entry = " * " + formatReviewer(review.reviewer());
-                                   if (!review.hash().equals(pr.getHeadHash())) {
+                                   if (!review.hash().equals(pr.headHash())) {
                                        entry += " **Note!** Review applies to " + review.hash();
                                    }
                                    return entry;
@@ -263,17 +263,17 @@ class CheckRun {
         progressBody.append("## Progress\n");
         progressBody.append(getChecksList(visitor));
 
-        var issue = Issue.fromString(pr.getTitle());
+        var issue = Issue.fromString(pr.title());
         if (issueProject != null && issue.isPresent()) {
             progressBody.append("\n\n## Issue\n");
-            var iss = issueProject.getIssue(issue.get().id());
+            var iss = issueProject.issue(issue.get().id());
             if (iss.isPresent()) {
                 progressBody.append("[");
-                progressBody.append(iss.get().getId());
+                progressBody.append(iss.get().id());
                 progressBody.append("](");
-                progressBody.append(iss.get().getWebUrl());
+                progressBody.append(iss.get().webUrl());
                 progressBody.append("): ");
-                progressBody.append(iss.get().getTitle());
+                progressBody.append(iss.get().title());
                 progressBody.append("\n");
             } else {
                 progressBody.append("⚠️ Failed to retrieve information on issue `");
@@ -291,7 +291,7 @@ class CheckRun {
     }
 
     private String updateStatusMessage(String message) {
-        var description = pr.getBody();
+        var description = pr.body();
         var markerIndex = description.lastIndexOf(progressMarker);
 
         if (markerIndex >= 0 && description.substring(markerIndex).equals(message)) {
@@ -333,7 +333,7 @@ class CheckRun {
     }
 
     private Optional<Comment> findComment(List<Comment> comments, String marker) {
-        var self = pr.repository().host().getCurrentUserDetails();
+        var self = pr.repository().host().currentUser();
         return comments.stream()
                        .filter(comment -> comment.author().equals(self))
                        .filter(comment -> comment.body().contains(marker))
@@ -343,7 +343,7 @@ class CheckRun {
     private String getMergeReadyComment(String commitMessage, List<Review> reviews, boolean rebasePossible) {
         var message = new StringBuilder();
         message.append("@");
-        message.append(pr.getAuthor().userName());
+        message.append(pr.author().userName());
         message.append(" This change can now be integrated. The commit message will be:\n");
         message.append("```\n");
         message.append(commitMessage);
@@ -364,7 +364,7 @@ class CheckRun {
                 message.append(" commits ");
             }
             message.append("pushed to the `");
-            message.append(pr.getTargetRef());
+            message.append(pr.targetRef());
             message.append("` branch:\n");
             var commitList = divergingCommits.stream()
                     .map(commit -> " * " + commit.hash().hex() + ": " + commit.message().get(0))
@@ -374,19 +374,19 @@ class CheckRun {
             if (rebasePossible) {
                 message.append("Since there are no conflicts, your changes will automatically be rebased on top of the ");
                 message.append("above commits when integrating. If you prefer to do this manually, please merge `");
-                message.append(pr.getTargetRef());
+                message.append(pr.targetRef());
                 message.append("` into your branch first.\n");
             } else {
                 message.append("Your changes cannot be rebased automatically without conflicts, so you will need to ");
                 message.append("merge `");
-                message.append(pr.getTargetRef());
+                message.append(pr.targetRef());
                 message.append("` into your branch before integrating.\n");
             }
         }
 
-        if (!ProjectPermissions.mayCommit(censusInstance, pr.getAuthor())) {
+        if (!ProjectPermissions.mayCommit(censusInstance, pr.author())) {
             message.append("\n");
-            var contributor = censusInstance.namespace().get(pr.getAuthor().id());
+            var contributor = censusInstance.namespace().get(pr.author().id());
             if (contributor == null) {
                 message.append("As you are not a known OpenJDK [Author](http://openjdk.java.net/bylaws#author), ");
             } else {
@@ -424,7 +424,7 @@ class CheckRun {
     private String getMergeNoLongerReadyComment() {
         var message = new StringBuilder();
         message.append("@");
-        message.append(pr.getAuthor().userName());
+        message.append(pr.author().userName());
         message.append(" This change is no longer ready for integration - check the PR body for details.\n");
         message.append(mergeReadyMarker);
         return message.toString();
@@ -445,7 +445,7 @@ class CheckRun {
     }
 
     private void checkStatus() {
-        var checkBuilder = CheckBuilder.create("jcheck", pr.getHeadHash());
+        var checkBuilder = CheckBuilder.create("jcheck", pr.headHash());
         checkBuilder.title("Required");
         var censusDomain = censusInstance.configuration().census().domain();
 
@@ -497,21 +497,21 @@ class CheckRun {
 
             // Ensure that the ready for sponsor label is up to date
             newLabels.remove("sponsor");
-            var readyHash = ReadyForSponsorTracker.latestReadyForSponsor(pr.repository().host().getCurrentUserDetails(), comments);
+            var readyHash = ReadyForSponsorTracker.latestReadyForSponsor(pr.repository().host().currentUser(), comments);
             if (readyHash.isPresent() && readyForIntegration) {
                 var acceptedHash = readyHash.get();
-                if (pr.getHeadHash().equals(acceptedHash)) {
+                if (pr.headHash().equals(acceptedHash)) {
                     newLabels.add("sponsor");
                 }
             }
 
             // Calculate current metadata to avoid unnecessary future checks
-            var metadata = workItem.getMetadata(pr.getTitle(), updatedBody, pr.getComments(), activeReviews, newLabels, censusInstance, pr.getTargetHash());
+            var metadata = workItem.getMetadata(pr.title(), updatedBody, pr.comments(), activeReviews, newLabels, censusInstance, pr.targetHash());
             checkBuilder.metadata(metadata);
         } catch (Exception e) {
             log.throwing("CommitChecker", "checkStatus", e);
             newLabels.remove("ready");
-            var metadata = workItem.getMetadata(pr.getTitle(), pr.getBody(), pr.getComments(), activeReviews, newLabels, censusInstance, pr.getTargetHash());
+            var metadata = workItem.getMetadata(pr.title(), pr.body(), pr.comments(), activeReviews, newLabels, censusInstance, pr.targetHash());
             checkBuilder.metadata(metadata);
             checkBuilder.title("Exception occurred during jcheck");
             checkBuilder.summary(e.getMessage());

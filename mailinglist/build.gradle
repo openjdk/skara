@@ -31,7 +31,7 @@ module {
 }
 
 dependencies {
-    implementation project(':host')
+    implementation project(':network')
     implementation project(':vcs')
     implementation project(':email')
 

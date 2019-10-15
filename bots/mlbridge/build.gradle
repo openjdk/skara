@@ -34,6 +34,7 @@ dependencies {
     implementation project(':bot')
     implementation project(':mailinglist')
     implementation project(':host')
+    implementation project(':network')
     implementation project(':census')
     implementation project(':vcs')
     implementation project(':jcheck')

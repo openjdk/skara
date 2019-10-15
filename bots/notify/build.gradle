@@ -32,6 +32,7 @@ module {
 
 dependencies {
     implementation project(':host')
+    implementation project(':network')
     implementation project(':bot')
     implementation project(':json')
     implementation project(':census')

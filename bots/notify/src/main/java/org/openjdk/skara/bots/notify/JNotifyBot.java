@@ -61,7 +61,7 @@ class JNotifyBot implements Bot, WorkItem {
             return true;
         }
         JNotifyBot otherItem = (JNotifyBot) other;
-        if (!repository.getName().equals(otherItem.repository.getName())) {
+        if (!repository.name().equals(otherItem.repository.name())) {
             return true;
         }
         return false;
@@ -211,12 +211,12 @@ class JNotifyBot implements Bot, WorkItem {
 
     @Override
     public void run(Path scratchPath) {
-        var sanitizedUrl = URLEncoder.encode(repository.getWebUrl().toString() + "v2", StandardCharsets.UTF_8);
+        var sanitizedUrl = URLEncoder.encode(repository.webUrl().toString() + "v2", StandardCharsets.UTF_8);
         var path = storagePath.resolve(sanitizedUrl);
         var historyPath = scratchPath.resolve("notify").resolve("history");
 
         try {
-            var localRepo = fetchAll(path, repository.getUrl());
+            var localRepo = fetchAll(path, repository.url());
             var history = UpdateHistory.create(tagStorageBuilder, historyPath.resolve("tags"), branchStorageBuilder, historyPath.resolve("branches"));
             handleTags(localRepo, history);
 
@@ -242,7 +242,7 @@ class JNotifyBot implements Bot, WorkItem {
 
     @Override
     public String toString() {
-        return "JNotifyBot@" + repository.getName();
+        return "JNotifyBot@" + repository.name();
     }
 
     @Override

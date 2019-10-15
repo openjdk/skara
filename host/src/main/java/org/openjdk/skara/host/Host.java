@@ -26,18 +26,7 @@ import java.net.URI;
 
 public interface Host {
     boolean isValid();
-    HostedRepository getRepository(String name);
-    IssueProject getIssueProject(String name);
-    HostUserDetails getUserDetails(String username);
-    HostUserDetails getCurrentUserDetails();
-    boolean supportsReviewBody();
-    boolean isMemberOf(String groupId, HostUserDetails user);
-
-    static Host from(URI uri, PersonalAccessToken pat) {
-        return HostFactory.createFromURI(uri, pat);
-    }
-
-    static Host from(URI uri) {
-        return HostFactory.createFromURI(uri, null);
-    }
+    HostUser user(String username);
+    HostUser currentUser();
+    boolean isMemberOf(String groupId, HostUser user);
 }

@@ -41,7 +41,7 @@ public class SubmitBot implements Bot {
 
     @Override
     public List<WorkItem> getPeriodicItems() {
-        return repository.getPullRequests().stream()
+        return repository.pullRequests().stream()
                          .filter(updateCache::needsUpdate)
                          .flatMap(pr -> executors.stream()
                                                  .map(executor -> new SubmitBotWorkItem(this, executor, pr)))

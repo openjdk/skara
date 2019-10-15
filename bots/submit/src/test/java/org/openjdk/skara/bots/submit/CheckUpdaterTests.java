@@ -40,13 +40,13 @@ class CheckUpdaterTests {
             var author = credentials.getHostedRepository();
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             var builder = CheckBuilder.create("test", editHash);
@@ -58,7 +58,7 @@ class CheckUpdaterTests {
             updater.run();
 
             // Verify that the check is in progress
-            var checks = pr.getChecks(editHash);
+            var checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             var check = checks.get("test");
             assertEquals(CheckStatus.IN_PROGRESS, check.status());
@@ -68,7 +68,7 @@ class CheckUpdaterTests {
             updater.run();
 
             // Verify that the check still is in progress and has not been updated due to the rate limiter
-            checks = pr.getChecks(editHash);
+            checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             check = checks.get("test");
             assertEquals(CheckStatus.IN_PROGRESS, check.status());
@@ -81,7 +81,7 @@ class CheckUpdaterTests {
             updater.run();
 
             // The summary should now have been updated
-            checks = pr.getChecks(editHash);
+            checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             check = checks.get("test");
             assertEquals(CheckStatus.IN_PROGRESS, check.status());

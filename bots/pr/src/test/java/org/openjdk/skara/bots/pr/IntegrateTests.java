@@ -46,24 +46,24 @@ class IntegrateTests {
             var integrator = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(integrator.host().getCurrentUserDetails().id())
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id());
+                                           .addCommitter(author.host().currentUser().id())
+                                           .addReviewer(integrator.host().currentUser().id())
+                                           .addReviewer(reviewer.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
-            var approvalPr = integrator.getPullRequest(pr.getId());
+            var approvalPr = integrator.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Attempt a merge (the bot should only process the first one)
@@ -73,13 +73,13 @@ class IntegrateTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an ok message
-            var pushed = pr.getComments().stream()
+            var pushed = pr.comments().stream()
                            .filter(comment -> comment.body().contains("Pushed as commit"))
                            .count();
             assertEquals(1, pushed);
 
             // The change should now be present on the master branch
-            var pushedRepo = Repository.materialize(pushedFolder.path(), author.getUrl(), "master");
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
 
             var headHash = pushedRepo.resolve("HEAD").orElseThrow();
@@ -90,10 +90,10 @@ class IntegrateTests {
             assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
             assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
-            assertTrue(pr.getLabels().contains("integrated"));
+            assertTrue(pr.labels().contains("integrated"));
 
             // Ready label should have been removed
-            assertFalse(pr.getLabels().contains("ready"));
+            assertFalse(pr.labels().contains("ready"));
         }
     }
 
@@ -107,25 +107,25 @@ class IntegrateTests {
             var committer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().getCurrentUserDetails().id())
-                                           .addCommitter(committer.host().getCurrentUserDetails().id())
-                                           .addReviewer(integrator.host().getCurrentUserDetails().id());
+                                           .addCommitter(author.host().currentUser().id())
+                                           .addCommitter(committer.host().currentUser().id())
+                                           .addReviewer(integrator.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Review it twice
-            var integratorPr = integrator.getPullRequest(pr.getId());
-            var committerPr = committer.getPullRequest(pr.getId());
+            var integratorPr = integrator.pullRequest(pr.id());
+            var committerPr = committer.pullRequest(pr.id());
             integratorPr.addReview(Review.Verdict.APPROVED, "Approved");
             committerPr.addReview(Review.Verdict.APPROVED, "Approved");
 
@@ -134,13 +134,13 @@ class IntegrateTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an ok message
-            var pushed = pr.getComments().stream()
+            var pushed = pr.comments().stream()
                            .filter(comment -> comment.body().contains("Pushed as commit"))
                            .count();
             assertEquals(1, pushed);
 
             // The change should now be present on the master branch
-            var pushedRepo = Repository.materialize(pushedFolder.path(), author.getUrl(), "master");
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
             var headCommit = pushedRepo.commits("HEAD").asList().get(0);
             assertTrue(String.join("", headCommit.message())
@@ -156,18 +156,18 @@ class IntegrateTests {
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Attempt a merge, do not run the check from the bot
@@ -175,7 +175,7 @@ class IntegrateTests {
             TestBotRunner.runPeriodicItems(mergeBot, item -> item instanceof CheckWorkItem);
 
             // The bot should reply with an error message
-            var error = pr.getComments().stream()
+            var error = pr.comments().stream()
                           .filter(comment -> comment.body().contains("merge request cannot be fulfilled at this time"))
                           .filter(comment -> comment.body().contains("status check"))
                           .filter(comment -> comment.body().contains("has not been performed on commit"))
@@ -191,38 +191,38 @@ class IntegrateTests {
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository - but without any checks enabled
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType(), Path.of("appendable.txt"),
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
                                                      Set.of());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Now enable checks
             localRepo.checkout(masterHash, true);
-            CheckableRepository.init(tempFolder.path(), author.getRepositoryType(), Path.of("appendable.txt"),
+            CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
                                      Set.of("author", "reviewers", "whitespace"));
             var updatedHash = localRepo.resolve("HEAD").orElseThrow();
-            localRepo.push(updatedHash, author.getUrl(), "master", true);
+            localRepo.push(updatedHash, author.url(), "master", true);
 
             // Attempt a merge
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an error message
-            var error = pr.getComments().stream()
+            var error = pr.comments().stream()
                           .filter(comment -> comment.body().contains("merge request cannot be fulfilled at this time"))
                           .filter(comment -> comment.body().contains("failed the final jcheck"))
                           .count();
-            assertEquals(1, error, pr.getComments().stream().map(Comment::body).collect(Collectors.joining("\n---\n")));
+            assertEquals(1, error, pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n---\n")));
         }
     }
 
@@ -233,18 +233,18 @@ class IntegrateTests {
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "trailing whitespace   ");
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Attempt a merge
@@ -252,7 +252,7 @@ class IntegrateTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an error message
-            var error = pr.getComments().stream()
+            var error = pr.comments().stream()
                           .filter(comment -> comment.body().contains("merge request cannot be fulfilled at this time"))
                           .filter(comment -> comment.body().contains("status check"))
                           .filter(comment -> comment.body().contains("did not complete successfully"))
@@ -268,18 +268,18 @@ class IntegrateTests {
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Flag it as checked
@@ -290,14 +290,14 @@ class IntegrateTests {
 
             // Now push another change
             var updatedHash = CheckableRepository.appendAndCommit(localRepo, "Yet another line");
-            localRepo.push(updatedHash, author.getUrl(), "edit", true);
+            localRepo.push(updatedHash, author.url(), "edit", true);
 
             // Attempt a merge - avoid running checks from the bot
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(mergeBot, item -> item instanceof CheckWorkItem);
 
             // The bot should reply with an error message
-            var error = pr.getComments().stream()
+            var error = pr.comments().stream()
                           .filter(comment -> comment.body().contains("merge request cannot be fulfilled at this time"))
                           .filter(comment -> comment.body().contains("status check"))
                           .filter(comment -> comment.body().contains("has not been performed on commit"))
@@ -314,24 +314,24 @@ class IntegrateTests {
             var integrator = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(reviewer.host().getCurrentUserDetails().id())
-                                           .addReviewer(integrator.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id())
+                                           .addReviewer(reviewer.host().currentUser().id())
+                                           .addReviewer(integrator.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
-            var approvalPr = integrator.getPullRequest(pr.getId());
+            var approvalPr = integrator.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Let the bot see it (a few times)
@@ -340,14 +340,14 @@ class IntegrateTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an instructional message (and only one)
-            var pushed = pr.getComments().stream()
+            var pushed = pr.comments().stream()
                            .filter(comment -> comment.body().contains("change can now be integrated"))
                            .filter(comment -> comment.body().contains("Reviewed-by: integrationreviewer3"))
                            .count();
             assertEquals(1, pushed);
 
             // Ensure that the bot doesn't pick up on commands in the instructional message
-            var error = pr.getComments().stream()
+            var error = pr.comments().stream()
                           .filter(comment -> comment.body().contains("Only the author"))
                           .count();
             assertEquals(0, error);
@@ -357,7 +357,7 @@ class IntegrateTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The instructional message should have been updated
-            pushed = pr.getComments().stream()
+            pushed = pr.comments().stream()
                        .filter(comment -> comment.body().contains("no longer ready for integration"))
                        .count();
             assertEquals(1, pushed);
@@ -367,22 +367,22 @@ class IntegrateTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The instructional message should have been updated
-            pushed = pr.getComments().stream()
-                           .filter(comment -> comment.body().contains("change can now be integrated"))
-                           .filter(comment -> comment.body().contains("Reviewed-by: integrationreviewer3"))
-                           .count();
+            pushed = pr.comments().stream()
+                       .filter(comment -> comment.body().contains("change can now be integrated"))
+                       .filter(comment -> comment.body().contains("Reviewed-by: integrationreviewer3"))
+                       .count();
             assertEquals(1, pushed);
 
             // Approve it as yet another user
-            var reviewerPr = reviewer.getPullRequest(pr.getId());
+            var reviewerPr = reviewer.pullRequest(pr.id());
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The instructional message should have been updated
-            pushed = pr.getComments().stream()
-                           .filter(comment -> comment.body().contains("change can now be integrated"))
-                           .filter(comment -> comment.body().contains("Reviewed-by: integrationreviewer3, integrationreviewer2"))
-                           .count();
+            pushed = pr.comments().stream()
+                       .filter(comment -> comment.body().contains("change can now be integrated"))
+                       .filter(comment -> comment.body().contains("Reviewed-by: integrationreviewer3, integrationreviewer2"))
+                       .count();
             assertEquals(1, pushed);
         }
     }
@@ -396,27 +396,27 @@ class IntegrateTests {
             var external = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().getCurrentUserDetails().id());
+                                           .addAuthor(author.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Issue a merge command not as the PR author
-            var externalPr = external.getPullRequest(pr.getId());
+            var externalPr = external.pullRequest(pr.id());
             externalPr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an error message
-            var error = pr.getComments().stream()
+            var error = pr.comments().stream()
                           .filter(comment -> comment.body().contains("Only the author"))
                           .count();
             assertEquals(1, error);
@@ -432,23 +432,23 @@ class IntegrateTests {
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(integrator.host().getCurrentUserDetails().id());
+                                           .addCommitter(author.host().currentUser().id())
+                                           .addReviewer(integrator.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
-            var approvalPr = integrator.getPullRequest(pr.getId());
+            var approvalPr = integrator.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Push something unrelated to master
@@ -457,7 +457,7 @@ class IntegrateTests {
             Files.writeString(unrelated, "Hello");
             localRepo.add(unrelated);
             var unrelatedHash = localRepo.commit("Unrelated", "X", "x@y.z");
-            localRepo.push(unrelatedHash, author.getUrl(), "master");
+            localRepo.push(unrelatedHash, author.url(), "master");
 
             // Attempt a merge (the bot should only process the first one)
             pr.addComment("/integrate");
@@ -466,14 +466,14 @@ class IntegrateTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an ok message
-            var pushed = pr.getComments().stream()
+            var pushed = pr.comments().stream()
                            .filter(comment -> comment.body().contains("Pushed as commit"))
                            .filter(comment -> comment.body().contains("commit was automatically rebased without conflicts"))
                            .count();
             assertEquals(1, pushed);
 
             // The change should now be present on the master branch
-            var pushedRepo = Repository.materialize(pushedFolder.path(), author.getUrl(), "master");
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
             assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
         }
     }
@@ -486,43 +486,43 @@ class IntegrateTests {
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(integrator.host().getCurrentUserDetails().id());
+                                           .addCommitter(author.host().currentUser().id())
+                                           .addReviewer(integrator.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
-            var approvalPr = integrator.getPullRequest(pr.getId());
+            var approvalPr = integrator.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Let the bot check it
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // Pre-push to cause a failure
-            localRepo.push(editHash, author.getUrl(), "master");
+            localRepo.push(editHash, author.url(), "master");
 
             // Attempt a merge (without triggering another check)
             pr.addComment("/integrate");
             assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(mergeBot, wi -> wi instanceof CheckWorkItem));
 
             // Restore the master branch
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // The bot should now retry
             TestBotRunner.runPeriodicItems(mergeBot, wi -> wi instanceof CheckWorkItem);
 
             // The bot should reply with an ok message
-            var pushed = pr.getComments().stream()
+            var pushed = pr.comments().stream()
                            .filter(comment -> comment.body().contains("Pushed as commit"))
                            .count();
             assertEquals(1, pushed);
@@ -537,36 +537,36 @@ class IntegrateTests {
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().getCurrentUserDetails().id())
-                                           .addReviewer(integrator.host().getCurrentUserDetails().id());
+                                           .addCommitter(author.host().currentUser().id())
+                                           .addReviewer(integrator.host().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.getUrl(), "master", true);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.getUrl(), "edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
-            var approvalPr = integrator.getPullRequest(pr.getId());
+            var approvalPr = integrator.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // Push something conflicting to master
             localRepo.checkout(masterHash, true);
             var conflictingHash = CheckableRepository.appendAndCommit(localRepo, "This looks like a conflict");
-            localRepo.push(conflictingHash, author.getUrl(), "master");
+            localRepo.push(conflictingHash, author.url(), "master");
 
             // Attempt an integration
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an error message
-            var error = pr.getComments().stream()
+            var error = pr.comments().stream()
                           .filter(comment -> comment.body().contains("It was not possible to rebase your changes automatically."))
                           .filter(comment -> comment.body().contains("Please merge `master`"))
                           .count();

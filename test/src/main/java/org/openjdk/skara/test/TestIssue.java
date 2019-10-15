@@ -23,7 +23,7 @@
 package org.openjdk.skara.test;
 
 import org.openjdk.skara.host.*;
-import org.openjdk.skara.host.network.URIBuilder;
+import org.openjdk.skara.network.URIBuilder;
 
 import java.net.URI;
 import java.time.ZonedDateTime;
@@ -32,11 +32,11 @@ import java.util.*;
 public class TestIssue implements Issue {
     protected final String id;
     protected final IssueProject issueProject;
-    protected final HostUserDetails author;
-    protected final HostUserDetails user;
+    protected final HostUser author;
+    protected final HostUser user;
     protected final IssueData data;
 
-    protected TestIssue(TestIssueProject issueProject, String id, HostUserDetails author, HostUserDetails user, IssueData data) {
+    protected TestIssue(TestIssueProject issueProject, String id, HostUser author, HostUser user, IssueData data) {
         this.id = id;
         this.issueProject = issueProject;
         this.author = author;;
@@ -48,12 +48,12 @@ public class TestIssue implements Issue {
         var data = new IssueData();
         data.title = title;
         data.body = String.join("\n", body);
-        var issue = new TestIssue(issueProject, id, issueProject.host().getCurrentUserDetails(), issueProject.host().getCurrentUserDetails(), data);
+        var issue = new TestIssue(issueProject, id, issueProject.host().currentUser(), issueProject.host().currentUser(), data);
         return issue;
     }
 
     static TestIssue createFrom(TestIssueProject issueProject, TestIssue other) {
-        var issue = new TestIssue(issueProject, other.id, other.author, issueProject.host().getCurrentUserDetails(), other.data);
+        var issue = new TestIssue(issueProject, other.id, other.author, issueProject.host().currentUser(), other.data);
         return issue;
     }
 
@@ -63,17 +63,17 @@ public class TestIssue implements Issue {
     }
 
     @Override
-    public String getId() {
+    public String id() {
         return id;
     }
 
     @Override
-    public HostUserDetails getAuthor() {
+    public HostUser author() {
         return author;
     }
 
     @Override
-    public String getTitle() {
+    public String title() {
         return data.title;
     }
 
@@ -84,7 +84,7 @@ public class TestIssue implements Issue {
     }
 
     @Override
-    public String getBody() {
+    public String body() {
         return data.body;
     }
 
@@ -95,7 +95,7 @@ public class TestIssue implements Issue {
     }
 
     @Override
-    public List<Comment> getComments() {
+    public List<Comment> comments() {
         return new ArrayList<>(data.comments);
     }
 
@@ -126,12 +126,12 @@ public class TestIssue implements Issue {
     }
 
     @Override
-    public ZonedDateTime getCreated() {
+    public ZonedDateTime createdAt() {
         return data.created;
     }
 
     @Override
-    public ZonedDateTime getUpdated() {
+    public ZonedDateTime updatedAt() {
         return data.lastUpdate;
     }
 
@@ -158,22 +158,22 @@ public class TestIssue implements Issue {
     }
 
     @Override
-    public List<String> getLabels() {
+    public List<String> labels() {
         return new ArrayList<>(data.labels);
     }
 
     @Override
-    public URI getWebUrl() {
-        return URIBuilder.base(issueProject.getWebUrl()).appendPath(id).build();
+    public URI webUrl() {
+        return URIBuilder.base(issueProject.webUrl()).appendPath(id).build();
     }
 
     @Override
-    public List<HostUserDetails> getAssignees() {
+    public List<HostUser> assignees() {
         throw new RuntimeException("not implemented yet");
     }
 
     @Override
-    public void setAssignees(List<HostUserDetails> assignees) {
+    public void setAssignees(List<HostUser> assignees) {
         throw new RuntimeException("not implemented yet");
     }
 }

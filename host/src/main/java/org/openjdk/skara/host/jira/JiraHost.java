@@ -23,12 +23,12 @@
 package org.openjdk.skara.host.jira;
 
 import org.openjdk.skara.host.*;
-import org.openjdk.skara.host.network.*;
+import org.openjdk.skara.network.*;
 import org.openjdk.skara.json.JSON;
 
 import java.net.URI;
 
-public class JiraHost implements Host {
+public class JiraHost implements IssueHost {
     private final URI uri;
     private final RestRequest request;
 
@@ -54,32 +54,22 @@ public class JiraHost implements Host {
     }
 
     @Override
-    public HostedRepository getRepository(String name) {
-        throw new RuntimeException("Jira does not support repositories");
-    }
-
-    @Override
-    public IssueProject getIssueProject(String name) {
+    public IssueProject project(String name) {
         return new JiraProject(this, request, name);
     }
 
     @Override
-    public HostUserDetails getUserDetails(String username) {
+    public HostUser user(String username) {
         throw new RuntimeException("needs authentication; not implemented yet");
     }
 
     @Override
-    public HostUserDetails getCurrentUserDetails() {
+    public HostUser currentUser() {
         throw new RuntimeException("needs authentication; not implemented yet");
     }
 
     @Override
-    public boolean supportsReviewBody() {
-        return false;
-    }
-
-    @Override
-    public boolean isMemberOf(String groupId, HostUserDetails user) {
+    public boolean isMemberOf(String groupId, HostUser user) {
         throw new RuntimeException("not implemented yet");
     }
 }

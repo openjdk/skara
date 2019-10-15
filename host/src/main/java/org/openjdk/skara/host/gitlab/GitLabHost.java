@@ -23,14 +23,14 @@
 package org.openjdk.skara.host.gitlab;
 
 import org.openjdk.skara.host.*;
-import org.openjdk.skara.host.network.*;
+import org.openjdk.skara.network.*;
 import org.openjdk.skara.json.*;
 
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-public class GitLabHost implements Host {
+public class GitLabHost implements RepositoryHost {
     private final URI uri;
     private final PersonalAccessToken pat;
     private final RestRequest request;
@@ -88,24 +88,19 @@ public class GitLabHost implements Host {
     }
 
     @Override
-    public HostedRepository getRepository(String name) {
+    public HostedRepository repository(String name) {
         return new GitLabRepository(this, name);
     }
 
-    @Override
-    public IssueProject getIssueProject(String name) {
-        throw new RuntimeException("not implemented yet");
-    }
-
-    private HostUserDetails parseUserDetails(JSONObject details) {
+    private HostUser parseUserDetails(JSONObject details) {
         var id = details.get("id").asInt();
         var username = details.get("username").asString();
         var name = details.get("name").asString();
-        return new HostUserDetails(id, username, name);
+        return new HostUser(id, username, name);
     }
 
     @Override
-    public HostUserDetails getUserDetails(String username) {
+    public HostUser user(String username) {
         var details = request.get("users").param("username", username).execute().asArray();
         if (details.size() != 1) {
             throw new RuntimeException("Couldn't find user: " + username);
@@ -115,7 +110,7 @@ public class GitLabHost implements Host {
     }
 
     @Override
-    public HostUserDetails getCurrentUserDetails() {
+    public HostUser currentUser() {
         var details = request.get("user").execute().asObject();
         return parseUserDetails(details);
     }
@@ -144,7 +139,7 @@ public class GitLabHost implements Host {
     }
 
     @Override
-    public boolean isMemberOf(String groupId, HostUserDetails user) {
+    public boolean isMemberOf(String groupId, HostUser user) {
         long gid = 0L;
         try {
             gid = Long.parseLong(groupId);

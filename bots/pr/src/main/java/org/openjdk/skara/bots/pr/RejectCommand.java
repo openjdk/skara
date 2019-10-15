@@ -31,7 +31,7 @@ import java.util.List;
 public class RejectCommand implements CommandHandler {
     @Override
     public void handle(PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
-        if (pr.getAuthor().equals(comment.author())) {
+        if (pr.author().equals(comment.author())) {
             reply.println("You can't reject your own changes.");
             return;
         }
@@ -40,7 +40,7 @@ public class RejectCommand implements CommandHandler {
             return;
         }
 
-        var botUser = pr.repository().host().getCurrentUserDetails();
+        var botUser = pr.repository().host().currentUser();
         var vetoers = Veto.vetoers(botUser, allComments);
 
         if (vetoers.contains(comment.author().id())) {
@@ -49,7 +49,7 @@ public class RejectCommand implements CommandHandler {
         }
 
         // Notify the author as well
-        reply.print("@" + pr.getAuthor().userName() + " ");
+        reply.print("@" + pr.author().userName() + " ");
 
         reply.println("This change cannot be integrated while the rejection is in place. To lift the rejection, ");
         reply.println("issue an allow command: `/allow`");

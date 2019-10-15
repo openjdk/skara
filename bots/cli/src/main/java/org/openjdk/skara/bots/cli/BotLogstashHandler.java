@@ -23,7 +23,7 @@
 package org.openjdk.skara.bots.cli;
 
 import org.openjdk.skara.bot.BotTaskAggregationHandler;
-import org.openjdk.skara.host.network.RestRequest;
+import org.openjdk.skara.network.RestRequest;
 import org.openjdk.skara.json.JSON;
 
 import java.io.*;
