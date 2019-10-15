@@ -166,8 +166,9 @@ class PullRequestInstance {
                 return Optional.of(hash);
             } catch (IOException e) {
                 reply.println();
-                reply.print("It was not possible to rebase your changes automatically. ");
-                reply.println("Please rebase your branch manually and try again.");
+                reply.print("It was not possible to rebase your changes automatically. Please merge `");
+                reply.print(pr.getTargetRef());
+                reply.println("` into your branch and try again.");
                 try {
                     localRepo.checkout(commitHash, true);
                 } catch (IOException e2) {
