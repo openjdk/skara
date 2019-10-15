@@ -73,10 +73,11 @@ class MailingListArchiveReaderBotTests {
                                                  URIBuilder.base("http://www.test.test/").build(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of());
+                                                 Map.of(), Duration.ZERO);
 
             // The mailing list as well
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP());
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(),
+                                                                             Duration.ZERO);
             var mailmanList = mailmanServer.getList(listAddress.address());
             var readerBot = new MailingListArchiveReaderBot(from, Set.of(mailmanList), Set.of(archive));
 
@@ -138,10 +139,11 @@ class MailingListArchiveReaderBotTests {
                                                  URIBuilder.base("http://www.test.test/").build(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of());
+                                                 Map.of(), Duration.ZERO);
 
             // The mailing list as well
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP());
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(),
+                                                                             Duration.ZERO);
             var mailmanList = mailmanServer.getList(listAddress.address());
             var readerBot = new MailingListArchiveReaderBot(from, Set.of(mailmanList), Set.of(archive));
 

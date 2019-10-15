@@ -28,6 +28,7 @@ import org.openjdk.skara.host.*;
 
 import java.net.URI;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -48,13 +49,15 @@ public class MailingListBridgeBot implements Bot {
     private final Map<String, String> headers;
     private final URI issueTracker;
     private final PullRequestUpdateCache updateCache;
+    private final Duration sendInterval;
 
     MailingListBridgeBot(EmailAddress from, HostedRepository repo, HostedRepository archive,
                          HostedRepository censusRepo, String censusRef, EmailAddress list,
                          Set<String> ignoredUsers, Set<Pattern> ignoredComments, URI listArchive, String smtpServer,
                          HostedRepository webrevStorageRepository, String webrevStorageRef,
                          Path webrevStorageBase, URI webrevStorageBaseUri, Set<String> readyLabels,
-                         Map<String, Pattern> readyComments, URI issueTracker, Map<String, String> headers) {
+                         Map<String, Pattern> readyComments, URI issueTracker, Map<String, String> headers,
+                         Duration sendInterval) {
         emailAddress = from;
         codeRepo = repo;
         archiveRepo = archive;
@@ -69,6 +72,7 @@ public class MailingListBridgeBot implements Bot {
         this.readyComments = readyComments;
         this.headers = headers;
         this.issueTracker = issueTracker;
+        this.sendInterval = sendInterval;
 
         this.webrevStorage = new WebrevStorage(webrevStorageRepository, webrevStorageRef, webrevStorageBase,
                                                webrevStorageBaseUri, from);
@@ -97,6 +101,10 @@ public class MailingListBridgeBot implements Bot {
 
     EmailAddress listAddress() {
         return listAddress;
+    }
+
+    Duration sendInterval() {
+        return sendInterval;
     }
 
     Set<String> ignoredUsers() {

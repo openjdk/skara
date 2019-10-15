@@ -121,7 +121,8 @@ class MailingListBridgeBotTests {
                                                  Set.of("rfr"), Map.of(ignored.host().getCurrentUserDetails().userName(),
                                                                        Pattern.compile("ready")),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of("Extra1", "val1", "Extra2", "val2"));
+                                                 Map.of("Extra1", "val1", "Extra2", "val2"),
+                                                 Duration.ZERO);
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
@@ -188,7 +189,7 @@ class MailingListBridgeBotTests {
 
             // The mailing list as well
             listServer.processIncoming();
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP());
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getList(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
@@ -276,7 +277,7 @@ class MailingListBridgeBotTests {
                                                  URIBuilder.base("http://www.test.test/").build(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of());
+                                                 Map.of(), Duration.ZERO);
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -315,7 +316,7 @@ class MailingListBridgeBotTests {
             assertFalse(archiveContains(archiveFolder.path(), "Don't mind me"));
 
             // The mailing list as well
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP());
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getList(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
@@ -364,7 +365,7 @@ class MailingListBridgeBotTests {
                                                  URIBuilder.base("http://www.test.test/").build(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of());
+                                                 Map.of(), Duration.ZERO);
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -397,7 +398,7 @@ class MailingListBridgeBotTests {
             assertEquals(2, archiveContainsCount(archiveFolder.path(), "^On.*wrote:"));
 
             // As well as the mailing list
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP());
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getList(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
@@ -452,7 +453,7 @@ class MailingListBridgeBotTests {
                                                  URIBuilder.base("http://www.test.test/").build(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of());
+                                                 Map.of(), Duration.ZERO);
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -506,7 +507,7 @@ class MailingListBridgeBotTests {
             assertTrue(archiveText.indexOf("Looks fine") > archiveText.indexOf("You are welcome"));
 
             // Check the mailing list
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP());
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getList(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
@@ -569,7 +570,7 @@ class MailingListBridgeBotTests {
                                                  URIBuilder.base("http://www.test.test/").build(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of());
+                                                 Map.of(), Duration.ZERO);
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -620,7 +621,7 @@ class MailingListBridgeBotTests {
                                                  URIBuilder.base("http://www.test.test/").build(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of());
+                                                 Map.of(), Duration.ZERO);
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -689,7 +690,7 @@ class MailingListBridgeBotTests {
                                                  URIBuilder.base("http://www.test.test/").build(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of());
+                                                 Map.of(), Duration.ZERO);
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -748,7 +749,7 @@ class MailingListBridgeBotTests {
                                                  URIBuilder.base("http://www.test.test/").build(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of());
+                                                 Map.of(), Duration.ZERO);
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -806,7 +807,7 @@ class MailingListBridgeBotTests {
             assertEquals(1, webrevComments.size());
 
             // Check that sender address is set properly
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP());
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getList(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
@@ -869,7 +870,7 @@ class MailingListBridgeBotTests {
                                                  URIBuilder.base("http://www.test.test/").build(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of());
+                                                 Map.of(), Duration.ZERO);
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -926,7 +927,7 @@ class MailingListBridgeBotTests {
             assertEquals(1, webrevComments.size());
 
             // Check that sender address is set properly
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP());
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
             var mailmanList = mailmanServer.getList(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
@@ -962,7 +963,7 @@ class MailingListBridgeBotTests {
                                                  URIBuilder.base("http://www.test.test/").build(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of());
+                                                 Map.of(), Duration.ZERO);
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.getRepositoryType());
@@ -1035,7 +1036,7 @@ class MailingListBridgeBotTests {
                                                  URIBuilder.base("http://www.test.test/").build(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of());
+                                                 Map.of(), Duration.ZERO);
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -1119,7 +1120,7 @@ class MailingListBridgeBotTests {
                                                  URIBuilder.base("http://www.test.test/").build(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of());
+                                                 Map.of(), Duration.ZERO);
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");

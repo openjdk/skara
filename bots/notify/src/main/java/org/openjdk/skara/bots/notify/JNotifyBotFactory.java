@@ -31,6 +31,7 @@ import org.openjdk.skara.storage.StorageBuilder;
 import org.openjdk.skara.vcs.Tag;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -79,7 +80,8 @@ public class JNotifyBotFactory implements BotFactory {
                 var smtp = email.get("smtp").asString();
                 var sender = EmailAddress.parse(email.get("sender").asString());
                 var archive = URIBuilder.base(email.get("archive").asString()).build();
-                var listServer = MailingListServerFactory.createMailmanServer(archive, smtp);
+                var interval = email.contains("interval") ? Duration.parse(email.get("interval").asString()) : Duration.ofSeconds(1);
+                var listServer = MailingListServerFactory.createMailmanServer(archive, smtp, interval);
 
                 for (var mailinglist : repo.value().get("mailinglists").asArray()) {
                     var recipient = mailinglist.get("recipient").asString();

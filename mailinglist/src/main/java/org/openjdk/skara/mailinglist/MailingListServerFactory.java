@@ -27,11 +27,12 @@ import org.openjdk.skara.mailinglist.mboxfile.MboxFileListServer;
 
 import java.net.URI;
 import java.nio.file.Path;
+import java.time.Duration;
 
 public class MailingListServerFactory {
 
-    public static MailingListServer createMailmanServer(URI archive, String smtp) {
-        return new MailmanServer(archive, smtp);
+    public static MailingListServer createMailmanServer(URI archive, String smtp, Duration sendInterval) {
+        return new MailmanServer(archive, smtp, sendInterval);
     }
     public static MailingListServer createMboxFileServer(Path file) {
         return new MboxFileListServer(file);
