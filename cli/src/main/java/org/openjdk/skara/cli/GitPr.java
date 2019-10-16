@@ -23,20 +23,21 @@
 package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
-import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.vcs.openjdk.*;
 import org.openjdk.skara.proxy.HttpProxy;
+import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import java.nio.charset.StandardCharsets;
 
 public class GitPr {
     private static void exit(String fmt, Object...args) {
@@ -100,7 +101,7 @@ public class GitPr {
     }
 
     private static HostedRepository getHostedRepositoryFor(URI uri, GitCredentials credentials) throws IOException {
-        var host = RepositoryHost.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
+        var host = Forge.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
         if (System.getenv("GIT_TOKEN") == null) {
             GitCredentials.approve(credentials);
         }
@@ -308,7 +309,7 @@ public class GitPr {
         var token = isMercurial ? System.getenv("HG_TOKEN") :  System.getenv("GIT_TOKEN");
         var uri = Remote.toWebURI(remotePullPath);
         var credentials = GitCredentials.fill(uri.getHost(), uri.getPath(), username, token, uri.getScheme());
-        var host = RepositoryHost.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
+        var host = Forge.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
 
         var action = arguments.at(0).asString();
         if (action.equals("create")) {

@@ -22,7 +22,8 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.forge.Review;
+import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.process.Process;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.*;
@@ -47,8 +48,8 @@ class MergeTests {
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().currentUser().id())
-                                           .addReviewer(integrator.host().currentUser().id());
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
@@ -129,8 +130,8 @@ class MergeTests {
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().currentUser().id())
-                                           .addReviewer(integrator.host().currentUser().id());
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
@@ -221,8 +222,8 @@ class MergeTests {
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().currentUser().id())
-                                           .addReviewer(integrator.host().currentUser().id());
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
@@ -276,8 +277,8 @@ class MergeTests {
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().currentUser().id())
-                                           .addReviewer(integrator.host().currentUser().id());
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
@@ -334,8 +335,8 @@ class MergeTests {
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().currentUser().id())
-                                           .addReviewer(integrator.host().currentUser().id());
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
@@ -392,8 +393,8 @@ class MergeTests {
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().currentUser().id())
-                                           .addReviewer(integrator.host().currentUser().id());
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
@@ -455,8 +456,8 @@ class MergeTests {
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id())
-                                           .addReviewer(integrator.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
@@ -513,8 +514,8 @@ class MergeTests {
 
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().currentUser().id())
-                                           .addReviewer(integrator.host().currentUser().id());
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository

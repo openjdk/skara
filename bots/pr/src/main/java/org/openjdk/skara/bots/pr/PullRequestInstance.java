@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.census.*;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.jcheck.JCheck;
 import org.openjdk.skara.vcs.*;
@@ -76,12 +77,12 @@ class PullRequestInstance {
                           .collect(Collectors.toList());
 
         var comments = pr.comments();
-        var additionalContributors = Contributors.contributors(pr.repository().host().currentUser(),
+        var additionalContributors = Contributors.contributors(pr.repository().forge().currentUser(),
                                                                comments).stream()
                                                  .map(email -> Author.fromString(email.toString()))
                                                  .collect(Collectors.toList());
 
-        var summary = Summary.summary(pr.repository().host().currentUser(), comments);
+        var summary = Summary.summary(pr.repository().forge().currentUser(), comments);
         var issue = Issue.fromString(pr.title());
         var commitMessageBuilder = issue.map(CommitMessage::title).orElseGet(() -> CommitMessage.title(isMerge ? "Merge" : pr.title()));
         commitMessageBuilder.contributors(additionalContributors)

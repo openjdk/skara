@@ -22,7 +22,8 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.forge.*;
+import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.*;
 import java.nio.file.Path;
@@ -54,7 +55,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
         static private Map<String, String> external = null;
 
         @Override
-        public void handle(PullRequest pr, CensusInstance censusInstance, Path scratchPath,  String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
+        public void handle(PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
             reply.println("Available commands:");
             Stream.concat(
                     commandHandlers.entrySet().stream()
@@ -82,7 +83,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
     }
 
     private List<AbstractMap.SimpleEntry<String, Comment>> findCommandComments(List<Comment> comments) {
-        var self = pr.repository().host().currentUser();
+        var self = pr.repository().forge().currentUser();
         var handled = comments.stream()
                               .filter(comment -> comment.author().equals(self))
                               .map(comment -> commandReplyPattern.matcher(comment.body()))

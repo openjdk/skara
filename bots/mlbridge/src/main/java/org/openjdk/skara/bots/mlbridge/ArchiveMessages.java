@@ -1,7 +1,7 @@
 package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.email.Email;
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.forge.Review;
 import org.openjdk.skara.vcs.*;
 
 import java.net.URI;

@@ -23,7 +23,7 @@
 package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.email.*;
-import org.openjdk.skara.host.PullRequest;
+import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.mailinglist.*;
 import org.openjdk.skara.test.*;
@@ -62,11 +62,11 @@ class MailingListArchiveReaderBotTests {
             var ignored = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
             var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
                                                  listAddress,
-                                                 Set.of(ignored.host().currentUser().userName()),
+                                                 Set.of(ignored.forge().currentUser().userName()),
                                                  Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
@@ -128,11 +128,11 @@ class MailingListArchiveReaderBotTests {
             var ignored = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
             var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
                                                  listAddress,
-                                                 Set.of(ignored.host().currentUser().userName()),
+                                                 Set.of(ignored.forge().currentUser().userName()),
                                                  Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),

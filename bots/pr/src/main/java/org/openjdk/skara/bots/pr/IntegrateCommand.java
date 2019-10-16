@@ -22,7 +22,8 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.forge.*;
+import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.*;
 import java.net.URLEncoder;

@@ -22,7 +22,8 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
@@ -36,7 +37,7 @@ public class SummaryCommand implements CommandHandler {
             return;
         }
 
-        var currentSummary = Summary.summary(pr.repository().host().currentUser(), allComments);
+        var currentSummary = Summary.summary(pr.repository().forge().currentUser(), allComments);
 
         if (args.isBlank()) {
             if (currentSummary.isPresent()) {

@@ -23,6 +23,7 @@
 package org.openjdk.skara.test;
 
 import org.openjdk.skara.host.*;
+import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.network.URIBuilder;
 
 import java.net.URI;
@@ -48,12 +49,12 @@ public class TestIssue implements Issue {
         var data = new IssueData();
         data.title = title;
         data.body = String.join("\n", body);
-        var issue = new TestIssue(issueProject, id, issueProject.host().currentUser(), issueProject.host().currentUser(), data);
+        var issue = new TestIssue(issueProject, id, issueProject.issueTracker().currentUser(), issueProject.issueTracker().currentUser(), data);
         return issue;
     }
 
     static TestIssue createFrom(TestIssueProject issueProject, TestIssue other) {
-        var issue = new TestIssue(issueProject, other.id, other.author, issueProject.host().currentUser(), other.data);
+        var issue = new TestIssue(issueProject, other.id, other.author, issueProject.issueTracker().currentUser(), other.data);
         return issue;
     }
 

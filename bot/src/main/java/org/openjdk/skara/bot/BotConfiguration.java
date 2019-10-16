@@ -22,7 +22,8 @@
  */
 package org.openjdk.skara.bot;
 
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.forge.HostedRepository;
+import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.json.JSONObject;
 
 import java.nio.file.Path;

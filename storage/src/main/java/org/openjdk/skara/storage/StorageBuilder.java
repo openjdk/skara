@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.storage;
 
-import org.openjdk.skara.host.HostedRepository;
+import org.openjdk.skara.forge.HostedRepository;
 
 import java.nio.file.Path;
 

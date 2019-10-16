@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.bots.mlbridge;
 
-import org.openjdk.skara.host.PullRequest;
+import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;

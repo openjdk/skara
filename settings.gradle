@@ -41,6 +41,8 @@ include 'test'
 include 'vcs'
 include 'webrev'
 include 'network'
+include 'forge'
+include 'issuetracker'
 
 include 'bots:cli'
 include 'bots:forward'

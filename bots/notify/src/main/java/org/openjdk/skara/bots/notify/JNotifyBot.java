@@ -23,7 +23,7 @@
 package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.bot.*;
-import org.openjdk.skara.host.HostedRepository;
+import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.storage.StorageBuilder;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.OpenJDKTag;

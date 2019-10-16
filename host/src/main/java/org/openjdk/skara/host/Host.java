@@ -22,8 +22,6 @@
  */
 package org.openjdk.skara.host;
 
-import java.net.URI;
-
 public interface Host {
     boolean isValid();
     HostUser user(String username);

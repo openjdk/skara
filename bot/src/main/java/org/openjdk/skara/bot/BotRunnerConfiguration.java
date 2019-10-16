@@ -22,7 +22,9 @@
  */
 package org.openjdk.skara.bot;
 
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
+import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.json.JSONObject;
 import org.openjdk.skara.vcs.VCS;
@@ -38,8 +40,8 @@ import java.util.regex.Pattern;
 public class BotRunnerConfiguration {
     private final Logger log;
     private final JSONObject config;
-    private final Map<String, RepositoryHost> repositoryHosts;
-    private final Map<String, IssueHost> issueHosts;
+    private final Map<String, Forge> repositoryHosts;
+    private final Map<String, IssueTracker> issueHosts;
     private final Map<String, HostedRepository> repositories;
 
     private BotRunnerConfiguration(JSONObject config, Path cwd) throws ConfigurationError {
@@ -51,8 +53,8 @@ public class BotRunnerConfiguration {
         repositories = parseRepositories(config);
     }
 
-    private Map<String, RepositoryHost> parseRepositoryHosts(JSONObject config, Path cwd) throws ConfigurationError {
-        Map<String, RepositoryHost> ret = new HashMap<>();
+    private Map<String, Forge> parseRepositoryHosts(JSONObject config, Path cwd) throws ConfigurationError {
+        Map<String, Forge> ret = new HashMap<>();
 
         if (!config.contains("hosts")) {
             return ret;
@@ -63,7 +65,7 @@ public class BotRunnerConfiguration {
                 var gitlab = entry.value().get("gitlab");
                 var uri = URIBuilder.base(gitlab.get("url").asString()).build();
                 var pat = new PersonalAccessToken(gitlab.get("username").asString(), gitlab.get("pat").asString());
-                ret.put(entry.name(), HostFactory.createGitLabHost(uri, pat));
+                ret.put(entry.name(), ForgeFactory.createGitLabHost(uri, pat));
             } else if (entry.value().contains("github")) {
                 var github = entry.value().get("github");
                 URI uri;
@@ -81,12 +83,12 @@ public class BotRunnerConfiguration {
 
                 if (github.contains("app")) {
                     var keyFile = cwd.resolve(github.get("app").get("key").asString());
-                    ret.put(entry.name(), HostFactory.createGitHubHost(uri, webUriPattern, webUriReplacement, keyFile.toString(),
+                    ret.put(entry.name(), ForgeFactory.createGitHubHost(uri, webUriPattern, webUriReplacement, keyFile.toString(),
                                                                        github.get("app").get("id").asString(),
                                                                        github.get("app").get("installation").asString()));
                 } else {
                     var pat = new PersonalAccessToken(github.get("username").asString(), github.get("pat").asString());
-                    ret.put(entry.name(), HostFactory.createGitHubHost(uri, pat));
+                    ret.put(entry.name(), ForgeFactory.createGitHubHost(uri, pat));
                 }
             } else {
                 throw new ConfigurationError("Host " + entry.name());
@@ -96,8 +98,8 @@ public class BotRunnerConfiguration {
         return ret;
     }
 
-    private Map<String, IssueHost> parseIssueHosts(JSONObject config, Path cwd) throws ConfigurationError {
-        Map<String, IssueHost> ret = new HashMap<>();
+    private Map<String, IssueTracker> parseIssueHosts(JSONObject config, Path cwd) throws ConfigurationError {
+        Map<String, IssueTracker> ret = new HashMap<>();
 
         if (!config.contains("hosts")) {
             return ret;
@@ -107,7 +109,7 @@ public class BotRunnerConfiguration {
             if (entry.value().contains("jira")) {
                 var jira = entry.value().get("jira");
                 var uri = URIBuilder.base(jira.get("url").asString()).build();
-                ret.put(entry.name(), HostFactory.createJiraHost(uri, null));
+                ret.put(entry.name(), IssueTrackerFactory.createJiraHost(uri, null));
             } else {
                 throw new ConfigurationError("Host " + entry.name());
             }

@@ -23,6 +23,7 @@
 module org.openjdk.skara.storage {
     requires org.openjdk.skara.network;
     requires org.openjdk.skara.host;
+    requires org.openjdk.skara.forge;
     requires org.openjdk.skara.vcs;
 
     exports org.openjdk.skara.storage;

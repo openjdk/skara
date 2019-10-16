@@ -23,7 +23,7 @@
 package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.email.*;
-import org.openjdk.skara.host.HostedRepository;
+import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
 import org.openjdk.skara.storage.StorageBuilder;

@@ -34,6 +34,8 @@ dependencies {
     implementation project(':bot')
     implementation project(':vcs')
     implementation project(':host')
+    implementation project(':forge')
+    implementation project(':issuetracker')
     implementation project(':census')
     implementation project(':process')
     implementation project(':json')

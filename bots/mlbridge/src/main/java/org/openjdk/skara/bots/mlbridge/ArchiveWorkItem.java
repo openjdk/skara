@@ -24,7 +24,9 @@ package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.email.*;
+import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.host.*;
+import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.mailinglist.*;
 import org.openjdk.skara.vcs.Repository;
 
@@ -119,7 +121,7 @@ class ArchiveWorkItem implements WorkItem {
     private final static Pattern commandPattern = Pattern.compile("^/.*$");
 
     private boolean ignoreComment(HostUser author, String body) {
-        if (pr.repository().host().currentUser().equals(author)) {
+        if (pr.repository().forge().currentUser().equals(author)) {
             return true;
         }
         if (bot.ignoredUsers().contains(author.userName())) {
@@ -144,7 +146,7 @@ class ArchiveWorkItem implements WorkItem {
 
     private void updateWebrevComment(List<Comment> comments, int index, URI fullWebrev, URI incWebrev) {
         var existing = comments.stream()
-                               .filter(comment -> comment.author().equals(pr.repository().host().currentUser()))
+                               .filter(comment -> comment.author().equals(pr.repository().forge().currentUser()))
                                .filter(comment -> comment.body().contains(webrevCommentMarker))
                                .findAny();
         var comment = webrevCommentMarker + "\n";

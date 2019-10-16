@@ -30,6 +30,8 @@ module org.openjdk.skara.test {
     requires org.openjdk.skara.json;
     requires org.openjdk.skara.host;
     requires org.openjdk.skara.network;
+    requires org.openjdk.skara.issuetracker;
+    requires org.openjdk.skara.forge;
     requires org.openjdk.skara.email;
     requires org.openjdk.skara.mailinglist;
     requires org.openjdk.skara.proxy;

@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.test;
 
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.network.URIBuilder;
 
 import java.net.URI;
@@ -37,7 +37,7 @@ public class TestIssueProject implements IssueProject {
     }
 
     @Override
-    public Host host() {
+    public IssueTracker issueTracker() {
         return host;
     }
 

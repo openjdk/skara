@@ -32,6 +32,8 @@ module {
 dependencies {
     implementation project(':host')
     implementation project(':network')
+    implementation project(':issuetracker')
+    implementation project(':forge')
     implementation project(':vcs')
     implementation project(':json')
     implementation project(':census')

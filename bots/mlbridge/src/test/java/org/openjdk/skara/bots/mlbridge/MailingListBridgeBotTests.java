@@ -23,7 +23,7 @@
 package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.email.EmailAddress;
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
 import org.openjdk.skara.test.*;
@@ -93,8 +93,8 @@ class MailingListBridgeBotTests {
     }
 
     private String noreplyAddress(HostedRepository repository) {
-        return "test+" + repository.host().currentUser().id() + "+" +
-                repository.host().currentUser().userName() +
+        return "test+" + repository.forge().currentUser().id() + "+" +
+                repository.forge().currentUser().userName() +
                 "@openjdk.java.net";
     }
 
@@ -110,15 +110,15 @@ class MailingListBridgeBotTests {
             var ignored = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
             var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master", listAddress,
-                                                 Set.of(ignored.host().currentUser().userName()),
+                                                 Set.of(ignored.forge().currentUser().userName()),
                                                  Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
                                                  URIBuilder.base("http://www.test.test/").build(),
-                                                 Set.of("rfr"), Map.of(ignored.host().currentUser().userName(),
+                                                 Set.of("rfr"), Map.of(ignored.forge().currentUser().userName(),
                                                                        Pattern.compile("ready")),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
                                                  Map.of("Extra1", "val1", "Extra2", "val2"),
@@ -206,7 +206,7 @@ class MailingListBridgeBotTests {
             assertTrue(webrevContains(webrevFolder.path(), "1 lines changed"));
             var comments = pr.comments();
             var webrevComments = comments.stream()
-                                         .filter(comment -> comment.author().equals(author.host().currentUser()))
+                                         .filter(comment -> comment.author().equals(author.forge().currentUser()))
                                          .filter(comment -> comment.body().contains("webrev"))
                                          .filter(comment -> comment.body().contains(editHash.hex()))
                                          .collect(Collectors.toList());
@@ -267,10 +267,10 @@ class MailingListBridgeBotTests {
             var ignored = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
             var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master", listAddress,
-                                                 Set.of(ignored.host().currentUser().userName()),
+                                                 Set.of(ignored.forge().currentUser().userName()),
                                                  Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
@@ -355,7 +355,7 @@ class MailingListBridgeBotTests {
             var archive = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
             var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
                                                  listAddress, Set.of(), Set.of(),
@@ -442,8 +442,8 @@ class MailingListBridgeBotTests {
             var archive = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addReviewer(reviewer.host().currentUser().id())
-                                           .addAuthor(author.host().currentUser().id());
+                                           .addReviewer(reviewer.forge().currentUser().id())
+                                           .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
             var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
                                                  listAddress, Set.of(), Set.of(),
@@ -525,7 +525,7 @@ class MailingListBridgeBotTests {
             var thread1reply1 = conversations.get(0).replies(thread1).get(0);
             assertTrue(thread1reply1.body().contains("I agree"));
             assertEquals(noreplyAddress(archive), thread1reply1.author().address());
-            assertEquals(archive.host().currentUser().fullName(), thread1reply1.author().fullName().orElseThrow());
+            assertEquals(archive.forge().currentUser().fullName(), thread1reply1.author().fullName().orElseThrow());
             var thread1reply2 = conversations.get(0).replies(thread1reply1).get(0);
             assertTrue(thread1reply2.body().contains("Great"));
             assertEquals("integrationreviewer1@openjdk.java.net", thread1reply2.author().address());
@@ -560,7 +560,7 @@ class MailingListBridgeBotTests {
             var archive = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
             var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
                                                  listAddress, Set.of(), Set.of(),
@@ -611,7 +611,7 @@ class MailingListBridgeBotTests {
             var archive = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
             var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
                                                  listAddress, Set.of(), Set.of(),
@@ -681,7 +681,7 @@ class MailingListBridgeBotTests {
             var archive = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
             var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
                                                  listAddress, Set.of(), Set.of(),
@@ -740,7 +740,7 @@ class MailingListBridgeBotTests {
             var commenter = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
             var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
                                                  listAddress, Set.of(), Set.of(),
@@ -799,7 +799,7 @@ class MailingListBridgeBotTests {
             // The webrev comment should be updated
             var comments = pr.comments();
             var webrevComments = comments.stream()
-                                         .filter(comment -> comment.author().equals(author.host().currentUser()))
+                                         .filter(comment -> comment.author().equals(author.forge().currentUser()))
                                          .filter(comment -> comment.body().contains("webrev"))
                                          .filter(comment -> comment.body().contains(nextHash.hex()))
                                          .filter(comment -> comment.body().contains(editHash.hex()))
@@ -861,7 +861,7 @@ class MailingListBridgeBotTests {
             var archive = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id());
             var sender = EmailAddress.from("test", "test@test.mail");
             var mlBot = new MailingListBridgeBot(sender, author, archive, censusBuilder.build(), "master",
                                                  listAddress, Set.of(), Set.of(),
@@ -920,7 +920,7 @@ class MailingListBridgeBotTests {
             // The webrev comment should be updated
             var comments = pr.comments();
             var webrevComments = comments.stream()
-                                         .filter(comment -> comment.author().equals(author.host().currentUser()))
+                                         .filter(comment -> comment.author().equals(author.forge().currentUser()))
                                          .filter(comment -> comment.body().contains("webrev"))
                                          .filter(comment -> comment.body().contains(newEditHash.hex()))
                                          .collect(Collectors.toList());
@@ -952,11 +952,11 @@ class MailingListBridgeBotTests {
             var ignored = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
             var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
                                                  listAddress,
-                                                 Set.of(ignored.host().currentUser().userName()),
+                                                 Set.of(ignored.forge().currentUser().userName()),
                                                  Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
@@ -990,7 +990,7 @@ class MailingListBridgeBotTests {
             // And there should be a webrev comment
             var comments = pr.comments();
             var webrevComments = comments.stream()
-                                         .filter(comment -> comment.author().equals(author.host().currentUser()))
+                                         .filter(comment -> comment.author().equals(author.forge().currentUser()))
                                          .filter(comment -> comment.body().contains("webrev"))
                                          .filter(comment -> comment.body().contains(editHash.hex()))
                                          .collect(Collectors.toList());
@@ -1006,7 +1006,7 @@ class MailingListBridgeBotTests {
             // The webrev comment should not contain duplicate entries
             comments = pr.comments();
             webrevComments = comments.stream()
-                                         .filter(comment -> comment.author().equals(author.host().currentUser()))
+                                         .filter(comment -> comment.author().equals(author.forge().currentUser()))
                                          .filter(comment -> comment.body().contains("webrev"))
                                          .filter(comment -> comment.body().contains(editHash.hex()))
                                          .collect(Collectors.toList());
@@ -1027,8 +1027,8 @@ class MailingListBridgeBotTests {
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var from = EmailAddress.from("test", "test@test.mail");
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addReviewer(reviewer.host().currentUser().id())
-                                           .addAuthor(author.host().currentUser().id());
+                                           .addReviewer(reviewer.forge().currentUser().id())
+                                           .addAuthor(author.forge().currentUser().id());
             var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
                                                  listAddress, Set.of(), Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
@@ -1065,7 +1065,7 @@ class MailingListBridgeBotTests {
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Disapproved by "));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), " by integrationreviewer1"));
-            if (author.host().supportsReviewBody()) {
+            if (author.forge().supportsReviewBody()) {
                 assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 1"));
             }
 
@@ -1078,7 +1078,7 @@ class MailingListBridgeBotTests {
             // The archive should contain another note
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Approved by "));
-            if (author.host().supportsReviewBody()) {
+            if (author.forge().supportsReviewBody()) {
                 assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 2"));
             }
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Re: \\[Approved\\] RFR:"));
@@ -1092,7 +1092,7 @@ class MailingListBridgeBotTests {
             // The archive should contain another note
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertEquals(2, archiveContainsCount(archiveFolder.path(), "Disapproved by "));
-            if (author.host().supportsReviewBody()) {
+            if (author.forge().supportsReviewBody()) {
                 assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 3"));
             }
         }
@@ -1109,11 +1109,11 @@ class MailingListBridgeBotTests {
             var archive = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
             var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
                                                  listAddress,
-                                                 Set.of(ignored.host().currentUser().userName()),
+                                                 Set.of(ignored.forge().currentUser().userName()),
                                                  Set.of(Pattern.compile("ignore this comment", Pattern.MULTILINE | Pattern.DOTALL)),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),

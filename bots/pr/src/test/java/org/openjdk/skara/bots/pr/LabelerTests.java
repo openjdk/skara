@@ -44,8 +44,8 @@ class LabelerTests {
             var labelPatterns = Map.of("test1", List.of(Pattern.compile("a.txt")),
                                        "test2", List.of(Pattern.compile("b.txt")));
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id())
-                                           .addReviewer(reviewer.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
             var labelBot = new PullRequestBot(author, censusBuilder.build(), "master", labelPatterns, Map.of(), Map.of(), Set.of(), Map.of());
 
             // Populate the projects repository

@@ -23,7 +23,7 @@
 package org.openjdk.skara.bots.submit;
 
 import org.openjdk.skara.bot.*;
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.forge.*;
 
 import java.util.List;
 import java.util.stream.Collectors;

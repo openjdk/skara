@@ -24,7 +24,7 @@ package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.email.*;
-import org.openjdk.skara.host.PullRequest;
+import org.openjdk.skara.forge.PullRequest;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -77,7 +77,7 @@ public class CommentPosterWorkItem implements WorkItem {
 
         var alreadyBridged = new HashSet<EmailAddress>();
         for (var comment : comments) {
-            if (!comment.author().equals(pr.repository().host().currentUser())) {
+            if (!comment.author().equals(pr.repository().forge().currentUser())) {
                 continue;
             }
             var matcher = bridgedMailId.matcher(comment.body());

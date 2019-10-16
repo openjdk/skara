@@ -22,7 +22,9 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
+import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
@@ -135,7 +137,7 @@ class CheckRun {
                 var sourceBranch = mergeSourceBranch();
                 if (sourceBranch.isPresent() && sourceRepo.isPresent()) {
                     try {
-                        var mergeSourceRepo = pr.repository().host().repository(sourceRepo.get());
+                        var mergeSourceRepo = pr.repository().forge().repository(sourceRepo.get());
                         try {
                             var sourceHash = prInstance.localRepo().fetch(mergeSourceRepo.url(), sourceBranch.get());
                             if (!prInstance.localRepo().isAncestor(commits.get(1).hash(), sourceHash)) {
@@ -333,7 +335,7 @@ class CheckRun {
     }
 
     private Optional<Comment> findComment(List<Comment> comments, String marker) {
-        var self = pr.repository().host().currentUser();
+        var self = pr.repository().forge().currentUser();
         return comments.stream()
                        .filter(comment -> comment.author().equals(self))
                        .filter(comment -> comment.body().contains(marker))
@@ -476,7 +478,7 @@ class CheckRun {
             var updatedBody = updateStatusMessage(statusMessage);
 
             // Post / update approval messages (only needed if the review itself can't contain a body)
-            if (!pr.repository().host().supportsReviewBody()) {
+            if (!pr.repository().forge().supportsReviewBody()) {
                 updateReviewedMessages(comments, allReviews);
             }
 
@@ -497,7 +499,7 @@ class CheckRun {
 
             // Ensure that the ready for sponsor label is up to date
             newLabels.remove("sponsor");
-            var readyHash = ReadyForSponsorTracker.latestReadyForSponsor(pr.repository().host().currentUser(), comments);
+            var readyHash = ReadyForSponsorTracker.latestReadyForSponsor(pr.repository().forge().currentUser(), comments);
             if (readyHash.isPresent() && readyForIntegration) {
                 var acceptedHash = readyHash.get();
                 if (pr.headHash().equals(acceptedHash)) {

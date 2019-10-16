@@ -22,7 +22,8 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
@@ -40,7 +41,7 @@ public class RejectCommand implements CommandHandler {
             return;
         }
 
-        var botUser = pr.repository().host().currentUser();
+        var botUser = pr.repository().forge().currentUser();
         var vetoers = Veto.vetoers(botUser, allComments);
 
         if (vetoers.contains(comment.author().id())) {
