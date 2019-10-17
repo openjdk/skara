@@ -32,6 +32,8 @@ module {
 
 dependencies {
     implementation project(':bot')
+    implementation project(':forge')
+    implementation project(':issuetracker')
     implementation project(':vcs')
     implementation project(':jcheck')
     implementation project(':host')

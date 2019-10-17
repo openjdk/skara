@@ -23,7 +23,7 @@
 package org.openjdk.skara.bots.submit;
 
 import org.openjdk.skara.bot.WorkItem;
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.vcs.Repository;
 
 import java.io.*;

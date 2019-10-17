@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.forge.Review;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Repository;
 
@@ -42,8 +42,8 @@ class ContributorTests {
             var integrator = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addReviewer(integrator.host().currentUser().id())
-                                           .addCommitter(author.host().currentUser().id());
+                                           .addReviewer(integrator.forge().currentUser().id())
+                                           .addCommitter(author.forge().currentUser().id());
             var prBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
@@ -156,7 +156,7 @@ class ContributorTests {
             var external = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository

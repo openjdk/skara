@@ -34,6 +34,8 @@ dependencies {
     implementation project(':bot')
     implementation project(':mailinglist')
     implementation project(':host')
+    implementation project(':forge')
+    implementation project(':issuetracker')
     implementation project(':network')
     implementation project(':census')
     implementation project(':vcs')

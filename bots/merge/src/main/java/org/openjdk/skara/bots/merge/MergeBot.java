@@ -23,7 +23,7 @@
 package org.openjdk.skara.bots.merge;
 
 import org.openjdk.skara.bot.*;
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.vcs.*;
 
 import java.io.IOException;
@@ -89,7 +89,7 @@ class MergeBot implements Bot, WorkItem {
             for (var pr : to.pullRequests()) {
                 if (pr.title().equals(title) &&
                     pr.body().startsWith(marker) &&
-                    to.host().currentUser().equals(pr.author())) {
+                    to.forge().currentUser().equals(pr.author())) {
                     var lines = pr.body().split("\n");
                     var head = new Hash(lines[1].substring(5, 45));
                     if (repo.contains(originToBranch, head)) {

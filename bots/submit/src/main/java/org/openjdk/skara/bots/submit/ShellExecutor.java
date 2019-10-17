@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.bots.submit;
 
-import org.openjdk.skara.host.CheckBuilder;
+import org.openjdk.skara.forge.CheckBuilder;
 
 import java.io.*;
 import java.nio.file.Path;

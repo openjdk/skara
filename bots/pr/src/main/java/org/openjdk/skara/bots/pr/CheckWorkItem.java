@@ -22,7 +22,9 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
+import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.vcs.Hash;
 
 import java.io.*;
@@ -79,7 +81,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                                         .sorted()
                                         .collect(Collectors.joining());
             var commentString = comments.stream()
-                                        .filter(comment -> comment.author().id().equals(pr.repository().host().currentUser().id()))
+                                        .filter(comment -> comment.author().id().equals(pr.repository().forge().currentUser().id()))
                                         .flatMap(comment -> comment.body().lines())
                                         .filter(line -> metadataComments.matcher(line).find())
                                         .collect(Collectors.joining());

@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.host.PullRequest;
+import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.vcs.Hash;
 
 import java.io.*;

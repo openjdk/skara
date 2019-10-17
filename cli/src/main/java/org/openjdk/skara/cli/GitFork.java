@@ -23,6 +23,7 @@
 package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
+import org.openjdk.skara.forge.Forge;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.vcs.Repository;
 import org.openjdk.skara.proxy.HttpProxy;
@@ -145,7 +146,7 @@ public class GitFork {
             exit("No username for host " + hostName + " found, use git-credentials or the flag --username");
         }
 
-        var host = RepositoryHost.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
+        var host = Forge.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
         if (path.endsWith(".git")) {
             path = path.substring(0, path.length() - 4);
         }

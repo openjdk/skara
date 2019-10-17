@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.bots.submit;
 
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.forge.*;
 
 import java.time.*;
 import java.util.logging.Logger;

@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.test;
 
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.issuetracker.*;
 
 import java.time.ZonedDateTime;
 import java.util.*;

@@ -2,7 +2,9 @@ package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.census.Contributor;
 import org.openjdk.skara.email.*;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
+import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.Hash;
 
 import java.net.URI;

@@ -38,6 +38,8 @@ dependencies {
     implementation project(':webrev')
     implementation project(':json')
     implementation project(':host')
+    implementation project(':forge')
+    implementation project(':issuetracker')
     implementation project(':proxy')
     implementation project(':ssh')
 }

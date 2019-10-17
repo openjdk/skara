@@ -22,7 +22,9 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.forge.Review;
 import org.openjdk.skara.host.*;
+import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.test.*;
 
 import org.junit.jupiter.api.*;
@@ -91,7 +93,7 @@ class VetoTests {
             var integrator = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().currentUser().id());
+                                           .addCommitter(author.forge().currentUser().id());
             var prBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
@@ -127,8 +129,8 @@ class VetoTests {
             var vetoer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().currentUser().id())
-                                           .addCommitter(vetoer.host().currentUser().id());
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addCommitter(vetoer.forge().currentUser().id());
             var prBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
@@ -165,8 +167,8 @@ class VetoTests {
             var vetoer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().currentUser().id())
-                                           .addReviewer(vetoer.host().currentUser().id());
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(vetoer.forge().currentUser().id());
 
             var prBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
@@ -235,8 +237,8 @@ class VetoTests {
             var vetoer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id())
-                                           .addReviewer(vetoer.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(vetoer.forge().currentUser().id());
 
             var prBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 

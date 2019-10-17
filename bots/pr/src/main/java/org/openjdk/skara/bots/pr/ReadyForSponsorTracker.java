@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.host.*;
+import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.Hash;
 
 import java.util.*;

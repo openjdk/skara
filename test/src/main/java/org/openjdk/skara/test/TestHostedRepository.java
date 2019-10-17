@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.test;
 
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 
@@ -48,7 +48,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public RepositoryHost host() {
+    public Forge forge() {
         return host;
     }
 

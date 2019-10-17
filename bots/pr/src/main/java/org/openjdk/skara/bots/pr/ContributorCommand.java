@@ -23,7 +23,8 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.email.EmailAddress;
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
@@ -53,7 +54,7 @@ public class ContributorCommand implements CommandHandler {
                 reply.println("Contributor `" + contributor.toString() + "` successfully added.");
                 break;
             case "remove":
-                var existing = new HashSet<>(Contributors.contributors(pr.repository().host().currentUser(), allComments));
+                var existing = new HashSet<>(Contributors.contributors(pr.repository().forge().currentUser(), allComments));
                 if (existing.contains(contributor)) {
                     reply.println(Contributors.removeContributorMarker(contributor));
                     reply.println("Contributor `" + contributor.toString() + "` successfully removed.");

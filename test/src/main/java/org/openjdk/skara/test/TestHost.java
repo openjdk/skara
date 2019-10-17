@@ -22,7 +22,9 @@
  */
 package org.openjdk.skara.test;
 
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
+import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.vcs.*;
 
 import java.io.*;
@@ -31,7 +33,7 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class TestHost implements RepositoryHost, IssueHost {
+public class TestHost implements Forge, IssueTracker {
     private final int currentUser;
     private HostData data;
 

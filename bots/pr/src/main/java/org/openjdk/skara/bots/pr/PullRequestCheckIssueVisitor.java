@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.jcheck.*;
 import org.openjdk.skara.jcheck.Check;
 import org.openjdk.skara.vcs.Hash;

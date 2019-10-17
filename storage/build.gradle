@@ -33,6 +33,8 @@ module {
 dependencies {
     implementation project(':network')
     implementation project(':host')
+    implementation project(':forge')
+    implementation project(':issuetracker')
     implementation project(':vcs')
 }
 

@@ -22,7 +22,9 @@
  */
 package org.openjdk.skara.test;
 
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
+import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.proxy.HttpProxy;
@@ -48,10 +50,10 @@ public class HostCredentials implements AutoCloseable {
     private final Logger log = Logger.getLogger("org.openjdk.skara.test");
 
     private interface Credentials {
-        RepositoryHost createRepositoryHost(int userIndex);
-        IssueHost createIssueHost(int userIndex);
-        HostedRepository getHostedRepository(RepositoryHost host);
-        IssueProject getIssueProject(IssueHost host);
+        Forge createRepositoryHost(int userIndex);
+        IssueTracker createIssueHost(int userIndex);
+        HostedRepository getHostedRepository(Forge host);
+        IssueProject getIssueProject(IssueTracker host);
         String getNamespaceName();
         default void close() {}
     }
@@ -66,11 +68,11 @@ public class HostCredentials implements AutoCloseable {
         }
 
         @Override
-        public RepositoryHost createRepositoryHost(int userIndex) {
+        public Forge createRepositoryHost(int userIndex) {
             var hostUri = URIBuilder.base(config.get("host").asString()).build();
             var apps = config.get("apps").asArray();
             var key = configDir.resolve(apps.get(userIndex).get("key").asString());
-            return HostFactory.createGitHubHost(hostUri,
+            return ForgeFactory.createGitHubHost(hostUri,
                                                 null,
                                                 null,
                                                 key.toString(),
@@ -79,17 +81,17 @@ public class HostCredentials implements AutoCloseable {
         }
 
         @Override
-        public IssueHost createIssueHost(int userIndex) {
+        public IssueTracker createIssueHost(int userIndex) {
             throw new RuntimeException("not implemented yet");
         }
 
         @Override
-        public HostedRepository getHostedRepository(RepositoryHost host) {
+        public HostedRepository getHostedRepository(Forge host) {
             return host.repository(config.get("project").asString());
         }
 
         @Override
-        public IssueProject getIssueProject(IssueHost host) {
+        public IssueProject getIssueProject(IssueTracker host) {
             return host.project(config.get("project").asString());
         }
 
@@ -107,26 +109,26 @@ public class HostCredentials implements AutoCloseable {
         }
 
         @Override
-        public RepositoryHost createRepositoryHost(int userIndex) {
+        public Forge createRepositoryHost(int userIndex) {
             var hostUri = URIBuilder.base(config.get("host").asString()).build();
             var users = config.get("users").asArray();
             var pat = new PersonalAccessToken(users.get(userIndex).get("name").asString(),
                                               users.get(userIndex).get("pat").asString());
-            return HostFactory.createGitLabHost(hostUri, pat);
+            return ForgeFactory.createGitLabHost(hostUri, pat);
         }
 
         @Override
-        public IssueHost createIssueHost(int userIndex) {
+        public IssueTracker createIssueHost(int userIndex) {
             throw new RuntimeException("not implemented yet");
         }
 
         @Override
-        public HostedRepository getHostedRepository(RepositoryHost host) {
+        public HostedRepository getHostedRepository(Forge host) {
             return host.repository(config.get("project").asString());
         }
 
         @Override
-        public IssueProject getIssueProject(IssueHost host) {
+        public IssueProject getIssueProject(IssueTracker host) {
             return host.project(config.get("project").asString());
         }
 
@@ -155,22 +157,22 @@ public class HostCredentials implements AutoCloseable {
         }
 
         @Override
-        public RepositoryHost createRepositoryHost(int userIndex) {
+        public Forge createRepositoryHost(int userIndex) {
             return createHost(userIndex);
         }
 
         @Override
-        public IssueHost createIssueHost(int userIndex) {
+        public IssueTracker createIssueHost(int userIndex) {
             return createHost(userIndex);
         }
 
         @Override
-        public HostedRepository getHostedRepository(RepositoryHost host) {
+        public HostedRepository getHostedRepository(Forge host) {
             return host.repository("test");
         }
 
         @Override
-        public IssueProject getIssueProject(IssueHost host) {
+        public IssueProject getIssueProject(IssueTracker host) {
             return host.project("test");
         }
 
@@ -200,13 +202,13 @@ public class HostCredentials implements AutoCloseable {
         }
     }
 
-    private RepositoryHost getRepositoryHost() {
+    private Forge getRepositoryHost() {
         var host = credentials.createRepositoryHost(nextHostIndex);
         nextHostIndex++;
         return host;
     }
 
-    private IssueHost getIssueHost() {
+    private IssueTracker getIssueHost() {
         var host = credentials.createIssueHost(nextHostIndex);
         nextHostIndex++;
         return host;

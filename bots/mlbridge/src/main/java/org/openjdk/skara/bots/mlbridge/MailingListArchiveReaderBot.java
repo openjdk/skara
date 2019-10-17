@@ -24,7 +24,7 @@ package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.email.*;
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.mailinglist.*;
 
 import java.util.*;

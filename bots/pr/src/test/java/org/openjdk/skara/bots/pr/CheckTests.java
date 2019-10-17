@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.test.*;
 
 import org.junit.jupiter.api.*;
@@ -44,8 +44,8 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id())
-                                           .addReviewer(reviewer.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
 
             // Populate the projects repository
@@ -99,8 +99,8 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id())
-                                           .addReviewer(reviewer.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
 
             // Populate the projects repository
@@ -173,9 +173,9 @@ class CheckTests {
             var commenter = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id())
-                                           .addReviewer(reviewer.host().currentUser().id())
-                                           .addReviewer(commenter.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id())
+                                           .addReviewer(commenter.forge().currentUser().id());
 
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
 
@@ -254,7 +254,7 @@ class CheckTests {
             var author = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addReviewer(author.host().currentUser().id());
+                                           .addReviewer(author.forge().currentUser().id());
 
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
 
@@ -296,7 +296,7 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addReviewer(reviewer.host().currentUser().id());
+                                           .addReviewer(reviewer.forge().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
 
             // Populate the projects repository
@@ -347,8 +347,8 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id())
-                                           .addReviewer(reviewer.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
 
             // Populate the projects repository
@@ -427,11 +427,11 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             // This test is only relevant on hosts not supporting proper review comment bodies
-            assumeTrue(!author.host().supportsReviewBody());
+            assumeTrue(!author.forge().supportsReviewBody());
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id())
-                                           .addReviewer(reviewer.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
 
             // Populate the projects repository
@@ -460,7 +460,7 @@ class CheckTests {
             comments = pr.comments();
             assertEquals(commentCount + 2, comments.size());
             var comment = comments.get(commentCount);
-            assertTrue(comment.body().contains(reviewer.host().currentUser().userName()));
+            assertTrue(comment.body().contains(reviewer.forge().currentUser().userName()));
             assertTrue(comment.body().contains("approved"));
 
             // Drop the review
@@ -473,7 +473,7 @@ class CheckTests {
             comments = pr.comments();
             assertEquals(commentCount + 3, comments.size());
             comment = comments.get(commentCount + 2);
-            assertTrue(comment.body().contains(reviewer.host().currentUser().userName()));
+            assertTrue(comment.body().contains(reviewer.forge().currentUser().userName()));
             assertTrue(comment.body().contains("comment"));
 
             // No changes should not generate additional comments
@@ -492,8 +492,8 @@ class CheckTests {
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().currentUser().id())
-                                           .addReviewer(integrator.host().currentUser().id());
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
@@ -543,8 +543,8 @@ class CheckTests {
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.host().currentUser().id())
-                                           .addReviewer(integrator.host().currentUser().id());
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id());
             var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
 
             // Populate the projects repository
@@ -614,8 +614,8 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id())
-                                           .addReviewer(reviewer.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master", Map.of(), Map.of(),
                                               Map.of("block", "Test Blocker"), Set.of(), Map.of());
 
@@ -663,8 +663,8 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id())
-                                           .addReviewer(reviewer.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master", Map.of(), Map.of(),
                                               Map.of(), Set.of("good-to-go"), Map.of());
 
@@ -705,10 +705,10 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id())
-                                           .addReviewer(reviewer.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master", Map.of(), Map.of(),
-                                              Map.of(), Set.of(), Map.of(reviewer.host().currentUser().userName(), Pattern.compile("proceed")));
+                                              Map.of(), Set.of(), Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("proceed")));
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -748,8 +748,8 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id())
-                                           .addReviewer(reviewer.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master", Map.of(), Map.of(),
                                               Map.of(), Set.of(), Map.of());
 
@@ -796,8 +796,8 @@ class CheckTests {
             var issues = credentials.getIssueProject();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id())
-                                           .addReviewer(reviewer.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master", Map.of(), Map.of(),
                                               Map.of(), Set.of(), Map.of(), issues);
 
@@ -928,8 +928,8 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id())
-                                           .addReviewer(reviewer.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
 
             // Populate the projects repository
@@ -979,8 +979,8 @@ class CheckTests {
             var reviewer = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.host().currentUser().id())
-                                           .addReviewer(reviewer.host().currentUser().id());
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
 
             // Populate the projects repository

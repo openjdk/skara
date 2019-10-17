@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.test;
 
+import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.vcs.*;
 

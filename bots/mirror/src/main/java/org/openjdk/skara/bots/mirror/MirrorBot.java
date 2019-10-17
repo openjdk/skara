@@ -23,7 +23,7 @@
 package org.openjdk.skara.bots.mirror;
 
 import org.openjdk.skara.bot.*;
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.vcs.*;
 
 import java.io.IOException;

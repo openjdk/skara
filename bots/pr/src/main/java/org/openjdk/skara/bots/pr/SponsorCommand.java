@@ -22,7 +22,8 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.*;
 import java.net.URLEncoder;
@@ -45,7 +46,7 @@ public class SponsorCommand implements CommandHandler {
             return;
         }
 
-        var readyHash = ReadyForSponsorTracker.latestReadyForSponsor(pr.repository().host().currentUser(), allComments);
+        var readyHash = ReadyForSponsorTracker.latestReadyForSponsor(pr.repository().forge().currentUser(), allComments);
         if (readyHash.isEmpty()) {
             reply.println("The change author (@" + pr.author().userName() + ") must issue an `integrate` command before the integration can be sponsored.");
             return;

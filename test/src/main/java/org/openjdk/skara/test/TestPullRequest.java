@@ -22,7 +22,9 @@
  */
 package org.openjdk.skara.test;
 
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
+import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.vcs.Hash;
 
@@ -62,12 +64,12 @@ public class TestPullRequest extends TestIssue implements PullRequest {
         data.title = title;
         data.body = String.join("\n", body);
         data.draft = draft;
-        var pr = new TestPullRequest(repository, id, repository.host().currentUser(), repository.host().currentUser(), targetRef, sourceRef, data);
+        var pr = new TestPullRequest(repository, id, repository.forge().currentUser(), repository.forge().currentUser(), targetRef, sourceRef, data);
         return pr;
     }
 
     static TestPullRequest createFrom(TestHostedRepository repository, TestPullRequest other) {
-        var pr = new TestPullRequest(repository, other.id, other.author, repository.host().currentUser(), other.targetRef, other.sourceRef, other.data);
+        var pr = new TestPullRequest(repository, other.id, other.author, repository.forge().currentUser(), other.targetRef, other.sourceRef, other.data);
         return pr;
     }
 
@@ -89,7 +91,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     @Override
     public void addReview(Review.Verdict verdict, String body) {
         try {
-            var review = new Review(repository.host().currentUser(),
+            var review = new Review(repository.forge().currentUser(),
                                     verdict, repository.localRepository().resolve(sourceRef).orElseThrow(),
                                     data.reviews.size(),
                                     body);
