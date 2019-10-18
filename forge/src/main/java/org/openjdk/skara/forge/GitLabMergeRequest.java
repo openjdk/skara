@@ -349,7 +349,7 @@ public class GitLabMergeRequest implements PullRequest {
         return message.replaceAll("\n", "  \n");
     }
 
-    private final Pattern checkBodyPattern = Pattern.compile("^##### ([^\\n\\r]*)\\R(.*)",
+    private final Pattern checkBodyPattern = Pattern.compile("^# ([^\\n\\r]*)\\R(.*)",
                                                              Pattern.DOTALL | Pattern.MULTILINE);
 
     @Override
@@ -447,27 +447,31 @@ public class GitLabMergeRequest implements PullRequest {
                 throw new RuntimeException("Unknown check status");
         }
 
-        if ( check.title().isPresent() && check.summary().isPresent()) {
-            body += encodeMarkdown("\n" + "##### " + check.title().get() + "\n" + check.summary().get());
+        if (check.title().isPresent()) {
+            body += encodeMarkdown("\n" + "# " + check.title().get());
+        }
 
-            for (var annotation : check.annotations()) {
-                var annotationString = "  - ";
-                switch (annotation.level()) {
-                    case NOTICE:
-                        annotationString += "Notice: ";
-                        break;
-                    case WARNING:
-                        annotationString += "Warning: ";
-                        break;
-                    case FAILURE:
-                        annotationString += "Failure: ";
-                        break;
-                }
-                annotationString += linkToDiff(annotation.path(), check.hash(), annotation.startLine());
-                annotationString += "\n    - " + annotation.message().lines().collect(Collectors.joining("\n    - "));
+        if (check.summary().isPresent()) {
+            body += encodeMarkdown("\n" + check.summary().get());
+        }
 
-                body += "\n" + annotationString;
+        for (var annotation : check.annotations()) {
+            var annotationString = "  - ";
+            switch (annotation.level()) {
+                case NOTICE:
+                    annotationString += "Notice: ";
+                    break;
+                case WARNING:
+                    annotationString += "Warning: ";
+                    break;
+                case FAILURE:
+                    annotationString += "Failure: ";
+                    break;
             }
+            annotationString += linkToDiff(annotation.path(), check.hash(), annotation.startLine());
+            annotationString += "\n    - " + annotation.message().lines().collect(Collectors.joining("\n    - "));
+
+            body += "\n" + annotationString;
         }
 
         return body;
