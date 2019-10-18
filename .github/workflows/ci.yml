@@ -1,0 +1,20 @@
+name: Build and test
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macOS-latest]
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Install mercurial (macOS)
+      if: contains(matrix.os, 'mac')
+      run: brew install mercurial
+
+    - name: Build with Gradle
+      run: sh gradlew build
