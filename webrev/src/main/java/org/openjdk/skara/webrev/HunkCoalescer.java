@@ -258,6 +258,12 @@ class HunkCoalescer {
                     ? Math.min(destAfterContextEnd, nextNonEmptyTargetHunkStart)
                     : Math.max(destAfterContextEnd, nextNonEmptyTargetHunkStart);
         }
+
+        if (nextNonEmptySourceHunk != null || nextNonEmptyTargetHunk != null) {
+            sourceAfterContextEnd += numContextLines;
+            destAfterContextEnd += numContextLines;
+        }
+
         var destAfterContextCount = destAfterContextEnd - destAfterContextStart;
 
         var afterContextCount = Math.min(sourceAfterContextCount, destAfterContextCount);
