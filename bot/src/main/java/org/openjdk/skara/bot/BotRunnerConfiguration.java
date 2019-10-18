@@ -56,11 +56,11 @@ public class BotRunnerConfiguration {
     private Map<String, Forge> parseRepositoryHosts(JSONObject config, Path cwd) throws ConfigurationError {
         Map<String, Forge> ret = new HashMap<>();
 
-        if (!config.contains("hosts")) {
+        if (!config.contains("forges")) {
             return ret;
         }
 
-        for (var entry : config.get("hosts").fields()) {
+        for (var entry : config.get("forges").fields()) {
             if (entry.value().contains("gitlab")) {
                 var gitlab = entry.value().get("gitlab");
                 var uri = URIBuilder.base(gitlab.get("url").asString()).build();
@@ -101,11 +101,11 @@ public class BotRunnerConfiguration {
     private Map<String, IssueTracker> parseIssueHosts(JSONObject config, Path cwd) throws ConfigurationError {
         Map<String, IssueTracker> ret = new HashMap<>();
 
-        if (!config.contains("hosts")) {
+        if (!config.contains("issuetrackers")) {
             return ret;
         }
 
-        for (var entry : config.get("hosts").fields()) {
+        for (var entry : config.get("issuetrackers").fields()) {
             if (entry.value().contains("jira")) {
                 var jira = entry.value().get("jira");
                 var uri = URIBuilder.base(jira.get("url").asString()).build();
