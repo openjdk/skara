@@ -1765,7 +1765,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testAbortMerge(VCS vcs) throws IOException {
-        try (var dir = new TemporaryDirectory(false)) {
+        try (var dir = new TemporaryDirectory()) {
             var r = Repository.init(dir.path(), vcs);
             assertTrue(r.isClean());
 

@@ -63,6 +63,7 @@ configure(subprojects.findAll() { it.name != 'bots' }) {
 
         testLogging {
             events "passed", "skipped", "failed"
+            exceptionFormat "full"
         }
     }
 
