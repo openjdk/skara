@@ -240,6 +240,9 @@ class HunkCoalescer {
     private Context createContextAfterHunk(Hunk hunk, Hunk nextNonEmptySourceHunk, Hunk nextNonEmptyTargetHunk) {
         var sourceAfterContextStart = hunk.source().range().end();
         var sourceAfterContextEnd = hunk.source().range().end() + numContextLines;
+        if (nextNonEmptySourceHunk != null || nextNonEmptyTargetHunk != null) {
+            sourceAfterContextEnd += numContextLines; // include the "before" context for the next hunk
+        }
         sourceAfterContextEnd = Math.min(sourceAfterContextEnd, sourceContent.size() + 1);
         if (nextNonEmptySourceHunk != null) {
             var nextNonEmptySourceHunkStart = nextNonEmptySourceHunk.source().range().start();
@@ -251,6 +254,9 @@ class HunkCoalescer {
 
         var destAfterContextStart = hunk.target().range().end();
         var destAfterContextEnd = hunk.target().range().end() + numContextLines;
+        if (nextNonEmptySourceHunk != null || nextNonEmptyTargetHunk != null) {
+            destAfterContextEnd += numContextLines; // include the "before" context for the next hunk
+        }
         destAfterContextEnd = Math.min(destAfterContextEnd, destContent.size() + 1);
         if (nextNonEmptyTargetHunk != null) {
             var nextNonEmptyTargetHunkStart = nextNonEmptyTargetHunk.target().range().start();
@@ -258,12 +264,6 @@ class HunkCoalescer {
                     ? Math.min(destAfterContextEnd, nextNonEmptyTargetHunkStart)
                     : Math.max(destAfterContextEnd, nextNonEmptyTargetHunkStart);
         }
-
-        if (nextNonEmptySourceHunk != null || nextNonEmptyTargetHunk != null) {
-            sourceAfterContextEnd += numContextLines;
-            destAfterContextEnd += numContextLines;
-        }
-
         var destAfterContextCount = destAfterContextEnd - destAfterContextStart;
 
         var afterContextCount = Math.min(sourceAfterContextCount, destAfterContextCount);
