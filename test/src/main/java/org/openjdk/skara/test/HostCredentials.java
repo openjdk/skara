@@ -232,6 +232,10 @@ public class HostCredentials implements AutoCloseable {
     }
 
     private boolean getLock(HostedRepository repo) throws IOException {
+        if (repo instanceof TestHostedRepository) {
+            return true;
+        }
+
         try (var tempFolder = new TemporaryDirectory()) {
             var repoFolder = tempFolder.path().resolve("lock");
             var lockFile = repoFolder.resolve("lock.txt");
@@ -265,6 +269,9 @@ public class HostCredentials implements AutoCloseable {
     }
 
     private void releaseLock(HostedRepository repo) throws IOException {
+        if (repo instanceof TestHostedRepository) {
+            return;
+        }
         try (var tempFolder = new TemporaryDirectory()) {
             var repoFolder = tempFolder.path().resolve("lock");
             var lockFile = repoFolder.resolve("lock.txt");
@@ -273,6 +280,7 @@ public class HostCredentials implements AutoCloseable {
             localRepo.remove(lockFile);
             var lockHash = localRepo.commit("Unlock", "test", "test@test.test");
             localRepo.push(lockHash, repo.url(), "testlock");
+            log.info("Released credentials lock for " + testName);
         }
     }
 
@@ -331,7 +339,6 @@ public class HostCredentials implements AutoCloseable {
         if (credentialsLock != null) {
             try {
                 releaseLock(credentialsLock);
-                log.info("Released credentials lock for " + testName);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
