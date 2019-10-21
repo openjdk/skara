@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.charset.StandardCharsets;
 import java.net.URI;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.logging.Logger;
@@ -138,7 +139,9 @@ public class GitToHgConverter implements Converter {
             for (var file : gitRepo.files(to, toDump)) {
                 var hgPath = hgRoot.resolve(file.path());
                 gitRepo.dump(file, hgPath);
-                Files.setPosixFilePermissions(hgPath, file.type().permissions().orElseThrow());
+                if (hgPath.getFileSystem().supportedFileAttributeViews().contains("posix")) {
+                    Files.setPosixFilePermissions(hgPath, file.type().permissions().orElseThrow());
+                }
             }
         }
 

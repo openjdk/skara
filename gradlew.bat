@@ -30,14 +30,14 @@ echo Downloading JDK...
 mkdir %~dp0\.jdk\temp
 curl -L %JDK_WINDOWS_URL% -o %JDK_WINDOWS_DIR%.zip
 move %JDK_WINDOWS_DIR%.zip %~dp0\.jdk\
-for /f "tokens=*" %%i in ('@certutil -hashfile %~dp0/.jdk/%JDK_WINDOWS_DIR%.zip sha256 ^| find /v "hash of file" ^| find /v "CertUtil"') do set SHA256JDK=%%i
+for /f "tokens=*" %%i in ('@certutil -hashfile %~dp0/.jdk/%JDK_WINDOWS_DIR%.zip sha256 ^| %WINDIR%\System32\find /v "hash of file" ^| %WINDIR%\System32\find /v "CertUtil"') do set SHA256JDK=%%i
 if "%SHA256JDK%" == "%JDK_WINDOWS_SHA256%" (goto extractJdk)
 echo Invalid SHA256 for JDK detected (%SHA256JDK%)
 goto done
 
 :extractJdk
 echo Extracting JDK...
-tar -xf %~dp0/.jdk/%JDK_WINDOWS_DIR%.zip -C %~dp0/.jdk/temp
+%WINDIR%\System32\tar -xf %~dp0/.jdk/%JDK_WINDOWS_DIR%.zip -C %~dp0/.jdk/temp
 for /d %%i in (%~dp0\.jdk\temp\*) do move %%i %~dp0\.jdk\%JDK_WINDOWS_DIR%
 rmdir %~dp0\.jdk\temp
 
@@ -48,14 +48,14 @@ echo Downloading Gradle...
 mkdir %~dp0\.gradle\temp
 curl -L %GRADLE_URL% -o %GRADLE_DIR%.zip
 move %GRADLE_DIR%.zip %~dp0\.gradle\
-for /f "tokens=*" %%i in ('@certutil -hashfile %~dp0/.gradle/%GRADLE_DIR%.zip sha256 ^| find /v "hash of file" ^| find /v "CertUtil"') do set SHA256GRADLE=%%i
+for /f "tokens=*" %%i in ('@certutil -hashfile %~dp0/.gradle/%GRADLE_DIR%.zip sha256 ^| %WINDIR%\System32\find /v "hash of file" ^| %WINDIR%\System32\find /v "CertUtil"') do set SHA256GRADLE=%%i
 if "%SHA256GRADLE%" == "%GRADLE_SHA256%" (goto extractGradle)
 echo Invalid SHA256 for Gradle detected (%SHA256GRADLE%)
 goto done
 
 :extractGradle
 echo Extracting Gradle...
-tar -xf %~dp0/.gradle/%GRADLE_DIR%.zip -C %~dp0/.gradle/temp
+%WINDIR%\System32\tar -xf %~dp0/.gradle/%GRADLE_DIR%.zip -C %~dp0/.gradle/temp
 for /d %%i in (%~dp0\.gradle\temp\*) do move %%i %~dp0\.gradle\%GRADLE_DIR%
 rmdir %~dp0\.gradle\temp
 

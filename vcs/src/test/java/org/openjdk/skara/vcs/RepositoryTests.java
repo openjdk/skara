@@ -1840,7 +1840,7 @@ public class RepositoryTests {
             var head = upstream.commit("Added README", "duke", "duke@openjdk.org");
 
             var fork = Repository.init(dir.path().resolve("fork"), vcs);
-            fork.addRemote("upstream", "file://" + upstream.root());
+            fork.addRemote("upstream", upstream.root().toUri().toString());
             var refs = fork.remoteBranches("upstream");
             assertEquals(1, refs.size());
             var ref = refs.get(0);
