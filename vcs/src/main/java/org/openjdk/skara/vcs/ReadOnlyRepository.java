@@ -86,6 +86,7 @@ public interface ReadOnlyRepository {
     Optional<String> upstreamFor(Branch branch) throws IOException;
     List<Reference> remoteBranches(String remote) throws IOException;
     List<String> remotes() throws IOException;
+    List<Submodule> submodules() throws IOException;
 
     static Optional<ReadOnlyRepository> get(Path p) throws IOException {
         return Repository.get(p).map(r -> r);

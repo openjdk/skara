@@ -1126,4 +1126,48 @@ public class HgRepository implements Repository {
         }
         return remotes;
     }
+
+    @Override
+    public void addSubmodule(String pullPath, Path path) throws IOException {
+        var uri = Files.exists(Path.of(pullPath)) ? "file://" + pullPath : pullPath;
+        HgRepository.clone(URI.create(uri), root().resolve(path).toAbsolutePath(), false);
+        var hgSub = root().resolve(".hgsub");
+        Files.writeString(hgSub, path.toString() + " = " + pullPath + "\n",
+                          StandardOpenOption.WRITE, StandardOpenOption.APPEND, StandardOpenOption.CREATE);
+        add(List.of(hgSub));
+    }
+
+    @Override
+    public List<Submodule> submodules() throws IOException {
+        var hgSub = root().resolve(".hgsub");
+        var hgSubState = root().resolve(".hgsubstate");
+        if (!(Files.exists(hgSub) && Files.exists(hgSubState))) {
+            return List.of();
+        }
+
+        var urls = new HashMap<String, String>();
+        for (var line : Files.readAllLines(hgSub)) {
+            var parts = line.split("=");
+            var path = parts[0].trim();
+            var url = parts[1].trim();
+            urls.put(path, url);
+        }
+
+        var hashes = new HashMap<String, String>();
+        for (var line : Files.readAllLines(hgSubState)) {
+            var parts = line.split(" ");
+            var hash = parts[0];
+            var path = parts[1];
+            hashes.put(path, hash);
+        }
+
+        var modules = new ArrayList<Submodule>();
+        for (var path : urls.keySet()) {
+            var url = urls.get(path);
+            var hash = hashes.get(path);
+            modules.add(new Submodule(new Hash(hash), Path.of(path), url));
+        }
+
+        return modules;
+    }
 }
