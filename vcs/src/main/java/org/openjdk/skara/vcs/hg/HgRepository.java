@@ -1129,7 +1129,7 @@ public class HgRepository implements Repository {
 
     @Override
     public void addSubmodule(String pullPath, Path path) throws IOException {
-        var uri = Files.exists(Path.of(pullPath)) ? "file://" + pullPath : pullPath;
+        var uri = Files.exists(Path.of(pullPath)) ? Path.of(pullPath).toUri().toString() : pullPath;
         HgRepository.clone(URI.create(uri), root().resolve(path).toAbsolutePath(), false);
         var hgSub = root().resolve(".hgsub");
         Files.writeString(hgSub, path.toString() + " = " + pullPath + "\n",
