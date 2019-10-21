@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.email;
 
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.openjdk.skara.test.SMTPServer;
 
 import org.junit.jupiter.api.Test;
@@ -69,6 +71,7 @@ class SMTPTests {
     }
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void encoded() throws IOException {
         log.info("Hello");
         try (var server = new SMTPServer()) {

@@ -3,18 +3,25 @@ name: Build and test
 on: [push]
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macOS-latest]
-
+  linux:
+    runs-on: 'ubuntu-latest'
     steps:
     - uses: actions/checkout@v1
+    - name: Build and test
+      run: sh gradlew test --info --stacktrace
 
-    - name: Install mercurial (macOS)
-      if: contains(matrix.os, 'mac')
+  mac:
+    runs-on: 'macOS-latest'
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install Mercurial
       run: brew install mercurial
+    - name: Build and test
+      run: sh gradlew test --info --stacktrace
 
-    - name: Build with Gradle
-      run: sh gradlew build
+  win:
+    runs-on: 'windows-latest'
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build and test
+      run: gradlew.bat test --info --stacktrace

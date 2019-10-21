@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.bot;
 
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.openjdk.skara.json.JSON;
 
 import org.junit.jupiter.api.*;
@@ -274,6 +276,7 @@ class BotRunnerTests {
     }
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void watchdogTrigger() throws TimeoutException {
         var countdownLatch = new CountDownLatch(1);
         var item = new TestBlockedWorkItem(countdownLatch);
