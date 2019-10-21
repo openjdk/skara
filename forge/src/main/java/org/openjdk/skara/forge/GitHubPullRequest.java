@@ -347,7 +347,7 @@ public class GitHubPullRequest implements PullRequest {
             outputQuery.put("summary", check.summary().get());
 
             var annotations = JSON.array();
-            for (var annotation : check.annotations()) {
+            for (var annotation : check.annotations().subList(0, Math.min(check.annotations().size(), 50))) {
                 var annotationQuery = JSON.object();
                 annotationQuery.put("path", annotation.path());
                 annotationQuery.put("start_line", annotation.startLine());
