@@ -88,7 +88,7 @@ public class TestHost implements Forge, IssueTracker {
 
     private Repository createLocalRepository() {
         try {
-            if (templateLocalRepository == null) {
+            if (templateLocalRepository == null || !templateLocalRepository.toFile().isDirectory()) {
                 templateLocalRepository = createTemplateRepository();
             }
             var folder = new TemporaryDirectory();
