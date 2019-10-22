@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 public class TestHost implements Forge, IssueTracker {
     private final int currentUser;
     private HostData data;
+    private static Path templateLocalRepository;
 
     private static class HostData {
         final List<HostUser> users = new ArrayList<>();
@@ -46,17 +47,55 @@ public class TestHost implements Forge, IssueTracker {
         private final Map<String, TestIssue> issues = new HashMap<>();
     }
 
-    private Repository createLocalRepository() {
+    private Path createTemplateRepository() throws IOException {
         var folder = new TemporaryDirectory();
         data.folders.add(folder);
+        var repoFolder = folder.path().resolve("hosted.git");
+        var repo = Repository.init(repoFolder, VCS.GIT);
+        Files.writeString(repoFolder.resolve("content.txt"), "Initial content", StandardCharsets.UTF_8);
+        repo.add(repoFolder.resolve("content.txt"));
+        var hash = repo.commit("Initial content", "author", "author@none");
+        repo.branch(hash, "testhostcontent");
+        //repo.push(hash, repo.root().toUri(), "testhostcontent");
+        repo.checkout(hash, true);
+        return repoFolder;
+    }
+
+    private void copyRecursive(Path from, Path to) throws IOException {
+        Files.createDirectories(to);
+        Files.walk(from)
+             .filter(p -> p.toFile().isDirectory())
+             .map(from::relativize)
+             .forEach(p -> {
+                 try {
+                     if (!to.resolve(p).toFile().isDirectory()) {
+                         Files.createDirectory(to.resolve(p));
+                     }
+                 } catch (IOException e) {
+                     throw new UncheckedIOException(e);
+                 }
+             });
+        Files.walk(from)
+             .filter(p -> p.toFile().isFile())
+             .forEach(p -> {
+                 try {
+                     Files.copy(p, to.resolve(from.relativize(p)));
+                 } catch (IOException e) {
+                     throw new UncheckedIOException(e);
+                 }
+             });
+    }
+
+    private Repository createLocalRepository() {
         try {
-            var repo = Repository.init(folder.path().resolve("hosted.git"), VCS.GIT);
-            Files.writeString(repo.root().resolve("content.txt"), "Initial content", StandardCharsets.UTF_8);
-            repo.add(repo.root().resolve("content.txt"));
-            var hash = repo.commit("Initial content", "author", "author@none");
-            repo.push(hash, repo.root().toUri(), "testhostcontent");
-            repo.checkout(hash, true);
-            return repo;
+            if (templateLocalRepository == null) {
+                templateLocalRepository = createTemplateRepository();
+            }
+            var folder = new TemporaryDirectory();
+            data.folders.add(folder);
+            var repoFolder = folder.path().resolve("hosted.git");
+            copyRecursive(templateLocalRepository, repoFolder);
+            return Repository.init(repoFolder, VCS.GIT);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

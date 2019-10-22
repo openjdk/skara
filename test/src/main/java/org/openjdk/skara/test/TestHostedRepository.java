@@ -37,14 +37,13 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     private final TestHost host;
     private final String projectName;
     private final Repository localRepository;
-    private final Pattern pullRequestPattern;
+    private Pattern pullRequestPattern;
 
     public TestHostedRepository(TestHost host, String projectName, Repository localRepository) {
         super(host, projectName);
         this.host = host;
         this.projectName = projectName;
         this.localRepository = localRepository;
-        pullRequestPattern = Pattern.compile(url().toString() + "/pr/" + "(\\d+)");
     }
 
     @Override
@@ -85,6 +84,9 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
 
     @Override
     public Optional<PullRequest> parsePullRequestUrl(String url) {
+        if (pullRequestPattern == null) {
+            pullRequestPattern = Pattern.compile(url().toString() + "/pr/" + "(\\d+)");
+        }
         var matcher = pullRequestPattern.matcher(url);
         if (matcher.find()) {
             return Optional.of(pullRequest(matcher.group(1)));
