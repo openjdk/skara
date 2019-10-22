@@ -1848,4 +1848,50 @@ public class RepositoryTests {
             assertEquals(upstream.defaultBranch().name(), ref.name());
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testSubmodulesOnEmptyRepo(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var repo = Repository.init(dir.path(), vcs);
+            assertEquals(List.of(), repo.submodules());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testSubmodulesOnRepoWithNoSubmodules(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var repo = Repository.init(dir.path().resolve("repo"), vcs);
+            var readme = repo.root().resolve("README");
+            Files.writeString(readme, "Hello\n");
+            repo.add(readme);
+            repo.commit("Added README", "duke", "duke@openjdk.org");
+            assertEquals(List.of(), repo.submodules());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testSubmodulesOnRepoWithSubmodule(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var submodule = Repository.init(dir.path().resolve("submodule"), vcs);
+            var readme = submodule.root().resolve("README");
+            Files.writeString(readme, "Hello\n");
+            submodule.add(readme);
+            var head = submodule.commit("Added README", "duke", "duke@openjdk.org");
+
+            var repo = Repository.init(dir.path().resolve("repo"), vcs);
+            var pullPath = submodule.root().toAbsolutePath().toString();
+            repo.addSubmodule(pullPath, Path.of("sub"));
+            repo.commit("Added submodule", "duke", "duke@openjdk.org");
+
+            var submodules = repo.submodules();
+            assertEquals(1, submodules.size());
+            var module = submodules.get(0);
+            assertEquals(Path.of("sub"), module.path());
+            assertEquals(head, module.hash());
+            assertEquals(pullPath, module.pullPath());
+        }
+    }
 }

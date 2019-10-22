@@ -1089,4 +1089,63 @@ public class GitRepository implements Repository {
         }
         return remotes;
     }
+
+    @Override
+    public void addSubmodule(String pullPath, Path path) throws IOException {
+        try (var p = capture("git", "submodule", "add", pullPath, path.toString())) {
+            await(p);
+        }
+    }
+
+    @Override
+    public List<Submodule> submodules() throws IOException {
+        var gitModules = root().resolve(".gitmodules");
+        if (!Files.exists(gitModules)) {
+            return List.of();
+        }
+
+        var urls = new HashMap<String, String>();
+        var paths = new HashMap<String, String>();
+        try (var p = capture("git", "config", "--file", gitModules.toAbsolutePath().toString(),
+                                              "--list")) {
+            for (var line : await(p).stdout()) {
+                if (line.startsWith("submodule.")) {
+                    line = line.substring("submodule.".length());
+                    var parts = line.split("=");
+                    var nameAndProperty = parts[0].split("\\.");
+                    var name = nameAndProperty[0];
+                    var prop = nameAndProperty[1];
+                    var value = parts[1];
+                    if (prop.equals("path")) {
+                        paths.put(name, value);
+                    } else if (prop.equals("url")) {
+                        urls.put(name, value);
+                    } else {
+                        throw new IOException("Unexpected submodule property: " + prop);
+                    }
+                }
+            }
+        }
+
+        var hashes = new HashMap<String, String>();
+        try (var p = capture("git", "submodule", "status")) {
+            for (var line : await(p).stdout()) {
+                var parts = line.substring(1).split(" ");
+                var hash = parts[0];
+                var path = parts[1];
+                hashes.put(path, hash);
+            }
+        }
+
+        var modules = new ArrayList<Submodule>();
+        for (var name : paths.keySet()) {
+            var url = urls.get(name);
+            var path = paths.get(name);
+            var hash = hashes.get(path);
+
+            modules.add(new Submodule(new Hash(hash), Path.of(path), url));
+        }
+
+        return modules;
+    }
 }

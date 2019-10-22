@@ -232,4 +232,11 @@ class TestRepository implements ReadOnlyRepository {
     public List<String> remotes() throws IOException {
         return null;
     }
+
+    public void addSubmodule(String pullPath, Path path) throws IOException {
+    }
+
+    public List<Submodule> submodules() throws IOException {
+        return null;
+    }
 }
