@@ -401,6 +401,11 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public Repository init(boolean isBare) throws IOException {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
     public void pushAll(URI uri) throws IOException {
         try (var p = capture("hg", "push", "--new-branch", uri.toString())) {
             await(p);

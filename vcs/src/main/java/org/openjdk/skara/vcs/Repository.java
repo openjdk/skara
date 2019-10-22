@@ -28,12 +28,12 @@ import org.openjdk.skara.vcs.hg.HgRepository;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
-import java.nio.file.Files;
 import java.time.ZonedDateTime;
 import java.util.*;
 
 public interface Repository extends ReadOnlyRepository {
     Repository init() throws IOException;
+    Repository init(boolean isBare) throws IOException;
     void checkout(Hash h, boolean force) throws IOException;
     default void checkout(Hash h) throws IOException {
         checkout(h, false);
@@ -122,6 +122,17 @@ public interface Repository extends ReadOnlyRepository {
                 return new GitRepository(p).init();
             case HG:
                 return new HgRepository(p).init();
+            default:
+                throw new IllegalArgumentException("Invalid enum value: " + vcs);
+        }
+    }
+
+    static Repository init(Path p, VCS vcs, boolean isBare) throws IOException {
+        switch (vcs) {
+            case GIT:
+                return new GitRepository(p).init(isBare);
+            case HG:
+                return new HgRepository(p).init(isBare);
             default:
                 throw new IllegalArgumentException("Invalid enum value: " + vcs);
         }

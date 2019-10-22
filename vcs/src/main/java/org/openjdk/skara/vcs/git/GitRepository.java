@@ -367,15 +367,27 @@ public class GitRepository implements Repository {
 
     @Override
     public Repository init() throws IOException {
+        return init(false);
+    }
+
+    @Override
+    public Repository init(boolean isBare) throws IOException {
         cachedRoot = null;
 
         if (!Files.exists(dir)) {
             Files.createDirectories(dir);
         }
 
-        try (var p = capture("git", "init")) {
-            await(p);
-            return this;
+        if (isBare) {
+            try (var p = capture("git", "init", "--bare")) {
+                await(p);
+                return this;
+            }
+        } else {
+            try (var p = capture("git", "init")) {
+                await(p);
+                return this;
+            }
         }
     }
 
@@ -446,7 +458,7 @@ public class GitRepository implements Repository {
                     if (res2.stdout().size() != 1) {
                         throw new IOException("Unexpected output\n" + res2);
                     }
-                    cachedRoot = dir.resolve(Path.of(res2.stdout().get(0)));
+                    cachedRoot = dir.resolve(Path.of(res2.stdout().get(0))).normalize();
                     return cachedRoot;
                 }
             }

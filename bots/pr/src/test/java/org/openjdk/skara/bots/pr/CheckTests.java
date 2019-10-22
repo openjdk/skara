@@ -30,6 +30,7 @@ import org.junit.jupiter.api.*;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
+import java.util.logging.*;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -971,8 +972,24 @@ class CheckTests {
         }
     }
 
+    class MyHandler extends StreamHandler {
+        @Override
+        public synchronized void publish(LogRecord record) {
+            System.out.println(record.getInstant() + ": " + record.getMessage());
+        }
+    }
+
     @Test
     void draft(TestInfo testInfo) throws IOException {
+        Logger log = Logger.getGlobal();
+        log.setLevel(Level.FINER);
+        log = Logger.getLogger("org.openjdk");
+        log.setLevel(Level.FINER);
+        var handler = new MyHandler();
+        handler.setLevel(Level.FINER);
+        log.addHandler(handler);
+
+
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
@@ -982,6 +999,8 @@ class CheckTests {
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
             var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
+
+            log.info("STEP 1");
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
