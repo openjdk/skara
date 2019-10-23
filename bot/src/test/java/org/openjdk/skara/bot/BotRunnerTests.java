@@ -276,7 +276,6 @@ class BotRunnerTests {
     }
 
     @Test
-    @DisabledOnOs(OS.WINDOWS)
     void watchdogTrigger() throws TimeoutException {
         var countdownLatch = new CountDownLatch(1);
         var item = new TestBlockedWorkItem(countdownLatch);
