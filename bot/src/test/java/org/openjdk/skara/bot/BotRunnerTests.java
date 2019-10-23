@@ -303,7 +303,7 @@ class BotRunnerTests {
 
         runner.run(Duration.ofMillis(100));
         assertTrue(errors.size() > 0);
-        assertTrue(errors.size() <= 10);
+        assertTrue(errors.size() <= 100);
         countdownLatch.countDown();
     }
 }
