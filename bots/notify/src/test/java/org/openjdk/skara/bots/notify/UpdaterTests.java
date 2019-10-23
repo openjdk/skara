@@ -186,7 +186,7 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false, MailingListUpdater.Mode.ALL,
-                                                 Map.of("extra1", "value1", "extra2", "value2"));
+                                                 Map.of("extra1", "value1", "extra2", "value2"), Pattern.compile("none"));
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
@@ -201,7 +201,7 @@ class UpdaterTests {
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             var email = conversations.get(0).first();
             assertEquals(sender, email.sender());
-            assertEquals(EmailAddress.from("testauthor", "ta@none.none"), email.author());
+            assertEquals(sender, email.author());
             assertEquals(email.recipients(), List.of(listAddress));
             assertTrue(email.subject().contains(": 23456789: More fixes"));
             assertFalse(email.subject().contains("master"));
@@ -237,7 +237,7 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false,
-                                                 MailingListUpdater.Mode.ALL, Map.of());
+                                                 MailingListUpdater.Mode.ALL, Map.of(), Pattern.compile(".*"));
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
@@ -290,7 +290,7 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false,
-                                                 MailingListUpdater.Mode.ALL, Map.of());
+                                                 MailingListUpdater.Mode.ALL, Map.of(), Pattern.compile(".*"));
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
@@ -340,7 +340,7 @@ class UpdaterTests {
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var author = EmailAddress.from("author", "author@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, author, true,
-                                                 MailingListUpdater.Mode.ALL, Map.of());
+                                                 MailingListUpdater.Mode.ALL, Map.of(), Pattern.compile(".*"));
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master|another"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
@@ -412,7 +412,8 @@ class UpdaterTests {
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var author = EmailAddress.from("author", "author@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, author, false,
-                                                 MailingListUpdater.Mode.PR_ONLY, Map.of("extra1", "value1"));
+                                                 MailingListUpdater.Mode.PR_ONLY, Map.of("extra1", "value1"),
+                                                 Pattern.compile(".*"));
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
@@ -489,7 +490,7 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false,
-                                                 MailingListUpdater.Mode.PR, Map.of());
+                                                 MailingListUpdater.Mode.PR, Map.of(), Pattern.compile(".*"));
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
@@ -576,9 +577,10 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false, MailingListUpdater.Mode.ALL,
-                                                 Map.of("extra1", "value1", "extra2", "value2"));
+                                                 Map.of("extra1", "value1", "extra2", "value2"),
+                                                 Pattern.compile(".*"));
             var prOnlyUpdater = new MailingListUpdater(mailmanList, listAddress, sender, null, false,
-                                                       MailingListUpdater.Mode.PR_ONLY, Map.of());
+                                                       MailingListUpdater.Mode.PR_ONLY, Map.of(), Pattern.compile(".*"));
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                            List.of(updater, prOnlyUpdater));
 
@@ -668,7 +670,8 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false, MailingListUpdater.Mode.ALL,
-                                                 Map.of("extra1", "value1", "extra2", "value2"));
+                                                 Map.of("extra1", "value1", "extra2", "value2"),
+                                                 Pattern.compile(".*"));
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master|newbranch."), tagStorage, branchStorage, List.of(updater));
 
             // No mail should be sent on the first run as there is no history
