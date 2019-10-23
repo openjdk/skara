@@ -311,7 +311,7 @@ public class GitRepository implements Repository {
 
     @Override
     public void revert(Hash h) throws IOException {
-        try (var p = capture("git", "checkout", h.hex(), "--", ".")) {
+        try (var p = capture("git", "checkout", "--recurse-submodules", h.hex(), "--", ".")) {
             await(p);
         }
     }
@@ -345,7 +345,7 @@ public class GitRepository implements Repository {
 
     private void checkout(String ref, boolean force) throws IOException {
         var cmd = new ArrayList<String>();
-        cmd.addAll(List.of("git", "-c", "advice.detachedHead=false", "checkout"));
+        cmd.addAll(List.of("git", "-c", "advice.detachedHead=false", "checkout", "--recurse-submodules"));
         if (force) {
             cmd.add("--force");
         }
@@ -873,7 +873,7 @@ public class GitRepository implements Repository {
 
     @Override
     public Repository copyTo(Path destination) throws IOException {
-        try (var p = capture("git", "clone", root().toString(), destination.toString())) {
+        try (var p = capture("git", "clone", "--recurse-submodules", root().toString(), destination.toString())) {
             await(p);
         }
 
@@ -1009,6 +1009,8 @@ public class GitRepository implements Repository {
         cmd.addAll(List.of("git", "clone"));
         if (isBare) {
             cmd.add("--bare");
+        } else {
+            cmd.add("--recurse-submodules");
         }
         cmd.addAll(List.of(from.toString(), to.toString()));
         try (var p = capture(Path.of("").toAbsolutePath(), cmd)) {
