@@ -177,7 +177,6 @@ public class BotRunner {
             }
             try {
                 Thread.sleep(1);
-                watchdog();
             } catch (InterruptedException e) {
                 log.warning("Exception during queue drain");
                 log.throwing("BotRunner", "drain", e);
@@ -259,7 +258,10 @@ public class BotRunner {
     }
 
     public void run() {
-        log.info("Starting BotRunner execution, will run forever.");
+        run(Duration.ofDays(10 * 365));
+    }
+
+    public void run(Duration timeout) {
         log.info("Periodic task interval: " + config.scheduledExecutionPeriod());
         log.info("Concurrency: " + config.concurrency());
 
@@ -280,7 +282,7 @@ public class BotRunner {
                                      config.scheduledExecutionPeriod().toMillis(), TimeUnit.MILLISECONDS);
 
         try {
-            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+            executor.awaitTermination(timeout.toMillis(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
