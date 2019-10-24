@@ -25,3 +25,4 @@ jobs:
     - uses: actions/checkout@v1
     - name: Build and test
       run: gradlew.bat test --info --stacktrace
+      shell: cmd
