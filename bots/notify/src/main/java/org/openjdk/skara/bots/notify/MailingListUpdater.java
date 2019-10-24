@@ -44,6 +44,7 @@ public class MailingListUpdater implements UpdateConsumer {
     private final boolean includeBranch;
     private final Mode mode;
     private final Map<String, String> headers;
+    private final Pattern allowedAuthorDomains;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
     enum Mode {
@@ -53,7 +54,7 @@ public class MailingListUpdater implements UpdateConsumer {
     }
 
     MailingListUpdater(MailingList list, EmailAddress recipient, EmailAddress sender, EmailAddress author,
-                       boolean includeBranch, Mode mode, Map<String, String> headers) {
+                       boolean includeBranch, Mode mode, Map<String, String> headers, Pattern allowedAuthorDomains) {
         this.list = list;
         this.recipient = recipient;
         this.sender = sender;
@@ -61,6 +62,7 @@ public class MailingListUpdater implements UpdateConsumer {
         this.includeBranch = includeBranch;
         this.mode = mode;
         this.headers = headers;
+        this.allowedAuthorDomains = allowedAuthorDomains;
     }
 
     private String patchToText(Patch patch) {
@@ -101,7 +103,13 @@ public class MailingListUpdater implements UpdateConsumer {
 
     private EmailAddress commitsToAuthor(List<Commit> commits) {
         var commit = commits.get(commits.size() - 1);
-        return EmailAddress.from(commit.committer().name(), commit.committer().email());
+        var commitAddress = EmailAddress.from(commit.committer().name(), commit.committer().email());
+        var allowedAuthorMatcher = allowedAuthorDomains.matcher(commitAddress.domain());
+        if (!allowedAuthorMatcher.matches()) {
+            return sender;
+        } else {
+            return commitAddress;
+        }
     }
 
     private String commitsToSubject(HostedRepository repository, List<Commit> commits, Branch branch) {
