@@ -146,7 +146,10 @@ public class GitFork {
             exit("No username for host " + hostName + " found, use git-credentials or the flag --username");
         }
 
-        var host = Forge.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
+        var host = Forge.from(uri, new Credential(credentials.username(), credentials.password()));
+        if (host.isEmpty() || !host.get().isValid()) {
+            exit("Failed to connect to host " + hostName);
+        }
         if (path.endsWith(".git")) {
             path = path.substring(0, path.length() - 4);
         }
@@ -154,7 +157,7 @@ public class GitFork {
             path = path.substring(1);
         }
 
-        var fork = host.repository(path).fork();
+        var fork = host.get().repository(path).fork();
 
         if (token == null) {
             GitCredentials.approve(credentials);

@@ -20,9 +20,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.forge;
+package org.openjdk.skara.forge.github;
 
 import org.junit.jupiter.api.*;
+import org.openjdk.skara.forge.github.PositionMapper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

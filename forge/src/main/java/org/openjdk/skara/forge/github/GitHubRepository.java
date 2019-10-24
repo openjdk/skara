@@ -20,11 +20,11 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.forge;
+package org.openjdk.skara.forge.github;
 
-import org.openjdk.skara.issuetracker.Issue;
-import org.openjdk.skara.network.*;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.json.*;
+import org.openjdk.skara.network.*;
 import org.openjdk.skara.vcs.*;
 
 import java.net.URI;

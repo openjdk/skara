@@ -72,12 +72,15 @@ public class HostCredentials implements AutoCloseable {
             var hostUri = URIBuilder.base(config.get("host").asString()).build();
             var apps = config.get("apps").asArray();
             var key = configDir.resolve(apps.get(userIndex).get("key").asString());
-            return ForgeFactory.createGitHubHost(hostUri,
-                                                null,
-                                                null,
-                                                key.toString(),
-                                                apps.get(userIndex).get("id").asString(),
-                                                apps.get(userIndex).get("installation").asString());
+            try {
+                var keyContents = Files.readString(key, StandardCharsets.UTF_8);
+                var pat = new Credential(apps.get(userIndex).get("id").asString() + ";" +
+                                                 apps.get(userIndex).get("installation").asString(),
+                                         keyContents);
+                return Forge.from("github", hostUri, pat, null);
+            } catch (IOException e) {
+                throw new RuntimeException("Cannot read private key: " + key);
+            }
         }
 
         @Override
@@ -112,9 +115,9 @@ public class HostCredentials implements AutoCloseable {
         public Forge createRepositoryHost(int userIndex) {
             var hostUri = URIBuilder.base(config.get("host").asString()).build();
             var users = config.get("users").asArray();
-            var pat = new PersonalAccessToken(users.get(userIndex).get("name").asString(),
+            var pat = new Credential(users.get(userIndex).get("name").asString(),
                                               users.get(userIndex).get("pat").asString());
-            return ForgeFactory.createGitLabHost(hostUri, pat);
+            return Forge.from("gitlab", hostUri, pat, null);
         }
 
         @Override

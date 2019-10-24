@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.forge;
 
+import org.openjdk.skara.forge.gitlab.GitLabMergeRequest;
+
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.logging.Logger;
