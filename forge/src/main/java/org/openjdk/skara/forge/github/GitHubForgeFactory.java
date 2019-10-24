@@ -17,7 +17,7 @@ public class GitHubForgeFactory implements ForgeFactory {
     public Forge create(URI uri, Credential credential, JSONObject configuration) {
         Pattern webUriPattern = null;
         String webUriReplacement = null;
-        if (configuration.contains("weburl")) {
+        if (configuration != null && configuration.contains("weburl")) {
             webUriPattern = Pattern.compile(configuration.get("weburl").get("pattern").asString());
             webUriReplacement = configuration.get("weburl").get("replacement").asString();
         }

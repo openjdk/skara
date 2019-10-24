@@ -26,6 +26,7 @@ import org.openjdk.skara.bot.BotTaskAggregationHandler;
 import org.openjdk.skara.network.*;
 import org.openjdk.skara.json.JSON;
 
+import java.io.IOException;
 import java.net.URI;
 import java.time.*;
 import java.util.*;
@@ -98,7 +99,7 @@ class BotSlackHandler extends BotTaskAggregationHandler {
             }
 
             webhook.post("").body(query).executeUnparsed();
-        } catch (RuntimeException e) {
+        } catch (RuntimeException | IOException e) {
             log.warning("Exception during slack notification posting: " + e.getMessage());
             log.throwing("BotSlackHandler", "publish", e);
         }

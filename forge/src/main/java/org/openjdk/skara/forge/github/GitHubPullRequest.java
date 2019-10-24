@@ -29,6 +29,7 @@ import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
 import org.openjdk.skara.vcs.Hash;
 
+import java.io.*;
 import java.net.URI;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -136,62 +137,74 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public ReviewComment addReviewComment(Hash base, Hash hash, String path, int line, String body) {
-        var rawDiff = request.get("pulls/" + json.get("number").toString())
-                             .header("Accept", "application/vnd.github.v3.diff")
-                             .executeUnparsed();
-        var diff = PositionMapper.parse(rawDiff);
+        try {
+            var rawDiff = request.get("pulls/" + json.get("number").toString())
+                                 .header("Accept", "application/vnd.github.v3.diff")
+                                 .executeUnparsed();
+            var diff = PositionMapper.parse(rawDiff);
 
-        var query = JSON.object()
-                .put("body", body)
-                .put("commit_id", hash.hex())
-                .put("path", path)
-                .put("position", diff.lineToPosition(path, line));
-        var response = request.post("pulls/" + json.get("number").toString() + "/comments")
-                .body(query)
-                .execute();
-        return parseReviewComment(null, response.asObject(), diff);
+            var query = JSON.object()
+                            .put("body", body)
+                            .put("commit_id", hash.hex())
+                            .put("path", path)
+                            .put("position", diff.lineToPosition(path, line));
+            var response = request.post("pulls/" + json.get("number").toString() + "/comments")
+                                  .body(query)
+                                  .execute();
+            return parseReviewComment(null, response.asObject(), diff);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
     public ReviewComment addReviewCommentReply(ReviewComment parent, String body) {
-        var rawDiff = request.get("pulls/" + json.get("number").toString())
-                             .header("Accept", "application/vnd.github.v3.diff")
-                             .executeUnparsed();
-        var diff = PositionMapper.parse(rawDiff);
+        try {
+            var rawDiff = request.get("pulls/" + json.get("number").toString())
+                                 .header("Accept", "application/vnd.github.v3.diff")
+                                 .executeUnparsed();
+            var diff = PositionMapper.parse(rawDiff);
 
-        var query = JSON.object()
-                        .put("body", body)
-                .put("in_reply_to", Integer.parseInt(parent.threadId()));
-        var response = request.post("pulls/" + json.get("number").toString() + "/comments")
-                .body(query)
-                .execute();
-        return parseReviewComment(parent, response.asObject(), diff);
+            var query = JSON.object()
+                            .put("body", body)
+                            .put("in_reply_to", Integer.parseInt(parent.threadId()));
+            var response = request.post("pulls/" + json.get("number").toString() + "/comments")
+                                  .body(query)
+                                  .execute();
+            return parseReviewComment(parent, response.asObject(), diff);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
     public List<ReviewComment> reviewComments() {
-        var rawDiff = request.get("pulls/" + json.get("number").toString())
-                          .header("Accept", "application/vnd.github.v3.diff")
-                          .executeUnparsed();
-        var diff = PositionMapper.parse(rawDiff);
+        try {
+            var rawDiff = request.get("pulls/" + json.get("number").toString())
+                                 .header("Accept", "application/vnd.github.v3.diff")
+                                 .executeUnparsed();
+            var diff = PositionMapper.parse(rawDiff);
 
-        var ret = new ArrayList<ReviewComment>();
-        var reviewComments = request.get("pulls/" + json.get("number").toString() + "/comments").execute().stream()
-                                    .map(JSONValue::asObject)
-                                    .collect(Collectors.toList());
-        var idToComment = new HashMap<String, ReviewComment>();
+            var ret = new ArrayList<ReviewComment>();
+            var reviewComments = request.get("pulls/" + json.get("number").toString() + "/comments").execute().stream()
+                                        .map(JSONValue::asObject)
+                                        .collect(Collectors.toList());
+            var idToComment = new HashMap<String, ReviewComment>();
 
-        for (var reviewComment : reviewComments) {
-            ReviewComment parent = null;
-            if (reviewComment.contains("in_reply_to_id")) {
-                parent = idToComment.get(reviewComment.get("in_reply_to_id").toString());
+            for (var reviewComment : reviewComments) {
+                ReviewComment parent = null;
+                if (reviewComment.contains("in_reply_to_id")) {
+                    parent = idToComment.get(reviewComment.get("in_reply_to_id").toString());
+                }
+                var comment = parseReviewComment(parent, reviewComment, diff);
+                idToComment.put(comment.id(), comment);
+                ret.add(comment);
             }
-            var comment = parseReviewComment(parent, reviewComment, diff);
-            idToComment.put(comment.id(), comment);
-            ret.add(comment);
-        }
 
-        return ret;
+            return ret;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override

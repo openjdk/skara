@@ -48,12 +48,9 @@ public interface Forge extends Host {
                                     .sorted(Comparator.comparing(f -> !uri.getHost().contains(f.name())))
                                     .collect(Collectors.toList());
         for (var factory : factories) {
-            try {
-                var forge = factory.create(uri, credential, configuration);
-                if (forge.isValid()) {
-                    return Optional.of(forge);
-                }
-            } catch (RuntimeException ignored) {
+            var forge = factory.create(uri, credential, configuration);
+            if (forge.isValid()) {
+                return Optional.of(forge);
             }
         }
         return Optional.empty();

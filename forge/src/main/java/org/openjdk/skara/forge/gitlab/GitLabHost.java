@@ -27,14 +27,17 @@ import org.openjdk.skara.host.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
 
+import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.logging.Logger;
 
 public class GitLabHost implements Forge {
     private final URI uri;
     private final Credential pat;
     private final RestRequest request;
+    private final Logger log = Logger.getLogger("org.openjdk.skara.forge.gitlab");
 
     GitLabHost(URI uri, Credential pat) {
         this.uri = uri;
@@ -66,10 +69,20 @@ public class GitLabHost implements Forge {
 
     @Override
     public boolean isValid() {
-        var version = request.get("version")
-                              .onError(r -> JSON.object().put("invalid", true))
-                              .execute();
-        return !version.contains("invalid");
+        try {
+            var version = request.get("version")
+                                  .executeUnparsed();
+            var parsed = JSON.parse(version);
+            if (parsed != null && parsed.contains("version")) {
+                return true;
+            } else {
+                log.fine("Error during GitLab host validation: unexpected version: " + version);
+                return false;
+            }
+        } catch (IOException e) {
+            log.fine("Error during GitLab host validation: " + e);
+            return false;
+        }
     }
 
     JSONObject getProjectInfo(String name) {
