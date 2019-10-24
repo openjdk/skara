@@ -276,12 +276,11 @@ class BotRunnerTests {
     }
 
     @Test
-    @DisabledOnOs(OS.WINDOWS)
     void watchdogTrigger() throws TimeoutException {
         var countdownLatch = new CountDownLatch(1);
         var item = new TestBlockedWorkItem(countdownLatch);
         var bot = new TestBot(item);
-        var runner = new BotRunner(config("{ \"runner\": { \"watchdog\": \"PT0.01S\" } }"), List.of(bot));
+        var runner = new BotRunner(config("{ \"runner\": { \"watchdog\": \"PT0.01S\", \"interval\": \"PT0.001S\" } }"), List.of(bot));
 
         var errors = new ArrayList<String>();
         var log = Logger.getLogger("org.openjdk.skara.bot");
@@ -302,9 +301,9 @@ class BotRunnerTests {
             }
         });
 
-        assertThrows(TimeoutException.class, () -> runner.runOnce(Duration.ofMillis(100)));
+        runner.run(Duration.ofMillis(100));
         assertTrue(errors.size() > 0);
-        assertTrue(errors.size() <= 10);
+        assertTrue(errors.size() <= 100);
         countdownLatch.countDown();
     }
 }

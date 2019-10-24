@@ -106,8 +106,9 @@ public class JNotifyBotFactory implements BotFactory {
                                        .collect(Collectors.toMap(JSONObject.Field::name, field -> field.value().asString())) :
                             Map.of();
                     var author = mailinglist.contains("author") ? EmailAddress.parse(mailinglist.get("author").asString()) : null;
+                    var allowedDomains = author == null ? Pattern.compile(mailinglist.get("domains").asString()) : null;
                     updaters.add(new MailingListUpdater(listServer.getList(recipient), recipientAddress, sender, author,
-                                                        includeBranchNames, mode, headers));
+                                                        includeBranchNames, mode, headers, allowedDomains));
                 }
             }
 
