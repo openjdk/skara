@@ -160,11 +160,15 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     private ReviewComment parseReviewComment(String discussionId, ReviewComment parent, JSONObject note) {
+        var line = note.get("position").get("new_line").isNull() ?
+                note.get("position").get("old_line").asInt() :
+                note.get("position").get("new_line").asInt();
+
         var comment = new ReviewComment(parent,
                                         discussionId,
                                         new Hash(note.get("position").get("head_sha").asString()),
                                         note.get("position").get("new_path").asString(),
-                                        note.get("position").get("new_line").asInt(),
+                                        line,
                                         note.get("id").toString(),
                                         note.get("body").asString(),
                                         new HostUser(note.get("author").get("id").asInt(),
