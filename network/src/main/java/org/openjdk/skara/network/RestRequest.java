@@ -231,14 +231,18 @@ public class RestRequest {
                                        .build();
                 response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 break;
-            } catch (InterruptedException e) {
+            } catch (InterruptedException | IOException e) {
                 if (retryCount < 5) {
                     try {
                         Thread.sleep(retryCount * retryBackoffStep.toMillis());
                     } catch (InterruptedException ignored) {
                     }
                 } else {
-                    throw new RuntimeException(e);
+                    try {
+                        throw e;
+                    } catch (InterruptedException ex) {
+                        throw new RuntimeException(ex);
+                    }
                 }
             }
             retryCount++;
