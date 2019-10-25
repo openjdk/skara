@@ -330,7 +330,7 @@ public class GitRepository implements Repository {
 
     @Override
     public Hash fetch(URI uri, String refspec) throws IOException {
-        try (var p = capture("git", "fetch", "--tags", uri.toString(), refspec)) {
+        try (var p = capture("git", "fetch", "--recurse-submodules=on-demand", "--tags", uri.toString(), refspec)) {
             await(p);
             return resolve("FETCH_HEAD").get();
         }
@@ -338,7 +338,7 @@ public class GitRepository implements Repository {
 
     @Override
     public void fetchAll() throws IOException {
-        try (var p = capture("git", "fetch", "--tags", "--prune", "--prune-tags", "--all")) {
+        try (var p = capture("git", "fetch", "--recurse-submodules=on-demand", "--tags", "--prune", "--prune-tags", "--all")) {
             await(p);
         }
     }
