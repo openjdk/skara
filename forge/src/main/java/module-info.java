@@ -34,4 +34,8 @@ module org.openjdk.skara.forge {
     requires java.logging;
 
     exports org.openjdk.skara.forge;
+
+    uses org.openjdk.skara.forge.ForgeFactory;
+
+    provides org.openjdk.skara.forge.ForgeFactory with org.openjdk.skara.forge.github.GitHubForgeFactory, org.openjdk.skara.forge.gitlab.GitLabForgeFactory;
 }

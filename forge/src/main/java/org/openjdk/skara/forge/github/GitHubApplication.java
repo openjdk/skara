@@ -20,16 +20,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.forge;
+package org.openjdk.skara.forge.github;
 
-import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.json.*;
+import org.openjdk.skara.network.URIBuilder;
 
 import java.io.*;
 import java.net.URI;
 import java.net.http.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
 import java.security.*;
 import java.security.spec.*;
 import java.time.*;
@@ -104,7 +103,7 @@ public class GitHubApplication {
         }
     }
 
-    public GitHubApplication(String keyFile, String issue, String id) {
+    public GitHubApplication(String key, String issue, String id) {
 
         log = Logger.getLogger("org.openjdk.host.github");
 
@@ -112,14 +111,13 @@ public class GitHubApplication {
         this.issue = issue;
         this.id = id;
 
-        key = loadPkcs8PemFromFile(keyFile);
+        this.key = loadPkcs8PemFromString(key);
         jwt = new Token(this::generateJsonWebToken, Duration.ofMinutes(5));
         installationToken = new Token(this::generateInstallationToken, Duration.ofMinutes(30));
     }
 
-    private PrivateKey loadPkcs8PemFromFile(String keyFile) {
+    private PrivateKey loadPkcs8PemFromString(String pem) {
         try {
-            var pem = new String(Files.readAllBytes(Paths.get(keyFile)));
             var pemPattern = Pattern.compile("^-*BEGIN PRIVATE KEY-*$(.*)^-*END PRIVATE KEY-*",
                     Pattern.DOTALL | Pattern.MULTILINE);
             var keyString = pemPattern.matcher(pem).replaceFirst("$1");
@@ -127,8 +125,8 @@ public class GitHubApplication {
             var rawKey = Base64.getMimeDecoder().decode(keyString);
             var factory = KeyFactory.getInstance("RSA");
             return factory.generatePrivate(new PKCS8EncodedKeySpec(rawKey));
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException e) {
-            throw new GitHubConfigurationError("Unable to load private key (" + keyFile + ": " + e + ")");
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            throw new GitHubConfigurationError("Unable to load private key (" + e + ")");
         }
     }
 

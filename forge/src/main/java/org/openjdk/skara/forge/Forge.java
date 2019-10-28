@@ -23,17 +23,44 @@
 package org.openjdk.skara.forge;
 
 import org.openjdk.skara.host.*;
+import org.openjdk.skara.json.JSONObject;
 
 import java.net.URI;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public interface Forge extends Host {
     HostedRepository repository(String name);
     boolean supportsReviewBody();
 
-    static Forge from(URI uri, PersonalAccessToken pat) {
-        return ForgeFactory.createFromURI(uri, pat);
+    static Forge from(String name, URI uri, Credential credential, JSONObject configuration) {
+        var factory = ForgeFactory.getForgeFactories().stream()
+                                    .filter(f -> f.name().equals(name))
+                                    .findFirst();
+        if (factory.isEmpty()) {
+            throw new RuntimeException("No forge factory named '" + name + "' found - check module path");
+        }
+        return factory.get().create(uri, credential, configuration);
     }
-    static Forge from(URI uri) {
-        return ForgeFactory.createFromURI(uri, null);
+
+    static Optional<Forge> from(URI uri, Credential credential, JSONObject configuration) {
+        var factories = ForgeFactory.getForgeFactories().stream()
+                                    .sorted(Comparator.comparing(f -> !uri.getHost().contains(f.name())))
+                                    .collect(Collectors.toList());
+        for (var factory : factories) {
+            var forge = factory.create(uri, credential, configuration);
+            if (forge.isValid()) {
+                return Optional.of(forge);
+            }
+        }
+        return Optional.empty();
+    }
+
+    static Optional<Forge> from(URI uri, Credential credential) {
+        return from(uri, credential, null);
+    }
+
+    static Optional<Forge> from(URI uri) {
+        return from(uri, null);
     }
 }

@@ -20,15 +20,18 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.forge;
+package org.openjdk.skara.forge.github;
 
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
-import org.openjdk.skara.network.*;
 import org.openjdk.skara.json.*;
+import org.openjdk.skara.network.*;
 
+import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 public class GitHubHost implements Forge {
@@ -36,9 +39,10 @@ public class GitHubHost implements Forge {
     private final Pattern webUriPattern;
     private final String webUriReplacement;
     private final GitHubApplication application;
-    private final PersonalAccessToken pat;
+    private final Credential pat;
     private final RestRequest request;
     private HostUser currentUser;
+    private final Logger log = Logger.getLogger("org.openjdk.skara.forge.github");
 
     public GitHubHost(URI uri, GitHubApplication application, Pattern webUriPattern, String webUriReplacement) {
         this.uri = uri;
@@ -58,10 +62,10 @@ public class GitHubHost implements Forge {
                 "Accept", "application/vnd.github.antiope-preview+json"));
     }
 
-    public GitHubHost(URI uri, PersonalAccessToken pat) {
+    public GitHubHost(URI uri, Credential pat, Pattern webUriPattern, String webUriReplacement) {
         this.uri = uri;
-        this.webUriPattern = null;
-        this.webUriReplacement = null;
+        this.webUriPattern = webUriPattern;
+        this.webUriReplacement = webUriReplacement;
         this.pat = pat;
         this.application = null;
 
@@ -71,13 +75,13 @@ public class GitHubHost implements Forge {
                                 .build();
 
         request = new RestRequest(baseApi, () -> Arrays.asList(
-                "Authorization", "token " + pat.token()));
+                "Authorization", "token " + pat.password()));
     }
 
-    public GitHubHost(URI uri) {
+    GitHubHost(URI uri, Pattern webUriPattern, String webUriReplacement) {
         this.uri = uri;
-        this.webUriPattern = null;
-        this.webUriReplacement = null;
+        this.webUriPattern = webUriPattern;
+        this.webUriReplacement = webUriReplacement;
         this.pat = null;
         this.application = null;
 
@@ -114,7 +118,7 @@ public class GitHubHost implements Forge {
         if (application != null) {
             return application.getInstallationToken();
         } else {
-            return pat.token();
+            return pat.password();
         }
     }
 
@@ -135,10 +139,20 @@ public class GitHubHost implements Forge {
 
     @Override
     public boolean isValid() {
-        var endpoints = request.get("")
-                               .onError(response -> JSON.of())
-                               .execute();
-        return !endpoints.isNull();
+        try {
+            var endpoints = request.get("")
+                                   .executeUnparsed();
+            var parsed = JSON.parse(endpoints);
+            if (parsed != null && parsed.contains("current_user_url")) {
+                return true;
+            } else {
+                log.fine("Error during GitHub host validation: unexpected endpoint list: " + endpoints);
+                return false;
+            }
+        } catch (IOException e) {
+            log.fine("Error during GitHub host validation: " + e);
+            return false;
+        }
     }
 
     JSONObject getProjectInfo(String name) {
@@ -182,7 +196,7 @@ public class GitHubHost implements Forge {
                 var appName = appDetails.get("name").asString() + "[bot]";
                 currentUser = user(appName);
             } else if (pat != null) {
-                currentUser = user(pat.userName());
+                currentUser = user(pat.username());
             } else {
                 throw new IllegalStateException("No credentials present");
             }

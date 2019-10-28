@@ -22,20 +22,20 @@
  */
 package org.openjdk.skara.host;
 
-public class PersonalAccessToken {
-    private final String userName;
-    private final String token;
+public class Credential {
+    private final String username;
+    private final String password;
 
-    public PersonalAccessToken(String userName, String token) {
-        this.userName = userName;
-        this.token = token;
+    public Credential(String username, String password) {
+        this.username = username;
+        this.password = password;
     }
 
-    public String token() {
-        return token;
+    public String password() {
+        return password;
     }
 
-    public String userName() {
-        return userName;
+    public String username() {
+        return username;
     }
 }

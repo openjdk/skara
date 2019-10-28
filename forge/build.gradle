@@ -28,6 +28,8 @@ module {
         requires 'org.junit.jupiter.api'
         requires 'jdk.httpserver'
         opens 'org.openjdk.skara.forge' to 'org.junit.platform.commons'
+        opens 'org.openjdk.skara.forge.github' to 'org.junit.platform.commons'
+        opens 'org.openjdk.skara.forge.gitlab' to 'org.junit.platform.commons'
     }
 }
 

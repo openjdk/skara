@@ -20,8 +20,9 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.forge;
+package org.openjdk.skara.forge.gitlab;
 
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
 import org.openjdk.skara.vcs.*;
@@ -51,7 +52,7 @@ public class GitLabRepository implements HostedRepository {
                 .build();
 
         request = gitLabHost.getPat()
-                            .map(pat -> new RestRequest(baseApi, () -> Arrays.asList("Private-Token", pat.token())))
+                            .map(pat -> new RestRequest(baseApi, () -> Arrays.asList("Private-Token", pat.password())))
                             .orElseGet(() -> new RestRequest(baseApi));
 
         var urlPattern = URIBuilder.base(gitLabHost.getUri())
@@ -136,7 +137,7 @@ public class GitLabRepository implements HostedRepository {
         var builder = URIBuilder
                 .base(gitLabHost.getUri())
                 .setPath("/" + projectName + ".git");
-        gitLabHost.getPat().ifPresent(pat -> builder.setAuthentication(pat.userName() + ":" + pat.token()));
+        gitLabHost.getPat().ifPresent(pat -> builder.setAuthentication(pat.username() + ":" + pat.password()));
         return builder.build();
     }
 

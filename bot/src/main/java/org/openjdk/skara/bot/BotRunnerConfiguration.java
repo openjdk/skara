@@ -23,19 +23,19 @@
 package org.openjdk.skara.bot;
 
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.json.JSONObject;
+import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.vcs.VCS;
 
 import java.io.*;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.Duration;
 import java.util.*;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 public class BotRunnerConfiguration {
     private final Logger log;
@@ -64,8 +64,8 @@ public class BotRunnerConfiguration {
             if (entry.value().contains("gitlab")) {
                 var gitlab = entry.value().get("gitlab");
                 var uri = URIBuilder.base(gitlab.get("url").asString()).build();
-                var pat = new PersonalAccessToken(gitlab.get("username").asString(), gitlab.get("pat").asString());
-                ret.put(entry.name(), ForgeFactory.createGitLabHost(uri, pat));
+                var pat = new Credential(gitlab.get("username").asString(), gitlab.get("pat").asString());
+                ret.put(entry.name(), Forge.from("gitlab", uri, pat, gitlab.asObject()));
             } else if (entry.value().contains("github")) {
                 var github = entry.value().get("github");
                 URI uri;
@@ -74,21 +74,21 @@ public class BotRunnerConfiguration {
                 } else {
                     uri = URIBuilder.base("https://github.com/").build();
                 }
-                Pattern webUriPattern = null;
-                String webUriReplacement = null;
-                if (github.contains("weburl")) {
-                    webUriPattern = Pattern.compile(github.get("weburl").get("pattern").asString());
-                    webUriReplacement = github.get("weburl").get("replacement").asString();
-                }
 
                 if (github.contains("app")) {
                     var keyFile = cwd.resolve(github.get("app").get("key").asString());
-                    ret.put(entry.name(), ForgeFactory.createGitHubHost(uri, webUriPattern, webUriReplacement, keyFile.toString(),
-                                                                       github.get("app").get("id").asString(),
-                                                                       github.get("app").get("installation").asString()));
+                    try {
+                        var keyContents = Files.readString(keyFile, StandardCharsets.UTF_8);
+                        var pat = new Credential(github.get("app").get("id").asString() + ";" +
+                                                         github.get("app").get("installation").asString(),
+                                                 keyContents);
+                        ret.put(entry.name(), Forge.from("github", uri, pat, github.asObject()));
+                    } catch (IOException e) {
+                        throw new ConfigurationError("Cannot find key file: " + keyFile);
+                    }
                 } else {
-                    var pat = new PersonalAccessToken(github.get("username").asString(), github.get("pat").asString());
-                    ret.put(entry.name(), ForgeFactory.createGitHubHost(uri, pat));
+                    var pat = new Credential(github.get("username").asString(), github.get("pat").asString());
+                    ret.put(entry.name(), Forge.from("github", uri, pat, github.asObject()));
                 }
             } else {
                 throw new ConfigurationError("Host " + entry.name());

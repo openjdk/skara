@@ -27,8 +27,8 @@ import org.openjdk.skara.host.*;
 import java.net.URI;
 
 public class IssueTrackerFactory {
-    public static IssueTracker createJiraHost(URI uri, PersonalAccessToken pat) {
-        if (pat != null) {
+    public static IssueTracker createJiraHost(URI uri, Credential credential) {
+        if (credential != null) {
             throw new RuntimeException("authentication not implemented yet");
         }
         return new JiraHost(uri);

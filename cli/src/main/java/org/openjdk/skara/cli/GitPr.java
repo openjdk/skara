@@ -101,11 +101,14 @@ public class GitPr {
     }
 
     private static HostedRepository getHostedRepositoryFor(URI uri, GitCredentials credentials) throws IOException {
-        var host = Forge.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
+        var host = Forge.from(uri, new Credential(credentials.username(), credentials.password()));
         if (System.getenv("GIT_TOKEN") == null) {
             GitCredentials.approve(credentials);
         }
-        var remoteRepo = host.repository(projectName(uri));
+        if (host.isEmpty() || !host.get().isValid()) {
+            exit("error: failed to connect to host " + uri);
+        }
+        var remoteRepo = host.get().repository(projectName(uri));
         var parentRepo = remoteRepo.parent();
         var targetRepo = parentRepo.isPresent() ? parentRepo.get() : remoteRepo;
         return targetRepo;
@@ -309,7 +312,10 @@ public class GitPr {
         var token = isMercurial ? System.getenv("HG_TOKEN") :  System.getenv("GIT_TOKEN");
         var uri = Remote.toWebURI(remotePullPath);
         var credentials = GitCredentials.fill(uri.getHost(), uri.getPath(), username, token, uri.getScheme());
-        var host = Forge.from(uri, new PersonalAccessToken(credentials.username(), credentials.password()));
+        var host = Forge.from(uri, new Credential(credentials.username(), credentials.password()));
+        if (host.isEmpty() || !host.get().isValid()) {
+            exit("error: failed to connect to host " + uri);
+        }
 
         var action = arguments.at(0).asString();
         if (action.equals("create")) {
@@ -412,7 +418,7 @@ public class GitPr {
                     System.exit(1);
                 }
 
-                var remoteRepo = host.repository(projectName(uri));
+                var remoteRepo = host.get().repository(projectName(uri));
                 if (token == null) {
                     GitCredentials.approve(credentials);
                 }
@@ -480,7 +486,7 @@ public class GitPr {
                 if (arguments.contains("assignees")) {
                     var usernames = Arrays.asList(arguments.get("assignees").asString().split(","));
                     var assignees = usernames.stream()
-                                             .map(host::user)
+                                             .map(u -> host.get().user(u))
                                              .collect(Collectors.toList());
                     pr.setAssignees(assignees);
                 }
@@ -569,7 +575,7 @@ public class GitPr {
                 System.exit(1);
             }
 
-            var remoteRepo = host.repository(projectName(uri));
+            var remoteRepo = host.get().repository(projectName(uri));
             if (token == null) {
                 GitCredentials.approve(credentials);
             }
@@ -637,7 +643,7 @@ public class GitPr {
             if (arguments.contains("assignees")) {
                 var usernames = Arrays.asList(arguments.get("assignees").asString().split(","));
                 var assignees = usernames.stream()
-                                         .map(host::user)
+                                         .map(u -> host.get().user(u))
                                          .collect(Collectors.toList());
                 pr.setAssignees(assignees);
             }
@@ -834,7 +840,7 @@ public class GitPr {
             if (arguments.contains("assignees")) {
                 var usernames = Arrays.asList(arguments.get("assignees").asString().split(","));
                 var assignees = usernames.stream()
-                    .map(host::user)
+                    .map(u -> host.get().user(u))
                     .collect(Collectors.toList());
                 pr.setAssignees(assignees);
             }

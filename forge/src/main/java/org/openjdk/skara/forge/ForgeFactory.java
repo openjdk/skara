@@ -22,56 +22,30 @@
  */
 package org.openjdk.skara.forge;
 
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.host.Credential;
+import org.openjdk.skara.json.JSONObject;
 
 import java.net.URI;
-import java.util.regex.Pattern;
+import java.util.*;
+import java.util.stream.*;
 
-public class ForgeFactory {
-    public static Forge createGitHubHost(URI uri, Pattern webUriPattern, String webUriReplacement, String keyFile, String issue, String id) {
-        var app = new GitHubApplication(keyFile, issue, id);
-        return new GitHubHost(uri, app, webUriPattern, webUriReplacement);
+public interface ForgeFactory {
+
+    /**
+     * A user-friendly name for the given forge, used for configuration section naming. Should be lower case.
+     * @return
+     */
+    String name();
+
+    /**
+     * Instantiate an instance of this forge.
+     * @return
+     */
+    Forge create(URI uri, Credential credential, JSONObject configuration);
+
+    static List<ForgeFactory> getForgeFactories() {
+        return StreamSupport.stream(ServiceLoader.load(ForgeFactory.class).spliterator(), false)
+                            .collect(Collectors.toList());
     }
 
-    public static Forge createGitHubHost(URI uri, PersonalAccessToken pat) {
-        if (pat != null) {
-            return new GitHubHost(uri, pat);
-        } else {
-            return new GitHubHost(uri);
-        }
-    }
-
-    public static Forge createGitLabHost(URI uri, PersonalAccessToken pat) {
-        if (pat != null) {
-            return new GitLabHost(uri, pat);
-        } else {
-            return new GitLabHost(uri);
-        }
-    }
-
-    public static Forge createFromURI(URI uri, PersonalAccessToken pat) throws IllegalArgumentException {
-        // Short-circuit
-        if (uri.toString().contains("github")) {
-            return createGitHubHost(uri, pat);
-        } else if (uri.toString().contains("gitlab")) {
-            return createGitLabHost(uri, pat);
-        }
-
-        try {
-            var gitLabHost = createGitLabHost(uri, pat);
-            if (gitLabHost.isValid()) {
-                return gitLabHost;
-            }
-        } catch (RuntimeException e) {
-            try {
-                var gitHubHost = createGitHubHost(uri, pat);
-                if (gitHubHost.isValid()) {
-                    return gitHubHost;
-                }
-            } catch (RuntimeException ignored) {
-            }
-        }
-
-        throw new IllegalArgumentException("Unable to detect host type from URI: " + uri);
-    }
 }
