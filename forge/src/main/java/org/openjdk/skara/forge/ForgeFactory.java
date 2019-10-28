@@ -30,7 +30,6 @@ import java.util.*;
 import java.util.stream.*;
 
 public interface ForgeFactory {
-
     /**
      * A user-friendly name for the given forge, used for configuration section naming. Should be lower case.
      * @return
@@ -47,5 +46,4 @@ public interface ForgeFactory {
         return StreamSupport.stream(ServiceLoader.load(ForgeFactory.class).spliterator(), false)
                             .collect(Collectors.toList());
     }
-
 }
