@@ -161,14 +161,25 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     private ReviewComment parseReviewComment(String discussionId, ReviewComment parent, JSONObject note) {
-        var line = note.get("position").get("new_line").isNull() ?
-                note.get("position").get("old_line").asInt() :
-                note.get("position").get("new_line").asInt();
+        int line;
+        String path;
+        Hash hash;
+
+        // Is the comment on the old or the new version of the file?
+        if (note.get("position").get("new_line").isNull()) {
+            line = note.get("position").get("old_line").asInt();
+            path = note.get("position").get("old_path").asString();
+            hash = new Hash(note.get("position").get("start_sha").asString());
+        } else {
+            line = note.get("position").get("new_line").asInt();
+            path = note.get("position").get("new_path").asString();
+            hash = new Hash(note.get("position").get("head_sha").asString());
+        }
 
         var comment = new ReviewComment(parent,
                                         discussionId,
-                                        new Hash(note.get("position").get("head_sha").asString()),
-                                        note.get("position").get("new_path").asString(),
+                                        hash,
+                                        path,
                                         line,
                                         note.get("id").toString(),
                                         note.get("body").asString(),
