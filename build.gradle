@@ -21,6 +21,59 @@
  * questions.
  */
 
+buildscript {
+    def deps = [:]
+    file('deps.env').readLines().each() {
+        def (key, value) = it.tokenize('=')
+        if (key != null && value != null) {
+            deps[key] = value.replaceAll(/^\"|\"$/, '')
+        }
+    }
+
+    ext {
+        def os = System.getProperty('os.name').toLowerCase()
+        osName = os.startsWith('win') ? 'Windows' :
+            os.startsWith('mac') ? 'Macos' : 'Linux'
+
+        def jdks = [
+            'Windows': [
+                'amd64': [
+                    url: deps['JDK_WINDOWS_URL'],
+                    sha256: deps['JDK_WINDOWS_SHA256']
+                ],
+            ],
+            'Linux': [
+                'amd64': [
+                    url: deps['JDK_LINUX_X86_64_URL'],
+                    sha256: deps['JDK_LINUX_X86_64_SHA256']
+                ],
+                'aarch64': [
+                    url: deps['JDK_LINUX_AARCH64_URL'],
+                    sha256: deps['JDK_LINUX_AARCH64_SHA256']
+                ],
+            ],
+            'Macos': [
+                'amd64': [
+                    url: deps['JDK_MACOS_URL'],
+                    sha256: deps['JDK_MACOS_SHA256']
+                ],
+            ],
+        ]
+
+        if (osName in jdks) {
+            def arch = System.getProperty('os.arch')
+            if (arch in jdks[osName]) {
+                jdkUrl = jdks[osName][arch].url
+                jdkSha256 = jdks[osName][arch].sha256
+            } else {
+                throw new GradleException("Unsupported architecture: ${arch}")
+            }
+        } else {
+            throw new GradleException("Unsupported OS: ${os}")
+        }
+    }
+}
+
 plugins {
     id 'org.openjdk.skara.gradle.proxy'
     id 'org.openjdk.skara.gradle.version'
@@ -108,11 +161,8 @@ task local(type: Copy) {
     doFirst {
         delete project.buildDir
     }
-    def os = System.getProperty('os.name').toLowerCase()
-    def osName = os.startsWith('win') ? 'Windows' :
-        os.startsWith('mac') ? 'Macos' : 'Linux'
 
-    dependsOn ':cli:image' + osName
+    dependsOn ':cli:image' + project.osName
     from zipTree(file(project.rootDir.toString() +
                       '/cli/build/distributions/cli' +
                       '-' + project.version + '-' +

@@ -76,8 +76,8 @@ images {
         launchers = ext.launchers
         bundles = ['zip', 'tar.gz']
         jdk {
-            url = 'https://download.java.net/java/GA/jdk12/GPL/openjdk-12_windows-x64_bin.zip'
-            sha256 = '35a8d018f420fb05fe7c2aa9933122896ca50bd23dbd373e90d8e2f3897c4e92'
+            url = project.jdkUrl
+            sha256 = project.jdkSha256
         }
     }
 
@@ -87,8 +87,8 @@ images {
         man = 'cli/resources/man'
         bundles = ['zip', 'tar.gz']
         jdk {
-            url = 'https://download.java.net/java/GA/jdk12/GPL/openjdk-12_linux-x64_bin.tar.gz'
-            sha256 = 'b43bc15f4934f6d321170419f2c24451486bc848a2179af5e49d10721438dd56'
+            url = project.jdkUrl
+            sha256 = project.jdkSha256
         }
     }
 
@@ -98,8 +98,8 @@ images {
         man = 'cli/resources/man'
         bundles = ['zip', 'tar.gz']
         jdk {
-            url = 'https://download.java.net/java/GA/jdk12/GPL/openjdk-12_osx-x64_bin.tar.gz'
-            sha256 = '52164a04db4d3fdfe128cfc7b868bc4dae52d969f03d53ae9d4239fe783e1a3a'
+            url = project.jdkUrl
+            sha256 = project.jdkSha256
         }
     }
 }

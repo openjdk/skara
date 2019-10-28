@@ -80,8 +80,8 @@ images {
         options = ["--module-path", "plugins"]
         bundles = ['zip', 'tar.gz']
         jdk {
-            url = 'https://download.java.net/java/GA/jdk12/GPL/openjdk-12_linux-x64_bin.tar.gz'
-            sha256 = 'b43bc15f4934f6d321170419f2c24451486bc848a2179af5e49d10721438dd56'
+            url = project.jdkUrl
+            sha256 = project.jdkSha256
         }
     }
 }

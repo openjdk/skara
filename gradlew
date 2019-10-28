@@ -82,12 +82,25 @@ extract_zip() {
 
 DIR=$(dirname $0)
 OS=$(uname)
+ARCH=$(uname -m)
 
 . $(dirname "${0}")/deps.env
 case "${OS}" in
     Linux )
-        JDK_URL="${JDK_LINUX_URL}"
-        JDK_SHA256="${JDK_LINUX_SHA256}"
+        case "${ARCH}" in
+            x86_64 )
+                JDK_URL="${JDK_LINUX_X86_64_URL}"
+                JDK_SHA256="${JDK_LINUX_X86_64_SHA256}"
+                ;;
+            aarch64 )
+                JDK_URL="${JDK_LINUX_AARCH64_URL}"
+                JDK_SHA256="${JDK_LINUX_AARCH64_SHA256}"
+                ;;
+            *)
+                echo "error: unsupported Linux architecture ${ARCH}"
+                exit 1
+                ;;
+        esac
         ;;
     Darwin )
         JDK_URL="${JDK_MACOS_URL}"
