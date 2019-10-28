@@ -20,23 +20,26 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.issuetracker;
+package org.openjdk.skara.issuetracker.jira;
 
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.host.Credential;
+import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.JSONObject;
 
 import java.net.URI;
 
-public interface IssueTracker extends Host {
-    IssueProject project(String name);
+public class JiraIssueTrackerFactory implements IssueTrackerFactory {
+    @Override
+    public String name() {
+        return "jira";
+    }
 
-    static IssueTracker from(String name, URI uri, Credential credential, JSONObject configuration) {
-        var factory = IssueTrackerFactory.getIssueTrackerFactories().stream()
-                                  .filter(f -> f.name().equals(name))
-                                  .findFirst();
-        if (factory.isEmpty()) {
-            throw new RuntimeException("No issue tracker factory named '" + name + "' found - check module path");
+    @Override
+    public IssueTracker create(URI uri, Credential credential, JSONObject configuration) {
+        if (credential == null) {
+            return new JiraHost(uri);
+        } else {
+            throw new RuntimeException("authentication not implemented yet");
         }
-        return factory.get().create(uri, credential, configuration);
     }
 }

@@ -20,8 +20,9 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.issuetracker;
+package org.openjdk.skara.issuetracker.jira;
 
+import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.network.*;
 
