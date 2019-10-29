@@ -450,6 +450,7 @@ class CheckRun {
         var checkBuilder = CheckBuilder.create("jcheck", pr.headHash());
         checkBuilder.title("Required");
         var censusDomain = censusInstance.configuration().census().domain();
+        Exception checkException = null;
 
         try {
             // Post check in-progress
@@ -513,11 +514,11 @@ class CheckRun {
         } catch (Exception e) {
             log.throwing("CommitChecker", "checkStatus", e);
             newLabels.remove("ready");
-            var metadata = workItem.getMetadata(pr.title(), pr.body(), pr.comments(), activeReviews, newLabels, censusInstance, pr.targetHash());
-            checkBuilder.metadata(metadata);
-            checkBuilder.title("Exception occurred during jcheck");
+            checkBuilder.metadata("invalid");
+            checkBuilder.title("Exception occurred during jcheck - the operation will be retried");
             checkBuilder.summary(e.getMessage());
             checkBuilder.complete(false);
+            checkException = e;
         }
         var check = checkBuilder.build();
         pr.updateCheck(check);
@@ -532,6 +533,11 @@ class CheckRun {
             if (!newLabels.contains(oldLabel)) {
                 pr.removeLabel(oldLabel);
             }
+        }
+
+        // After updating the PR, rethrow any exception to automatically retry on transient errors
+        if (checkException != null) {
+            throw new RuntimeException("Exception during jcheck", checkException);
         }
     }
 }
