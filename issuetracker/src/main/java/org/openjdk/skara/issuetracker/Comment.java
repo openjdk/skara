@@ -27,7 +27,6 @@ import org.openjdk.skara.host.HostUser;
 import java.time.ZonedDateTime;
 
 public class Comment {
-
     private final String id;
     private final String body;
     private final HostUser author;

@@ -109,7 +109,7 @@ public class BotRunnerConfiguration {
             if (entry.value().contains("jira")) {
                 var jira = entry.value().get("jira");
                 var uri = URIBuilder.base(jira.get("url").asString()).build();
-                ret.put(entry.name(), IssueTrackerFactory.createJiraHost(uri, null));
+                ret.put(entry.name(), IssueTracker.from("jira", uri, null, jira.asObject()));
             } else {
                 throw new ConfigurationError("Host " + entry.name());
             }

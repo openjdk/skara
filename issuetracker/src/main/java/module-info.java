@@ -33,4 +33,8 @@ module org.openjdk.skara.issuetracker {
     requires java.logging;
 
     exports org.openjdk.skara.issuetracker;
+
+    uses org.openjdk.skara.issuetracker.IssueTrackerFactory;
+
+    provides org.openjdk.skara.issuetracker.IssueTrackerFactory with org.openjdk.skara.issuetracker.jira.JiraIssueTrackerFactory;
 }

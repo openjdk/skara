@@ -22,15 +22,28 @@
  */
 package org.openjdk.skara.issuetracker;
 
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.host.Credential;
+import org.openjdk.skara.json.JSONObject;
 
 import java.net.URI;
+import java.util.*;
+import java.util.stream.*;
 
-public class IssueTrackerFactory {
-    public static IssueTracker createJiraHost(URI uri, Credential credential) {
-        if (credential != null) {
-            throw new RuntimeException("authentication not implemented yet");
-        }
-        return new JiraHost(uri);
+public interface IssueTrackerFactory {
+    /**
+     * A user-friendly name for the given issue tracker, used for configuration section naming. Should be lower case.
+     * @return
+     */
+    String name();
+
+    /**
+     * Instantiate an instance of this issue tracker.
+     * @return
+     */
+    IssueTracker create(URI uri, Credential credential, JSONObject configuration);
+
+    static List<IssueTrackerFactory> getIssueTrackerFactories() {
+        return StreamSupport.stream(ServiceLoader.load(IssueTrackerFactory.class).spliterator(), false)
+                            .collect(Collectors.toList());
     }
 }
