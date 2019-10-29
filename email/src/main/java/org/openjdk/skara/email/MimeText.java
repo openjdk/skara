@@ -34,7 +34,7 @@ public class MimeText {
 
     public static String encode(String raw) {
         var quoteMatcher = encodePattern.matcher(raw);
-        return quoteMatcher.replaceAll(mo -> "=?utf-8?b?" + Base64.getEncoder().encodeToString(String.valueOf(mo.group(1)).getBytes(StandardCharsets.UTF_8)) + "?=");
+        return quoteMatcher.replaceAll(mo -> "=?UTF-8?B?" + Base64.getEncoder().encodeToString(String.valueOf(mo.group(1)).getBytes(StandardCharsets.UTF_8)) + "?=");
     }
 
     public static String decode(String encoded) {
