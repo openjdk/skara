@@ -22,31 +22,33 @@
  */
 package org.openjdk.skara.issuetracker.jira;
 
-import org.openjdk.skara.host.Credential;
-import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.json.JSONObject;
-import org.openjdk.skara.network.URIBuilder;
+import org.openjdk.skara.network.RestRequest;
 
 import java.net.URI;
+import java.time.*;
+import java.util.Arrays;
+import java.util.logging.Logger;
 
-public class JiraIssueTrackerFactory implements IssueTrackerFactory {
-    @Override
-    public String name() {
-        return "jira";
+class JiraVault {
+    private final RestRequest request;
+    private final Logger log = Logger.getLogger("org.openjdk.skara.issuetracker.jira");
+
+    private String cookie;
+    private Instant expires;
+
+    JiraVault(URI vaultUri, String vaultToken) {
+        request = new RestRequest(vaultUri, () -> Arrays.asList(
+                "X-Vault-Token", vaultToken
+        ));
     }
 
-    @Override
-    public IssueTracker create(URI uri, Credential credential, JSONObject configuration) {
-        if (credential == null) {
-            return new JiraHost(uri);
-        } else {
-            if (credential.username().startsWith("https://")) {
-                var vaultUrl = URIBuilder.base(credential.username()).build();
-                var jiraVault = new JiraVault(vaultUrl, credential.password());
-                return new JiraHost(uri, jiraVault);
-            } else {
-                throw new RuntimeException("basic authentication not implemented yet");
-            }
+    String getCookie() {
+        if ((cookie == null) || Instant.now().isAfter(expires)) {
+            var result = request.get("").execute();
+            cookie = result.get("data").get("cookie.name").asString() + "=" + result.get("data").get("cookie.value").asString();
+            expires = Instant.now().plus(Duration.ofSeconds(result.get("lease_duration").asInt()).dividedBy(2));
+            log.info("Renewed Jira token (" + cookie + ") - expires " + expires);
         }
+        return cookie;
     }
 }

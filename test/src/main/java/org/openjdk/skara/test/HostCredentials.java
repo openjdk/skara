@@ -25,8 +25,8 @@ package org.openjdk.skara.test;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.json.*;
+import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.vcs.*;
 
@@ -44,6 +44,7 @@ public class HostCredentials implements AutoCloseable {
     private final String testName;
     private final Credentials credentials;
     private final List<PullRequest> pullRequestsToBeClosed = new ArrayList<>();
+    private final List<Issue> issuesToBeClosed = new ArrayList<>();
     private HostedRepository credentialsLock;
     private int nextHostIndex;
 
@@ -141,6 +142,43 @@ public class HostCredentials implements AutoCloseable {
         }
     }
 
+    private static class JiraCredentials implements Credentials {
+        private final JSONObject config;
+
+        JiraCredentials(JSONObject config) {
+            this.config = config;
+        }
+
+        @Override
+        public Forge createRepositoryHost(int userIndex) {
+            throw new RuntimeException("not supported");
+        }
+
+        @Override
+        public IssueTracker createIssueHost(int userIndex) {
+            var hostUri = URIBuilder.base(config.get("host").asString()).build();
+            var users = config.get("users").asArray();
+            var pat = new Credential(users.get(userIndex).get("name").asString(),
+                                     users.get(userIndex).get("pat").asString());
+            return IssueTracker.from("jira", hostUri, pat, null);
+        }
+
+        @Override
+        public HostedRepository getHostedRepository(Forge host) {
+            return host.repository(config.get("project").asString());
+        }
+
+        @Override
+        public IssueProject getIssueProject(IssueTracker host) {
+            return host.project(config.get("project").asString());
+        }
+
+        @Override
+        public String getNamespaceName() {
+            return config.get("namespace").asString();
+        }
+    }
+
     private static class TestCredentials implements Credentials {
         private final List<TestHost> hosts = new ArrayList<>();
         private final List<HostUser> users = List.of(
@@ -200,6 +238,8 @@ public class HostCredentials implements AutoCloseable {
                 return new GitLabCredentials(entry);
             case "github":
                 return new GitHubCredentials(entry, credentialsPath);
+            case "jira":
+                return new JiraCredentials(entry);
             default:
                 throw new RuntimeException("Unknown entry type: " + entry.get("type").asString());
         }
@@ -322,6 +362,12 @@ public class HostCredentials implements AutoCloseable {
         return createPullRequest(hostedRepository, targetRef, sourceRef, title, false);
     }
 
+    public Issue createIssue(IssueProject issueProject, String title) {
+        var issue = issueProject.createIssue(title, List.of());
+        issuesToBeClosed.add(issue);
+        return issue;
+    }
+
     public CensusBuilder getCensusBuilder() {
         return CensusBuilder.create(credentials.getNamespaceName());
     }
@@ -330,6 +376,9 @@ public class HostCredentials implements AutoCloseable {
     public void close() {
         for (var pr : pullRequestsToBeClosed) {
             pr.setState(PullRequest.State.CLOSED);
+        }
+        for (var issue : issuesToBeClosed) {
+            issue.setState(Issue.State.CLOSED);
         }
         if (credentialsLock != null) {
             try {

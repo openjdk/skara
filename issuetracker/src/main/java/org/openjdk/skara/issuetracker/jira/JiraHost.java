@@ -22,12 +22,13 @@
  */
 package org.openjdk.skara.issuetracker.jira;
 
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
+import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
-import org.openjdk.skara.json.JSON;
 
 import java.net.URI;
+import java.util.Arrays;
 
 public class JiraHost implements IssueTracker {
     private final URI uri;
@@ -40,6 +41,14 @@ public class JiraHost implements IssueTracker {
                                 .setPath("/rest/api/2/")
                                 .build();
         request = new RestRequest(baseApi);
+    }
+
+    JiraHost(URI uri, JiraVault jiraVault) {
+        this.uri = uri;
+        var baseApi = URIBuilder.base(uri)
+                                .setPath("/rest/api/2/")
+                                .build();
+        request = new RestRequest(baseApi, () -> Arrays.asList("Cookie", jiraVault.getCookie()));
     }
 
     URI getUri() {
@@ -59,6 +68,13 @@ public class JiraHost implements IssueTracker {
         return new JiraProject(this, request, name);
     }
 
+    private JSONObject userData(String name) {
+        var data = request.get("user")
+                          .param("username", name)
+                          .execute();
+        return data.asObject();
+    }
+
     @Override
     public HostUser user(String username) {
         throw new RuntimeException("needs authentication; not implemented yet");
@@ -66,11 +82,24 @@ public class JiraHost implements IssueTracker {
 
     @Override
     public HostUser currentUser() {
-        throw new RuntimeException("needs authentication; not implemented yet");
+        var data = request.get("myself").execute();
+        var user = new HostUser(data.get("name").asString(),
+                                data.get("name").asString(),
+                                data.get("displayName").asString());
+        return user;
     }
 
     @Override
     public boolean isMemberOf(String groupId, HostUser user) {
-        throw new RuntimeException("not implemented yet");
+        var data = request.get("user")
+                          .param("username", user.id())
+                          .param("expand", "groups")
+                          .execute();
+        for (var group : data.get("groups").get("items").asArray()) {
+            if (group.get("name").asString().equals(groupId)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
