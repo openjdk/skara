@@ -53,7 +53,7 @@ buildscript {
                 ],
             ],
             'Macos': [
-                'amd64': [
+                'x86_64': [
                     url: deps['JDK_MACOS_URL'],
                     sha256: deps['JDK_MACOS_SHA256']
                 ],
