@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class MimeTextTests {
     @Test
     void encode() {
-        assertEquals("=?utf-8?b?w6XDpMO2?=", MimeText.encode("åäö"));
+        assertEquals("=?UTF-8?B?w6XDpMO2?=", MimeText.encode("åäö"));
     }
 
     @Test
