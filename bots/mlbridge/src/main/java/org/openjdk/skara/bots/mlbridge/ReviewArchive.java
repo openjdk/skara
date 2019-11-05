@@ -341,7 +341,7 @@ class ReviewArchive {
         }
 
         var userName = contributor != null ? contributor.username() : review.reviewer().userName() + "@" + censusInstance.namespace().name();
-        var userRole = contributor != null ? projectRole(contributor) : "none";
+        var userRole = contributor != null ? projectRole(contributor) : "no project role";
         var replyBody = ArchiveMessages.reviewCommentBody(review.body().orElse(""), review.verdict(), userName, userRole);
 
         addReplyCommon(parent, review.reviewer(), subject, replyBody, id);

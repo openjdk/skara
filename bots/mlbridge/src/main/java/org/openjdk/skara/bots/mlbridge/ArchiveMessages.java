@@ -147,7 +147,7 @@ class ArchiveMessages {
             if (verdict == Review.Verdict.APPROVED) {
                 result.append("Approved");
             } else {
-                result.append("Disapproved");
+                result.append("Changes requested");
             }
             result.append(" by ");
             result.append(user);
