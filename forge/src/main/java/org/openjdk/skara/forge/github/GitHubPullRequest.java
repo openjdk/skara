@@ -339,7 +339,7 @@ public class GitHubPullRequest implements PullRequest {
                             }
 
                             return checkBuilder.build();
-                        }));
+                        }, (a, b) -> b));
     }
 
     @Override
