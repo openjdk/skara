@@ -46,7 +46,7 @@ class IssueTrackerTests {
         try (var credentials = new HostCredentials(info)) {
             var project = credentials.getIssueProject();
 
-            var userName = project.issueTracker().currentUser().id();
+            var userName = project.issueTracker().currentUser().userName();
             var user = project.issueTracker().user(userName);
             assertEquals(userName, user.userName());
 
