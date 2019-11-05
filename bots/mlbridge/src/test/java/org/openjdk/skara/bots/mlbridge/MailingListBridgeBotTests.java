@@ -1063,7 +1063,7 @@ class MailingListBridgeBotTests {
 
             // The archive should contain a note
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Disapproved by "));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Changes requested by "));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), " by integrationreviewer1"));
             if (author.forge().supportsReviewBody()) {
                 assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 1"));
@@ -1091,7 +1091,7 @@ class MailingListBridgeBotTests {
 
             // The archive should contain another note
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertEquals(2, archiveContainsCount(archiveFolder.path(), "Disapproved by "));
+            assertEquals(2, archiveContainsCount(archiveFolder.path(), "Changes requested by "));
             if (author.forge().supportsReviewBody()) {
                 assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 3"));
             }
