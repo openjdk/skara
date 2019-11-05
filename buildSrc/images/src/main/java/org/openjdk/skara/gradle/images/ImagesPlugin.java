@@ -29,9 +29,49 @@ import org.gradle.api.tasks.bundling.*;
 import org.gradle.api.artifacts.UnknownConfigurationException;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.io.File;
 
 public class ImagesPlugin implements Plugin<Project> {
+    private static String getOS() {
+        var p = System.getProperty("os.name").toLowerCase();
+        if (p.startsWith("win")) {
+            return "windows";
+        }
+        if (p.startsWith("mac")) {
+            return "macos";
+        }
+        if (p.startsWith("linux")) {
+            return "linux";
+        }
+        if (p.startsWith("sunos")) {
+            return "solaris";
+        }
+
+        throw new RuntimeException("Unknown operating system: " + System.getProperty("os.name"));
+    }
+
+    private static String getCPU() {
+        var p = System.getProperty("os.arch").toLowerCase();
+        if (p.startsWith("amd64")) {
+            return "x64";
+        }
+        if (p.startsWith("x86") || p.startsWith("i386")) {
+            return "x86";
+        }
+        if (p.startsWith("sparc")) {
+            return "sparc";
+        }
+        if (p.startsWith("ppc")) {
+            return "ppc";
+        }
+        if (p.startsWith("arm")) {
+            return "arm";
+        }
+
+        throw new RuntimeException("Unknown CPU: " + System.getProperty("os.arch"));
+    }
+
     @Override
     public void apply(Project project) {
         NamedDomainObjectContainer<ImageEnvironment> imageEnvironmentContainer =
@@ -49,15 +89,23 @@ public class ImagesPlugin implements Plugin<Project> {
 
         imageEnvironmentContainer.all(new Action<ImageEnvironment>() {
             public void execute(ImageEnvironment env) {
-                var name = env.getName();
-                var subName = name.substring(0, 1).toUpperCase() + name.substring(1);
+                var parts = env.getName().split("_");;
+                var isLocal = parts.length == 1 && parts[0].equals("local");
+                var os = isLocal ? getOS() : parts[0];
+                var cpu = isLocal ? getCPU() : parts[1];
+                var osAndCpuPascalCased =
+                    os.substring(0, 1).toUpperCase() + os.substring(1) +
+                    cpu.substring(0, 1).toUpperCase() + cpu.substring(1);
+                var subName = isLocal ? "Local" : osAndCpuPascalCased;
 
                 var downloadTaskName = "download" + subName + "JDK";
-                project.getTasks().register(downloadTaskName, DownloadJDKTask.class, (task) -> {
-                    task.getUrl().set(env.getUrl());
-                    task.getSha256().set(env.getSha256());
-                    task.getToDir().set(rootDir.resolve(".jdk"));
-                });
+                if (!isLocal) {
+                    project.getTasks().register(downloadTaskName, DownloadJDKTask.class, (task) -> {
+                        task.getUrl().set(env.getUrl());
+                        task.getSha256().set(env.getSha256());
+                        task.getToDir().set(rootDir.resolve(".jdk"));
+                    });
+                }
 
                 var linkTaskName = "link" + subName;
                 project.getTasks().register(linkTaskName, LinkTask.class, (task) -> {
@@ -75,10 +123,15 @@ public class ImagesPlugin implements Plugin<Project> {
                         // ignored
                     }
 
-                    task.dependsOn(projectPath + ":" + downloadTaskName);
+                    if (!isLocal) {
+                        task.dependsOn(projectPath + ":" + downloadTaskName);
+                        task.getUrl().set(env.getUrl());
+                    } else {
+                        task.getUrl().set("local");
+                    }
                     task.getToDir().set(buildDir.resolve("images"));
-                    task.getUrl().set(env.getUrl());
-                    task.getOS().set(name);
+                    task.getOS().set(os);
+                    task.getCPU().set(cpu);
                     task.getLaunchers().set(env.getLaunchers());
                     task.getModules().set(env.getModules());
                 });
@@ -88,7 +141,8 @@ public class ImagesPlugin implements Plugin<Project> {
                     task.getLaunchers().set(env.getLaunchers());
                     task.getOptions().set(env.getOptions());
                     task.getToDir().set(buildDir.resolve("launchers"));
-                    task.getOS().set(name);
+                    task.getOS().set(os);
+                    task.getCPU().set(cpu);
                 });
 
                 var zipTaskName = "bundleZip" + subName;
@@ -99,7 +153,7 @@ public class ImagesPlugin implements Plugin<Project> {
                     task.setPreserveFileTimestamps(false);
                     task.setReproducibleFileOrder(true);
                     task.getArchiveBaseName().set(project.getName());
-                    task.getArchiveClassifier().set(name);
+                    task.getArchiveClassifier().set(os + "-" + cpu);
                     task.getArchiveExtension().set("zip");
 
                     if (env.getMan().isPresent()) {
@@ -109,10 +163,11 @@ public class ImagesPlugin implements Plugin<Project> {
                         });
                     }
 
-                    task.from(buildDir.resolve("images").resolve(name), (s) -> {
+                    var subdir = os + "-" + cpu;
+                    task.from(buildDir.resolve("images").resolve(subdir), (s) -> {
                         s.into("image");
                     });
-                    task.from(buildDir.resolve("launchers").resolve(name), (s) -> {
+                    task.from(buildDir.resolve("launchers").resolve(subdir), (s) -> {
                         s.into("bin");
                     });
                 });
@@ -125,7 +180,7 @@ public class ImagesPlugin implements Plugin<Project> {
                     task.setPreserveFileTimestamps(false);
                     task.setReproducibleFileOrder(true);
                     task.getArchiveBaseName().set(project.getName());
-                    task.getArchiveClassifier().set(name);
+                    task.getArchiveClassifier().set(os + "-" + cpu);
                     task.getArchiveExtension().set("tar.gz");
                     task.setCompression(Compression.GZIP);
 
@@ -136,10 +191,11 @@ public class ImagesPlugin implements Plugin<Project> {
                         });
                     }
 
-                    task.from(buildDir.resolve("images").resolve(name), (s) -> {
+                    var subdir = os + "-" + cpu;
+                    task.from(buildDir.resolve("images").resolve(subdir), (s) -> {
                         s.into("image");
                     });
-                    task.from(buildDir.resolve("launchers").resolve(name), (s) -> {
+                    task.from(buildDir.resolve("launchers").resolve(subdir), (s) -> {
                         s.into("bin");
                     });
                 });

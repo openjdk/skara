@@ -21,14 +21,14 @@ rem or visit www.oracle.com if you need additional information or have any
 rem questions.
 
 for /f "tokens=1,2 delims==" %%A in (deps.env) do (set %%A=%%~B)
-for /f %%i in ("%JDK_WINDOWS_URL%") do set JDK_WINDOWS_DIR=%%~ni
+for /f %%i in ("%JDK_WINDOWS_X64_URL%") do set JDK_WINDOWS_DIR=%%~ni
 for /f %%i in ("%GRADLE_URL%") do set GRADLE_DIR=%%~ni
 
 if exist %~dp0\.jdk\%JDK_WINDOWS_DIR% goto gradle
 
 echo Downloading JDK...
 mkdir %~dp0\.jdk\temp
-curl -L %JDK_WINDOWS_URL% -o %JDK_WINDOWS_DIR%.zip
+curl -L %JDK_WINDOWS_X64_URL% -o %JDK_WINDOWS_DIR%.zip
 move %JDK_WINDOWS_DIR%.zip %~dp0\.jdk\
 for /f "tokens=*" %%i in ('@certutil -hashfile %~dp0/.jdk/%JDK_WINDOWS_DIR%.zip sha256 ^| %WINDIR%\System32\find /v "hash of file" ^| %WINDIR%\System32\find /v "CertUtil"') do set SHA256JDK=%%i
 if "%SHA256JDK%" == "%JDK_WINDOWS_SHA256%" (goto extractJdk)
