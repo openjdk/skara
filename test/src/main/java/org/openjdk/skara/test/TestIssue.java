@@ -170,11 +170,13 @@ public class TestIssue implements Issue {
 
     @Override
     public List<HostUser> assignees() {
-        throw new RuntimeException("not implemented yet");
+        return new ArrayList<>(data.assignees);
     }
 
     @Override
     public void setAssignees(List<HostUser> assignees) {
-        throw new RuntimeException("not implemented yet");
+        data.assignees.clear();
+        data.assignees.addAll(assignees);
+        data.lastUpdate = ZonedDateTime.now();
     }
 }

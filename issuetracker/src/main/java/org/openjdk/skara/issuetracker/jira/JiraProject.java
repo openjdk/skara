@@ -23,7 +23,7 @@
 package org.openjdk.skara.issuetracker.jira;
 
 import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.json.JSON;
+import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
 
 import java.net.URI;
@@ -34,10 +34,49 @@ public class JiraProject implements IssueProject {
     private final String projectName;
     private final RestRequest request;
 
+    private JSONObject projectMetadataCache = null;
+
     JiraProject(JiraHost host, RestRequest request, String projectName) {
         this.jiraHost = host;
         this.projectName = projectName;
         this.request = request;
+    }
+
+    private JSONObject project() {
+        if (projectMetadataCache == null) {
+            projectMetadataCache = request.get("project/" + projectName).execute().asObject();
+        }
+        return projectMetadataCache;
+    }
+
+    private Map<String, String> issueTypes() {
+        var ret = new HashMap<String, String>();
+        for (var type : project().get("issueTypes").asArray()) {
+            ret.put(type.get("name").asString(), type.get("id").asString());
+        }
+        return ret;
+    }
+
+    private Map<String, String> components() {
+        var ret = new HashMap<String, String>();
+        for (var type : project().get("components").asArray()) {
+            ret.put(type.get("name").asString(), type.get("id").asString());
+        }
+        return ret;
+    }
+
+    private String projectId() {
+        return project().get("id").asString();
+    }
+
+    private String defaultIssueType() {
+        return issueTypes().values().stream()
+                           .min(Comparator.naturalOrder()).orElseThrow();
+    }
+
+    private String defaultComponent() {
+        return components().values().stream()
+                           .min(Comparator.naturalOrder()).orElseThrow();
     }
 
     @Override
@@ -52,7 +91,22 @@ public class JiraProject implements IssueProject {
 
     @Override
     public Issue createIssue(String title, List<String> body) {
-        throw new RuntimeException("needs authentication; not implemented yet");
+        var query = JSON.object()
+                        .put("fields", JSON.object()
+                                           .put("project", JSON.object()
+                                                               .put("id", projectId()))
+                                           .put("issuetype", JSON.object()
+                                                                 .put("id", defaultIssueType()))
+                                           .put("components", JSON.array()
+                                                                  .add(JSON.object().put("id", defaultComponent())))
+                                           .put("summary", title)
+                                           .put("description", String.join("\n", body)));
+
+        var data = request.post("issue")
+                          .body(query)
+                          .execute();
+
+        return issue(data.get("key").asString()).orElseThrow();
     }
 
     @Override
@@ -60,11 +114,12 @@ public class JiraProject implements IssueProject {
         if (id.indexOf('-') < 0) {
             id = projectName.toUpperCase() + "-" + id;
         }
-        var issue = request.get("issue/" + id)
+        var issueRequest = request.restrict("issue/" + id);
+        var issue = issueRequest.get("")
                            .onError(r -> r.statusCode() == 404 ? JSON.object().put("NOT_FOUND", true) : null)
                            .execute();
         if (!issue.contains("NOT_FOUND")) {
-            return Optional.of(new JiraIssue(this, request, issue));
+            return Optional.of(new JiraIssue(this, issueRequest, issue));
         } else {
             return Optional.empty();
         }

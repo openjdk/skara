@@ -24,17 +24,21 @@ package org.openjdk.skara.issuetracker.jira;
 
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.issuetracker.*;
+import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
-import org.openjdk.skara.json.JSONValue;
 
 import java.net.URI;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class JiraIssue implements Issue {
     private final JiraProject jiraProject;
     private final RestRequest request;
     private final JSONValue json;
+
+    private static final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
     JiraIssue(JiraProject jiraProject, RestRequest request, JSONValue json) {
         this.jiraProject = jiraProject;
@@ -66,7 +70,10 @@ public class JiraIssue implements Issue {
 
     @Override
     public void setTitle(String title) {
-        throw new RuntimeException("not implemented yet");
+        var query = JSON.object()
+                        .put("fields", JSON.object()
+                                           .put("summary", title));
+        request.put("").body(query).execute();
     }
 
     @Override
@@ -80,52 +87,98 @@ public class JiraIssue implements Issue {
 
     @Override
     public void setBody(String body) {
-        throw new RuntimeException("not implemented yet");
+        var query = JSON.object()
+                        .put("fields", JSON.object()
+                                           .put("description", body));
+        request.put("").body(query).execute();
+    }
+
+    private Comment parseComment(JSONValue json) {
+        return new Comment(json.get("id").asString(),
+                           json.get("body").asString(),
+                           new HostUser(json.get("author").get("name").asString(),
+                                        json.get("author").get("name").asString(),
+                                        json.get("author").get("displayName").asString()),
+                           ZonedDateTime.parse(json.get("created").asString(), dateFormat),
+                           ZonedDateTime.parse(json.get("updated").asString(), dateFormat));
     }
 
     @Override
     public List<Comment> comments() {
-        throw new RuntimeException("not implemented yet");
+        var comments = request.get("/comment")
+                              .param("maxResults", "1000")
+                              .execute();
+        return comments.get("comments").stream()
+                       .map(this::parseComment)
+                       .collect(Collectors.toList());
     }
 
     @Override
     public Comment addComment(String body) {
-        throw new RuntimeException("not implemented yet");
+        var json = request.post("/comment")
+                          .body("body", body)
+                          .execute();
+        return parseComment(json);
     }
 
     @Override
     public Comment updateComment(String id, String body) {
-        throw new RuntimeException("not implemented yet");
+        var json = request.put("/comment/" + id)
+                          .body("body", body)
+                          .execute();
+        return parseComment(json);
     }
 
     @Override
     public ZonedDateTime createdAt() {
-        return ZonedDateTime.parse(json.get("fields").get("created").asString());
+        return ZonedDateTime.parse(json.get("fields").get("created").asString(), dateFormat);
     }
 
     @Override
     public ZonedDateTime updatedAt() {
-        return ZonedDateTime.parse(json.get("fields").get("updated").asString());
+        return ZonedDateTime.parse(json.get("fields").get("updated").asString(), dateFormat);
     }
 
     @Override
     public void setState(State state) {
-        throw new RuntimeException("not implemented yet");
+        var transitions = request.get("/transitions").execute();
+        var wantedStateName = state == State.CLOSED ? "Closed" : "Open";
+        for (var transition : transitions.get("transitions").asArray()) {
+            if (transition.get("to").get("name").asString().equals(wantedStateName)) {
+                var query = JSON.object()
+                                .put("transition", JSON.object()
+                                                       .put("id", transition.get("id").asString()));
+                request.post("/transitions")
+                       .body(query)
+                       .execute();
+                return;
+            }
+        }
     }
 
     @Override
     public void addLabel(String label) {
-        throw new RuntimeException("not implemented yet");
+        var query = JSON.object()
+                        .put("update", JSON.object()
+                                           .put("labels", JSON.array().add(JSON.object()
+                                                                               .put("add", label))));
+        request.put("").body(query).execute();
     }
 
     @Override
     public void removeLabel(String label) {
-        throw new RuntimeException("not implemented yet");
+        var query = JSON.object()
+                        .put("update", JSON.object()
+                                           .put("labels", JSON.array().add(JSON.object()
+                                                                               .put("remove", label))));
+        request.put("").body(query).execute();
     }
 
     @Override
     public List<String> labels() {
-        throw new RuntimeException("not implemented yet");
+        return json.get("fields").get("labels").stream()
+                   .map(JSONValue::asString)
+                   .collect(Collectors.toList());
     }
 
     @Override
@@ -137,11 +190,32 @@ public class JiraIssue implements Issue {
 
     @Override
     public List<HostUser> assignees() {
-        throw new RuntimeException("not implemented yet");
+        var assignee = json.get("fields").get("assignee");
+        if (assignee.isNull()) {
+            return List.of();
+        }
+
+        var user = new HostUser(assignee.get("name").asString(),
+                                assignee.get("name").asString(),
+                                assignee.get("displayName").asString());
+        return List.of(user);
     }
 
     @Override
     public void setAssignees(List<HostUser> assignees) {
-        throw new RuntimeException("not implemented yet");
+        String assignee;
+        switch (assignees.size()) {
+            case 0:
+                assignee = null;
+                break;
+            case 1:
+                assignee = assignees.get(0).id();
+                break;
+            default:
+                throw new RuntimeException("multiple assignees not supported");
+        }
+        request.put("/assignee")
+               .body("name", assignee)
+               .execute();
     }
 }
