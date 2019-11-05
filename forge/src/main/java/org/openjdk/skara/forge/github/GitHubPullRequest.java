@@ -317,6 +317,8 @@ public class GitHubPullRequest implements PullRequest {
                                         checkBuilder.complete(true, completedAt);
                                         break;
                                     case "failure":
+                                        // fallthrough
+                                    case "neutral":
                                         checkBuilder.complete(false, completedAt);
                                         break;
                                     default:
@@ -342,7 +344,7 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public void createCheck(Check check) {
-        // update and create are currenly identical operations, both do an HTTP
+        // update and create are currently identical operations, both do an HTTP
         // POST to the /repos/:owner/:repo/check-runs endpoint. There is an additional
         // endpoint explicitly for updating check-runs, but that is not currently used.
         updateCheck(check);
