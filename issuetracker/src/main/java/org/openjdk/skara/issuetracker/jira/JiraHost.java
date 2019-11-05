@@ -77,7 +77,13 @@ public class JiraHost implements IssueTracker {
 
     @Override
     public HostUser user(String username) {
-        throw new RuntimeException("needs authentication; not implemented yet");
+        var data = request.get("user")
+                          .param("username", username)
+                          .execute();
+        var user = new HostUser(data.get("name").asString(),
+                                data.get("name").asString(),
+                                data.get("displayName").asString());
+        return user;
     }
 
     @Override

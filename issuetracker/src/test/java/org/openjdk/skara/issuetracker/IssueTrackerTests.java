@@ -45,6 +45,11 @@ class IssueTrackerTests {
     void simple(TestInfo info) throws IOException {
         try (var credentials = new HostCredentials(info)) {
             var project = credentials.getIssueProject();
+
+            var userName = project.issueTracker().currentUser().id();
+            var user = project.issueTracker().user(userName);
+            assertEquals(userName, user.userName());
+
             var issue = credentials.createIssue(project, "Test issue");
             issue.setTitle("Updated title");
             issue.setBody("This is now the body");
