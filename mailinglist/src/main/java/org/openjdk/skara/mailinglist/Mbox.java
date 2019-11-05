@@ -42,7 +42,7 @@ public class Mbox {
     private final static Pattern fromStringEncodePattern = Pattern.compile("^(>*From )", Pattern.MULTILINE);
     private final static Pattern fromStringDecodePattern = Pattern.compile("^>(>*From )", Pattern.MULTILINE);
 
-    private static List<Email> splitMbox(String mbox) {
+    private static List<Email> splitMbox(String mbox, EmailAddress sender) {
         // Initial split
         var messages = mboxMessagePattern.matcher(mbox).results()
                                          .map(match -> match.group(1))
@@ -57,8 +57,11 @@ public class Mbox {
         for (var message : messages) {
             messageBuilder.insert(0, message);
             try {
-                var email = Email.parse(messageBuilder.toString());
-                parsedMails.add(email);
+                var email = Email.from(Email.parse(messageBuilder.toString()));
+                if (sender != null) {
+                    email.sender(sender);
+                }
+                parsedMails.add(email.build());
                 messageBuilder.setLength(0);
             } catch (RuntimeException ignored) {
             }
@@ -79,7 +82,11 @@ public class Mbox {
     }
 
     public static List<Conversation> parseMbox(String mbox) {
-        var emails = splitMbox(mbox);
+        return parseMbox(mbox, null);
+    }
+
+    public static List<Conversation> parseMbox(String mbox, EmailAddress sender) {
+        var emails = splitMbox(mbox, sender);
         var idToMail = emails.stream().collect(Collectors.toMap(Email::id, Function.identity(), (a, b) -> a));
         var idToConversation = idToMail.values().stream()
                                        .filter(email -> !email.hasHeader("In-Reply-To"))
