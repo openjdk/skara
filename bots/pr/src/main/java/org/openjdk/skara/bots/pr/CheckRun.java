@@ -171,6 +171,7 @@ class CheckRun {
         if (visitor.isReadyForReview() && additionalErrors.isEmpty()) {
             checkBuilder.complete(true);
         } else {
+            checkBuilder.title("Required");
             var summary = Stream.concat(visitor.getMessages().stream(), additionalErrors.stream())
                                 .sorted()
                                 .map(m -> "- " + m)
@@ -448,7 +449,6 @@ class CheckRun {
 
     private void checkStatus() {
         var checkBuilder = CheckBuilder.create("jcheck", pr.headHash());
-        checkBuilder.title("Required");
         var censusDomain = censusInstance.configuration().census().domain();
         Exception checkException = null;
 
