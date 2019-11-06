@@ -491,6 +491,7 @@ class MailingListBridgeBotTests {
 
             // Finally some approvals and another comment
             pr.addReview(Review.Verdict.APPROVED, "Nice");
+            reviewPr.addReviewComment(masterHash, editHash, reviewFile.toString(), 2, "The final review comment");
             reviewPr.addReview(Review.Verdict.APPROVED, "Looks fine");
             reviewPr.addReviewCommentReply(comment2, "You are welcome");
             TestBotRunner.runPeriodicItems(mlBot);
@@ -502,9 +503,9 @@ class MailingListBridgeBotTests {
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertEquals(9, archiveContainsCount(archiveFolder.path(), "^On.*wrote:"));
 
-            // File specific comments should appear before the approval
+            // File specific comments should appear after the approval
             var archiveText = archiveContents(archiveFolder.path()).orElseThrow();
-            assertTrue(archiveText.indexOf("Looks fine") > archiveText.indexOf("You are welcome"));
+            assertTrue(archiveText.indexOf("Looks fine") < archiveText.indexOf("The final review comment"));
 
             // Check the mailing list
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
@@ -543,10 +544,13 @@ class MailingListBridgeBotTests {
             assertTrue(thread2reply2.body().contains("Thanks"));
 
             var replies = conversations.get(0).replies(mail);
-            var thread3 = conversations.get(0).replies(mail).get(2);
+            var thread3 = replies.get(2);
             assertEquals("Re: RFR: This is a pull request", thread3.subject());
-            var thread4 = conversations.get(0).replies(mail).get(3);
+            var thread4 = replies.get(3);
             assertEquals("Re: [Approved] RFR: This is a pull request", thread4.subject());
+            assertTrue(thread4.body().contains("Looks fine"));
+            assertTrue(thread4.body().contains("The final review comment"));
+            assertTrue(thread4.body().contains("Approved by integrationreviewer1 (Reviewer)"));
         }
     }
 
