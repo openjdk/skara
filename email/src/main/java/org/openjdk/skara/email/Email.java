@@ -146,6 +146,14 @@ public class Email {
                 .header("References", references);
     }
 
+    public static EmailBuilder reparent(Email newParent, Email email) {
+        var currentParent = email.headerValue("In-Reply-To");
+        var currentRefs = email.headerValue("References");
+
+        return from(email).header("In-Reply-To", newParent.id.toString())
+                          .header("References", currentRefs.replace(currentParent, newParent.id.toString()));
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {

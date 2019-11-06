@@ -21,6 +21,7 @@ class ReviewArchive {
     private final Map<String, Email> existingIds = new HashMap<>();
     private final List<Email> generated = new ArrayList<>();
     private final Map<String, Email> generatedIds = new HashMap<>();
+    private final Set<EmailAddress> approvalIds = new HashSet<>();
     private final List<Hash> reportedHeads;
     private final List<Hash> reportedBases;
 
@@ -327,6 +328,21 @@ class ReviewArchive {
             return;
         }
 
+        // Default parent and subject
+        var parent = topCommentForHash(review.hash());
+        var subject = parent.subject();
+
+        var replyBody = ArchiveMessages.reviewCommentBody(review.body().orElse(""));
+
+        addReplyCommon(parent, review.reviewer(), subject, replyBody, id);
+    }
+
+    void addReviewVerdict(Review review) {
+        var id = getMessageId(review);
+        if (existingIds.containsKey(getStableMessageId(id))) {
+            return;
+        }
+
         var contributor = censusInstance.namespace().get(review.reviewer().id());
         var isReviewer = contributor != null && censusInstance.project().isReviewer(contributor.username(), censusInstance.configuration().census().version());
 
@@ -336,13 +352,12 @@ class ReviewArchive {
 
         // Approvals by Reviewers get special treatment - post these as top-level comments
         if (review.verdict() == Review.Verdict.APPROVED && isReviewer) {
-            parent = topEmail();
-            subject = "Re: [Approved] " + "RFR: " + prInstance.pr().title();
+            approvalIds.add(id);
         }
 
         var userName = contributor != null ? contributor.username() : review.reviewer().userName() + "@" + censusInstance.namespace().name();
         var userRole = contributor != null ? projectRole(contributor) : "no project role";
-        var replyBody = ArchiveMessages.reviewCommentBody(review.body().orElse(""), review.verdict(), userName, userRole);
+        var replyBody = ArchiveMessages.reviewVerdictBody(review.body().orElse(""), review.verdict(), userName, userRole);
 
         addReplyCommon(parent, review.reviewer(), subject, replyBody, id);
     }
@@ -372,6 +387,20 @@ class ReviewArchive {
     }
 
     List<Email> generatedEmails() {
-        return generated;
+        var finalEmails = new ArrayList<Email>();
+        for (var email : generated) {
+            for (var approvalId : approvalIds) {
+                var collapsed = email.hasHeader("PR-Collapsed-IDs") ? email.headerValue("PR-Collapsed-IDs") + " " : "";
+                if (email.id().equals(approvalId) || collapsed.contains(getStableMessageId(approvalId))) {
+                    email = Email.reparent(topEmail(), email)
+                                 .subject("Re: [Approved] " + "RFR: " + prInstance.pr().title())
+                                 .build();
+                    break;
+                }
+            }
+            finalEmails.add(email);
+        }
+
+        return finalEmails;
     }
 }
