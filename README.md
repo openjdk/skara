@@ -77,7 +77,7 @@ you must ensure that you have installed the following software locally:
 - JDK 12 or later
 - Gradle 5.6.2 or later
 
-To create a build then run the command
+To create a build then run the command:
 
 ```bash
 $ gradle offline
