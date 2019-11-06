@@ -200,7 +200,7 @@ class UpdaterTests {
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             var email = conversations.get(0).first();
-            assertEquals(sender, email.sender());
+            assertEquals(listAddress, email.sender());
             assertEquals(sender, email.author());
             assertEquals(email.recipients(), List.of(listAddress));
             assertTrue(email.subject().contains(": 23456789: More fixes"));
@@ -256,7 +256,7 @@ class UpdaterTests {
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             var email = conversations.get(0).first();
-            assertEquals(sender, email.sender());
+            assertEquals(listAddress, email.sender());
             assertEquals(EmailAddress.from("another_author", "another@author.example.com"), email.author());
             assertEquals(email.recipients(), List.of(listAddress));
             assertTrue(email.subject().contains(": 2 new changesets"));
@@ -306,7 +306,7 @@ class UpdaterTests {
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             var email = conversations.get(0).first();
-            assertEquals(sender, email.sender());
+            assertEquals(listAddress, email.sender());
             assertEquals(EmailAddress.from("committer", "committer@test.test"), email.author());
             assertEquals(email.recipients(), List.of(listAddress));
             assertTrue(email.body().contains("Changeset: " + editHash.abbreviate()));
@@ -357,7 +357,7 @@ class UpdaterTests {
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             var email = conversations.get(0).first();
-            assertEquals(sender, email.sender());
+            assertEquals(listAddress, email.sender());
             assertEquals(author, email.author());
             assertEquals(email.recipients(), List.of(listAddress));
             assertFalse(email.subject().contains("another"));
@@ -379,7 +379,8 @@ class UpdaterTests {
             conversations = mailmanList.conversations(Duration.ofDays(1));
             conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
             email = conversations.get(0).first();
-            assertEquals(email.sender(), sender);
+            assertEquals(author, email.author());
+            assertEquals(listAddress, email.sender());
             assertEquals(email.recipients(), List.of(listAddress));
             assertTrue(email.subject().contains(": another: 456789AB: Yet more fixes"));
             assertFalse(email.subject().contains("master"));
@@ -450,7 +451,7 @@ class UpdaterTests {
             assertEquals(1, conversations.size());
             var first = conversations.get(0).first();
             var email = conversations.get(0).replies(first).get(0);
-            assertEquals(sender, email.sender());
+            assertEquals(listAddress, email.sender());
             assertEquals(author, email.author());
             assertEquals(email.recipients(), List.of(listAddress));
             assertEquals("Re: [Integrated] RFR: My PR", email.subject());
@@ -537,7 +538,7 @@ class UpdaterTests {
             var pushConversation = conversations.get(1);
 
             var prEmail = prConversation.replies(prConversation.first()).get(0);
-            assertEquals(sender, prEmail.sender());
+            assertEquals(listAddress, prEmail.sender());
             assertEquals(EmailAddress.from("testauthor", "ta@none.none"), prEmail.author());
             assertEquals(prEmail.recipients(), List.of(listAddress));
             assertEquals("Re: [Integrated] RFR: My PR", prEmail.subject());
@@ -548,7 +549,7 @@ class UpdaterTests {
             assertFalse(prEmail.body().contains(masterHash.abbreviate()));
 
             var pushEmail = pushConversation.first();
-            assertEquals(sender, pushEmail.sender());
+            assertEquals(listAddress, pushEmail.sender());
             assertEquals(EmailAddress.from("testauthor", "ta@none.none"), pushEmail.author());
             assertEquals(pushEmail.recipients(), List.of(listAddress));
             assertTrue(pushEmail.subject().contains("23456789: More fixes"));
@@ -686,7 +687,7 @@ class UpdaterTests {
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             var email = conversations.get(0).first();
-            assertEquals(sender, email.sender());
+            assertEquals(listAddress, email.sender());
             assertEquals(EmailAddress.from("testauthor", "ta@none.none"), email.author());
             assertEquals(email.recipients(), List.of(listAddress));
             assertEquals("git: test: created branch newbranch1 based on the branch master containing 2 unique commits", email.subject());
@@ -707,7 +708,7 @@ class UpdaterTests {
                                              .filter(c -> !c.equals(conversations.get(0)))
                                              .findFirst().orElseThrow();
             email = newConversation.first();
-            assertEquals(sender, email.sender());
+            assertEquals(listAddress, email.sender());
             assertEquals(sender, email.author());
             assertEquals(email.recipients(), List.of(listAddress));
             assertEquals("git: test: created branch newbranch2 based on the branch newbranch1 containing 0 unique commits", email.subject());
