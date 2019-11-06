@@ -31,7 +31,7 @@ mkdir %~dp0\.jdk\temp
 curl -L %JDK_WINDOWS_X64_URL% -o %JDK_WINDOWS_DIR%.zip
 move %JDK_WINDOWS_DIR%.zip %~dp0\.jdk\
 for /f "tokens=*" %%i in ('@certutil -hashfile %~dp0/.jdk/%JDK_WINDOWS_DIR%.zip sha256 ^| %WINDIR%\System32\find /v "hash of file" ^| %WINDIR%\System32\find /v "CertUtil"') do set SHA256JDK=%%i
-if "%SHA256JDK%" == "%JDK_WINDOWS_SHA256%" (goto extractJdk)
+if "%SHA256JDK%" == "%JDK_WINDOWS_X64_SHA256%" (goto extractJdk)
 echo Invalid SHA256 for JDK detected (%SHA256JDK%)
 goto done
 
