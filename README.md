@@ -71,7 +71,7 @@ tree root.
 
 ### Offline builds
 
-If you don't want the build to automatically download any depenendcies, then
+If you don't want the build to automatically download any dependencies, then
 you must ensure that you have installed the following software locally:
 
 - JDK 12 or later
