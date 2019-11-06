@@ -197,7 +197,7 @@ class MailingListBridgeBotTests {
             assertEquals("RFR: 1234: This is a pull request", mail.subject());
             assertEquals(pr.author().fullName(), mail.author().fullName().orElseThrow());
             assertEquals(noreplyAddress(archive), mail.author().address());
-            assertEquals(from, mail.sender());
+            assertEquals(listAddress, mail.sender());
             assertEquals("val1", mail.headerValue("Extra1"));
             assertEquals("val2", mail.headerValue("Extra2"));
 
@@ -250,7 +250,7 @@ class MailingListBridgeBotTests {
             assertEquals(3, conversations.get(0).allMessages().size());
             for (var newMail : conversations.get(0).allMessages()) {
                 assertEquals(noreplyAddress(archive), newMail.author().address());
-                assertEquals(from, newMail.sender());
+                assertEquals(listAddress, newMail.sender());
             }
             assertTrue(conversations.get(0).allMessages().get(2).body().contains("This is a comment 😄"));
         }
@@ -340,7 +340,7 @@ class MailingListBridgeBotTests {
             assertEquals(3, conversations.get(0).allMessages().size());
             for (var newMail : conversations.get(0).allMessages()) {
                 assertEquals(noreplyAddress(archive), newMail.author().address());
-                assertEquals(from, newMail.sender());
+                assertEquals(listAddress, newMail.sender());
             }
         }
     }
@@ -813,7 +813,7 @@ class MailingListBridgeBotTests {
             assertEquals(1, conversations.size());
             for (var newMail : conversations.get(0).allMessages()) {
                 assertEquals(noreplyAddress(archive), newMail.author().address());
-                assertEquals(from, newMail.sender());
+                assertEquals(listAddress, newMail.sender());
             }
 
             // Add a comment
@@ -933,7 +933,7 @@ class MailingListBridgeBotTests {
             assertEquals(1, conversations.size());
             for (var newMail : conversations.get(0).allMessages()) {
                 assertEquals(noreplyAddress(archive), newMail.author().address());
-                assertEquals(sender, newMail.sender());
+                assertEquals(listAddress, newMail.sender());
                 assertFalse(newMail.hasHeader("PR-Head-Hash"));
             }
             assertEquals("Re: [Rev 01] RFR: This is a pull request", conversations.get(0).allMessages().get(1).subject());

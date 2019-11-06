@@ -45,12 +45,16 @@ class MailmanTests {
                             .recipient(EmailAddress.parse(listAddress))
                             .build();
             mailmanList.post(mail);
+            var expectedMail = Email.from(mail)
+                                    .sender(EmailAddress.parse(listAddress))
+                                    .build();
+
             testServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var conversation = conversations.get(0);
-            assertEquals(mail, conversation.first());
+            assertEquals(expectedMail, conversation.first());
         }
     }
 
@@ -67,11 +71,14 @@ class MailmanTests {
                                   .build();
             mailmanList.post(sentParent);
             testServer.processIncoming();
+            var expectedParent = Email.from(sentParent)
+                                      .sender(EmailAddress.parse(listAddress))
+                                      .build();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var conversation = conversations.get(0);
-            assertEquals(sentParent, conversation.first());
+            assertEquals(expectedParent, conversation.first());
 
             var replier = EmailAddress.from("Replier", "replier@test.email");
             var sentReply = Email.create(replier, "Reply subject", "Reply body")
@@ -79,17 +86,21 @@ class MailmanTests {
                                  .header("In-Reply-To", sentParent.id().toString())
                                  .build();
             mailmanList.post(sentReply);
+            var expectedReply = Email.from(sentReply)
+                                     .sender(EmailAddress.parse(listAddress))
+                                     .build();
+
             testServer.processIncoming();
 
             conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             conversation = conversations.get(0);
-            assertEquals(sentParent, conversation.first());
+            assertEquals(expectedParent, conversation.first());
 
             var replies = conversation.replies(conversation.first());
             assertEquals(1, replies.size());
             var reply = replies.get(0);
-            assertEquals(sentReply, reply);
+            assertEquals(expectedReply, reply);
         }
     }
 
@@ -107,18 +118,21 @@ class MailmanTests {
             mailmanList.post(mail);
             testServer.processIncoming();
 
+            var expectedMail = Email.from(mail)
+                                    .sender(EmailAddress.parse(listAddress))
+                                    .build();
             {
                 var conversations = mailmanList.conversations(Duration.ofDays(1));
                 assertEquals(1, conversations.size());
                 var conversation = conversations.get(0);
-                assertEquals(mail, conversation.first());
+                assertEquals(expectedMail, conversation.first());
                 assertFalse(testServer.lastResponseCached());
             }
             {
                 var conversations = mailmanList.conversations(Duration.ofDays(1));
                 assertEquals(1, conversations.size());
                 var conversation = conversations.get(0);
-                assertEquals(mail, conversation.first());
+                assertEquals(expectedMail, conversation.first());
                 assertTrue(testServer.lastResponseCached());
             }
         }
@@ -133,8 +147,8 @@ class MailmanTests {
             var mailmanList = mailmanServer.getList(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
             var mail1 = Email.create(sender, "Subject 1", "Body 1")
-                            .recipient(EmailAddress.parse(listAddress))
-                            .build();
+                             .recipient(EmailAddress.parse(listAddress))
+                             .build();
             var mail2 = Email.create(sender, "Subject 2", "Body 2")
                              .recipient(EmailAddress.parse(listAddress))
                              .build();
@@ -142,13 +156,17 @@ class MailmanTests {
                 mailmanList.post(mail1);
                 mailmanList.post(mail2);
             }).start();
+            var expectedMail = Email.from(mail1)
+                                    .sender(EmailAddress.parse(listAddress))
+                                    .build();
+
             testServer.processIncoming();
             assertThrows(RuntimeException.class, () -> testServer.processIncoming(Duration.ZERO));
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var conversation = conversations.get(0);
-            assertEquals(mail1, conversation.first());
+            assertEquals(expectedMail, conversation.first());
         }
     }
 }
