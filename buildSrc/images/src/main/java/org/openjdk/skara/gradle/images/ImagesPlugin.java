@@ -53,7 +53,7 @@ public class ImagesPlugin implements Plugin<Project> {
 
     private static String getCPU() {
         var p = System.getProperty("os.arch").toLowerCase();
-        if (p.startsWith("amd64")) {
+        if (p.startsWith("amd64") || p.startsWith("x86_64") || p.startsWith("x64")) {
             return "x64";
         }
         if (p.startsWith("x86") || p.startsWith("i386")) {

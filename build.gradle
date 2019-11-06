@@ -123,7 +123,7 @@ def getOS() {
 
 def getCPU() {
     def cpu = System.getProperty('os.arch').toLowerCase()
-    if (cpu.startsWith('amd64')) {
+    if (cpu.startsWith('amd64') || cpu.startsWith('x86_64') || cpu.startsWith('x64')) {
         return 'x64'
     }
     if (cpu.startsWith('x86') || cpu.startsWith('i386')) {
