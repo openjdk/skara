@@ -138,7 +138,10 @@ def getCPU() {
     if (cpu.startsWith('arm')) {
         return 'arm'
     }
-    throw new GradleException("Unexpected operating system: " + cpu)
+    if (cpu.startsWith('aarch64')) {
+        return 'aarch64';
+    }
+    throw new GradleException("Unexpected CPU: " + cpu)
 }
 
 task local(type: Copy) {

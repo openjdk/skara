@@ -68,6 +68,9 @@ public class ImagesPlugin implements Plugin<Project> {
         if (p.startsWith("arm")) {
             return "arm";
         }
+        if (p.startsWith("aarch64")) {
+            return "aarch64";
+        }
 
         throw new RuntimeException("Unknown CPU: " + System.getProperty("os.arch"));
     }
