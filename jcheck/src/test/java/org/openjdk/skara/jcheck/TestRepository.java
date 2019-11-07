@@ -239,4 +239,8 @@ class TestRepository implements ReadOnlyRepository {
     public List<Submodule> submodules() throws IOException {
         return null;
     }
+
+    public Optional<Tag.Annotated> annotate(Tag tag) throws IOException {
+        return null;
+    }
 }

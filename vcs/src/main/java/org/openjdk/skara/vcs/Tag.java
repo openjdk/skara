@@ -24,8 +24,73 @@ package org.openjdk.skara.vcs;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.time.ZonedDateTime;
 
 public class Tag {
+    public static class Annotated {
+        private final String name;
+        private final Hash target;
+        private final Author author;
+        private final ZonedDateTime date;
+        private final String message;
+
+        public Annotated(String name, Hash target, Author author, ZonedDateTime date, String message) {
+            this.name = name;
+            this.target = target;
+            this.author = author;
+            this.date = date;
+            this.message = message;
+        }
+
+        public String name() {
+            return name;
+        }
+
+        public Hash target() {
+            return target;
+        }
+
+        public Author author() {
+            return author;
+        }
+
+        public ZonedDateTime date() {
+            return date;
+        }
+
+        public String message() {
+            return message;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (other == this) {
+                return true;
+            }
+
+            if (!(other instanceof Annotated)) {
+                return false;
+            }
+
+            var o = (Annotated) other;
+            return Objects.equals(name, o.name) &&
+                   Objects.equals(target, o.target) &&
+                   Objects.equals(author, o.author) &&
+                   Objects.equals(date, o.date) &&
+                   Objects.equals(message, o.message);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, target, author, date, message);
+        }
+
+        @Override
+        public String toString() {
+            return name + " -> " + target.hex();
+        }
+    }
+
     private final String name;
 
     public Tag(String name) {

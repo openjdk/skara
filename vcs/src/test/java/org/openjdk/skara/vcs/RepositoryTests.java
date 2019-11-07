@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.*;
 import java.nio.file.attribute.*;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -1892,6 +1893,55 @@ public class RepositoryTests {
             assertEquals(Path.of("sub"), module.path());
             assertEquals(head, module.hash());
             assertEquals(pullPath, module.pullPath());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testAnnotateTag(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var repo = Repository.init(dir.path(), vcs);
+            var readme = repo.root().resolve("README");
+            var now = ZonedDateTime.now();
+            Files.writeString(readme, "Hello\n");
+            repo.add(readme);
+            var head = repo.commit("Added README", "duke", "duke@openjdk.org");
+            var tag = repo.tag(head, "1.0", "Added tag 1.0 for HEAD\n", "duke", "duke@openjdk.org");
+            var annotated = repo.annotate(tag).get();
+
+            assertEquals("1.0", annotated.name());
+            assertEquals(head, annotated.target());
+            assertEquals(new Author("duke", "duke@openjdk.org"), annotated.author());
+            assertEquals(now.getYear(), annotated.date().getYear());
+            assertEquals(now.getMonth(), annotated.date().getMonth());
+            assertEquals(now.getDayOfYear(), annotated.date().getDayOfYear());
+            assertEquals(now.getHour(), annotated.date().getHour());
+            assertEquals(now.getOffset(), annotated.date().getOffset());
+            assertEquals("Added tag 1.0 for HEAD\n", annotated.message());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testAnnotateTagOnMissingTag(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var repo = Repository.init(dir.path(), vcs);
+            var readme = repo.root().resolve("README");
+            var now = ZonedDateTime.now();
+            Files.writeString(readme, "Hello\n");
+            repo.add(readme);
+            var head = repo.commit("Added README", "duke", "duke@openjdk.org");
+
+            assertEquals(Optional.empty(), repo.annotate(new Tag("unknown")));
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testAnnotateTagOnEmptyRepo(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var repo = Repository.init(dir.path(), vcs);
+            assertEquals(Optional.empty(), repo.annotate(new Tag("unknown")));
         }
     }
 }
