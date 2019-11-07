@@ -22,24 +22,19 @@
  */
 package org.openjdk.skara.email;
 
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 import org.openjdk.skara.test.SMTPServer;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.*;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class SMTPTests {
-    private final static Logger log = Logger.getLogger("org.openjdk.skara.email");;
-
     @Test
     void simple() throws IOException {
-        log.info("Hello");
         try (var server = new SMTPServer()) {
             var sender = EmailAddress.from("Test", "test@test.email");
             var recipient = EmailAddress.from("Dest", "dest@dest.email");
@@ -53,7 +48,6 @@ class SMTPTests {
 
     @Test
     void withHeader() throws IOException {
-        log.info("Hello");
         try (var server = new SMTPServer()) {
             var sender = EmailAddress.from("Test", "test@test.email");
             var author = EmailAddress.from("Auth", "auth@test.email");
@@ -73,7 +67,6 @@ class SMTPTests {
     @Test
     @DisabledOnOs(OS.WINDOWS)
     void encoded() throws IOException {
-        log.info("Hello");
         try (var server = new SMTPServer()) {
             var sender = EmailAddress.from("Señor Dévèlöper", "test@test.email");
             var recipient = EmailAddress.from("Dêst", "dest@dest.email");
@@ -90,13 +83,25 @@ class SMTPTests {
 
     @Test
     void timeout() throws IOException {
-        log.info("Hello");
         try (var server = new SMTPServer()) {
             var sender = EmailAddress.from("Test", "test@test.email");
             var recipient = EmailAddress.from("Dest", "dest@dest.email");
             var sentMail = Email.create(sender, "Subject", "Body").recipient(recipient).build();
 
             assertThrows(RuntimeException.class, () -> SMTP.send(server.address(), recipient, sentMail, Duration.ZERO));
+        }
+    }
+
+    @Test
+    void withDot() throws IOException {
+        try (var server = new SMTPServer()) {
+            var sender = EmailAddress.from("Test", "test@test.email");
+            var recipient = EmailAddress.from("Dest", "dest@dest.email");
+            var sentMail = Email.create(sender, "Subject", "Body\n.\nMore text").recipient(recipient).build();
+
+            SMTP.send(server.address(), recipient, sentMail);
+            var email = server.receive(Duration.ofSeconds(10));
+            assertEquals(sentMail, email);
         }
     }
 }

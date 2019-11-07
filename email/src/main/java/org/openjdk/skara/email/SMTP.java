@@ -28,18 +28,19 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Limited SMTP client implementation - only compatibility requirement (currently) is the OpenJDK
  * mailing list servers.
  */
 public class SMTP {
-    private static Pattern initReply = Pattern.compile("220 .*");
+    private static Pattern initReply = Pattern.compile("^220 .*");
     private static Pattern ehloReply = Pattern.compile("^250 .*");
     private static Pattern mailReply = Pattern.compile("^250 .*");
     private static Pattern rcptReply = Pattern.compile("^250 .*");
-    private static Pattern dataReply = Pattern.compile("354 Enter.*");
-    private static Pattern doneReply = Pattern.compile("250 .*");
+    private static Pattern dataReply = Pattern.compile("^354 .*");
+    private static Pattern doneReply = Pattern.compile("^250 .*");
 
     public static void send(String server, EmailAddress recipient, Email email) throws IOException {
         send(server, recipient, email, Duration.ofMinutes(30));
@@ -74,7 +75,10 @@ public class SMTP {
             session.sendCommand("Subject: " + MimeText.encode(email.subject()));
             session.sendCommand("Content-type: text/plain; charset=utf-8");
             session.sendCommand("");
-            session.sendCommand(email.body());
+            var escapedBody = email.body().lines()
+                                   .map(line -> line.startsWith(".") ? "." + line : line)
+                                   .collect(Collectors.joining("\n"));
+            session.sendCommand(escapedBody);
             session.sendCommand(".", doneReply);
             session.sendCommand("QUIT");
         }
