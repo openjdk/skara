@@ -95,4 +95,6 @@ public interface ReadOnlyRepository {
     static boolean exists(Path p) throws IOException {
         return Repository.exists(p);
     }
+
+    Optional<Tag.Annotated> annotate(Tag tag) throws IOException;
 }

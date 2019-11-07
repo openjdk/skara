@@ -1150,4 +1150,25 @@ public class GitRepository implements Repository {
 
         return modules;
     }
+
+    @Override
+    public Optional<Tag.Annotated> annotate(Tag tag) throws IOException {
+        var ref = "refs/tags/" + tag.name();
+        var format = "%(refname:short)%0a%(*objectname)%0a%(taggername) %(taggeremail)%0a%(taggerdate:iso-strict)%0a%(contents)";
+        try (var p = capture("git", "for-each-ref", "--format", format, ref)) {
+            var lines = await(p).stdout();
+            if (lines.size() >= 4) {
+                var name = lines.get(0);
+                var target = new Hash(lines.get(1));
+                var author = Author.fromString(lines.get(2));
+
+                var formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+                var date = ZonedDateTime.parse(lines.get(3), formatter);
+                var message = String.join("\n", lines.subList(4, lines.size()));
+
+                return Optional.of(new Tag.Annotated(name, target, author, date, message));
+            }
+            return Optional.empty();
+        }
+    }
 }

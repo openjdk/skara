@@ -1170,4 +1170,29 @@ public class HgRepository implements Repository {
 
         return modules;
     }
+
+    @Override
+    public Optional<Tag.Annotated> annotate(Tag tag) throws IOException {
+        var hgtags = root().resolve(".hgtags");
+        if (!Files.exists(hgtags)) {
+            return Optional.empty();
+        }
+        try (var p = capture("hg", "annotate", hgtags.toString())) {
+            var reversed = new ArrayList<>(await(p).stdout());
+            Collections.reverse(reversed);
+            for (var line : reversed) {
+                var parts = line.split(" ");
+                var tagName = parts[2];
+                if (tagName.equals(tag.name())) {
+                    var target = new Hash(parts[1]);
+                    var rev = parts[0].substring(0, parts[0].length() - 1).trim(); // skip last ':' and ev. whitespace
+                    var hash = resolve(rev).orElseThrow(IOException::new);
+                    var commit = lookup(hash).orElseThrow(IOException::new);
+                    var message = String.join("\n", commit.message()) + "\n";
+                    return Optional.of(new Tag.Annotated(tagName, target, commit.author(), commit.date(), message));
+                }
+            }
+        }
+        return Optional.empty();
+    }
 }
