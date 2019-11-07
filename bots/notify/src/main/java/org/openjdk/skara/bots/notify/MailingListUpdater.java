@@ -332,11 +332,11 @@ public class MailingListUpdater implements UpdateConsumer {
         }
 
         var subject = newBranchSubject(repository, commits, parent, branch);
-        var lastCommit = commits.get(commits.size() - 1);
+        var finalAuthor = commits.size() > 0 ? commitToAuthor(commits.get(commits.size() - 1)) : sender;
 
         var email = Email.create(subject, writer.toString())
                          .sender(sender)
-                         .author(commitToAuthor(lastCommit))
+                         .author(finalAuthor)
                          .recipient(recipient)
                          .headers(headers)
                          .build();
