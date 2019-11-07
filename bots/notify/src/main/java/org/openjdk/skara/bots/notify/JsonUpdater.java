@@ -86,8 +86,12 @@ public class JsonUpdater implements UpdateConsumer {
     }
 
     @Override
-    public void handleTagCommits(HostedRepository repository, List<Commit> commits, OpenJDKTag tag) {
-        var build = String.format("b%02d", tag.buildNum());
+    public void handleTagCommits(HostedRepository repository, List<Commit> commits, Tag tag) {
+        var openjdkTag = OpenJDKTag.create(tag);
+        if (openjdkTag.isEmpty()) {
+            return;
+        }
+        var build = String.format("b%02d", openjdkTag.get().buildNum());
         try (var writer = new JsonUpdateWriter(path, repository.name())) {
             var issues = new ArrayList<Issue>();
             for (var commit : commits) {
@@ -97,6 +101,11 @@ public class JsonUpdater implements UpdateConsumer {
             var json = issuesToChanges(repository, issues, build);
             writer.write(json);
         }
+    }
+
+    @Override
+    public void handleAnnotatedTagCommits(HostedRepository repository, List<Commit> commits, Tag tag, Tag.Annotated annotation) {
+        handleTagCommits(repository, commits, tag);
     }
 
     @Override

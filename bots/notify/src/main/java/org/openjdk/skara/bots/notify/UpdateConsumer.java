@@ -24,12 +24,12 @@ package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.vcs.openjdk.OpenJDKTag;
 
 import java.util.List;
 
 public interface UpdateConsumer {
     void handleCommits(HostedRepository repository, List<Commit> commits, Branch branch);
-    void handleTagCommits(HostedRepository repository, List<Commit> commits, OpenJDKTag tag);
+    void handleTagCommits(HostedRepository repository, List<Commit> commits, Tag tag);
+    void handleAnnotatedTagCommits(HostedRepository repository, List<Commit> commits, Tag tag, Tag.Annotated annotation);
     void handleNewBranch(HostedRepository repository, List<Commit> commits, Branch parent, Branch branch);
 }
