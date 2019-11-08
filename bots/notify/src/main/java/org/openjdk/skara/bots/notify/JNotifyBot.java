@@ -171,11 +171,6 @@ class JNotifyBot implements Bot, WorkItem {
                                 .map(Optional::get)
                                 .sorted(Comparator.comparingInt(OpenJDKTag::buildNum))
                                 .collect(Collectors.toList());
-
-        var newNonJdkTags = newTags.stream()
-                                   .filter(tag -> OpenJDKTag.create(tag).isEmpty())
-                                   .collect(Collectors.toList());
-
         for (var tag : newJdkTags) {
             // Update the history first - if there is a problem here we don't want to send out multiple updates
             history.addTags(List.of(tag.tag()));
@@ -205,6 +200,9 @@ class JNotifyBot implements Bot, WorkItem {
             }
         }
 
+        var newNonJdkTags = newTags.stream()
+                                   .filter(tag -> OpenJDKTag.create(tag).isEmpty())
+                                   .collect(Collectors.toList());
         for (var tag : newNonJdkTags) {
             // Update the history first - if there is a problem here we don't want to send out multiple updates
             history.addTags(List.of(tag));
