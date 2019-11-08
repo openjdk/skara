@@ -156,15 +156,17 @@ public class GitWebrev {
         if (upstream == null) {
             try {
                 var remote = isMercurial ? "default" : "origin";
-                var pullPath = repo.pullPath(remote);
-                var uri = new URI(pullPath);
-                var host = uri.getHost();
-                var path = uri.getPath();
-                if (host != null && path != null) {
-                    if (host.equals("github.com") && path.startsWith("/openjdk/")) {
-                        upstream = "https://github.com" + path;
-                    } else if (host.equals("openjdk.java.net")) {
-                        upstream = "https://openjdk.java.net" + path;
+                if (repo.remotes().contains(remote)) {
+                    var pullPath = repo.pullPath(remote);
+                    var uri = new URI(pullPath);
+                    var host = uri.getHost();
+                    var path = uri.getPath();
+                    if (host != null && path != null) {
+                        if (host.equals("github.com") && path.startsWith("/openjdk/")) {
+                            upstream = "https://github.com" + path;
+                        } else if (host.equals("openjdk.java.net")) {
+                            upstream = "https://openjdk.java.net" + path;
+                        }
                     }
                 }
             } catch (URISyntaxException e) {
