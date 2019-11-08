@@ -566,7 +566,7 @@ class UpdaterTests {
             var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
             credentials.commitLock(localRepo);
             var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.tag(masterHash, "jdk-12+1", "Added tag 1", "Duke", "duke@openjdk.java.net");
+            localRepo.tag(masterHash, "jdk-12+1", "Added tag 1", "Duke Tagger", "tagger@openjdk.java.net");
             localRepo.pushAll(repo.url());
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
@@ -591,23 +591,24 @@ class UpdaterTests {
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
             localRepo.fetch(repo.url(), "history:history");
-            localRepo.tag(editHash, "jdk-12+2", "Added tag 2", "Duke", "duke@openjdk.java.net");
+            localRepo.tag(editHash, "jdk-12+2", "Added tag 2", "Duke Tagger", "tagger@openjdk.java.net");
             CheckableRepository.appendAndCommit(localRepo, "Another line 1", "34567890: Even more fixes");
             CheckableRepository.appendAndCommit(localRepo, "Another line 2", "45678901: Yet even more fixes");
             var editHash2 = CheckableRepository.appendAndCommit(localRepo, "Another line 3", "56789012: Still even more fixes");
-            localRepo.tag(editHash2, "jdk-12+4", "Added tag 3", "Duke", "duke@openjdk.java.net");
+            localRepo.tag(editHash2, "jdk-12+4", "Added tag 3", "Duke Tagger", "tagger@openjdk.java.net");
             CheckableRepository.appendAndCommit(localRepo, "Another line 4", "67890123: Brand new fixes");
             var editHash3 = CheckableRepository.appendAndCommit(localRepo, "Another line 5", "78901234: More brand new fixes");
-            localRepo.tag(editHash3, "jdk-13+0", "Added tag 4", "Duke", "duke@openjdk.java.net");
+            localRepo.tag(editHash3, "jdk-13+0", "Added tag 4", "Duke Tagger", "tagger@openjdk.java.net");
             localRepo.pushAll(repo.url());
 
             TestBotRunner.runPeriodicItems(notifyBot);
             listServer.processIncoming();
             listServer.processIncoming();
             listServer.processIncoming();
+            listServer.processIncoming();
 
             var conversations = mailmanList.conversations(Duration.ofDays(1));
-            assertEquals(3, conversations.size());
+            assertEquals(4, conversations.size());
 
             for (var conversation : conversations) {
                 var email = conversation.first();
@@ -618,6 +619,7 @@ class UpdaterTests {
                     assertFalse(email.body().contains("56789012: Still even more fixes"));
                     assertFalse(email.body().contains("67890123: Brand new fixes"));
                     assertFalse(email.body().contains("78901234: More brand new fixes"));
+                    assertEquals(EmailAddress.from("Duke Tagger", "tagger@openjdk.java.net"), email.author());
                 } else if (email.subject().equals("git: test: Added tag jdk-12+4 for changeset " + editHash2.abbreviate())) {
                     assertFalse(email.body().contains("23456789: More fixes"));
                     assertTrue(email.body().contains("34567890: Even more fixes"));
@@ -625,6 +627,7 @@ class UpdaterTests {
                     assertTrue(email.body().contains("56789012: Still even more fixes"));
                     assertFalse(email.body().contains("67890123: Brand new fixes"));
                     assertFalse(email.body().contains("78901234: More brand new fixes"));
+                    assertEquals(EmailAddress.from("Duke Tagger", "tagger@openjdk.java.net"), email.author());
                 } else if (email.subject().equals("git: test: Added tag jdk-13+0 for changeset " + editHash3.abbreviate())) {
                     assertFalse(email.body().contains("23456789: More fixes"));
                     assertFalse(email.body().contains("34567890: Even more fixes"));
@@ -632,13 +635,15 @@ class UpdaterTests {
                     assertFalse(email.body().contains("56789012: Still even more fixes"));
                     assertFalse(email.body().contains("67890123: Brand new fixes"));
                     assertTrue(email.body().contains("78901234: More brand new fixes"));
-                } else if (email.subject().equals("git: test: 4 new changesets")) {
+                    assertEquals(EmailAddress.from("Duke Tagger", "tagger@openjdk.java.net"), email.author());
+                } else if (email.subject().equals("git: test: 6 new changesets")) {
                     assertTrue(email.body().contains("23456789: More fixes"));
                     assertTrue(email.body().contains("34567890: Even more fixes"));
                     assertTrue(email.body().contains("45678901: Yet even more fixes"));
                     assertTrue(email.body().contains("56789012: Still even more fixes"));
                     assertTrue(email.body().contains("67890123: Brand new fixes"));
                     assertTrue(email.body().contains("78901234: More brand new fixes"));
+                    assertEquals(EmailAddress.from("testauthor", "ta@none.none"), email.author());
                 } else {
                     fail("Mismatched subject: " + email.subject());
                 }

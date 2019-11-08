@@ -32,9 +32,9 @@ import java.io.*;
 import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.logging.Logger;
 
 public class MailingListUpdater implements UpdateConsumer {
     private final MailingList list;
@@ -77,7 +77,7 @@ public class MailingListUpdater implements UpdateConsumer {
         }
     }
 
-    private String commitToText(HostedRepository repository, Commit commit) {
+    private String commitToTextBrief(HostedRepository repository, Commit commit) {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
@@ -88,6 +88,15 @@ public class MailingListUpdater implements UpdateConsumer {
         }
         printer.println("Date:      " + commit.date().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss +0000")));
         printer.println("URL:       " + repository.webUrl(commit.hash()));
+
+        return writer.toString();
+    }
+
+    private String commitToText(HostedRepository repository, Commit commit) {
+        var writer = new StringWriter();
+        var printer = new PrintWriter(writer);
+
+        printer.print(commitToTextBrief(repository, commit));
         printer.println();
         printer.println(String.join("\n", commit.message()));
         printer.println();
@@ -101,15 +110,36 @@ public class MailingListUpdater implements UpdateConsumer {
         return writer.toString();
     }
 
-    private EmailAddress commitsToAuthor(List<Commit> commits) {
-        var commit = commits.get(commits.size() - 1);
-        var commitAddress = EmailAddress.from(commit.committer().name(), commit.committer().email());
+    private String tagAnnotationToText(HostedRepository repository, Tag.Annotated annotation) {
+        var writer = new StringWriter();
+        var printer = new PrintWriter(writer);
+
+        printer.println("Tagged by: " + annotation.author().name() + " <" + annotation.author().email() + ">");
+        printer.println("Date:      " + annotation.date().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss +0000")));
+        printer.println();
+        printer.print(String.join("\n", annotation.message()));
+
+        return writer.toString();
+    }
+
+    private EmailAddress filteredAuthor(EmailAddress commitAddress) {
+        if (author != null) {
+            return author;
+        }
         var allowedAuthorMatcher = allowedAuthorDomains.matcher(commitAddress.domain());
         if (!allowedAuthorMatcher.matches()) {
             return sender;
         } else {
             return commitAddress;
         }
+    }
+
+    private EmailAddress commitToAuthor(Commit commit) {
+        return filteredAuthor(EmailAddress.from(commit.committer().name(), commit.committer().email()));
+    }
+
+    private EmailAddress annotationToAuthor(Tag.Annotated annotation) {
+        return filteredAuthor(EmailAddress.from(annotation.author().name(), annotation.author().email()));
     }
 
     private String commitsToSubject(HostedRepository repository, List<Commit> commits, Branch branch) {
@@ -131,12 +161,12 @@ public class MailingListUpdater implements UpdateConsumer {
         return subject.toString();
     }
 
-    private String tagToSubject(HostedRepository repository, Hash hash, OpenJDKTag tag) {
+    private String tagToSubject(HostedRepository repository, Hash hash, Tag tag) {
         return repository.repositoryType().shortName() +
                 ": " +
                 repository.name() +
                 ": Added tag " +
-                tag.tag() +
+                tag +
                 " for changeset " +
                 hash.abbreviate();
     }
@@ -170,11 +200,11 @@ public class MailingListUpdater implements UpdateConsumer {
                 continue;
             }
             var rfr = rfrCandidates.get(0);
-            var finalAuthor = author != null ? author : commitsToAuthor(commits);
+
             var body = commitToText(repository, commit);
             var email = Email.reply(rfr, "Re: [Integrated] " + rfr.subject(), body)
                              .sender(sender)
-                             .author(finalAuthor)
+                             .author(commitToAuthor(commit))
                              .recipient(recipient)
                              .headers(headers)
                              .build();
@@ -197,10 +227,11 @@ public class MailingListUpdater implements UpdateConsumer {
         }
 
         var subject = commitsToSubject(repository, commits, branch);
-        var finalAuthor = author != null ? author : commitsToAuthor(commits);
+        var lastCommit = commits.get(commits.size() - 1);
+        var commitAddress = filteredAuthor(EmailAddress.from(lastCommit.committer().name(), lastCommit.committer().email()));
         var email = Email.create(subject, writer.toString())
                          .sender(sender)
-                         .author(finalAuthor)
+                         .author(commitAddress)
                          .recipient(recipient)
                          .headers(headers)
                          .build();
@@ -224,12 +255,18 @@ public class MailingListUpdater implements UpdateConsumer {
     }
 
     @Override
-    public void handleTagCommits(HostedRepository repository, List<Commit> commits, OpenJDKTag tag) {
+    public void handleOpenJDKTagCommits(HostedRepository repository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotation) {
         if (mode == Mode.PR_ONLY) {
             return;
         }
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
+
+        var taggedCommit = commits.get(commits.size() - 1);
+        if (annotation != null) {
+            printer.println(tagAnnotationToText(repository, annotation));
+        }
+        printer.println(commitToTextBrief(repository, taggedCommit));
 
         printer.println("The following commits are included in " + tag.tag());
         printer.println("========================================================");
@@ -241,17 +278,47 @@ public class MailingListUpdater implements UpdateConsumer {
             printer.println();
         }
 
-        var tagCommit = commits.get(commits.size() - 1);
-        var subject = tagToSubject(repository, tagCommit.hash(), tag);
-        var finalAuthor = author != null ? author : commitsToAuthor(commits);
+        var subject = tagToSubject(repository, taggedCommit.hash(), tag.tag());
         var email = Email.create(subject, writer.toString())
                          .sender(sender)
-                         .author(finalAuthor)
                          .recipient(recipient)
-                         .headers(headers)
-                         .build();
+                         .headers(headers);
 
-        list.post(email);
+        if (annotation != null) {
+            email.author(annotationToAuthor(annotation));
+        } else {
+            email.author(commitToAuthor(taggedCommit));
+        }
+
+        list.post(email.build());
+    }
+
+    @Override
+    public void handleTagCommit(HostedRepository repository, Commit commit, Tag tag, Tag.Annotated annotation) {
+        if (mode == Mode.PR_ONLY) {
+            return;
+        }
+        var writer = new StringWriter();
+        var printer = new PrintWriter(writer);
+
+        if (annotation != null) {
+            printer.println(tagAnnotationToText(repository, annotation));
+        }
+        printer.println(commitToTextBrief(repository, commit));
+
+        var subject = tagToSubject(repository, commit.hash(), tag);
+        var email = Email.create(subject, writer.toString())
+                         .sender(sender)
+                         .recipient(recipient)
+                         .headers(headers);
+
+        if (annotation != null) {
+            email.author(annotationToAuthor(annotation));
+        } else {
+            email.author(commitToAuthor(commit));
+        }
+
+        list.post(email.build());
     }
 
     private String newBranchSubject(HostedRepository repository, List<Commit> commits, Branch parent, Branch branch) {
@@ -279,7 +346,7 @@ public class MailingListUpdater implements UpdateConsumer {
         var printer = new PrintWriter(writer);
 
         if (commits.size() > 0) {
-            printer.println("The following commits are unique to the " + branch.name() + " branch");
+            printer.println("The following commits are unique to the " + branch.name() + " branch:");
             printer.println("========================================================");
             for (var commit : commits) {
                 printer.print(commit.hash().abbreviate());
@@ -293,7 +360,8 @@ public class MailingListUpdater implements UpdateConsumer {
         }
 
         var subject = newBranchSubject(repository, commits, parent, branch);
-        var finalAuthor = author != null ? author : commits.size() > 0 ? commitsToAuthor(commits) : sender;
+        var finalAuthor = commits.size() > 0 ? commitToAuthor(commits.get(commits.size() - 1)) : sender;
+
         var email = Email.create(subject, writer.toString())
                          .sender(sender)
                          .author(finalAuthor)

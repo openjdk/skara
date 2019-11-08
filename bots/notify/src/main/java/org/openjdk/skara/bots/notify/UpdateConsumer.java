@@ -30,6 +30,14 @@ import java.util.List;
 
 public interface UpdateConsumer {
     void handleCommits(HostedRepository repository, List<Commit> commits, Branch branch);
-    void handleTagCommits(HostedRepository repository, List<Commit> commits, OpenJDKTag tag);
+    void handleOpenJDKTagCommits(HostedRepository repository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated);
+    void handleTagCommit(HostedRepository repository, Commit commit, Tag tag, Tag.Annotated annotation);
     void handleNewBranch(HostedRepository repository, List<Commit> commits, Branch parent, Branch branch);
+
+    default void handleOpenJDKTagCommits(HostedRepository repository, List<Commit> commits, OpenJDKTag tag) {
+        handleOpenJDKTagCommits(repository, commits, tag, null);
+    }
+    default void handleTagCommit(HostedRepository repository, Commit commit, Tag tag) {
+        handleTagCommit(repository, commit, tag, null);
+    }
 }
