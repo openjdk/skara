@@ -77,7 +77,7 @@ public class MailingListUpdater implements UpdateConsumer {
         }
     }
 
-    private String commitToText(HostedRepository repository, Commit commit) {
+    private String commitToTextBrief(HostedRepository repository, Commit commit) {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
@@ -88,6 +88,15 @@ public class MailingListUpdater implements UpdateConsumer {
         }
         printer.println("Date:      " + commit.date().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss +0000")));
         printer.println("URL:       " + repository.webUrl(commit.hash()));
+
+        return writer.toString();
+    }
+
+    private String commitToText(HostedRepository repository, Commit commit) {
+        var writer = new StringWriter();
+        var printer = new PrintWriter(writer);
+
+        printer.print(commitToTextBrief(repository, commit));
         printer.println();
         printer.println(String.join("\n", commit.message()));
         printer.println();
@@ -105,10 +114,8 @@ public class MailingListUpdater implements UpdateConsumer {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
-        printer.println("Changeset: " + annotation.target().abbreviate());
-        printer.println("Author:    " + annotation.author().name() + " <" + annotation.author().email() + ">");
+        printer.println("Tagged by: " + annotation.author().name() + " <" + annotation.author().email() + ">");
         printer.println("Date:      " + annotation.date().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss +0000")));
-        printer.println("URL:       " + repository.webUrl(annotation.target()));
         printer.println();
         printer.print(String.join("\n", annotation.message()));
 
@@ -248,7 +255,46 @@ public class MailingListUpdater implements UpdateConsumer {
     }
 
     @Override
-    public void handleAnnotatedTagCommits(HostedRepository repository, List<Commit> commits, Tag tag, Tag.Annotated annotation) {
+    public void handleOpenJDKTagCommits(HostedRepository repository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotation) {
+        if (mode == Mode.PR_ONLY) {
+            return;
+        }
+        var writer = new StringWriter();
+        var printer = new PrintWriter(writer);
+
+        var taggedCommit = commits.get(commits.size() - 1);
+        if (annotation != null) {
+            printer.println(tagAnnotationToText(repository, annotation));
+        }
+        printer.println(commitToTextBrief(repository, taggedCommit));
+
+        printer.println("The following commits are included in " + tag.tag());
+        printer.println("========================================================");
+        for (var commit : commits) {
+            printer.print(commit.hash().abbreviate());
+            if (commit.message().size() > 0) {
+                printer.print(": " + commit.message().get(0));
+            }
+            printer.println();
+        }
+
+        var subject = tagToSubject(repository, taggedCommit.hash(), tag.tag());
+        var email = Email.create(subject, writer.toString())
+                         .sender(sender)
+                         .recipient(recipient)
+                         .headers(headers);
+
+        if (annotation != null) {
+            email.author(annotationToAuthor(annotation));
+        } else {
+            email.author(commitToAuthor(taggedCommit));
+        }
+
+        list.post(email.build());
+    }
+
+    @Override
+    public void handleTagCommit(HostedRepository repository, Commit commit, Tag tag, Tag.Annotated annotation) {
         if (mode == Mode.PR_ONLY) {
             return;
         }
@@ -258,22 +304,9 @@ public class MailingListUpdater implements UpdateConsumer {
         if (annotation != null) {
             printer.println(tagAnnotationToText(repository, annotation));
         }
+        printer.println(commitToTextBrief(repository, commit));
 
-        var openjdkTag = OpenJDKTag.create(tag);
-        if (openjdkTag.isPresent()) {
-            printer.println("The following commits are included in " + tag);
-            printer.println("========================================================");
-            for (var commit : commits) {
-                printer.print(commit.hash().abbreviate());
-                if (commit.message().size() > 0) {
-                    printer.print(": " + commit.message().get(0));
-                }
-                printer.println();
-            }
-        }
-
-        var tagCommit = commits.get(commits.size() - 1);
-        var subject = tagToSubject(repository, tagCommit.hash(), tag);
+        var subject = tagToSubject(repository, commit.hash(), tag);
         var email = Email.create(subject, writer.toString())
                          .sender(sender)
                          .recipient(recipient)
@@ -282,15 +315,10 @@ public class MailingListUpdater implements UpdateConsumer {
         if (annotation != null) {
             email.author(annotationToAuthor(annotation));
         } else {
-            email.author(commitToAuthor(tagCommit));
+            email.author(commitToAuthor(commit));
         }
 
         list.post(email.build());
-    }
-
-    @Override
-    public void handleTagCommits(HostedRepository repository, List<Commit> commits, Tag tag) {
-        handleAnnotatedTagCommits(repository, commits, tag, null);
     }
 
     private String newBranchSubject(HostedRepository repository, List<Commit> commits, Branch parent, Branch branch) {
@@ -318,7 +346,7 @@ public class MailingListUpdater implements UpdateConsumer {
         var printer = new PrintWriter(writer);
 
         if (commits.size() > 0) {
-            printer.println("The following commits are unique to the " + branch.name() + " branch");
+            printer.println("The following commits are unique to the " + branch.name() + " branch:");
             printer.println("========================================================");
             for (var commit : commits) {
                 printer.print(commit.hash().abbreviate());

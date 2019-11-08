@@ -170,29 +170,27 @@ class JNotifyBot implements Bot, WorkItem {
                                 .filter(Optional::isPresent)
                                 .map(Optional::get)
                                 .sorted(Comparator.comparingInt(OpenJDKTag::buildNum))
-                                .map(OpenJDKTag::tag);
-        var newNonJdkTags = newTags.stream()
-                                   .filter(tag -> OpenJDKTag.create(tag).isEmpty());
+                                .collect(Collectors.toList());
 
-        var sortedNewTags = Stream.concat(newJdkTags, newNonJdkTags).collect(Collectors.toList());
-        for (var tag : sortedNewTags) {
+        var newNonJdkTags = newTags.stream()
+                                   .filter(tag -> OpenJDKTag.create(tag).isEmpty())
+                                   .collect(Collectors.toList());
+
+        for (var tag : newJdkTags) {
             // Update the history first - if there is a problem here we don't want to send out multiple updates
-            history.addTags(List.of(tag));
+            history.addTags(List.of(tag.tag()));
 
             var commits = new ArrayList<Commit>();
 
             // Try to determine which commits are new since the last build
-            var openjdkTag = OpenJDKTag.create(tag);
-            if (openjdkTag.isPresent()) {
-                var previous = existingPrevious(openjdkTag.get(), allJdkTags);
-                if (previous.isPresent()) {
-                    commits.addAll(localRepo.commits(previous.get().tag() + ".." + tag).asList());
-                }
+            var previous = existingPrevious(tag, allJdkTags);
+            if (previous.isPresent()) {
+                commits.addAll(localRepo.commits(previous.get().tag() + ".." + tag.tag()).asList());
             }
 
             // If none are found, just include the commit that was tagged
             if (commits.isEmpty()) {
-                var commit = localRepo.lookup(tag);
+                var commit = localRepo.lookup(tag.tag());
                 if (commit.isEmpty()) {
                     throw new RuntimeException("Failed to lookup tag '" + tag.toString() + "'");
                 } else {
@@ -201,13 +199,24 @@ class JNotifyBot implements Bot, WorkItem {
             }
 
             Collections.reverse(commits);
+            var annotation = localRepo.annotate(tag.tag());
+            for (var updater : updaters) {
+                updater.handleOpenJDKTagCommits(repository, commits, tag, annotation.orElse(null));
+            }
+        }
+
+        for (var tag : newNonJdkTags) {
+            // Update the history first - if there is a problem here we don't want to send out multiple updates
+            history.addTags(List.of(tag));
+
+            var commit = localRepo.lookup(tag);
+            if (commit.isEmpty()) {
+                throw new RuntimeException("Failed to lookup tag '" + tag.toString() + "'");
+            }
+
             var annotation = localRepo.annotate(tag);
             for (var updater : updaters) {
-                if (annotation.isPresent()) {
-                    updater.handleAnnotatedTagCommits(repository, commits, tag, annotation.get());
-                } else {
-                    updater.handleTagCommits(repository, commits, tag);
-                }
+                updater.handleTagCommit(repository, commit.get(), tag, annotation.orElse(null));
             }
         }
     }
