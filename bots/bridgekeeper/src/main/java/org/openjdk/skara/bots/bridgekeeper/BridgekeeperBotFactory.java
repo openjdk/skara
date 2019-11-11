@@ -20,38 +20,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-rootProject.name = 'skara'
+package org.openjdk.skara.bots.bridgekeeper;
 
-include 'args'
-include 'bot'
-include 'cli'
-include 'census'
-include 'email'
-include 'encoding'
-include 'host'
-include 'ini'
-include 'jcheck'
-include 'json'
-include 'mailinglist'
-include 'process'
-include 'proxy'
-include 'storage'
-include 'ssh'
-include 'test'
-include 'vcs'
-include 'webrev'
-include 'network'
-include 'forge'
-include 'issuetracker'
+import org.openjdk.skara.bot.*;
 
-include 'bots:bridgekeeper'
-include 'bots:cli'
-include 'bots:forward'
-include 'bots:hgbridge'
-include 'bots:merge'
-include 'bots:mirror'
-include 'bots:mlbridge'
-include 'bots:notify'
-include 'bots:pr'
-include 'bots:submit'
-include 'bots:topological'
+import java.util.*;
+
+public class BridgekeeperBotFactory implements BotFactory {
+    @Override
+    public String name() {
+        return "bridgekeeper";
+    }
+
+    @Override
+    public List<Bot> create(BotConfiguration configuration) {
+        var ret = new ArrayList<Bot>();
+        var specific = configuration.specific();
+
+        for (var repo : specific.get("repositories").asArray()) {
+            var bot = new BridgekeeperBot(configuration.repository(repo.asString()));
+            ret.add(bot);
+        }
+
+        return ret;
+    }
+}
