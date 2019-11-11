@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class PullRequestPrunerBotTests {
     @Test
-    void close(TestInfo testInfo) throws IOException {
+    void close(TestInfo testInfo) throws IOException, InterruptedException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
@@ -48,6 +48,9 @@ class PullRequestPrunerBotTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Make sure the timeout expires
+            Thread.sleep(100);
 
             // Let the bot see it
             TestBotRunner.runPeriodicItems(bot);
