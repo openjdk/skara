@@ -30,6 +30,7 @@ module {
 }
 
 dependencies {
+    implementation project(':ci')
     implementation project(':host')
     implementation project(':network')
     implementation project(':issuetracker')

@@ -20,25 +20,44 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package org.openjdk.skara.bots.tester;
 
-module {
-    name = 'org.openjdk.skara.bots.submit'
-    test {
-        requires 'org.junit.jupiter.api'
-        requires 'org.openjdk.skara.test'
-        opens 'org.openjdk.skara.bots.submit' to 'org.junit.platform.commons'
+import org.openjdk.skara.forge.*;
+import org.openjdk.skara.host.*;
+
+import java.util.*;
+
+class InMemoryHost implements Forge {
+    HostUser currentUserDetails = new HostUser(0, "openjdk", "openjdk [bot]");
+    Map<String, Set<HostUser>> groups;
+
+    @Override
+    public boolean isValid() {
+        return false;
     }
-}
 
-dependencies {
-    implementation project(':ci')
-    implementation project(':bot')
-    implementation project(':host')
-    implementation project(':forge')
-    implementation project(':issuetracker')
-    implementation project(':census')
-    implementation project(':json')
-    implementation project(':vcs')
+    @Override
+    public HostedRepository repository(String name) {
+        return null;
+    }
 
-    testImplementation project(':test')
+    @Override
+    public HostUser user(String username) {
+        return null;
+    }
+
+    @Override
+    public HostUser currentUser() {
+        return currentUserDetails;
+    }
+
+    @Override
+    public boolean supportsReviewBody() {
+        return false;
+    }
+
+    @Override
+    public boolean isMemberOf(String groupId, HostUser user) {
+        return groups.get(groupId).contains(user);
+    }
 }
