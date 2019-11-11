@@ -47,7 +47,7 @@ dependencies {
 
 jar {
     manifest {
-        attributes("Implementation-Title": "org.openjdk.skara.cli", "Implementation-Version": version)
+        attributes("Implementation-Title": "org.openjdk.skara.cli", "Implementation-Version": archiveVersion)
     }
 }
 
