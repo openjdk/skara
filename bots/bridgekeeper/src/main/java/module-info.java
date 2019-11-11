@@ -1,3 +1,5 @@
+import org.openjdk.skara.bots.bridgekeeper.BridgekeeperBotFactory;
+
 /*
  * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -20,38 +22,9 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-rootProject.name = 'skara'
+module org.openjdk.skara.bots.bridgekeeper {
+    requires org.openjdk.skara.bot;
+    requires java.logging;
 
-include 'args'
-include 'bot'
-include 'cli'
-include 'census'
-include 'email'
-include 'encoding'
-include 'host'
-include 'ini'
-include 'jcheck'
-include 'json'
-include 'mailinglist'
-include 'process'
-include 'proxy'
-include 'storage'
-include 'ssh'
-include 'test'
-include 'vcs'
-include 'webrev'
-include 'network'
-include 'forge'
-include 'issuetracker'
-
-include 'bots:cli'
-include 'bots:forward'
-include 'bots:hgbridge'
-include 'bots:merge'
-include 'bots:mirror'
-include 'bots:mlbridge'
-include 'bots:notify'
-include 'bots:pr'
-include 'bots:submit'
-include 'bots:topological'
-include 'bots:bridgekeeper'
+    provides org.openjdk.skara.bot.BotFactory with BridgekeeperBotFactory;
+}
