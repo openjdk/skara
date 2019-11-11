@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.bridgekeeper;
 
 import org.openjdk.skara.bot.*;
 
+import java.time.Duration;
 import java.util.*;
 
 public class BridgekeeperBotFactory implements BotFactory {
@@ -37,11 +38,15 @@ public class BridgekeeperBotFactory implements BotFactory {
         var ret = new ArrayList<Bot>();
         var specific = configuration.specific();
 
-        for (var repo : specific.get("repositories").asArray()) {
-            var bot = new BridgekeeperBot(configuration.repository(repo.asString()));
+        for (var repo : specific.get("mirrors").asArray()) {
+            var bot = new PullRequestCloserBot(configuration.repository(repo.asString()));
             ret.add(bot);
         }
-
+        for (var repo : specific.get("pruned").fields()) {
+            var maxAge = Duration.parse(repo.value().get("maxage").asString());
+            var bot = new PullRequestPrunerBot(configuration.repository(repo.name()), maxAge);
+            ret.add(bot);
+        }
         return ret;
     }
 }

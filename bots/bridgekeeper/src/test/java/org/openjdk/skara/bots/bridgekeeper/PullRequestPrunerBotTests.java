@@ -22,22 +22,22 @@
  */
 package org.openjdk.skara.bots.bridgekeeper;
 
-import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.test.*;
 
 import org.junit.jupiter.api.*;
 
 import java.io.IOException;
+import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class BridgekeeperBotTests {
+class PullRequestPrunerBotTests {
     @Test
-    void simple(TestInfo testInfo) throws IOException {
+    void close(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
-            var bot = new BridgekeeperBot(author);
+            var bot = new PullRequestPrunerBot(author, Duration.ofMillis(1));
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -59,11 +59,11 @@ class BridgekeeperBotTests {
     }
 
     @Test
-    void keepClosing(TestInfo testInfo) throws IOException {
+    void dontClose(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
-            var bot = new BridgekeeperBot(author);
+            var bot = new PullRequestPrunerBot(author, Duration.ofDays(3));
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -78,22 +78,9 @@ class BridgekeeperBotTests {
             // Let the bot see it
             TestBotRunner.runPeriodicItems(bot);
 
-            // There should now be no open PRs
+            // There should still be an open PR
             var prs = author.pullRequests();
-            assertEquals(0, prs.size());
-
-            // The author is persistent
-            pr.setState(Issue.State.OPEN);
-            prs = author.pullRequests();
             assertEquals(1, prs.size());
-
-            // But so is the bot
-            TestBotRunner.runPeriodicItems(bot);
-            prs = author.pullRequests();
-            assertEquals(0, prs.size());
-
-            // There should still only be one welcome comment
-            assertEquals(1, pr.comments().size());
         }
     }
 }
