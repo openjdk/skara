@@ -72,16 +72,31 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
         return count + " " + unit;
     }
 
+    private final String noticeMarker = "<!-- PullrequestCloserBot auto close notification -->";
+
     @Override
     public void run(Path scratchPath) {
+        var comments = pr.comments();
+        if (comments.size() > 0) {
+            var lastComment = comments.get(comments.size() - 1);
+            if (lastComment.author().equals(repository.forge().currentUser()) && lastComment.body().contains(noticeMarker)) {
+                var message = "@" + pr.author().userName() + " This pull request has been inactive for more than " +
+                        formatDuration(maxAge.multipliedBy(2)) + " and will now be automatically closed. If you would " +
+                        "like to continue working on this pull request in the future, feel free to reopen it!";
+                log.fine("Posting prune message");
+                pr.addComment(message);
+                pr.setState(PullRequest.State.CLOSED);
+                return;
+            }
+        }
+
         var message = "@" + pr.author().userName() + " This pull request has been inactive for more than " +
-                formatDuration(maxAge) + " and will be automatically closed. If you think this is incorrect, " +
-                "feel free to reopen it!";
+                formatDuration(maxAge) + " and will be automatically closed if another " + formatDuration(maxAge) +
+                " passes without any activity. To avoid this, simply add a new comment to the pull request. Feel free " +
+                "to ask for assistance if you need help with progressing this pull request towards integration!";
 
-        log.fine("Posting prune message");
-        pr.addComment(message);
-
-        pr.setState(PullRequest.State.CLOSED);
+        log.fine("Posting prune notification message");
+        pr.addComment(noticeMarker + "\n\n" + message);
     }
 }
 

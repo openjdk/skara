@@ -29,7 +29,7 @@ import org.junit.jupiter.api.*;
 import java.io.IOException;
 import java.time.Duration;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 class PullRequestPrunerBotTests {
     @Test
@@ -52,7 +52,27 @@ class PullRequestPrunerBotTests {
             // Make sure the timeout expires
             Thread.sleep(100);
 
-            // Let the bot see it
+            // Let the bot see it - it should give a notice
+            TestBotRunner.runPeriodicItems(bot);
+
+            assertEquals(1, pr.comments().size());
+            assertTrue(pr.comments().get(0).body().contains("will be automatically closed if"));
+
+            pr.addComment("I'm still working on it!");
+
+            // Make sure the timeout expires again
+            Thread.sleep(100);
+
+            // Let the bot see it - it should post a second notice
+            TestBotRunner.runPeriodicItems(bot);
+
+            assertEquals(3, pr.comments().size());
+            assertTrue(pr.comments().get(2).body().contains("will be automatically closed if"));
+
+            // Make sure the timeout expires again
+            Thread.sleep(100);
+
+            // The bot should now close it
             TestBotRunner.runPeriodicItems(bot);
 
             // There should now be no open PRs
