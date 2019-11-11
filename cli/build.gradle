@@ -71,7 +71,7 @@ images {
 
     ext.modules = ['jdk.crypto.ec']
 
-    windows {
+    windows_x64 {
         modules = ext.modules
         launchers = ext.launchers
         bundles = ['zip', 'tar.gz']
@@ -81,7 +81,7 @@ images {
         }
     }
 
-    linux {
+    linux_x64 {
         modules = ext.modules
         launchers = ext.launchers
         man = 'cli/resources/man'
@@ -92,7 +92,7 @@ images {
         }
     }
 
-    macos {
+    macos_x64 {
         modules = ext.modules
         launchers = ext.launchers
         man = 'cli/resources/man'
@@ -101,5 +101,12 @@ images {
             url = 'https://download.java.net/java/GA/jdk12/GPL/openjdk-12_osx-x64_bin.tar.gz'
             sha256 = '52164a04db4d3fdfe128cfc7b868bc4dae52d969f03d53ae9d4239fe783e1a3a'
         }
+    }
+
+    local {
+        modules = ext.modules
+        launchers = ext.launchers
+        man = 'cli/resources/man'
+        bundles = ['zip', 'tar.gz']
     }
 }

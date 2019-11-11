@@ -64,7 +64,7 @@ dependencies {
 }
 
 images {
-    linux {
+    linux_x64 {
         modules = ['jdk.crypto.ec',
                    'org.openjdk.skara.bots.pr',
                    'org.openjdk.skara.bots.hgbridge',

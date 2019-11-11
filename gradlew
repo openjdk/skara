@@ -81,67 +81,70 @@ extract_zip() {
 }
 
 DIR=$(dirname $0)
+ARCH=$(uname -m)
 OS=$(uname)
 
 . $(dirname "${0}")/deps.env
-case "${OS}" in
-    Linux )
-        JDK_URL="${JDK_LINUX_URL}"
-        JDK_SHA256="${JDK_LINUX_SHA256}"
-        ;;
-    Darwin )
-        JDK_URL="${JDK_MACOS_URL}"
-        JDK_SHA256="${JDK_MACOS_SHA256}"
-        ;;
-    CYGWIN_NT* )
-        JDK_URL="${JDK_WINDOWS_URL}"
-        JDK_SHA256="${JDK_WINDOWS_SHA256}"
-        ;;
-    *)
-        echo "error: unknown operating system ${OS}"
-        exit 1
-        ;;
-esac
-
-JDK_FILENAME="${DIR}/.jdk/$(basename ${JDK_URL})"
-if [ "${OS}" = "Linux" -o "${OS}" = "Darwin" ]; then
-    JDK_DIR="${DIR}/.jdk/$(basename -s '.tar.gz' ${JDK_URL})"
-else
-    JDK_DIR="${DIR}/.jdk/$(basename -s '.zip' ${JDK_URL})"
+if [ "${ARCH}" = "x86_64" ]; then
+    case "${OS}" in
+        Linux )
+            JDK_URL="${JDK_LINUX_X64_URL}"
+            JDK_SHA256="${JDK_LINUX_X64_SHA256}"
+            ;;
+        Darwin )
+            JDK_URL="${JDK_MACOS_X64_URL}"
+            JDK_SHA256="${JDK_MACOS_X64_SHA256}"
+            ;;
+        CYGWIN_NT* )
+            JDK_URL="${JDK_WINDOWS_X64_URL}"
+            JDK_SHA256="${JDK_WINDOWS_X64_SHA256}"
+            ;;
+    esac
 fi
 
-if [ ! -d "${JDK_DIR}" ]; then
-    mkdir -p ${DIR}/.jdk
-    if [ ! -f "${JDK_FILENAME}" ]; then
-        if [ -f "${JDK_URL}" ]; then
-            echo "Copying JDK..."
-            cp "${JDK_URL}" "${JDK_FILENAME}"
+if [ ! -z "${JDK_URL}" ]; then
+    JDK_FILENAME="${DIR}/.jdk/$(basename ${JDK_URL})"
+    if [ "${OS}" = "Linux" -o "${OS}" = "Darwin" ]; then
+        JDK_DIR="${DIR}/.jdk/$(basename -s '.tar.gz' ${JDK_URL})"
+    else
+        JDK_DIR="${DIR}/.jdk/$(basename -s '.zip' ${JDK_URL})"
+    fi
+
+    if [ ! -d "${JDK_DIR}" ]; then
+        mkdir -p ${DIR}/.jdk
+        if [ ! -f "${JDK_FILENAME}" ]; then
+            if [ -f "${JDK_URL}" ]; then
+                echo "Copying JDK..."
+                cp "${JDK_URL}" "${JDK_FILENAME}"
+            else
+                echo "Downloading JDK..."
+                download ${JDK_URL} "${JDK_FILENAME}"
+                checksum "${JDK_FILENAME}" ${JDK_SHA256}
+            fi
+        fi
+        echo "Extracting JDK..."
+        if [ "${OS}" = "Linux" -o "${OS}" = "Darwin" ]; then
+            extract_tar "${JDK_FILENAME}" "${JDK_DIR}"
         else
-            echo "Downloading JDK..."
-            download ${JDK_URL} "${JDK_FILENAME}"
-            checksum "${JDK_FILENAME}" ${JDK_SHA256}
+            extract_zip "${JDK_FILENAME}" "${JDK_DIR}"
         fi
     fi
-    echo "Extracting JDK..."
-    if [ "${OS}" = "Linux" -o "${OS}" = "Darwin" ]; then
-        extract_tar "${JDK_FILENAME}" "${JDK_DIR}"
+
+    if [ "${OS}" = "Darwin" ]; then
+        EXECUTABLE_FILTER='-perm +111'
+        LAUNCHER='java'
+    elif [ "${OS}" = "Linux" ]; then
+        EXECUTABLE_FILTER='-executable'
+        LAUNCHER='java'
     else
-        extract_zip "${JDK_FILENAME}" "${JDK_DIR}"
+        LAUNCHER='java.exe'
     fi
-fi
 
-if [ "${OS}" = "Darwin" ]; then
-    EXECUTABLE_FILTER='-perm +111'
-    LAUNCHER='java'
-elif [ "${OS}" = "Linux" ]; then
-    EXECUTABLE_FILTER='-executable'
-    LAUNCHER='java'
+    JAVA_LAUNCHER=$(find "${JDK_DIR}" -type f ${EXECUTABLE_FILTER} | grep ".*/bin/${LAUNCHER}$")
+    export JAVA_HOME="$(dirname $(dirname ${JAVA_LAUNCHER}))"
 else
-    LAUNCHER='java.exe'
+    JAVA_LAUNCHER="java"
 fi
-
-JAVA_LAUNCHER=$(find "${JDK_DIR}" -type f ${EXECUTABLE_FILTER} | grep ".*/bin/${LAUNCHER}$")
-export JAVA_HOME="$(dirname $(dirname ${JAVA_LAUNCHER}))"
 
 GRADLE_FILENAME="${DIR}/.gradle/$(basename ${GRADLE_URL})"
 GRADLE_DIR="${DIR}/.gradle/$(basename -s '.zip' ${GRADLE_URL})"
@@ -155,7 +158,11 @@ if [ ! -d "${GRADLE_DIR}" ]; then
     checksum ${GRADLE_FILENAME} ${GRADLE_SHA256}
     echo "Extracting Gradle..."
     if [ "${OS}" = "Linux" -o "${OS}" = "Darwin" ]; then
-        "${JAVA_LAUNCHER}" "${DIR}"/Unzip.java "${GRADLE_FILENAME}" "${GRADLE_DIR}"
+        if exists unzip; then
+            extract_zip "${GRADLE_FILENAME}" "${GRADLE_DIR}"
+        else
+            "${JAVA_LAUNCHER}" "${DIR}"/Unzip.java "${GRADLE_FILENAME}" "${GRADLE_DIR}"
+        fi
     else
         extract_zip "${GRADLE_FILENAME}" "${GRADLE_DIR}"
     fi

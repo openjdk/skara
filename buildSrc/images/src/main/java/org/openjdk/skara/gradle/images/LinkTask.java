@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
 
 public class LinkTask extends DefaultTask {
     private final Property<String> os;
+    private final Property<String> cpu;
     private final Property<String> url;
     private final Property<Path> toDir;
     private final MapProperty<String, String> launchers;
@@ -51,6 +52,7 @@ public class LinkTask extends DefaultTask {
     @Inject
     public LinkTask(ObjectFactory factory) {
         os = factory.property(String.class);
+        cpu = factory.property(String.class);
         url = factory.property(String.class);
         toDir = factory.property(Path.class);
         launchers = factory.mapProperty(String.class, String.class);
@@ -67,6 +69,11 @@ public class LinkTask extends DefaultTask {
     @Input
     Property<String> getOS() {
         return os;
+    }
+
+    @Input
+    Property<String> getCPU() {
+        return cpu;
     }
 
     @Input
@@ -117,9 +124,14 @@ public class LinkTask extends DefaultTask {
             modularJars.add(jar.getAsFile().toString());
         }
 
-        var filename = Path.of(URI.create(url.get()).getPath()).getFileName().toString();
-        var dirname = filename.replace(".zip", "").replace(".tar.gz", "");
-        var jdk = project.getRootDir().toPath().toAbsolutePath().resolve(".jdk").resolve(dirname);
+        Path jdk = null;
+        if (!url.get().equals("local")) {
+            var filename = Path.of(URI.create(url.get()).getPath()).getFileName().toString();
+            var dirname = filename.replace(".zip", "").replace(".tar.gz", "");
+            jdk = project.getRootDir().toPath().toAbsolutePath().resolve(".jdk").resolve(dirname);
+        } else {
+            jdk = Path.of(System.getProperty("java.home"));
+        }
         var dirs = Files.walk(jdk)
                         .filter(Files::isDirectory)
                         .filter(p -> p.getFileName().toString().equals("jmods"))
@@ -143,7 +155,7 @@ public class LinkTask extends DefaultTask {
         var allModules = new ArrayList<String>(uniqueModules);
 
         Files.createDirectories(toDir.get());
-        var dest = toDir.get().resolve(os.get());
+        var dest = toDir.get().resolve(os.get() + "-" + cpu.get());
         if (Files.exists(dest) && Files.isDirectory(dest)) {
             clearDirectory(dest);
         }
@@ -163,14 +175,14 @@ public class LinkTask extends DefaultTask {
         });
 
         var currentOS = System.getProperty("os.name").toLowerCase().substring(0, 3);
-        if (currentOS.equals(os.get().substring(0, 3))) {
+        if (os.get().equals("local") || currentOS.equals(os.get().substring(0, 3))) {
             var ext = currentOS.startsWith("win") ? ".exe" : "";
             var javaLaunchers = Files.walk(dest)
                                      .filter(Files::isExecutable)
                                      .filter(p -> p.getFileName().toString().equals("java" + ext))
                                      .collect(Collectors.toList());
             if (javaLaunchers.size() != 1) {
-                throw new GradleException("Multiple or no java launchers generated for " + os.get() + " image");
+                throw new GradleException("Multiple or no java launchers generated for " + os.get() + "-" + cpu.get() + " image");
             }
             var java = javaLaunchers.get(0);
             project.exec((spec) -> {
