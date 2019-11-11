@@ -25,6 +25,7 @@ module {
     name = 'org.openjdk.skara.bots.bridgekeeper'
     test {
         requires 'org.junit.jupiter.api'
+        requires 'org.openjdk.skara.vcs'
         requires 'org.openjdk.skara.test'
         opens 'org.openjdk.skara.bots.bridgekeeper' to 'org.junit.platform.commons'
     }
