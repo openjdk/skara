@@ -30,19 +30,19 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
-class BridgekeeperWorkItem implements WorkItem {
+class PullRequestCloserBotWorkItem implements WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final HostedRepository repository;
     private final PullRequest pr;
     private final Consumer<RuntimeException> errorHandler;
 
-    BridgekeeperWorkItem(HostedRepository repository, PullRequest pr, Consumer<RuntimeException> errorHandler) {
+    PullRequestCloserBotWorkItem(HostedRepository repository, PullRequest pr, Consumer<RuntimeException> errorHandler) {
         this.pr = pr;
         this.repository = repository;
         this.errorHandler = errorHandler;
     }
 
-    private final String welcomeMarker = "<!-- BridgeKeeperBot welcome message -->";
+    private final String welcomeMarker = "<!-- PullrequestCloserBot welcome message -->";
 
     private void checkWelcomeMessage() {
         log.info("Checking welcome message of " + pr);
@@ -69,10 +69,10 @@ class BridgekeeperWorkItem implements WorkItem {
 
     @Override
     public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof BridgekeeperWorkItem)) {
+        if (!(other instanceof PullRequestCloserBotWorkItem)) {
             return true;
         }
-        BridgekeeperWorkItem otherItem = (BridgekeeperWorkItem)other;
+        PullRequestCloserBotWorkItem otherItem = (PullRequestCloserBotWorkItem)other;
         if (!pr.id().equals(otherItem.pr.id())) {
             return true;
         }
@@ -93,11 +93,11 @@ class BridgekeeperWorkItem implements WorkItem {
     }
 }
 
-public class BridgekeeperBot implements Bot {
+public class PullRequestCloserBot implements Bot {
     private final HostedRepository remoteRepo;
     private final PullRequestUpdateCache updateCache;
 
-    BridgekeeperBot(HostedRepository repo) {
+    PullRequestCloserBot(HostedRepository repo) {
         this.remoteRepo = repo;
         this.updateCache = new PullRequestUpdateCache();
     }
@@ -108,7 +108,7 @@ public class BridgekeeperBot implements Bot {
 
         for (var pr : remoteRepo.pullRequests()) {
             if (updateCache.needsUpdate(pr)) {
-                var item = new BridgekeeperWorkItem(remoteRepo, pr, e -> updateCache.invalidate(pr));
+                var item = new PullRequestCloserBotWorkItem(remoteRepo, pr, e -> updateCache.invalidate(pr));
                 ret.add(item);
             }
         }

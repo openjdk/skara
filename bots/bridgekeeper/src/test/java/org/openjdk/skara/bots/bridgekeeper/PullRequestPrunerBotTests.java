@@ -22,22 +22,22 @@
  */
 package org.openjdk.skara.bots.bridgekeeper;
 
-import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.test.*;
 
 import org.junit.jupiter.api.*;
 
 import java.io.IOException;
+import java.time.Duration;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
-class BridgekeeperBotTests {
+class PullRequestPrunerBotTests {
     @Test
-    void simple(TestInfo testInfo) throws IOException {
+    void close(TestInfo testInfo) throws IOException, InterruptedException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
-            var bot = new BridgekeeperBot(author);
+            var bot = new PullRequestPrunerBot(author, Duration.ofMillis(1));
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -49,7 +49,30 @@ class BridgekeeperBotTests {
             localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
-            // Let the bot see it
+            // Make sure the timeout expires
+            Thread.sleep(100);
+
+            // Let the bot see it - it should give a notice
+            TestBotRunner.runPeriodicItems(bot);
+
+            assertEquals(1, pr.comments().size());
+            assertTrue(pr.comments().get(0).body().contains("will be automatically closed if"));
+
+            pr.addComment("I'm still working on it!");
+
+            // Make sure the timeout expires again
+            Thread.sleep(100);
+
+            // Let the bot see it - it should post a second notice
+            TestBotRunner.runPeriodicItems(bot);
+
+            assertEquals(3, pr.comments().size());
+            assertTrue(pr.comments().get(2).body().contains("will be automatically closed if"));
+
+            // Make sure the timeout expires again
+            Thread.sleep(100);
+
+            // The bot should now close it
             TestBotRunner.runPeriodicItems(bot);
 
             // There should now be no open PRs
@@ -59,11 +82,11 @@ class BridgekeeperBotTests {
     }
 
     @Test
-    void keepClosing(TestInfo testInfo) throws IOException {
+    void dontClose(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
-            var bot = new BridgekeeperBot(author);
+            var bot = new PullRequestPrunerBot(author, Duration.ofDays(3));
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -78,22 +101,9 @@ class BridgekeeperBotTests {
             // Let the bot see it
             TestBotRunner.runPeriodicItems(bot);
 
-            // There should now be no open PRs
+            // There should still be an open PR
             var prs = author.pullRequests();
-            assertEquals(0, prs.size());
-
-            // The author is persistent
-            pr.setState(Issue.State.OPEN);
-            prs = author.pullRequests();
             assertEquals(1, prs.size());
-
-            // But so is the bot
-            TestBotRunner.runPeriodicItems(bot);
-            prs = author.pullRequests();
-            assertEquals(0, prs.size());
-
-            // There should still only be one welcome comment
-            assertEquals(1, pr.comments().size());
         }
     }
 }
