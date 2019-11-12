@@ -319,7 +319,7 @@ class ReviewArchive {
         } else if (censusInstance.project().isAuthor(contributor.username(), version)) {
             return "Author";
         }
-        return "none";
+        return "no project role";
     }
 
     void addReview(Review review) {
@@ -356,7 +356,7 @@ class ReviewArchive {
         }
 
         var userName = contributor != null ? contributor.username() : review.reviewer().userName() + "@" + censusInstance.namespace().name();
-        var userRole = contributor != null ? projectRole(contributor) : "no project role";
+        var userRole = contributor != null ? projectRole(contributor) : "no OpenJDK username";
         var replyBody = ArchiveMessages.reviewVerdictBody(review.body().orElse(""), review.verdict(), userName, userRole);
 
         addReplyCommon(parent, review.reviewer(), subject, replyBody, id);
