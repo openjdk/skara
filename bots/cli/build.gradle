@@ -44,8 +44,10 @@ dependencies {
     implementation project(':bots:mlbridge')
     implementation project(':bots:mirror')
     implementation project(':bots:topological')
+    implementation project(':bots:tester')
     implementation project(':bots:submit')
     implementation project(':bots:forward')
+    implementation project(':ci')
     implementation project(':vcs')
     implementation project(':jcheck')
     implementation project(':host')
@@ -74,6 +76,7 @@ images {
                    'org.openjdk.skara.bots.mlbridge',
                    'org.openjdk.skara.bots.mirror',
                    'org.openjdk.skara.bots.submit',
+                   'org.openjdk.skara.bots.tester',
                    'org.openjdk.skara.bots.topological',
                    'org.openjdk.skara.bots.forward']
         launchers = ['skara-bots': 'org.openjdk.skara.bots.cli/org.openjdk.skara.bots.cli.BotLauncher']

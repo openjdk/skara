@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bot;
 
+import org.openjdk.skara.ci.ContinuousIntegration;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.json.JSONObject;
@@ -48,6 +49,13 @@ public interface BotConfiguration {
      * @return
      */
     IssueProject issueProject(String name);
+
+    /**
+     * Configuration-specific name mapped to a ContinuousIntegration.
+     * @param name
+     * @return
+     */
+    ContinuousIntegration continuousIntegration(String name);
 
     /**
      * Retrieves the ref name that optionally follows the configuration-specific repository name.

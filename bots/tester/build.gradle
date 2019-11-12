@@ -22,21 +22,22 @@
  */
 
 module {
-    name = 'org.openjdk.skara.bots.submit'
+    name = 'org.openjdk.skara.bots.tester'
     test {
         requires 'org.junit.jupiter.api'
         requires 'org.openjdk.skara.test'
-        opens 'org.openjdk.skara.bots.submit' to 'org.junit.platform.commons'
+        requires 'org.openjdk.skara.host'
+        opens 'org.openjdk.skara.bots.tester' to 'org.junit.platform.commons'
     }
 }
 
 dependencies {
-    implementation project(':ci')
     implementation project(':bot')
-    implementation project(':host')
-    implementation project(':forge')
-    implementation project(':issuetracker')
+    implementation project(':ci')
     implementation project(':census')
+    implementation project(':forge')
+    implementation project(':host')
+    implementation project(':issuetracker')
     implementation project(':json')
     implementation project(':vcs')
 

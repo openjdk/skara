@@ -20,25 +20,48 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package org.openjdk.skara.bots.tester;
 
-module {
-    name = 'org.openjdk.skara.bots.submit'
-    test {
-        requires 'org.junit.jupiter.api'
-        requires 'org.openjdk.skara.test'
-        opens 'org.openjdk.skara.bots.submit' to 'org.junit.platform.commons'
+import org.openjdk.skara.ci.*;
+
+import java.util.List;
+import java.util.ArrayList;
+
+class InMemoryJob implements Job {
+    String id = "";
+    List<Build> builds = new ArrayList<>();
+    List<Test> tests = new ArrayList<>();
+    Job.Status status;
+    Job.Result result;
+    Job.State state;
+
+    @Override
+    public String id() {
+        return id;
     }
-}
 
-dependencies {
-    implementation project(':ci')
-    implementation project(':bot')
-    implementation project(':host')
-    implementation project(':forge')
-    implementation project(':issuetracker')
-    implementation project(':census')
-    implementation project(':json')
-    implementation project(':vcs')
+    @Override
+    public List<Build> builds() {
+        return builds;
+    }
 
-    testImplementation project(':test')
+    @Override
+    public List<Test> tests() {
+        return tests;
+    }
+
+    @Override
+    public Job.Status status() {
+        return status;
+    }
+
+    @Override
+    public Job.Result result() {
+        return result;
+    }
+
+    @Override
+    public Job.State state() {
+        return state;
+    }
 }

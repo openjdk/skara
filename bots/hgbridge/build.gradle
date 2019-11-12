@@ -32,6 +32,7 @@ module {
 
 dependencies {
     implementation project(':bot')
+    implementation project(':ci')
     implementation project(':vcs')
     implementation project(':host')
     implementation project(':forge')

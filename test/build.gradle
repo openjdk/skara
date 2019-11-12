@@ -26,6 +26,7 @@ module {
 }
 
 dependencies {
+    implementation project(':ci')
     implementation project(':json')
     implementation project(':census')
     implementation project(':vcs')

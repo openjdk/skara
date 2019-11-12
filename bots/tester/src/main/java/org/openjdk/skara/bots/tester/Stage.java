@@ -20,25 +20,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package org.openjdk.skara.bots.tester;
 
-module {
-    name = 'org.openjdk.skara.bots.submit'
-    test {
-        requires 'org.junit.jupiter.api'
-        requires 'org.openjdk.skara.test'
-        opens 'org.openjdk.skara.bots.submit' to 'org.junit.platform.commons'
-    }
-}
-
-dependencies {
-    implementation project(':ci')
-    implementation project(':bot')
-    implementation project(':host')
-    implementation project(':forge')
-    implementation project(':issuetracker')
-    implementation project(':census')
-    implementation project(':json')
-    implementation project(':vcs')
-
-    testImplementation project(':test')
+enum Stage {
+    NA,
+    ERROR,
+    REQUESTED,
+    PENDING,
+    APPROVED,
+    STARTED,
+    CANCELLED,
+    FINISHED
 }

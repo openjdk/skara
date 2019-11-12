@@ -20,25 +20,12 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+module org.openjdk.skara.bots.tester {
+    requires org.openjdk.skara.bot;
+    requires org.openjdk.skara.vcs;
+    requires org.openjdk.skara.ci;
 
-module {
-    name = 'org.openjdk.skara.bots.submit'
-    test {
-        requires 'org.junit.jupiter.api'
-        requires 'org.openjdk.skara.test'
-        opens 'org.openjdk.skara.bots.submit' to 'org.junit.platform.commons'
-    }
-}
+    requires java.logging;
 
-dependencies {
-    implementation project(':ci')
-    implementation project(':bot')
-    implementation project(':host')
-    implementation project(':forge')
-    implementation project(':issuetracker')
-    implementation project(':census')
-    implementation project(':json')
-    implementation project(':vcs')
-
-    testImplementation project(':test')
+    provides org.openjdk.skara.bot.BotFactory with org.openjdk.skara.bots.tester.TestBotFactory;
 }

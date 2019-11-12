@@ -32,6 +32,7 @@ module {
 }
 
 dependencies {
+    implementation project(':ci')
     implementation project(':host')
     implementation project(':forge')
     implementation project(':issuetracker')

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019 Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,25 +20,19 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package org.openjdk.skara.ci;
 
-module {
-    name = 'org.openjdk.skara.bots.submit'
-    test {
-        requires 'org.junit.jupiter.api'
-        requires 'org.openjdk.skara.test'
-        opens 'org.openjdk.skara.bots.submit' to 'org.junit.platform.commons'
+import org.openjdk.skara.json.JSONObject;
+
+import java.net.URI;
+import java.util.*;
+import java.util.stream.*;
+
+public interface ContinuousIntegrationFactory {
+    ContinuousIntegration create(URI uri, JSONObject configuration);
+
+    static List<ContinuousIntegrationFactory> factories() {
+        return StreamSupport.stream(ServiceLoader.load(ContinuousIntegrationFactory.class).spliterator(), false)
+                            .collect(Collectors.toList());
     }
-}
-
-dependencies {
-    implementation project(':ci')
-    implementation project(':bot')
-    implementation project(':host')
-    implementation project(':forge')
-    implementation project(':issuetracker')
-    implementation project(':census')
-    implementation project(':json')
-    implementation project(':vcs')
-
-    testImplementation project(':test')
 }

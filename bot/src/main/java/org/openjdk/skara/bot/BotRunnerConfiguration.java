@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bot;
 
+import org.openjdk.skara.ci.ContinuousIntegration;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.issuetracker.*;
@@ -42,6 +43,7 @@ public class BotRunnerConfiguration {
     private final JSONObject config;
     private final Map<String, Forge> repositoryHosts;
     private final Map<String, IssueTracker> issueHosts;
+    private final Map<String, ContinuousIntegration> continuousIntegrations;
     private final Map<String, HostedRepository> repositories;
 
     private BotRunnerConfiguration(JSONObject config, Path cwd) throws ConfigurationError {
@@ -50,6 +52,7 @@ public class BotRunnerConfiguration {
 
         repositoryHosts = parseRepositoryHosts(config, cwd);
         issueHosts = parseIssueHosts(config, cwd);
+        continuousIntegrations = parseContinuousIntegrations(config, cwd);
         repositories = parseRepositories(config);
     }
 
@@ -112,6 +115,26 @@ public class BotRunnerConfiguration {
                 ret.put(entry.name(), IssueTracker.from("jira", uri, null, jira.asObject()));
             } else {
                 throw new ConfigurationError("Host " + entry.name());
+            }
+        }
+
+        return ret;
+    }
+
+    private Map<String, ContinuousIntegration> parseContinuousIntegrations(JSONObject config, Path cwd) throws ConfigurationError {
+        Map<String, ContinuousIntegration> ret = new HashMap<>();
+
+        if (!config.contains("ci")) {
+            return ret;
+        }
+
+        for (var entry : config.get("ci").fields()) {
+            var url = entry.value().get("url").asString();
+            var ci = ContinuousIntegration.from(URI.create(url), entry.value().asObject());
+            if (ci.isPresent()) {
+                ret.put(entry.name(), ci.get());
+            } else {
+                throw new ConfigurationError("No continuous integration named with url: " + url);
             }
         }
 
@@ -231,6 +254,14 @@ public class BotRunnerConfiguration {
                 } catch (ConfigurationError configurationError) {
                     throw new RuntimeException("Couldn't find issue project with name: " + name, configurationError);
                 }
+            }
+
+            @Override
+            public ContinuousIntegration continuousIntegration(String name) {
+                if (continuousIntegrations.containsKey(name)) {
+                    return continuousIntegrations.get(name);
+                }
+                throw new RuntimeException("Couldn't find continuous integration with name: " + name);
             }
 
             @Override
