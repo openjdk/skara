@@ -47,6 +47,7 @@ dependencies {
     implementation project(':bots:tester')
     implementation project(':bots:submit')
     implementation project(':bots:forward')
+    implementation project(':bots:bridgekeeper')
     implementation project(':ci')
     implementation project(':vcs')
     implementation project(':jcheck')
