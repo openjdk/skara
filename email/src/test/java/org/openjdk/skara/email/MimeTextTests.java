@@ -28,17 +28,59 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class MimeTextTests {
     @Test
-    void encode() {
-        assertEquals("=?UTF-8?B?w6XDpMO2?=", MimeText.encode("åäö"));
+    void simple() {
+        var encoded = "=?UTF-8?B?w6XDpMO2?=";
+        var decoded = "åäö";
+        assertEquals(encoded, MimeText.encode(decoded));
+        assertEquals(decoded, MimeText.decode(encoded));
     }
 
     @Test
-    void decode() {
-        assertEquals("åäö", MimeText.decode("=?utf-8?b?w6XDpMO2?="));
+    void mixed() {
+        var encoded = "=?UTF-8?B?VMOpc3Q=?=";
+        var decoded = "Tést";
+        assertEquals(encoded, MimeText.encode(decoded));
+        assertEquals(decoded, MimeText.decode(encoded));
+    }
+
+    @Test
+    void multipleWords() {
+        var encoded = "This is a =?UTF-8?B?dMOpc3Q=?= of =?UTF-8?B?bcO8bHRpcGxl?= words";
+        var decoded = "This is a tést of mültiple words";
+        assertEquals(encoded, MimeText.encode(decoded));
+        assertEquals(decoded, MimeText.decode(encoded));
+    }
+
+    @Test
+    void concatenateTokens() {
+        var encoded = "=?UTF-8?B?VMOpc3Q=?= =?UTF-8?B?IA==?= =?UTF-8?B?VMOpc3Q=?=";
+        var decoded = "Tést Tést";
+        assertEquals(encoded, MimeText.encode(decoded));
+        assertEquals(decoded, MimeText.decode(encoded));
+    }
+
+    @Test
+    void preserveSpaces() {
+        var encoded = "spac  es";
+        var decoded = "spac  es";
+        assertEquals(encoded, MimeText.encode(decoded));
+        assertEquals(decoded, MimeText.decode(encoded));
+    }
+
+    @Test
+    void decodeSpaces() {
+        var encoded = "=?UTF-8?B?VMOpc3Q=?=   =?UTF-8?B?VMOpc3Q=?=   and  ";
+        var decoded = "TéstTést   and  ";
+        assertEquals(decoded, MimeText.decode(encoded));
     }
 
     @Test
     void decodeIsoQ() {
         assertEquals("Bä", MimeText.decode("=?iso-8859-1?Q?B=E4?="));
+    }
+
+    @Test
+    void decodeIsoQSpaces() {
+        assertEquals("Bä Bä Bä", MimeText.decode("=?iso-8859-1?Q?B=E4_B=E4=20B=E4?="));
     }
 }
