@@ -34,6 +34,9 @@ class Remote {
         if (remotePath.startsWith("git+")) {
             remotePath = remotePath.substring("git+".length());
         }
+        if (remotePath.endsWith(".git")) {
+            remotePath = remotePath.substring(0, remotePath.length() - ".git".length());
+        }
         if (remotePath.startsWith("http")) {
             return URI.create(remotePath);
         } else {

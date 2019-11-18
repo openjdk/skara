@@ -91,7 +91,7 @@ public class HostCredentials implements AutoCloseable {
 
         @Override
         public HostedRepository getHostedRepository(Forge host) {
-            return host.repository(config.get("project").asString());
+            return host.repository(config.get("project").asString()).get();
         }
 
         @Override
@@ -128,7 +128,7 @@ public class HostCredentials implements AutoCloseable {
 
         @Override
         public HostedRepository getHostedRepository(Forge host) {
-            return host.repository(config.get("project").asString());
+            return host.repository(config.get("project").asString()).get();
         }
 
         @Override
@@ -165,7 +165,7 @@ public class HostCredentials implements AutoCloseable {
 
         @Override
         public HostedRepository getHostedRepository(Forge host) {
-            return host.repository(config.get("project").asString());
+            return host.repository(config.get("project").asString()).get();
         }
 
         @Override
@@ -209,7 +209,7 @@ public class HostCredentials implements AutoCloseable {
 
         @Override
         public HostedRepository getHostedRepository(Forge host) {
-            return host.repository("test");
+            return host.repository("test").get();
         }
 
         @Override

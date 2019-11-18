@@ -208,7 +208,7 @@ public class CensusBuilder {
     public HostedRepository build() {
         try {
             var host = TestHost.createNew(List.of(new HostUser(1, "cu", "Census User")));
-            var repository = host.repository("census");
+            var repository = host.repository("census").get();
             var folder = Files.createTempDirectory("censusbuilder");
             var localRepository = Repository.init(folder, VCS.GIT);
 

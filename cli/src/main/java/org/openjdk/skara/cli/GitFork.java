@@ -157,7 +157,10 @@ public class GitFork {
             path = path.substring(1);
         }
 
-        var fork = host.get().repository(path).fork();
+        var hostedRepo = host.get().repository(path).orElseThrow(() ->
+                new IOException("Could not find repository at " + uri.toString())
+        );
+        var fork = hostedRepo.fork();
 
         if (token == null) {
             GitCredentials.approve(credentials);

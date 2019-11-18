@@ -154,7 +154,9 @@ public class BotRunnerConfiguration {
                 throw new ConfigurationError("Repository " + entry.name() + " uses undefined host '" + hostName + "'");
             }
             var host = repositoryHosts.get(hostName);
-            var repo = host.repository(entry.value().get("repository").asString());
+            var repo = host.repository(entry.value().get("repository").asString()).orElseThrow(() ->
+                    new ConfigurationError("Repository " + entry.value().get("repository").asString() + " is not available at " + hostName)
+            );
             ret.put(entry.name(), repo);
         }
 
@@ -181,7 +183,9 @@ public class BotRunnerConfiguration {
                 throw new ConfigurationError("Repository entry " + entry + " uses undefined host '" + hostName + "'");
             }
             var repositoryName = entry.substring(hostSeparatorIndex + 1);
-            ret.repository = host.repository(repositoryName);
+            ret.repository = host.repository(repositoryName).orElseThrow(() ->
+                    new ConfigurationError("Repository " + repositoryName + " is not available at " + hostName)
+            );
         } else {
             if (!repositories.containsKey(entry)) {
                 throw new ConfigurationError("Repository " + entry + " is not defined!");

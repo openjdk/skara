@@ -235,7 +235,7 @@ public class GitLabRepository implements HostedRepository {
                 e.printStackTrace();
             }
         }
-        return gitLabHost.repository(forkedRepoName);
+        return gitLabHost.repository(forkedRepoName).orElseThrow(RuntimeException::new);
     }
 
     @Override

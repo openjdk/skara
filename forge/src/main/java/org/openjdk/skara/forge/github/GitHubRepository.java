@@ -190,7 +190,7 @@ public class GitHubRepository implements HostedRepository {
     @Override
     public HostedRepository fork() {
         var response = request.post("forks").execute();
-        return gitHubHost.repository(response.get("full_name").asString());
+        return gitHubHost.repository(response.get("full_name").asString()).orElseThrow(RuntimeException::new);
     }
 
     @Override

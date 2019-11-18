@@ -30,7 +30,7 @@ import org.openjdk.skara.network.*;
 import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
@@ -169,8 +169,12 @@ public class GitHubHost implements Forge {
     }
 
     @Override
-    public HostedRepository repository(String name) {
-        return new GitHubRepository(this, name);
+    public Optional<HostedRepository> repository(String name) {
+        try {
+            return Optional.of(new GitHubRepository(this, name));
+        } catch (Throwable t) {
+            return Optional.empty();
+        }
     }
 
     @Override

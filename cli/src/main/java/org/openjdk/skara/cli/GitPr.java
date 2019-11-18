@@ -108,7 +108,9 @@ public class GitPr {
         if (host.isEmpty() || !host.get().isValid()) {
             exit("error: failed to connect to host " + uri);
         }
-        var remoteRepo = host.get().repository(projectName(uri));
+        var remoteRepo = host.get().repository(projectName(uri)).orElseThrow(() ->
+                new IOException("Could not find repository at: " + uri.toString())
+        );
         var parentRepo = remoteRepo.parent();
         var targetRepo = parentRepo.isPresent() ? parentRepo.get() : remoteRepo;
         return targetRepo;
@@ -418,7 +420,9 @@ public class GitPr {
                     System.exit(1);
                 }
 
-                var remoteRepo = host.get().repository(projectName(uri));
+                var remoteRepo = host.get().repository(projectName(uri)).orElseThrow(() ->
+                        new IOException("Could not find repository at " + uri.toString())
+                );
                 if (token == null) {
                     GitCredentials.approve(credentials);
                 }
@@ -575,7 +579,9 @@ public class GitPr {
                 System.exit(1);
             }
 
-            var remoteRepo = host.get().repository(projectName(uri));
+            var remoteRepo = host.get().repository(projectName(uri)).orElseThrow(() ->
+                    new IOException("Could not find repository at " + uri.toString())
+            );
             if (token == null) {
                 GitCredentials.approve(credentials);
             }
