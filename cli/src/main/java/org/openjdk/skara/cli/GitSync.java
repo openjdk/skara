@@ -38,12 +38,6 @@ public class GitSync {
         return new IOException("will never reach here");
     }
 
-    private static int fetch() throws IOException, InterruptedException {
-        var pb = new ProcessBuilder("git", "fetch");
-        pb.inheritIO();
-        return pb.start().waitFor();
-    }
-
     private static int pull() throws IOException, InterruptedException {
         var pb = new ProcessBuilder("git", "pull");
         pb.inheritIO();
@@ -70,10 +64,6 @@ public class GitSync {
             Switch.shortcut("")
                   .fullname("pull")
                   .helptext("Pull current branch from origin after successful sync")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("fetch")
-                  .helptext("Fetch current branch from origin after successful sync")
                   .optional(),
             Switch.shortcut("m")
                   .fullname("mercurial")
@@ -165,11 +155,6 @@ public class GitSync {
             System.out.println("done");
         }
 
-        if (arguments.contains("fetch")) {
-            int err = fetch();
-            if (err != 0) {
-                System.exit(err);
-            }
         }
 
         if (arguments.contains("pull")) {
