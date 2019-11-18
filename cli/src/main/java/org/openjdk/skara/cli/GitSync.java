@@ -155,7 +155,12 @@ public class GitSync {
             System.out.println("done");
         }
 
-        if (arguments.contains("pull")) {
+        var shouldPull = arguments.contains("pull");
+        if (!shouldPull) {
+            var lines = repo.config("sync.pull");
+            shouldPull = lines.size() == 1 && lines.get(0).toLowerCase().equals("always");
+        }
+        if (shouldPull) {
             int err = pull();
             if (err != 0) {
                 System.exit(err);
