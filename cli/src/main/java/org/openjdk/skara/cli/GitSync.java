@@ -155,8 +155,6 @@ public class GitSync {
             System.out.println("done");
         }
 
-        }
-
         if (arguments.contains("pull")) {
             int err = pull();
             if (err != 0) {
