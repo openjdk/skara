@@ -57,7 +57,7 @@ public class GitHubHost implements Forge {
                 .build();
 
         request = new RestRequest(baseApi, () -> Arrays.asList(
-                "Authorization", "token " + getInstallationToken(),
+                "Authorization", "token " + getInstallationToken().orElseThrow(),
                 "Accept", "application/vnd.github.machine-man-preview+json",
                 "Accept", "application/vnd.github.antiope-preview+json"));
     }
@@ -75,7 +75,7 @@ public class GitHubHost implements Forge {
                                 .build();
 
         request = new RestRequest(baseApi, () -> Arrays.asList(
-                "Authorization", "token " + pat.password()));
+                "Authorization", "token " + getInstallationToken().orElseThrow()));
     }
 
     GitHubHost(URI uri, Pattern webUriPattern, String webUriReplacement) {
@@ -114,12 +114,16 @@ public class GitHubHost implements Forge {
         return URIBuilder.base(matcher.replaceAll(webUriReplacement)).build();
     }
 
-    String getInstallationToken() {
+    Optional<String> getInstallationToken() {
         if (application != null) {
-            return application.getInstallationToken();
-        } else {
-            return pat.password();
+            return Optional.of(application.getInstallationToken());
         }
+
+        if (pat != null) {
+            return Optional.of(pat.password());
+        }
+
+        return Optional.empty();
     }
 
     private String getFullName(String userName) {

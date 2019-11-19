@@ -100,15 +100,8 @@ public class GitPr {
         return name;
     }
 
-    private static HostedRepository getHostedRepositoryFor(URI uri, GitCredentials credentials) throws IOException {
-        var host = Forge.from(uri, new Credential(credentials.username(), credentials.password()));
-        if (System.getenv("GIT_TOKEN") == null) {
-            GitCredentials.approve(credentials);
-        }
-        if (host.isEmpty() || !host.get().isValid()) {
-            exit("error: failed to connect to host " + uri);
-        }
-        var remoteRepo = host.get().repository(projectName(uri)).orElseThrow(() ->
+    private static HostedRepository getHostedRepositoryFor(URI uri, Forge host) throws IOException {
+        var remoteRepo = host.repository(projectName(uri)).orElseThrow(() ->
                 new IOException("Could not find repository at: " + uri.toString())
         );
         var parentRepo = remoteRepo.parent();
@@ -116,12 +109,12 @@ public class GitPr {
         return targetRepo;
     }
 
-    private static PullRequest getPullRequest(URI uri, GitCredentials credentials, Argument prId) throws IOException {
+    private static PullRequest getPullRequest(URI uri, Forge host, Argument prId) throws IOException {
         if (!prId.isPresent()) {
             exit("error: missing pull request identifier");
         }
 
-        var pr = getHostedRepositoryFor(uri, credentials).pullRequest(prId.asString());
+        var pr = getHostedRepositoryFor(uri, host).pullRequest(prId.asString());
         if (pr == null) {
             exit("error: could not fetch PR information");
         }
@@ -313,13 +306,21 @@ public class GitPr {
         var username = arguments.contains("username") ? arguments.get("username").asString() : null;
         var token = isMercurial ? System.getenv("HG_TOKEN") :  System.getenv("GIT_TOKEN");
         var uri = Remote.toWebURI(remotePullPath);
-        var credentials = GitCredentials.fill(uri.getHost(), uri.getPath(), username, token, uri.getScheme());
-        var host = Forge.from(uri, new Credential(credentials.username(), credentials.password()));
-        if (host.isEmpty() || !host.get().isValid()) {
-            exit("error: failed to connect to host " + uri);
+        var action = arguments.at(0).asString();
+        var isReadOnly = List.of("list", "fetch", "show", "checkout", "apply").contains(action);
+        var credentials = isReadOnly ?
+            null :
+            GitCredentials.fill(uri.getHost(), uri.getPath(), username, token, uri.getScheme());
+        var forgeURI = URI.create(uri.getScheme() + "://" + uri.getHost());
+        var forge = credentials == null ?
+            Forge.from(forgeURI) :
+            Forge.from(forgeURI, new Credential(credentials.username(), credentials.password()));
+        if (forge.isEmpty() || !forge.get().isValid()) {
+            exit("error: failed to connect to host: " + forgeURI);
         }
 
-        var action = arguments.at(0).asString();
+        var host = forge.get();
+
         if (action.equals("create")) {
             if (isMercurial) {
                 var currentBookmark = repo.currentBookmark();
@@ -420,7 +421,7 @@ public class GitPr {
                     System.exit(1);
                 }
 
-                var remoteRepo = host.get().repository(projectName(uri)).orElseThrow(() ->
+                var remoteRepo = host.repository(projectName(uri)).orElseThrow(() ->
                         new IOException("Could not find repository at " + uri.toString())
                 );
                 if (token == null) {
@@ -490,7 +491,7 @@ public class GitPr {
                 if (arguments.contains("assignees")) {
                     var usernames = Arrays.asList(arguments.get("assignees").asString().split(","));
                     var assignees = usernames.stream()
-                                             .map(u -> host.get().user(u))
+                                             .map(u -> host.user(u))
                                              .collect(Collectors.toList());
                     pr.setAssignees(assignees);
                 }
@@ -579,7 +580,7 @@ public class GitPr {
                 System.exit(1);
             }
 
-            var remoteRepo = host.get().repository(projectName(uri)).orElseThrow(() ->
+            var remoteRepo = host.repository(projectName(uri)).orElseThrow(() ->
                     new IOException("Could not find repository at " + uri.toString())
             );
             if (token == null) {
@@ -649,14 +650,14 @@ public class GitPr {
             if (arguments.contains("assignees")) {
                 var usernames = Arrays.asList(arguments.get("assignees").asString().split(","));
                 var assignees = usernames.stream()
-                                         .map(u -> host.get().user(u))
+                                         .map(u -> host.user(u))
                                          .collect(Collectors.toList());
                 pr.setAssignees(assignees);
             }
             System.out.println(pr.webUrl().toString());
             Files.deleteIfExists(file);
         } else if (action.equals("integrate") || action.equals("approve")) {
-            var pr = getPullRequest(uri, credentials, arguments.at(1));
+            var pr = getPullRequest(uri, host, arguments.at(1));
 
             if (action.equals("integrate")) {
                 pr.addComment("/integrate");
@@ -666,7 +667,7 @@ public class GitPr {
                 throw new IllegalStateException("unexpected action: " + action);
             }
         } else if (action.equals("list")) {
-            var remoteRepo = getHostedRepositoryFor(uri, credentials);
+            var remoteRepo = getHostedRepositoryFor(uri, host);
             var prs = remoteRepo.pullRequests();
 
             var ids = new ArrayList<String>();
@@ -758,7 +759,7 @@ public class GitPr {
                 exit("error: missing pull request identifier");
             }
 
-            var remoteRepo = getHostedRepositoryFor(uri, credentials);
+            var remoteRepo = getHostedRepositoryFor(uri, host);
             var pr = remoteRepo.pullRequest(prId.asString());
             var repoUrl = remoteRepo.webUrl();
             var prHeadRef = pr.sourceRef();
@@ -832,7 +833,7 @@ public class GitPr {
                 exit("error: missing pull request identifier");
             }
 
-            var remoteRepo = getHostedRepositoryFor(uri, credentials);
+            var remoteRepo = getHostedRepositoryFor(uri, host);
             var pr = remoteRepo.pullRequest(prId.asString());
             pr.setState(PullRequest.State.CLOSED);
         } else if (action.equals("update")) {
@@ -841,12 +842,12 @@ public class GitPr {
                 exit("error: missing pull request identifier");
             }
 
-            var remoteRepo = getHostedRepositoryFor(uri, credentials);
+            var remoteRepo = getHostedRepositoryFor(uri, host);
             var pr = remoteRepo.pullRequest(prId.asString());
             if (arguments.contains("assignees")) {
                 var usernames = Arrays.asList(arguments.get("assignees").asString().split(","));
                 var assignees = usernames.stream()
-                    .map(u -> host.get().user(u))
+                    .map(u -> host.user(u))
                     .collect(Collectors.toList());
                 pr.setAssignees(assignees);
             }
