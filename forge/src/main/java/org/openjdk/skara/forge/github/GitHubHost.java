@@ -176,7 +176,10 @@ public class GitHubHost implements Forge {
     @Override
     public HostUser user(String username) {
         var details = request.get("users/" + URLEncoder.encode(username, StandardCharsets.UTF_8)).execute().asObject();
+        return asHostUser(details);
+    }
 
+    private static HostUser asHostUser(JSONObject details) {
         // Always present
         var login = details.get("login").asString();
         var id = details.get("id").asInt();
@@ -196,7 +199,11 @@ public class GitHubHost implements Forge {
                 var appName = appDetails.get("name").asString() + "[bot]";
                 currentUser = user(appName);
             } else if (pat != null) {
-                currentUser = user(pat.username());
+                // Cannot always trust username in PAT, e.g. Git Credential Manager
+                // on Windows always return "PersonalAccessToken" as username.
+                // Query GitHub for the username instead.
+                var details = request.get("user").execute().asObject();
+                currentUser = asHostUser(details);
             } else {
                 throw new IllegalStateException("No credentials present");
             }
