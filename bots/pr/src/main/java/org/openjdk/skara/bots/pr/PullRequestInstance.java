@@ -95,6 +95,10 @@ class PullRequestInstance {
     private Hash commitSquashed(List<Review> activeReviews, Namespace namespace, String censusDomain, String sponsorId) throws IOException {
         localRepo.checkout(baseHash, true);
         localRepo.squash(headHash);
+        if (localRepo.isClean()) {
+            // There are no changes remaining after squashing
+            return baseHash;
+        }
 
         Author committer;
         Author author;
@@ -201,16 +205,17 @@ class PullRequestInstance {
         return ret;
     }
 
-    PullRequestCheckIssueVisitor executeChecks(Hash localHash, CensusInstance censusInstance) throws Exception {
+    PullRequestCheckIssueVisitor createVisitor(Hash localHash, CensusInstance censusInstance) throws IOException {
         var checks = JCheck.checks(localRepo(), censusInstance.census(), localHash);
-        var visitor = new PullRequestCheckIssueVisitor(checks);
+        return new PullRequestCheckIssueVisitor(checks);
+    }
+
+    void executeChecks(Hash localHash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor) throws Exception {
         try (var issues = JCheck.check(localRepo(), censusInstance.census(), CommitMessageParsers.v1, "HEAD~1..HEAD",
                                        localHash, new HashMap<>(), new HashSet<>())) {
             for (var issue : issues) {
                 issue.accept(visitor);
             }
         }
-
-        return visitor;
     }
 }

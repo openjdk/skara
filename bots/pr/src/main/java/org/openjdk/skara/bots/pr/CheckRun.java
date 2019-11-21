@@ -23,9 +23,9 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.vcs.Commit;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
 import java.io.*;
@@ -457,20 +457,26 @@ class CheckRun {
             log.info("Starting to run jcheck on PR head");
             pr.createCheck(checkBuilder.build());
             var localHash = prInstance.commit(censusInstance.namespace(), censusDomain, null);
-
-            // Try to rebase
             boolean rebasePossible = true;
-            var ignored = new PrintWriter(new StringWriter());
-            var rebasedHash = prInstance.rebase(localHash, ignored);
-            if (rebasedHash.isEmpty()) {
-                rebasePossible = false;
-            } else {
-                localHash = rebasedHash.get();
-            }
+            PullRequestCheckIssueVisitor visitor = prInstance.createVisitor(localHash, censusInstance);
+            List<String> additionalErrors;
+            if (!localHash.equals(prInstance.baseHash())) {
+                // Try to rebase
+                var ignored = new PrintWriter(new StringWriter());
+                var rebasedHash = prInstance.rebase(localHash, ignored);
+                if (rebasedHash.isEmpty()) {
+                    rebasePossible = false;
+                } else {
+                    localHash = rebasedHash.get();
+                }
 
-            // Determine current status
-            var visitor = prInstance.executeChecks(localHash, censusInstance);
-            var additionalErrors = botSpecificChecks();
+                // Determine current status
+                prInstance.executeChecks(localHash, censusInstance, visitor);
+                additionalErrors = botSpecificChecks();
+            }
+            else {
+                additionalErrors = List.of("This PR contains no changes");
+            }
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
             updateReadyForReview(visitor, additionalErrors);
 

@@ -1097,4 +1097,38 @@ class CheckTests {
             assertEquals(CheckStatus.SUCCESS, check.status());
         }
     }
+
+    @Test
+    void noCommit(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "master");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that the check failed
+            var checks = pr.checks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            assertEquals(CheckStatus.FAILURE, check.status());
+        }
+    }
 }
