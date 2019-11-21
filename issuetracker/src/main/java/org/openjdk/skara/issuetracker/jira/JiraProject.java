@@ -116,8 +116,11 @@ public class JiraProject implements IssueProject {
         }
         var issueRequest = request.restrict("issue/" + id);
         var issue = issueRequest.get("")
-                           .onError(r -> r.statusCode() == 404 ? JSON.object().put("NOT_FOUND", true) : null)
+                           .onError(r -> r.statusCode() < 500 ? JSON.object().put("NOT_FOUND", true) : null)
                            .execute();
+        if (issue == null) {
+            throw new RuntimeException("Server error when trying to fetch issue " + id);
+        }
         if (!issue.contains("NOT_FOUND")) {
             return Optional.of(new JiraIssue(this, issueRequest, issue));
         } else {
