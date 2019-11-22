@@ -82,11 +82,15 @@ class PullRequestInstance {
                                                  .map(email -> Author.fromString(email.toString()))
                                                  .collect(Collectors.toList());
 
+        var additionalIssues = SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments);
         var summary = Summary.summary(pr.repository().forge().currentUser(), comments);
         var issue = Issue.fromString(pr.title());
         var commitMessageBuilder = issue.map(CommitMessage::title).orElseGet(() -> CommitMessage.title(isMerge ? "Merge" : pr.title()));
+        if (issue.isPresent()) {
+            commitMessageBuilder.issues(additionalIssues);
+        }
         commitMessageBuilder.contributors(additionalContributors)
-                                         .reviewers(reviewers);
+                            .reviewers(reviewers);
         summary.ifPresent(commitMessageBuilder::summary);
 
         return String.join("\n", commitMessageBuilder.format(CommitMessageFormatters.v1));

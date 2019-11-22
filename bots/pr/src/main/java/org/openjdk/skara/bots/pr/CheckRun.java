@@ -282,7 +282,7 @@ class CheckRun {
                 progressBody.append("\n");
             } else {
                 progressBody.append("⚠️ Failed to retrieve information on issue `");
-                progressBody.append(issue.get().toString());
+                progressBody.append(issue.get().id());
                 progressBody.append("`.\n");
             }
         }

@@ -22,18 +22,19 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.Review;
+import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Repository;
 
-import org.junit.jupiter.api.*;
-
 import java.io.IOException;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
 
-class SummaryTests {
+class SolvesTests {
     @Test
     void simple(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
@@ -56,35 +57,57 @@ class SummaryTests {
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.url(), "edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+            var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
 
-            // Try setting a summary when none has been set yet
-            pr.addComment("/summary");
+            // No arguments
+            pr.addComment("/solves");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a help message
-            assertLastCommentContains(pr,"To set a summary");
+            assertLastCommentContains(pr,"To add an additional");
 
-            // Add a summary
-            pr.addComment("/summary This is a summary");
+            // Invalid syntax
+            pr.addComment("/solves something I guess");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a failure message
+            assertLastCommentContains(pr,"Invalid");
+
+            // Add an issue
+            pr.addComment("/solves 1234: An issue");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(pr,"Setting summary to");
+            assertLastCommentContains(pr,"Adding additional");
 
-            // Remove it again
-            pr.addComment("/summary");
+            // Try to remove a not-previously-added issue
+            pr.addComment("/solves 1235");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a failure message
+            assertLastCommentContains(pr,"Could not find");
+
+            // Now remove the added one
+            pr.addComment("/solves 1234");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(pr,"Removing existing");
+            assertLastCommentContains(pr,"Removing additional");
 
-            // Now add one again
-            pr.addComment("/summary Yet another summary");
+            // Add two more issues
+            pr.addComment("/solves 12345: Another issue");
+            pr.addComment("/solves 123456: Yet another issue");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(pr,"Setting summary to");
+            assertLastCommentContains(pr,"Adding additional");
+
+            // Update the description of the first one
+            pr.addComment("/solves 12345: This is indeed another issue");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr,"Updating description");
 
             // Approve it as another user
             var approvalPr = integrator.pullRequest(pr.id());
@@ -92,23 +115,15 @@ class SummaryTests {
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
 
-            // Now update it
-            pr.addComment("/summary Third time is surely the charm");
-            TestBotRunner.runPeriodicItems(prBot);
-            TestBotRunner.runPeriodicItems(prBot);
-
-            // The bot should reply with a success message
-            assertLastCommentContains(pr,"Updating existing summary");
-
-            // The commit message preview should contain the final summary
-            var summaryLine = pr.comments().stream()
-                                .flatMap(comment -> comment.body().lines())
-                                .filter(line -> !line.contains("/summary"))
-                                .filter(line -> !line.contains("Updating existing"))
-                                .filter(line -> line.contains("Third time"))
-                                .findAny()
-                                .orElseThrow();
-            assertEquals("Third time is surely the charm", summaryLine);
+            // The commit message preview should contain the additional issues
+            var preview = pr.comments().stream()
+                            .filter(comment -> comment.body().contains("The commit message will be"))
+                            .map(Comment::body)
+                            .findFirst()
+                            .orElseThrow();
+            assertTrue(preview.contains("123: This is a pull request"));
+            assertTrue(preview.contains("12345: This is indeed another issue"));
+            assertTrue(preview.contains("123456: Yet another issue"));
 
             // Integrate
             pr.addComment("/integrate");
@@ -125,14 +140,15 @@ class SummaryTests {
             var headHash = pushedRepo.resolve("HEAD").orElseThrow();
             var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
 
-            // The summary should be present
-            summaryLine = headCommit.message().stream()
-                                   .filter(line -> line.contains("Third time"))
-                                   .findAny()
-                                   .orElseThrow();
-            assertEquals("Third time is surely the charm", summaryLine);
+            // The additional issues should be present in the commit message
+            assertEquals(List.of("123: This is a pull request",
+                                 "12345: This is indeed another issue",
+                                 "123456: Yet another issue",
+                                 "",
+                                 "Reviewed-by: integrationreviewer1"), headCommit.message());
         }
     }
+
     @Test
     void invalidCommandAuthor(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
@@ -153,12 +169,12 @@ class SummaryTests {
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
-            // Issue a contributor command not as the PR author
+            // Issue a solves command not as the PR author
             var externalPr = external.pullRequest(pr.id());
-            externalPr.addComment("/summary a summary");
+            externalPr.addComment("/solves 1234: an issue");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an error message
@@ -166,6 +182,51 @@ class SummaryTests {
                           .filter(comment -> comment.body().contains("Only the author"))
                           .count();
             assertEquals(1, error);
+        }
+    }
+
+    @Test
+    void issueInTitle(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var external = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var prBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Add an issue
+            pr.addComment("/solves 1234: An issue");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr,"current title");
+
+            var updatedPr = author.pullRequest(pr.id());
+            assertEquals("1234: An issue", updatedPr.title());
+
+            // Update the issue description
+            pr.addComment("/solves 1234: Yes this is an issue");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr,"will now be updated");
+
+            updatedPr = author.pullRequest(pr.id());
+            assertEquals("1234: Yes this is an issue", updatedPr.title());
         }
     }
 }
