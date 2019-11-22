@@ -137,7 +137,9 @@ class CheckRun {
                 var sourceBranch = mergeSourceBranch();
                 if (sourceBranch.isPresent() && sourceRepo.isPresent()) {
                     try {
-                        var mergeSourceRepo = pr.repository().forge().repository(sourceRepo.get());
+                        var mergeSourceRepo = pr.repository().forge().repository(sourceRepo.get()).orElseThrow(() ->
+                                new RuntimeException("Could not find repository " + sourceRepo.get())
+                        );
                         try {
                             var sourceHash = prInstance.localRepo().fetch(mergeSourceRepo.url(), sourceBranch.get());
                             if (!prInstance.localRepo().isAncestor(commits.get(1).hash(), sourceHash)) {

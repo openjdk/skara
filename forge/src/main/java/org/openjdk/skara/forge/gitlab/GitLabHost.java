@@ -102,8 +102,12 @@ public class GitLabHost implements Forge {
     }
 
     @Override
-    public HostedRepository repository(String name) {
-        return new GitLabRepository(this, name);
+    public Optional<HostedRepository> repository(String name) {
+        try {
+            return Optional.of(new GitLabRepository(this, name));
+        } catch (Throwable t) {
+            return Optional.empty();
+        }
     }
 
     private HostUser parseUserDetails(JSONObject details) {

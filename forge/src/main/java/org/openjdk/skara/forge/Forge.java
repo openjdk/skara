@@ -30,7 +30,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public interface Forge extends Host {
-    HostedRepository repository(String name);
+    Optional<HostedRepository> repository(String name);
     boolean supportsReviewBody();
 
     static Forge from(String name, URI uri, Credential credential, JSONObject configuration) {
