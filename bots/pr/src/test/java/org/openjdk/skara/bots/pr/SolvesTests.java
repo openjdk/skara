@@ -29,7 +29,7 @@ import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Repository;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
@@ -191,7 +191,6 @@ class SolvesTests {
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
-            var external = credentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
@@ -227,6 +226,54 @@ class SolvesTests {
 
             updatedPr = author.pullRequest(pr.id());
             assertEquals("1234: Yes this is an issue", updatedPr.title());
+        }
+    }
+
+    @Test
+    void issueInBody(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var prBot = new PullRequestBot(integrator, censusBuilder.build(), "master",
+                                           Map.of(), Map.of(), Map.of(), Set.of(), Map.of(), issues);
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var issue1 = issues.createIssue("First", List.of("Hello"));
+            var pr = credentials.createPullRequest(author, "master", "edit",
+                                                   issue1.id() + ": This is a pull request");
+
+            // First check
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.body().contains(issue1.id()));
+            assertTrue(pr.body().contains("First"));
+            assertTrue(pr.body().contains("## Issue\n"));
+
+            // Add an extra issue
+            var issue2 = issues.createIssue("Second", List.of("There"));
+            pr.addComment("/solves " + issue2.id() + ": Description");
+
+            // Check that the body was updated
+            TestBotRunner.runPeriodicItems(prBot);
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.body().contains(issue1.id()));
+            assertTrue(pr.body().contains("First"));
+            assertTrue(pr.body().contains(issue2.id()));
+            assertTrue(pr.body().contains("Second"));
+            assertFalse(pr.body().contains("## Issue\n"));
+            assertTrue(pr.body().contains("## Issues\n"));
         }
     }
 }

@@ -263,27 +263,36 @@ class CheckRun {
         }
     }
 
-    private String getStatusMessage(List<Review> reviews, PullRequestCheckIssueVisitor visitor) {
+    private String getStatusMessage(List<Comment> comments, List<Review> reviews, PullRequestCheckIssueVisitor visitor) {
         var progressBody = new StringBuilder();
         progressBody.append("## Progress\n");
         progressBody.append(getChecksList(visitor));
 
         var issue = Issue.fromString(pr.title());
         if (issueProject != null && issue.isPresent()) {
-            progressBody.append("\n\n## Issue\n");
-            var iss = issueProject.issue(issue.get().id());
-            if (iss.isPresent()) {
-                progressBody.append("[");
-                progressBody.append(iss.get().id());
-                progressBody.append("](");
-                progressBody.append(iss.get().webUrl());
-                progressBody.append("): ");
-                progressBody.append(iss.get().title());
-                progressBody.append("\n");
-            } else {
-                progressBody.append("⚠️ Failed to retrieve information on issue `");
-                progressBody.append(issue.get().id());
-                progressBody.append("`.\n");
+            var allIssues = new ArrayList<Issue>();
+            allIssues.add(issue.get());
+            allIssues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments));
+            progressBody.append("\n\n## Issue");
+            if (allIssues.size() > 1) {
+                progressBody.append("s");
+            }
+            progressBody.append("\n");
+            for (var currentIssue : allIssues) {
+                var iss = issueProject.issue(currentIssue.id());
+                if (iss.isPresent()) {
+                    progressBody.append("[");
+                    progressBody.append(iss.get().id());
+                    progressBody.append("](");
+                    progressBody.append(iss.get().webUrl());
+                    progressBody.append("): ");
+                    progressBody.append(iss.get().title());
+                    progressBody.append("\n");
+                } else {
+                    progressBody.append("⚠️ Failed to retrieve information on issue `");
+                    progressBody.append(currentIssue.id());
+                    progressBody.append("`.\n");
+                }
             }
         }
 
@@ -477,7 +486,7 @@ class CheckRun {
             updateReadyForReview(visitor, additionalErrors);
 
             // Calculate and update the status message if needed
-            var statusMessage = getStatusMessage(activeReviews, visitor);
+            var statusMessage = getStatusMessage(comments, activeReviews, visitor);
             var updatedBody = updateStatusMessage(statusMessage);
 
             // Post / update approval messages (only needed if the review itself can't contain a body)
