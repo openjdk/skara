@@ -29,7 +29,7 @@ import difflib
 import sys
 
 # space separated version list
-testedwith = '4.9.2 5.0.2'
+testedwith = '4.9.2 5.0.2 5.2.1'
 
 def mode(fctx):
     flags = fctx.flags()
@@ -62,7 +62,7 @@ def _match_exact(root, cwd, files, badfn=None):
     """
     Wrapper for mercurial.match.exact that ignores some arguments based on the used version
     """
-    if mercurial.util.version().startswith("5"):
+    if mercurial.util.version().startswith(b"5"):
         return mercurial.match.exact(files, badfn)
     else:
         return mercurial.match.exact(root, cwd, files, badfn)
@@ -151,7 +151,7 @@ else:
     revsingle = mercurial.cmdutil.revsingle
     revrange = mercurial.cmdutil.revrange
 
-@command('diff-git-raw', [('', 'patch', False, '')], 'hg diff-git-raw rev1 [rev2]')
+@command(b'diff-git-raw', [(b'', b'patch', False, b'')], b'hg diff-git-raw rev1 [rev2]')
 def diff_git_raw(ui, repo, rev1, rev2=None, **opts):
     ctx1 = revsingle(repo, rev1)
 
@@ -165,16 +165,16 @@ def diff_git_raw(ui, repo, rev1, rev2=None, **opts):
     modified, added, removed = [set(l) for l in status[:3]]
     _diff_git_raw(repo, ctx1, ctx2, modified, added, removed, opts['patch'])
 
-@command('log-git', [('', 'reverse', False, ''), ('l', 'limit', -1, '')],  'hg log-git <revisions>')
+@command(b'log-git', [(b'', b'reverse', False, b''), (b'l', b'limit', -1, b'')],  b'hg log-git <revisions>')
 def log_git(ui, repo, revs=None, **opts):
     if len(repo) == 0:
         return
 
     if revs == None:
         if opts['reverse']:
-            revs = '0:tip'
+            revs = b'0:tip'
         else:
-            revs = 'tip:0'
+            revs = b'tip:0'
 
     limit = opts['limit']
     i = 0
@@ -227,7 +227,7 @@ def __dump_metadata(ctx):
         writeln(' '.join([str(p.rev()) for p in parents]))
 
         writeln(ctx.user())
-        date = datestr(ctx.date(), format='%Y-%m-%d %H:%M:%S%z')
+        date = datestr(ctx.date(), format=b'%Y-%m-%d %H:%M:%S%z')
         writeln(date)
 
         description = encode(ctx.description())
@@ -235,7 +235,7 @@ def __dump_metadata(ctx):
         write(description)
 
 def __dump(repo, start, end):
-    for rev in xrange(start, end):
+    for rev in range(start, end):
         ctx = revsingle(repo, rev)
 
         __dump_metadata(ctx)
@@ -264,11 +264,11 @@ def pretxnclose(ui, repo, **kwargs):
     end = revsingle(repo, kwargs['node_last'])
     __dump(repo, start.rev(), end.rev() + 1)
 
-@command('dump', [],  'hg dump')
+@command(b'dump', [], b'hg dump')
 def dump(ui, repo, **opts):
     __dump(repo, 0, len(repo))
 
-@command('metadata', [],  'hg metadata')
+@command(b'metadata', [], b'hg metadata')
 def dump(ui, repo, revs=None, **opts):
     if revs == None:
         revs = "0:tip"
@@ -277,7 +277,7 @@ def dump(ui, repo, revs=None, **opts):
         ctx = repo[r]
         __dump_metadata(ctx)
 
-@command('ls-tree', [],  'hg ls-tree')
+@command(b'ls-tree', [], b'hg ls-tree')
 def ls_tree(ui, repo, rev, **opts):
     nullHash = '0' * 40
     ctx = revsingle(repo, rev)
@@ -291,7 +291,7 @@ def ls_tree(ui, repo, rev, **opts):
         write('\t')
         writeln(filename)
 
-@command('ls-remote', [],  'hg ls-remote PATH')
+@command(b'ls-remote', [], b'hg ls-remote PATH')
 def ls_remote(ui, repo, path, **opts):
     peer = mercurial.hg.peer(ui or repo, opts, ui.expandpath(path))
     for branch, heads in peer.branchmap().iteritems():
