@@ -234,7 +234,9 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public void setTitle(String title) {
-        throw new RuntimeException("not implemented yet");
+        request.patch("pulls/" + json.get("number").toString())
+               .body("title", title)
+               .execute();
     }
 
     @Override
