@@ -58,6 +58,9 @@ def writeln(s):
     write(s)
     write(b'\n')
 
+def int_to_str(i):
+    return str(i).encode('ascii')
+
 def _match_exact(root, cwd, files, badfn=None):
     """
     Wrapper for mercurial.match.exact that ignores some arguments based on the used version
@@ -89,7 +92,7 @@ def _diff_git_raw(repo, ctx1, ctx2, modified, added, removed, showPatch):
                 writeln(b':000000 ' + mode(fctx) + b' ' + nullHash + b' ' + nullHash + b' A\t' + fctx.path())
             else:
                 parent = fctx.p1()
-                score = str(int(ratio(parent.data(), fctx.data(), 0.5) * 100)).encode('utf-8')
+                score = int_to_str(int(ratio(parent.data(), fctx.data(), 0.5) * 100))
                 old_path, _ = fctx.renamed()
 
                 if old_path in removed:
@@ -220,19 +223,19 @@ def log_git(ui, repo, revs=None, **opts):
 def __dump_metadata(ctx):
         writeln(b'#@!_-=&')
         writeln(ctx.hex())
-        writeln(str(ctx.rev()).encode('utf-8'))
+        writeln(int_to_str(ctx.rev()))
         writeln(ctx.branch())
 
         parents = ctx.parents()
         writeln(b' '.join([p.hex() for p in parents]))
-        writeln(b' '.join([str(p.rev()).encode('utf-8') for p in parents]))
+        writeln(b' '.join([int_to_str(p.rev()) for p in parents]))
 
         writeln(ctx.user())
         date = datestr(ctx.date(), format=b'%Y-%m-%d %H:%M:%S%z')
         writeln(date)
 
         description = ctx.description()
-        writeln(str(len(description)).encode('utf-8'))
+        writeln(int_to_str(len(description)))
         write(description)
 
 def __dump(repo, start, end):
@@ -243,9 +246,9 @@ def __dump(repo, start, end):
         parents = ctx.parents()
 
         modified, added, removed = repo.status(parents[0], ctx)[:3]
-        writeln(str(len(modified)).encode('utf-8'))
-        writeln(str(len(added)).encode('utf-8'))
-        writeln(str(len(removed)).encode('utf-8'))
+        writeln(int_to_str(len(modified)))
+        writeln(int_to_str(len(added)))
+        writeln(int_to_str(len(removed)))
 
         for filename in added + modified:
             fctx = ctx.filectx(filename)
@@ -254,7 +257,7 @@ def __dump(repo, start, end):
             writeln(b' '.join(fctx.flags()))
 
             content = fctx.data()
-            writeln(str(len(content)).encode('utf-8'))
+            writeln(int_to_str(len(content)))
             write(content)
 
         for filename in removed:
