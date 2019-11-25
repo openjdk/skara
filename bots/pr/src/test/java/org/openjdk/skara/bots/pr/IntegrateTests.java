@@ -30,6 +30,7 @@ import org.openjdk.skara.vcs.Repository;
 import org.junit.jupiter.api.*;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -482,14 +483,16 @@ class IntegrateTests {
     @Test
     void retryOnFailure(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory();
+             var censusFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
                                            .addCommitter(author.forge().currentUser().id())
                                            .addReviewer(integrator.forge().currentUser().id());
-            var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+            var censusRepo = censusBuilder.build();
+            var mergeBot = new PullRequestBot(integrator, censusRepo, "master");
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -509,15 +512,20 @@ class IntegrateTests {
             // Let the bot check it
             TestBotRunner.runPeriodicItems(mergeBot);
 
-            // Pre-push to cause a failure
-            localRepo.push(editHash, author.url(), "master");
+            // Break the census to cause an exception
+            var localCensus = Repository.materialize(censusFolder.path(), censusRepo.url(), "+master:current_census");
+            var currentCensusHash = localCensus.resolve("current_census").orElseThrow();
+            Files.writeString(censusFolder.path().resolve("contributors.xml"), "This is not xml", StandardCharsets.UTF_8);
+            localCensus.add(censusFolder.path().resolve("contributors.xml"));
+            var badCensusHash = localCensus.commit("Bad census update", "duke", "duke@openjdk.org");
+            localCensus.push(badCensusHash, censusRepo.url(), "master", true);
 
             // Attempt a merge (without triggering another check)
             pr.addComment("/integrate");
             assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(mergeBot, wi -> wi instanceof CheckWorkItem));
 
-            // Restore the master branch
-            localRepo.push(masterHash, author.url(), "master", true);
+            // Restore the census
+            localCensus.push(currentCensusHash, censusRepo.url(), "master", true);
 
             // The bot should now retry
             TestBotRunner.runPeriodicItems(mergeBot, wi -> wi instanceof CheckWorkItem);
