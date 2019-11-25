@@ -278,7 +278,9 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public void setTitle(String title) {
-        throw new RuntimeException("not implemented yet");
+        request.put("")
+               .body("title", title)
+               .execute();
     }
 
     @Override
