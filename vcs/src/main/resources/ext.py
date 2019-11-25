@@ -49,11 +49,14 @@ def ratio(a, b, threshold):
     return ratio
 
 def write(s):
-    sys.stdout.buffer.write(s)
+    if sys.version_info >= (3, 0):
+        sys.stdout.buffer.write(s)
+    else:
+        sys.stdout.write(s)
 
 def writeln(s):
     write(s)
-    sys.stdout.buffer.write(b'\n')
+    write(b'\n')
 
 def _match_exact(root, cwd, files, badfn=None):
     """
