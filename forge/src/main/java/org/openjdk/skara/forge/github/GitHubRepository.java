@@ -49,12 +49,19 @@ public class GitHubRepository implements HostedRepository {
                 .appendSubDomain("api")
                 .setPath("/repos/" + repository + "/")
                 .build();
-        request = new RestRequest(apiBase, () -> Arrays.asList(
-                "Authorization", "token " + gitHubHost.getInstallationToken(),
+        request = new RestRequest(apiBase, () -> {
+            var headers = new ArrayList<>(List.of(
                 "Accept", "application/vnd.github.machine-man-preview+json",
                 "Accept", "application/vnd.github.antiope-preview+json",
                 "Accept", "application/vnd.github.shadow-cat-preview+json",
                 "Accept", "application/vnd.github.comfort-fade-preview+json"));
+            var token = gitHubHost.getInstallationToken();
+            if (token.isPresent()) {
+                headers.add("Authorization");
+                headers.add("token " + token.get());
+            }
+            return headers;
+        });
         json = gitHubHost.getProjectInfo(repository);
         var urlPattern = gitHubHost.getWebURI("/" + repository + "/pull/").toString();
         pullRequestPattern = Pattern.compile(urlPattern + "(\\d+)");
@@ -143,11 +150,13 @@ public class GitHubRepository implements HostedRepository {
 
     @Override
     public URI url() {
-        return URIBuilder
-                .base(gitHubHost.getURI())
-                .setPath("/" + repository + ".git")
-                .setAuthentication("x-access-token:" + gitHubHost.getInstallationToken())
-                .build();
+        var builder = URIBuilder.base(gitHubHost.getURI())
+                                .setPath("/" + repository + ".git");
+        var token = gitHubHost.getInstallationToken();
+        if (token.isPresent()) {
+            builder.setAuthentication("x-access-token:" + token.get());
+        }
+        return builder.build();
     }
 
     @Override
