@@ -70,7 +70,7 @@ public class CommentPosterWorkItem implements WorkItem {
                 "*Mailing list message from [" + email.author().fullName().orElse(email.author().localPart()) +
                 "](mailto:" + email.author().address() + ") on [" + email.sender().localPart() +
                 "](mailto:" + email.sender().address() + "):*\n\n" +
-                email.body();
+                TextToMarkdown.escapeFormatting(email.body());
         pr.addComment(body);
     }
 
