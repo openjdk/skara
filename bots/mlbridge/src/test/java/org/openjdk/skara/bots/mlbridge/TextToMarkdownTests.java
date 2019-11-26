@@ -40,7 +40,7 @@ class TextToMarkdownTests {
     }
 
     @Test
-    void preserveQuouting() {
+    void preserveQuoting() {
         assertEquals("> quoted", TextToMarkdown.escapeFormatting("> quoted"));
     }
 }
