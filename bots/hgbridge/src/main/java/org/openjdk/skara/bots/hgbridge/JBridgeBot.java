@@ -63,7 +63,8 @@ public class JBridgeBot implements Bot, WorkItem {
     }
 
     private void pushMarks(Path markSource, String destName, Path markScratchPath) throws IOException {
-        var marksRepo = Repository.materialize(markScratchPath, exporterConfig.marksRepo().url(), exporterConfig.marksRef());
+        var marksRepo = Repository.materialize(markScratchPath, exporterConfig.marksRepo().url(),
+                                               "+" + exporterConfig.marksRef() + ":hgbridge_marks");
 
         // We should never change existing marks
         var markDest = markScratchPath.resolve(destName);

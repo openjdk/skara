@@ -112,7 +112,8 @@ class ArchiveWorkItem implements WorkItem {
 
     private Repository materializeArchive(Path scratchPath) {
         try {
-            return Repository.materialize(scratchPath, bot.archiveRepo().url(), pr.targetRef());
+            return Repository.materialize(scratchPath, bot.archiveRepo().url(),
+                                          "+" + bot.archiveRef() + ":mlbridge_archive");
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

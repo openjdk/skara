@@ -47,7 +47,8 @@ class PullRequestInstance {
         var repository = pr.repository();
 
         // Materialize the PR's target ref
-        localRepo = Repository.materialize(localRepoPath, repository.url(), pr.targetRef());
+        localRepo = Repository.materialize(localRepoPath, repository.url(),
+                                           "+" + pr.targetRef() + ":pr_prinstance_" + repository.name());
         targetHash = localRepo.fetch(repository.url(), pr.targetRef());
         headHash = localRepo.fetch(repository.url(), pr.headHash().hex());
         baseHash = localRepo.mergeBase(targetHash, headHash);
