@@ -29,7 +29,6 @@ import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
 import org.openjdk.skara.vcs.Hash;
 
-import java.io.*;
 import java.net.URI;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -119,14 +118,35 @@ public class GitHubPullRequest implements PullRequest {
                .execute();
     }
 
-    private ReviewComment parseReviewComment(ReviewComment parent, JSONObject json, PositionMapper diff) {
+    private ReviewComment parseReviewComment(ReviewComment parent, JSONObject json) {
         var author = host.parseUserField(json);
         var threadId = parent == null ? json.get("id").toString() : parent.threadId();
+
+        int line = json.get("original_line").asInt();
+        var hash = new Hash(json.get("original_commit_id").asString());
+        var path = json.get("path").asString();
+
+        if (json.get("side").asString().equals("LEFT")) {
+            var commitInfo = request.get("commits/" + hash).execute();
+
+            // It's possible that the file in question was renamed / deleted in an earlier commit, would
+            // need to parse all the commits in the PR to be sure. But this should cover most cases.
+            hash = new Hash(commitInfo.get("parents").asArray().get(0).get("sha").asString());
+            for (var file : commitInfo.get("files").asArray()) {
+                if (file.get("filename").asString().equals(path)) {
+                    if (file.get("status").asString().equals("renamed")) {
+                        path = file.get("previous_filename").asString();
+                    }
+                    break;
+                }
+            }
+        }
+
         var comment = new ReviewComment(parent,
                                         threadId,
-                                        new Hash(json.get("commit_id").asString()),
-                                        json.get("path").asString(),
-                                        diff.positionToLine(json.get("path").asString(), json.get("original_position").asInt()),
+                                        hash,
+                                        path,
+                                        line,
                                         json.get("id").toString(),
                                         json.get("body").asString(),
                                         author,
@@ -137,74 +157,48 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public ReviewComment addReviewComment(Hash base, Hash hash, String path, int line, String body) {
-        try {
-            var rawDiff = request.get("pulls/" + json.get("number").toString())
-                                 .header("Accept", "application/vnd.github.v3.diff")
-                                 .executeUnparsed();
-            var diff = PositionMapper.parse(rawDiff);
-
-            var query = JSON.object()
-                            .put("body", body)
-                            .put("commit_id", hash.hex())
-                            .put("path", path)
-                            .put("position", diff.lineToPosition(path, line));
-            var response = request.post("pulls/" + json.get("number").toString() + "/comments")
-                                  .body(query)
-                                  .execute();
-            return parseReviewComment(null, response.asObject(), diff);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        var query = JSON.object()
+                        .put("body", body)
+                        .put("commit_id", hash.hex())
+                        .put("path", path)
+                        .put("side", "RIGHT")
+                        .put("line", line);
+        var response = request.post("pulls/" + json.get("number").toString() + "/comments")
+                              .body(query)
+                              .execute();
+        return parseReviewComment(null, response.asObject());
     }
 
     @Override
     public ReviewComment addReviewCommentReply(ReviewComment parent, String body) {
-        try {
-            var rawDiff = request.get("pulls/" + json.get("number").toString())
-                                 .header("Accept", "application/vnd.github.v3.diff")
-                                 .executeUnparsed();
-            var diff = PositionMapper.parse(rawDiff);
-
-            var query = JSON.object()
-                            .put("body", body)
-                            .put("in_reply_to", Integer.parseInt(parent.threadId()));
-            var response = request.post("pulls/" + json.get("number").toString() + "/comments")
-                                  .body(query)
-                                  .execute();
-            return parseReviewComment(parent, response.asObject(), diff);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        var query = JSON.object()
+                        .put("body", body)
+                        .put("in_reply_to", Integer.parseInt(parent.threadId()));
+        var response = request.post("pulls/" + json.get("number").toString() + "/comments")
+                              .body(query)
+                              .execute();
+        return parseReviewComment(parent, response.asObject());
     }
 
     @Override
     public List<ReviewComment> reviewComments() {
-        try {
-            var rawDiff = request.get("pulls/" + json.get("number").toString())
-                                 .header("Accept", "application/vnd.github.v3.diff")
-                                 .executeUnparsed();
-            var diff = PositionMapper.parse(rawDiff);
+        var ret = new ArrayList<ReviewComment>();
+        var reviewComments = request.get("pulls/" + json.get("number").toString() + "/comments").execute().stream()
+                                    .map(JSONValue::asObject)
+                                    .collect(Collectors.toList());
+        var idToComment = new HashMap<String, ReviewComment>();
 
-            var ret = new ArrayList<ReviewComment>();
-            var reviewComments = request.get("pulls/" + json.get("number").toString() + "/comments").execute().stream()
-                                        .map(JSONValue::asObject)
-                                        .collect(Collectors.toList());
-            var idToComment = new HashMap<String, ReviewComment>();
-
-            for (var reviewComment : reviewComments) {
-                ReviewComment parent = null;
-                if (reviewComment.contains("in_reply_to_id")) {
-                    parent = idToComment.get(reviewComment.get("in_reply_to_id").toString());
-                }
-                var comment = parseReviewComment(parent, reviewComment, diff);
-                idToComment.put(comment.id(), comment);
-                ret.add(comment);
+        for (var reviewComment : reviewComments) {
+            ReviewComment parent = null;
+            if (reviewComment.contains("in_reply_to_id")) {
+                parent = idToComment.get(reviewComment.get("in_reply_to_id").toString());
             }
-
-            return ret;
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            var comment = parseReviewComment(parent, reviewComment);
+            idToComment.put(comment.id(), comment);
+            ret.add(comment);
         }
+
+        return ret;
     }
 
     @Override

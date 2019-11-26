@@ -373,13 +373,16 @@ class ReviewArchive {
 
         // Add some context to the first post
         if (reviewComment.parent().isEmpty()) {
-            var contents = prInstance.pr().repository().fileContents(reviewComment.path(), reviewComment.hash().hex()).lines().collect(Collectors.toList());
-
             body.append(reviewComment.path()).append(" line ").append(reviewComment.line()).append(":\n\n");
-            for (int i = Math.max(0, reviewComment.line() - 2); i < Math.min(contents.size(), reviewComment.line() + 1); ++i) {
-                body.append("> ").append(i + 1).append(": ").append(contents.get(i)).append("\n");
+            try {
+                var contents = prInstance.pr().repository().fileContents(reviewComment.path(), reviewComment.hash().hex()).lines().collect(Collectors.toList());
+                for (int i = Math.max(0, reviewComment.line() - 2); i < Math.min(contents.size(), reviewComment.line() + 1); ++i) {
+                    body.append("> ").append(i + 1).append(": ").append(contents.get(i)).append("\n");
+                }
+                body.append("\n");
+            } catch (RuntimeException e) {
+                body.append("> (failed to retrieve contents of file, check the PR for context)\n");
             }
-            body.append("\n");
         }
         body.append(reviewComment.body());
 
