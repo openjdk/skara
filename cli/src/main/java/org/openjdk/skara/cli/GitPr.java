@@ -256,6 +256,10 @@ public class GitPr {
                   .helptext("Hide any decorations when listing PRs")
                   .optional(),
             Switch.shortcut("")
+                  .fullname("no-token")
+                  .helptext("Do not use a personal access token (PAT). Only works for read-only operations.")
+                  .optional(),
+            Switch.shortcut("")
                   .fullname("mercurial")
                   .helptext("Force use of Mercurial (hg)")
                   .optional(),
@@ -306,9 +310,8 @@ public class GitPr {
         var username = arguments.contains("username") ? arguments.get("username").asString() : null;
         var token = isMercurial ? System.getenv("HG_TOKEN") :  System.getenv("GIT_TOKEN");
         var uri = Remote.toWebURI(remotePullPath);
-        var action = arguments.at(0).asString();
-        var isReadOnly = List.of("list", "fetch", "show", "checkout", "apply").contains(action);
-        var credentials = isReadOnly ?
+        var shouldUseToken = !arguments.contains("no-token");
+        var credentials = !shouldUseToken ?
             null :
             GitCredentials.fill(uri.getHost(), uri.getPath(), username, token, uri.getScheme());
         var forgeURI = URI.create(uri.getScheme() + "://" + uri.getHost());
@@ -316,10 +319,26 @@ public class GitPr {
             Forge.from(forgeURI) :
             Forge.from(forgeURI, new Credential(credentials.username(), credentials.password()));
         if (forge.isEmpty() || !forge.get().isValid()) {
+            if (!shouldUseToken) {
+                if (arguments.contains("verbose")) {
+                    System.err.println("");
+                }
+                System.err.println("warning: using git-pr with --no-token may result in rate limiting from " + forgeURI);
+                if (!arguments.contains("verbose")) {
+                    System.err.println("         Re-run git-pr with --verbose to see if you are being rate limited");
+                    System.err.println("");
+                }
+            }
             exit("error: failed to connect to host: " + forgeURI);
         }
-
         var host = forge.get();
+
+        var action = arguments.at(0).asString();
+        if (!shouldUseToken &&
+            !List.of("list", "fetch", "show", "checkout", "apply").contains(action)) {
+            System.err.println("error: --no-token can only be used with read-only operations");
+            System.exit(1);
+        }
 
         if (action.equals("create")) {
             if (isMercurial) {
