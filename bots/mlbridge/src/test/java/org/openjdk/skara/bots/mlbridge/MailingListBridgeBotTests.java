@@ -112,7 +112,8 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master", listAddress,
+            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
+                                                 censusBuilder.build(), "master", listAddress,
                                                  Set.of(ignored.forge().currentUser().userName()),
                                                  Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
@@ -269,7 +270,8 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master", listAddress,
+            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
+                                                 censusBuilder.build(), "master", listAddress,
                                                  Set.of(ignored.forge().currentUser().userName()),
                                                  Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
@@ -357,7 +359,8 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
+            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
+                                                 censusBuilder.build(), "master",
                                                  listAddress, Set.of(), Set.of(),
                                                  listServer.getArchive(),
                                                  listServer.getSMTP(),
@@ -445,7 +448,8 @@ class MailingListBridgeBotTests {
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
+            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
+                                                 censusBuilder.build(), "master",
                                                  listAddress, Set.of(), Set.of(),
                                                  listServer.getArchive(),
                                                  listServer.getSMTP(),
@@ -566,7 +570,8 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
+            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
+                                                 censusBuilder.build(), "master",
                                                  listAddress, Set.of(), Set.of(),
                                                  listServer.getArchive(),
                                                  listServer.getSMTP(),
@@ -617,7 +622,8 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
+            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
+                                                 censusBuilder.build(), "master",
                                                  listAddress, Set.of(), Set.of(),
                                                  listServer.getArchive(),
                                                  listServer.getSMTP(),
@@ -687,7 +693,8 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
+            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
+                                                 censusBuilder.build(), "master",
                                                  listAddress, Set.of(), Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
@@ -746,7 +753,8 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
+            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
+                                                 censusBuilder.build(), "master",
                                                  listAddress, Set.of(), Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
@@ -867,7 +875,8 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var sender = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(sender, author, archive, censusBuilder.build(), "master",
+            var mlBot = new MailingListBridgeBot(sender, author, archive, "master",
+                                                 censusBuilder.build(), "master",
                                                  listAddress, Set.of(), Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
@@ -958,7 +967,8 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
+            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
+                                                 censusBuilder.build(), "master",
                                                  listAddress,
                                                  Set.of(ignored.forge().currentUser().userName()),
                                                  Set.of(),
@@ -1033,7 +1043,8 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id());
-            var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
+            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
+                                                 censusBuilder.build(), "master",
                                                  listAddress, Set.of(), Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
@@ -1115,7 +1126,8 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
+            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
+                                                 censusBuilder.build(), "master",
                                                  listAddress,
                                                  Set.of(ignored.forge().currentUser().userName()),
                                                  Set.of(Pattern.compile("ignore this comment", Pattern.MULTILINE | Pattern.DOTALL)),

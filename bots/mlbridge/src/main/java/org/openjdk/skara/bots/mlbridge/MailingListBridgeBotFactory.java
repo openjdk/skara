@@ -63,6 +63,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
         var webrevWeb = specific.get("webrevs").get("web").asString();
 
         var archiveRepo = configuration.repository(specific.get("archive").asString());
+        var archiveRef = configuration.repositoryRef(specific.get("archive").asString());
         var issueTracker = URIBuilder.base(specific.get("issues").asString()).build();
 
         var allListNames = new HashSet<EmailAddress>();
@@ -88,7 +89,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
 
             var list = EmailAddress.parse(repoConfig.get("list").asString());
             var folder = repoConfig.contains("folder") ? repoConfig.get("folder").asString() : configuration.repositoryName(repo);
-            var bot = new MailingListBridgeBot(from, configuration.repository(repo), archiveRepo,
+            var bot = new MailingListBridgeBot(from, configuration.repository(repo), archiveRepo, archiveRef,
                                                censusRepo, censusRef,
                                                list, ignoredUsers, ignoredComments, listArchive, listSmtp,
                                                webrevRepo, webrevRef, Path.of(folder),
