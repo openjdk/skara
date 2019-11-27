@@ -1944,4 +1944,54 @@ public class RepositoryTests {
             assertEquals(Optional.empty(), repo.annotate(new Tag("unknown")));
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testDiffWithFileList(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory(false)) {
+            var repo = Repository.init(dir.path(), vcs);
+            var readme = repo.root().resolve("README");
+            Files.writeString(readme, "Hello\n");
+            repo.add(readme);
+
+            var contribute = repo.root().resolve("CONTRIBUTE");
+            Files.writeString(contribute, "1. Make changes\n");
+            repo.add(contribute);
+
+            var first = repo.commit("Added README and CONTRIBUTE", "duke", "duke@openjdk.org");
+            Files.writeString(readme, "World\n", WRITE, APPEND);
+            Files.writeString(contribute, "2. Run git commit", WRITE, APPEND);
+
+            var diff = repo.diff(first, List.of(Path.of("README")));
+            assertEquals(1, diff.added());
+            assertEquals(0, diff.modified());
+            assertEquals(0, diff.removed());
+            var patches = diff.patches();
+            assertEquals(1, patches.size());
+            var patch = patches.get(0);
+            assertTrue(patch.isTextual());
+            assertTrue(patch.status().isModified());
+            assertEquals(Path.of("README"), patch.source().path().get());
+            assertEquals(Path.of("README"), patch.target().path().get());
+
+            repo.add(readme);
+            repo.add(contribute);
+            var second = repo.commit("Updates to both README and CONTRIBUTE", "duke", "duke@openjdk.org");
+
+            diff = repo.diff(first, second, List.of(Path.of("CONTRIBUTE")));
+            assertEquals(1, diff.added());
+            assertEquals(0, diff.modified());
+            assertEquals(0, diff.removed());
+            patches = diff.patches();
+            assertEquals(1, patches.size());
+            patch = patches.get(0);
+            assertTrue(patch.isTextual());
+            assertTrue(patch.status().isModified());
+            assertEquals(Path.of("CONTRIBUTE"), patch.source().path().get());
+            assertEquals(Path.of("CONTRIBUTE"), patch.target().path().get());
+
+            diff = repo.diff(first, second, List.of(Path.of("DOES_NOT_EXIST")));
+            assertEquals(0, diff.patches().size());
+        }
+    }
 }

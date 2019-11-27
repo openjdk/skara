@@ -189,7 +189,15 @@ class TestRepository implements ReadOnlyRepository {
         return null;
     }
 
+    public Diff diff(Hash base, Hash head, List<Path> files) throws IOException {
+        return null;
+    }
+
     public Diff diff(Hash head) throws IOException {
+        return null;
+    }
+
+    public Diff diff(Hash head, List<Path> files) throws IOException {
         return null;
     }
 

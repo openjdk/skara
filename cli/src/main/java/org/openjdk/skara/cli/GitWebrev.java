@@ -36,6 +36,7 @@ import java.net.http.HttpResponse;
 import java.nio.file.*;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class GitWebrev {
     private static void clearDirectory(Path directory) {
@@ -134,7 +135,13 @@ public class GitWebrev {
                   .helptext("Print the version of this tool")
                   .optional());
 
-        var parser = new ArgumentParser("git webrev", flags);
+        var inputs = List.of(
+            Input.position(0)
+                 .describe("FILE")
+                 .singular()
+                 .optional());
+
+        var parser = new ArgumentParser("git webrev", flags, inputs);
         var arguments = parser.parse(args);
 
         var version = Version.fromManifest().orElse("unknown");
@@ -246,6 +253,11 @@ public class GitWebrev {
             clearDirectory(output);
         }
 
+        List<Path> files = List.of();
+        if (arguments.at(0).isPresent()) {
+            var path = arguments.at(0).via(Path::of);
+            files = Files.readAllLines(path).stream().map(Path::of).collect(Collectors.toList());
+        }
         Webrev.repository(repo)
               .output(output)
               .title(title)
@@ -253,6 +265,7 @@ public class GitWebrev {
               .username(username)
               .issue(issue)
               .version(version)
+              .files(files)
               .generate(rev);
     }
 
