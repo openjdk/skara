@@ -111,6 +111,10 @@ public class JNotifyBotFactory implements BotFactory {
                                                         includeBranchNames, mode, headers, allowedDomains));
                 }
             }
+            if (repo.value().contains("issues")) {
+                var issueProject = configuration.issueProject(repo.value().get("issues").asString());
+                updaters.add(new IssueUpdater(issueProject));
+            }
 
             if (updaters.isEmpty()) {
                 log.warning("No consumers configured for notify bot repository: " + repoName);
