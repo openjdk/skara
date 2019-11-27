@@ -156,7 +156,7 @@ public class MailingListUpdater implements UpdateConsumer {
             }
             var rfr = rfrCandidates.get(0);
 
-            var body = CommitFormatters.commitToText(repository, commit);
+            var body = CommitFormatters.toText(repository, commit);
             var email = Email.reply(rfr, "Re: [Integrated] " + rfr.subject(), body)
                              .sender(sender)
                              .author(commitToAuthor(commit))
@@ -178,7 +178,7 @@ public class MailingListUpdater implements UpdateConsumer {
         var printer = new PrintWriter(writer);
 
         for (var commit : commits) {
-            printer.println(CommitFormatters.commitToText(repository, commit));
+            printer.println(CommitFormatters.toText(repository, commit));
         }
 
         var subject = commitsToSubject(repository, commits, branch);
@@ -221,7 +221,7 @@ public class MailingListUpdater implements UpdateConsumer {
         if (annotation != null) {
             printer.println(tagAnnotationToText(repository, annotation));
         }
-        printer.println(CommitFormatters.commitToTextBrief(repository, taggedCommit));
+        printer.println(CommitFormatters.toTextBrief(repository, taggedCommit));
 
         printer.println("The following commits are included in " + tag.tag());
         printer.println("========================================================");
@@ -259,7 +259,7 @@ public class MailingListUpdater implements UpdateConsumer {
         if (annotation != null) {
             printer.println(tagAnnotationToText(repository, annotation));
         }
-        printer.println(CommitFormatters.commitToTextBrief(repository, commit));
+        printer.println(CommitFormatters.toTextBrief(repository, commit));
 
         var subject = tagToSubject(repository, commit.hash(), tag);
         var email = Email.create(subject, writer.toString())

@@ -42,7 +42,7 @@ public class IssueUpdater implements UpdateConsumer {
     @Override
     public void handleCommits(HostedRepository repository, List<Commit> commits, Branch branch) {
         for (var commit : commits) {
-            var commitNotification = CommitFormatters.commitToTextBrief(repository, commit);
+            var commitNotification = CommitFormatters.toTextBrief(repository, commit);
             var commitMessage = CommitMessageParsers.v1.parse(commit);
             for (var commitIssue : commitMessage.issues()) {
                 var issue = issueProject.issue(commitIssue.id());

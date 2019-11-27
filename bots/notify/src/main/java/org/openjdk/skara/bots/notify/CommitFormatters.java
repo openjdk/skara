@@ -29,7 +29,7 @@ import java.io.*;
 import java.time.format.DateTimeFormatter;
 
 class CommitFormatters {
-    static String commitToTextBrief(HostedRepository repository, Commit commit) {
+    static String toTextBrief(HostedRepository repository, Commit commit) {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
@@ -56,11 +56,11 @@ class CommitFormatters {
         }
     }
 
-    static String commitToText(HostedRepository repository, Commit commit) {
+    static String toText(HostedRepository repository, Commit commit) {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
-        printer.print(commitToTextBrief(repository, commit));
+        printer.print(toTextBrief(repository, commit));
         printer.println();
         printer.println(String.join("\n", commit.message()));
         printer.println();
