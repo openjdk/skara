@@ -49,7 +49,7 @@ class CensusInstance {
 
     private static Repository initialize(HostedRepository repo, String ref, Path folder) {
         try {
-            return Repository.materialize(folder, repo.url(), ref);
+            return Repository.materialize(folder, repo.url(), "+" + ref + ":" + "mlbridge_census_" + repo.name());
         } catch (IOException e) {
             throw new RuntimeException("Failed to retrieve census to " + folder, e);
         }

@@ -57,7 +57,7 @@ class HostedRepositoryStorage<T> implements Storage<T> {
         try {
             Repository localRepository;
             try {
-                localRepository = Repository.materialize(localStorage, repository.url(), ref);
+                localRepository = Repository.materialize(localStorage, repository.url(), "+" + ref + ":storage");
             } catch (IOException e) {
                 // The remote ref may not yet exist
                 localRepository = Repository.init(localStorage, repository.repositoryType());
