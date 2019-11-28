@@ -256,8 +256,14 @@ public class GitWebrev {
         List<Path> files = List.of();
         if (arguments.at(0).isPresent()) {
             var path = arguments.at(0).via(Path::of);
-            files = Files.readAllLines(path).stream().map(Path::of).collect(Collectors.toList());
+            if (path.equals(Path.of("-"))) {
+                var reader = new BufferedReader(new InputStreamReader(System.in));
+                files = reader.lines().map(Path::of).collect(Collectors.toList());
+            } else {
+                files = Files.readAllLines(path).stream().map(Path::of).collect(Collectors.toList());
+            }
         }
+
         Webrev.repository(repo)
               .output(output)
               .title(title)

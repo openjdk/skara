@@ -181,7 +181,7 @@ public class ArgumentParser {
                     }
                     seen.add(flag);
                 }
-            } else if (arg.startsWith("-")) {
+            } else if (arg.startsWith("-") && !arg.equals("-")) {
                 var name = arg.substring(1);
                 var flag = lookupShortcut(name);
                 if (flag.isSwitch()) {
