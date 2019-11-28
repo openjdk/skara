@@ -736,11 +736,21 @@ public class HgRepository implements Repository {
 
     @Override
     public Diff diff(Hash from) throws IOException {
-        return diff(from, null);
+        return diff(from, List.of());
+    }
+
+    @Override
+    public Diff diff(Hash from, List<Path> files) throws IOException {
+        return diff(from, null, files);
     }
 
     @Override
     public Diff diff(Hash from, Hash to) throws IOException {
+        return diff(from, to, List.of());
+    }
+
+    @Override
+    public Diff diff(Hash from, Hash to, List<Path> files) throws IOException {
         var ext = Files.createTempFile("ext", ".py");
         copyResource(EXT_PY, ext);
 
@@ -748,6 +758,11 @@ public class HgRepository implements Repository {
                                                 "diff-git-raw", "--patch", from.hex()));
         if (to != null) {
             cmd.add(to.hex());
+        }
+
+        if (files != null) {
+            var filenames = files.stream().map(Path::toString).collect(Collectors.toList());
+            cmd.add("--files=" + String.join(",", filenames));
         }
 
         var p = start(cmd);

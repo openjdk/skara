@@ -155,8 +155,8 @@ else:
     revsingle = mercurial.cmdutil.revsingle
     revrange = mercurial.cmdutil.revrange
 
-@command(b'diff-git-raw', [(b'', b'patch', False, b'')], b'hg diff-git-raw rev1 [rev2]')
-def diff_git_raw(ui, repo, rev1, rev2=None, **opts):
+@command(b'diff-git-raw', [(b'', b'patch', False, b''), (b'', b'files', b'', b'')], b'hg diff-git-raw rev1 [rev2]')
+def diff_git_raw(ui, repo, rev1, rev2=None, *files, **opts):
     ctx1 = revsingle(repo, rev1)
 
     if rev2 != None:
@@ -167,6 +167,14 @@ def diff_git_raw(ui, repo, rev1, rev2=None, **opts):
         status = repo.status(ctx1)
 
     modified, added, removed = [set(l) for l in status[:3]]
+
+    files = opts['files']
+    if files != b'':
+        wanted = set(files.split(b','))
+        modified = modified & wanted
+        added = added & wanted
+        removed = removed & wanted
+
     _diff_git_raw(repo, ctx1, ctx2, modified, added, removed, opts['patch'])
 
 @command(b'log-git', [(b'', b'reverse', False, b''), (b'l', b'limit', -1, b'')],  b'hg log-git <revisions>')
