@@ -37,7 +37,7 @@ public class RejectCommand implements CommandHandler {
             return;
         }
         if (!ProjectPermissions.mayReview(censusInstance, comment.author())) {
-            reply.println("Only [Reviewers](http://openjdk.java.net/bylaws#reviewer) are allowed to reject changes.");
+            reply.println("Only [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to reject changes.");
             return;
         }
 
