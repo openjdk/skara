@@ -169,8 +169,8 @@ def diff_git_raw(ui, repo, rev1, rev2=None, *files, **opts):
     modified, added, removed = [set(l) for l in status[:3]]
 
     files = opts['files']
-    if files != '':
-        wanted = set(files.split(','))
+    if files != b'':
+        wanted = set(files.split(b','))
         modified = modified & wanted
         added = added & wanted
         removed = removed & wanted
