@@ -42,7 +42,7 @@ public class SponsorCommand implements CommandHandler {
             return;
         }
         if (!ProjectPermissions.mayCommit(censusInstance, comment.author())) {
-            reply.println("Only [Committers](http://openjdk.java.net/bylaws#committer) are allowed to sponsor changes.");
+            reply.println("Only [Committers](https://openjdk.java.net/bylaws#committer) are allowed to sponsor changes.");
             return;
         }
 

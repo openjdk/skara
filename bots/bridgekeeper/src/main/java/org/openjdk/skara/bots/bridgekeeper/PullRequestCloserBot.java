@@ -56,7 +56,7 @@ class PullRequestCloserBotWorkItem implements WorkItem {
                     "This repository is currently a read-only git mirror of the official Mercurial " +
                     "repository (located at https://hg.openjdk.java.net/). As such, we are not " +
                     "currently accepting pull requests here. If you would like to contribute to " +
-                    "the OpenJDK project, please see http://openjdk.java.net/contribute/ on how " +
+                    "the OpenJDK project, please see https://openjdk.java.net/contribute/ on how " +
                     "to proceed.\n\n" +
                     "This pull request will be automatically closed.";
 

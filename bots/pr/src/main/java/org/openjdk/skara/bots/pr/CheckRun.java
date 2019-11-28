@@ -402,13 +402,13 @@ class CheckRun {
             message.append("\n");
             var contributor = censusInstance.namespace().get(pr.author().id());
             if (contributor == null) {
-                message.append("As you are not a known OpenJDK [Author](http://openjdk.java.net/bylaws#author), ");
+                message.append("As you are not a known OpenJDK [Author](https://openjdk.java.net/bylaws#author), ");
             } else {
                 message.append("As you do not have Committer status in this project, ");
             }
 
-            message.append("an existing [Committer](http://openjdk.java.net/bylaws#committer) must agree to ");
-            message.append("[sponsor](http://openjdk.java.net/sponsor/) your change. ");
+            message.append("an existing [Committer](https://openjdk.java.net/bylaws#committer) must agree to ");
+            message.append("[sponsor](https://openjdk.java.net/sponsor/) your change. ");
             var candidates = reviews.stream()
                                     .filter(review -> ProjectPermissions.mayCommit(censusInstance, review.reviewer()))
                                     .map(review -> "@" + review.reviewer().userName())
