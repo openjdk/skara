@@ -206,15 +206,18 @@ public class GitWebrev {
         }
         if (issue == null) {
             var pattern = Pattern.compile("(?:(JDK|CODETOOLS|JMC)-)?([0-9]+).*");
-            var branch = repo.currentBranch().name().toUpperCase();
-            var m = pattern.matcher(branch);
-            if (m.matches()) {
-                var project = m.group(1);
-                if (project == null) {
-                    project = "JDK";
+            var currentBranch = repo.currentBranch();
+            if (currentBranch.isPresent()) {
+                var branchName = currentBranch.get().name().toUpperCase();
+                var m = pattern.matcher(branchName);
+                if (m.matches()) {
+                    var project = m.group(1);
+                    if (project == null) {
+                        project = "JDK";
+                    }
+                    var id = m.group(2);
+                    issue = "https://bugs.openjdk.java.net/browse/" + project + "-" + id;
                 }
-                var id = m.group(2);
-                issue = "https://bugs.openjdk.java.net/browse/" + project + "-" + id;
             }
         }
 

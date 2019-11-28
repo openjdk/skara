@@ -519,7 +519,11 @@ public class GitPr {
 
                 System.exit(0);
             }
-            var currentBranch = repo.currentBranch();
+            var currentBranch = repo.currentBranch().orElseGet(() -> {
+                    System.err.println("error: the repository is in a detached HEAD state");
+                    System.exit(1);
+                    return null;
+            });
             if (currentBranch.equals(repo.defaultBranch())) {
                 System.err.println("error: you should not create pull requests from the 'master' branch");
                 System.err.println("");

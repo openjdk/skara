@@ -156,7 +156,7 @@ public class RepositoryTests {
     void testCurrentBranchOnEmptyRepository(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
             var r = Repository.init(dir.path(), vcs);
-            assertEquals(r.defaultBranch(), r.currentBranch());
+            assertEquals(r.defaultBranch(), r.currentBranch().get());
         }
     }
 

@@ -661,13 +661,13 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public Branch currentBranch() throws IOException {
+    public Optional<Branch> currentBranch() throws IOException {
         try (var p = capture("git", "symbolic-ref", "--short", "HEAD")) {
-            var res = await(p);
-            if (res.stdout().size() != 1) {
-                throw new IOException("Unexpected output\n" + res);
+            var res = p.await();
+            if (res.status() == 0 && res.stdout().size() == 1) {
+                return Optional.of(new Branch(res.stdout().get(0)));
             }
-            return new Branch(res.stdout().get(0));
+            return Optional.empty();
         }
     }
 
