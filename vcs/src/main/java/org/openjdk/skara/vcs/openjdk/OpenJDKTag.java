@@ -52,16 +52,19 @@ public class OpenJDKTag {
      * jdk7u40-b20 -> jdk7u40  7u40     u20     -b           29
      * hs24-b30    -> hs24     24               -b           30
      * hs23.6-b19  -> hs23.6   23.6     .6      -b           19
+     * 11.1+22     -> 11.1     11.1     .1      +            22
      */
 
     private final static String legacyOpenJDKVersionPattern = "(jdk([0-9]{1,2}(u[0-9]{1,3})?))";
     private final static String legacyHSVersionPattern = "((hs[0-9]{1,2}(\\.[0-9]{1,3})?))";
     private final static String legacyBuildPattern = "(-b)([0-9]{2,3})";
     private final static String OpenJDKVersionPattern = "(jdk-([0-9]+(\\.[0-9]){0,3}))(\\+)([0-9]+)";
+    private final static String OpenJFXVersionPattern = "((?:jdk-){0,1}([1-9](?:(?:[0-9]*)(\\.(?:0|[1-9][0-9]*)){0,3})))(?:(\\+)([0-9]+)|(-ga))";
 
     private final static List<Pattern> tagPatterns = List.of(Pattern.compile(legacyOpenJDKVersionPattern + legacyBuildPattern),
                                                              Pattern.compile(legacyHSVersionPattern + legacyBuildPattern),
-                                                             Pattern.compile(OpenJDKVersionPattern));
+                                                             Pattern.compile(OpenJDKVersionPattern),
+                                                             Pattern.compile(OpenJFXVersionPattern));
 
     /**
      * Attempts to create an OpenJDKTag instance from a general Tag.
@@ -106,6 +109,9 @@ public class OpenJDKTag {
      * @return
      */
     public int buildNum() {
+        if (buildNum == null) {
+            return 0;
+        }
         return Integer.parseInt(buildNum);
     }
 

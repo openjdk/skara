@@ -39,14 +39,14 @@ external Git source code hosting providers are available:
 ## Building
 
 [JDK 12](http://jdk.java.net/12/) or later and [Gradle](https://gradle.org/)
-5.2.1 or later is required for building. To build the project on macOS or
-GNU/Linux, just run the following command from the source tree root:
+5.6.2 or later is required for building. To build the project on macOS or
+GNU/Linux x64, just run the following command from the source tree root:
 
 ```bash
 $ sh gradlew
 ```
 
-To build the project on Windows, run the following command from the source tree root:
+To build the project on Windows x64, run the following command from the source tree root:
 
 ```bat
 > gradlew
@@ -54,6 +54,42 @@ To build the project on Windows, run the following command from the source tree 
 
 The extracted jlinked image will end up in the `build` directory in the source
 tree root.
+
+### Other operating systems and CPU architectures
+
+If you want to build on an operating system other than GNU/Linux, macOS or
+Windows _or_ if you want to build on a CPU architecture other than x64, then
+ensure that you have JDK 12 or later installed locally. You can then run the
+following command from the source tree root:
+
+```bash
+$ sh gradlew
+```
+
+The extracted jlinked image will end up in the `build` directory in the source
+tree root.
+
+### Offline builds
+
+If you don't want the build to automatically download any dependencies, then
+you must ensure that you have installed the following software locally:
+
+- JDK 12 or later
+- Gradle 5.6.2 or later
+
+To create a build then run the command:
+
+```bash
+$ gradle offline
+```
+
+_Please note_ that the above command does _not_ make use of `gradlew` to avoid
+downloading Gradle.
+
+The extracted jlinked image will end up in the `build` directory in the source
+tree root.
+
+### Cross-linking
 
 It is also supported to cross-jlink jimages to GNU/Linux, macOS and/or Windows from
 any of the aforementioned operating systems. To build all applicable jimages

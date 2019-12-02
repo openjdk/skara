@@ -87,7 +87,8 @@ public class SponsorCommand implements CommandHandler {
                 }
             }
 
-            var issues = prInstance.executeChecks(localHash, censusInstance);
+            var issues = prInstance.createVisitor(localHash, censusInstance);
+            prInstance.executeChecks(localHash, censusInstance, issues);
             if (!issues.getMessages().isEmpty()) {
                 reply.print("Your merge request cannot be fulfilled at this time, as ");
                 reply.println("your changes failed the final jcheck:");

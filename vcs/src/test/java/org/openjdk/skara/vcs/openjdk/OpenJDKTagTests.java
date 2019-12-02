@@ -22,10 +22,11 @@
  */
 package org.openjdk.skara.vcs.openjdk;
 
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-
 import org.openjdk.skara.vcs.Tag;
+
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 class OpenJDKTagTests {
     @Test
@@ -91,5 +92,23 @@ class OpenJDKTagTests {
         var jdkTag = OpenJDKTag.create(tag).orElseThrow();
         assertEquals(0, jdkTag.buildNum());
         assertFalse(jdkTag.previous().isPresent());
+    }
+
+    @Test
+    void parseJfxTags() {
+        var tag = new Tag("12.1.3+14");
+        var jdkTag = OpenJDKTag.create(tag).orElseThrow();
+        assertEquals("12.1.3", jdkTag.version());
+        assertEquals(14, jdkTag.buildNum());
+        var previousTag = jdkTag.previous().orElseThrow();
+        assertEquals(13, previousTag.buildNum());
+    }
+
+    @Test
+    void parseJfxTagsGa() {
+        var tag = new Tag("12.1-ga");
+        var jdkTag = OpenJDKTag.create(tag).orElseThrow();
+        assertEquals("12.1", jdkTag.version());
+        assertEquals(0, jdkTag.buildNum());
     }
 }

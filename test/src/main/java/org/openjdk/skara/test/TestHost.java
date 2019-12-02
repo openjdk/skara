@@ -78,7 +78,7 @@ public class TestHost implements Forge, IssueTracker {
     }
 
     @Override
-    public HostedRepository repository(String name) {
+    public Optional<HostedRepository> repository(String name) {
         Repository localRepository;
         if (data.repositories.containsKey(name)) {
             localRepository = data.repositories.get(name);
@@ -89,7 +89,7 @@ public class TestHost implements Forge, IssueTracker {
             localRepository = createLocalRepository();
             data.repositories.put(name, localRepository);
         }
-        return new TestHostedRepository(this, name, localRepository);
+        return Optional.of(new TestHostedRepository(this, name, localRepository));
     }
 
     @Override

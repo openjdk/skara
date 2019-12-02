@@ -28,6 +28,7 @@ import org.openjdk.skara.test.*;
 import org.junit.jupiter.api.*;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.logging.*;
@@ -1025,6 +1026,128 @@ class CheckTests {
             // The PR should still not be ready for review as it is a draft
             assertFalse(pr.labels().contains("rfr"));
             assertFalse(pr.labels().contains("ready"));
+        }
+    }
+
+    @Test
+    void excessiveFailures(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR containing more errors than at least GitHub can handle in a check
+            var badContent = "\tline   \n".repeat(200);
+            var editHash = CheckableRepository.appendAndCommit(localRepo, badContent);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit",
+                                                   "This is a pull request", true);
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that the check failed
+            var checks = pr.checks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            assertEquals(CheckStatus.FAILURE, check.status());
+        }
+    }
+
+    @Test
+    void retryOnException(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Break the jcheck configuration
+            var confPath = tempFolder.path().resolve(".jcheck/conf");
+            var oldConf = Files.readString(confPath, StandardCharsets.UTF_8);
+            Files.writeString(confPath, "Hello there!", StandardCharsets.UTF_8);
+            localRepo.add(confPath);
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "A change");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit",
+                                                   "This is a pull request", true);
+
+            // Check the status - should throw every time
+            assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(checkBot));
+            assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(checkBot));
+            assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(checkBot));
+
+            // Verify that the check failed
+            var checks = pr.checks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            assertEquals(CheckStatus.FAILURE, check.status());
+
+            Files.writeString(confPath, oldConf, StandardCharsets.UTF_8);
+            localRepo.add(confPath);
+            editHash = CheckableRepository.appendAndCommit(localRepo, "Another change");
+            localRepo.push(editHash, author.url(), "edit");
+
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that the check now passes
+            checks = pr.checks(editHash);
+            assertEquals(1, checks.size());
+            check = checks.get("jcheck");
+            assertEquals(CheckStatus.SUCCESS, check.status());
+        }
+    }
+
+    @Test
+    void noCommit(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "master");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that the check failed
+            var checks = pr.checks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            assertEquals(CheckStatus.FAILURE, check.status());
         }
     }
 }

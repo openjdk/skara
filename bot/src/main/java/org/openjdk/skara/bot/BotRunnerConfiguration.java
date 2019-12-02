@@ -22,26 +22,28 @@
  */
 package org.openjdk.skara.bot;
 
+import org.openjdk.skara.ci.ContinuousIntegration;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.json.JSONObject;
+import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.vcs.VCS;
 
 import java.io.*;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.Duration;
 import java.util.*;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 public class BotRunnerConfiguration {
     private final Logger log;
     private final JSONObject config;
     private final Map<String, Forge> repositoryHosts;
     private final Map<String, IssueTracker> issueHosts;
+    private final Map<String, ContinuousIntegration> continuousIntegrations;
     private final Map<String, HostedRepository> repositories;
 
     private BotRunnerConfiguration(JSONObject config, Path cwd) throws ConfigurationError {
@@ -50,6 +52,7 @@ public class BotRunnerConfiguration {
 
         repositoryHosts = parseRepositoryHosts(config, cwd);
         issueHosts = parseIssueHosts(config, cwd);
+        continuousIntegrations = parseContinuousIntegrations(config, cwd);
         repositories = parseRepositories(config);
     }
 
@@ -64,8 +67,8 @@ public class BotRunnerConfiguration {
             if (entry.value().contains("gitlab")) {
                 var gitlab = entry.value().get("gitlab");
                 var uri = URIBuilder.base(gitlab.get("url").asString()).build();
-                var pat = new PersonalAccessToken(gitlab.get("username").asString(), gitlab.get("pat").asString());
-                ret.put(entry.name(), ForgeFactory.createGitLabHost(uri, pat));
+                var pat = new Credential(gitlab.get("username").asString(), gitlab.get("pat").asString());
+                ret.put(entry.name(), Forge.from("gitlab", uri, pat, gitlab.asObject()));
             } else if (entry.value().contains("github")) {
                 var github = entry.value().get("github");
                 URI uri;
@@ -74,21 +77,21 @@ public class BotRunnerConfiguration {
                 } else {
                     uri = URIBuilder.base("https://github.com/").build();
                 }
-                Pattern webUriPattern = null;
-                String webUriReplacement = null;
-                if (github.contains("weburl")) {
-                    webUriPattern = Pattern.compile(github.get("weburl").get("pattern").asString());
-                    webUriReplacement = github.get("weburl").get("replacement").asString();
-                }
 
                 if (github.contains("app")) {
                     var keyFile = cwd.resolve(github.get("app").get("key").asString());
-                    ret.put(entry.name(), ForgeFactory.createGitHubHost(uri, webUriPattern, webUriReplacement, keyFile.toString(),
-                                                                       github.get("app").get("id").asString(),
-                                                                       github.get("app").get("installation").asString()));
+                    try {
+                        var keyContents = Files.readString(keyFile, StandardCharsets.UTF_8);
+                        var pat = new Credential(github.get("app").get("id").asString() + ";" +
+                                                         github.get("app").get("installation").asString(),
+                                                 keyContents);
+                        ret.put(entry.name(), Forge.from("github", uri, pat, github.asObject()));
+                    } catch (IOException e) {
+                        throw new ConfigurationError("Cannot find key file: " + keyFile);
+                    }
                 } else {
-                    var pat = new PersonalAccessToken(github.get("username").asString(), github.get("pat").asString());
-                    ret.put(entry.name(), ForgeFactory.createGitHubHost(uri, pat));
+                    var pat = new Credential(github.get("username").asString(), github.get("pat").asString());
+                    ret.put(entry.name(), Forge.from("github", uri, pat, github.asObject()));
                 }
             } else {
                 throw new ConfigurationError("Host " + entry.name());
@@ -109,9 +112,33 @@ public class BotRunnerConfiguration {
             if (entry.value().contains("jira")) {
                 var jira = entry.value().get("jira");
                 var uri = URIBuilder.base(jira.get("url").asString()).build();
-                ret.put(entry.name(), IssueTrackerFactory.createJiraHost(uri, null));
+                Credential credential = null;
+                if (jira.contains("username")) {
+                    credential = new Credential(jira.get("username").asString(), jira.get("password").asString());
+                }
+                ret.put(entry.name(), IssueTracker.from("jira", uri, credential, jira.asObject()));
             } else {
                 throw new ConfigurationError("Host " + entry.name());
+            }
+        }
+
+        return ret;
+    }
+
+    private Map<String, ContinuousIntegration> parseContinuousIntegrations(JSONObject config, Path cwd) throws ConfigurationError {
+        Map<String, ContinuousIntegration> ret = new HashMap<>();
+
+        if (!config.contains("ci")) {
+            return ret;
+        }
+
+        for (var entry : config.get("ci").fields()) {
+            var url = entry.value().get("url").asString();
+            var ci = ContinuousIntegration.from(URI.create(url), entry.value().asObject());
+            if (ci.isPresent()) {
+                ret.put(entry.name(), ci.get());
+            } else {
+                throw new ConfigurationError("No continuous integration named with url: " + url);
             }
         }
 
@@ -131,7 +158,9 @@ public class BotRunnerConfiguration {
                 throw new ConfigurationError("Repository " + entry.name() + " uses undefined host '" + hostName + "'");
             }
             var host = repositoryHosts.get(hostName);
-            var repo = host.repository(entry.value().get("repository").asString());
+            var repo = host.repository(entry.value().get("repository").asString()).orElseThrow(() ->
+                    new ConfigurationError("Repository " + entry.value().get("repository").asString() + " is not available at " + hostName)
+            );
             ret.put(entry.name(), repo);
         }
 
@@ -158,7 +187,9 @@ public class BotRunnerConfiguration {
                 throw new ConfigurationError("Repository entry " + entry + " uses undefined host '" + hostName + "'");
             }
             var repositoryName = entry.substring(hostSeparatorIndex + 1);
-            ret.repository = host.repository(repositoryName);
+            ret.repository = host.repository(repositoryName).orElseThrow(() ->
+                    new ConfigurationError("Repository " + repositoryName + " is not available at " + hostName)
+            );
         } else {
             if (!repositories.containsKey(entry)) {
                 throw new ConfigurationError("Repository " + entry + " is not defined!");
@@ -231,6 +262,14 @@ public class BotRunnerConfiguration {
                 } catch (ConfigurationError configurationError) {
                     throw new RuntimeException("Couldn't find issue project with name: " + name, configurationError);
                 }
+            }
+
+            @Override
+            public ContinuousIntegration continuousIntegration(String name) {
+                if (continuousIntegrations.containsKey(name)) {
+                    return continuousIntegrations.get(name);
+                }
+                throw new RuntimeException("Couldn't find continuous integration with name: " + name);
             }
 
             @Override

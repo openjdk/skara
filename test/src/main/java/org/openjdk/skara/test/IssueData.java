@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.test;
 
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 
 import java.time.ZonedDateTime;
@@ -33,6 +34,7 @@ class IssueData {
     String title = "";
     final List<Comment> comments = new ArrayList<>();
     final Set<String> labels = new HashSet<>();
+    final List<HostUser> assignees = new ArrayList<>();
     ZonedDateTime created = ZonedDateTime.now();
     ZonedDateTime lastUpdate = created;
 }

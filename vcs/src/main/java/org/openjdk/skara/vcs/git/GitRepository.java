@@ -311,7 +311,7 @@ public class GitRepository implements Repository {
 
     @Override
     public void revert(Hash h) throws IOException {
-        try (var p = capture("git", "checkout", h.hex(), "--", ".")) {
+        try (var p = capture("git", "checkout", "--recurse-submodules", h.hex(), "--", ".")) {
             await(p);
         }
     }
@@ -330,7 +330,7 @@ public class GitRepository implements Repository {
 
     @Override
     public Hash fetch(URI uri, String refspec) throws IOException {
-        try (var p = capture("git", "fetch", "--tags", uri.toString(), refspec)) {
+        try (var p = capture("git", "fetch", "--recurse-submodules=on-demand", "--tags", uri.toString(), refspec)) {
             await(p);
             return resolve("FETCH_HEAD").get();
         }
@@ -338,14 +338,14 @@ public class GitRepository implements Repository {
 
     @Override
     public void fetchAll() throws IOException {
-        try (var p = capture("git", "fetch", "--tags", "--prune", "--prune-tags", "--all")) {
+        try (var p = capture("git", "fetch", "--recurse-submodules=on-demand", "--tags", "--prune", "--prune-tags", "--all")) {
             await(p);
         }
     }
 
     private void checkout(String ref, boolean force) throws IOException {
         var cmd = new ArrayList<String>();
-        cmd.addAll(List.of("git", "-c", "advice.detachedHead=false", "checkout"));
+        cmd.addAll(List.of("git", "-c", "advice.detachedHead=false", "checkout", "--recurse-submodules"));
         if (force) {
             cmd.add("--force");
         }
@@ -831,11 +831,21 @@ public class GitRepository implements Repository {
 
     @Override
     public Diff diff(Hash from) throws IOException {
-        return diff(from, null);
+        return diff(from, List.of());
+    }
+
+    @Override
+    public Diff diff(Hash from, List<Path> files) throws IOException {
+        return diff(from, null, files);
     }
 
     @Override
     public Diff diff(Hash from, Hash to) throws IOException {
+        return diff(from, to, List.of());
+    }
+
+    @Override
+    public Diff diff(Hash from, Hash to, List<Path> files) throws IOException {
         var cmd = new ArrayList<>(List.of("git", "diff", "--patch",
                                                          "--find-renames=99%",
                                                          "--find-copies=99%",
@@ -848,6 +858,13 @@ public class GitRepository implements Repository {
                                                          from.hex()));
         if (to != null) {
             cmd.add(to.hex());
+        }
+
+        if (files != null && !files.isEmpty()) {
+            cmd.add("--");
+            for (var file : files) {
+                cmd.add(file.toString());
+            }
         }
 
         var p = start(cmd);
@@ -885,7 +902,7 @@ public class GitRepository implements Repository {
 
     @Override
     public Repository copyTo(Path destination) throws IOException {
-        try (var p = capture("git", "clone", root().toString(), destination.toString())) {
+        try (var p = capture("git", "clone", "--recurse-submodules", root().toString(), destination.toString())) {
             await(p);
         }
 
@@ -1021,6 +1038,8 @@ public class GitRepository implements Repository {
         cmd.addAll(List.of("git", "clone"));
         if (isBare) {
             cmd.add("--bare");
+        } else {
+            cmd.add("--recurse-submodules");
         }
         cmd.addAll(List.of(from.toString(), to.toString()));
         try (var p = capture(Path.of("").toAbsolutePath(), cmd)) {
@@ -1100,5 +1119,85 @@ public class GitRepository implements Repository {
             }
         }
         return remotes;
+    }
+
+    @Override
+    public void addSubmodule(String pullPath, Path path) throws IOException {
+        try (var p = capture("git", "submodule", "add", pullPath, path.toString())) {
+            await(p);
+        }
+    }
+
+    @Override
+    public List<Submodule> submodules() throws IOException {
+        var gitModules = root().resolve(".gitmodules");
+        if (!Files.exists(gitModules)) {
+            return List.of();
+        }
+
+        var urls = new HashMap<String, String>();
+        var paths = new HashMap<String, String>();
+        try (var p = capture("git", "config", "--file", gitModules.toAbsolutePath().toString(),
+                                              "--list")) {
+            for (var line : await(p).stdout()) {
+                if (line.startsWith("submodule.")) {
+                    line = line.substring("submodule.".length());
+                    var parts = line.split("=");
+                    var nameAndProperty = parts[0].split("\\.");
+                    var name = nameAndProperty[0];
+                    var prop = nameAndProperty[1];
+                    var value = parts[1];
+                    if (prop.equals("path")) {
+                        paths.put(name, value);
+                    } else if (prop.equals("url")) {
+                        urls.put(name, value);
+                    } else {
+                        throw new IOException("Unexpected submodule property: " + prop);
+                    }
+                }
+            }
+        }
+
+        var hashes = new HashMap<String, String>();
+        try (var p = capture("git", "submodule", "status")) {
+            for (var line : await(p).stdout()) {
+                var parts = line.substring(1).split(" ");
+                var hash = parts[0];
+                var path = parts[1];
+                hashes.put(path, hash);
+            }
+        }
+
+        var modules = new ArrayList<Submodule>();
+        for (var name : paths.keySet()) {
+            var url = urls.get(name);
+            var path = paths.get(name);
+            var hash = hashes.get(path);
+
+            modules.add(new Submodule(new Hash(hash), Path.of(path), url));
+        }
+
+        return modules;
+    }
+
+    @Override
+    public Optional<Tag.Annotated> annotate(Tag tag) throws IOException {
+        var ref = "refs/tags/" + tag.name();
+        var format = "%(refname:short)%0a%(*objectname)%0a%(taggername) %(taggeremail)%0a%(taggerdate:iso-strict)%0a%(contents)";
+        try (var p = capture("git", "for-each-ref", "--format", format, ref)) {
+            var lines = await(p).stdout();
+            if (lines.size() >= 4) {
+                var name = lines.get(0);
+                var target = new Hash(lines.get(1));
+                var author = Author.fromString(lines.get(2));
+
+                var formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+                var date = ZonedDateTime.parse(lines.get(3), formatter);
+                var message = String.join("\n", lines.subList(4, lines.size()));
+
+                return Optional.of(new Tag.Annotated(name, target, author, date, message));
+            }
+            return Optional.empty();
+        }
     }
 }

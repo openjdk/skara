@@ -24,9 +24,11 @@ package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
 import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.forge.*;
+import org.openjdk.skara.proxy.HttpProxy;
 
 import java.io.*;
-import java.net.URI;
+import java.net.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.logging.*;
@@ -36,12 +38,6 @@ public class GitSync {
         System.err.println(message);
         System.exit(1);
         return new IOException("will never reach here");
-    }
-
-    private static int fetch() throws IOException, InterruptedException {
-        var pb = new ProcessBuilder("git", "fetch");
-        pb.inheritIO();
-        return pb.start().waitFor();
     }
 
     private static int pull() throws IOException, InterruptedException {
@@ -70,10 +66,6 @@ public class GitSync {
             Switch.shortcut("")
                   .fullname("pull")
                   .helptext("Pull current branch from origin after successful sync")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("fetch")
-                  .helptext("Fetch current branch from origin after successful sync")
                   .optional(),
             Switch.shortcut("m")
                   .fullname("mercurial")
@@ -111,6 +103,8 @@ public class GitSync {
                 die("error: no repository found at " + cwd.toString())
         );
 
+        HttpProxy.setup();
+
         var remotes = repo.remotes();
 
         String upstream = null;
@@ -121,8 +115,24 @@ public class GitSync {
             if (lines.size() == 1 && remotes.contains(lines.get(0))) {
                 upstream = lines.get(0);
             } else {
-                die("No remote provided to fetch from, please set the --from flag");
+                if (remotes.contains("origin")) {
+                    var originPullPath = repo.pullPath("origin");
+                    try {
+                        var uri = Remote.toWebURI(originPullPath);
+                        upstream = Forge.from(URI.create(uri.getScheme() + "://" + uri.getHost()))
+                                        .flatMap(f -> f.repository(uri.getPath().substring(1)))
+                                        .flatMap(r -> r.parent())
+                                        .map(p -> p.webUrl().toString())
+                                        .orElse(null);
+                    } catch (IllegalArgumentException e) {
+                        upstream = null;
+                    }
+                }
             }
+        }
+
+        if (upstream == null) {
+            die("Could not find upstream repository, please specify one with --from");
         }
         var upstreamPullPath = remotes.contains(upstream) ?
             Remote.toURI(repo.pullPath(upstream)) : URI.create(upstream);
@@ -165,14 +175,12 @@ public class GitSync {
             System.out.println("done");
         }
 
-        if (arguments.contains("fetch")) {
-            int err = fetch();
-            if (err != 0) {
-                System.exit(err);
-            }
+        var shouldPull = arguments.contains("pull");
+        if (!shouldPull) {
+            var lines = repo.config("sync.pull");
+            shouldPull = lines.size() == 1 && lines.get(0).toLowerCase().equals("always");
         }
-
-        if (arguments.contains("pull")) {
+        if (shouldPull) {
             int err = pull();
             if (err != 0) {
                 System.exit(err);

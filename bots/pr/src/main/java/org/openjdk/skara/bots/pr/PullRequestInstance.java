@@ -47,7 +47,8 @@ class PullRequestInstance {
         var repository = pr.repository();
 
         // Materialize the PR's target ref
-        localRepo = Repository.materialize(localRepoPath, repository.url(), pr.targetRef());
+        localRepo = Repository.materialize(localRepoPath, repository.url(),
+                                           "+" + pr.targetRef() + ":pr_prinstance_" + repository.name());
         targetHash = localRepo.fetch(repository.url(), pr.targetRef());
         headHash = localRepo.fetch(repository.url(), pr.headHash().hex());
         baseHash = localRepo.mergeBase(targetHash, headHash);
@@ -82,11 +83,15 @@ class PullRequestInstance {
                                                  .map(email -> Author.fromString(email.toString()))
                                                  .collect(Collectors.toList());
 
+        var additionalIssues = SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments);
         var summary = Summary.summary(pr.repository().forge().currentUser(), comments);
         var issue = Issue.fromString(pr.title());
         var commitMessageBuilder = issue.map(CommitMessage::title).orElseGet(() -> CommitMessage.title(isMerge ? "Merge" : pr.title()));
+        if (issue.isPresent()) {
+            commitMessageBuilder.issues(additionalIssues);
+        }
         commitMessageBuilder.contributors(additionalContributors)
-                                         .reviewers(reviewers);
+                            .reviewers(reviewers);
         summary.ifPresent(commitMessageBuilder::summary);
 
         return String.join("\n", commitMessageBuilder.format(CommitMessageFormatters.v1));
@@ -95,6 +100,10 @@ class PullRequestInstance {
     private Hash commitSquashed(List<Review> activeReviews, Namespace namespace, String censusDomain, String sponsorId) throws IOException {
         localRepo.checkout(baseHash, true);
         localRepo.squash(headHash);
+        if (localRepo.isClean()) {
+            // There are no changes remaining after squashing
+            return baseHash;
+        }
 
         Author committer;
         Author author;
@@ -201,16 +210,17 @@ class PullRequestInstance {
         return ret;
     }
 
-    PullRequestCheckIssueVisitor executeChecks(Hash localHash, CensusInstance censusInstance) throws Exception {
+    PullRequestCheckIssueVisitor createVisitor(Hash localHash, CensusInstance censusInstance) throws IOException {
         var checks = JCheck.checks(localRepo(), censusInstance.census(), localHash);
-        var visitor = new PullRequestCheckIssueVisitor(checks);
+        return new PullRequestCheckIssueVisitor(checks);
+    }
+
+    void executeChecks(Hash localHash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor) throws Exception {
         try (var issues = JCheck.check(localRepo(), censusInstance.census(), CommitMessageParsers.v1, "HEAD~1..HEAD",
                                        localHash, new HashMap<>(), new HashSet<>())) {
             for (var issue : issues) {
                 issue.accept(visitor);
             }
         }
-
-        return visitor;
     }
 }

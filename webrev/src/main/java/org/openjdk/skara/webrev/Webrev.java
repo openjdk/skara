@@ -61,6 +61,7 @@ public class Webrev {
         private String branch;
         private String issue;
         private String version;
+        private List<Path> files = List.of();
 
         Builder(ReadOnlyRepository repository, Path output) {
             this.repository = repository;
@@ -102,6 +103,11 @@ public class Webrev {
             return this;
         }
 
+        public Builder files(List<Path> files) {
+            this.files = files;
+            return this;
+        }
+
         public void generate(Hash tailEnd) throws IOException {
             generate(tailEnd, null);
         }
@@ -114,9 +120,36 @@ public class Webrev {
             copyResource(CSS);
             copyResource(ICON);
 
-            var diff = head == null ? repository.diff(tailEnd) : repository.diff(tailEnd, head);
+            var diff = head == null ?
+                repository.diff(tailEnd, files) :
+                repository.diff(tailEnd, head, files);
             var patchFile = output.resolve(Path.of(title).getFileName().toString() + ".patch");
+
             var patches = diff.patches();
+            if (files != null && !files.isEmpty()) {
+                // Sort the patches according to how they are listed in the `files` list.
+                var byTargetPath = new HashMap<Path, Patch>();
+                var bySourcePath = new HashMap<Path, Patch>();
+                for (var patch : patches) {
+                    if (patch.target().path().isPresent()) {
+                        byTargetPath.put(patch.target().path().get(), patch);
+                    } else {
+                        bySourcePath.put(patch.source().path().get(), patch);
+                    }
+                }
+
+                var sorted = new ArrayList<Patch>();
+                for (var file : files) {
+                    if (byTargetPath.containsKey(file)) {
+                        sorted.add(byTargetPath.get(file));
+                    } else if (bySourcePath.containsKey(file)) {
+                        sorted.add(bySourcePath.get(file));
+                    } else {
+                        throw new IOException("Filename not present in diff: " + file);
+                    }
+                }
+                patches = sorted;
+            }
 
             var modified = new ArrayList<Integer>();
             for (var i = 0; i < patches.size(); i++) {

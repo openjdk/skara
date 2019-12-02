@@ -143,7 +143,7 @@ public class MailmanList implements MailingList {
 
         if (newContent) {
             var concatenatedMbox = String.join("", actualPages);
-            var mails = Mbox.parseMbox(concatenatedMbox);
+            var mails = Mbox.parseMbox(concatenatedMbox, listAddress);
             var threshold = ZonedDateTime.now().minus(maxAge);
             cachedConversations = mails.stream()
                                        .filter(mail -> mail.first().date().isAfter(threshold))

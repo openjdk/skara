@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.*;
 import java.nio.file.attribute.*;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -1846,6 +1847,151 @@ public class RepositoryTests {
             var ref = refs.get(0);
             assertEquals(head, ref.hash());
             assertEquals(upstream.defaultBranch().name(), ref.name());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testSubmodulesOnEmptyRepo(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var repo = Repository.init(dir.path(), vcs);
+            assertEquals(List.of(), repo.submodules());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testSubmodulesOnRepoWithNoSubmodules(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var repo = Repository.init(dir.path().resolve("repo"), vcs);
+            var readme = repo.root().resolve("README");
+            Files.writeString(readme, "Hello\n");
+            repo.add(readme);
+            repo.commit("Added README", "duke", "duke@openjdk.org");
+            assertEquals(List.of(), repo.submodules());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testSubmodulesOnRepoWithSubmodule(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var submodule = Repository.init(dir.path().resolve("submodule"), vcs);
+            var readme = submodule.root().resolve("README");
+            Files.writeString(readme, "Hello\n");
+            submodule.add(readme);
+            var head = submodule.commit("Added README", "duke", "duke@openjdk.org");
+
+            var repo = Repository.init(dir.path().resolve("repo"), vcs);
+            var pullPath = submodule.root().toAbsolutePath().toString();
+            repo.addSubmodule(pullPath, Path.of("sub"));
+            repo.commit("Added submodule", "duke", "duke@openjdk.org");
+
+            var submodules = repo.submodules();
+            assertEquals(1, submodules.size());
+            var module = submodules.get(0);
+            assertEquals(Path.of("sub"), module.path());
+            assertEquals(head, module.hash());
+            assertEquals(pullPath, module.pullPath());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testAnnotateTag(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var repo = Repository.init(dir.path(), vcs);
+            var readme = repo.root().resolve("README");
+            var now = ZonedDateTime.now();
+            Files.writeString(readme, "Hello\n");
+            repo.add(readme);
+            var head = repo.commit("Added README", "duke", "duke@openjdk.org");
+            var tag = repo.tag(head, "1.0", "Added tag 1.0 for HEAD\n", "duke", "duke@openjdk.org");
+            var annotated = repo.annotate(tag).get();
+
+            assertEquals("1.0", annotated.name());
+            assertEquals(head, annotated.target());
+            assertEquals(new Author("duke", "duke@openjdk.org"), annotated.author());
+            assertEquals(now.getYear(), annotated.date().getYear());
+            assertEquals(now.getMonth(), annotated.date().getMonth());
+            assertEquals(now.getDayOfYear(), annotated.date().getDayOfYear());
+            assertEquals(now.getHour(), annotated.date().getHour());
+            assertEquals(now.getOffset(), annotated.date().getOffset());
+            assertEquals("Added tag 1.0 for HEAD\n", annotated.message());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testAnnotateTagOnMissingTag(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var repo = Repository.init(dir.path(), vcs);
+            var readme = repo.root().resolve("README");
+            var now = ZonedDateTime.now();
+            Files.writeString(readme, "Hello\n");
+            repo.add(readme);
+            var head = repo.commit("Added README", "duke", "duke@openjdk.org");
+
+            assertEquals(Optional.empty(), repo.annotate(new Tag("unknown")));
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testAnnotateTagOnEmptyRepo(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var repo = Repository.init(dir.path(), vcs);
+            assertEquals(Optional.empty(), repo.annotate(new Tag("unknown")));
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testDiffWithFileList(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory(false)) {
+            var repo = Repository.init(dir.path(), vcs);
+            var readme = repo.root().resolve("README");
+            Files.writeString(readme, "Hello\n");
+            repo.add(readme);
+
+            var contribute = repo.root().resolve("CONTRIBUTE");
+            Files.writeString(contribute, "1. Make changes\n");
+            repo.add(contribute);
+
+            var first = repo.commit("Added README and CONTRIBUTE", "duke", "duke@openjdk.org");
+            Files.writeString(readme, "World\n", WRITE, APPEND);
+            Files.writeString(contribute, "2. Run git commit", WRITE, APPEND);
+
+            var diff = repo.diff(first, List.of(Path.of("README")));
+            assertEquals(1, diff.added());
+            assertEquals(0, diff.modified());
+            assertEquals(0, diff.removed());
+            var patches = diff.patches();
+            assertEquals(1, patches.size());
+            var patch = patches.get(0);
+            assertTrue(patch.isTextual());
+            assertTrue(patch.status().isModified());
+            assertEquals(Path.of("README"), patch.source().path().get());
+            assertEquals(Path.of("README"), patch.target().path().get());
+
+            repo.add(readme);
+            repo.add(contribute);
+            var second = repo.commit("Updates to both README and CONTRIBUTE", "duke", "duke@openjdk.org");
+
+            diff = repo.diff(first, second, List.of(Path.of("CONTRIBUTE")));
+            assertEquals(1, diff.added());
+            assertEquals(0, diff.modified());
+            assertEquals(0, diff.removed());
+            patches = diff.patches();
+            assertEquals(1, patches.size());
+            patch = patches.get(0);
+            assertTrue(patch.isTextual());
+            assertTrue(patch.status().isModified());
+            assertEquals(Path.of("CONTRIBUTE"), patch.source().path().get());
+            assertEquals(Path.of("CONTRIBUTE"), patch.target().path().get());
+
+            diff = repo.diff(first, second, List.of(Path.of("DOES_NOT_EXIST")));
+            assertEquals(0, diff.patches().size());
         }
     }
 }

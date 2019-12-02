@@ -47,7 +47,7 @@ dependencies {
 
 jar {
     manifest {
-        attributes("Implementation-Title": "org.openjdk.skara.cli", "Implementation-Version": version)
+        attributes("Implementation-Title": "org.openjdk.skara.cli", "Implementation-Version": archiveVersion)
     }
 }
 
@@ -71,35 +71,42 @@ images {
 
     ext.modules = ['jdk.crypto.ec']
 
-    windows {
+    windows_x64 {
         modules = ext.modules
         launchers = ext.launchers
         bundles = ['zip', 'tar.gz']
         jdk {
-            url = 'https://download.java.net/java/GA/jdk12/GPL/openjdk-12_windows-x64_bin.zip'
-            sha256 = '35a8d018f420fb05fe7c2aa9933122896ca50bd23dbd373e90d8e2f3897c4e92'
+            url = 'https://download.java.net/java/GA/jdk13.0.1/cec27d702aa74d5a8630c65ae61e4305/9/GPL/openjdk-13.0.1_windows-x64_bin.zip'
+            sha256 = '438a6920f1851b1eeb6f09f05d9f91c4423c6586f7a1a7ccbb19df76ea5901ee'
         }
     }
 
-    linux {
+    linux_x64 {
         modules = ext.modules
         launchers = ext.launchers
         man = 'cli/resources/man'
         bundles = ['zip', 'tar.gz']
         jdk {
-            url = 'https://download.java.net/java/GA/jdk12/GPL/openjdk-12_linux-x64_bin.tar.gz'
-            sha256 = 'b43bc15f4934f6d321170419f2c24451486bc848a2179af5e49d10721438dd56'
+            url = 'https://download.java.net/java/GA/jdk13.0.1/cec27d702aa74d5a8630c65ae61e4305/9/GPL/openjdk-13.0.1_linux-x64_bin.tar.gz'
+            sha256 = '2e01716546395694d3fad54c9b36d1cd46c5894c06f72d156772efbcf4b41335'
         }
     }
 
-    macos {
+    macos_x64 {
         modules = ext.modules
         launchers = ext.launchers
         man = 'cli/resources/man'
         bundles = ['zip', 'tar.gz']
         jdk {
-            url = 'https://download.java.net/java/GA/jdk12/GPL/openjdk-12_osx-x64_bin.tar.gz'
-            sha256 = '52164a04db4d3fdfe128cfc7b868bc4dae52d969f03d53ae9d4239fe783e1a3a'
+            url = 'https://download.java.net/java/GA/jdk13.0.1/cec27d702aa74d5a8630c65ae61e4305/9/GPL/openjdk-13.0.1_osx-x64_bin.tar.gz'
+            sha256 = '593c5c9dc0978db21b06d6219dc8584b76a59c79d57e6ec1b28ad0d848a7713f'
         }
+    }
+
+    local {
+        modules = ext.modules
+        launchers = ext.launchers
+        man = 'cli/resources/man'
+        bundles = ['zip', 'tar.gz']
     }
 }

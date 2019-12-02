@@ -35,7 +35,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 class MailingListArchiveReaderBotTests {
     private void addReply(Conversation conversation, MailingList mailingList, PullRequest pr) {
@@ -43,7 +43,7 @@ class MailingListArchiveReaderBotTests {
 
         var reply = "Looks good";
         var references = first.id().toString();
-        var email = Email.create(EmailAddress.from("Commenter", "<c@test.test>"), "Re: RFR: " + pr.title(), reply)
+        var email = Email.create(EmailAddress.from("Commenter", "c@test.test"), "Re: RFR: " + pr.title(), reply)
                          .recipient(first.author())
                          .id(EmailAddress.from(UUID.randomUUID() + "@id.id"))
                          .header("In-Reply-To", first.id().toString())
@@ -64,7 +64,8 @@ class MailingListArchiveReaderBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
+            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
+                                                 censusBuilder.build(), "master",
                                                  listAddress,
                                                  Set.of(ignored.forge().currentUser().userName()),
                                                  Set.of(),
@@ -115,6 +116,9 @@ class MailingListArchiveReaderBotTests {
             // The bridge should now have processed the reply
             var updated = pr.comments();
             assertEquals(2, updated.size());
+            assertTrue(updated.get(1).body().contains("Mailing list message from"));
+            assertTrue(updated.get(1).body().contains("[Commenter](mailto:c@test.test)"));
+            assertTrue(updated.get(1).body().contains("[test](mailto:test@" + listAddress.domain() + ")"));
         }
     }
 
@@ -130,7 +134,8 @@ class MailingListArchiveReaderBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
+            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
+                                                 censusBuilder.build(), "master",
                                                  listAddress,
                                                  Set.of(ignored.forge().currentUser().userName()),
                                                  Set.of(),

@@ -71,6 +71,9 @@ public class SMTPServer implements AutoCloseable {
                         inHeader = false;
                     }
                 }
+                if (line.startsWith(".")) {
+                    line = line.substring(1);
+                }
                 mailBody.append(line);
                 mailBody.append("\n");
             }

@@ -88,7 +88,7 @@ public class BotLogstashHandler extends BotTaskAggregationHandler {
             endpoint.post("/")
                     .body(query)
                     .executeUnparsed();
-        } catch (RuntimeException e) {
+        } catch (RuntimeException | IOException e) {
             log.warning("Exception during logstash publishing: " + e.getMessage());
             log.throwing("BotSlackHandler", "publish", e);
         }

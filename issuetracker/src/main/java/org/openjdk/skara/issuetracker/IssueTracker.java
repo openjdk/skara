@@ -22,8 +22,21 @@
  */
 package org.openjdk.skara.issuetracker;
 
-import org.openjdk.skara.host.Host;
+import org.openjdk.skara.host.*;
+import org.openjdk.skara.json.JSONObject;
+
+import java.net.URI;
 
 public interface IssueTracker extends Host {
     IssueProject project(String name);
+
+    static IssueTracker from(String name, URI uri, Credential credential, JSONObject configuration) {
+        var factory = IssueTrackerFactory.getIssueTrackerFactories().stream()
+                                  .filter(f -> f.name().equals(name))
+                                  .findFirst();
+        if (factory.isEmpty()) {
+            throw new RuntimeException("No issue tracker factory named '" + name + "' found - check module path");
+        }
+        return factory.get().create(uri, credential, configuration);
+    }
 }

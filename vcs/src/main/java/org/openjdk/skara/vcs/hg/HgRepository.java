@@ -741,11 +741,21 @@ public class HgRepository implements Repository {
 
     @Override
     public Diff diff(Hash from) throws IOException {
-        return diff(from, null);
+        return diff(from, List.of());
+    }
+
+    @Override
+    public Diff diff(Hash from, List<Path> files) throws IOException {
+        return diff(from, null, files);
     }
 
     @Override
     public Diff diff(Hash from, Hash to) throws IOException {
+        return diff(from, to, List.of());
+    }
+
+    @Override
+    public Diff diff(Hash from, Hash to, List<Path> files) throws IOException {
         var ext = Files.createTempFile("ext", ".py");
         copyResource(EXT_PY, ext);
 
@@ -753,6 +763,11 @@ public class HgRepository implements Repository {
                                                 "diff-git-raw", "--patch", from.hex()));
         if (to != null) {
             cmd.add(to.hex());
+        }
+
+        if (files != null) {
+            var filenames = files.stream().map(Path::toString).collect(Collectors.toList());
+            cmd.add("--files=" + String.join(",", filenames));
         }
 
         var p = start(cmd);
@@ -1130,5 +1145,74 @@ public class HgRepository implements Repository {
             }
         }
         return remotes;
+    }
+
+    @Override
+    public void addSubmodule(String pullPath, Path path) throws IOException {
+        var uri = Files.exists(Path.of(pullPath)) ? Path.of(pullPath).toUri().toString() : pullPath;
+        HgRepository.clone(URI.create(uri), root().resolve(path).toAbsolutePath(), false);
+        var hgSub = root().resolve(".hgsub");
+        Files.writeString(hgSub, path.toString() + " = " + pullPath + "\n",
+                          StandardOpenOption.WRITE, StandardOpenOption.APPEND, StandardOpenOption.CREATE);
+        add(List.of(hgSub));
+    }
+
+    @Override
+    public List<Submodule> submodules() throws IOException {
+        var hgSub = root().resolve(".hgsub");
+        var hgSubState = root().resolve(".hgsubstate");
+        if (!(Files.exists(hgSub) && Files.exists(hgSubState))) {
+            return List.of();
+        }
+
+        var urls = new HashMap<String, String>();
+        for (var line : Files.readAllLines(hgSub)) {
+            var parts = line.split("=");
+            var path = parts[0].trim();
+            var url = parts[1].trim();
+            urls.put(path, url);
+        }
+
+        var hashes = new HashMap<String, String>();
+        for (var line : Files.readAllLines(hgSubState)) {
+            var parts = line.split(" ");
+            var hash = parts[0];
+            var path = parts[1];
+            hashes.put(path, hash);
+        }
+
+        var modules = new ArrayList<Submodule>();
+        for (var path : urls.keySet()) {
+            var url = urls.get(path);
+            var hash = hashes.get(path);
+            modules.add(new Submodule(new Hash(hash), Path.of(path), url));
+        }
+
+        return modules;
+    }
+
+    @Override
+    public Optional<Tag.Annotated> annotate(Tag tag) throws IOException {
+        var hgtags = root().resolve(".hgtags");
+        if (!Files.exists(hgtags)) {
+            return Optional.empty();
+        }
+        try (var p = capture("hg", "annotate", hgtags.toString())) {
+            var reversed = new ArrayList<>(await(p).stdout());
+            Collections.reverse(reversed);
+            for (var line : reversed) {
+                var parts = line.split(" ");
+                var tagName = parts[2];
+                if (tagName.equals(tag.name())) {
+                    var target = new Hash(parts[1]);
+                    var rev = parts[0].substring(0, parts[0].length() - 1).trim(); // skip last ':' and ev. whitespace
+                    var hash = resolve(rev).orElseThrow(IOException::new);
+                    var commit = lookup(hash).orElseThrow(IOException::new);
+                    var message = String.join("\n", commit.message()) + "\n";
+                    return Optional.of(new Tag.Annotated(tagName, target, commit.author(), commit.date(), message));
+                }
+            }
+        }
+        return Optional.empty();
     }
 }

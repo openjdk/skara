@@ -189,7 +189,15 @@ class TestRepository implements ReadOnlyRepository {
         return null;
     }
 
+    public Diff diff(Hash base, Hash head, List<Path> files) throws IOException {
+        return null;
+    }
+
     public Diff diff(Hash head) throws IOException {
+        return null;
+    }
+
+    public Diff diff(Hash head, List<Path> files) throws IOException {
         return null;
     }
 
@@ -230,6 +238,17 @@ class TestRepository implements ReadOnlyRepository {
     }
 
     public List<String> remotes() throws IOException {
+        return null;
+    }
+
+    public void addSubmodule(String pullPath, Path path) throws IOException {
+    }
+
+    public List<Submodule> submodules() throws IOException {
+        return null;
+    }
+
+    public Optional<Tag.Annotated> annotate(Tag tag) throws IOException {
         return null;
     }
 }

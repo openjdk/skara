@@ -23,9 +23,9 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.vcs.Commit;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
 import java.io.*;
@@ -137,7 +137,9 @@ class CheckRun {
                 var sourceBranch = mergeSourceBranch();
                 if (sourceBranch.isPresent() && sourceRepo.isPresent()) {
                     try {
-                        var mergeSourceRepo = pr.repository().forge().repository(sourceRepo.get());
+                        var mergeSourceRepo = pr.repository().forge().repository(sourceRepo.get()).orElseThrow(() ->
+                                new RuntimeException("Could not find repository " + sourceRepo.get())
+                        );
                         try {
                             var sourceHash = prInstance.localRepo().fetch(mergeSourceRepo.url(), sourceBranch.get());
                             if (!prInstance.localRepo().isAncestor(commits.get(1).hash(), sourceHash)) {
@@ -171,6 +173,7 @@ class CheckRun {
         if (visitor.isReadyForReview() && additionalErrors.isEmpty()) {
             checkBuilder.complete(true);
         } else {
+            checkBuilder.title("Required");
             var summary = Stream.concat(visitor.getMessages().stream(), additionalErrors.stream())
                                 .sorted()
                                 .map(m -> "- " + m)
@@ -260,27 +263,36 @@ class CheckRun {
         }
     }
 
-    private String getStatusMessage(List<Review> reviews, PullRequestCheckIssueVisitor visitor) {
+    private String getStatusMessage(List<Comment> comments, List<Review> reviews, PullRequestCheckIssueVisitor visitor) {
         var progressBody = new StringBuilder();
         progressBody.append("## Progress\n");
         progressBody.append(getChecksList(visitor));
 
         var issue = Issue.fromString(pr.title());
         if (issueProject != null && issue.isPresent()) {
-            progressBody.append("\n\n## Issue\n");
-            var iss = issueProject.issue(issue.get().id());
-            if (iss.isPresent()) {
-                progressBody.append("[");
-                progressBody.append(iss.get().id());
-                progressBody.append("](");
-                progressBody.append(iss.get().webUrl());
-                progressBody.append("): ");
-                progressBody.append(iss.get().title());
-                progressBody.append("\n");
-            } else {
-                progressBody.append("⚠️ Failed to retrieve information on issue `");
-                progressBody.append(issue.get().toString());
-                progressBody.append("`.\n");
+            var allIssues = new ArrayList<Issue>();
+            allIssues.add(issue.get());
+            allIssues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments));
+            progressBody.append("\n\n## Issue");
+            if (allIssues.size() > 1) {
+                progressBody.append("s");
+            }
+            progressBody.append("\n");
+            for (var currentIssue : allIssues) {
+                var iss = issueProject.issue(currentIssue.id());
+                if (iss.isPresent()) {
+                    progressBody.append("[");
+                    progressBody.append(iss.get().id());
+                    progressBody.append("](");
+                    progressBody.append(iss.get().webUrl());
+                    progressBody.append("): ");
+                    progressBody.append(iss.get().title());
+                    progressBody.append("\n");
+                } else {
+                    progressBody.append("⚠️ Failed to retrieve information on issue `");
+                    progressBody.append(currentIssue.id());
+                    progressBody.append("`.\n");
+                }
             }
         }
 
@@ -448,33 +460,39 @@ class CheckRun {
 
     private void checkStatus() {
         var checkBuilder = CheckBuilder.create("jcheck", pr.headHash());
-        checkBuilder.title("Required");
         var censusDomain = censusInstance.configuration().census().domain();
+        Exception checkException = null;
 
         try {
             // Post check in-progress
             log.info("Starting to run jcheck on PR head");
             pr.createCheck(checkBuilder.build());
             var localHash = prInstance.commit(censusInstance.namespace(), censusDomain, null);
-
-            // Try to rebase
             boolean rebasePossible = true;
-            var ignored = new PrintWriter(new StringWriter());
-            var rebasedHash = prInstance.rebase(localHash, ignored);
-            if (rebasedHash.isEmpty()) {
-                rebasePossible = false;
-            } else {
-                localHash = rebasedHash.get();
-            }
+            PullRequestCheckIssueVisitor visitor = prInstance.createVisitor(localHash, censusInstance);
+            List<String> additionalErrors;
+            if (!localHash.equals(prInstance.baseHash())) {
+                // Try to rebase
+                var ignored = new PrintWriter(new StringWriter());
+                var rebasedHash = prInstance.rebase(localHash, ignored);
+                if (rebasedHash.isEmpty()) {
+                    rebasePossible = false;
+                } else {
+                    localHash = rebasedHash.get();
+                }
 
-            // Determine current status
-            var visitor = prInstance.executeChecks(localHash, censusInstance);
-            var additionalErrors = botSpecificChecks();
+                // Determine current status
+                prInstance.executeChecks(localHash, censusInstance, visitor);
+                additionalErrors = botSpecificChecks();
+            }
+            else {
+                additionalErrors = List.of("This PR contains no changes");
+            }
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
             updateReadyForReview(visitor, additionalErrors);
 
             // Calculate and update the status message if needed
-            var statusMessage = getStatusMessage(activeReviews, visitor);
+            var statusMessage = getStatusMessage(comments, activeReviews, visitor);
             var updatedBody = updateStatusMessage(statusMessage);
 
             // Post / update approval messages (only needed if the review itself can't contain a body)
@@ -513,11 +531,11 @@ class CheckRun {
         } catch (Exception e) {
             log.throwing("CommitChecker", "checkStatus", e);
             newLabels.remove("ready");
-            var metadata = workItem.getMetadata(pr.title(), pr.body(), pr.comments(), activeReviews, newLabels, censusInstance, pr.targetHash());
-            checkBuilder.metadata(metadata);
-            checkBuilder.title("Exception occurred during jcheck");
+            checkBuilder.metadata("invalid");
+            checkBuilder.title("Exception occurred during jcheck - the operation will be retried");
             checkBuilder.summary(e.getMessage());
             checkBuilder.complete(false);
+            checkException = e;
         }
         var check = checkBuilder.build();
         pr.updateCheck(check);
@@ -532,6 +550,11 @@ class CheckRun {
             if (!newLabels.contains(oldLabel)) {
                 pr.removeLabel(oldLabel);
             }
+        }
+
+        // After updating the PR, rethrow any exception to automatically retry on transient errors
+        if (checkException != null) {
+            throw new RuntimeException("Exception during jcheck", checkException);
         }
     }
 }

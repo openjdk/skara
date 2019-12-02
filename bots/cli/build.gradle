@@ -44,8 +44,11 @@ dependencies {
     implementation project(':bots:mlbridge')
     implementation project(':bots:mirror')
     implementation project(':bots:topological')
+    implementation project(':bots:tester')
     implementation project(':bots:submit')
     implementation project(':bots:forward')
+    implementation project(':bots:bridgekeeper')
+    implementation project(':ci')
     implementation project(':vcs')
     implementation project(':jcheck')
     implementation project(':host')
@@ -64,7 +67,7 @@ dependencies {
 }
 
 images {
-    linux {
+    linux_x64 {
         modules = ['jdk.crypto.ec',
                    'org.openjdk.skara.bots.pr',
                    'org.openjdk.skara.bots.hgbridge',
@@ -74,14 +77,16 @@ images {
                    'org.openjdk.skara.bots.mlbridge',
                    'org.openjdk.skara.bots.mirror',
                    'org.openjdk.skara.bots.submit',
+                   'org.openjdk.skara.bots.tester',
                    'org.openjdk.skara.bots.topological',
-                   'org.openjdk.skara.bots.forward']
+                   'org.openjdk.skara.bots.forward',
+                   'org.openjdk.skara.bots.bridgekeeper']
         launchers = ['skara-bots': 'org.openjdk.skara.bots.cli/org.openjdk.skara.bots.cli.BotLauncher']
         options = ["--module-path", "plugins"]
         bundles = ['zip', 'tar.gz']
         jdk {
-            url = 'https://download.java.net/java/GA/jdk12/GPL/openjdk-12_linux-x64_bin.tar.gz'
-            sha256 = 'b43bc15f4934f6d321170419f2c24451486bc848a2179af5e49d10721438dd56'
+            url = 'https://download.java.net/java/GA/jdk13.0.1/cec27d702aa74d5a8630c65ae61e4305/9/GPL/openjdk-13.0.1_linux-x64_bin.tar.gz'
+            sha256 = '2e01716546395694d3fad54c9b36d1cd46c5894c06f72d156772efbcf4b41335'
         }
     }
 }

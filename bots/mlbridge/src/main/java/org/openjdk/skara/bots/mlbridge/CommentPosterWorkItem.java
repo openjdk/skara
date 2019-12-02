@@ -65,9 +65,12 @@ public class CommentPosterWorkItem implements WorkItem {
     private void postNewMessage(Email email) {
         var marker = String.format(bridgedMailMarker,
                                  Base64.getEncoder().encodeToString(email.id().address().getBytes(StandardCharsets.UTF_8)));
+
         var body = marker + "\n" +
-                "Mailing list message from " + email.author().toString() + "\n\n" +
-                email.body();
+                "*Mailing list message from [" + email.author().fullName().orElse(email.author().localPart()) +
+                "](mailto:" + email.author().address() + ") on [" + email.sender().localPart() +
+                "](mailto:" + email.sender().address() + "):*\n\n" +
+                TextToMarkdown.escapeFormatting(email.body());
         pr.addComment(body);
     }
 

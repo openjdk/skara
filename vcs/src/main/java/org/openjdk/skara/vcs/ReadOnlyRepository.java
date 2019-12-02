@@ -77,7 +77,9 @@ public interface ReadOnlyRepository {
     void dump(FileEntry entry, Path to) throws IOException;
     List<StatusEntry> status(Hash from, Hash to) throws IOException;
     Diff diff(Hash base, Hash head) throws IOException;
+    Diff diff(Hash base, Hash head, List<Path> files) throws IOException;
     Diff diff(Hash head) throws IOException;
+    Diff diff(Hash head, List<Path> files) throws IOException;
     List<String> config(String key) throws IOException;
     Repository copyTo(Path destination) throws IOException;
     String pullPath(String remote) throws IOException;
@@ -86,6 +88,7 @@ public interface ReadOnlyRepository {
     Optional<String> upstreamFor(Branch branch) throws IOException;
     List<Reference> remoteBranches(String remote) throws IOException;
     List<String> remotes() throws IOException;
+    List<Submodule> submodules() throws IOException;
 
     static Optional<ReadOnlyRepository> get(Path p) throws IOException {
         return Repository.get(p).map(r -> r);
@@ -94,4 +97,6 @@ public interface ReadOnlyRepository {
     static boolean exists(Path p) throws IOException {
         return Repository.exists(p);
     }
+
+    Optional<Tag.Annotated> annotate(Tag tag) throws IOException;
 }

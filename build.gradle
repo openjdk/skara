@@ -104,19 +104,82 @@ reproduce {
     dockerfile = 'test.dockerfile'
 }
 
+def getOS() {
+    def os = System.getProperty('os.name').toLowerCase()
+    if (os.startsWith('linux')) {
+        return 'linux'
+    }
+    if (os.startsWith('mac')) {
+        return 'macos'
+    }
+    if (os.startsWith('win')) {
+        return 'windows'
+    }
+    if (os.startsWith('sunos')) {
+        return 'solaris'
+    }
+    throw new GradleException("Unexpected operating system: " + os)
+}
+
+def getCPU() {
+    def cpu = System.getProperty('os.arch').toLowerCase()
+    if (cpu.startsWith('amd64') || cpu.startsWith('x86_64') || cpu.startsWith('x64')) {
+        return 'x64'
+    }
+    if (cpu.startsWith('x86') || cpu.startsWith('i386')) {
+        return 'x86'
+    }
+    if (cpu.startsWith('sparc')) {
+        return 'sparc'
+    }
+    if (cpu.startsWith('ppc')) {
+        return 'ppc'
+    }
+    if (cpu.startsWith('arm')) {
+        return 'arm'
+    }
+    if (cpu.startsWith('aarch64')) {
+        return 'aarch64';
+    }
+    throw new GradleException("Unexpected CPU: " + cpu)
+}
+
 task local(type: Copy) {
     doFirst {
         delete project.buildDir
     }
-    def os = System.getProperty('os.name').toLowerCase()
-    def osName = os.startsWith('win') ? 'Windows' :
-        os.startsWith('mac') ? 'Macos' : 'Linux'
 
-    dependsOn ':cli:image' + osName
+    def os = getOS()
+    def cpu = getCPU()
+
+    if (os in ['linux', 'macos', 'windows'] && cpu == 'x64') {
+        def target = os.substring(0, 1).toUpperCase() + os.substring(1) +
+                     cpu.substring(0, 1).toUpperCase() + cpu.substring(1)
+        dependsOn ':cli:image' + target
+    } else {
+        dependsOn ':cli:imageLocal'
+    }
+
     from zipTree(file(project.rootDir.toString() +
                       '/cli/build/distributions/cli' +
                       '-' + project.version + '-' +
-		      osName.toLowerCase() + '.zip'))
+                      os + '-' + cpu + '.zip'))
+    into project.buildDir
+}
+
+task offline(type: Copy) {
+    doFirst {
+        delete project.buildDir
+    }
+
+    def os = getOS()
+    def cpu = getCPU()
+
+    dependsOn ':cli:imageLocal'
+    from zipTree(file(project.rootDir.toString() +
+                      '/cli/build/distributions/cli' +
+                      '-' + project.version + '-' +
+                      os + '-' + cpu + '.zip'))
     into project.buildDir
 }
 

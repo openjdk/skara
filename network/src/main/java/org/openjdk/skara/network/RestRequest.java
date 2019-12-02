@@ -24,7 +24,7 @@ package org.openjdk.skara.network;
 
 import org.openjdk.skara.json.*;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.URI;
 import java.net.http.*;
 import java.time.Duration;
@@ -150,10 +150,14 @@ public class RestRequest {
         }
 
         public JSONValue execute() {
-            return RestRequest.this.execute(this);
+            try {
+                return RestRequest.this.execute(this);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
         }
 
-        public String executeUnparsed() {
+        public String executeUnparsed() throws IOException {
             return RestRequest.this.executeUnparsed(this);
         }
     }
@@ -216,7 +220,7 @@ public class RestRequest {
         retryBackoffStep = duration;
     }
 
-    private HttpResponse<String> sendRequest(HttpRequest request) {
+    private HttpResponse<String> sendRequest(HttpRequest request) throws IOException {
         HttpResponse<String> response;
 
         var retryCount = 0;
@@ -227,14 +231,18 @@ public class RestRequest {
                                        .build();
                 response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 break;
-            } catch (IOException | InterruptedException e) {
+            } catch (InterruptedException | IOException e) {
                 if (retryCount < 5) {
                     try {
                         Thread.sleep(retryCount * retryBackoffStep.toMillis());
                     } catch (InterruptedException ignored) {
                     }
                 } else {
-                    throw new RuntimeException(e);
+                    try {
+                        throw e;
+                    } catch (InterruptedException ex) {
+                        throw new RuntimeException(ex);
+                    }
                 }
             }
             retryCount++;
@@ -297,7 +305,7 @@ public class RestRequest {
                           .collect(Collectors.toMap(m -> m.group(2), m -> m.group(1)));
     }
 
-    private JSONValue execute(QueryBuilder queryBuilder) {
+    private JSONValue execute(QueryBuilder queryBuilder) throws IOException {
         var request = createRequest(queryBuilder.queryType, queryBuilder.endpoint, queryBuilder.composedBody(),
                                     queryBuilder.params, queryBuilder.headers);
         var response = sendRequest(request);
@@ -339,10 +347,13 @@ public class RestRequest {
         return new JSONArray(ret.stream().flatMap(JSONArray::stream).toArray(JSONValue[]::new));
     }
 
-    private String executeUnparsed(QueryBuilder queryBuilder) {
+    private String executeUnparsed(QueryBuilder queryBuilder) throws IOException {
         var request = createRequest(queryBuilder.queryType, queryBuilder.endpoint, queryBuilder.composedBody(),
                                     queryBuilder.params, queryBuilder.headers);
         var response = sendRequest(request);
+        if (response.statusCode() >= 400) {
+            throw new IOException("Bad response: " + response.statusCode());
+        }
         return response.body();
     }
 

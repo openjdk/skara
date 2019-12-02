@@ -136,10 +136,15 @@ class ArchiveMessages {
                 replyFooter(prInstance);
     }
 
-    static String reviewCommentBody(String body, Review.Verdict verdict, String user, String role) {
-        var result = new StringBuilder(filterComments(body));
+    static String reviewCommentBody(String body) {
+        return filterComments(body);
+    }
+
+    static String reviewVerdictBody(String body, Review.Verdict verdict, String user, String role) {
+        var filteredBody = filterComments(body);
+        var result = new StringBuilder();
         if (verdict != Review.Verdict.NONE) {
-            if (result.length() > 0) {
+            if (filteredBody.length() > 0) {
                 result.append("\n\n");
                 result.append(infoSeparator);
                 result.append("\n\n");
@@ -147,7 +152,7 @@ class ArchiveMessages {
             if (verdict == Review.Verdict.APPROVED) {
                 result.append("Approved");
             } else {
-                result.append("Disapproved");
+                result.append("Changes requested");
             }
             result.append(" by ");
             result.append(user);

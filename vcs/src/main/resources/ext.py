@@ -29,13 +29,13 @@ import difflib
 import sys
 
 # space separated version list
-testedwith = '4.9.2 5.0.2'
+testedwith = '4.9.2 5.0.2 5.2.1'
 
 def mode(fctx):
     flags = fctx.flags()
-    if flags == '': return '100644'
-    if flags == 'x': return '100755'
-    if flags == 'l': return '120000'
+    if flags == b'': return b'100644'
+    if flags == b'x': return b'100755'
+    if flags == b'l': return b'120000'
 
 def ratio(a, b, threshold):
     s = difflib.SequenceMatcher(None, a, b)
@@ -48,27 +48,30 @@ def ratio(a, b, threshold):
         return 0
     return ratio
 
-def encode(s):
-    return s.decode('utf-8').encode('utf-8')
-
 def write(s):
-    sys.stdout.write(encode(s))
+    if sys.version_info >= (3, 0):
+        sys.stdout.buffer.write(s)
+    else:
+        sys.stdout.write(s)
 
 def writeln(s):
     write(s)
-    sys.stdout.write(encode('\n'))
+    write(b'\n')
+
+def int_to_str(i):
+    return str(i).encode('ascii')
 
 def _match_exact(root, cwd, files, badfn=None):
     """
     Wrapper for mercurial.match.exact that ignores some arguments based on the used version
     """
-    if mercurial.util.version().startswith("5"):
+    if mercurial.util.version().startswith(b"5"):
         return mercurial.match.exact(files, badfn)
     else:
         return mercurial.match.exact(root, cwd, files, badfn)
 
 def _diff_git_raw(repo, ctx1, ctx2, modified, added, removed, showPatch):
-    nullHash = '0' * 40
+    nullHash = b'0' * 40
     removed_copy = set(removed)
 
     for path in added:
@@ -82,33 +85,34 @@ def _diff_git_raw(repo, ctx1, ctx2, modified, added, removed, showPatch):
     for path in sorted(modified | added | removed_copy):
         if path in modified:
             fctx = ctx2.filectx(path)
-            writeln(':{} {} {} {} M\t{}'.format(mode(ctx1.filectx(path)), mode(fctx), nullHash, nullHash, fctx.path()))
+            writeln(b':' + mode(ctx1.filectx(path)) + b' ' + mode(fctx) + b' ' + nullHash + b' ' + nullHash + b' M\t' + fctx.path())
         elif path in added:
             fctx = ctx2.filectx(path)
             if not fctx.renamed():
-                writeln(':000000 {} {} {} A\t{}'.format(mode(fctx), nullHash, nullHash, fctx.path()))
+                writeln(b':000000 ' + mode(fctx) + b' ' + nullHash + b' ' + nullHash + b' A\t' + fctx.path())
             else:
                 parent = fctx.p1()
-                score = int(ratio(parent.data(), fctx.data(), 0.5) * 100)
+                score = int_to_str(int(ratio(parent.data(), fctx.data(), 0.5) * 100))
                 old_path, _ = fctx.renamed()
 
                 if old_path in removed:
-                    operation = 'R'
+                    operation = b'R'
                 else:
-                    operation = 'C'
+                    operation = b'C'
 
-                writeln(':{} {} {} {} {}{}\t{}\t{}'.format(mode(parent), mode(fctx), nullHash, nullHash, operation, score, old_path, path))
+                write(b':' + mode(parent) + b' ' + mode(fctx) + b' ' + nullHash + b' ' + nullHash + b' ')
+                writeln(operation + score + b'\t' + old_path + b'\t' + path)
         elif path in removed_copy:
             fctx = ctx1.filectx(path)
-            writeln(':{} 000000 {} {} D\t{}'.format(mode(fctx), nullHash, nullHash, path))
+            writeln(b':' + mode(fctx) + b' 000000 ' + nullHash + b' ' + nullHash + b' D\t' + path)
 
     if showPatch:
-        writeln('')
+        writeln(b'')
 
         match = _match_exact(repo.root, repo.getcwd(), list(modified) + list(added) + list(removed_copy))
         opts = mercurial.mdiff.diffopts(git=True, nodates=True, context=0, showfunc=True)
         for d in mercurial.patch.diff(repo, ctx1.node(), ctx2.node(), match=match, opts=opts):
-            sys.stdout.write(d)
+            write(d)
 
 def really_differs(repo, p1, p2, ctx, files):
     # workaround bug in hg (present since forever):
@@ -151,8 +155,8 @@ else:
     revsingle = mercurial.cmdutil.revsingle
     revrange = mercurial.cmdutil.revrange
 
-@command('diff-git-raw', [('', 'patch', False, '')], 'hg diff-git-raw rev1 [rev2]')
-def diff_git_raw(ui, repo, rev1, rev2=None, **opts):
+@command(b'diff-git-raw', [(b'', b'patch', False, b''), (b'', b'files', b'', b'')], b'hg diff-git-raw rev1 [rev2]')
+def diff_git_raw(ui, repo, rev1, rev2=None, *files, **opts):
     ctx1 = revsingle(repo, rev1)
 
     if rev2 != None:
@@ -163,18 +167,26 @@ def diff_git_raw(ui, repo, rev1, rev2=None, **opts):
         status = repo.status(ctx1)
 
     modified, added, removed = [set(l) for l in status[:3]]
+
+    files = opts['files']
+    if files != b'':
+        wanted = set(files.split(b','))
+        modified = modified & wanted
+        added = added & wanted
+        removed = removed & wanted
+
     _diff_git_raw(repo, ctx1, ctx2, modified, added, removed, opts['patch'])
 
-@command('log-git', [('', 'reverse', False, ''), ('l', 'limit', -1, '')],  'hg log-git <revisions>')
+@command(b'log-git', [(b'', b'reverse', False, b''), (b'l', b'limit', -1, b'')],  b'hg log-git <revisions>')
 def log_git(ui, repo, revs=None, **opts):
     if len(repo) == 0:
         return
 
     if revs == None:
         if opts['reverse']:
-            revs = '0:tip'
+            revs = b'0:tip'
         else:
-            revs = 'tip:0'
+            revs = b'tip:0'
 
     limit = opts['limit']
     i = 0
@@ -209,7 +221,7 @@ def log_git(ui, repo, revs=None, **opts):
             combined_added_p2 = really_differs(repo, p1, p2, ctx, combined_added_p2)
 
             _diff_git_raw(repo, p1, ctx, combined_modified_p1, combined_added_p1, removed_both, True)
-            writeln('#@!_-=&')
+            writeln(b'#@!_-=&')
             _diff_git_raw(repo, p2, ctx, combined_modified_p2, combined_added_p2, removed_both, True)
 
         i += 1
@@ -217,44 +229,44 @@ def log_git(ui, repo, revs=None, **opts):
             break
 
 def __dump_metadata(ctx):
-        writeln('#@!_-=&')
+        writeln(b'#@!_-=&')
         writeln(ctx.hex())
-        writeln(str(ctx.rev()))
+        writeln(int_to_str(ctx.rev()))
         writeln(ctx.branch())
 
         parents = ctx.parents()
-        writeln(' '.join([str(p.hex()) for p in parents]))
-        writeln(' '.join([str(p.rev()) for p in parents]))
+        writeln(b' '.join([p.hex() for p in parents]))
+        writeln(b' '.join([int_to_str(p.rev()) for p in parents]))
 
         writeln(ctx.user())
-        date = datestr(ctx.date(), format='%Y-%m-%d %H:%M:%S%z')
+        date = datestr(ctx.date(), format=b'%Y-%m-%d %H:%M:%S%z')
         writeln(date)
 
-        description = encode(ctx.description())
-        writeln(str(len(description)))
+        description = ctx.description()
+        writeln(int_to_str(len(description)))
         write(description)
 
 def __dump(repo, start, end):
-    for rev in xrange(start, end):
+    for rev in range(start, end):
         ctx = revsingle(repo, rev)
 
         __dump_metadata(ctx)
         parents = ctx.parents()
 
         modified, added, removed = repo.status(parents[0], ctx)[:3]
-        writeln(str(len(modified)))
-        writeln(str(len(added)))
-        writeln(str(len(removed)))
+        writeln(int_to_str(len(modified)))
+        writeln(int_to_str(len(added)))
+        writeln(int_to_str(len(removed)))
 
         for filename in added + modified:
             fctx = ctx.filectx(filename)
 
             writeln(filename)
-            writeln(' '.join(fctx.flags()))
+            writeln(b' '.join(fctx.flags()))
 
             content = fctx.data()
-            writeln(str(len(content)))
-            sys.stdout.write(content)
+            writeln(int_to_str(len(content)))
+            write(content)
 
         for filename in removed:
             writeln(filename)
@@ -264,38 +276,38 @@ def pretxnclose(ui, repo, **kwargs):
     end = revsingle(repo, kwargs['node_last'])
     __dump(repo, start.rev(), end.rev() + 1)
 
-@command('dump', [],  'hg dump')
+@command(b'dump', [], b'hg dump')
 def dump(ui, repo, **opts):
     __dump(repo, 0, len(repo))
 
-@command('metadata', [],  'hg metadata')
+@command(b'metadata', [], b'hg metadata')
 def dump(ui, repo, revs=None, **opts):
     if revs == None:
-        revs = "0:tip"
+        revs = b"0:tip"
 
     for r in revrange(repo, [revs]):
         ctx = repo[r]
         __dump_metadata(ctx)
 
-@command('ls-tree', [],  'hg ls-tree')
+@command(b'ls-tree', [], b'hg ls-tree')
 def ls_tree(ui, repo, rev, **opts):
-    nullHash = '0' * 40
+    nullHash = b'0' * 40
     ctx = revsingle(repo, rev)
     for filename in ctx.manifest():
         fctx = ctx.filectx(filename)
-        if 'x' in fctx.flags():
-            write('100755 blob ')
+        if b'x' in fctx.flags():
+            write(b'100755 blob ')
         else:
-            write('100644 blob ')
+            write(b'100644 blob ')
         write(nullHash)
-        write('\t')
+        write(b'\t')
         writeln(filename)
 
-@command('ls-remote', [],  'hg ls-remote PATH')
+@command(b'ls-remote', [], b'hg ls-remote PATH')
 def ls_remote(ui, repo, path, **opts):
     peer = mercurial.hg.peer(ui or repo, opts, ui.expandpath(path))
     for branch, heads in peer.branchmap().iteritems():
         for head in heads:
             write(mercurial.node.hex(head))
-            write("\t")
+            write(b"\t")
             writeln(branch)

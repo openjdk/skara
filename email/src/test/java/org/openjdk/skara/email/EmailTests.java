@@ -68,6 +68,24 @@ class EmailTests {
     }
 
     @Test
+    void reparent() {
+        var first = Email.create(EmailAddress.from("A", "a@b.c"), "First", "body")
+                         .recipient(EmailAddress.from("B", "b@b.c"))
+                         .build();
+        var second = Email.create(EmailAddress.from("A", "a@b.c"), "Second", "body")
+                          .recipient(EmailAddress.from("B", "b@b.c"))
+                          .build();
+        var reply = Email.reply(first, "The reply", "reply body")
+                         .author(EmailAddress.from("C", "c@b.c"))
+                         .build();
+        assertEquals(first.id().toString(), reply.headerValue("In-Reply-To"));
+        assertEquals(first.id().toString(), reply.headerValue("References"));
+        var updated = Email.reparent(second, reply).build();
+        assertEquals(second.id().toString(), updated.headerValue("In-Reply-To"));
+        assertEquals(second.id().toString(), updated.headerValue("References"));
+    }
+
+    @Test
     void caseInsensitiveHeaders() {
         var mail = Email.parse("Message-ID: <a@b.c>\n" +
                                        "date: Wed, 27 Mar 2019 14:31:00 +0100\n" +

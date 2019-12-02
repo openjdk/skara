@@ -35,7 +35,7 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import java.util.stream.*;
 
 class JNotifyBot implements Bot, WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
@@ -166,33 +166,55 @@ class JNotifyBot implements Bot, WorkItem {
                              .map(Optional::get)
                              .collect(Collectors.toSet());
         var newJdkTags = newTags.stream()
-                             .map(OpenJDKTag::create)
-                             .filter(Optional::isPresent)
-                             .map(Optional::get)
-                             .sorted(Comparator.comparingInt(OpenJDKTag::buildNum))
-                             .collect(Collectors.toList());
-
+                                .map(OpenJDKTag::create)
+                                .filter(Optional::isPresent)
+                                .map(Optional::get)
+                                .sorted(Comparator.comparingInt(OpenJDKTag::buildNum))
+                                .collect(Collectors.toList());
         for (var tag : newJdkTags) {
             // Update the history first - if there is a problem here we don't want to send out multiple updates
             history.addTags(List.of(tag.tag()));
 
             var commits = new ArrayList<Commit>();
+
+            // Try to determine which commits are new since the last build
             var previous = existingPrevious(tag, allJdkTags);
-            if (previous.isEmpty()) {
+            if (previous.isPresent()) {
+                commits.addAll(localRepo.commits(previous.get().tag() + ".." + tag.tag()).asList());
+            }
+
+            // If none are found, just include the commit that was tagged
+            if (commits.isEmpty()) {
                 var commit = localRepo.lookup(tag.tag());
                 if (commit.isEmpty()) {
                     throw new RuntimeException("Failed to lookup tag '" + tag.toString() + "'");
                 } else {
                     commits.add(commit.get());
-                    log.warning("No previous tag found for '" + tag.tag() + "'");
                 }
-            } else {
-                commits.addAll(localRepo.commits(previous.get().tag() + ".." + tag.tag()).asList());
             }
 
             Collections.reverse(commits);
+            var annotation = localRepo.annotate(tag.tag());
             for (var updater : updaters) {
-                updater.handleTagCommits(repository, commits, tag);
+                updater.handleOpenJDKTagCommits(repository, commits, tag, annotation.orElse(null));
+            }
+        }
+
+        var newNonJdkTags = newTags.stream()
+                                   .filter(tag -> OpenJDKTag.create(tag).isEmpty())
+                                   .collect(Collectors.toList());
+        for (var tag : newNonJdkTags) {
+            // Update the history first - if there is a problem here we don't want to send out multiple updates
+            history.addTags(List.of(tag));
+
+            var commit = localRepo.lookup(tag);
+            if (commit.isEmpty()) {
+                throw new RuntimeException("Failed to lookup tag '" + tag.toString() + "'");
+            }
+
+            var annotation = localRepo.annotate(tag);
+            for (var updater : updaters) {
+                updater.handleTagCommit(repository, commit.get(), tag, annotation.orElse(null));
             }
         }
     }

@@ -168,5 +168,4 @@ class SummaryTests {
             assertEquals(1, error);
         }
     }
-
 }

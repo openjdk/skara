@@ -37,6 +37,7 @@ import java.util.Comparator;
 public class LaunchersTask extends DefaultTask {
     private Property<Path> toDir;
     private Property<String> os;
+    private Property<String> cpu;
     private MapProperty<String, String> launchers;
     private ListProperty<String> options;
 
@@ -44,6 +45,7 @@ public class LaunchersTask extends DefaultTask {
     public LaunchersTask(ObjectFactory factory) {
         toDir = factory.property(Path.class);
         os = factory.property(String.class);
+        cpu = factory.property(String.class);
         launchers = factory.mapProperty(String.class, String.class);
         options = factory.listProperty(String.class);
     }
@@ -64,6 +66,11 @@ public class LaunchersTask extends DefaultTask {
     }
 
     @Input
+    Property<String> getCPU() {
+        return cpu;
+    }
+
+    @Input
     MapProperty<String, String> getLaunchers() {
         return launchers;
     }
@@ -77,7 +84,7 @@ public class LaunchersTask extends DefaultTask {
 
     @TaskAction
     void generate() throws IOException {
-        var dest = toDir.get().resolve(os.get());
+        var dest = toDir.get().resolve(os.get() + "-" + cpu.get());
         if (Files.isDirectory(dest)) {
             clearDirectory(dest);
         }

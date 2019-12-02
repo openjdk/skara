@@ -112,7 +112,8 @@ class ArchiveWorkItem implements WorkItem {
 
     private Repository materializeArchive(Path scratchPath) {
         try {
-            return Repository.materialize(scratchPath, bot.archiveRepo().url(), pr.targetRef());
+            return Repository.materialize(scratchPath, bot.archiveRepo().url(),
+                                          "+" + bot.archiveRef() + ":mlbridge_archive");
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -281,6 +282,15 @@ class ArchiveWorkItem implements WorkItem {
             reviewArchive.addComment(comment);
         }
 
+        // Review comments
+        var reviews = pr.reviews();
+        for (var review : reviews) {
+            if (ignoreComment(review.reviewer(), review.body().orElse(""))) {
+                continue;
+            }
+            reviewArchive.addReview(review);
+        }
+
         // File specific comments
         var reviewComments = pr.reviewComments();
         for (var reviewComment : reviewComments) {
@@ -290,13 +300,12 @@ class ArchiveWorkItem implements WorkItem {
             reviewArchive.addReviewComment(reviewComment);
         }
 
-        // Review comments
-        var reviews = pr.reviews();
+        // Review verdict comments
         for (var review : reviews) {
             if (ignoreComment(review.reviewer(), review.body().orElse(""))) {
                 continue;
             }
-            reviewArchive.addReview(review);
+            reviewArchive.addReviewVerdict(review);
         }
 
         var newMails = reviewArchive.generatedEmails();

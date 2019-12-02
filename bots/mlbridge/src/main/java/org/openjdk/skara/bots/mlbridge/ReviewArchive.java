@@ -21,6 +21,7 @@ class ReviewArchive {
     private final Map<String, Email> existingIds = new HashMap<>();
     private final List<Email> generated = new ArrayList<>();
     private final Map<String, Email> generatedIds = new HashMap<>();
+    private final Set<EmailAddress> approvalIds = new HashSet<>();
     private final List<Hash> reportedHeads;
     private final List<Hash> reportedBases;
 
@@ -318,10 +319,25 @@ class ReviewArchive {
         } else if (censusInstance.project().isAuthor(contributor.username(), version)) {
             return "Author";
         }
-        return "none";
+        return "no project role";
     }
 
     void addReview(Review review) {
+        var id = getMessageId(review);
+        if (existingIds.containsKey(getStableMessageId(id))) {
+            return;
+        }
+
+        // Default parent and subject
+        var parent = topCommentForHash(review.hash());
+        var subject = parent.subject();
+
+        var replyBody = ArchiveMessages.reviewCommentBody(review.body().orElse(""));
+
+        addReplyCommon(parent, review.reviewer(), subject, replyBody, id);
+    }
+
+    void addReviewVerdict(Review review) {
         var id = getMessageId(review);
         if (existingIds.containsKey(getStableMessageId(id))) {
             return;
@@ -336,13 +352,12 @@ class ReviewArchive {
 
         // Approvals by Reviewers get special treatment - post these as top-level comments
         if (review.verdict() == Review.Verdict.APPROVED && isReviewer) {
-            parent = topEmail();
-            subject = "Re: [Approved] " + "RFR: " + prInstance.pr().title();
+            approvalIds.add(id);
         }
 
         var userName = contributor != null ? contributor.username() : review.reviewer().userName() + "@" + censusInstance.namespace().name();
-        var userRole = contributor != null ? projectRole(contributor) : "none";
-        var replyBody = ArchiveMessages.reviewCommentBody(review.body().orElse(""), review.verdict(), userName, userRole);
+        var userRole = contributor != null ? projectRole(contributor) : "no OpenJDK username";
+        var replyBody = ArchiveMessages.reviewVerdictBody(review.body().orElse(""), review.verdict(), userName, userRole);
 
         addReplyCommon(parent, review.reviewer(), subject, replyBody, id);
     }
@@ -358,13 +373,16 @@ class ReviewArchive {
 
         // Add some context to the first post
         if (reviewComment.parent().isEmpty()) {
-            var contents = prInstance.pr().repository().fileContents(reviewComment.path(), reviewComment.hash().hex()).lines().collect(Collectors.toList());
-
             body.append(reviewComment.path()).append(" line ").append(reviewComment.line()).append(":\n\n");
-            for (int i = Math.max(0, reviewComment.line() - 2); i < Math.min(contents.size(), reviewComment.line() + 1); ++i) {
-                body.append("> ").append(i + 1).append(": ").append(contents.get(i)).append("\n");
+            try {
+                var contents = prInstance.pr().repository().fileContents(reviewComment.path(), reviewComment.hash().hex()).lines().collect(Collectors.toList());
+                for (int i = Math.max(0, reviewComment.line() - 2); i < Math.min(contents.size(), reviewComment.line() + 1); ++i) {
+                    body.append("> ").append(i + 1).append(": ").append(contents.get(i)).append("\n");
+                }
+                body.append("\n");
+            } catch (RuntimeException e) {
+                body.append("> (failed to retrieve contents of file, check the PR for context)\n");
             }
-            body.append("\n");
         }
         body.append(reviewComment.body());
 
@@ -372,6 +390,20 @@ class ReviewArchive {
     }
 
     List<Email> generatedEmails() {
-        return generated;
+        var finalEmails = new ArrayList<Email>();
+        for (var email : generated) {
+            for (var approvalId : approvalIds) {
+                var collapsed = email.hasHeader("PR-Collapsed-IDs") ? email.headerValue("PR-Collapsed-IDs") + " " : "";
+                if (email.id().equals(approvalId) || collapsed.contains(getStableMessageId(approvalId))) {
+                    email = Email.reparent(topEmail(), email)
+                                 .subject("Re: [Approved] " + "RFR: " + prInstance.pr().title())
+                                 .build();
+                    break;
+                }
+            }
+            finalEmails.add(email);
+        }
+
+        return finalEmails;
     }
 }
