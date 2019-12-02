@@ -599,21 +599,23 @@ public class HgRepository implements Repository {
 
     @Override
     public void rebase(Hash hash, String committerName, String committerEmail) throws IOException {
-        var current = currentBranch().name();
+        var current = currentBranch().orElseThrow(() ->
+                new IOException("No current branch to rebase upon")
+        );
         try (var p = capture("hg", "--config", "extensions.rebase=",
-                             "rebase", "--dest", hash.hex(), "--base", current)) {
+                             "rebase", "--dest", hash.hex(), "--base", current.name())) {
             await(p);
         }
     }
 
     @Override
-    public Branch currentBranch() throws IOException {
+    public Optional<Branch> currentBranch() throws IOException {
         try (var p = capture("hg", "branch")) {
             var res = await(p);
             if (res.stdout().size() != 1) {
-                throw new IllegalStateException("No current branch\n" + res);
+                return Optional.empty();
             }
-            return new Branch(res.stdout().get(0));
+            return Optional.of(new Branch(res.stdout().get(0)));
         }
     }
 

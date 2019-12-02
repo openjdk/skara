@@ -30,7 +30,7 @@ import java.util.*;
 
 public interface ReadOnlyRepository {
     Hash head() throws IOException;
-    Branch currentBranch() throws IOException;
+    Optional<Branch> currentBranch() throws IOException;
     Optional<Bookmark> currentBookmark() throws IOException;
     Branch defaultBranch() throws IOException;
     List<Branch> branches() throws IOException;

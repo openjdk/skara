@@ -85,6 +85,11 @@ public class GitPublish {
         var repo = Repository.get(cwd).or(die("error: no repository found at " + cwd.toString())).get();
         var remote = arguments.at(0).orString("origin");
 
-        System.exit(pushAndTrack(remote, repo.currentBranch()));
+        var currentBranch = repo.currentBranch();
+        if (currentBranch.isEmpty()) {
+            System.err.println("error: the repository is in a detached HEAD state");
+            System.exit(1);
+        }
+        System.exit(pushAndTrack(remote, repo.currentBranch().get()));
     }
 }

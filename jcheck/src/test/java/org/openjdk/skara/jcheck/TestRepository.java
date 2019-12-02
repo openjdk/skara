@@ -36,8 +36,8 @@ class TestRepository implements ReadOnlyRepository {
     private Tag defaultTag = null;
     private List<Tag> tags = new ArrayList<Tag>();
 
-    public Branch currentBranch() throws IOException {
-        return currentBranch;
+    public Optional<Branch> currentBranch() throws IOException {
+        return Optional.empty();
     }
 
     void setCurrentBranch(Branch branch) {
