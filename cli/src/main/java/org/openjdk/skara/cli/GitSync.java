@@ -160,12 +160,22 @@ public class GitSync {
             for (var branch : requested) {
                 branches.add(branch.trim());
             }
+        } else {
+            var lines = repo.config("sync.branches");
+            if (lines.size() == 1) {
+                var requested = lines.get(0).split(",");
+                for (var branch : requested) {
+                    branches.add(branch.trim());
+                }
+            }
         }
 
         for (var branch : repo.remoteBranches(upstream)) {
             var name = branch.name();
             if (!branches.isEmpty() && !branches.contains(name)) {
-                System.out.println("Skipping branch " + name);
+                if (arguments.contains("verbose") || arguments.contains("debug")) {
+                    System.out.println("Skipping branch " + name);
+                }
                 continue;
             }
             System.out.print("Syncing " + upstream + "/" + name + " to " + origin + "/" + name + "... ");
