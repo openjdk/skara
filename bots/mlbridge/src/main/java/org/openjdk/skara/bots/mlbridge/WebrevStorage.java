@@ -23,7 +23,7 @@
 package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.email.EmailAddress;
-import org.openjdk.skara.forge.HostedRepository;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.webrev.Webrev;
@@ -50,9 +50,9 @@ class WebrevStorage {
         this.author = author;
     }
 
-    private void generate(PullRequestInstance prInstance, Path folder, Hash base, Hash head) throws IOException {
+    private void generate(PullRequest pr, Repository localRepository, Path folder, Hash base, Hash head) throws IOException {
         Files.createDirectories(folder);
-        Webrev.repository(prInstance.localRepo()).output(folder)
+        Webrev.repository(localRepository).output(folder)
               .generate(base, head);
     }
 
@@ -105,23 +105,32 @@ class WebrevStorage {
         }
     }
 
-    URI createAndArchive(PullRequestInstance prInstance, Path scratchPath, Hash base, Hash head, String identifier) {
+    private URI createAndArchive(PullRequest pr, Repository localRepository, Path scratchPath, Hash base, Hash head, String identifier) {
         try {
             var localStorage = Repository.materialize(scratchPath, storage.url(),
                                                       "+" + storageRef + ":mlbridge_webrevs");
-            var relativeFolder = baseFolder.resolve(String.format("%s/webrev.%s", prInstance.id(), identifier));
+            var relativeFolder = baseFolder.resolve(String.format("%s/webrev.%s", pr.id(), identifier));
             var outputFolder = scratchPath.resolve(relativeFolder);
             // If a previous operation was interrupted there may be content here already - overwrite if so
             if (Files.exists(outputFolder)) {
                 clearDirectory(outputFolder);
             }
-            generate(prInstance, outputFolder, base, head);
+            generate(pr, localRepository, outputFolder, base, head);
             if (!localStorage.isClean()) {
-                push(localStorage, outputFolder, baseFolder.resolve(prInstance.id()).toString());
+                push(localStorage, outputFolder, baseFolder.resolve(pr.id()).toString());
             }
             return URIBuilder.base(baseUri).appendPath(relativeFolder.toString().replace('\\', '/')).build();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    @FunctionalInterface
+    interface WebrevGenerator {
+        URI generate(Hash base, Hash head, String identifier);
+    }
+
+    WebrevGenerator generator(PullRequest pr, Repository localRepository, Path scratchPath) {
+        return (base, head, identifier) -> createAndArchive(pr, localRepository, scratchPath, base, head, identifier);
     }
 }

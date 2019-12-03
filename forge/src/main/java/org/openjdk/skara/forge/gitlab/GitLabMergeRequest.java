@@ -123,7 +123,7 @@ public class GitLabMergeRequest implements PullRequest {
                               }
                           }
                           var id = obj.get("id").asInt();
-                          return new Review(reviewer, verdict, hash, id, null);
+                          return new Review(createdAt, reviewer, verdict, hash, id, null);
                       })
                       .collect(Collectors.toList());
     }

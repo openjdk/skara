@@ -91,7 +91,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     @Override
     public void addReview(Review.Verdict verdict, String body) {
         try {
-            var review = new Review(repository.forge().currentUser(),
+            var review = new Review(ZonedDateTime.now(), repository.forge().currentUser(),
                                     verdict, repository.localRepository().resolve(sourceRef).orElseThrow(),
                                     data.reviews.size(),
                                     body);

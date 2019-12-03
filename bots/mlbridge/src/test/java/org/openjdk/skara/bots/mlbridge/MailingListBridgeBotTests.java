@@ -551,10 +551,67 @@ class MailingListBridgeBotTests {
             var thread3 = replies.get(2);
             assertEquals("Re: RFR: This is a pull request", thread3.subject());
             var thread4 = replies.get(3);
-            assertEquals("Re: [Approved] RFR: This is a pull request", thread4.subject());
+            assertEquals("Re: RFR: This is a pull request", thread4.subject());
             assertTrue(thread4.body().contains("Looks fine"));
             assertTrue(thread4.body().contains("The final review comment"));
             assertTrue(thread4.body().contains("Approved by integrationreviewer1 (Reviewer)"));
+        }
+    }
+
+    @Test
+    void commentThreadingSeparated(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var archiveFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(reviewer.forge().currentUser().id())
+                                           .addAuthor(author.forge().currentUser().id());
+            var from = EmailAddress.from("test", "test@test.mail");
+            var mlBot = new MailingListBridgeBot(from, author, archive, "master", censusBuilder.build(), "master",
+                                                 listAddress, Set.of(), Set.of(),
+                                                 listServer.getArchive(),
+                                                 listServer.getSMTP(),
+                                                 archive, "webrev", Path.of("test"),
+                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 Set.of(), Map.of(),
+                                                 URIBuilder.base("http://issues.test/browse/").build(),
+                                                 Map.of(), Duration.ZERO);
+
+            // Populate the projects repository
+            var reviewFile = Path.of("reviewfile.txt");
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
+            pr.setBody("This is now ready");
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // Make two file specific comments
+            var reviewPr = reviewer.pullRequest(pr.id());
+            var comment1 = reviewPr.addReviewComment(masterHash, editHash, reviewFile.toString(), 2, "Review comment");
+            var comment2 = reviewPr.addReviewComment(masterHash, editHash, reviewFile.toString(), 2, "Another review comment");
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            pr.addReviewCommentReply(comment1, "I agree");
+            pr.addReviewCommentReply(comment2, "I don't agree");
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // Sanity check the archive
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertEquals(3, archiveContainsCount(archiveFolder.path(), "^On.*wrote:"));
         }
     }
 
@@ -801,7 +858,7 @@ class MailingListBridgeBotTests {
 
             // The archive should reference the updated push
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertTrue(archiveContains(archiveFolder.path(), "additional changes"));
+            assertTrue(archiveContains(archiveFolder.path(), "1 additional commit"));
             assertTrue(archiveContains(archiveFolder.path(), "full.*/" + pr.id() + "/webrev.01"));
             assertTrue(archiveContains(archiveFolder.path(), "inc.*/" + pr.id() + "/webrev.00-01"));
             assertTrue(archiveContains(archiveFolder.path(), "Patch"));
@@ -922,7 +979,7 @@ class MailingListBridgeBotTests {
 
             // The archive should reference the rebased push
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertTrue(archiveContains(archiveFolder.path(), "complete new set of changes"));
+            assertTrue(archiveContains(archiveFolder.path(), "updated with a new target base"));
             assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/webrev.01"));
             assertFalse(archiveContains(archiveFolder.path(), "Incremental"));
             assertTrue(archiveContains(archiveFolder.path(), "Patch"));
@@ -1096,7 +1153,7 @@ class MailingListBridgeBotTests {
             if (author.forge().supportsReviewBody()) {
                 assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 2"));
             }
-            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Re: \\[Approved\\] RFR:"));
+            assertEquals(2, archiveContainsCount(archiveFolder.path(), "Re: RFR:"));
 
             // Yet another change
             reviewedPr.addReview(Review.Verdict.DISAPPROVED, "Reason 3");

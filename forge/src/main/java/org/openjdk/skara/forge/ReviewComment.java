@@ -27,7 +27,7 @@ import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.Hash;
 
 import java.time.ZonedDateTime;
-import java.util.Optional;
+import java.util.*;
 
 public class ReviewComment extends Comment {
     private final ReviewComment parent;
@@ -64,5 +64,29 @@ public class ReviewComment extends Comment {
 
     public String threadId() {
         return threadId;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        ReviewComment that = (ReviewComment) o;
+        return line == that.line &&
+                Objects.equals(parent, that.parent) &&
+                threadId.equals(that.threadId) &&
+                hash.equals(that.hash) &&
+                path.equals(that.path);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), parent, threadId, hash, path, line);
     }
 }

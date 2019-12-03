@@ -1,12 +1,17 @@
 package org.openjdk.skara.bots.mlbridge;
 
-import org.openjdk.skara.email.Email;
-import org.openjdk.skara.forge.Review;
+import org.openjdk.skara.email.EmailAddress;
+import org.openjdk.skara.forge.*;
+import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.vcs.openjdk.Issue;
 
+import java.io.*;
 import java.net.URI;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -42,124 +47,185 @@ class ArchiveMessages {
         return body.strip();
     }
 
-    private static String quoteBody(String body) {
-        return Arrays.stream(body.strip().split("\\R"))
-                     .map(line -> line.length() > 0 ? line.charAt(0) == '>' ? ">" + line : "> " + line : "> ")
-                     .collect(Collectors.joining("\n"));
+    @FunctionalInterface
+    interface CommitFormatter {
+        String format(Commit commit);
     }
 
-    private static String replyFooter(PullRequestInstance prInstance) {
-        return "PR: " + prInstance.pr().webUrl();
+    private static String formatCommitMessages(Repository localRepo, Hash first, Hash last, CommitFormatter formatter) {
+        try (var commits = localRepo.commits(first.hex() + ".." + last.hex())) {
+            return commits.stream()
+                          .map(formatter::format)
+                          .collect(Collectors.joining("\n"));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static Optional<String> issueUrl(PullRequest pr, URI issueTracker, String projectPrefix) {
+        var issue = Issue.fromString(pr.title());
+        return issue.map(value -> URIBuilder.base(issueTracker).appendPath(projectPrefix + "-" + value.id()).build().toString());
+    }
+
+    private static String stats(Repository localRepo, Hash base, Hash head) {
+        try {
+            var diff = localRepo.diff(base, head);
+            var inserted = diff.added();
+            var deleted = diff.removed();
+            var modified = diff.modified();
+            var linesChanged = inserted + deleted + modified;
+            var filesChanged = diff.patches().size();
+            return String.format("%d line%s in %d file%s changed: %d ins; %d del; %d mod",
+                                 linesChanged,
+                                 linesChanged == 1 ? "" : "s",
+                                 filesChanged,
+                                 filesChanged == 1 ? "" : "s",
+                                 inserted,
+                                 deleted,
+                                 modified);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static String diffUrl(PullRequest pr) {
+        return pr.webUrl() + ".diff";
+    }
+
+    private static String fetchCommand(PullRequest pr) {
+        var repoUrl = pr.repository().webUrl();
+        return "git fetch " + repoUrl + " " + pr.sourceRef() + ":pull/" + pr.id();
+    }
+
+    static String composeConversation(PullRequest pr, Hash base, Hash head) {
+        var filteredBody = filterComments(pr.body());
+        if (filteredBody.isEmpty()) {
+            filteredBody = pr.title().strip();
+        }
+        return filteredBody;
+    }
+
+    static String composeRevision(PullRequest pr, Repository localRepository, Hash base, Hash head, Hash lastBase, Hash lastHead) {
+        try {
+            if (base.equals(lastBase)) {
+                if (localRepository.isAncestor(lastHead, head)) {
+                    var updateCount = localRepository.commits(lastHead.hex() + ".." + head.hex()).stream().count();
+                    return "The pull request has been updated with " + updateCount + " additional commit" + (updateCount != 1 ? "s" : "") + ".";
+                } else {
+                    return "Previous commits in this pull request have been removed, probably due to a force push. " +
+                            "The incremental views will show differences compared to the previous content of the PR.";
+                }
+            } else {
+                return "The pull request has been updated with a new target base due to a merge or a rebase.";
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    static String composeReplySubject(String parentSubject) {
+        if (parentSubject.startsWith("Re: ")) {
+            return parentSubject;
+        } else {
+            return "Re: " + parentSubject;
+        }
+    }
+
+    static String composeReplyFooter(PullRequest pr) {
+        return "PR: " + pr.webUrl();
     }
 
     // When changing this, ensure that the PR pattern in the notifier still matches
-    static String composeConversation(PullRequestInstance prInstance, URI webrev) {
-        var commitMessages = prInstance.formatCommitMessages(prInstance.baseHash(), prInstance.headHash(), ArchiveMessages::formatCommit);
-        var filteredBody = filterComments(prInstance.pr().body());
-        if (filteredBody.isEmpty()) {
-            filteredBody = prInstance.pr().title().strip();
-        }
-        var issueString = prInstance.issueUrl().map(url -> "  Issue: " + url + "\n").orElse("");
-        return filteredBody + "\n\n" +
-                infoSeparator + "\n\n" +
-                "Commits:\n" +
+    static String composeConversationFooter(PullRequest pr, URI issueProject, String projectPrefix, Repository localRepo, URI webrev, Hash base, Hash head) {
+        var commitMessages = formatCommitMessages(localRepo, base, head, ArchiveMessages::formatCommit);
+        var issueString = issueUrl(pr, issueProject, projectPrefix).map(url -> "  Issue: " + url + "\n").orElse("");
+        return "Commits:\n" +
                 commitMessages + "\n\n" +
-                "Changes: " + prInstance.pr().changeUrl() + "\n" +
-                " Webrev: " + webrev.toString() + "\n" +
+                "Changes: " + pr.changeUrl() + "\n" +
+                " Webrev: " + webrev + "\n" +
                 issueString +
-                "  Stats: " + prInstance.stats(prInstance.baseHash(), prInstance.headHash()) + "\n" +
-                "  Patch: " + prInstance.diffUrl() + "\n" +
-                "  Fetch: " + prInstance.fetchCommand() + "\n\n" +
-                replyFooter(prInstance);
+                "  Stats: " + stats(localRepo, base, head) + "\n" +
+                "  Patch: " + diffUrl(pr) + "\n" +
+                "  Fetch: " + fetchCommand(pr) + "\n\n" +
+                composeReplyFooter(pr);
     }
 
-    static String composeRebaseComment(PullRequestInstance prInstance, URI fullWebrev) {
-        var commitMessages = prInstance.formatCommitMessages(prInstance.baseHash(), prInstance.headHash(), ArchiveMessages::formatCommit);
-        var issueString = prInstance.issueUrl().map(url -> "  Issue: " + url + "\n").orElse("");
-        return "The pull request has been updated with a complete new set of changes (possibly due to a rebase).\n\n" +
-                infoSeparator + "\n\n" +
-                "Commits:\n" +
+    static String composeRebaseFooter(PullRequest pr, Repository localRepo, URI fullWebrev, Hash base, Hash head) {
+        var commitMessages = formatCommitMessages(localRepo, base, head, ArchiveMessages::formatCommit);
+        return "Commits:\n" +
                 commitMessages + "\n\n" +
-                "Changes: " + prInstance.pr().changeUrl() + "\n" +
+                "Changes: " + pr.changeUrl() + "\n" +
                 " Webrev: " + fullWebrev.toString() + "\n" +
-                issueString +
-                "  Stats: " + prInstance.stats(prInstance.baseHash(), prInstance.headHash()) + "\n" +
-                "  Patch: " + prInstance.diffUrl() + "\n" +
-                "  Fetch: " + prInstance.fetchCommand() + "\n\n" +
-                replyFooter(prInstance);    }
+                "  Stats: " + stats(localRepo, base, head) + "\n" +
+                "  Patch: " + diffUrl(pr) + "\n" +
+                "  Fetch: " + fetchCommand(pr) + "\n\n" +
+                composeReplyFooter(pr);
+    }
 
-    static String composeIncrementalComment(Hash lastHead, PullRequestInstance prInstance, URI fullWebrev, URI incrementalWebrev) {
-        var newCommitMessages = prInstance.formatCommitMessages(lastHead, prInstance.headHash(), ArchiveMessages::formatCommit);
-        var issueString = prInstance.issueUrl().map(url -> "  Issue: " + url + "\n").orElse("");
-        return "The pull request has been updated with additional changes.\n\n" +
-                infoSeparator + "\n\n" +
-                "Added commits:\n" +
+    static String composeIncrementalFooter(PullRequest pr, Repository localRepo, URI fullWebrev, URI incrementalWebrev, Hash head, Hash lastHead) {
+        var newCommitMessages = formatCommitMessages(localRepo, lastHead, head, ArchiveMessages::formatCommit);
+        return "Added commits:\n" +
                 newCommitMessages + "\n\n" +
                 "Changes:\n" +
-                "  - all: " + prInstance.pr().changeUrl() + "\n" +
-                "  - new: " + prInstance.pr().changeUrl(lastHead) + "\n\n" +
+                "  - all: " + pr.changeUrl() + "\n" +
+                "  - new: " + pr.changeUrl(lastHead) + "\n\n" +
                 "Webrevs:\n" +
                 " - full: " + fullWebrev.toString() + "\n" +
                 " - incr: " + incrementalWebrev.toString() + "\n\n" +
-                issueString +
-                "  Stats: " + prInstance.stats(lastHead, prInstance.headHash()) + "\n" +
-                "  Patch: " + prInstance.diffUrl() + "\n" +
-                "  Fetch: " + prInstance.fetchCommand() + "\n\n" +
-                replyFooter(prInstance);
+                "  Stats: " + stats(localRepo, lastHead, head) + "\n" +
+                "  Patch: " + diffUrl(pr) + "\n" +
+                "  Fetch: " + fetchCommand(pr) + "\n\n" +
+                composeReplyFooter(pr);
     }
 
-    private static String filterParentBody(Email parent, PullRequestInstance prInstance) {
-        var parentFooter = ArchiveMessages.replyFooter(prInstance);
-        var filteredParentBody = parent.body().strip();
-        if (filteredParentBody.endsWith(parentFooter)) {
-            return filteredParentBody.substring(0, filteredParentBody.length() - parentFooter.length()).strip();
-        } else {
-            return filteredParentBody;
+    static String composeComment(Comment comment) {
+        return filterComments(comment.body());
+    }
+
+    static String composeReviewComment(PullRequest pr, ReviewComment reviewComment) {
+        var body = new StringBuilder();
+
+        // Add some context to the first post
+        if (reviewComment.parent().isEmpty()) {
+            body.append(reviewComment.path()).append(" line ").append(reviewComment.line()).append(":\n\n");
+            try {
+                var contents = pr.repository().fileContents(reviewComment.path(), reviewComment.hash().hex()).lines().collect(Collectors.toList());
+                for (int i = Math.max(0, reviewComment.line() - 2); i < Math.min(contents.size(), reviewComment.line() + 1); ++i) {
+                    body.append("> ").append(i + 1).append(": ").append(contents.get(i)).append("\n");
+                }
+                body.append("\n");
+            } catch (RuntimeException e) {
+                body.append("> (failed to retrieve contents of file, check the PR for context)\n");
+            }
         }
+        body.append(filterComments(reviewComment.body()));
+        return body.toString();
     }
 
-    static String composeReply(Email parent, String body, PullRequestInstance prInstance) {
-        return "On " + parent.date().format(DateTimeFormatter.RFC_1123_DATE_TIME) + ", " + parent.author().toString() + " wrote:\n" +
-                "\n" +
-                quoteBody(filterParentBody(parent, prInstance)) +
-                "\n\n" +
-                filterComments(body) +
-                "\n\n" +
-                replyFooter(prInstance);
-    }
-
-    static String composeCombinedReply(Email parent, String body, PullRequestInstance prInstance) {
-        return filterParentBody(parent, prInstance) +
-                "\n\n" +
-                filterComments(body) +
-                "\n\n" +
-                replyFooter(prInstance);
-    }
-
-    static String reviewCommentBody(String body) {
-        return filterComments(body);
-    }
-
-    static String reviewVerdictBody(String body, Review.Verdict verdict, String user, String role) {
-        var filteredBody = filterComments(body);
+    static String composeReview(PullRequest pr, Review review, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole) {
         var result = new StringBuilder();
-        if (verdict != Review.Verdict.NONE) {
-            if (filteredBody.length() > 0) {
+        review.body().ifPresent(body -> result.append(filterComments(body)));
+        if (review.verdict() != Review.Verdict.NONE) {
+            if (result.length() > 0) {
                 result.append("\n\n");
                 result.append(infoSeparator);
                 result.append("\n\n");
             }
-            if (verdict == Review.Verdict.APPROVED) {
+            if (review.verdict() == Review.Verdict.APPROVED) {
                 result.append("Approved");
             } else {
                 result.append("Changes requested");
             }
             result.append(" by ");
-            result.append(user);
+            result.append(hostUserToUserName.userName(review.reviewer()));
             result.append(" (");
-            result.append(role);
+            result.append(hostUserToRole.role(review.reviewer()));
             result.append(").");
         }
         return result.toString();
+    }
+
+    static String composeReplyHeader(ZonedDateTime parentDate, EmailAddress parentAuthor) {
+        return "On " + parentDate.format(DateTimeFormatter.RFC_1123_DATE_TIME) + ", " + parentAuthor.toString() + " wrote:";
     }
 }

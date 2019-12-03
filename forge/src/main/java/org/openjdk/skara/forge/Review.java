@@ -25,21 +25,28 @@ package org.openjdk.skara.forge;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.vcs.Hash;
 
+import java.time.ZonedDateTime;
 import java.util.Optional;
 
 public class Review {
+    private final ZonedDateTime createdAt;
     private final HostUser reviewer;
     private final Verdict verdict;
     private final Hash hash;
     private final int id;
     private final String body;
 
-    public Review(HostUser reviewer, Verdict verdict, Hash hash, int id, String body) {
+    public Review(ZonedDateTime createdAt, HostUser reviewer, Verdict verdict, Hash hash, int id, String body) {
+        this.createdAt = createdAt;
         this.reviewer = reviewer;
         this.verdict = verdict;
         this.hash = hash;
         this.id = id;
         this.body = body;
+    }
+
+    public ZonedDateTime createdAt() {
+        return createdAt;
     }
 
     public HostUser reviewer() {
