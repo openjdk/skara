@@ -78,11 +78,8 @@ public class TestBot implements Bot {
                                          pr));
             } else {
                 // is there a job running for this PR?
-                var colon = "%3A";
-                var asterisk = "%2A";
-                var id = host + "-" + repoId  + "-"+ pr.id() + "-" + asterisk;
                 try {
-                    var jobs = ci.query("id" + colon + id);
+                    var jobs = ci.jobsFor(pr);
                     if (!jobs.isEmpty()) {
                         var shouldUpdate = false;
                         for (var job : jobs) {
