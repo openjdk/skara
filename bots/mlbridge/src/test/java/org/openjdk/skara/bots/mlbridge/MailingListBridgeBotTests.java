@@ -572,7 +572,7 @@ class MailingListBridgeBotTests {
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, censusBuilder.build(), "master",
+            var mlBot = new MailingListBridgeBot(from, author, archive, "master", censusBuilder.build(), "master",
                                                  listAddress, Set.of(), Set.of(),
                                                  listServer.getArchive(),
                                                  listServer.getSMTP(),
