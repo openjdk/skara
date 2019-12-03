@@ -504,7 +504,6 @@ class TestWorkItemTests {
             var pr = new InMemoryPullRequest();
             pr.repository = repo;
             pr.id = "17";
-            pr.targetRef = "master";
 
             var duke = new HostUser(0, "duke", "Duke");
             pr.author = duke;
@@ -613,11 +612,10 @@ class TestWorkItemTests {
             var pr = new InMemoryPullRequest();
             pr.repository = repo;
             pr.id = "17";
-            pr.targetRef = "master";
+            pr.headHash = head;
 
             var duke = new HostUser(0, "duke", "Duke");
             pr.author = duke;
-            pr.headHash = head;
 
             var now = ZonedDateTime.now();
             var comment = new Comment("0", "/test tier1", duke, now, now);
@@ -739,11 +737,10 @@ class TestWorkItemTests {
             var pr = new InMemoryPullRequest();
             pr.repository = repo;
             pr.id = "17";
-            pr.targetRef = "master";
+            pr.headHash = head;
 
             var duke = new HostUser(0, "duke", "Duke");
             pr.author = duke;
-            pr.headHash = head;
 
             var now = ZonedDateTime.now();
             var comment = new Comment("0", "/test tier1", duke, now, now);
@@ -828,11 +825,10 @@ class TestWorkItemTests {
             var pr = new InMemoryPullRequest();
             pr.repository = repo;
             pr.id = "17";
-            pr.targetRef = "master";
+            pr.headHash = head;
 
             var duke = new HostUser(0, "duke", "Duke");
             pr.author = duke;
-            pr.headHash = head;
 
             var now = ZonedDateTime.now();
             var comment = new Comment("0", "/test tier1", duke, now, now);

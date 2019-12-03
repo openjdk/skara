@@ -38,7 +38,6 @@ class InMemoryPullRequest implements PullRequest {
     HostedRepository repository;
     Hash headHash;
     String id;
-    String targetRef;
     Map<String, Map<String, Check>> checks = new HashMap<>();
 
     @Override
@@ -92,7 +91,7 @@ class InMemoryPullRequest implements PullRequest {
 
     @Override
     public String targetRef() {
-        return targetRef;
+        return null;
     }
 
     @Override
