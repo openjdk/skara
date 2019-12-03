@@ -278,7 +278,7 @@ public class GitPr {
 
         var inputs = List.of(
             Input.position(0)
-                 .describe("list|fetch|show|checkout|apply|integrate|approve|create|close|update")
+                 .describe("list|fetch|show|checkout|apply|integrate|approve|create|close|update|test")
                  .singular()
                  .required(),
             Input.position(1)
@@ -679,11 +679,13 @@ public class GitPr {
             }
             System.out.println(pr.webUrl().toString());
             Files.deleteIfExists(file);
-        } else if (action.equals("integrate") || action.equals("approve")) {
+        } else if (action.equals("integrate") || action.equals("approve") || action.equals("test")) {
             var pr = getPullRequest(uri, host, arguments.at(1));
 
             if (action.equals("integrate")) {
                 pr.addComment("/integrate");
+            } else if (action.equals("test")) {
+                pr.addComment("/test");
             } else if (action.equals("approve")) {
                 pr.addReview(Review.Verdict.APPROVED, "Looks good!");
             } else {
