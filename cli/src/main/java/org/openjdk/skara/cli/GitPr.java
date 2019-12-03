@@ -542,7 +542,7 @@ public class GitPr {
                 System.err.println("A remote branch must be present at " + remotePullPath + " to create a pull request");
                 System.err.println("To create a remote branch and push the commits for your local branch, run:");
                 System.err.println("");
-                System.err.println("    git push --set-upstream " + remote + " " + currentBranch.name());
+                System.err.println("    git publish");
                 System.err.println("");
                 System.err.println("If you created the remote branch from another client, you must update this repository.");
                 System.err.println("To update remote information for this repository, run:");
