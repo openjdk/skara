@@ -25,6 +25,7 @@ package org.openjdk.skara.issuetracker;
 import org.openjdk.skara.host.HostUser;
 
 import java.time.ZonedDateTime;
+import java.util.Objects;
 
 public class Comment {
     private final String id;
@@ -59,5 +60,26 @@ public class Comment {
 
     public ZonedDateTime updatedAt() {
         return updatedAt;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Comment comment = (Comment) o;
+        return id.equals(comment.id) &&
+                body.equals(comment.body) &&
+                author.equals(comment.author) &&
+                createdAt.equals(comment.createdAt) &&
+                updatedAt.equals(comment.updatedAt);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, body, author, createdAt, updatedAt);
     }
 }

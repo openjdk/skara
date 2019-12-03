@@ -25,7 +25,7 @@ package org.openjdk.skara.bots.mlbridge;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.forge.PullRequest;
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.mailinglist.*;
 import org.openjdk.skara.vcs.Repository;
@@ -187,6 +187,42 @@ class ArchiveWorkItem implements WorkItem {
         }
     }
 
+    private EmailAddress getAuthorAddress(CensusInstance censusInstance, HostUser originalAuthor) {
+        var contributor = censusInstance.namespace().get(originalAuthor.id());
+        if (contributor == null) {
+            return EmailAddress.from(originalAuthor.fullName(),
+                                     censusInstance.namespace().name() + "+" +
+                                             originalAuthor.id() + "+" + originalAuthor.userName() + "@" +
+                                             censusInstance.configuration().census().domain());
+        } else {
+            return EmailAddress.from(contributor.fullName().orElse(originalAuthor.fullName()),
+                                     contributor.username() + "@" + censusInstance.configuration().census().domain());
+        }
+    }
+
+    private String getAuthorUserName(CensusInstance censusInstance, HostUser originalAuthor) {
+        var contributor = censusInstance.namespace().get(originalAuthor.id());
+        var userName = contributor != null ? contributor.username() : originalAuthor.userName() + "@" + censusInstance.namespace().name();
+        return userName;
+    }
+
+    private String getAuthorRole(CensusInstance censusInstance, HostUser originalAuthor) {
+        var version = censusInstance.configuration().census().version();
+        var contributor = censusInstance.namespace().get(originalAuthor.id());
+        if (contributor == null) {
+            return "no OpenJDK username";
+        } else if (censusInstance.project().isLead(contributor.username(), version)) {
+            return "Lead";
+        } else if (censusInstance.project().isReviewer(contributor.username(), version)) {
+            return "Reviewer";
+        } else if (censusInstance.project().isCommitter(contributor.username(), version)) {
+            return "Committer";
+        } else if (censusInstance.project().isAuthor(contributor.username(), version)) {
+            return "Author";
+        }
+        return "no project role";
+    }
+
     @Override
     public void run(Path scratchPath) {
         var path = scratchPath.resolve("mlbridge");
@@ -234,100 +270,75 @@ class ArchiveWorkItem implements WorkItem {
         if (jbs == null) {
             jbs = census.configuration().general().project();
         }
-        var prInstance = new PullRequestInstance(scratchPath.resolve("mlbridge-mergebase"), pr, bot.issueTracker(),
-                                                 jbs.toUpperCase());
-        var reviewArchive = new ReviewArchive(bot.emailAddress(), prInstance, census, sentMails);
-        var webrevPath = scratchPath.resolve("mlbridge-webrevs");
-        var listServer = MailingListServerFactory.createMailmanServer(bot.listArchive(), bot.smtpServer(), bot.sendInterval());
-        var list = listServer.getList(bot.listAddress().address());
 
-        // First post
-        if (sentMails.isEmpty()) {
-            log.fine("Creating new PR review archive");
-            var webrev = bot.webrevStorage().createAndArchive(prInstance, webrevPath, prInstance.baseHash(),
-                                                              prInstance.headHash(), "00");
-            reviewArchive.create(webrev);
-            updateWebrevComment(comments, 0, webrev, null);
-        } else {
-            var latestHead = reviewArchive.latestHead();
+        // Materialize the PR's target ref
+        try {
+            var repository = pr.repository();
+            var localRepo = Repository.materialize(scratchPath.resolve("mlbridge-mergebase"), repository.url(), pr.targetRef());
+            var targetHash = localRepo.fetch(repository.url(), pr.targetRef());
+            var headHash = localRepo.fetch(repository.url(), pr.headHash().hex());
+            var baseHash = localRepo.mergeBase(targetHash, headHash);
 
-            // Check if the head has changed
-            if (!pr.headHash().equals(latestHead)) {
-                log.fine("Head hash change detected: current: " + pr.headHash() + " - last: " + latestHead);
+            var webrevPath = scratchPath.resolve("mlbridge-webrevs");
+            var listServer = MailingListServerFactory.createMailmanServer(bot.listArchive(), bot.smtpServer(), bot.sendInterval());
+            var list = listServer.getList(bot.listAddress().address());
 
-                var latestBase = reviewArchive.latestBase();
-                if (!prInstance.baseHash().equals(latestBase)) {
-                    // FIXME: Could try harder to make an incremental
-                    var fullWebrev = bot.webrevStorage().createAndArchive(prInstance, webrevPath, prInstance.baseHash(),
-                                                                          prInstance.headHash(), String.format("%02d", reviewArchive.revisionCount()));
-                    reviewArchive.addFull(fullWebrev);
-                    updateWebrevComment(comments, reviewArchive.revisionCount(), fullWebrev, null);
-                } else {
-                    var index = reviewArchive.revisionCount();
-                    var fullWebrev = bot.webrevStorage().createAndArchive(prInstance, webrevPath, prInstance.baseHash(),
-                                                                          prInstance.headHash(), String.format("%02d", index));
-                    var incrementalWebrev = bot.webrevStorage().createAndArchive(prInstance, webrevPath, latestHead,
-                                                                                 prInstance.headHash(), String.format("%02d-%02d", index - 1, index));
-                    reviewArchive.addIncremental(fullWebrev, incrementalWebrev);
-                    updateWebrevComment(comments, index, fullWebrev, incrementalWebrev);
+            var archiver = new ReviewArchive(pr, bot.emailAddress(), baseHash, headHash);
+
+            // Regular comments
+            for (var comment : comments) {
+                if (ignoreComment(comment.author(), comment.body())) {
+                    continue;
                 }
+                archiver.addComment(comment);
             }
-        }
 
-        // Regular comments
-        for (var comment : comments) {
-            if (ignoreComment(comment.author(), comment.body())) {
-                continue;
+            // Review comments
+            var reviews = pr.reviews();
+            for (var review : reviews) {
+                if (ignoreComment(review.reviewer(), review.body().orElse(""))) {
+                    continue;
+                }
+                archiver.addReview(review);
             }
-            reviewArchive.addComment(comment);
-        }
 
-        // Review comments
-        var reviews = pr.reviews();
-        for (var review : reviews) {
-            if (ignoreComment(review.reviewer(), review.body().orElse(""))) {
-                continue;
+            // File specific comments
+            var reviewComments = pr.reviewComments();
+            for (var reviewComment : reviewComments) {
+                if (ignoreComment(reviewComment.author(), reviewComment.body())) {
+                    continue;
+                }
+                archiver.addReviewComment(reviewComment);
             }
-            reviewArchive.addReview(review);
-        }
 
-        // File specific comments
-        var reviewComments = pr.reviewComments();
-        for (var reviewComment : reviewComments) {
-            if (ignoreComment(reviewComment.author(), reviewComment.body())) {
-                continue;
+            var webrevGenerator = bot.webrevStorage().generator(pr, localRepo, webrevPath);
+            var newMails = archiver.generateNewEmails(sentMails, localRepo, bot.issueTracker(), jbs.toUpperCase(), webrevGenerator,
+                                                      (uri, index, isFull) -> updateWebrevComment(comments, index, uri, null),
+                                                      user -> getAuthorAddress(census, user),
+                                                      user -> getAuthorUserName(census, user),
+                                                      user -> getAuthorRole(census, user));
+            if (newMails.isEmpty()) {
+                return;
             }
-            reviewArchive.addReviewComment(reviewComment);
-        }
 
-        // Review verdict comments
-        for (var review : reviews) {
-            if (ignoreComment(review.reviewer(), review.body().orElse(""))) {
-                continue;
+            // Push all new mails to the archive repository
+            newMails.forEach(reviewArchiveList::post);
+            pushMbox(archiveRepo, "Adding comments for PR " + bot.codeRepo().name() + "/" + pr.id());
+
+            // Finally post all new mails to the actual list
+            for (var newMail : newMails) {
+                var filteredHeaders = newMail.headers().stream()
+                                             .filter(header -> !header.startsWith("PR-"))
+                                             .collect(Collectors.toMap(Function.identity(),
+                                                                       newMail::headerValue));
+                var filteredEmail = Email.from(newMail)
+                                         .replaceHeaders(filteredHeaders)
+                                         .headers(bot.headers())
+                                         .build();
+                list.post(filteredEmail);
             }
-            reviewArchive.addReviewVerdict(review);
-        }
-
-        var newMails = reviewArchive.generatedEmails();
-        if (newMails.isEmpty()) {
-            return;
-        }
-
-        // Push all new mails to the archive repository
-        newMails.forEach(reviewArchiveList::post);
-        pushMbox(archiveRepo, "Adding comments for PR " + bot.codeRepo().name() + "/" + pr.id());
-
-        // Finally post all new mails to the actual list
-        for (var newMail : newMails) {
-            var filteredHeaders = newMail.headers().stream()
-                                         .filter(header -> !header.startsWith("PR-"))
-                                         .collect(Collectors.toMap(Function.identity(),
-                                                                   newMail::headerValue));
-            var filteredEmail = Email.from(newMail)
-                                     .replaceHeaders(filteredHeaders)
-                                     .headers(bot.headers())
-                                     .build();
-            list.post(filteredEmail);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 

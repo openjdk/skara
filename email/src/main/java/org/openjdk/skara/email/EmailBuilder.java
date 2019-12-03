@@ -47,6 +47,16 @@ public class EmailBuilder {
         author(author);
     }
 
+    public EmailBuilder reply(Email parent) {
+        var references = parent.id().toString();
+        if (parent.hasHeader("References")) {
+            references = parent.headerValue("References") + " " + references;
+        }
+        header("In-Reply-To", parent.id().toString());
+        header("References", references);
+        return this;
+    }
+
     public EmailBuilder author(EmailAddress author) {
         this.author = author;
         return this;

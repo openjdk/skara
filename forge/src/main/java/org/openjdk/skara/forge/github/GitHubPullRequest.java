@@ -92,7 +92,8 @@ public class GitHubPullRequest implements PullRequest {
                                  }
                                  var id = obj.get("id").asInt();
                                  var body = obj.get("body").asString();
-                                 return new Review(reviewer, verdict, hash, id, body);
+                                 var createdAt = ZonedDateTime.parse(obj.get("submitted_at").asString());
+                                 return new Review(createdAt, reviewer, verdict, hash, id, body);
                              })
                              .collect(Collectors.toList());
         return reviews;

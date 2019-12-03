@@ -62,16 +62,17 @@ class WebrevStorageTests {
                                             URIBuilder.base("http://www.test.test/").build(), from);
 
             var prFolder = tempFolder.path().resolve("pr");
-            var prInstance = new PullRequestInstance(prFolder, pr, URIBuilder.base("http://issues.test/browse/").build(), "TEST");
+            var prRepo = Repository.materialize(prFolder, pr.repository().url(), "edit");
             var scratchFolder = tempFolder.path().resolve("scratch");
-            storage.createAndArchive(prInstance, scratchFolder, masterHash, editHash, "00");
+            var generator = storage.generator(pr, prRepo, scratchFolder);
+            generator.generate(masterHash, editHash, "00");
 
             // Update the local repository and check that the webrev has been generated
             Repository.materialize(repoFolder, archive.url(), "webrev");
             assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/webrev.00/index.html")));
 
             // Create it again - it will overwrite the previous one
-            storage.createAndArchive(prInstance, scratchFolder, masterHash, editHash, "00");
+            generator.generate(masterHash, editHash, "00");
             Repository.materialize(repoFolder, archive.url(), "webrev");
             assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/webrev.00/index.html")));
         }
