@@ -550,7 +550,7 @@ public class GitLabMergeRequest implements PullRequest {
     @Override
     public void setState(State state) {
         request.put("")
-               .body("state_event", state == State.CLOSED ? "close" : "reopen")
+               .body("state_event", state != State.OPEN ? "close" : "reopen")
                .execute();
     }
 

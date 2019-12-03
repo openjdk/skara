@@ -104,6 +104,7 @@ public interface Issue {
 
     enum State {
         OPEN,
+        RESOLVED,
         CLOSED
     }
 
