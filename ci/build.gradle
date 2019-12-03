@@ -33,4 +33,6 @@ module {
 dependencies {
     implementation project(':host')
     implementation project(':json')
+    implementation project(':forge')
+    implementation project(':issuetracker')
 }

@@ -25,6 +25,7 @@ package org.openjdk.skara.bots.tester;
 import org.openjdk.skara.ci.ContinuousIntegration;
 import org.openjdk.skara.ci.Job;
 import org.openjdk.skara.host.HostUser;
+import org.openjdk.skara.forge.PullRequest;
 
 import java.io.*;
 import java.nio.file.*;
@@ -93,7 +94,7 @@ class InMemoryContinuousIntegration implements ContinuousIntegration {
     }
 
     @Override
-    public List<Job> query(String query) throws IOException {
+    public List<Job> jobsFor(PullRequest pr) throws IOException {
         return List.of();
     }
 }

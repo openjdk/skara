@@ -23,6 +23,7 @@
 module org.openjdk.skara.ci {
     requires org.openjdk.skara.host;
     requires org.openjdk.skara.json;
+    requires org.openjdk.skara.forge;
 
     uses org.openjdk.skara.ci.ContinuousIntegrationFactory;
     exports org.openjdk.skara.ci;

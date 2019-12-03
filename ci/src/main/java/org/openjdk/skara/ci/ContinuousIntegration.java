@@ -25,6 +25,7 @@ package org.openjdk.skara.ci;
 import org.openjdk.skara.host.Host;
 import org.openjdk.skara.json.JSONObject;
 import org.openjdk.skara.json.JSON;
+import org.openjdk.skara.forge.PullRequest;
 
 import java.io.IOException;
 import java.net.URI;
@@ -34,7 +35,7 @@ import java.util.*;
 public interface ContinuousIntegration extends Host {
     Job submit(Path source, List<String> jobs, String id) throws IOException;
     Job job(String id) throws IOException;
-    List<Job> query(String query) throws IOException;
+    List<Job> jobsFor(PullRequest pr) throws IOException;
     void cancel(String id) throws IOException;
 
     static Optional<ContinuousIntegration> from(URI uri, JSONObject configuration) {
