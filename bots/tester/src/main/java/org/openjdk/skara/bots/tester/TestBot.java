@@ -41,7 +41,7 @@ public class TestBot implements Bot {
     private final Path storage;
     private final HostedRepository repo;
     private final PullRequestUpdateCache cache;
-    private final Set<String> seen;
+    private final Map<String, Job.State> states;
 
     TestBot(ContinuousIntegration ci,
             String approversGroupId,
@@ -58,7 +58,7 @@ public class TestBot implements Bot {
         this.storage = storage;
         this.repo = repo;
         this.cache = new PullRequestUpdateCache();
-        this.seen = new HashSet<>();
+        this.states = new HashMap<>();
     }
 
     @Override
@@ -84,7 +84,18 @@ public class TestBot implements Bot {
                 try {
                     var jobs = ci.query("id" + colon + id);
                     if (!jobs.isEmpty()) {
-                        if (jobs.stream().anyMatch(j -> j.isRunning() || !seen.contains(j.id()))) {
+                        var shouldUpdate = false;
+                        for (var job : jobs) {
+                            if (!states.containsKey(job.id())) {
+                                shouldUpdate = true;
+                            } else {
+                                if (!states.get(job.id()).equals(Job.State.COMPLETED)) {
+                                    shouldUpdate = true;
+                                }
+                            }
+                            states.put(job.id(), job.state());
+                        }
+                        if (shouldUpdate) {
                             ret.add(new TestWorkItem(ci,
                                                      approversGroupId,
                                                      availableJobs,
@@ -93,7 +104,6 @@ public class TestBot implements Bot {
                                                      storage,
                                                      pr));
                         }
-                        seen.addAll(jobs.stream().map(Job::id).collect(Collectors.toList()));
                     }
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
