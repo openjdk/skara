@@ -139,10 +139,23 @@ public class JiraIssue implements Issue {
         return ZonedDateTime.parse(json.get("fields").get("updated").asString(), dateFormat);
     }
 
+    private String stateName(State state) {
+        switch (state) {
+            case OPEN:
+                return "Open";
+            case RESOLVED:
+                return "Resolved";
+            case CLOSED:
+                return "Closed";
+            default:
+                throw new IllegalStateException("Unknown state " + state);
+        }
+    }
+
     @Override
     public void setState(State state) {
         var transitions = request.get("/transitions").execute();
-        var wantedStateName = state == State.CLOSED ? "Closed" : "Open";
+        var wantedStateName = stateName(state);
         for (var transition : transitions.get("transitions").asArray()) {
             if (transition.get("to").get("name").asString().equals(wantedStateName)) {
                 var query = JSON.object()

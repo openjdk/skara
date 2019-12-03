@@ -421,7 +421,7 @@ public class GitHubPullRequest implements PullRequest {
     @Override
     public void setState(State state) {
         request.patch("pulls/" + json.get("number").toString())
-               .body("state", state == State.CLOSED ? "closed" : "open")
+               .body("state", state != State.OPEN ? "closed" : "open")
                .execute();
     }
 
