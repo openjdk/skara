@@ -330,7 +330,7 @@ public class GitPr {
         var forge = credentials == null ?
             Forge.from(forgeURI) :
             Forge.from(forgeURI, new Credential(credentials.username(), credentials.password()));
-        if (forge.isEmpty() || !forge.get().isValid()) {
+        if (forge.isEmpty()) {
             if (!shouldUseToken) {
                 if (arguments.contains("verbose")) {
                     System.err.println("");
