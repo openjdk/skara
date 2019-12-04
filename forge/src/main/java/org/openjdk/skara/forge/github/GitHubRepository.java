@@ -37,8 +37,9 @@ public class GitHubRepository implements HostedRepository {
     private final GitHubHost gitHubHost;
     private final String repository;
     private final RestRequest request;
-    private final JSONValue json;
     private final Pattern pullRequestPattern;
+
+    private JSONValue cachedJSON;
 
     GitHubRepository(GitHubHost gitHubHost, String repository) {
         this.gitHubHost = gitHubHost;
@@ -62,15 +63,22 @@ public class GitHubRepository implements HostedRepository {
             }
             return headers;
         });
-        json = gitHubHost.getProjectInfo(repository);
+        this.cachedJSON = null;
         var urlPattern = gitHubHost.getWebURI("/" + repository + "/pull/").toString();
         pullRequestPattern = Pattern.compile(urlPattern + "(\\d+)");
     }
 
+    private JSONValue json() {
+        if (cachedJSON == null) {
+            cachedJSON = gitHubHost.getProjectInfo(repository);
+        }
+        return cachedJSON;
+    }
+
     @Override
     public Optional<HostedRepository> parent() {
-        if (json.get("fork").asBoolean()) {
-            var parent = json.get("parent").get("full_name").asString();
+        if (json().get("fork").asBoolean()) {
+            var parent = json().get("parent").get("full_name").asString();
             return Optional.of(new GitHubRepository(gitHubHost, parent));
         }
         return Optional.empty();
@@ -205,7 +213,7 @@ public class GitHubRepository implements HostedRepository {
 
     @Override
     public long id() {
-        return json.get("id").asLong();
+        return json().get("id").asLong();
     }
 
     @Override
