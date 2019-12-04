@@ -77,4 +77,49 @@ class WebrevStorageTests {
             assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/webrev.00/index.html")));
         }
     }
+
+    @Test
+    void dropLarge(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+
+            // Populate the projects repository
+            var reviewFile = Path.of("reviewfile.txt");
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, author.repositoryType(), reviewFile);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+
+            // Make a change with a corresponding PR
+            CheckableRepository.appendAndCommit(localRepo);
+            var large = "This line is about 30 bytes long\n".repeat(1000 * 100);
+            Files.writeString(repoFolder.resolve("large.txt"), large);
+            localRepo.add(repoFolder.resolve("large.txt"));
+            var editHash = localRepo.commit("Add large file", "duke", "duke@openjdk.org");
+
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
+            pr.addLabel("rfr");
+            pr.setBody("This is now ready");
+
+            var from = EmailAddress.from("test", "test@test.mail");
+            var storage = new WebrevStorage(archive, "webrev", Path.of("test"),
+                                            URIBuilder.base("http://www.test.test/").build(), from);
+
+            var prFolder = tempFolder.path().resolve("pr");
+            var prRepo = Repository.materialize(prFolder, pr.repository().url(), "edit");
+            var scratchFolder = tempFolder.path().resolve("scratch");
+            var generator = storage.generator(pr, prRepo, scratchFolder);
+            generator.generate(masterHash, editHash, "00");
+
+            // Update the local repository and check that the webrev has been generated
+            Repository.materialize(repoFolder, archive.url(), "webrev");
+            assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/webrev.00/index.html")));
+            assertTrue(Files.size(repoFolder.resolve("test/" + pr.id() + "/webrev.00/large.txt")) > 0);
+            assertTrue(Files.size(repoFolder.resolve("test/" + pr.id() + "/webrev.00/large.txt")) < 1000);
+        }
+    }
 }

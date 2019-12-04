@@ -67,21 +67,22 @@ class WebrevStorage {
 
     private void push(Repository localStorage, Path webrevFolder, String identifier, String placeholder) throws IOException {
         var batchIndex = new AtomicInteger();
+
+        // Replace large files (except the index) with placeholders
         try (var files = Files.walk(webrevFolder)) {
-            // Replace large files (except the index) with placeholders
             var largeFiles = files.filter(Files::isRegularFile)
-                    .filter(file -> {
-                        try {
-                            if (file.getFileName().toString().equals("index.html")) {
-                                return false;
-                            } else {
-                                return Files.size(file) >= 1000 * 1000;
-                            }
-                        } catch (IOException e) {
-                            return false;
-                        }
-                    })
-                    .collect(Collectors.toList());
+                                  .filter(file -> {
+                                      try {
+                                          if (file.getFileName().toString().equals("index.html")) {
+                                              return false;
+                                          } else {
+                                              return Files.size(file) >= 1000 * 1000;
+                                          }
+                                      } catch (IOException e) {
+                                          return false;
+                                      }
+                                  })
+                                  .collect(Collectors.toList());
             largeFiles.forEach(file -> {
                 try {
                     Files.writeString(file, placeholder);
@@ -89,8 +90,10 @@ class WebrevStorage {
                     throw new RuntimeException("Failed to replace large file with placeholder");
                 }
             });
+        }
 
-            // Try to push 1000 files at a time
+        // Try to push 1000 files at a time
+        try (var files = Files.walk(webrevFolder)) {
             var batches = files.filter(Files::isRegularFile)
                                .collect(Collectors.groupingBy(path -> {
                                    int curIndex = batchIndex.incrementAndGet();
