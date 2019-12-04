@@ -210,7 +210,7 @@ class ArchiveWorkItem implements WorkItem {
         var version = censusInstance.configuration().census().version();
         var contributor = censusInstance.namespace().get(originalAuthor.id());
         if (contributor == null) {
-            return "none - no known OpenJDK username";
+            return "no known OpenJDK username";
         } else if (censusInstance.project().isLead(contributor.username(), version)) {
             return "Lead";
         } else if (censusInstance.project().isReviewer(contributor.username(), version)) {
@@ -220,7 +220,7 @@ class ArchiveWorkItem implements WorkItem {
         } else if (censusInstance.project().isAuthor(contributor.username(), version)) {
             return "Author";
         }
-        return "none";
+        return "no project role";
     }
 
     @Override

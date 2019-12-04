@@ -204,13 +204,13 @@ class ArchiveMessages {
         var result = new StringBuilder();
         if (review.verdict() != Review.Verdict.NONE) {
             if (review.verdict() == Review.Verdict.APPROVED) {
-                result.append("Marked as Reviewed");
+                result.append("Marked as reviewed");
             } else {
                 result.append("Changes requested");
             }
             result.append(" by ");
             result.append(hostUserToUserName.userName(review.reviewer()));
-            result.append(" (project role: ");
+            result.append(" (");
             result.append(hostUserToRole.role(review.reviewer()));
             result.append(").");
         }
