@@ -139,19 +139,6 @@ public class JiraIssue implements Issue {
         return ZonedDateTime.parse(json.get("fields").get("updated").asString(), dateFormat);
     }
 
-    private String stateName(State state) {
-        switch (state) {
-            case OPEN:
-                return "Open";
-            case RESOLVED:
-                return "Resolved";
-            case CLOSED:
-                return "Closed";
-            default:
-                throw new IllegalStateException("Unknown state " + state);
-        }
-    }
-
     private Map<String, String> availableTransitions() {
         var transitions = request.get("/transitions").execute();
         return transitions.get("transitions").stream()
@@ -205,6 +192,8 @@ public class JiraIssue implements Issue {
                 throw new RuntimeException("Cannot transition to Open");
             }
             performTransition(availableTransitions.get("Open"));
+        } else {
+            throw new IllegalStateException("Unknown state " + state);
         }
     }
 
