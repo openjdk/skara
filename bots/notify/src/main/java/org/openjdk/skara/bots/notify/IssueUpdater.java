@@ -52,7 +52,7 @@ public class IssueUpdater implements UpdateConsumer {
                     continue;
                 }
                 issue.get().addComment(commitNotification);
-                issue.get().setState(Issue.State.CLOSED);
+                issue.get().setState(Issue.State.RESOLVED);
             }
         }
     }
