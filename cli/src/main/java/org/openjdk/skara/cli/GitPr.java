@@ -100,21 +100,33 @@ public class GitPr {
         return name;
     }
 
-    private static HostedRepository getHostedRepositoryFor(URI uri, Forge host) throws IOException {
-        var remoteRepo = host.repository(projectName(uri)).orElseThrow(() ->
-                new IOException("Could not find repository at: " + uri.toString())
-        );
-        var parentRepo = remoteRepo.parent();
-        var targetRepo = parentRepo.isPresent() ? parentRepo.get() : remoteRepo;
+    private static HostedRepository getHostedRepositoryFor(URI uri, ReadOnlyRepository repo, Forge host) throws IOException {
+        HostedRepository targetRepo = null;
+
+        try {
+            var upstream = Remote.toWebURI(repo.pullPath("upstream"));
+            targetRepo = host.repository(projectName(upstream)).orElse(null);
+        } catch (IOException e) {
+            // do nothing
+        }
+
+        if (targetRepo == null) {
+            var remoteRepo = host.repository(projectName(uri)).orElseThrow(() ->
+                    new IOException("Could not find repository at: " + uri.toString())
+            );
+            var parentRepo = remoteRepo.parent();
+            targetRepo = parentRepo.isPresent() ? parentRepo.get() : remoteRepo;
+        }
+
         return targetRepo;
     }
 
-    private static PullRequest getPullRequest(URI uri, Forge host, Argument prId) throws IOException {
+    private static PullRequest getPullRequest(URI uri, ReadOnlyRepository repo, Forge host, Argument prId) throws IOException {
         if (!prId.isPresent()) {
             exit("error: missing pull request identifier");
         }
 
-        var pr = getHostedRepositoryFor(uri, host).pullRequest(prId.asString());
+        var pr = getHostedRepositoryFor(uri, repo, host).pullRequest(prId.asString());
         if (pr == null) {
             exit("error: could not fetch PR information");
         }
@@ -680,7 +692,7 @@ public class GitPr {
             System.out.println(pr.webUrl().toString());
             Files.deleteIfExists(file);
         } else if (action.equals("integrate") || action.equals("approve") || action.equals("test")) {
-            var pr = getPullRequest(uri, host, arguments.at(1));
+            var pr = getPullRequest(uri, repo, host, arguments.at(1));
 
             if (action.equals("integrate")) {
                 pr.addComment("/integrate");
@@ -692,9 +704,8 @@ public class GitPr {
                 throw new IllegalStateException("unexpected action: " + action);
             }
         } else if (action.equals("list")) {
-            var remoteRepo = getHostedRepositoryFor(uri, host);
+            var remoteRepo = getHostedRepositoryFor(uri, repo, host);
             var prs = remoteRepo.pullRequests();
-
             var ids = new ArrayList<String>();
             var titles = new ArrayList<String>();
             var authors = new ArrayList<String>();
@@ -784,7 +795,7 @@ public class GitPr {
                 exit("error: missing pull request identifier");
             }
 
-            var remoteRepo = getHostedRepositoryFor(uri, host);
+            var remoteRepo = getHostedRepositoryFor(uri, repo, host);
             var pr = remoteRepo.pullRequest(prId.asString());
             var repoUrl = remoteRepo.webUrl();
             var prHeadRef = pr.sourceRef();
@@ -858,7 +869,7 @@ public class GitPr {
                 exit("error: missing pull request identifier");
             }
 
-            var remoteRepo = getHostedRepositoryFor(uri, host);
+            var remoteRepo = getHostedRepositoryFor(uri, repo, host);
             var pr = remoteRepo.pullRequest(prId.asString());
             pr.setState(PullRequest.State.CLOSED);
         } else if (action.equals("update")) {
@@ -867,7 +878,7 @@ public class GitPr {
                 exit("error: missing pull request identifier");
             }
 
-            var remoteRepo = getHostedRepositoryFor(uri, host);
+            var remoteRepo = getHostedRepositoryFor(uri, repo, host);
             var pr = remoteRepo.pullRequest(prId.asString());
             if (arguments.contains("assignees")) {
                 var usernames = Arrays.asList(arguments.get("assignees").asString().split(","));
