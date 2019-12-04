@@ -56,23 +56,42 @@ class WebrevStorage {
               .generate(base, head);
     }
 
-    private void push(Repository localStorage, Path webrevFolder, String identifier) throws IOException {
+    private String generatePlaceholder(PullRequest pr, Hash base, Hash head) {
+        return "This file was too large to be included in the published webrev, and has been replaced with " +
+                "this placeholder message. It is possible to generate the original content locally by " +
+                "following these instructions:\n\n" +
+                "  $ git fetch " + pr.repository().webUrl() + " " + pr.sourceRef() + "\n" +
+                "  $ git checkout " + head.hex() + "\n" +
+                "  $ git webrev -r " + base.hex() + "\n";
+    }
+
+    private void push(Repository localStorage, Path webrevFolder, String identifier, String placeholder) throws IOException {
         var batchIndex = new AtomicInteger();
         try (var files = Files.walk(webrevFolder)) {
+            // Replace large files (except the index) with placeholders
+            var largeFiles = files.filter(Files::isRegularFile)
+                    .filter(file -> {
+                        try {
+                            if (file.getFileName().toString().equals("index.html")) {
+                                return false;
+                            } else {
+                                return Files.size(file) >= 1000 * 1000;
+                            }
+                        } catch (IOException e) {
+                            return false;
+                        }
+                    })
+                    .collect(Collectors.toList());
+            largeFiles.forEach(file -> {
+                try {
+                    Files.writeString(file, placeholder);
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to replace large file with placeholder");
+                }
+            });
+
             // Try to push 1000 files at a time
             var batches = files.filter(Files::isRegularFile)
-                               .filter(file -> {
-                                   // Huge files are not that useful in a webrev - but make an exception for the index
-                                   try {
-                                       if (file.getFileName().toString().equals("index.html")) {
-                                           return true;
-                                       } else {
-                                           return Files.size(file) < 1000 * 1000;
-                                       }
-                                   } catch (IOException e) {
-                                       return false;
-                                   }
-                               })
                                .collect(Collectors.groupingBy(path -> {
                                    int curIndex = batchIndex.incrementAndGet();
                                    return Math.floorDiv(curIndex, 1000);
@@ -116,8 +135,9 @@ class WebrevStorage {
                 clearDirectory(outputFolder);
             }
             generate(pr, localRepository, outputFolder, base, head);
+            var placeholder = generatePlaceholder(pr, base, head);
             if (!localStorage.isClean()) {
-                push(localStorage, outputFolder, baseFolder.resolve(pr.id()).toString());
+                push(localStorage, outputFolder, baseFolder.resolve(pr.id()).toString(), placeholder);
             }
             return URIBuilder.base(baseUri).appendPath(relativeFolder.toString().replace('\\', '/')).build();
         } catch (IOException e) {
