@@ -55,4 +55,14 @@ class MarkdownToTextTests {
     void suggestion() {
         assertEquals("Suggestion:\n\nJust some text", MarkdownToText.removeFormatting("```suggestion\nJust some text\n```"));
     }
+
+    @Test
+    void escapes() {
+        assertEquals("Special chars: #$%&'()*+\\!", MarkdownToText.removeFormatting("Special chars: \\#\\$\\%\\&\\'\\(\\)\\*\\+\\\\!"));
+    }
+
+    @Test
+    void entities() {
+        assertEquals("space is here", MarkdownToText.removeFormatting("space&#32;is here"));
+    }
 }

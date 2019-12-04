@@ -22,12 +22,14 @@
  */
 package org.openjdk.skara.bots.mlbridge;
 
-import java.util.regex.Pattern;
+import java.util.regex.*;
 
 public class MarkdownToText {
     private static final Pattern emojiPattern = Pattern.compile("(:([0-9a-z_+-]+):)");
     private static final Pattern suggestionPattern = Pattern.compile("^```suggestion$", Pattern.MULTILINE);
     private static final Pattern codePattern = Pattern.compile("^```(?:\\w+)?\\R?", Pattern.MULTILINE);
+    private static final Pattern escapesPattern = Pattern.compile("\\\\([!\"#$%&'()*+,\\-./:;<=?@\\[\\]^_`{|}~])", Pattern.MULTILINE);
+    private static final Pattern entitiesPattern = Pattern.compile("&#32;", Pattern.MULTILINE);
 
     private static String removeEmojis(String markdown) {
         var emojiMatcher = emojiPattern.matcher(markdown);
@@ -44,7 +46,17 @@ public class MarkdownToText {
         return codeMatcher.replaceAll("");
     }
 
+    static String removeEscapes(String markdown) {
+        var escapesMatcher = escapesPattern.matcher(markdown);
+        return escapesMatcher.replaceAll(mr -> Matcher.quoteReplacement(mr.group(1)));
+    }
+
+    static String removeEntities(String markdown) {
+        var entitiesMatcher = entitiesPattern.matcher(markdown);
+        return entitiesMatcher.replaceAll(" ");
+    }
+
     static String removeFormatting(String markdown) {
-        return removeCode(removeSuggestions(removeEmojis(markdown))).strip();
+        return removeEscapes(removeEntities(removeCode(removeSuggestions(removeEmojis(markdown))))).strip();
     }
 }
