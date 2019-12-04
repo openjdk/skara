@@ -5,11 +5,17 @@ import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.json.JSONObject;
 
 import java.net.URI;
+import java.util.Set;
 
 public class GitLabForgeFactory implements ForgeFactory {
     @Override
     public String name() {
         return "gitlab";
+    }
+
+    @Override
+    public Set<String> knownHosts() {
+        return Set.of("gitlab.com");
     }
 
     @Override

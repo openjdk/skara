@@ -37,6 +37,12 @@ public interface ForgeFactory {
     String name();
 
     /**
+     * A set of known hostnames that are instances of this forge.
+     * @return
+     */
+    Set<String> knownHosts();
+
+    /**
      * Instantiate an instance of this forge.
      * @return
      */

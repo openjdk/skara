@@ -42,6 +42,11 @@ class ForgeTests {
                                        }
 
                                        @Override
+                                       public Set<String> knownHosts() {
+                                           return Set.of();
+                                       }
+
+                                       @Override
                                        public Forge create(URI uri, Credential credential, JSONObject configuration) {
                                            return null;
                                        }
@@ -50,6 +55,11 @@ class ForgeTests {
                                        @Override
                                        public String name() {
                                            return "other";
+                                       }
+
+                                       @Override
+                                       public Set<String> knownHosts() {
+                                           return Set.of();
                                        }
 
                                        @Override

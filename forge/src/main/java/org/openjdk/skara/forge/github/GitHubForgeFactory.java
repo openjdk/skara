@@ -5,12 +5,18 @@ import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.json.JSONObject;
 
 import java.net.URI;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 public class GitHubForgeFactory implements ForgeFactory {
     @Override
     public String name() {
         return "github";
+    }
+
+    @Override
+    public Set<String> knownHosts() {
+        return Set.of("github.com");
     }
 
     @Override
