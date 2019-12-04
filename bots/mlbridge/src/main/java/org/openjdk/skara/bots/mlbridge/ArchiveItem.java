@@ -77,7 +77,7 @@ class ArchiveItem {
                                () -> ArchiveMessages.composeReplySubject(parent.subject()),
                                () -> ArchiveMessages.composeReplyHeader(parent.createdAt(), hostUserToEmailAuthor.author(parent.author())),
                                () -> ArchiveMessages.composeReview(pr, review, hostUserToUserName, hostUserToRole),
-                               () -> ArchiveMessages.composeReplyFooter(pr));
+                               () -> ArchiveMessages.composeReviewFooter(pr, review, hostUserToUserName, hostUserToRole));
     }
 
     static ArchiveItem from(PullRequest pr, ReviewComment reviewComment, HostUserToEmailAuthor hostUserToEmailAuthor, ArchiveItem parent) {
