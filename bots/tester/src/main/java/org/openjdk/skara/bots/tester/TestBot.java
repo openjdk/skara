@@ -33,6 +33,16 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class TestBot implements Bot {
+    private static class Observation {
+        Job.State nextToLast;
+        Job.State last;
+
+        Observation(Job.State nextToLast, Job.State last) {
+            this.nextToLast = nextToLast;
+            this.last = last;
+        }
+    }
+
     private final ContinuousIntegration ci;
     private final String approversGroupId;
     private final List<String> availableJobs;
@@ -41,7 +51,7 @@ public class TestBot implements Bot {
     private final Path storage;
     private final HostedRepository repo;
     private final PullRequestUpdateCache cache;
-    private final Map<String, Job.State> states;
+    private final Map<String, Observation> states;
 
     TestBot(ContinuousIntegration ci,
             String approversGroupId,
@@ -85,12 +95,18 @@ public class TestBot implements Bot {
                         for (var job : jobs) {
                             if (!states.containsKey(job.id())) {
                                 shouldUpdate = true;
+                                states.put(job.id(), new Observation(job.state(), job.state()));
                             } else {
-                                if (!states.get(job.id()).equals(Job.State.COMPLETED)) {
+                                var observed = states.get(job.id());
+
+                                if (!observed.last.equals(Job.State.COMPLETED) ||
+                                    !observed.nextToLast.equals(Job.State.COMPLETED)) {
                                     shouldUpdate = true;
                                 }
+
+                                observed.nextToLast = observed.last;
+                                observed.last = job.state();
                             }
-                            states.put(job.id(), job.state());
                         }
                         if (shouldUpdate) {
                             ret.add(new TestWorkItem(ci,
