@@ -28,8 +28,6 @@ class ArchiveMessages {
         return ret.toString();
     }
 
-    private static final String infoSeparator = "----------------";
-
     private static final Pattern commentPattern = Pattern.compile("<!--.*?-->",
                                                                   Pattern.DOTALL | Pattern.MULTILINE);
     private static final Pattern cutoffPattern = Pattern.compile("(.*?)<!-- Anything below this marker will be .*? -->",
@@ -202,26 +200,38 @@ class ArchiveMessages {
         return body.toString();
     }
 
-    static String composeReview(PullRequest pr, Review review, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole) {
+    private static String composeReviewVerdict(Review review, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole) {
         var result = new StringBuilder();
-        review.body().ifPresent(body -> result.append(filterComments(body)));
         if (review.verdict() != Review.Verdict.NONE) {
-            if (result.length() > 0) {
-                result.append("\n\n");
-                result.append(infoSeparator);
-                result.append("\n\n");
-            }
             if (review.verdict() == Review.Verdict.APPROVED) {
-                result.append("Approved");
+                result.append("Marked as Reviewed");
             } else {
                 result.append("Changes requested");
             }
             result.append(" by ");
             result.append(hostUserToUserName.userName(review.reviewer()));
-            result.append(" (");
+            result.append(" (project role: ");
             result.append(hostUserToRole.role(review.reviewer()));
             result.append(").");
         }
+        return result.toString();
+    }
+
+    static String composeReview(PullRequest pr, Review review, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole) {
+        if (review.body().isPresent()) {
+            return filterComments(review.body().get());
+        } else {
+            return composeReviewVerdict(review, hostUserToUserName, hostUserToRole);
+        }
+    }
+
+    static String composeReviewFooter(PullRequest pr, Review review, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole) {
+        var result = new StringBuilder();
+        if (review.body().isPresent()) {
+            result.append(composeReviewVerdict(review, hostUserToUserName, hostUserToRole));
+            result.append("\n\n");
+        }
+        result.append(composeReplyFooter(pr));
         return result.toString();
     }
 

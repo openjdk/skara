@@ -10,7 +10,6 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.stream.*;
 
 class ReviewArchive {
@@ -127,23 +126,6 @@ class ReviewArchive {
         return new ArrayList<>(grouped.values());
     }
 
-    private static final Pattern commentPattern = Pattern.compile("<!--.*?-->",
-                                                                  Pattern.DOTALL | Pattern.MULTILINE);
-    private static final Pattern cutoffPattern = Pattern.compile("(.*?)<!-- Anything below this marker will be .*? -->",
-                                                                 Pattern.DOTALL | Pattern.MULTILINE);
-    private static String filterComments(String body) {
-        var cutoffMatcher = cutoffPattern.matcher(body);
-        if (cutoffMatcher.find()) {
-            body = cutoffMatcher.group(1);
-        }
-
-        var commentMatcher = commentPattern.matcher(body);
-        body = commentMatcher.replaceAll("");
-
-        body = MarkdownToText.removeFormatting(body);
-        return body.strip();
-    }
-
     private String quoteBody(String body) {
         return Arrays.stream(body.strip().split("\\R"))
                      .map(line -> line.length() > 0 ? line.charAt(0) == '>' ? ">" + line : "> " + line : "> ")
@@ -200,6 +182,7 @@ class ReviewArchive {
         var combinedItems = collapsableItems(unsentItems);
         var ret = new ArrayList<Email>();
         for (var itemList : combinedItems) {
+            // Simply combine all message bodies
             var body = new StringBuilder();
             for (var item : itemList) {
                 if (body.length() > 0) {
@@ -208,16 +191,26 @@ class ReviewArchive {
                 body.append(item.body());
             }
 
-            // All items have the same parent and author after collapsing -> should have the same header and footer
+            // For footers, we want to combine all unique fragments
+            var footer = new StringBuilder();
+            var includedFooterFragments = new HashSet<String>();
+            for (var item : itemList) {
+                var newFooterFragments = Stream.of(item.footer().split("\n\n"))
+                                               .filter(line -> !includedFooterFragments.contains(line))
+                                               .collect(Collectors.toList());
+                footer.append(String.join("\n\n", newFooterFragments));
+                includedFooterFragments.addAll(newFooterFragments);
+            }
+
+            // All items have the same parent and author after collapsing -> should have the same header
             var firstItem = itemList.get(0);
             var header = firstItem.header();
             var quote = quotedParent(firstItem, 2);
             if (!quote.isBlank()) {
                 quote = quote + "\n\n";
             }
-            var footer = firstItem.footer();
 
-            var combined = (header.isBlank() ? "" : header +  "\n\n") + quote + body.toString() + (footer.isBlank() ? "" : "\n\n-------------\n\n" + footer);
+            var combined = (header.isBlank() ? "" : header +  "\n\n") + quote + body.toString() + (footer.length() == 0 ? "" : "\n\n-------------\n\n" + footer.toString());
 
             var emailBuilder = Email.create(firstItem.subject(), combined);
             if (firstItem.parent().isPresent()) {

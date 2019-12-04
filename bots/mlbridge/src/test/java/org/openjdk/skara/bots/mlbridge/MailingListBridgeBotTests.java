@@ -554,7 +554,7 @@ class MailingListBridgeBotTests {
             assertEquals("Re: RFR: This is a pull request", thread4.subject());
             assertTrue(thread4.body().contains("Looks fine"));
             assertTrue(thread4.body().contains("The final review comment"));
-            assertTrue(thread4.body().contains("Approved by integrationreviewer1 (Reviewer)"));
+            assertTrue(thread4.body().contains("Marked as Reviewed by integrationreviewer1 (project role: Reviewer)"));
         }
     }
 
@@ -1149,7 +1149,7 @@ class MailingListBridgeBotTests {
 
             // The archive should contain another note
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Approved by "));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Marked as Reviewed by "));
             if (author.forge().supportsReviewBody()) {
                 assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 2"));
             }
