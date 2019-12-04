@@ -66,6 +66,10 @@ class IssueTrackerTests {
             assertEquals(1, updated.comments().size());
             assertEquals("Updated title", updated.title());
             assertEquals("Now it is updated", updated.comments().get(0).body());
+
+            issue.setState(Issue.State.RESOLVED);
+            var issues = project.issues();
+            assertEquals(0, issues.size());
         }
     }
 }
