@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.issuetracker.jira;
 
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
@@ -30,7 +30,7 @@ import org.openjdk.skara.network.*;
 import java.net.URI;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class JiraIssue implements Issue {
@@ -139,33 +139,61 @@ public class JiraIssue implements Issue {
         return ZonedDateTime.parse(json.get("fields").get("updated").asString(), dateFormat);
     }
 
-    private String stateName(State state) {
-        switch (state) {
-            case OPEN:
-                return "Open";
-            case RESOLVED:
-                return "Resolved";
-            case CLOSED:
-                return "Closed";
-            default:
-                throw new IllegalStateException("Unknown state " + state);
-        }
+    private Map<String, String> availableTransitions() {
+        var transitions = request.get("/transitions").execute();
+        return transitions.get("transitions").stream()
+                          .collect(Collectors.toMap(v -> v.get("to").get("name").asString(),
+                                                    v -> v.get("id").asString()));
+    }
+
+    private void performTransition(String id) {
+        var query = JSON.object()
+                        .put("transition", JSON.object()
+                                               .put("id", id));
+        request.post("/transitions")
+               .body(query)
+               .execute();
     }
 
     @Override
     public void setState(State state) {
-        var transitions = request.get("/transitions").execute();
-        var wantedStateName = stateName(state);
-        for (var transition : transitions.get("transitions").asArray()) {
-            if (transition.get("to").get("name").asString().equals(wantedStateName)) {
-                var query = JSON.object()
-                                .put("transition", JSON.object()
-                                                       .put("id", transition.get("id").asString()));
-                request.post("/transitions")
-                       .body(query)
-                       .execute();
-                return;
+        var availableTransitions = availableTransitions();
+
+        // Handle special cases
+        if (state == State.RESOLVED) {
+            if (!availableTransitions.containsKey("Resolved")) {
+                if (availableTransitions.containsKey("Open")) {
+                    performTransition(availableTransitions.get("Open"));
+                    availableTransitions = availableTransitions();
+                    if (!availableTransitions.containsKey("Resolved")) {
+                        throw new RuntimeException("Cannot transition to Resolved after Open");
+                    }
+                } else {
+                    // The issue is most likely closed - skip transitioning
+                    return;
+                }
             }
+            performTransition(availableTransitions.get("Resolved"));
+        } else if (state == State.CLOSED) {
+            if (!availableTransitions.containsKey("Closed")) {
+                if (availableTransitions.containsKey("Resolved")) {
+                    performTransition(availableTransitions.get("Resolved"));
+                    availableTransitions = availableTransitions();
+                    if (!availableTransitions.containsKey("Closed")) {
+                        throw new RuntimeException("Cannot transition to Closed after Resolved");
+                    }
+                } else {
+                    throw new RuntimeException("Cannot transition to Closed");
+                }
+                performTransition(availableTransitions.get("Closed"));
+            }
+        } else if (state == State.OPEN) {
+            if (!availableTransitions.containsKey("Open")) {
+                throw new RuntimeException("Cannot transition to Open");
+            }
+            performTransition(availableTransitions.get("Open"));
+        } else {
+            throw new IllegalStateException("Unknown state " + state);
         }
     }
 
