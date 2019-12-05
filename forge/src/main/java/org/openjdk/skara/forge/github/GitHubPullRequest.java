@@ -43,11 +43,19 @@ public class GitHubPullRequest implements PullRequest {
     private final GitHubRepository repository;
     private final Logger log = Logger.getLogger("org.openjdk.skara.host");
 
+    private List<String> labels = null;
+
     GitHubPullRequest(GitHubRepository repository, JSONValue jsonValue, RestRequest request) {
         this.host = (GitHubHost)repository.forge();
         this.repository = repository;
         this.request = request;
         this.json = jsonValue;
+
+        labels = json.get("labels")
+                     .stream()
+                     .map(v -> v.get("name").asString())
+                     .sorted()
+                     .collect(Collectors.toList());
     }
 
     @Override
@@ -427,6 +435,7 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public void addLabel(String label) {
+        labels = null;
         var query = JSON.object().put("labels", JSON.array().add(label));
         request.post("issues/" + json.get("number").toString() + "/labels")
                .body(query)
@@ -435,6 +444,7 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public void removeLabel(String label) {
+        labels = null;
         request.delete("issues/" + json.get("number").toString() + "/labels/" + label)
                .onError(r -> {
                    // The GitHub API explicitly states that 404 is the response for deleting labels currently not set
@@ -448,11 +458,14 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public List<String> labels() {
-        return request.get("issues/" + json.get("number").toString() + "/labels").execute().stream()
-                      .map(JSONValue::asObject)
-                      .map(obj -> obj.get("name").asString())
-                      .sorted()
-                      .collect(Collectors.toList());
+        if (labels == null) {
+            labels = request.get("issues/" + json.get("number").toString() + "/labels").execute().stream()
+                            .map(JSONValue::asObject)
+                            .map(obj -> obj.get("name").asString())
+                            .sorted()
+                            .collect(Collectors.toList());
+        }
+        return labels;
     }
 
     @Override
