@@ -741,7 +741,7 @@ public class GitPr {
                 }
             }
 
-            for (var pr : remoteRepo.pullRequests()) {
+            for (var pr : prs) {
                 var prAuthor = pr.author().userName();
                 if (!filterAuthors.isEmpty() && !filterAuthors.contains(prAuthor)) {
                     continue;
