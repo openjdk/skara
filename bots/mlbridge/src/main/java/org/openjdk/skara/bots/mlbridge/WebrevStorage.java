@@ -56,23 +56,59 @@ class WebrevStorage {
               .generate(base, head);
     }
 
-    private void push(Repository localStorage, Path webrevFolder, String identifier) throws IOException {
+    private String generatePlaceholder(PullRequest pr, Hash base, Hash head) {
+        return "This file was too large to be included in the published webrev, and has been replaced with " +
+                "this placeholder message. It is possible to generate the original content locally by " +
+                "following these instructions:\n\n" +
+                "  $ git fetch " + pr.repository().webUrl() + " " + pr.sourceRef() + "\n" +
+                "  $ git checkout " + head.hex() + "\n" +
+                "  $ git webrev -r " + base.hex() + "\n";
+    }
+
+    private void replaceContent(Path file, String placeholder) {
+        try {
+            if (file.getFileName().toString().endsWith(".html")) {
+                var existing = Files.readString(file);
+                var headerEnd = existing.indexOf("<pre>");
+                var footerStart = existing.lastIndexOf("</pre>");
+                if ((headerEnd > 0) && (footerStart > 0)) {
+                    var header = existing.substring(0, headerEnd + 5);
+                    var footer = existing.substring(footerStart);
+                    Files.writeString(file, header + placeholder + footer);
+                    return;
+                }
+            }
+            Files.writeString(file, placeholder);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to replace large file with placeholder");
+        }
+    }
+
+    private boolean shouldBeReplaced(Path file) {
+        try {
+            if (file.getFileName().toString().equals("index.html")) {
+                return false;
+            } else {
+                return Files.size(file) >= 1000 * 1000;
+            }
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    private void push(Repository localStorage, Path webrevFolder, String identifier, String placeholder) throws IOException {
         var batchIndex = new AtomicInteger();
+
+        // Replace large files (except the index) with placeholders
         try (var files = Files.walk(webrevFolder)) {
-            // Try to push 1000 files at a time
+            files.filter(Files::isRegularFile)
+                 .filter(this::shouldBeReplaced)
+                 .forEach(file -> replaceContent(file, placeholder));
+        }
+
+        // Try to push 1000 files at a time
+        try (var files = Files.walk(webrevFolder)) {
             var batches = files.filter(Files::isRegularFile)
-                               .filter(file -> {
-                                   // Huge files are not that useful in a webrev - but make an exception for the index
-                                   try {
-                                       if (file.getFileName().toString().equals("index.html")) {
-                                           return true;
-                                       } else {
-                                           return Files.size(file) < 1000 * 1000;
-                                       }
-                                   } catch (IOException e) {
-                                       return false;
-                                   }
-                               })
                                .collect(Collectors.groupingBy(path -> {
                                    int curIndex = batchIndex.incrementAndGet();
                                    return Math.floorDiv(curIndex, 1000);
@@ -116,8 +152,9 @@ class WebrevStorage {
                 clearDirectory(outputFolder);
             }
             generate(pr, localRepository, outputFolder, base, head);
+            var placeholder = generatePlaceholder(pr, base, head);
             if (!localStorage.isClean()) {
-                push(localStorage, outputFolder, baseFolder.resolve(pr.id()).toString());
+                push(localStorage, outputFolder, baseFolder.resolve(pr.id()).toString(), placeholder);
             }
             return URIBuilder.base(baseUri).appendPath(relativeFolder.toString().replace('\\', '/')).build();
         } catch (IOException e) {
