@@ -44,10 +44,21 @@ public interface Forge extends Host {
     }
 
     static Optional<Forge> from(URI uri, Credential credential, JSONObject configuration) {
-        var factories = ForgeFactory.getForgeFactories().stream()
-                                    .sorted(Comparator.comparing(f -> !uri.getHost().contains(f.name())))
-                                    .collect(Collectors.toList());
-        for (var factory : factories) {
+        var factories = ForgeFactory.getForgeFactories();
+
+        var hostname = uri.getHost();
+        var knownHostFactories = factories.stream()
+                                          .filter(f -> f.knownHosts().contains(hostname))
+                                          .collect(Collectors.toList());
+        if (knownHostFactories.size() == 1) {
+            var factory = knownHostFactories.get(0);
+            return Optional.of(factory.create(uri, credential, configuration));
+        }
+
+        var sorted = factories.stream()
+                              .sorted(Comparator.comparing(f -> !hostname.contains(f.name())))
+                              .collect(Collectors.toList());
+        for (var factory : sorted) {
             var forge = factory.create(uri, credential, configuration);
             if (forge.isValid()) {
                 return Optional.of(forge);
