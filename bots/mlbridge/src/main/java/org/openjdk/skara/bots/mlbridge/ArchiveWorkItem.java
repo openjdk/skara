@@ -76,7 +76,7 @@ class ArchiveWorkItem implements WorkItem {
         try {
             localRepo.add(localRepo.root().resolve("."));
             var hash = localRepo.commit(message, bot.emailAddress().fullName().orElseThrow(), bot.emailAddress().address());
-            localRepo.push(hash, bot.archiveRepo().url(), "master");
+            localRepo.push(hash, bot.archiveRepo().url(), bot.archiveRef());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

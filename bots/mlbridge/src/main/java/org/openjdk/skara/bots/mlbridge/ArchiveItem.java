@@ -5,6 +5,7 @@ import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.*;
 
+import java.io.IOException;
 import java.net.URI;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -59,7 +60,18 @@ class ArchiveItem {
                                         webrevNotification.notify(incrementalWebrev, index, false);
                                         return ArchiveMessages.composeIncrementalFooter(pr, localRepo, fullWebrev, incrementalWebrev, head, lastHead);
                                     } else {
-                                        return ArchiveMessages.composeRebaseFooter(pr, localRepo, fullWebrev, base, head);
+                                        // It may be possible to auto-rebase the last head onto the new base to get an incremental webrev
+                                        try {
+                                            localRepo.checkout(lastHead, true);
+                                            localRepo.rebase(base, "duke", "duke@openjdk.org");
+                                            var rebasedLastHead = localRepo.head();
+                                            var incrementalWebrev = webrevGenerator.generate(rebasedLastHead, head, String.format("%02d-%02d", index - 1, index));
+                                            webrevNotification.notify(incrementalWebrev, index, false);
+                                            return ArchiveMessages.composeIncrementalFooter(pr, localRepo, fullWebrev, incrementalWebrev, head, lastHead);
+                                        } catch (IOException e) {
+                                            // If it doesn't work out we just post a full webrev
+                                            return ArchiveMessages.composeRebaseFooter(pr, localRepo, fullWebrev, base, head);
+                                        }
                                     }
                                });
     }

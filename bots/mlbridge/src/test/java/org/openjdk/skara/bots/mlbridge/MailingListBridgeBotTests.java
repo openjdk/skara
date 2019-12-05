@@ -1011,6 +1011,88 @@ class MailingListBridgeBotTests {
     }
 
     @Test
+    void incrementalAfterRebase(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var archiveFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer()) {
+            var author = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var sender = EmailAddress.from("test", "test@test.mail");
+            var mlBot = new MailingListBridgeBot(sender, author, archive, "archive",
+                                                 censusBuilder.build(), "master",
+                                                 listAddress, Set.of(), Set.of(),
+                                                 listServer.getArchive(), listServer.getSMTP(),
+                                                 archive, "webrev", Path.of("test"),
+                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 Set.of(), Map.of(),
+                                                 URIBuilder.base("http://issues.test/browse/").build(),
+                                                 Map.of(), Duration.ZERO);
+
+            // Populate the projects repository
+            var reviewFile = Path.of("reviewfile.txt");
+            var localRepo = CheckableRepository.init(tempFolder.path().resolve("first"), author.repositoryType(), reviewFile);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+            localRepo.push(masterHash, archive.url(), "archive", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "A line", "Original msg");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
+            pr.setBody("This is now ready");
+
+            // Run an archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // Push more stuff to master
+            localRepo.checkout(masterHash, true);
+            var unrelatedFile = localRepo.root().resolve("unrelated.txt");
+            Files.writeString(unrelatedFile, "Other things happens in master");
+            localRepo.add(unrelatedFile);
+            var newMasterHash = localRepo.commit("Unrelated change", "duke", "duke@openjdk.org");
+            localRepo.push(newMasterHash, author.url(), "master");
+
+            // And more stuff to the pr branch
+            localRepo.checkout(editHash, true);
+            CheckableRepository.appendAndCommit(localRepo, "Another line", "More updates");
+
+            // Merge master
+            localRepo.merge(newMasterHash);
+            var newEditHash = localRepo.commit("Latest changes from master", "duke", "duke@openjdk.org");
+            localRepo.push(newEditHash, author.url(), "edit");
+
+            // Make sure that the push registered
+            var lastHeadHash = pr.headHash();
+            var refreshCount = 0;
+            do {
+                pr = author.pullRequest(pr.id());
+                if (refreshCount++ > 100) {
+                    fail("The PR did not update after the new push");
+                }
+            } while (pr.headHash().equals(lastHeadHash));
+
+            // Run another archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // The archive should reference the rebased push
+            Repository.materialize(archiveFolder.path(), archive.url(), "archive");
+            assertTrue(archiveContains(archiveFolder.path(), "updated with a new target base"));
+            assertTrue(archiveContains(archiveFolder.path(), "excludes the unrelated changes"));
+            assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/webrev.01"));
+            assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/webrev.00-01"));
+            assertTrue(archiveContains(archiveFolder.path(), "Original msg"));
+            assertTrue(archiveContains(archiveFolder.path(), "More updates"));
+        }
+    }
+
+    @Test
     void skipAddingExistingWebrev(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();

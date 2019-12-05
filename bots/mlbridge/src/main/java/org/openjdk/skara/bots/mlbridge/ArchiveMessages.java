@@ -114,7 +114,15 @@ class ArchiveMessages {
                             "The incremental views will show differences compared to the previous content of the PR.";
                 }
             } else {
-                return "The pull request has been updated with a new target base due to a merge or a rebase.";
+                try {
+                    localRepository.checkout(lastHead, true);
+                    localRepository.rebase(base, "duke", "duke@openjdk.org");
+                    var rebasedLastHead = localRepository.head();
+                    return "The pull request has been updated with a new target base due to a merge or a rebase. " +
+                            "The incremental webrev excludes the unrelated changes brought in by the merge/rebase.";
+                } catch (IOException e) {
+                    return "The pull request has been updated with a new target base due to a merge or a rebase.";
+                }
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
