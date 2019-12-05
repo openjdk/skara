@@ -65,31 +65,45 @@ class WebrevStorage {
                 "  $ git webrev -r " + base.hex() + "\n";
     }
 
+    private void replaceContent(Path file, String placeholder) {
+        try {
+            if (file.getFileName().toString().endsWith(".html")) {
+                var existing = Files.readString(file);
+                var headerEnd = existing.indexOf("<pre>");
+                var footerStart = existing.lastIndexOf("</pre>");
+                if ((headerEnd > 0) && (footerStart > 0)) {
+                    var header = existing.substring(0, headerEnd + 5);
+                    var footer = existing.substring(footerStart);
+                    Files.writeString(file, header + placeholder + footer);
+                    return;
+                }
+            }
+            Files.writeString(file, placeholder);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to replace large file with placeholder");
+        }
+    }
+
+    private boolean shouldBeReplaced(Path file) {
+        try {
+            if (file.getFileName().toString().equals("index.html")) {
+                return false;
+            } else {
+                return Files.size(file) >= 1000 * 1000;
+            }
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
     private void push(Repository localStorage, Path webrevFolder, String identifier, String placeholder) throws IOException {
         var batchIndex = new AtomicInteger();
 
         // Replace large files (except the index) with placeholders
         try (var files = Files.walk(webrevFolder)) {
-            var largeFiles = files.filter(Files::isRegularFile)
-                                  .filter(file -> {
-                                      try {
-                                          if (file.getFileName().toString().equals("index.html")) {
-                                              return false;
-                                          } else {
-                                              return Files.size(file) >= 1000 * 1000;
-                                          }
-                                      } catch (IOException e) {
-                                          return false;
-                                      }
-                                  })
-                                  .collect(Collectors.toList());
-            largeFiles.forEach(file -> {
-                try {
-                    Files.writeString(file, placeholder);
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to replace large file with placeholder");
-                }
-            });
+            files.filter(Files::isRegularFile)
+                 .filter(this::shouldBeReplaced)
+                 .forEach(file -> replaceContent(file, placeholder));
         }
 
         // Try to push 1000 files at a time
