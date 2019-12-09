@@ -122,7 +122,7 @@ public class GitFork {
                   .helptext("Same as git clones flag 'shallow-since'")
                   .optional(),
             Option.shortcut("")
-                  .fullname("forge")
+                  .fullname("host")
                   .describe("HOSTNAME")
                   .helptext("Hostname for the forge")
                   .optional(),
@@ -197,14 +197,14 @@ public class GitFork {
             useHTTPS = config != null && config.toLowerCase().equals("true");
         }
 
-        var forge = arguments.get("forge").orString(() -> gitConfig("fork.forge"));
+        var hostname = arguments.get("host").orString(() -> gitConfig("fork.host"));
 
         URI uri = null;
         if (arguments.at(0).isPresent()) {
             var arg = arguments.at(0).asString();
-            if (forge != null) {
+            if (hostname != null) {
                 var extraSlash = arg.startsWith("/") ? "" : "/";
-                uri = URI.create("https://" + forge + extraSlash + arg);
+                uri = URI.create("https://" + hostname + extraSlash + arg);
             } else {
                 var argURI = URI.create(arg);
                 uri = argURI.getScheme() == null ?
@@ -291,7 +291,7 @@ public class GitFork {
             var shallowSince = arguments.get("shallow-since").orString(() -> gitConfig("fork.shallow-since"));
 
             URI cloneURI = null;
-            if (forge != null) {
+            if (hostname != null) {
                 if (useSSH) {
                     cloneURI = URI.create("ssh://git@" + forkWebUrl.getHost() + forkWebUrl.getPath() + ".git");
                 } else {
