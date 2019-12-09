@@ -109,7 +109,7 @@ public class GitFork {
             Option.shortcut("")
                   .fullname("reference")
                   .describe("DIR")
-                  .helptext("Same as git clones flag 'reference-if-able'")
+                  .helptext("Same as git clone's flag 'reference-if-able'")
                   .optional(),
             Option.shortcut("")
                   .fullname("depth")
