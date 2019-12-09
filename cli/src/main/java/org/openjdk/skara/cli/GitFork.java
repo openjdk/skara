@@ -227,7 +227,7 @@ public class GitFork {
         var credentials = GitCredentials.fill(webURI.getHost(), webURI.getPath(), username, token, webURI.getScheme());
 
         if (credentials.password() == null) {
-            exit("error: no personal acess token found, use git-credentials or the environment variable GIT_TOKEN");
+            exit("error: no personal access token found, use git-credentials or the environment variable GIT_TOKEN");
         }
         if (credentials.username() == null) {
             exit("error: no username for found, use git-credentials or the flag --username");
