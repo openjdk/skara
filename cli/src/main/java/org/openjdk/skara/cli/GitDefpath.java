@@ -23,8 +23,11 @@
 package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
+import org.openjdk.skara.forge.Forge;
+import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.webrev.*;
+import org.openjdk.skara.proxy.HttpProxy;
 
 import java.io.*;
 import java.nio.file.*;
@@ -89,15 +92,8 @@ public class GitDefpath {
         if (pullPath.startsWith("http") || pullPath.startsWith("https")) {
             var uri = URI.create(pullPath);
             var scheme = uri.getScheme();
-            if (isMercurial) {
-                return URI.create("ssh://" + username + "@" + uri.getAuthority() + uri.getPath()).toString();
-            } else {
-                var path = uri.getPath();
-                if (path.startsWith("/")) {
-                    path = path.substring(1);
-                }
-                return "git@" + uri.getAuthority() + ":" + path;
-            }
+            var user = isMercurial ? username : "git";
+            return URI.create("ssh://" + user + "@" + uri.getAuthority() + uri.getPath()).toString();
         }
 
         return pullPath;
@@ -168,6 +164,14 @@ public class GitDefpath {
                   .fullname("default")
                   .helptext("use current default path to compute push path")
                   .optional(),
+            Switch.shortcut("")
+                  .fullname("upstream")
+                  .helptext("create remote 'upstream' for the upstream repository")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("fork")
+                  .helptext("create remote 'fork' for the personal fork of the repository")
+                  .optional(),
             Switch.shortcut("g")
                   .fullname("gated")
                   .helptext("create gated push URL")
@@ -213,7 +217,16 @@ public class GitDefpath {
         }
 
         var isMercurial = arguments.contains("mercurial");
-        var remote = arguments.get("remote").orString(isMercurial ? "default": "origin");
+        var remote = arguments.contains("remote") ? arguments.get("remote").asString() : null;
+        if (remote == null) {
+            var lines = repo.config("defpath.remote");
+            if (lines.size() == 1) {
+                remote = lines.get(0);
+            }
+        }
+        if (remote == null) {
+            remote = isMercurial ? "default": "origin";
+        }
 
         if (arguments.contains("gated")) {
             System.err.println("warning: gated push repositories are no longer used, option ignored");
@@ -224,20 +237,114 @@ public class GitDefpath {
         }
 
         var fallback = arguments.contains("secondary") ? arguments.get("secondary").asString() : null;
+        if (fallback == null) {
+            var lines = repo.config("defpath.secondary");
+            if (lines.size() == 1) {
+                fallback = lines.get(0);
+            }
+        }
+
+        HttpProxy.setup();
 
         String pullPath = null;
         if (arguments.at(0).isPresent()) {
             pullPath = arguments.at(0).asString();
-        } else if (arguments.contains("default")) {
-            try {
-                pullPath = repo.pullPath(remote);
-            } catch (IOException e) {
-                die("error: -d flag specified but repository has no default path");
+        } else {
+            var useDefault = false;
+            if (arguments.contains("default")) {
+                useDefault = true;
+            } else {
+                var lines = repo.config("defpath.default");
+                useDefault = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
+            }
+
+            if (useDefault) {
+                try {
+                    pullPath = repo.pullPath(remote);
+                } catch (IOException e) {
+                    die("error: -d flag specified but repository has no default path");
+                }
+            }
+        }
+
+        var dryRun = false;
+        if (arguments.contains("dry-run")) {
+            dryRun = true;
+        } else {
+            var lines = repo.config("defpath.dry-run");
+            dryRun = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
+        }
+
+        URI upstreamURI = null;
+        URI forkURI = null;
+        var remotes = repo.remotes();
+        if (remotes.contains("origin")) {
+            var setUpstream = arguments.contains("upstream");
+            if (!arguments.contains("upstream")) {
+                var lines = repo.config("defpath.upstream");
+                setUpstream = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
+            }
+            if (setUpstream) {
+                var originPullPath = repo.pullPath("origin");
+                var uri = Remote.toWebURI(originPullPath);
+                upstreamURI = Forge.from(uri)
+                                   .flatMap(f -> f.repository(uri.getPath().substring(1)))
+                                   .flatMap(r -> r.parent())
+                                   .map(p -> p.webUrl())
+                                   .orElse(null);
+                if (upstreamURI != null && !dryRun) {
+                    if (remotes.contains("upstream")) {
+                        repo.setPaths("upstream", upstreamURI.toString(), upstreamURI.toString());
+                    } else {
+                        repo.addRemote("upstream", upstreamURI.toString());
+                    }
+                }
+            }
+            var setFork = arguments.contains("fork");
+            if (!arguments.contains("fork")) {
+                var lines = repo.config("defpath.fork");
+                setFork = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
+            }
+            if (setFork) {
+                var originPullPath = repo.pullPath("origin");
+                var uri = Remote.toWebURI(originPullPath);
+                var credentials = GitCredentials.fill(uri.getHost(), uri.getPath(), null, null, uri.getScheme());
+                if (credentials.password() == null) {
+                    System.err.println("error: no personal access token found for " + uri.getHost() + ", use git-credentials");
+                    System.exit(1);
+                }
+                if (credentials.username() == null) {
+                    System.err.println("error: no username for " + uri.getHost() + " found, use git-credentials");
+                    System.exit(1);
+                }
+                forkURI = Forge.from(uri, new Credential(credentials.username(), credentials.password()))
+                               .flatMap(f -> f.repository(uri.getPath().substring(1)))
+                               .map(r -> r.fork())
+                               .map(fork -> fork.webUrl())
+                               .orElse(null);
+                if (forkURI != null) {
+                    GitCredentials.approve(credentials);
+                    forkURI = URI.create("ssh://git@" + forkURI.getHost() + forkURI.getPath());
+                    if (!dryRun) {
+                        if (remotes.contains("fork")) {
+                            repo.setPaths("fork", forkURI.toString(), forkURI.toString());
+                        } else {
+                            repo.addRemote("fork", forkURI.toString());
+                        }
+                    }
+                }
+
             }
         }
 
         if (pullPath == null) {
             showPaths(repo, remote);
+            if (upstreamURI != null) {
+                System.out.format("        upstream = %s\n", upstreamURI.toString());
+            }
+            if (forkURI != null) {
+                System.out.format("            fork = %s\n", forkURI.toString());
+            }
             System.exit(0);
         }
 
@@ -249,7 +356,8 @@ public class GitDefpath {
         }
 
         var newPushPath = pushPath == null ? toPushPath(newPullPath, username, isMercurial) : pushPath;
-        if (arguments.contains("dry-run")) {
+
+        if (dryRun) {
             showPaths(repo, newPullPath, newPushPath);
         } else {
             repo.setPaths(remote, newPullPath, newPushPath);
