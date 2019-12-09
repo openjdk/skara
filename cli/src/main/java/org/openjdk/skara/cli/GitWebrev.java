@@ -161,23 +161,30 @@ public class GitWebrev {
 
         var upstream = arg("upstream", arguments, repo);
         if (upstream == null) {
-            try {
-                var remote = isMercurial ? "default" : "origin";
-                if (repo.remotes().contains(remote)) {
-                    var pullPath = repo.pullPath(remote);
-                    var uri = new URI(pullPath);
-                    var host = uri.getHost();
-                    var path = uri.getPath();
-                    if (host != null && path != null) {
-                        if (host.equals("github.com") && path.startsWith("/openjdk/")) {
-                            upstream = "https://github.com" + path;
-                        } else if (host.equals("openjdk.java.net")) {
-                            upstream = "https://openjdk.java.net" + path;
-                        }
+            var remotes = repo.remotes();
+            if (remotes.contains("upstream")) {
+                var pullPath = Remote.toWebURI(repo.pullPath("upstream"));
+                var host = pullPath.getHost();
+                if (host != null && host.endsWith("openjdk.java.net")) {
+                    upstream = pullPath.toString();
+                } else if (host != null && host.equals("github.com")) {
+                    var path = pullPath.getPath();
+                    if (path != null && path.startsWith("/openjdk/")) {
+                        upstream = pullPath.toString();
                     }
                 }
-            } catch (URISyntaxException e) {
-                // do nothing
+            } else if (remotes.contains("origin") || remotes.contains("default")) {
+                var remote = isMercurial ? "default" : "origin";
+                var pullPath = Remote.toWebURI(repo.pullPath(remote));
+                var host = pullPath.getHost();
+                if (host != null && host.endsWith("openjdk.java.net")) {
+                    upstream = pullPath.toString();
+                } else if (host != null && host.equals("github.com")) {
+                    var path = pullPath.getPath();
+                    if (path != null && path.startsWith("/openjdk/")) {
+                        upstream = pullPath.toString();
+                    }
+                }
             }
         }
 
@@ -205,7 +212,7 @@ public class GitWebrev {
             issue = "https://bugs.openjdk.java.net/browse/" + issue;
         }
         if (issue == null) {
-            var pattern = Pattern.compile("(?:(JDK|CODETOOLS|JMC)-)?([0-9]+).*");
+            var pattern = Pattern.compile("(?:(JDK|CODETOOLS|JMC|SKARA)-)?([0-9]+).*");
             var currentBranch = repo.currentBranch();
             if (currentBranch.isPresent()) {
                 var branchName = currentBranch.get().name().toUpperCase();
