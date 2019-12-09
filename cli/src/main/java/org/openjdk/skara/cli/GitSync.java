@@ -107,52 +107,65 @@ public class GitSync {
 
         var remotes = repo.remotes();
 
-        String upstream = null;
+        String from = null;
         if (arguments.contains("from")) {
-            upstream = arguments.get("from").asString();
+            from = arguments.get("from").asString();
         } else {
             var lines = repo.config("sync.from");
             if (lines.size() == 1 && remotes.contains(lines.get(0))) {
-                upstream = lines.get(0);
+                from = lines.get(0);
             } else {
-                if (remotes.contains("origin")) {
-                    var originPullPath = repo.pullPath("origin");
-                    try {
-                        var uri = Remote.toWebURI(originPullPath);
-                        upstream = Forge.from(URI.create(uri.getScheme() + "://" + uri.getHost()))
+                if (remotes.contains("upstream")) {
+                    from = "upstream";
+                } else if (remotes.contains("origin")) {
+                    if (remotes.contains("fork")) {
+                        from = "origin";
+                    } else {
+                        var originPullPath = repo.pullPath("origin");
+                        try {
+                            var uri = Remote.toWebURI(originPullPath);
+                            from = Forge.from(uri)
                                         .flatMap(f -> f.repository(uri.getPath().substring(1)))
                                         .flatMap(r -> r.parent())
                                         .map(p -> p.webUrl().toString())
                                         .orElse(null);
-                    } catch (IllegalArgumentException e) {
-                        upstream = null;
+                        } catch (IllegalArgumentException e) {
+                            from = null;
+                        }
                     }
                 }
             }
         }
 
-        if (upstream == null) {
-            die("Could not find upstream repository, please specify one with --from");
+        if (from == null) {
+            die("Could not find repository to sync from, please specify one with --from");
         }
-        var upstreamPullPath = remotes.contains(upstream) ?
-            Remote.toURI(repo.pullPath(upstream)) : URI.create(upstream);
 
-        String origin = null;
+        var fromPullPath = remotes.contains(from) ?
+            Remote.toURI(repo.pullPath(from)) : URI.create(from);
+
+        String to = null;
         if (arguments.contains("to")) {
-            origin = arguments.get("to").asString();
+            to = arguments.get("to").asString();
         } else {
             var lines = repo.config("sync.to");
             if (lines.size() == 1) {
                 if (!remotes.contains(lines.get(0))) {
                     die("The given remote to push to, " + lines.get(0) + ", does not exist");
                 } else {
-                    origin = lines.get(0);
+                    to = lines.get(0);
                 }
             } else {
-                origin = "origin";
+                if (remotes.contains("fork")) {
+                    to = "fork";
+                } else {
+                    to = "origin";
+                }
             }
         }
-        var originPushPath = Remote.toURI(repo.pushPath(origin));
+
+        var toPushPath = remotes.contains(to) ?
+            Remote.toURI(repo.pullPath(to)) : URI.create(to);
 
         var branches = new HashSet<String>();
         if (arguments.contains("branches")) {
@@ -170,7 +183,7 @@ public class GitSync {
             }
         }
 
-        for (var branch : repo.remoteBranches(upstream)) {
+        for (var branch : repo.remoteBranches(from)) {
             var name = branch.name();
             if (!branches.isEmpty() && !branches.contains(name)) {
                 if (arguments.contains("verbose") || arguments.contains("debug")) {
@@ -178,10 +191,10 @@ public class GitSync {
                 }
                 continue;
             }
-            System.out.print("Syncing " + upstream + "/" + name + " to " + origin + "/" + name + "... ");
+            System.out.print("Syncing " + from + "/" + name + " to " + to + "/" + name + "... ");
             System.out.flush();
-            var fetchHead = repo.fetch(upstreamPullPath, branch.hash().hex());
-            repo.push(fetchHead, originPushPath, name);
+            var fetchHead = repo.fetch(fromPullPath, branch.hash().hex());
+            repo.push(fetchHead, toPushPath, name);
             System.out.println("done");
         }
 
