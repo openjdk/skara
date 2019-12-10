@@ -40,13 +40,14 @@ public class GitSync {
         return new IOException("will never reach here");
     }
 
-    private static int pull() throws IOException, InterruptedException {
+    private static int pull(Repository repo) throws IOException, InterruptedException {
         var pb = new ProcessBuilder("git", "pull");
+        pb.directory(repo.root().toFile());
         pb.inheritIO();
         return pb.start().waitFor();
     }
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    static void sync(Repository repo, String[] args) throws IOException, InterruptedException {
         var flags = List.of(
             Option.shortcut("")
                   .fullname("from")
@@ -98,10 +99,6 @@ public class GitSync {
             Logging.setup(level);
         }
 
-        var cwd = Paths.get("").toAbsolutePath();
-        var repo = Repository.get(cwd).orElseThrow(() ->
-                die("error: no repository found at " + cwd.toString())
-        );
 
         HttpProxy.setup();
 
@@ -204,10 +201,19 @@ public class GitSync {
             shouldPull = lines.size() == 1 && lines.get(0).toLowerCase().equals("always");
         }
         if (shouldPull) {
-            int err = pull();
+            int err = pull(repo);
             if (err != 0) {
                 System.exit(err);
             }
         }
+    }
+
+    public static void main(String[] args) throws IOException, InterruptedException {
+        var cwd = Paths.get("").toAbsolutePath();
+        var repo = Repository.get(cwd).orElseThrow(() ->
+                die("error: no repository found at " + cwd.toString())
+        );
+
+        sync(repo, args);
     }
 }
