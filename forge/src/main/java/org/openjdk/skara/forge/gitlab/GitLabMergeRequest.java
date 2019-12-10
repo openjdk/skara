@@ -38,7 +38,6 @@ import java.util.regex.Pattern;
 import java.util.stream.*;
 
 public class GitLabMergeRequest implements PullRequest {
-
     private final JSONValue json;
     private final RestRequest request;
     private final Logger log = Logger.getLogger("org.openjdk.skara.host");;
@@ -625,5 +624,20 @@ public class GitLabMergeRequest implements PullRequest {
             var comment = usernames + " can you have a look at this merge request?";
             addComment(comment);
         }
+    }
+
+    @Override
+    public List<Link> links() {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
+    public void addLink(Link link) {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
+    public void removeLink(URI uri) {
+        throw new RuntimeException("not implemented yet");
     }
 }

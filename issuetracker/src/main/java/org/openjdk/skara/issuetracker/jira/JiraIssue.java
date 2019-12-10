@@ -259,4 +259,74 @@ public class JiraIssue implements Issue {
                .body("name", assignee)
                .execute();
     }
+
+    private Link parseLink(JSONObject json) {
+        var link = Link.create(URI.create(json.get("object").get("url").asString()), json.get("object").get("title").asString());
+        if (json.contains("relationship")) {
+            link.relationship(json.get("relationship").asString());
+        }
+        if (json.get("object").contains("summary")) {
+            link.summary(json.get("object").get("summary").asString());
+        }
+        if (json.get("object").contains("icon")) {
+            if (json.get("object").get("icon").contains("url16x16")) {
+                link.iconUrl(URI.create(json.get("object").get("icon").get("url16x16").asString()));
+            }
+            if (json.get("object").get("icon").contains("title")) {
+                link.iconTitle(json.get("object").get("icon").get("title").asString());
+            }
+        }
+        if (json.get("object").get("status").contains("icon")) {
+            if (json.get("object").get("status").get("icon").contains("url16x16")) {
+                link.statusIconUrl(URI.create(json.get("object").get("status").get("icon").get("url16x16").asString()));
+            }
+            if (json.get("object").get("status").get("icon").contains("title")) {
+                link.statusIconTitle(json.get("object").get("status").get("icon").get("title").asString());
+            }
+        }
+        link.resolved(json.get("object").get("status").get("resolved").asBoolean());
+        return link.build();
+    }
+
+    @Override
+    public List<Link> links() {
+        var result = request.get("/remotelink").execute();
+        return result.stream()
+                     .map(JSONValue::asObject)
+                     .filter(obj -> obj.get("globalId").asString().startsWith("skaralink="))
+                     .map(this::parseLink)
+                     .collect(Collectors.toList());
+    }
+
+    @Override
+    public void addLink(Link link) {
+        var query = JSON.object().put("globalId", "skaralink=" + link.uri().toString());
+        var object = JSON.object().put("url", link.uri().toString()).put("title", link.title());
+        var status = JSON.object().put("resolved", link.resolved());
+        var icon = JSON.object();
+        var statusIcon = JSON.object();
+
+        query.put("object", object);
+        object.put("icon", icon);
+        object.put("status", status);
+        status.put("icon", statusIcon);
+
+        link.relationship().ifPresent(relationship -> query.put("relationship", relationship));
+        link.summary().ifPresent(summary -> object.put("summary", summary));
+        link.iconUrl().ifPresent(iconUrl -> icon.put("url16x16", iconUrl.toString()));
+        link.iconTitle().ifPresent(iconTitle -> icon.put("title", iconTitle));
+        link.statusIconUrl().ifPresent(statusIconUrl -> statusIcon.put("url16x16", statusIconUrl.toString()));
+        link.statusIconTitle().ifPresent(statusIconTitle -> statusIcon.put("title", statusIconTitle));
+
+        request.post("/remotelink")
+               .body(query)
+               .execute();
+    }
+
+    @Override
+    public void removeLink(URI uri) {
+        request.delete("/remotelink")
+               .param("globalId", "skaralink=" + uri.toString())
+               .execute();
+    }
 }

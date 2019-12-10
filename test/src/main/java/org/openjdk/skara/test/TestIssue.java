@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.test;
 
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.network.URIBuilder;
 
@@ -177,6 +177,23 @@ public class TestIssue implements Issue {
     public void setAssignees(List<HostUser> assignees) {
         data.assignees.clear();
         data.assignees.addAll(assignees);
+        data.lastUpdate = ZonedDateTime.now();
+    }
+
+    @Override
+    public List<Link> links() {
+        return data.links;
+    }
+
+    @Override
+    public void addLink(Link link) {
+        data.links.add(link);
+        data.lastUpdate = ZonedDateTime.now();
+    }
+
+    @Override
+    public void removeLink(URI uri) {
+        data.links.removeIf(link -> link.uri().equals(uri));
         data.lastUpdate = ZonedDateTime.now();
     }
 }
