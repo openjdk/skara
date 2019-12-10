@@ -57,6 +57,37 @@ public class GitFork {
         }
     }
 
+    private static String getOption(String name, String subsection, Arguments arguments) {
+        if (arguments.contains(name)) {
+            return arguments.get(name).asString();
+        }
+
+        if (subsection != null && !subsection.isEmpty()) {
+            var subsectionSpecific = gitConfig("fork." + subsection + "." + name);
+            if (subsectionSpecific != null) {
+                return subsectionSpecific;
+            }
+        }
+
+        return gitConfig("fork." + name);
+    }
+
+    private static boolean getSwitch(String name, String subsection, Arguments arguments) {
+        if (arguments.contains(name)) {
+            return true;
+        }
+
+        if (subsection != null && !subsection.isEmpty()) {
+            var subsectionSpecific = gitConfig("fork." + subsection + "." + name);
+            if (subsectionSpecific != null) {
+                return subsectionSpecific.toLowerCase().equals("true");
+            }
+        }
+
+        var sectionSpecific = gitConfig("fork." + name);
+        return sectionSpecific != null && sectionSpecific.toLowerCase().equals("true");
+    }
+
     private static String gitConfig(String key) {
         try {
             var pb = new ProcessBuilder("git", "config", key);
@@ -70,7 +101,7 @@ public class GitFork {
                 return null;
             }
 
-            return output.replace("\n", "");
+            return output == null ? null : output.replace("\n", "");
         } catch (InterruptedException e) {
             return null;
         } catch (IOException e) {
@@ -189,19 +220,11 @@ public class GitFork {
 
         HttpProxy.setup();
 
-        boolean useSSH = arguments.contains("ssh");
-        if (!useSSH) {
-            var config = gitConfig("fork.ssh");
-            useSSH = config != null && config.toLowerCase().equals("true");
-        }
+        var subsection = arguments.at(0).isPresent() ? arguments.at(0).asString() : null;
 
-        boolean useHTTPS = arguments.contains("https");
-        if (!useHTTPS) {
-            var config = gitConfig("fork.https");
-            useHTTPS = config != null && config.toLowerCase().equals("true");
-        }
-
-        var hostname = arguments.get("host").orString(() -> gitConfig("fork.host"));
+        boolean useSSH = getSwitch("ssh", subsection, arguments);
+        boolean useHTTPS = getSwitch("https", subsection, arguments);
+        var hostname = getOption("host", subsection, arguments);
 
         URI uri = null;
         if (arguments.at(0).isPresent()) {
@@ -227,7 +250,7 @@ public class GitFork {
 
         var webURI = Remote.toWebURI(uri.toString());
         var token = isMercurial ? System.getenv("HG_TOKEN") : System.getenv("GIT_TOKEN");
-        var username = arguments.get("username").orString(() -> gitConfig("fork.username"));
+        var username = getOption("username", subsection, arguments);
         var credentials = GitCredentials.fill(webURI.getHost(), webURI.getPath(), username, token, webURI.getScheme());
 
         if (credentials.password() == null) {
@@ -256,21 +279,9 @@ public class GitFork {
             forkWebUrl = URI.create("git+" + forkWebUrl.toString());
         }
 
-        boolean noClone = arguments.contains("no-clone");
-        if (!noClone) {
-            var config = gitConfig("fork.no-clone");
-            noClone = config != null && config.toLowerCase().equals("true");
-        }
-        boolean noRemote = arguments.contains("no-remote");
-        if (!noRemote) {
-            var config = gitConfig("fork.no-remote");
-            noRemote = config != null && config.toLowerCase().equals("true");
-        }
-        boolean shouldSync = arguments.contains("sync");
-        if (!shouldSync) {
-            var config = gitConfig("fork.sync");
-            shouldSync = config != null && config.toLowerCase().equals("true");
-        }
+        boolean noClone = getSwitch("no-clone", subsection, arguments);
+        boolean noRemote = getSwitch("no-remote", subsection, arguments);
+        boolean shouldSync = getSwitch("sync", subsection, arguments);
         if (noClone || !arguments.at(0).isPresent()) {
             if (!arguments.at(0).isPresent()) {
                 var cwd = Path.of("").toAbsolutePath();
@@ -296,12 +307,12 @@ public class GitFork {
                 }
             }
         } else {
-            var reference = arguments.get("reference").orString(() -> gitConfig("fork.reference"));
+            var reference = getOption("reference", subsection, arguments);
             if (reference != null && reference.startsWith("~" + File.separator)) {
                 reference = System.getProperty("user.home") + reference.substring(1);
             }
-            var depth = arguments.get("depth").orString(() -> gitConfig("fork.depth"));
-            var shallowSince = arguments.get("shallow-since").orString(() -> gitConfig("fork.shallow-since"));
+            var depth = getOption("depth", subsection, arguments);
+            var shallowSince = getOption("shallow-since", subsection, arguments);
 
             URI cloneURI = null;
             if (hostname != null) {
