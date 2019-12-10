@@ -497,4 +497,19 @@ public class GitHubPullRequest implements PullRequest {
         var param = JSON.object().put("assignees", assignee_ids);
         request.patch("issues/" + json.get("number").toString()).body(param).execute();
     }
+
+    @Override
+    public List<Link> links() {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
+    public void addLink(Link link) {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
+    public void removeLink(URI uri) {
+        throw new RuntimeException("not implemented yet");
+    }
 }

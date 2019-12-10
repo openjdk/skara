@@ -35,6 +35,7 @@ class IssueData {
     final List<Comment> comments = new ArrayList<>();
     final Set<String> labels = new HashSet<>();
     final List<HostUser> assignees = new ArrayList<>();
+    final List<Link> links = new ArrayList<>();
     ZonedDateTime created = ZonedDateTime.now();
     ZonedDateTime lastUpdate = created;
 }

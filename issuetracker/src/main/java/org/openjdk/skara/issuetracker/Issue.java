@@ -26,7 +26,7 @@ import org.openjdk.skara.host.HostUser;
 
 import java.net.URI;
 import java.time.ZonedDateTime;
-import java.util.List;
+import java.util.*;
 
 public interface Issue {
     /**
@@ -147,4 +147,10 @@ public interface Issue {
      * @param assignees
      */
     void setAssignees(List<HostUser> assignees);
+
+    List<Link> links();
+
+    void addLink(Link link);
+
+    void removeLink(URI uri);
 }

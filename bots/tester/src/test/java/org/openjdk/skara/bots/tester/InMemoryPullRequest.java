@@ -219,6 +219,21 @@ class InMemoryPullRequest implements PullRequest {
     }
 
     @Override
+    public List<Link> links() {
+        return null;
+    }
+
+    @Override
+    public void addLink(Link link) {
+
+    }
+
+    @Override
+    public void removeLink(URI uri) {
+
+    }
+
+    @Override
     public void setTitle(String title) {
     }
 

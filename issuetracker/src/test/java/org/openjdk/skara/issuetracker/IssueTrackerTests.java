@@ -27,6 +27,7 @@ import org.openjdk.skara.test.HostCredentials;
 import org.junit.jupiter.api.*;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -70,6 +71,38 @@ class IssueTrackerTests {
             issue.setState(Issue.State.RESOLVED);
             var issues = project.issues();
             assertEquals(0, issues.size());
+        }
+    }
+
+    @Test
+    void addLink(TestInfo info) throws IOException {
+        try (var credentials = new HostCredentials(info)) {
+            var project = credentials.getIssueProject();
+
+            var userName = project.issueTracker().currentUser().userName();
+            var user = project.issueTracker().user(userName);
+            assertEquals(userName, user.userName());
+
+            var issue = credentials.createIssue(project, "Test issue");
+            issue.setBody("This is now the body");
+            var link = Link.create(URI.create("http://www.example.com/abc"), "openjdk/skara/13")
+                           .relationship("reviewed in")
+                           .summary("Pull request")
+                           .iconUrl(URI.create("https://bugs.openjdk.java.net/images/icons/icon-view.png"))
+                           .iconTitle("Review")
+                           .resolved(true)
+                           .statusIconUrl(URI.create("https://bugs.openjdk.java.net/images/icons/icon-status-done-green.png"))
+                           .statusIconTitle("Ready for integration")
+                           .build();
+            issue.addLink(link);
+
+            var links = issue.links();
+            assertEquals(1, links.size());
+            assertEquals(link, links.get(0));
+
+            issue.removeLink(URI.create("http://www.example.com/abc"));
+            links = issue.links();
+            assertEquals(0, links.size());
         }
     }
 }
