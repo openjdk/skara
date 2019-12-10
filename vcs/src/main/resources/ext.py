@@ -25,6 +25,7 @@ import mercurial.mdiff
 import mercurial.util
 import mercurial.hg
 import mercurial.node
+import mercurial.copies
 import difflib
 import sys
 
@@ -74,11 +75,16 @@ def _diff_git_raw(repo, ctx1, ctx2, modified, added, removed, showPatch):
     nullHash = b'0' * 40
     removed_copy = set(removed)
 
+    copied = mercurial.copies.pathcopies(ctx1, ctx2)
+
     for path in added:
         fctx = ctx2.filectx(path)
         if fctx.renamed():
-            parent = fctx.p1()
             old_path, _ = fctx.renamed()
+            if old_path in removed:
+                removed_copy.discard(old_path)
+        elif path in copied:
+            old_path = copied[path]
             if old_path in removed:
                 removed_copy.discard(old_path)
 
@@ -88,9 +94,7 @@ def _diff_git_raw(repo, ctx1, ctx2, modified, added, removed, showPatch):
             writeln(b':' + mode(ctx1.filectx(path)) + b' ' + mode(fctx) + b' ' + nullHash + b' ' + nullHash + b' M\t' + fctx.path())
         elif path in added:
             fctx = ctx2.filectx(path)
-            if not fctx.renamed():
-                writeln(b':000000 ' + mode(fctx) + b' ' + nullHash + b' ' + nullHash + b' A\t' + fctx.path())
-            else:
+            if fctx.renamed():
                 parent = fctx.p1()
                 score = int_to_str(int(ratio(parent.data(), fctx.data(), 0.5) * 100))
                 old_path, _ = fctx.renamed()
@@ -102,6 +106,19 @@ def _diff_git_raw(repo, ctx1, ctx2, modified, added, removed, showPatch):
 
                 write(b':' + mode(parent) + b' ' + mode(fctx) + b' ' + nullHash + b' ' + nullHash + b' ')
                 writeln(operation + score + b'\t' + old_path + b'\t' + path)
+            elif path in copied:
+                old_path = copied[path]
+                score = b'100'
+
+                if old_path in removed:
+                    operation = b'R'
+                else:
+                    operation = b'C'
+
+                write(b':' + mode(fctx) + b' ' + mode(fctx) + b' ' + nullHash + b' ' + nullHash + b' ')
+                writeln(operation + score + b'\t' + old_path + b'\t' + path)
+            else:
+                writeln(b':000000 ' + mode(fctx) + b' ' + nullHash + b' ' + nullHash + b' A\t' + fctx.path())
         elif path in removed_copy:
             fctx = ctx1.filectx(path)
             writeln(b':' + mode(fctx) + b' 000000 ' + nullHash + b' ' + nullHash + b' D\t' + path)
@@ -110,7 +127,7 @@ def _diff_git_raw(repo, ctx1, ctx2, modified, added, removed, showPatch):
         writeln(b'')
 
         match = _match_exact(repo.root, repo.getcwd(), list(modified) + list(added) + list(removed_copy))
-        opts = mercurial.mdiff.diffopts(git=True, nodates=True, context=0, showfunc=True)
+        opts = mercurial.mdiff.diffopts(git=True, nodates=True, context=0)
         for d in mercurial.patch.diff(repo, ctx1.node(), ctx2.node(), match=match, opts=opts):
             write(d)
 
