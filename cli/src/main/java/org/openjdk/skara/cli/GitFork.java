@@ -144,7 +144,7 @@ public class GitFork {
                   .optional(),
             Switch.shortcut("")
                   .fullname("sync")
-                  .helptext("Sync with the upstream repository after succesful fork")
+                  .helptext("Sync with the upstream repository after successful fork")
                   .optional(),
             Switch.shortcut("")
                   .fullname("verbose")
