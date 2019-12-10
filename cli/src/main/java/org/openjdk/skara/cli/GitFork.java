@@ -99,7 +99,7 @@ public class GitFork {
         }
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         var flags = List.of(
             Option.shortcut("u")
                   .fullname("username")
@@ -141,6 +141,10 @@ public class GitFork {
             Switch.shortcut("")
                   .fullname("https")
                   .helptext("Use the https:// protocol when cloning")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("sync")
+                  .helptext("Sync with the upstream repository after successful fork")
                   .optional(),
             Switch.shortcut("")
                   .fullname("verbose")
@@ -262,6 +266,11 @@ public class GitFork {
             var config = gitConfig("fork.no-remote");
             noRemote = config != null && config.toLowerCase().equals("true");
         }
+        boolean shouldSync = arguments.contains("sync");
+        if (!shouldSync) {
+            var config = gitConfig("fork.sync");
+            shouldSync = config != null && config.toLowerCase().equals("true");
+        }
         if (noClone || !arguments.at(0).isPresent()) {
             if (!arguments.at(0).isPresent()) {
                 var cwd = Path.of("").toAbsolutePath();
@@ -280,11 +289,15 @@ public class GitFork {
                     }
                     repo.addRemote("fork", forkURL);
                     System.out.println("done");
+
+                    if (shouldSync) {
+                        GitSync.sync(repo, new String[]{"--from", "origin", "--to", "fork"});
+                    }
                 }
             }
         } else {
             var reference = arguments.get("reference").orString(() -> gitConfig("fork.reference"));
-            if (reference.startsWith("~" + File.separator)) {
+            if (reference != null && reference.startsWith("~" + File.separator)) {
                 reference = System.getProperty("user.home") + reference.substring(1);
             }
             var depth = arguments.get("depth").orString(() -> gitConfig("fork.depth"));
@@ -339,6 +352,10 @@ public class GitFork {
                 repo.addRemote("upstream", upstreamUrl);
 
                 System.out.println("done");
+
+                if (shouldSync) {
+                    GitSync.sync(repo, new String[]{"--from", "upstream", "--to", "origin", "--pull"});
+                }
             }
         }
     }
