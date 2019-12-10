@@ -36,7 +36,7 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class MailingListUpdater implements UpdateConsumer {
+public class MailingListUpdater implements RepositoryUpdateConsumer {
     private final MailingList list;
     private final EmailAddress recipient;
     private final EmailAddress sender;

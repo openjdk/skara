@@ -22,21 +22,24 @@
  */
 package org.openjdk.skara.bots.notify;
 
-import org.openjdk.skara.forge.HostedRepository;
+import org.openjdk.skara.forge.*;
+import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.issuetracker.Issue;
-import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.*;
 
+import java.net.URI;
 import java.util.List;
 import java.util.logging.Logger;
 
-public class IssueUpdater implements UpdateConsumer {
+public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdateConsumer {
     private final IssueProject issueProject;
+    private final URI reviewIcon;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
-    IssueUpdater(IssueProject issueProject) {
+    IssueUpdater(IssueProject issueProject, URI reviewIcon) {
         this.issueProject = issueProject;
+        this.reviewIcon = reviewIcon;
     }
 
     @Override
@@ -70,5 +73,34 @@ public class IssueUpdater implements UpdateConsumer {
     @Override
     public void handleNewBranch(HostedRepository repository, List<Commit> commits, Branch parent, Branch branch) {
 
+    }
+
+    @Override
+    public void handleNewIssue(PullRequest pr, org.openjdk.skara.vcs.openjdk.Issue issue) {
+        var realIssue = issueProject.issue(issue.id());
+        if (realIssue.isEmpty()) {
+            log.warning("Pull request " + pr + " added unknown issue: " + issue.id());
+            return;
+        }
+
+        var linkBuilder = Link.create(pr.webUrl(), "Review")
+                              .summary(pr.repository().name() + "/" + pr.id())
+                              .iconTitle("Review");
+        if (reviewIcon != null) {
+            linkBuilder.iconUrl(reviewIcon);
+        }
+
+        realIssue.get().addLink(linkBuilder.build());
+    }
+
+    @Override
+    public void handleRemovedIssue(PullRequest pr, org.openjdk.skara.vcs.openjdk.Issue issue) {
+        var realIssue = issueProject.issue(issue.id());
+        if (realIssue.isEmpty()) {
+            log.warning("Pull request " + pr + " removed unknown issue: " + issue.id());
+            return;
+        }
+
+        realIssue.get().removeLink(pr.webUrl());
     }
 }
