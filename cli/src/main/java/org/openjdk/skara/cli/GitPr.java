@@ -317,6 +317,10 @@ public class GitPr {
                   .helptext("Hide any decorations when listing PRs")
                   .optional(),
             Switch.shortcut("")
+                  .fullname("ignore-workspace")
+                  .helptext("Ignore local changes in worktree and staging area when creating pull request")
+                  .optional(),
+            Switch.shortcut("")
                   .fullname("no-token")
                   .helptext("Do not use a personal access token (PAT). Only works for read-only operations.")
                   .optional(),
@@ -596,6 +600,35 @@ public class GitPr {
                 System.exit(1);
             }
 
+            var ignoreWorkspace = arguments.contains("ignore-workspace");
+            if (!ignoreWorkspace) {
+                var lines = repo.config("pr.ignore-workspace");
+                ignoreWorkspace = lines.size() == 1 && lines.get(0).equals("true");
+            }
+            if (!ignoreWorkspace) {
+                var diff = repo.diff(repo.head());
+                if (!diff.patches().isEmpty()) {
+                    System.err.println("error: there are uncommitted changes in your working tree:");
+                    System.err.println("");
+                    for (var patch : diff.patches()) {
+                        var path = patch.target().path().isPresent() ?
+                            patch.target().path().get() : patch.source().path().get();
+                        System.err.println("    " + patch.status().toString() + " " + path.toString());
+                    }
+                    System.err.println("");
+                    System.err.println("If these changes are meant to be part of the pull request, run:");
+                    System.err.println("");
+                    System.err.println("    git commit -am 'Forgot to add some changes'");
+                    System.err.println("");
+                    System.err.println("If these changes are *not* meant to be part of the pull request, run:");
+                    System.err.println("");
+                    System.err.println("    git stash");
+                    System.err.println("");
+                    System.err.println("(You can later restore the changes by running: git stash pop)");
+                    System.exit(1);
+                }
+            }
+
             var upstream = repo.upstreamFor(currentBranch);
             if (upstream.isEmpty()) {
                 System.err.println("error: there is no remote branch for the local branch '" + currentBranch.name() + "'");
@@ -639,28 +672,6 @@ public class GitPr {
             if (commits.isEmpty()) {
                 System.err.println("error: no difference between branches " + targetBranch + " and " + currentBranch.name());
                 System.err.println("       Cannot create an empty pull request, have you committed?");
-                System.exit(1);
-            }
-
-            var diff = repo.diff(repo.head());
-            if (!diff.patches().isEmpty()) {
-                System.err.println("error: there are uncommitted changes in your working tree:");
-                System.err.println("");
-                for (var patch : diff.patches()) {
-                    var path = patch.target().path().isPresent() ?
-                        patch.target().path().get() : patch.source().path().get();
-                    System.err.println("    " + patch.status().toString() + " " + path.toString());
-                }
-                System.err.println("");
-                System.err.println("If these changes are meant to be part of the pull request, run:");
-                System.err.println("");
-                System.err.println("    git commit -am 'Forgot to add some changes'");
-                System.err.println("");
-                System.err.println("If these changes are *not* meant to be part of the pull request, run:");
-                System.err.println("");
-                System.err.println("    git stash");
-                System.err.println("");
-                System.err.println("(You can later restore the changes by running: git stash pop)");
                 System.exit(1);
             }
 
