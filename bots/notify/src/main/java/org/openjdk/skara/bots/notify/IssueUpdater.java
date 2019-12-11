@@ -35,11 +35,13 @@ import java.util.logging.Logger;
 public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdateConsumer {
     private final IssueProject issueProject;
     private final URI reviewIcon;
+    private final URI commitIcon;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
-    IssueUpdater(IssueProject issueProject, URI reviewIcon) {
+    IssueUpdater(IssueProject issueProject, URI reviewIcon, URI commitIcon) {
         this.issueProject = issueProject;
         this.reviewIcon = reviewIcon;
+        this.commitIcon = commitIcon;
     }
 
     @Override
@@ -56,6 +58,14 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
                 }
                 issue.get().addComment(commitNotification);
                 issue.get().setState(Issue.State.RESOLVED);
+
+                var linkBuilder = Link.create(repository.webUrl(commit.hash()), "Commit")
+                                      .summary(repository.name() + "/" + commit.hash().abbreviate());
+                if (commitIcon != null) {
+                    linkBuilder.iconTitle("Commit");
+                    linkBuilder.iconUrl(commitIcon);
+                }
+                issue.get().addLink(linkBuilder.build());
             }
         }
     }
@@ -84,9 +94,9 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
         }
 
         var linkBuilder = Link.create(pr.webUrl(), "Review")
-                              .summary(pr.repository().name() + "/" + pr.id())
-                              .iconTitle("Review");
+                              .summary(pr.repository().name() + "/" + pr.id());
         if (reviewIcon != null) {
+            linkBuilder.iconTitle("Review");
             linkBuilder.iconUrl(reviewIcon);
         }
 
