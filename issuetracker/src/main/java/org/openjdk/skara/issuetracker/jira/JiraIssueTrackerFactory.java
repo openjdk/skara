@@ -43,6 +43,10 @@ public class JiraIssueTrackerFactory implements IssueTrackerFactory {
             if (credential.username().startsWith("https://")) {
                 var vaultUrl = URIBuilder.base(credential.username()).build();
                 var jiraVault = new JiraVault(vaultUrl, credential.password());
+
+                if (configuration.contains("security") && configuration.contains("visibility")) {
+                    return new JiraHost(uri, jiraVault, configuration.get("visibility").asString(), configuration.get("security").asString());
+                }
                 return new JiraHost(uri, jiraVault);
             } else {
                 throw new RuntimeException("basic authentication not implemented yet");

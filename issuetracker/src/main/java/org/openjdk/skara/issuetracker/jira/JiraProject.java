@@ -79,6 +79,10 @@ public class JiraProject implements IssueProject {
                            .min(Comparator.naturalOrder()).orElseThrow();
     }
 
+    JiraHost jiraHost() {
+        return jiraHost;
+    }
+
     @Override
     public IssueTracker issueTracker() {
         return jiraHost;
@@ -91,17 +95,20 @@ public class JiraProject implements IssueProject {
 
     @Override
     public Issue createIssue(String title, List<String> body) {
-        var query = JSON.object()
-                        .put("fields", JSON.object()
-                                           .put("project", JSON.object()
-                                                               .put("id", projectId()))
-                                           .put("issuetype", JSON.object()
-                                                                 .put("id", defaultIssueType()))
-                                           .put("components", JSON.array()
-                                                                  .add(JSON.object().put("id", defaultComponent())))
-                                           .put("summary", title)
-                                           .put("description", String.join("\n", body)));
+        var query = JSON.object();
+        var fields = JSON.object()
+                         .put("project", JSON.object()
+                                             .put("id", projectId()))
+                         .put("issuetype", JSON.object()
+                                               .put("id", defaultIssueType()))
+                         .put("components", JSON.array()
+                                                .add(JSON.object().put("id", defaultComponent())))
+                         .put("summary", title)
+                         .put("description", String.join("\n", body));
+        query.put("fields", fields);
 
+        jiraHost.securityLevel().ifPresent(securityLevel -> fields.put("security", JSON.object()
+                                                                                       .put("id", securityLevel)));
         var data = request.post("issue")
                           .body(query)
                           .execute();

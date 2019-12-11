@@ -31,6 +31,7 @@ import java.net.URI;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class JiraIssue implements Issue {
@@ -38,12 +39,33 @@ public class JiraIssue implements Issue {
     private final RestRequest request;
     private final JSONValue json;
 
+    // If true, the issue has the requested security level as set by the host. This means that fields that do
+    // not explicitly support a security level (such as labels and links) implicitly get the correct security
+    // level. If false, such items may not be added or updated.
+    // Comments are special in that they do explicitly support a visibility level, and can thus be posted and
+    // updated even if the issue has a different security level than the requested one.
+    private final boolean secure;
+
+    private final Logger log = Logger.getLogger("org.openjdk.skara.issuetracker.jira");
+
     private static final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
     JiraIssue(JiraProject jiraProject, RestRequest request, JSONValue json) {
         this.jiraProject = jiraProject;
         this.request = request;
         this.json = json;
+
+        if (json.get("fields").contains("security")) {
+            // Issue has the requested security level -> fine to post fields without role
+            secure = jiraProject.jiraHost().securityLevel().orElse("").equals(json.get("fields").get("security").get("id").asString());
+        } else {
+            if (jiraProject.jiraHost().securityLevel().isEmpty()) {
+                // No security level on issue, and none requested -> fine to post fields without role
+                secure = true;
+            } else {
+                secure = false;
+            }
+        }
     }
 
     @Override
@@ -70,6 +92,10 @@ public class JiraIssue implements Issue {
 
     @Override
     public void setTitle(String title) {
+        if (!secure) {
+            log.warning("Ignoring attempt to set title on issue with wrong security level");
+            return;
+        }
         var query = JSON.object()
                         .put("fields", JSON.object()
                                            .put("summary", title));
@@ -87,6 +113,10 @@ public class JiraIssue implements Issue {
 
     @Override
     public void setBody(String body) {
+        if (!secure) {
+            log.warning("Ignoring attempt to set body on issue with wrong security level");
+            return;
+        }
         var query = JSON.object()
                         .put("fields", JSON.object()
                                            .put("description", body));
@@ -115,16 +145,24 @@ public class JiraIssue implements Issue {
 
     @Override
     public Comment addComment(String body) {
+        var query = JSON.object().put("body", body);
+        jiraProject.jiraHost().visibilityRole().ifPresent(visibility -> query.put("visibility", JSON.object()
+                                                                                                    .put("type", "role")
+                                                                                                    .put("value", visibility)));
         var json = request.post("/comment")
-                          .body("body", body)
+                          .body(query)
                           .execute();
         return parseComment(json);
     }
 
     @Override
     public Comment updateComment(String id, String body) {
+        var query = JSON.object().put("body", body);
+        jiraProject.jiraHost().visibilityRole().ifPresent(visibility -> query.put("visibility", JSON.object()
+                                                                                                    .put("type", "role")
+                                                                                                    .put("value", visibility)));
         var json = request.put("/comment/" + id)
-                          .body("body", body)
+                          .body(query)
                           .execute();
         return parseComment(json);
     }
@@ -199,6 +237,10 @@ public class JiraIssue implements Issue {
 
     @Override
     public void addLabel(String label) {
+        if (!secure) {
+            log.warning("Ignoring attempt to add label on issue with wrong security level");
+            return;
+        }
         var query = JSON.object()
                         .put("update", JSON.object()
                                            .put("labels", JSON.array().add(JSON.object()
@@ -300,6 +342,11 @@ public class JiraIssue implements Issue {
 
     @Override
     public void addLink(Link link) {
+        if (!secure) {
+            log.warning("Ignoring attempt to add link on issue with wrong security level");
+            return;
+        }
+
         var query = JSON.object().put("globalId", "skaralink=" + link.uri().toString());
         var object = JSON.object().put("url", link.uri().toString()).put("title", link.title());
         var status = JSON.object().put("resolved", link.resolved());

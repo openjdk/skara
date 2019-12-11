@@ -160,7 +160,7 @@ public class HostCredentials implements AutoCloseable {
             var users = config.get("users").asArray();
             var pat = new Credential(users.get(userIndex).get("name").asString(),
                                      users.get(userIndex).get("pat").asString());
-            return IssueTracker.from("jira", hostUri, pat, null);
+            return IssueTracker.from("jira", hostUri, pat, config);
         }
 
         @Override
