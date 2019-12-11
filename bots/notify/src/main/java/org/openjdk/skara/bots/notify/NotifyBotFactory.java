@@ -74,7 +74,7 @@ public class NotifyBotFactory implements BotFactory {
         URI commitIcon = null;
         if (specific.contains("commits")) {
             if (specific.get("commits").contains("icon")) {
-                reviewIcon = URI.create(specific.get("commits").get("icon").asString());
+                commitIcon = URI.create(specific.get("commits").get("icon").asString());
             }
         }
         for (var repo : specific.get("repositories").fields()) {
