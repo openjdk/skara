@@ -25,6 +25,8 @@ package org.openjdk.skara.cli;
 import org.openjdk.skara.args.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
+import org.openjdk.skara.issuetracker.IssueTracker;
+import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
@@ -34,6 +36,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -50,6 +53,20 @@ public class GitPr {
             exit(fmt, args);
             return null;
         };
+    }
+
+    private static Optional<Issue> getIssue(Branch b) throws IOException {
+        var issueIdPattern = Pattern.compile("([A-Za-z][A-Za-z0-9]+)-([0-9]+)");
+        var m = issueIdPattern.matcher(b.name());
+        if (m.matches()) {
+            var project = m.group(1);
+            var id = m.group(2);
+            var issueTracker = IssueTracker.from("jira", URI.create("https://bugs.openjdk.java.net"));
+            return issueTracker.project(project).issue(id);
+        }
+        System.out.println("pattern did not match");
+
+        return Optional.empty();
     }
 
     private static void await(Process p) throws IOException {
@@ -624,8 +641,13 @@ public class GitPr {
             var parentRepo = remoteRepo.parent().orElseThrow(() ->
                     new IOException("error: remote repository " + remotePullPath + " is not a fork of any repository"));
 
+            var issue = getIssue(currentBranch);
             var file = Files.createTempFile("PULL_REQUEST_", ".txt");
-            if (commits.size() == 1) {
+            if (issue.isPresent()) {
+                var parts = issue.get().id().split("-");
+                var id = parts.length == 2 ? parts[1] : issue.get().id();
+                Files.writeString(file, id + ": " + issue.get().title() + "\n\n");
+            } else if (commits.size() == 1) {
                 var commit = commits.get(0);
                 var message = CommitMessageParsers.v1.parse(commit.message());
                 Files.writeString(file, message.title() + "\n");
