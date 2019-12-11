@@ -39,4 +39,12 @@ public interface IssueTracker extends Host {
         }
         return factory.get().create(uri, credential, configuration);
     }
+
+    static IssueTracker from(String name, URI uri, Credential credential) {
+        return from(name, uri, credential, null);
+    }
+
+    static IssueTracker from(String name, URI uri) {
+        return from(name, uri, null, null);
+    }
 }
