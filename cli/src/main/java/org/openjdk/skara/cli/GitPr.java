@@ -321,6 +321,10 @@ public class GitPr {
                   .helptext("Ignore local changes in worktree and staging area when creating pull request")
                   .optional(),
             Switch.shortcut("")
+                  .fullname("publish")
+                  .helptext("Publish the local branch before creating the pull request")
+                  .optional(),
+            Switch.shortcut("")
                   .fullname("no-token")
                   .helptext("Do not use a personal access token (PAT). Only works for read-only operations.")
                   .optional(),
@@ -631,20 +635,29 @@ public class GitPr {
 
             var upstream = repo.upstreamFor(currentBranch);
             if (upstream.isEmpty()) {
-                System.err.println("error: there is no remote branch for the local branch '" + currentBranch.name() + "'");
-                System.err.println("");
-                System.err.println("A remote branch must be present at " + remotePullPath + " to create a pull request");
-                System.err.println("To create a remote branch and push the commits for your local branch, run:");
-                System.err.println("");
-                System.err.println("    git publish");
-                System.err.println("");
-                System.err.println("If you created the remote branch from another client, you must update this repository.");
-                System.err.println("To update remote information for this repository, run:");
-                System.err.println("");
-                System.err.println("    git fetch " + remote);
-                System.err.println("    git branch --set-upstream " + currentBranch + " " + remote + "/" + currentBranch);
-                System.err.println("");
-                System.exit(1);
+                var shouldPublish = arguments.contains("publish");
+                if (!shouldPublish) {
+                    var lines = repo.config("pr.publish");
+                    shouldPublish = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
+                }
+                if (shouldPublish) {
+                    GitPublish.main(new String[] { remote });
+                } else {
+                    System.err.println("error: there is no remote branch for the local branch '" + currentBranch.name() + "'");
+                    System.err.println("");
+                    System.err.println("A remote branch must be present at " + remotePullPath + " to create a pull request");
+                    System.err.println("To create a remote branch and push the commits for your local branch, run:");
+                    System.err.println("");
+                    System.err.println("    git publish");
+                    System.err.println("");
+                    System.err.println("If you created the remote branch from another client, you must update this repository.");
+                    System.err.println("To update remote information for this repository, run:");
+                    System.err.println("");
+                    System.err.println("    git fetch " + remote);
+                    System.err.println("    git branch --set-upstream " + currentBranch + " " + remote + "/" + currentBranch);
+                    System.err.println("");
+                    System.exit(1);
+                }
             }
 
             var upstreamRefName = upstream.get().substring(remote.length() + 1);
