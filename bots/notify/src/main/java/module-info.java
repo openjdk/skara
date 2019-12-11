@@ -30,5 +30,5 @@ module org.openjdk.skara.bots.notify {
     requires org.openjdk.skara.network;
     requires java.logging;
 
-    provides org.openjdk.skara.bot.BotFactory with org.openjdk.skara.bots.notify.JNotifyBotFactory;
+    provides org.openjdk.skara.bot.BotFactory with org.openjdk.skara.bots.notify.NotifyBotFactory;
 }
