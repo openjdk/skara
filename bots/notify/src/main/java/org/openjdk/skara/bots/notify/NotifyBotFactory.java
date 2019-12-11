@@ -71,7 +71,12 @@ public class NotifyBotFactory implements BotFactory {
                 reviewIcon = URI.create(specific.get("reviews").get("icon").asString());
             }
         }
-
+        URI commitIcon = null;
+        if (specific.contains("commits")) {
+            if (specific.get("commits").contains("icon")) {
+                reviewIcon = URI.create(specific.get("commits").get("icon").asString());
+            }
+        }
         for (var repo : specific.get("repositories").fields()) {
             var repoName = repo.name();
             var branchPattern = Pattern.compile("^master$");
@@ -129,7 +134,7 @@ public class NotifyBotFactory implements BotFactory {
             }
             if (repo.value().contains("issues")) {
                 var issueProject = configuration.issueProject(repo.value().get("issues").asString());
-                var updater = new IssueUpdater(issueProject, reviewIcon);
+                var updater = new IssueUpdater(issueProject, reviewIcon, commitIcon);
                 updaters.add(updater);
                 prUpdaters.add(updater);
             }

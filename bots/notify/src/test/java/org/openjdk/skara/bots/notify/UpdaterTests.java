@@ -762,7 +762,8 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var issueProject = credentials.getIssueProject();
-            var updater = new IssueUpdater(issueProject, null);
+            var commitIcon = URI.create("http://www.example.com/commit.png");
+            var updater = new IssueUpdater(issueProject, null, commitIcon);
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
@@ -780,6 +781,14 @@ class UpdaterTests {
             assertEquals(1, comments.size());
             var comment = comments.get(0);
             assertTrue(comment.body().contains(editHash.abbreviate()));
+
+            // And in a link
+            var links = issue.links();
+            assertEquals(1, links.size());
+            var link = links.get(0);
+            assertEquals(commitIcon, link.iconUrl().orElseThrow());
+            assertEquals("Commit", link.title());
+            assertEquals(repo.webUrl(editHash), link.uri());
 
             // There should be no open issues
             assertEquals(0, issueProject.issues().size());
@@ -804,7 +813,7 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var reviewIcon = URI.create("http://www.example.com/review.png");
-            var updater = new IssueUpdater(issueProject, reviewIcon);
+            var updater = new IssueUpdater(issueProject, reviewIcon, null);
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(), List.of(updater), Set.of("rfr"),
                                           Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("This is now ready")));
