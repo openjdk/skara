@@ -38,7 +38,7 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class JNotifyBotFactory implements BotFactory {
+public class NotifyBotFactory implements BotFactory {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
 
     @Override
@@ -147,8 +147,8 @@ public class JNotifyBotFactory implements BotFactory {
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added branch hash for " + repoName);
             var issueStorageBuilder = new StorageBuilder<PullRequestIssues>(baseName + ".prissues.txt")
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added pull request issue info for " + repoName);
-            var bot = new JNotifyBot(configuration.repository(repoName), configuration.storageFolder(), branchPattern,
-                                     tagStorageBuilder, branchStorageBuilder, issueStorageBuilder, updaters, prUpdaters, readyLabels, readyComments);
+            var bot = new NotifyBot(configuration.repository(repoName), configuration.storageFolder(), branchPattern,
+                                    tagStorageBuilder, branchStorageBuilder, issueStorageBuilder, updaters, prUpdaters, readyLabels, readyComments);
             ret.add(bot);
         }
 

@@ -32,7 +32,7 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-class JNotifyBot implements Bot {
+class NotifyBot implements Bot {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final HostedRepository repository;
     private final Path storagePath;
@@ -46,10 +46,10 @@ class JNotifyBot implements Bot {
     private final Set<String> readyLabels;
     private final Map<String, Pattern> readyComments;
 
-    JNotifyBot(HostedRepository repository, Path storagePath, Pattern branches, StorageBuilder<Tag> tagStorageBuilder,
-               StorageBuilder<ResolvedBranch> branchStorageBuilder, StorageBuilder<PullRequestIssues> prIssuesStorageBuilder,
-               List<RepositoryUpdateConsumer> updaters, List<PullRequestUpdateConsumer> prUpdaters,
-               Set<String> readyLabels, Map<String, Pattern> readyComments) {
+    NotifyBot(HostedRepository repository, Path storagePath, Pattern branches, StorageBuilder<Tag> tagStorageBuilder,
+              StorageBuilder<ResolvedBranch> branchStorageBuilder, StorageBuilder<PullRequestIssues> prIssuesStorageBuilder,
+              List<RepositoryUpdateConsumer> updaters, List<PullRequestUpdateConsumer> prUpdaters,
+              Set<String> readyLabels, Map<String, Pattern> readyComments) {
         this.repository = repository;
         this.storagePath = storagePath;
         this.branches = branches;
