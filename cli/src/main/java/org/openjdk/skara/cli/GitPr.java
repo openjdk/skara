@@ -27,6 +27,7 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.issuetracker.IssueTracker;
 import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
@@ -55,16 +56,47 @@ public class GitPr {
         };
     }
 
-    private static Optional<Issue> getIssue(Branch b) throws IOException {
-        var issueIdPattern = Pattern.compile("([A-Za-z][A-Za-z0-9]+)-([0-9]+)");
-        var m = issueIdPattern.matcher(b.name());
+    private static String format(Issue issue) {
+        var parts = issue.id().split("-");
+        var id = parts.length == 2 ? parts[1] : issue.id();
+        return id + ": " + issue.title();
+    }
+
+    private static String jbsProjectFromJcheckConf(Repository repo) throws IOException {
+        var conf = JCheckConfiguration.from(repo, repo.resolve("master").orElseThrow(() ->
+            new IOException("Could not resolve 'master' branch")
+        ));
+
+        return conf.general().jbs();
+    }
+
+    private static Optional<Issue> getIssue(Commit commit, String project) throws IOException {
+        var message = CommitMessageParsers.v1.parse(commit.message());
+        var issues = message.issues();
+        if (issues.isEmpty()) {
+            return getIssue(message.title(), project);
+        } else if (issues.size() == 1) {
+            var issue = issues.get(0);
+            return getIssue(issue.id(), project);
+        }
+        return Optional.empty();
+    }
+
+    private static Optional<Issue> getIssue(Branch b, String project) throws IOException {
+        return getIssue(b.name(), project);
+    }
+
+    private static Optional<Issue> getIssue(String s, String project) throws IOException {
+        var issueIdPattern = Pattern.compile("([A-Za-z][A-Za-z0-9]+)?-([0-9]+)");
+        var m = issueIdPattern.matcher(s);
         if (m.matches()) {
-            var project = m.group(1);
             var id = m.group(2);
+            if (project == null) {
+                project = m.group(1);
+            }
             var issueTracker = IssueTracker.from("jira", URI.create("https://bugs.openjdk.java.net"));
             return issueTracker.project(project).issue(id);
         }
-        System.out.println("pattern did not match");
 
         return Optional.empty();
     }
@@ -641,21 +673,25 @@ public class GitPr {
             var parentRepo = remoteRepo.parent().orElseThrow(() ->
                     new IOException("error: remote repository " + remotePullPath + " is not a fork of any repository"));
 
-            var issue = getIssue(currentBranch);
+            var project = jbsProjectFromJcheckConf(repo);
+            var issue = getIssue(currentBranch, project);
             var file = Files.createTempFile("PULL_REQUEST_", ".txt");
             if (issue.isPresent()) {
-                var parts = issue.get().id().split("-");
-                var id = parts.length == 2 ? parts[1] : issue.get().id();
-                Files.writeString(file, id + ": " + issue.get().title() + "\n\n");
+                Files.writeString(file, format(issue.get()) + "\n\n");
             } else if (commits.size() == 1) {
                 var commit = commits.get(0);
-                var message = CommitMessageParsers.v1.parse(commit.message());
-                Files.writeString(file, message.title() + "\n");
-                if (!message.summaries().isEmpty()) {
-                    Files.write(file, message.summaries(), StandardOpenOption.APPEND);
-                }
-                if (!message.additional().isEmpty()) {
-                    Files.write(file, message.additional(), StandardOpenOption.APPEND);
+                issue = getIssue(commit, project);
+                if (issue.isPresent()) {
+                    Files.writeString(file, format(issue.get()) + "\n\n");
+                } else {
+                    var message = CommitMessageParsers.v1.parse(commit.message());
+                    Files.writeString(file, message.title() + "\n");
+                    if (!message.summaries().isEmpty()) {
+                        Files.write(file, message.summaries(), StandardOpenOption.APPEND);
+                    }
+                    if (!message.additional().isEmpty()) {
+                        Files.write(file, message.additional(), StandardOpenOption.APPEND);
+                    }
                 }
             } else {
                 Files.write(file, List.of(""));
