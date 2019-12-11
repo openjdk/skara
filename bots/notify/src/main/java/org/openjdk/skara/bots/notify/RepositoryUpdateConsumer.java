@@ -28,7 +28,7 @@ import org.openjdk.skara.vcs.openjdk.OpenJDKTag;
 
 import java.util.List;
 
-public interface UpdateConsumer {
+public interface RepositoryUpdateConsumer {
     void handleCommits(HostedRepository repository, List<Commit> commits, Branch branch);
     void handleOpenJDKTagCommits(HostedRepository repository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated);
     void handleTagCommit(HostedRepository repository, Commit commit, Tag tag, Tag.Annotated annotation);

@@ -24,12 +24,13 @@ package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.email.EmailAddress;
-import org.openjdk.skara.network.URIBuilder;
-import org.openjdk.skara.json.JSONObject;
+import org.openjdk.skara.json.*;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
+import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.storage.StorageBuilder;
 import org.openjdk.skara.vcs.Tag;
 
+import java.net.URI;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
@@ -56,6 +57,21 @@ public class JNotifyBotFactory implements BotFactory {
         var databaseName = database.get("name").asString();
         var databaseEmail = database.get("email").asString();
 
+        var readyLabels = specific.get("ready").get("labels").stream()
+                                  .map(JSONValue::asString)
+                                  .collect(Collectors.toSet());
+        var readyComments = specific.get("ready").get("comments").stream()
+                                    .map(JSONValue::asObject)
+                                    .collect(Collectors.toMap(obj -> obj.get("user").asString(),
+                                                              obj -> Pattern.compile(obj.get("pattern").asString())));
+
+        URI reviewIcon = null;
+        if (specific.contains("reviews")) {
+            if (specific.get("reviews").contains("icon")) {
+                reviewIcon = URI.create(specific.get("reviews").get("icon").asString());
+            }
+        }
+
         for (var repo : specific.get("repositories").fields()) {
             var repoName = repo.name();
             var branchPattern = Pattern.compile("^master$");
@@ -67,8 +83,8 @@ public class JNotifyBotFactory implements BotFactory {
             if (repo.value().contains("branchnames")) {
                 includeBranchNames = repo.value().get("branchnames").asBoolean();
             }
-
-            var updaters = new ArrayList<UpdateConsumer>();
+            var updaters = new ArrayList<RepositoryUpdateConsumer>();
+            var prUpdaters = new ArrayList<PullRequestUpdateConsumer>();
             if (repo.value().contains("json")) {
                 var folder = repo.value().get("folder").asString();
                 var build = repo.value().get("build").asString();
@@ -113,7 +129,9 @@ public class JNotifyBotFactory implements BotFactory {
             }
             if (repo.value().contains("issues")) {
                 var issueProject = configuration.issueProject(repo.value().get("issues").asString());
-                updaters.add(new IssueUpdater(issueProject));
+                var updater = new IssueUpdater(issueProject, reviewIcon);
+                updaters.add(updater);
+                prUpdaters.add(updater);
             }
 
             if (updaters.isEmpty()) {
@@ -127,7 +145,10 @@ public class JNotifyBotFactory implements BotFactory {
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added tag for " + repoName);
             var branchStorageBuilder = new StorageBuilder<ResolvedBranch>(baseName + ".branches.txt")
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added branch hash for " + repoName);
-            var bot = new JNotifyBot(configuration.repository(repoName), configuration.storageFolder(), branchPattern, tagStorageBuilder, branchStorageBuilder, updaters);
+            var issueStorageBuilder = new StorageBuilder<PullRequestIssues>(baseName + ".prissues.txt")
+                    .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added pull request issue info for " + repoName);
+            var bot = new JNotifyBot(configuration.repository(repoName), configuration.storageFolder(), branchPattern,
+                                     tagStorageBuilder, branchStorageBuilder, issueStorageBuilder, updaters, prUpdaters, readyLabels, readyComments);
             ret.add(bot);
         }
 

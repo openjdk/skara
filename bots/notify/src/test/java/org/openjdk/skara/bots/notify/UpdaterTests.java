@@ -33,6 +33,7 @@ import org.openjdk.skara.vcs.Tag;
 import org.junit.jupiter.api.*;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.Duration;
@@ -50,14 +51,19 @@ class UpdaterTests {
                     .collect(Collectors.toList());
     }
 
-    private StorageBuilder<Tag> createTagStorage(HostedRepository repository) throws IOException {
+    private StorageBuilder<Tag> createTagStorage(HostedRepository repository) {
         return new StorageBuilder<Tag>("tags.txt")
-                .remoteRepository(repository, "refs/heads/history", "Duke", "duke@openjdk.java.net", "Updated tags");
+                .remoteRepository(repository, "history", "Duke", "duke@openjdk.java.net", "Updated tags");
     }
 
-    private StorageBuilder<ResolvedBranch> createBranchStorage(HostedRepository repository) throws IOException {
+    private StorageBuilder<ResolvedBranch> createBranchStorage(HostedRepository repository) {
         return new StorageBuilder<ResolvedBranch>("branches.txt")
-                .remoteRepository(repository, "refs/heads/history", "Duke", "duke@openjdk.java.net", "Updated branches");
+                .remoteRepository(repository, "history", "Duke", "duke@openjdk.java.net", "Updated branches");
+    }
+
+    private StorageBuilder<PullRequestIssues> createPullRequestIssuesStorage(HostedRepository repository) {
+        return new StorageBuilder<PullRequestIssues>("prissues.txt")
+                .remoteRepository(repository, "history", "Duke", "duke@openjdk.java.net", "Updated prissues");
     }
 
     @Test
@@ -72,12 +78,14 @@ class UpdaterTests {
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
             var jsonFolder = tempFolder.path().resolve("json");
             Files.createDirectory(jsonFolder);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var updater = new JsonUpdater(jsonFolder, "12", "team");
-            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
+                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
             TestBotRunner.runPeriodicItems(notifyBot);
             assertEquals(List.of(), findJsonFiles(jsonFolder, ""));
@@ -111,12 +119,14 @@ class UpdaterTests {
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
             var jsonFolder = tempFolder.path().resolve("json");
             Files.createDirectory(jsonFolder);
             var storageFolder =tempFolder.path().resolve("storage");
 
             var updater = new JsonUpdater(jsonFolder, "12", "team");
-            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
+                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
             TestBotRunner.runPeriodicItems(notifyBot);
             assertEquals(List.of(), findJsonFiles(jsonFolder, ""));
@@ -182,12 +192,14 @@ class UpdaterTests {
             var mailmanList = mailmanServer.getList(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false, MailingListUpdater.Mode.ALL,
                                                  Map.of("extra1", "value1", "extra2", "value2"), Pattern.compile("none"));
-            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
+                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -233,12 +245,14 @@ class UpdaterTests {
             var mailmanList = mailmanServer.getList(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false,
                                                  MailingListUpdater.Mode.ALL, Map.of(), Pattern.compile(".*"));
-            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
+                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -286,12 +300,14 @@ class UpdaterTests {
             var mailmanList = mailmanServer.getList(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false,
                                                  MailingListUpdater.Mode.ALL, Map.of(), Pattern.compile(".*"));
-            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
+                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -335,13 +351,15 @@ class UpdaterTests {
             var mailmanList = mailmanServer.getList(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var author = EmailAddress.from("author", "author@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, author, true,
                                                  MailingListUpdater.Mode.ALL, Map.of(), Pattern.compile(".*"));
-            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master|another"), tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master|another"), tagStorage, branchStorage,
+                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -408,6 +426,7 @@ class UpdaterTests {
             var mailmanList = mailmanServer.getList(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
@@ -415,7 +434,8 @@ class UpdaterTests {
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, author, false,
                                                  MailingListUpdater.Mode.PR_ONLY, Map.of("extra1", "value1"),
                                                  Pattern.compile(".*"));
-            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
+                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -487,12 +507,14 @@ class UpdaterTests {
             var mailmanList = mailmanServer.getList(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false,
                                                  MailingListUpdater.Mode.PR, Map.of(), Pattern.compile(".*"));
-            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
+                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -574,6 +596,7 @@ class UpdaterTests {
             var mailmanList = mailmanServer.getList(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
@@ -583,7 +606,7 @@ class UpdaterTests {
             var prOnlyUpdater = new MailingListUpdater(mailmanList, listAddress, sender, null, false,
                                                        MailingListUpdater.Mode.PR_ONLY, Map.of(), Pattern.compile(".*"));
             var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
-                                           List.of(updater, prOnlyUpdater));
+                                           prIssuesStorage, List.of(updater, prOnlyUpdater), List.of(), Set.of(), Map.of());
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -672,13 +695,15 @@ class UpdaterTests {
             var mailmanList = mailmanServer.getList(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false, MailingListUpdater.Mode.ALL,
                                                  Map.of("extra1", "value1", "extra2", "value2"),
                                                  Pattern.compile(".*"));
-            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master|newbranch."), tagStorage, branchStorage, List.of(updater));
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master|newbranch."), tagStorage, branchStorage,
+                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -733,11 +758,13 @@ class UpdaterTests {
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var issueProject = credentials.getIssueProject();
-            var updater = new IssueUpdater(issueProject);
-            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage, List.of(updater));
+            var updater = new IssueUpdater(issueProject, null);
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
+                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
             // Initialize history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -756,6 +783,95 @@ class UpdaterTests {
 
             // There should be no open issues
             assertEquals(0, issueProject.issues().size());
+        }
+    }
+
+    @Test
+    void testPullRequest(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var issueProject = credentials.getIssueProject();
+            var reviewIcon = URI.create("http://www.example.com/review.png");
+            var updater = new IssueUpdater(issueProject, reviewIcon);
+            var notifyBot = new JNotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
+                                           prIssuesStorage, List.of(), List.of(updater), Set.of("rfr"),
+                                           Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("This is now ready")));
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and a pull request to fix it
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"));
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "Fix that issue");
+            localRepo.push(editHash, repo.url(), "edit", true);
+            var pr = credentials.createPullRequest(repo, "edit", "master", issue.id() + ": Fix that issue");
+            pr.setBody("\n\n## Issue\n[" + issue.id() + "](http://www.test.test/): The issue");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The issue should not yet contain a link to the PR
+            var links = issue.links();
+            assertEquals(0, links.size());
+
+            // Just a label isn't enough
+            pr.addLabel("rfr");
+            TestBotRunner.runPeriodicItems(notifyBot);
+            links = issue.links();
+            assertEquals(0, links.size());
+
+            // Neither is just a comment
+            pr.removeLabel("rfr");
+            var reviewPr = reviewer.pullRequest(pr.id());
+            reviewPr.addComment("This is now ready");
+            TestBotRunner.runPeriodicItems(notifyBot);
+            links = issue.links();
+            assertEquals(0, links.size());
+
+            // Both are needed
+            pr.addLabel("rfr");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The issue should now contain a link to the PR
+            links = issue.links();
+            assertEquals(1, links.size());
+            assertEquals(pr.webUrl(), links.get(0).uri());
+            assertEquals(reviewIcon, links.get(0).iconUrl().orElseThrow());
+
+            // Add another issue
+            var issue2 = issueProject.createIssue("This is another issue", List.of("Yes indeed"));
+            pr.setBody("\n\n## Issues\n[" + issue.id() + "](http://www.test.test/): The issue\n[" + issue2.id() +
+                               "](http://www.test2.test/): The second issue");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Both issues should contain a link to the PR
+            var links1 = issue.links();
+            assertEquals(1, links1.size());
+            assertEquals(pr.webUrl(), links1.get(0).uri());
+            var links2 = issue2.links();
+            assertEquals(1, links2.size());
+            assertEquals(pr.webUrl(), links2.get(0).uri());
+
+            // Drop the first one
+            pr.setBody("\n\n## Issue\n[" + issue2.id() + "](http://www.test2.test/): That other issue");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Only the second issue should now contain a link to the PR
+            links1 = issue.links();
+            assertEquals(0, links1.size());
+            links2 = issue2.links();
+            assertEquals(1, links2.size());
+            assertEquals(pr.webUrl(), links2.get(0).uri());
         }
     }
 }

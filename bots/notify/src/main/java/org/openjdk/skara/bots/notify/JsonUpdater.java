@@ -31,7 +31,7 @@ import java.nio.file.Path;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-public class JsonUpdater implements UpdateConsumer {
+public class JsonUpdater implements RepositoryUpdateConsumer {
     private final Path path;
     private final String version;
     private final String defaultBuild;
