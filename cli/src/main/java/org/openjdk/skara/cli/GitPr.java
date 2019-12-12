@@ -786,8 +786,8 @@ public class GitPr {
             repo.config("pr." + currentBranch.name(), "id", pr.id().toString());
         } else if (action.equals("integrate") || action.equals("approve") || action.equals("test")) {
             String id = null;
-            if (arguments.at(0).isPresent()) {
-                id = arguments.at(0).asString();
+            if (arguments.at(1).isPresent()) {
+                id = arguments.at(1).asString();
             } else {
                 if (action.equals("approve")) {
                     exit("error: you must provide a pull request id");
