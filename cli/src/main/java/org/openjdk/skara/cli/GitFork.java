@@ -335,6 +335,7 @@ public class GitFork {
             var cloneArgs = new ArrayList<String>();
             if (reference != null) {
                 cloneArgs.add("--reference-if-able=" + reference);
+                cloneArgs.add("--dissociate");
             }
             if (depth != null) {
                 cloneArgs.add("--depth=" + depth);
