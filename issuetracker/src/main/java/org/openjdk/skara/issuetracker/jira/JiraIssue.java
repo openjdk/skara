@@ -376,4 +376,32 @@ public class JiraIssue implements Issue {
                .param("globalId", "skaralink=" + uri.toString())
                .execute();
     }
+
+    @Override
+    public List<String> fixVersions() {
+        return json.get("fields").get("fixVersions").stream()
+                   .map(obj -> obj.get("id").asString())
+                   .map(id -> jiraProject.fixVersionNameFromId(id).orElseThrow())
+                   .collect(Collectors.toList());
+    }
+
+    @Override
+    public void addFixVersion(String fixVersion) {
+        var query = JSON.object()
+                        .put("update", JSON.object()
+                                           .put("fixVersions", JSON.array().add(JSON.object()
+                                                                                    .put("add", JSON.object()
+                                                                                                    .put("id", jiraProject.fixVersionIdFromName(fixVersion).orElseThrow())))));
+        request.put("").body(query).execute();
+    }
+
+    @Override
+    public void removeFixVersion(String fixVersion) {
+        var query = JSON.object()
+                        .put("update", JSON.object()
+                                           .put("fixVersions", JSON.array().add(JSON.object()
+                                                                                    .put("remove", JSON.object()
+                                                                                                    .put("id", jiraProject.fixVersionIdFromName(fixVersion).orElseThrow())))));
+        request.put("").body(query).execute();
+    }
 }

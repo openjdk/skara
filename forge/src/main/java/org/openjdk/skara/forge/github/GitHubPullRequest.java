@@ -512,4 +512,19 @@ public class GitHubPullRequest implements PullRequest {
     public void removeLink(URI uri) {
         throw new RuntimeException("not implemented yet");
     }
+
+    @Override
+    public List<String> fixVersions() {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
+    public void addFixVersion(String fixVersion) {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
+    public void removeFixVersion(String fixVersion) {
+        throw new RuntimeException("not implemented yet");
+    }
 }
