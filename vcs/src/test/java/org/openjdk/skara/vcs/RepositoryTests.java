@@ -1998,7 +1998,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testWritingConfigValue(VCS vcs) throws IOException {
-        try (var dir = new TemporaryDirectory(false)) {
+        try (var dir = new TemporaryDirectory()) {
             var repo = Repository.init(dir.path(), vcs);
             assertEquals(List.of(), repo.config("test.key"));
             repo.config("test", "key", "value");
