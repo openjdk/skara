@@ -28,14 +28,18 @@ import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
 
 import java.net.URI;
-import java.util.Arrays;
+import java.util.*;
 
 public class JiraHost implements IssueTracker {
     private final URI uri;
+    private final String visibilityRole;
+    private final String securityLevel;
     private final RestRequest request;
 
     JiraHost(URI uri) {
         this.uri = uri;
+        this.visibilityRole = null;
+        this.securityLevel = null;
 
         var baseApi = URIBuilder.base(uri)
                                 .setPath("/rest/api/2/")
@@ -45,6 +49,18 @@ public class JiraHost implements IssueTracker {
 
     JiraHost(URI uri, JiraVault jiraVault) {
         this.uri = uri;
+        this.visibilityRole = null;
+        this.securityLevel = null;
+        var baseApi = URIBuilder.base(uri)
+                                .setPath("/rest/api/2/")
+                                .build();
+        request = new RestRequest(baseApi, () -> Arrays.asList("Cookie", jiraVault.getCookie()));
+    }
+
+    JiraHost(URI uri, JiraVault jiraVault, String visibilityRole, String securityLevel) {
+        this.uri = uri;
+        this.visibilityRole = visibilityRole;
+        this.securityLevel = securityLevel;
         var baseApi = URIBuilder.base(uri)
                                 .setPath("/rest/api/2/")
                                 .build();
@@ -53,6 +69,14 @@ public class JiraHost implements IssueTracker {
 
     URI getUri() {
         return uri;
+    }
+
+    Optional<String> visibilityRole() {
+        return Optional.ofNullable(visibilityRole);
+    }
+
+    Optional<String> securityLevel() {
+        return Optional.ofNullable(securityLevel);
     }
 
     @Override
@@ -66,13 +90,6 @@ public class JiraHost implements IssueTracker {
     @Override
     public IssueProject project(String name) {
         return new JiraProject(this, request, name);
-    }
-
-    private JSONObject userData(String name) {
-        var data = request.get("user")
-                          .param("username", name)
-                          .execute();
-        return data.asObject();
     }
 
     @Override
