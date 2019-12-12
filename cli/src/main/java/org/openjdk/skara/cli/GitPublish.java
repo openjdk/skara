@@ -40,14 +40,36 @@ public class GitPublish {
         };
     }
 
-    private static int pushAndTrack(String remote, Branch b) throws IOException, InterruptedException {
-        var pb = new ProcessBuilder("git", "push", "--set-upstream", remote, b.name());
-        pb.inheritIO();
-        return pb.start().waitFor();
+    private static int pushAndTrack(String remote, Branch b, boolean isQuiet) throws IOException, InterruptedException {
+        var cmd = new ArrayList<String>();
+        cmd.addAll(List.of("git", "push"));
+        if (isQuiet) {
+            cmd.add("--quiet");
+        }
+        cmd.addAll(List.of("--set-upstream", remote, b.name()));
+        var pb = new ProcessBuilder(cmd);
+        if (isQuiet) {
+            pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+            pb.redirectError(ProcessBuilder.Redirect.PIPE);
+        } else {
+            pb.inheritIO();
+        }
+        var p = pb.start();
+        var errorOutput = p.getErrorStream().readAllBytes();
+        int err = p.waitFor();
+        if (err != 0) {
+            System.out.write(errorOutput, 0, errorOutput.length);
+            System.out.flush();
+        }
+        return err;
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
         var flags = List.of(
+            Switch.shortcut("q")
+                  .fullname("quiet")
+                  .helptext("Silence all output")
+                  .optional(),
             Switch.shortcut("")
                   .fullname("verbose")
                   .helptext("Turn on verbose output")
@@ -90,7 +112,13 @@ public class GitPublish {
             System.err.println("error: the repository is in a detached HEAD state");
             System.exit(1);
         }
-        var err = pushAndTrack(remote, repo.currentBranch().get());
+
+        var isQuiet = arguments.contains("quiet");
+        if (!isQuiet) {
+            var lines = repo.config("publish.quiet");
+            isQuiet = lines.size() == 0 && lines.get(0).toLowerCase().equals("true");
+        }
+        var err = pushAndTrack(remote, repo.currentBranch().get(), isQuiet);
         if (err != 0) {
             System.exit(err);
         }
