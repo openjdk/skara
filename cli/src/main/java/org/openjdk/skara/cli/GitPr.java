@@ -786,6 +786,8 @@ public class GitPr {
             }
             System.out.println(pr.webUrl().toString());
             Files.deleteIfExists(file);
+
+            repo.config("pr." + currentBranch.name(), "id", pr.id().toString());
         } else if (action.equals("integrate") || action.equals("approve") || action.equals("test")) {
             var pr = getPullRequest(uri, repo, host, arguments.at(1));
 

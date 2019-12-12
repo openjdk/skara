@@ -64,6 +64,10 @@ public interface Repository extends ReadOnlyRepository {
     void pull(String remote) throws IOException;
     void pull(String remote, String refspec) throws IOException;
     void addremove() throws IOException;
+    void config(String section, String key, String value, boolean global) throws IOException;
+    default void config(String section, String key, String value) throws IOException {
+        config(section, key, value, false);
+    }
     Hash commit(String message,
                 String authorName,
                 String authorEmail) throws IOException;

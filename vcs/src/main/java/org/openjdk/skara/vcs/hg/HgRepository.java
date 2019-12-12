@@ -1212,4 +1212,20 @@ public class HgRepository implements Repository {
         }
         return Optional.empty();
     }
+
+    @Override
+    public void config(String section, String key, String value, boolean global) throws IOException {
+        var hgrc = global ?
+            Path.of(System.getProperty("user.home"), ".hgrc") :
+            root().resolve(".hg").resolve("hgrc");
+
+        var lines = List.of(
+            "[" + section + "]",
+            key + " = " + value
+        );
+        if (!Files.exists(hgrc)) {
+            Files.createFile(hgrc);
+        }
+        Files.write(hgrc, lines, StandardOpenOption.WRITE, StandardOpenOption.APPEND);
+    }
 }

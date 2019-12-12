@@ -1188,4 +1188,18 @@ public class GitRepository implements Repository {
             return Optional.empty();
         }
     }
+
+    @Override
+    public void config(String section, String key, String value, boolean global) throws IOException {
+        var cmd = new ArrayList<String>();
+        cmd.addAll(List.of("git", "config"));
+        if (global) {
+            cmd.add("--global");
+        }
+        cmd.add(section + "." + key);
+        cmd.add(value);
+        try (var p = capture(cmd)) {
+            await(p);
+        }
+    }
 }
