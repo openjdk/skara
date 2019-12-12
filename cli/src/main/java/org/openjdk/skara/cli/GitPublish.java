@@ -90,6 +90,9 @@ public class GitPublish {
             System.err.println("error: the repository is in a detached HEAD state");
             System.exit(1);
         }
-        System.exit(pushAndTrack(remote, repo.currentBranch().get()));
+        var err = pushAndTrack(remote, repo.currentBranch().get());
+        if (err != 0) {
+            System.exit(err);
+        }
     }
 }
