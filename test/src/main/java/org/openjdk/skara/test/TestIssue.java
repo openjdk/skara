@@ -196,4 +196,21 @@ public class TestIssue implements Issue {
         data.links.removeIf(link -> link.uri().equals(uri));
         data.lastUpdate = ZonedDateTime.now();
     }
+
+    @Override
+    public List<String> fixVersions() {
+        return new ArrayList<>(data.fixVersions);
+    }
+
+    @Override
+    public void addFixVersion(String fixVersion) {
+        data.fixVersions.add(fixVersion);
+        data.lastUpdate = ZonedDateTime.now();
+    }
+
+    @Override
+    public void removeFixVersion(String fixVersion) {
+        data.fixVersions.remove(fixVersion);
+        data.lastUpdate = ZonedDateTime.now();
+    }
 }

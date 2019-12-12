@@ -153,4 +153,10 @@ public interface Issue {
     void addLink(Link link);
 
     void removeLink(URI uri);
+
+    List<String> fixVersions();
+
+    void addFixVersion(String fixVersion);
+
+    void removeFixVersion(String fixVersion);
 }

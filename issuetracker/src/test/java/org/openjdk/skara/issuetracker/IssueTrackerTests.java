@@ -60,9 +60,12 @@ class IssueTrackerTests {
             issue.addLabel("another");
             issue.removeLabel("label");
             issue.setAssignees(List.of(project.issueTracker().currentUser()));
-
+            issue.addFixVersion("1.0");
+            issue.addFixVersion("2.0");
+            issue.removeFixVersion("1.0");
             var updated = project.issue(issue.id()).orElseThrow();
             assertEquals(List.of("another"), updated.labels());
+            assertEquals(List.of("2.0"), updated.fixVersions());
             assertEquals(List.of(project.issueTracker().currentUser()), updated.assignees());
             assertEquals(1, updated.comments().size());
             assertEquals("Updated title", updated.title());

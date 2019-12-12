@@ -28,6 +28,7 @@ import org.openjdk.skara.network.*;
 
 import java.net.URI;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class JiraProject implements IssueProject {
     private final JiraHost jiraHost;
@@ -35,6 +36,8 @@ public class JiraProject implements IssueProject {
     private final RestRequest request;
 
     private JSONObject projectMetadataCache = null;
+    private Map<String, String> versionNameToId = null;
+    private Map<String, String> versionIdToName = null;
 
     JiraProject(JiraHost host, RestRequest request, String projectName) {
         this.jiraHost = host;
@@ -63,6 +66,27 @@ public class JiraProject implements IssueProject {
             ret.put(type.get("name").asString(), type.get("id").asString());
         }
         return ret;
+    }
+
+    private void populateVersionsIfNeeded() {
+        if (versionIdToName != null) {
+            return;
+        }
+
+        versionNameToId = project().get("versions").stream()
+                                   .collect(Collectors.toMap(v -> v.get("name").asString(), v -> v.get("id").asString()));
+        versionIdToName = project().get("versions").stream()
+                                   .collect(Collectors.toMap(v -> v.get("id").asString(), v -> v.get("name").asString()));
+    }
+
+    Optional<String> fixVersionNameFromId(String id) {
+        populateVersionsIfNeeded();
+        return Optional.ofNullable(versionIdToName.getOrDefault(id, null));
+    }
+
+    Optional<String> fixVersionIdFromName(String name) {
+        populateVersionsIfNeeded();
+        return Optional.ofNullable(versionNameToId.getOrDefault(name, null));
     }
 
     private String projectId() {
