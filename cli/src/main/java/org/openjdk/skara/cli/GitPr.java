@@ -321,6 +321,10 @@ public class GitPr {
                   .helptext("Ignore local changes in worktree and staging area when creating pull request")
                   .optional(),
             Switch.shortcut("")
+                  .fullname("ignore-local-commits")
+                  .helptext("Ignore local commits not pushed when creating pull request")
+                  .optional(),
+            Switch.shortcut("")
                   .fullname("publish")
                   .helptext("Publish the local branch before creating the pull request")
                   .optional(),
@@ -663,26 +667,34 @@ public class GitPr {
 
             var upstreamRefName = upstream.get().substring(remote.length() + 1);
             repo.fetch(uri, upstreamRefName);
-            var branchCommits = repo.commits(upstream.get() + ".." + currentBranch.name()).asList();
-            if (!branchCommits.isEmpty()) {
-                System.err.println("error: there are local commits on branch '" + currentBranch.name() + "' not present in the remote repository " + remotePullPath);
-                System.err.println("");
-                System.err.println("All commits must be present in the remote repository to be part of the pull request");
-                System.err.println("The following commits are not present in the remote repository:");
-                System.err.println("");
-                for (var commit : branchCommits) {
-                    System.err.println("- " + commit.hash().abbreviate() + ": " + commit.message().get(0));
+
+            var shouldIgnoreLocalCommits = arguments.contains("ignore-local-commits");
+            if (!shouldIgnoreLocalCommits) {
+                var lines = repo.config("pr.ignore-local-commits");
+                shouldIgnoreLocalCommits = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
+            }
+            if (!shouldIgnoreLocalCommits) {
+                var branchCommits = repo.commits(upstream.get() + ".." + currentBranch.name()).asList();
+                if (!branchCommits.isEmpty()) {
+                    System.err.println("error: there are local commits on branch '" + currentBranch.name() + "' not present in the remote repository " + remotePullPath);
+                    System.err.println("");
+                    System.err.println("All commits must be present in the remote repository to be part of the pull request");
+                    System.err.println("The following commits are not present in the remote repository:");
+                    System.err.println("");
+                    for (var commit : branchCommits) {
+                        System.err.println("- " + commit.hash().abbreviate() + ": " + commit.message().get(0));
+                    }
+                    System.err.println("");
+                    System.err.println("To push the above local commits to the remote repository, run:");
+                    System.err.println("");
+                    System.err.println("    git push " + remote + " " + currentBranch.name());
+                    System.err.println("");
+                    System.exit(1);
                 }
-                System.err.println("");
-                System.err.println("To push the above local commits to the remote repository, run:");
-                System.err.println("");
-                System.err.println("    git push " + remote + " " + currentBranch.name());
-                System.err.println("");
-                System.exit(1);
             }
 
             var targetBranch = arguments.get("branch").orString("master");
-            var commits = repo.commits(targetBranch + ".." + currentBranch.name()).asList();
+            var commits = repo.commits(targetBranch + ".." + upstream.get()).asList();
             if (commits.isEmpty()) {
                 System.err.println("error: no difference between branches " + targetBranch + " and " + currentBranch.name());
                 System.err.println("       Cannot create an empty pull request, have you committed?");
