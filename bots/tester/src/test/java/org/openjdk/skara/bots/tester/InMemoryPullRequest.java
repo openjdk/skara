@@ -234,6 +234,21 @@ class InMemoryPullRequest implements PullRequest {
     }
 
     @Override
+    public List<String> fixVersions() {
+        return null;
+    }
+
+    @Override
+    public void addFixVersion(String fixVersion) {
+
+    }
+
+    @Override
+    public void removeFixVersion(String fixVersion) {
+
+    }
+
+    @Override
     public void setTitle(String title) {
     }
 
