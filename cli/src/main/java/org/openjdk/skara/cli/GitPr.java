@@ -641,7 +641,8 @@ public class GitPr {
                     shouldPublish = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
                 }
                 if (shouldPublish) {
-                    GitPublish.main(new String[] { remote });
+                    GitPublish.main(new String[] { "--quiet", remote });
+                    upstream = repo.upstreamFor(currentBranch);
                 } else {
                     System.err.println("error: there is no remote branch for the local branch '" + currentBranch.name() + "'");
                     System.err.println("");
