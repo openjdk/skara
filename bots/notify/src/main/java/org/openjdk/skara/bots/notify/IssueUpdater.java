@@ -23,12 +23,15 @@
 package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.issuetracker.*;
+import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.*;
 
+import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -45,7 +48,7 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
     }
 
     @Override
-    public void handleCommits(HostedRepository repository, List<Commit> commits, Branch branch) {
+    public void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) {
         for (var commit : commits) {
             var commitNotification = CommitFormatters.toTextBrief(repository, commit);
             var commitMessage = CommitMessageParsers.v1.parse(commit);
@@ -66,22 +69,33 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
                     linkBuilder.iconUrl(commitIcon);
                 }
                 issue.get().addLink(linkBuilder.build());
+
+                try {
+                    var conf = localRepository.lines(Path.of(".jcheck/conf"), commit.hash());
+                    if (conf.isPresent()) {
+                        var parsed = JCheckConfiguration.parse(conf.get());
+                        var version = parsed.general().version();
+                        version.ifPresent(v -> issue.get().addFixVersion(v));
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
     }
 
     @Override
-    public void handleOpenJDKTagCommits(HostedRepository repository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) {
+    public void handleOpenJDKTagCommits(HostedRepository repository, Repository loclRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) {
 
     }
 
     @Override
-    public void handleTagCommit(HostedRepository repository, Commit commit, Tag tag, Tag.Annotated annotation) {
+    public void handleTagCommit(HostedRepository repository, Repository loclRepository, Commit commit, Tag tag, Tag.Annotated annotation) {
 
     }
 
     @Override
-    public void handleNewBranch(HostedRepository repository, List<Commit> commits, Branch parent, Branch branch) {
+    public void handleNewBranch(HostedRepository repository, Repository loclRepository, List<Commit> commits, Branch parent, Branch branch) {
 
     }
 
