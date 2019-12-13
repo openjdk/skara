@@ -27,6 +27,7 @@ import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.issuetracker.IssueTracker;
 import org.openjdk.skara.jcheck.*;
 import org.openjdk.skara.vcs.openjdk.*;
+import org.openjdk.skara.proxy.HttpProxy;
 
 import java.io.IOException;
 import java.net.URI;
@@ -34,6 +35,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 public class GitInfo {
     private static final URI JBS = URI.create("https://bugs.openjdk.java.net");
@@ -48,6 +50,15 @@ public class GitInfo {
             exit(fmt, args);
             return new IOException();
         };
+    }
+
+    private static boolean getSwitch(String name, Arguments arguments, ReadOnlyRepository repo) throws IOException {
+        if (arguments.contains(name)) {
+            return true;
+        }
+
+        var lines = repo.config("info." + name);
+        return lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
     }
 
     private static String jbsProject(ReadOnlyRepository repo) throws IOException {
@@ -126,6 +137,7 @@ public class GitInfo {
             Logging.setup(level);
         }
 
+        HttpProxy.setup();
         var isMercurial = arguments.contains("mercurial");
         var ref = arguments.at(0).orString(isMercurial ? "tip" : "HEAD");
         var cwd = Path.of("").toAbsolutePath();
@@ -136,29 +148,84 @@ public class GitInfo {
             throw new IOException("internal error: could not list commit for " + hash.hex());
         }
         var commit = commits.get(0);
-        var useDecoration = !arguments.contains("no-decoration");
 
-        if (arguments.contains("sponsor")) {
+        var useDecoration = !getSwitch("no-decoration", arguments, repo);
+        var useMercurial = getSwitch("mercurial", arguments, repo);
+
+        var showSponsor = getSwitch("sponsor", arguments, repo);
+        var showAuthors = getSwitch("authors", arguments, repo);
+        var showReviewers = getSwitch("reviewers", arguments, repo);
+        var showReview = getSwitch("review", arguments, repo);
+        var showSummary = getSwitch("summary", arguments, repo);
+        var showIssues = getSwitch("issues", arguments, repo);
+        var showTitle = getSwitch("title", arguments, repo);
+
+        if (!showSponsor && !showAuthors && !showReviewers &&
+            !showReview && !showSummary && !showIssues && !showTitle) {
+            // no switches or configuration provided, show everything by default
+            showSponsor = true;
+            showAuthors = true;
+            showReviewers = true;
+            showReview = true;
+            showSummary = true;
+            showIssues = true;
+            showTitle = true;
+        }
+
+        var message = useMercurial ?
+            CommitMessageParsers.v0.parse(commit) :
+            CommitMessageParsers.v1.parse(commit);
+
+        if (showTitle) {
+            var decoration = useDecoration ? "Title: " : "";
+            System.out.println(decoration + message.title());
+        }
+
+        if (showSummary) {
+            if (useDecoration && !message.summaries().isEmpty()) {
+                System.out.println("Summary:");
+            }
+            var decoration = useDecoration ? "> " : "";
+            for (var line : message.summaries()) {
+                System.out.println(decoration + line);
+            }
+        }
+
+        if (showAuthors) {
+            var decoration = "";
+            if (useDecoration) {
+                decoration = message.contributors().isEmpty() ?
+                    "Author: " : "Authors: ";
+            }
+            var authors = commit.author().toString();
+            if (!message.contributors().isEmpty()) {
+                var contributorNames = message.contributors()
+                                              .stream()
+                                              .map(Author::toString)
+                                              .collect(Collectors.toList());
+                authors += ", " + String.join(", ", contributorNames);
+            }
+            System.out.println(decoration + authors);
+        }
+
+        if (showSponsor) {
             if (!commit.author().equals(commit.committer())) {
                 var decoration = useDecoration ? "Sponsor: " : "";
                 System.out.println(decoration + commit.committer().toString());
             }
         }
-        if (arguments.contains("author")) {
-            var decoration = useDecoration ? "Author: " : "";
-            System.out.println(decoration + commit.author().toString());
+
+        if (showReviewers) {
+            var decoration = "";
+            if (useDecoration) {
+                decoration = message.reviewers().size() > 1 ?
+                    "Reviewers: " : "Reviewer: ";
+            }
+            System.out.println(decoration + String.join(", ", message.reviewers()));
         }
 
-        var message = arguments.contains("mercurial") ?
-            CommitMessageParsers.v0.parse(commit) :
-            CommitMessageParsers.v1.parse(commit);
-        if (arguments.contains("reviewers")) {
-            var decoration = useDecoration? "Reviewer: " : "";
-            for (var reviewer : message.reviewers()) {
-                System.out.println(decoration + reviewer);
-            }
-        }
-        if (arguments.contains("review")) {
+
+        if (showReview) {
             var decoration = useDecoration? "Review: " : "";
             var project = jbsProject(repo);
             if (message.issues().size() == 1) {
@@ -174,33 +241,22 @@ public class GitInfo {
                 }
             }
         }
-        if (arguments.contains("summary")) {
-            var decoration = useDecoration? "Summary: " : "";
-            for (var line : message.summaries()) {
-                System.out.println(decoration + line);
-            }
-        }
-        if (arguments.contains("contributors")) {
-            var decoration = useDecoration? "Contributor: " : "";
-            System.out.println(decoration + commit.committer().toString());
-            for (var coAuthor : message.contributors()) {
-                System.out.println(decoration + coAuthor.toString());
-            }
-        }
-        if (arguments.contains("issues")) {
-            var decoration = useDecoration? "Issue: " : "";
+        if (showIssues) {
             var project = jbsProject(repo);
             var uri = JBS + "/browse/" + project + "-";
-            for (var issue : message.issues()) {
-                if (uri != null) {
-                    var id = issue.id();
-                    System.out.println(decoration + uri + id);
-                } else {
-                    System.out.println(decoration + issue.toString());
+            var issues = message.issues();
+            if (issues.size() > 1) {
+                if (useDecoration) {
+                    System.out.println("Issues:");
                 }
+                var decoration = useDecoration ? "- " : "";
+                for (var issue : issues) {
+                    System.out.println(decoration + uri + issue.id());
+                }
+            } else if (issues.size() == 1) {
+                var decoration = useDecoration ? "Issue: " : "";
+                System.out.println(decoration + uri + issues.get(0).id());
             }
-
-
         }
     }
 }
