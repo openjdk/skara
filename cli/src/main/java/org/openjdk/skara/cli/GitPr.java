@@ -170,12 +170,8 @@ public class GitPr {
         return targetRepo;
     }
 
-    private static PullRequest getPullRequest(URI uri, ReadOnlyRepository repo, Forge host, Argument prId) throws IOException {
-        if (!prId.isPresent()) {
-            exit("error: missing pull request identifier");
-        }
-
-        var pr = getHostedRepositoryFor(uri, repo, host).pullRequest(prId.asString());
+    private static PullRequest getPullRequest(URI uri, ReadOnlyRepository repo, Forge host, String prId) throws IOException {
+        var pr = getHostedRepositoryFor(uri, repo, host).pullRequest(prId);
         if (pr == null) {
             exit("error: could not fetch PR information");
         }
@@ -786,8 +782,29 @@ public class GitPr {
             }
             System.out.println(pr.webUrl().toString());
             Files.deleteIfExists(file);
+
+            repo.config("pr." + currentBranch.name(), "id", pr.id().toString());
         } else if (action.equals("integrate") || action.equals("approve") || action.equals("test")) {
-            var pr = getPullRequest(uri, repo, host, arguments.at(1));
+            String id = null;
+            if (arguments.at(1).isPresent()) {
+                id = arguments.at(1).asString();
+            } else {
+                if (action.equals("approve")) {
+                    exit("error: you must provide a pull request id");
+                } else {
+                    var currentBranch = repo.currentBranch();
+                    if (currentBranch.isPresent()) {
+                        var lines = repo.config("pr." + currentBranch.get().name() + ".id");
+                        if (lines.size() == 1) {
+                            id = lines.get(0);
+                        } else {
+                            exit("error: you must provide a pull request id");
+                        }
+                    }
+                }
+            }
+
+            var pr = getPullRequest(uri, repo, host, id);
 
             if (action.equals("integrate")) {
                 pr.addComment("/integrate");

@@ -1948,7 +1948,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testDiffWithFileList(VCS vcs) throws IOException {
-        try (var dir = new TemporaryDirectory(false)) {
+        try (var dir = new TemporaryDirectory()) {
             var repo = Repository.init(dir.path(), vcs);
             var readme = repo.root().resolve("README");
             Files.writeString(readme, "Hello\n");
@@ -1992,6 +1992,17 @@ public class RepositoryTests {
 
             diff = repo.diff(first, second, List.of(Path.of("DOES_NOT_EXIST")));
             assertEquals(0, diff.patches().size());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testWritingConfigValue(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var repo = Repository.init(dir.path(), vcs);
+            assertEquals(List.of(), repo.config("test.key"));
+            repo.config("test", "key", "value");
+            assertEquals(List.of("value"), repo.config("test.key"));
         }
     }
 }
