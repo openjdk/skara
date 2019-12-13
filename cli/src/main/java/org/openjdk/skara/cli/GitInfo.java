@@ -24,16 +24,20 @@ package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
 import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.issuetracker.IssueTracker;
 import org.openjdk.skara.jcheck.*;
 import org.openjdk.skara.vcs.openjdk.*;
 
+import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Path;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.logging.Level;
-import java.io.IOException;
-import java.util.List;
 
 public class GitInfo {
+    private static final URI JBS = URI.create("https://bugs.openjdk.java.net");
+
     private static void exit(String fmt, Object...args) {
         System.err.println(String.format(fmt, args));
         System.exit(1);
@@ -44,6 +48,11 @@ public class GitInfo {
             exit(fmt, args);
             return new IOException();
         };
+    }
+
+    private static String jbsProject(ReadOnlyRepository repo) throws IOException {
+        var conf = JCheckConfiguration.from(repo);
+        return conf.general().jbs().toUpperCase();
     }
 
     public static void main(String[] args) throws IOException {
@@ -58,11 +67,15 @@ public class GitInfo {
                   .optional(),
             Switch.shortcut("")
                   .fullname("issues")
-                  .helptext("Show issues")
+                  .helptext("Show link(s) to issue(s)")
                   .optional(),
             Switch.shortcut("")
                   .fullname("reviewers")
                   .helptext("Show reviewers")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("review")
+                  .helptext("Show link to review")
                   .optional(),
             Switch.shortcut("")
                   .fullname("summary")
@@ -145,6 +158,22 @@ public class GitInfo {
                 System.out.println(decoration + reviewer);
             }
         }
+        if (arguments.contains("review")) {
+            var decoration = useDecoration? "Review: " : "";
+            var project = jbsProject(repo);
+            if (message.issues().size() == 1) {
+                var issueId = message.issues().get(0).id();
+                var issueTracker = IssueTracker.from("jira", JBS);
+                var issue = issueTracker.project(project).issue(issueId);
+                if (issue.isPresent()) {
+                    for (var link : issue.get().links()) {
+                        if (link.title().equals("Review")) {
+                            System.out.println(decoration + link.uri().toString());
+                        }
+                    }
+                }
+            }
+        }
         if (arguments.contains("summary")) {
             var decoration = useDecoration? "Summary: " : "";
             for (var line : message.summaries()) {
@@ -160,16 +189,8 @@ public class GitInfo {
         }
         if (arguments.contains("issues")) {
             var decoration = useDecoration? "Issue: " : "";
-            var lines = repo.lines(Path.of(".jcheck/conf"), hash);
-
-            String uri = null;
-            if (lines.isPresent()) {
-                var jbs = "https://bugs.openjdk.java.net/browse/";
-                var conf = JCheckConfiguration.parse(lines.get());
-                var project = conf.general().project().toUpperCase();
-                uri = jbs + project + "-";
-            }
-
+            var project = jbsProject(repo);
+            var uri = JBS + "/browse/" + project + "-";
             for (var issue : message.issues()) {
                 if (uri != null) {
                     var id = issue.id();
@@ -178,6 +199,8 @@ public class GitInfo {
                     System.out.println(decoration + issue.toString());
                 }
             }
+
+
         }
     }
 }
