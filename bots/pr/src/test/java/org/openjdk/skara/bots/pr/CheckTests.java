@@ -756,7 +756,7 @@ class CheckTests {
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
-                                                     Set.of("issues"));
+                                                     Set.of("issues"), null);
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.push(masterHash, author.url(), "master", true);
 
@@ -804,7 +804,7 @@ class CheckTests {
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
-                                                     Set.of("issues"));
+                                                     Set.of("issues"), null);
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.push(masterHash, author.url(), "master", true);
 
@@ -946,7 +946,7 @@ class CheckTests {
             // Enable a new check in the target branch
             localRepo.checkout(masterHash, true);
             CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
-                                     Set.of("author", "reviewers", "whitespace", "issues"));
+                                     Set.of("author", "reviewers", "whitespace", "issues"), null);
             var headHash = localRepo.resolve("HEAD").orElseThrow();
             localRepo.push(headHash, author.url(), "master", true);
 

@@ -37,14 +37,20 @@ import java.util.logging.Logger;
 
 public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdateConsumer {
     private final IssueProject issueProject;
+    private final boolean reviewLink;
     private final URI reviewIcon;
+    private final boolean commitLink;
     private final URI commitIcon;
+    private final String fixVersion;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
-    IssueUpdater(IssueProject issueProject, URI reviewIcon, URI commitIcon) {
+    IssueUpdater(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon, String fixVersion) {
         this.issueProject = issueProject;
+        this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
+        this.commitLink = commitLink;
         this.commitIcon = commitIcon;
+        this.fixVersion = fixVersion;
     }
 
     @Override
@@ -62,23 +68,31 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
                 issue.get().addComment(commitNotification);
                 issue.get().setState(Issue.State.RESOLVED);
 
-                var linkBuilder = Link.create(repository.webUrl(commit.hash()), "Commit")
-                                      .summary(repository.name() + "/" + commit.hash().abbreviate());
-                if (commitIcon != null) {
-                    linkBuilder.iconTitle("Commit");
-                    linkBuilder.iconUrl(commitIcon);
-                }
-                issue.get().addLink(linkBuilder.build());
-
-                try {
-                    var conf = localRepository.lines(Path.of(".jcheck/conf"), commit.hash());
-                    if (conf.isPresent()) {
-                        var parsed = JCheckConfiguration.parse(conf.get());
-                        var version = parsed.general().version();
-                        version.ifPresent(v -> issue.get().addFixVersion(v));
+                if (commitLink) {
+                    var linkBuilder = Link.create(repository.webUrl(commit.hash()), "Commit")
+                                          .summary(repository.name() + "/" + commit.hash().abbreviate());
+                    if (commitIcon != null) {
+                        linkBuilder.iconTitle("Commit");
+                        linkBuilder.iconUrl(commitIcon);
                     }
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    issue.get().addLink(linkBuilder.build());
+                }
+
+                if (fixVersion != null) {
+                    if (fixVersion.equals("<repo>")) {
+                        try {
+                            var conf = localRepository.lines(Path.of(".jcheck/conf"), commit.hash());
+                            if (conf.isPresent()) {
+                                var parsed = JCheckConfiguration.parse(conf.get());
+                                var version = parsed.general().version();
+                                version.ifPresent(v -> issue.get().addFixVersion(v));
+                            }
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    } else {
+                        issue.get().addFixVersion(fixVersion);
+                    }
                 }
             }
         }
@@ -107,14 +121,16 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
             return;
         }
 
-        var linkBuilder = Link.create(pr.webUrl(), "Review")
-                              .summary(pr.repository().name() + "/" + pr.id());
-        if (reviewIcon != null) {
-            linkBuilder.iconTitle("Review");
-            linkBuilder.iconUrl(reviewIcon);
-        }
+        if (reviewLink) {
+            var linkBuilder = Link.create(pr.webUrl(), "Review")
+                                  .summary(pr.repository().name() + "/" + pr.id());
+            if (reviewIcon != null) {
+                linkBuilder.iconTitle("Review");
+                linkBuilder.iconUrl(reviewIcon);
+            }
 
-        realIssue.get().addLink(linkBuilder.build());
+            realIssue.get().addLink(linkBuilder.build());
+        }
     }
 
     @Override

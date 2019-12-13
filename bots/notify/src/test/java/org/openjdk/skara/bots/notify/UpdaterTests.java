@@ -763,7 +763,7 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var commitIcon = URI.create("http://www.example.com/commit.png");
-            var updater = new IssueUpdater(issueProject, null, commitIcon);
+            var updater = new IssueUpdater(issueProject, false, null, true, commitIcon, "<repo>");
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
@@ -818,7 +818,7 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var commitIcon = URI.create("http://www.example.com/commit.png");
-            var updater = new IssueUpdater(issueProject, null, commitIcon);
+            var updater = new IssueUpdater(issueProject, false, null, true, commitIcon, "<repo>");
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
@@ -847,6 +847,57 @@ class UpdaterTests {
     }
 
     @Test
+    void testIssueConfiguredVersionNoCommit(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType(), Path.of("appendable.txt"), Set.of(), null);
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var issueProject = credentials.getIssueProject();
+            var commitIcon = URI.create("http://www.example.com/commit.png");
+            var updater = new IssueUpdater(issueProject, false, null, false, commitIcon, "2.0");
+            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
+                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and commit a fix
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"));
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
+            localRepo.push(editHash, repo.url(), "master");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The changeset should not reflected in a comment
+            var comments = issue.comments();
+            assertEquals(1, comments.size());
+            var comment = comments.get(0);
+            assertTrue(comment.body().contains(editHash.abbreviate()));
+
+            // As well as a fixVersion - but not the one from the repo
+            var fixVersions = issue.fixVersions();
+            assertEquals(1, fixVersions.size());
+            var fixVersion = fixVersions.get(0);
+            assertEquals("2.0", fixVersion);
+
+            // And no commit link
+            var links = issue.links();
+            assertEquals(0, links.size());
+
+            // There should be no open issues
+            assertEquals(0, issueProject.issues().size());
+        }
+    }
+
+    @Test
     void testPullRequest(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
@@ -864,7 +915,7 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var reviewIcon = URI.create("http://www.example.com/review.png");
-            var updater = new IssueUpdater(issueProject, reviewIcon, null);
+            var updater = new IssueUpdater(issueProject, true, reviewIcon, false, null, null);
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(), List.of(updater), Set.of("rfr"),
                                           Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("This is now ready")));
@@ -932,6 +983,54 @@ class UpdaterTests {
             links2 = issue2.links();
             assertEquals(1, links2.size());
             assertEquals(pr.webUrl(), links2.get(0).uri());
+        }
+    }
+
+    @Test
+    void testPullRequestNoReview(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var issueProject = credentials.getIssueProject();
+            var reviewIcon = URI.create("http://www.example.com/review.png");
+            var updater = new IssueUpdater(issueProject, false, reviewIcon, false, null, null);
+            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
+                                          prIssuesStorage, List.of(), List.of(updater), Set.of("rfr"),
+                                          Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("This is now ready")));
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and a pull request to fix it
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"));
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "Fix that issue");
+            localRepo.push(editHash, repo.url(), "edit", true);
+            var pr = credentials.createPullRequest(repo, "edit", "master", issue.id() + ": Fix that issue");
+            pr.setBody("\n\n## Issue\n[" + issue.id() + "](http://www.test.test/): The issue");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Add required label
+            pr.addLabel("rfr");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // And the required comment
+            var reviewPr = reviewer.pullRequest(pr.id());
+            reviewPr.addComment("This is now ready");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The issue should still not contain a link to the PR
+            var links = issue.links();
+            assertEquals(0, links.size());
         }
     }
 }
