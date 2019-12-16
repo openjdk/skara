@@ -2005,4 +2005,27 @@ public class RepositoryTests {
             assertEquals(List.of("value"), repo.config("test.key"));
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testFetchRemote(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var upstream = Repository.init(dir.path(), vcs);
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            upstream.add(readme);
+            upstream.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            try (var dir2 = new TemporaryDirectory()) {
+                var downstream = Repository.init(dir2.path(), vcs);
+
+                 // note: forcing unix path separators for URI
+                var upstreamURI = URI.create("file:///" + dir.toString().replace('\\', '/'));
+                downstream.addRemote("upstream", upstreamURI.toString());
+                downstream.addRemote("foobar", "file:///this/path/does/not/exist");
+                downstream.fetchRemote("upstream");
+            }
+        }
+    }
 }

@@ -343,6 +343,13 @@ public class GitRepository implements Repository {
         }
     }
 
+    @Override
+    public void fetchRemote(String remote) throws IOException {
+        try (var p = capture("git", "fetch", "--recurse-submodules=on-demand", "--tags", "--prune", "--prune-tags", remote)) {
+            await(p);
+        }
+    }
+
     private void checkout(String ref, boolean force) throws IOException {
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("git", "-c", "advice.detachedHead=false", "checkout", "--recurse-submodules"));

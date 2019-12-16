@@ -335,6 +335,10 @@ public class HgRepository implements Repository {
 
     @Override
     public Hash fetch(URI uri, String refspec) throws IOException {
+        return fetch(uri != null ? uri.toString() : null, refspec);
+    }
+
+    private Hash fetch(String from, String refspec) throws IOException {
         var oldHeads = new HashSet<Hash>(heads());
 
         var cmd = new ArrayList<String>();
@@ -344,8 +348,8 @@ public class HgRepository implements Repository {
             cmd.add("--rev");
             cmd.add(refspec);
         }
-        if (uri != null) {
-            cmd.add(uri.toString());
+        if (from != null) {
+            cmd.add(from);
         }
         try (var p = capture(cmd)) {
             await(p);
@@ -381,6 +385,11 @@ public class HgRepository implements Repository {
         for (var uri : pullPaths) {
             fetch(uri, null);
         }
+    }
+
+    @Override
+    public void fetchRemote(String remote) throws IOException {
+        fetch(remote, null);
     }
 
     @Override
