@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.bots.mlbridge;
 
-import java.util.regex.Pattern;
+import java.util.regex.*;
 
 public class TextToMarkdown {
     private static final Pattern punctuationPattern = Pattern.compile("([!\"#$%&'()*+,\\-./:;<=?@\\[\\]^_`{|}~])", Pattern.MULTILINE);
@@ -34,7 +34,7 @@ public class TextToMarkdown {
 
     private static String escapePunctuation(String text) {
         var punctuationMatcher = punctuationPattern.matcher(text);
-        return punctuationMatcher.replaceAll(mr -> "\\\\" + mr.group(1));
+        return punctuationMatcher.replaceAll(mr -> "\\\\" + Matcher.quoteReplacement(mr.group(1)));
     }
 
     private static String escapeIndention(String text) {
