@@ -44,6 +44,8 @@ import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 public class GitPr {
+    private static final StandardOpenOption APPEND = StandardOpenOption.APPEND;
+
     private static void exit(String fmt, Object...args) {
         System.err.println(String.format(fmt, args));
         System.exit(1);
@@ -54,6 +56,17 @@ public class GitPr {
             exit(fmt, args);
             return null;
         };
+    }
+
+    private static String rightPad(String s, int length) {
+        return String.format("%-" + length + "s", s);
+    }
+
+    private static void appendPaddedHTMLComment(Path file, String line) throws IOException {
+        var end = " -->";
+        var pad = 79 - end.length();
+        var newLine = "\n";
+        Files.writeString(file, rightPad("<!-- " + line, pad) + end + newLine, StandardOpenOption.APPEND);
     }
 
     private static String format(Issue issue) {
@@ -708,7 +721,7 @@ public class GitPr {
 
             var project = jbsProjectFromJcheckConf(repo);
             var issue = getIssue(currentBranch, project);
-            var file = Files.createTempFile("PULL_REQUEST_", ".txt");
+            var file = Files.createTempFile("PULL_REQUEST_", ".md");
             if (issue.isPresent()) {
                 Files.writeString(file, format(issue.get()) + "\n\n");
             } else if (commits.size() == 1) {
@@ -729,23 +742,43 @@ public class GitPr {
             } else {
                 Files.write(file, List.of(""));
             }
-            Files.write(file, List.of(
-                "# Please enter the pull request message for your changes. Lines starting",
-                "# with '#' will be ignored, and an empty message aborts the pull request.",
-                "# The first line will be considered the subject, use a blank line to separate",
-                "# the subject from the body.",
-                "#",
-                "# Commits to be included from branch '" + currentBranch.name() + "'"
-                ),
-                StandardOpenOption.APPEND
-            );
+
+            appendPaddedHTMLComment(file, "Please enter the pull request message for your changes.");
+            appendPaddedHTMLComment(file, "The first line will be considered the subject, use a blank line to");
+            appendPaddedHTMLComment(file, "separate the subject from the body. These HTML comment lines will");
+            appendPaddedHTMLComment(file, "be removed automatically. An empty message aborts the pull request.");
+            appendPaddedHTMLComment(file, "");
+            appendPaddedHTMLComment(file, "Commits to be included from branch '" + currentBranch.name() + "':");
             for (var commit : commits) {
                 var desc = commit.hash().abbreviate() + ": " + commit.message().get(0);
-                Files.writeString(file, "# - " + desc + "\n", StandardOpenOption.APPEND);
+                appendPaddedHTMLComment(file, "- " + desc);
+                if (!commit.isMerge()) {
+                    var diff = commit.parentDiffs().get(0);
+                    for (var patch : diff.patches()) {
+                        var status = patch.status();
+                        if (status.isModified()) {
+                            appendPaddedHTMLComment(file, "  M  " + patch.target().path().get().toString());
+                        } else if (status.isAdded()) {
+                            appendPaddedHTMLComment(file, "  A  " + patch.target().path().get().toString());
+                        } else if (status.isDeleted()) {
+                            appendPaddedHTMLComment(file, "  D  " + patch.source().path().get().toString());
+                        } else if (status.isRenamed()) {
+                            appendPaddedHTMLComment(file, "  R  " + patch.target().path().get().toString());
+                            appendPaddedHTMLComment(file, "      (" + patch.source().path().get().toString() + ")");
+                        } else if (status.isCopied()) {
+                            appendPaddedHTMLComment(file, "  C  " + patch.target().path().get().toString());
+                            appendPaddedHTMLComment(file, "      (" + patch.source().path().get().toString() + ")");
+                        }
+                    }
+                }
             }
-            Files.writeString(file, "#\n", StandardOpenOption.APPEND);
-            Files.writeString(file, "# Target repository: " + remotePullPath + "\n", StandardOpenOption.APPEND);
-            Files.writeString(file, "# Target branch: " + targetBranch + "\n", StandardOpenOption.APPEND);
+            appendPaddedHTMLComment(file, "");
+            if (issue.isPresent()) {
+                appendPaddedHTMLComment(file, "Issue:      " + issue.get().webUrl());
+            }
+            appendPaddedHTMLComment(file, "Repository: " + parentRepo.webUrl());
+            appendPaddedHTMLComment(file, "Branch:     " + targetBranch);
+
             var success = spawnEditor(repo, file);
             if (!success) {
                 System.err.println("error: editor exited with non-zero status code, aborting");
@@ -753,7 +786,7 @@ public class GitPr {
             }
             var lines = Files.readAllLines(file)
                              .stream()
-                             .filter(l -> !l.startsWith("#"))
+                             .filter(l -> !(l.startsWith("<!--") && l.endsWith("-->")))
                              .collect(Collectors.toList());
             var isEmpty = lines.stream().allMatch(String::isEmpty);
             if (isEmpty) {
