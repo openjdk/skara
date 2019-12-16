@@ -133,8 +133,23 @@ public class NotifyBotFactory implements BotFactory {
                 }
             }
             if (repo.value().contains("issues")) {
-                var issueProject = configuration.issueProject(repo.value().get("issues").asString());
-                var updater = new IssueUpdater(issueProject, reviewIcon, commitIcon);
+                var issuesConf = repo.value().get("issues");
+                var issueProject = configuration.issueProject(issuesConf.get("project").asString());
+                var reviewLink = true;
+                if (issuesConf.contains("reviewlink")) {
+                    reviewLink = issuesConf.get("reviewlink").asBoolean();
+                }
+                var commitLink = true;
+                if (issuesConf.contains("commitlink")) {
+                    commitLink = issuesConf.get("commitlink").asBoolean();
+                }
+                var setFixVersion = false;
+                String fixVersion = null;
+                if (issuesConf.contains("fixversion")) {
+                    setFixVersion = true;
+                    fixVersion = issuesConf.get("fixversion").asString();
+                }
+                var updater = new IssueUpdater(issueProject, reviewLink, reviewIcon, commitLink, commitIcon, setFixVersion, fixVersion);
                 updaters.add(updater);
                 prUpdaters.add(updater);
             }

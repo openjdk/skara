@@ -25,6 +25,7 @@
 project=skara
 repository=skara
 jbs=skara
+version=0.9
 
 [checks]
 error=author,reviewers,whitespace

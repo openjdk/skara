@@ -195,7 +195,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
     }
 
     @Override
-    public void handleCommits(HostedRepository repository, List<Commit> commits, Branch branch) {
+    public void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) {
         switch (mode) {
             case PR_ONLY:
                 filterAndSendPrCommits(repository, commits);
@@ -210,7 +210,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
     }
 
     @Override
-    public void handleOpenJDKTagCommits(HostedRepository repository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotation) {
+    public void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotation) {
         if (mode == Mode.PR_ONLY) {
             return;
         }
@@ -249,7 +249,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
     }
 
     @Override
-    public void handleTagCommit(HostedRepository repository, Commit commit, Tag tag, Tag.Annotated annotation) {
+    public void handleTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag, Tag.Annotated annotation) {
         if (mode == Mode.PR_ONLY) {
             return;
         }
@@ -276,7 +276,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
         list.post(email.build());
     }
 
-    private String newBranchSubject(HostedRepository repository, List<Commit> commits, Branch parent, Branch branch) {
+    private String newBranchSubject(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) {
         var subject = new StringBuilder();
         subject.append(repository.repositoryType().shortName());
         subject.append(": ");
@@ -296,7 +296,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
     }
 
     @Override
-    public void handleNewBranch(HostedRepository repository, List<Commit> commits, Branch parent, Branch branch) {
+    public void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
@@ -314,7 +314,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
             printer.println("The new branch " + branch.name() + " is currently identical to the " + parent.name() + " branch.");
         }
 
-        var subject = newBranchSubject(repository, commits, parent, branch);
+        var subject = newBranchSubject(repository, localRepository, commits, parent, branch);
         var finalAuthor = commits.size() > 0 ? commitToAuthor(commits.get(commits.size() - 1)) : sender;
 
         var email = Email.create(subject, writer.toString())

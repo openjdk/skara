@@ -42,7 +42,7 @@ public class JsonUpdater implements RepositoryUpdateConsumer {
         this.defaultBuild = defaultBuild;
     }
 
-    private JSONObject commitToChanges(HostedRepository repository, Commit commit, String build) {
+    private JSONObject commitToChanges(HostedRepository repository, Repository localRepository, Commit commit, String build) {
         var ret = JSON.object();
         ret.put("url",  repository.webUrl(commit.hash()).toString()); //FIXME
         ret.put("version", version);
@@ -60,7 +60,7 @@ public class JsonUpdater implements RepositoryUpdateConsumer {
         return ret;
     }
 
-    private JSONObject issuesToChanges(HostedRepository repository, List<Issue> issues, String build) {
+    private JSONObject issuesToChanges(HostedRepository repository, Repository localRepository, List<Issue> issues, String build) {
         var ret = JSON.object();
         ret.put("version", version);
         ret.put("build", build);
@@ -76,17 +76,17 @@ public class JsonUpdater implements RepositoryUpdateConsumer {
     }
 
     @Override
-    public void handleCommits(HostedRepository repository, List<Commit> commits, Branch branch) {
+    public void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) {
         try (var writer = new JsonUpdateWriter(path, repository.name())) {
             for (var commit : commits) {
-                var json = commitToChanges(repository, commit, defaultBuild);
+                var json = commitToChanges(repository, localRepository, commit, defaultBuild);
                 writer.write(json);
             }
         }
     }
 
     @Override
-    public void handleOpenJDKTagCommits(HostedRepository repository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotation) {
+    public void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotation) {
         var build = String.format("b%02d", tag.buildNum());
         try (var writer = new JsonUpdateWriter(path, repository.name())) {
             var issues = new ArrayList<Issue>();
@@ -94,16 +94,16 @@ public class JsonUpdater implements RepositoryUpdateConsumer {
                 var parsedMessage = CommitMessageParsers.v1.parse(commit);
                 issues.addAll(parsedMessage.issues());
             }
-            var json = issuesToChanges(repository, issues, build);
+            var json = issuesToChanges(repository, localRepository, issues, build);
             writer.write(json);
         }
     }
 
     @Override
-    public void handleTagCommit(HostedRepository repository, Commit commit, Tag tag, Tag.Annotated annotation) {
+    public void handleTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag, Tag.Annotated annotation) {
     }
 
     @Override
-    public void handleNewBranch(HostedRepository repository, List<Commit> commits, Branch parent, Branch branch) {
+    public void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) {
     }
 }

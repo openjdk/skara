@@ -81,14 +81,14 @@ public class RepositoryWorkItem implements WorkItem {
         for (var updater : updaters) {
             var branch = new Branch(ref.name());
             var parent = new Branch(bestParent.getKey().name());
-            updater.handleNewBranch(repository, bestParent.getValue(), parent, branch);
+            updater.handleNewBranch(repository, localRepo, bestParent.getValue(), parent, branch);
         }
     }
 
     private void handleUpdatedRef(Repository localRepo, Reference ref, List<Commit> commits) {
         for (var updater : updaters) {
             var branch = new Branch(ref.name());
-            updater.handleCommits(repository, commits, branch);
+            updater.handleCommits(repository, localRepo, commits, branch);
         }
     }
 
@@ -184,7 +184,7 @@ public class RepositoryWorkItem implements WorkItem {
             Collections.reverse(commits);
             var annotation = localRepo.annotate(tag.tag());
             for (var updater : updaters) {
-                updater.handleOpenJDKTagCommits(repository, commits, tag, annotation.orElse(null));
+                updater.handleOpenJDKTagCommits(repository, localRepo, commits, tag, annotation.orElse(null));
             }
         }
 
@@ -202,7 +202,7 @@ public class RepositoryWorkItem implements WorkItem {
 
             var annotation = localRepo.annotate(tag);
             for (var updater : updaters) {
-                updater.handleTagCommit(repository, commit.get(), tag, annotation.orElse(null));
+                updater.handleTagCommit(repository, localRepo, commit.get(), tag, annotation.orElse(null));
             }
         }
     }

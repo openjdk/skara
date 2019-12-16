@@ -23,29 +23,40 @@
 package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.issuetracker.*;
+import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.*;
 
+import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.logging.Logger;
 
 public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdateConsumer {
     private final IssueProject issueProject;
+    private final boolean reviewLink;
     private final URI reviewIcon;
+    private final boolean commitLink;
     private final URI commitIcon;
+    private final boolean setFixVersion;
+    private final String fixVersion;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
-    IssueUpdater(IssueProject issueProject, URI reviewIcon, URI commitIcon) {
+    IssueUpdater(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,boolean setFixVersion, String fixVersion) {
         this.issueProject = issueProject;
+        this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
+        this.commitLink = commitLink;
         this.commitIcon = commitIcon;
+        this.setFixVersion = setFixVersion;
+        this.fixVersion = fixVersion;
     }
 
     @Override
-    public void handleCommits(HostedRepository repository, List<Commit> commits, Branch branch) {
+    public void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) {
         for (var commit : commits) {
             var commitNotification = CommitFormatters.toTextBrief(repository, commit);
             var commitMessage = CommitMessageParsers.v1.parse(commit);
@@ -59,29 +70,48 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
                 issue.get().addComment(commitNotification);
                 issue.get().setState(Issue.State.RESOLVED);
 
-                var linkBuilder = Link.create(repository.webUrl(commit.hash()), "Commit")
-                                      .summary(repository.name() + "/" + commit.hash().abbreviate());
-                if (commitIcon != null) {
-                    linkBuilder.iconTitle("Commit");
-                    linkBuilder.iconUrl(commitIcon);
+                if (commitLink) {
+                    var linkBuilder = Link.create(repository.webUrl(commit.hash()), "Commit")
+                                          .summary(repository.name() + "/" + commit.hash().abbreviate());
+                    if (commitIcon != null) {
+                        linkBuilder.iconTitle("Commit");
+                        linkBuilder.iconUrl(commitIcon);
+                    }
+                    issue.get().addLink(linkBuilder.build());
                 }
-                issue.get().addLink(linkBuilder.build());
+
+                if (setFixVersion) {
+                    if (fixVersion == null) {
+                        try {
+                            var conf = localRepository.lines(Path.of(".jcheck/conf"), commit.hash());
+                            if (conf.isPresent()) {
+                                var parsed = JCheckConfiguration.parse(conf.get());
+                                var version = parsed.general().version();
+                                version.ifPresent(v -> issue.get().addFixVersion(v));
+                            }
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    } else {
+                        issue.get().addFixVersion(fixVersion);
+                    }
+                }
             }
         }
     }
 
     @Override
-    public void handleOpenJDKTagCommits(HostedRepository repository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) {
+    public void handleOpenJDKTagCommits(HostedRepository repository, Repository loclRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) {
 
     }
 
     @Override
-    public void handleTagCommit(HostedRepository repository, Commit commit, Tag tag, Tag.Annotated annotation) {
+    public void handleTagCommit(HostedRepository repository, Repository loclRepository, Commit commit, Tag tag, Tag.Annotated annotation) {
 
     }
 
     @Override
-    public void handleNewBranch(HostedRepository repository, List<Commit> commits, Branch parent, Branch branch) {
+    public void handleNewBranch(HostedRepository repository, Repository loclRepository, List<Commit> commits, Branch parent, Branch branch) {
 
     }
 
@@ -93,14 +123,16 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
             return;
         }
 
-        var linkBuilder = Link.create(pr.webUrl(), "Review")
-                              .summary(pr.repository().name() + "/" + pr.id());
-        if (reviewIcon != null) {
-            linkBuilder.iconTitle("Review");
-            linkBuilder.iconUrl(reviewIcon);
-        }
+        if (reviewLink) {
+            var linkBuilder = Link.create(pr.webUrl(), "Review")
+                                  .summary(pr.repository().name() + "/" + pr.id());
+            if (reviewIcon != null) {
+                linkBuilder.iconTitle("Review");
+                linkBuilder.iconUrl(reviewIcon);
+            }
 
-        realIssue.get().addLink(linkBuilder.build());
+            realIssue.get().addLink(linkBuilder.build());
+        }
     }
 
     @Override

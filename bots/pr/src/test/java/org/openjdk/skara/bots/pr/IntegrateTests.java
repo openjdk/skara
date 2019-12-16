@@ -198,7 +198,7 @@ class IntegrateTests {
 
             // Populate the projects repository - but without any checks enabled
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
-                                                     Set.of());
+                                                     Set.of(), null);
             var masterHash = localRepo.resolve("master").orElseThrow();
             assertFalse(CheckableRepository.hasBeenEdited(localRepo));
             localRepo.push(masterHash, author.url(), "master", true);
@@ -211,7 +211,7 @@ class IntegrateTests {
             // Now enable checks
             localRepo.checkout(masterHash, true);
             CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
-                                     Set.of("author", "reviewers", "whitespace"));
+                                     Set.of("author", "reviewers", "whitespace"), null);
             var updatedHash = localRepo.resolve("HEAD").orElseThrow();
             localRepo.push(updatedHash, author.url(), "master", true);
 

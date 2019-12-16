@@ -29,15 +29,15 @@ import org.openjdk.skara.vcs.openjdk.OpenJDKTag;
 import java.util.List;
 
 public interface RepositoryUpdateConsumer {
-    void handleCommits(HostedRepository repository, List<Commit> commits, Branch branch);
-    void handleOpenJDKTagCommits(HostedRepository repository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated);
-    void handleTagCommit(HostedRepository repository, Commit commit, Tag tag, Tag.Annotated annotation);
-    void handleNewBranch(HostedRepository repository, List<Commit> commits, Branch parent, Branch branch);
+    void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch);
+    void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated);
+    void handleTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag, Tag.Annotated annotation);
+    void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch);
 
-    default void handleOpenJDKTagCommits(HostedRepository repository, List<Commit> commits, OpenJDKTag tag) {
-        handleOpenJDKTagCommits(repository, commits, tag, null);
+    default void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag) {
+        handleOpenJDKTagCommits(repository, localRepository, commits, tag, null);
     }
-    default void handleTagCommit(HostedRepository repository, Commit commit, Tag tag) {
-        handleTagCommit(repository, commit, tag, null);
+    default void handleTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag) {
+        handleTagCommit(repository, localRepository, commit, tag, null);
     }
 }
