@@ -43,4 +43,9 @@ class TextToMarkdownTests {
     void preserveQuoting() {
         assertEquals("> quoted", TextToMarkdown.escapeFormatting("> quoted"));
     }
+
+    @Test
+    void escapedPattern() {
+        assertEquals("1\\$2", TextToMarkdown.escapeFormatting("1$2"));
+    }
 }
