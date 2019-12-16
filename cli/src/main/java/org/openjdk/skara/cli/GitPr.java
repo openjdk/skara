@@ -366,7 +366,7 @@ public class GitPr {
             Input.position(0)
                  .describe("list|fetch|show|checkout|apply|integrate|approve|create|close|update|test")
                  .singular()
-                 .required(),
+                 .optional(),
             Input.position(1)
                  .describe("ID")
                  .singular()
@@ -419,7 +419,14 @@ public class GitPr {
         }
         var host = forge.get();
 
-        var action = arguments.at(0).asString();
+        var action = arguments.at(0).isPresent() ? arguments.at(0).asString() : null;
+        if (action == null) {
+            var lines = repo.config("pr.default");
+            if (lines.size() == 1) {
+                action = lines.get(0);
+            }
+        }
+
         if (!shouldUseToken &&
             !List.of("list", "fetch", "show", "checkout", "apply").contains(action)) {
             System.err.println("error: --no-token can only be used with read-only operations");
