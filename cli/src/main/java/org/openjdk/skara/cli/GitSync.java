@@ -241,6 +241,7 @@ public class GitSync {
             if (!remotes.contains(to)) {
                 die("error: --fast-forward can only be used when --to is the name of a remote");
             }
+            repo.fetchRemote(to);
 
             var remoteBranchNames = new HashSet<String>();
             for (var branch : remoteBranches) {

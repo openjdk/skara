@@ -44,6 +44,7 @@ public interface Repository extends ReadOnlyRepository {
     }
     Hash fetch(URI uri, String refspec) throws IOException;
     void fetchAll() throws IOException;
+    void fetchRemote(String remote) throws IOException;
     void pushAll(URI uri) throws IOException;
     void push(Hash hash, URI uri, String ref, boolean force) throws IOException;
     void push(Branch branch, String remote, boolean setUpstream) throws IOException;
