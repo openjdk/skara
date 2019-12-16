@@ -325,6 +325,10 @@ public class GitPr {
                   .helptext("Publish the local branch before creating the pull request")
                   .optional(),
             Switch.shortcut("")
+                  .fullname("jcheck")
+                  .helptext("Run jcheck before creating the pull request")
+                  .optional(),
+            Switch.shortcut("")
                   .fullname("no-token")
                   .helptext("Do not use a personal access token (PAT). Only works for read-only operations.")
                   .optional(),
@@ -695,6 +699,19 @@ public class GitPr {
                 System.err.println("error: no difference between branches " + targetBranch + " and " + currentBranch.name());
                 System.err.println("       Cannot create an empty pull request, have you committed?");
                 System.exit(1);
+            }
+
+            var shouldRunJCheck = arguments.contains("jcheck");
+            if (!shouldRunJCheck) {
+                var lines = repo.config("pr.jcheck");
+                shouldRunJCheck = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
+            }
+            if (shouldRunJCheck) {
+                var jcheckArgs = new String[]{ "--pull-request", "--rev", targetBranch + ".." + upstream.get() };
+                var err = GitJCheck.run(jcheckArgs);
+                if (err != 0) {
+                    System.exit(err);
+                }
             }
 
             var remoteRepo = host.repository(projectName(uri)).orElseThrow(() ->

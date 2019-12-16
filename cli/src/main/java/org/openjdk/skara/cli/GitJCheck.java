@@ -42,7 +42,7 @@ public class GitJCheck {
 
     private static final Pattern urlPattern = Pattern.compile("^https?://.*", Pattern.CASE_INSENSITIVE);
 
-    public static void main(String[] args) throws Exception {
+    static int run(String[] args) throws IOException {
         var flags = List.of(
             Option.shortcut("r")
                   .fullname("rev")
@@ -72,6 +72,10 @@ public class GitJCheck {
                   .fullname("local")
                   .helptext("Run jcheck in \"local\" mode")
                   .optional(),
+            Switch.shortcut("")
+                  .fullname("pull-request")
+                  .helptext("Run jcheck in \"pull request\" mode")
+                  .optional(),
             Switch.shortcut("v")
                   .fullname("verbose")
                   .helptext("Turn on verbose output")
@@ -98,7 +102,7 @@ public class GitJCheck {
 
         if (arguments.contains("version")) {
             System.out.println("git-jcheck version: " + Version.fromManifest().orElse("unknown"));
-            System.exit(0);
+            return 0;
         }
 
         if (arguments.contains("verbose") || arguments.contains("debug")) {
@@ -110,11 +114,11 @@ public class GitJCheck {
         var repository = ReadOnlyRepository.get(cwd);
         if (!repository.isPresent()) {
             System.err.println(String.format("error: %s is not a repository", cwd.toString()));
-            System.exit(1);
+            return 1;
         }
         var repo = repository.get();
         if (repo.isEmpty()) {
-            return;
+            return 1;
         }
 
         var isMercurial = arguments.contains("mercurial");
@@ -127,7 +131,7 @@ public class GitJCheck {
             } else {
                 System.err.println("       see 'man 7 gitrevisions' for how to specify revisions");
             }
-            System.exit(1);
+            return 1;
         }
 
         var whitelistFile = arguments.get("whitelist").or(".jcheck/whitelist.json").via(Path::of);
@@ -171,12 +175,25 @@ public class GitJCheck {
                 isLocal = value.equals("TRUE") || value.equals("1") || value.equals("ON");
             }
         }
-        var visitor = new JCheckCLIVisitor(isLocal);
+        var isPullRequest = arguments.contains("pull-request");
+        if (!isPullRequest) {
+            var lines = repo.config("jcheck.pull-request");
+            if (lines.size() == 1) {
+                var value = lines.get(0).toUpperCase();
+                isLocal = value.equals("TRUE") || value.equals("1") || value.equals("ON");
+            }
+        }
+        var visitor = new JCheckCLIVisitor(isLocal, isPullRequest);
         try (var errors = JCheck.check(repo, census, CommitMessageParsers.v1, range, whitelist, blacklist)) {
             for (var error : errors) {
                 error.accept(visitor);
             }
         }
+        return visitor.hasDisplayedErrors() ? 1 : 0;
+    }
+
+    public static void main(String[] args) throws IOException {
+        System.exit(run(args));
     }
 
     private static boolean isURL(String s) {
