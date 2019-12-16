@@ -181,7 +181,7 @@ public class JCheck {
         }
 
         @Override
-        public void close() throws Exception {
+        public void close() throws IOException {
             if (resource != null) {
                 resource.close();
             }

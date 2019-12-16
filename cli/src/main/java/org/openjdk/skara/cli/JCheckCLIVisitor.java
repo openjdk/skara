@@ -31,25 +31,30 @@ import java.util.stream.Collectors;
 
 class JCheckCLIVisitor implements IssueVisitor {
     private final boolean isLocal;
+    private final boolean isPullRequest;
+    private boolean hasDisplayedErrors;
 
     public JCheckCLIVisitor() {
-        this(false);
+        this(false, false);
     }
 
-    public JCheckCLIVisitor(boolean isLocal) {
+    public JCheckCLIVisitor(boolean isLocal, boolean isPullRequest) {
         this.isLocal = isLocal;
+        this.isPullRequest = isPullRequest;
+        this.hasDisplayedErrors = false;
     }
 
-    private static void println(Issue i, String message) {
+    private void println(Issue i, String message) {
         System.out.print("[");
         System.out.print(i.check().name());
         System.out.print("] ");
         System.out.print(i.severity());
         System.out.print(": ");
         System.out.println(message);
+        hasDisplayedErrors = true;
     }
 
-    private static void println(CommitIssue i, String message) {
+    private void println(CommitIssue i, String message) {
         System.out.print("[");
         System.out.print(i.check().name());
         System.out.print("] ");
@@ -58,6 +63,7 @@ class JCheckCLIVisitor implements IssueVisitor {
         System.out.print(i.commit().hash().abbreviate());
         System.out.print(": ");
         System.out.println(message);
+        hasDisplayedErrors = true;
     }
 
     public void visit(DuplicateIssuesIssue i) {
@@ -77,7 +83,7 @@ class JCheckCLIVisitor implements IssueVisitor {
     }
 
     public void visit(BranchIssue i) {
-        if (!isLocal) {
+        if (!isLocal && !isPullRequest) {
             println(i, "illegal branch name: " + i.branch().name());
         }
     }
@@ -87,7 +93,7 @@ class JCheckCLIVisitor implements IssueVisitor {
     }
 
     public void visit(TooFewReviewersIssue i) {
-        if (!isLocal) {
+        if (!isLocal && !isPullRequest) {
             var required = i.numRequired();
             var actual = i.numActual();
             var reviewers = required == 1 ? " reviewer" : " reviewers";
@@ -96,7 +102,7 @@ class JCheckCLIVisitor implements IssueVisitor {
     }
 
     public void visit(InvalidReviewersIssue i) {
-        if (!isLocal) {
+        if (!isLocal && !isPullRequest) {
             var invalid = String.join(", ", i.invalid());
             var wording = i.invalid().size() == 1 ? " is" : " are";
             println(i, invalid + wording + " not part of OpenJDK");
@@ -189,16 +195,20 @@ class JCheckCLIVisitor implements IssueVisitor {
     }
 
     public void visit(MessageIssue i) {
-        println(i, "contains additional lines in commit message");
-        for (var line : i.message().additional()) {
-            System.out.println("> " + line);
+        if (!isPullRequest) {
+            println(i, "contains additional lines in commit message");
+            for (var line : i.message().additional()) {
+                System.out.println("> " + line);
+            }
         }
     }
 
     public void visit(IssuesIssue i) {
-        println(i, "missing reference to JBS issue in commit message");
-        for (var line : i.commit().message()) {
-            System.out.println("> " + line);
+        if (!isPullRequest) {
+            println(i, "missing reference to JBS issue in commit message");
+            for (var line : i.commit().message()) {
+                System.out.println("> " + line);
+            }
         }
     }
 
@@ -219,7 +229,7 @@ class JCheckCLIVisitor implements IssueVisitor {
     }
 
     public void visit(CommitterEmailIssue i) {
-        if (!isLocal) {
+        if (!isLocal && !isPullRequest) {
             var domain = i.expectedDomain();
             println(i, "missing committer email from domain " + domain);
         }
@@ -231,5 +241,9 @@ class JCheckCLIVisitor implements IssueVisitor {
 
     public void visit(BinaryIssue i) {
         println(i, "adds binary file: " + i.path().toString());
+    }
+
+    public boolean hasDisplayedErrors() {
+        return hasDisplayedErrors;
     }
 }
