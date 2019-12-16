@@ -116,7 +116,7 @@ public class GitPublish {
         var isQuiet = arguments.contains("quiet");
         if (!isQuiet) {
             var lines = repo.config("publish.quiet");
-            isQuiet = lines.size() == 0 && lines.get(0).toLowerCase().equals("true");
+            isQuiet = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
         }
         var err = pushAndTrack(remote, repo.currentBranch().get(), isQuiet);
         if (err != 0) {
