@@ -41,15 +41,17 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
     private final URI reviewIcon;
     private final boolean commitLink;
     private final URI commitIcon;
+    private final boolean setFixVersion;
     private final String fixVersion;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
-    IssueUpdater(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon, String fixVersion) {
+    IssueUpdater(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,boolean setFixVersion, String fixVersion) {
         this.issueProject = issueProject;
         this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
         this.commitLink = commitLink;
         this.commitIcon = commitIcon;
+        this.setFixVersion = setFixVersion;
         this.fixVersion = fixVersion;
     }
 
@@ -78,8 +80,8 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
                     issue.get().addLink(linkBuilder.build());
                 }
 
-                if (fixVersion != null) {
-                    if (fixVersion.equals("<repo>")) {
+                if (setFixVersion) {
+                    if (fixVersion == null) {
                         try {
                             var conf = localRepository.lines(Path.of(".jcheck/conf"), commit.hash());
                             if (conf.isPresent()) {

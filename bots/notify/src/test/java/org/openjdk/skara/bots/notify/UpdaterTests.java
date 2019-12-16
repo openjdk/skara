@@ -763,7 +763,7 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var commitIcon = URI.create("http://www.example.com/commit.png");
-            var updater = new IssueUpdater(issueProject, false, null, true, commitIcon, "<repo>");
+            var updater = new IssueUpdater(issueProject, false, null, true, commitIcon, true, null);
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
@@ -818,7 +818,7 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var commitIcon = URI.create("http://www.example.com/commit.png");
-            var updater = new IssueUpdater(issueProject, false, null, true, commitIcon, "<repo>");
+            var updater = new IssueUpdater(issueProject, false, null, true, commitIcon, true, null);
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
@@ -863,7 +863,7 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var commitIcon = URI.create("http://www.example.com/commit.png");
-            var updater = new IssueUpdater(issueProject, false, null, false, commitIcon, "2.0");
+            var updater = new IssueUpdater(issueProject, false, null, false, commitIcon, true,"2.0");
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
@@ -915,7 +915,7 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var reviewIcon = URI.create("http://www.example.com/review.png");
-            var updater = new IssueUpdater(issueProject, true, reviewIcon, false, null, null);
+            var updater = new IssueUpdater(issueProject, true, reviewIcon, false, null, false, null);
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(), List.of(updater), Set.of("rfr"),
                                           Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("This is now ready")));
@@ -1004,7 +1004,7 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var reviewIcon = URI.create("http://www.example.com/review.png");
-            var updater = new IssueUpdater(issueProject, false, reviewIcon, false, null, null);
+            var updater = new IssueUpdater(issueProject, false, reviewIcon, false, null, false,null);
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(), List.of(updater), Set.of("rfr"),
                                           Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("This is now ready")));
