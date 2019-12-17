@@ -29,20 +29,24 @@ import org.openjdk.skara.forge.PullRequest;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class CommentPosterWorkItem implements WorkItem {
     private final PullRequest pr;
     private final List<Email> newMessages;
+    private final Consumer<RuntimeException> errorHandler;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
 
     private final String bridgedMailMarker = "<!-- Bridged id (%s) -->";
     private final Pattern bridgedMailId = Pattern.compile("^<!-- Bridged id \\(([=\\w]+)\\) -->");
 
-    CommentPosterWorkItem(PullRequest pr, List<Email> newMessages) {
+    CommentPosterWorkItem(PullRequest pr, List<Email> newMessages, Consumer<RuntimeException> errorHandler) {
         this.pr = pr;
         this.newMessages = newMessages;
+        this.errorHandler = errorHandler;
     }
 
     @Override
@@ -59,7 +63,14 @@ public class CommentPosterWorkItem implements WorkItem {
         if (!pr.equals(otherItem.pr)) {
             return true;
         }
-        return false;
+        var otherItemIds = otherItem.newMessages.stream()
+                                                .map(Email::id)
+                                                .collect(Collectors.toSet());
+        var overlap = newMessages.stream()
+                                 .map(Email::id)
+                                 .filter(otherItemIds::contains)
+                                 .findAny();
+        return overlap.isEmpty();
     }
 
     private void postNewMessage(Email email) {
@@ -100,5 +111,10 @@ public class CommentPosterWorkItem implements WorkItem {
             log.info("Bridging new message from " + message.author() + " to " + pr);
             postNewMessage(message);
         }
+    }
+
+    @Override
+    public void handleRuntimeException(RuntimeException e) {
+        errorHandler.accept(e);
     }
 }
