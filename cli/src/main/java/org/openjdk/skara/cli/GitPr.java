@@ -45,6 +45,9 @@ import java.util.stream.Collectors;
 
 public class GitPr {
     private static final StandardOpenOption APPEND = StandardOpenOption.APPEND;
+    private static final Pattern ISSUE_ID_PATTERN = Pattern.compile("([A-Za-z][A-Za-z0-9]+)?-([0-9]+)");
+    private static final Pattern ISSUE_MARKDOWN_PATTERN =
+        Pattern.compile("^\\[([A-Z]+-[0-9]+)\\]\\(https:\\/\\/bugs.openjdk.java.net\\/browse\\/[A-Z]+-[0-9]+\\): .*$");
 
     private static void exit(String fmt, Object...args) {
         System.err.println(String.format(fmt, args));
@@ -135,6 +138,33 @@ public class GitPr {
         return id + ": " + issue.title();
     }
 
+    private static List<String> issuesFromPullRequest(PullRequest pr) {
+        var issueTitleIndex = -1;
+        var lines = pr.body().split("\n");
+        for (var i = 0; i < lines.length; i++) {
+            if (lines[i].startsWith("## Issue")) {
+                issueTitleIndex = i;
+                break;
+            }
+        }
+
+        if (issueTitleIndex == -1) {
+            return List.of();
+        }
+
+        var issues = new ArrayList<String>();
+        for (var i = issueTitleIndex + 1; i < lines.length; i++) {
+            var m = ISSUE_MARKDOWN_PATTERN.matcher(lines[i]);
+            if (m.matches()) {
+                issues.add(m.group(1));
+            } else {
+                break;
+            }
+        }
+
+        return issues;
+    }
+
     private static String jbsProjectFromJcheckConf(Repository repo) throws IOException {
         var conf = JCheckConfiguration.from(repo, repo.resolve("master").orElseThrow(() ->
             new IOException("Could not resolve 'master' branch")
@@ -160,8 +190,7 @@ public class GitPr {
     }
 
     private static Optional<Issue> getIssue(String s, String project) throws IOException {
-        var issueIdPattern = Pattern.compile("([A-Za-z][A-Za-z0-9]+)?-([0-9]+)");
-        var m = issueIdPattern.matcher(s);
+        var m = ISSUE_ID_PATTERN.matcher(s);
         if (m.matches()) {
             var id = m.group(2);
             if (project == null) {
@@ -375,6 +404,11 @@ public class GitPr {
                   .fullname("labels")
                   .describe("LIST")
                   .helptext("Comma separated list of labels")
+                  .optional(),
+            Option.shortcut("")
+                  .fullname("issues")
+                  .describe("LIST")
+                  .helptext("Comma separated list of issues")
                   .optional(),
             Option.shortcut("")
                   .fullname("columns")
@@ -931,6 +965,7 @@ public class GitPr {
             var authors = new ArrayList<String>();
             var assignees = new ArrayList<String>();
             var labels = new ArrayList<String>();
+            var issues = new ArrayList<String>();
 
             var authorsOption = getOption("authors", "list", arguments);
             var filterAuthors = authorsOption == null ?
@@ -947,12 +982,18 @@ public class GitPr {
                 Set.of() :
                 Arrays.asList(labelsOption.split(","));
 
-            var defaultColumns = List.of("id", "title", "authors", "assignees", "labels");
+            var issuesOption = getOption("issues", "list", arguments);
+            var filterIssues = issuesOption == null ?
+                Set.of() :
+                Arrays.asList(issuesOption.split(","));
+
+            var defaultColumns = List.of("id", "title", "authors", "assignees", "labels", "issues");
             var columnValues = Map.of(defaultColumns.get(0), ids,
                                       defaultColumns.get(1), titles,
                                       defaultColumns.get(2), authors,
                                       defaultColumns.get(3), assignees,
-                                      defaultColumns.get(4), labels);
+                                      defaultColumns.get(4), labels,
+                                      defaultColumns.get(5), issues);
             var columnsOption = getOption("columns", "list", arguments);
             var columns = columnsOption == null ?
                 defaultColumns :
@@ -985,11 +1026,18 @@ public class GitPr {
                     continue;
                 }
 
+                var prIssues = new HashSet<>(issuesFromPullRequest(pr));
+                if (!filterIssues.isEmpty() && !filterIssues.stream().anyMatch(prIssues::contains)) {
+                    continue;
+                }
+
+
                 ids.add(pr.id());
                 titles.add(pr.title());
                 authors.add(prAuthor);
                 assignees.add(String.join(",", prAssignees));
                 labels.add(String.join(",", prLabels));
+                issues.add(String.join(",", prIssues));
             }
 
 
