@@ -58,6 +58,66 @@ public class GitPr {
         };
     }
 
+    private static String gitConfig(String key) {
+        try {
+            var pb = new ProcessBuilder("git", "config", key);
+            pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
+            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
+            var p = pb.start();
+
+            var output = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            var res = p.waitFor();
+            if (res != 0) {
+                return null;
+            }
+
+            return output == null ? null : output.replace("\n", "");
+        } catch (InterruptedException e) {
+            return null;
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    private static String getOption(String name, Arguments arguments) {
+        return getOption(name, null, arguments);
+    }
+
+    private static String getOption(String name, String subsection, Arguments arguments) {
+        if (arguments.contains(name)) {
+            return arguments.get(name).asString();
+        }
+
+        if (subsection != null && !subsection.isEmpty()) {
+            var subsectionSpecific = gitConfig("pr." + subsection + "." + name);
+            if (subsectionSpecific != null) {
+                return subsectionSpecific;
+            }
+        }
+
+        return gitConfig("fork." + name);
+    }
+
+    private static boolean getSwitch(String name, Arguments arguments) {
+        return getSwitch(name, null, arguments);
+    }
+
+    private static boolean getSwitch(String name, String subsection, Arguments arguments) {
+        if (arguments.contains(name)) {
+            return true;
+        }
+
+        if (subsection != null && !subsection.isEmpty()) {
+            var subsectionSpecific = gitConfig("pr." + subsection + "." + name);
+            if (subsectionSpecific != null) {
+                return subsectionSpecific.toLowerCase().equals("true");
+            }
+        }
+
+        var sectionSpecific = gitConfig("fork." + name);
+        return sectionSpecific != null && sectionSpecific.toLowerCase().equals("true");
+    }
+
     private static String rightPad(String s, int length) {
         return String.format("%-" + length + "s", s);
     }
@@ -388,15 +448,18 @@ public class GitPr {
 
         HttpProxy.setup();
 
-        var isMercurial = arguments.contains("mercurial");
+        var isMercurial = getSwitch("mercurial", arguments);
         var cwd = Path.of("").toAbsolutePath();
         var repo = Repository.get(cwd).orElseThrow(() -> new IOException("no git repository found at " + cwd.toString()));
-        var remote = arguments.get("remote").orString(isMercurial ? "default" : "origin");
+        var remote = getOption("remote", arguments);
+        if (remote == null) {
+            remote = isMercurial ? "default" : "origin";
+        }
         var remotePullPath = repo.pullPath(remote);
-        var username = arguments.contains("username") ? arguments.get("username").asString() : null;
-        var token = isMercurial ? System.getenv("HG_TOKEN") :  System.getenv("GIT_TOKEN");
+        var username = getOption("username", arguments);
+        var token = isMercurial ? System.getenv("HG_TOKEN") : System.getenv("GIT_TOKEN");
         var uri = Remote.toWebURI(remotePullPath);
-        var shouldUseToken = !arguments.contains("no-token");
+        var shouldUseToken = !getSwitch("no-token", arguments);
         var credentials = !shouldUseToken ?
             null :
             GitCredentials.fill(uri.getHost(), uri.getPath(), username, token, uri.getScheme());
@@ -628,11 +691,7 @@ public class GitPr {
                 System.exit(1);
             }
 
-            var ignoreWorkspace = arguments.contains("ignore-workspace");
-            if (!ignoreWorkspace) {
-                var lines = repo.config("pr.ignore-workspace");
-                ignoreWorkspace = lines.size() == 1 && lines.get(0).equals("true");
-            }
+            var ignoreWorkspace = getSwitch("ignore-workspace", "create", arguments);
             if (!ignoreWorkspace) {
                 var diff = repo.diff(repo.head());
                 if (!diff.patches().isEmpty()) {
@@ -659,11 +718,7 @@ public class GitPr {
 
             var upstream = repo.upstreamFor(currentBranch);
             if (upstream.isEmpty()) {
-                var shouldPublish = arguments.contains("publish");
-                if (!shouldPublish) {
-                    var lines = repo.config("pr.publish");
-                    shouldPublish = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
-                }
+                var shouldPublish = getSwitch("publish", "create", arguments);
                 if (shouldPublish) {
                     GitPublish.main(new String[] { "--quiet", remote });
                     upstream = repo.upstreamFor(currentBranch);
@@ -688,11 +743,7 @@ public class GitPr {
             var upstreamRefName = upstream.get().substring(remote.length() + 1);
             repo.fetch(uri, upstreamRefName);
 
-            var shouldIgnoreLocalCommits = arguments.contains("ignore-local-commits");
-            if (!shouldIgnoreLocalCommits) {
-                var lines = repo.config("pr.ignore-local-commits");
-                shouldIgnoreLocalCommits = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
-            }
+            var shouldIgnoreLocalCommits = getSwitch("ignore-local-commits", "create", arguments);
             if (!shouldIgnoreLocalCommits) {
                 var branchCommits = repo.commits(upstream.get() + ".." + currentBranch.name()).asList();
                 if (!branchCommits.isEmpty()) {
@@ -713,7 +764,10 @@ public class GitPr {
                 }
             }
 
-            var targetBranch = arguments.get("branch").orString("master");
+            var targetBranch = getOption("branch", "create", arguments);
+            if (targetBranch == null) {
+                targetBranch = "master";
+            }
             var commits = repo.commits(targetBranch + ".." + upstream.get()).asList();
             if (commits.isEmpty()) {
                 System.err.println("error: no difference between branches " + targetBranch + " and " + currentBranch.name());
@@ -721,11 +775,7 @@ public class GitPr {
                 System.exit(1);
             }
 
-            var shouldRunJCheck = arguments.contains("jcheck");
-            if (!shouldRunJCheck) {
-                var lines = repo.config("pr.jcheck");
-                shouldRunJCheck = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
-            }
+            var shouldRunJCheck = getSwitch("jcheck", "create", arguments);
             if (shouldRunJCheck) {
                 var jcheckArgs = new String[]{ "--pull-request", "--rev", targetBranch + ".." + upstream.get() };
                 var err = GitJCheck.run(jcheckArgs);
@@ -830,8 +880,9 @@ public class GitPr {
             }
 
             var pr = remoteRepo.createPullRequest(parentRepo, targetBranch, currentBranch.name(), title, body);
-            if (arguments.contains("assignees")) {
-                var usernames = Arrays.asList(arguments.get("assignees").asString().split(","));
+            var assigneesOption = getOption("assignees", "create", arguments);
+            if (assigneesOption != null) {
+                var usernames = Arrays.asList(assigneesOption.split(","));
                 var assignees = usernames.stream()
                                          .map(u -> host.user(u))
                                          .collect(Collectors.toList());
@@ -881,15 +932,20 @@ public class GitPr {
             var assignees = new ArrayList<String>();
             var labels = new ArrayList<String>();
 
-            var filterAuthors = arguments.contains("authors") ?
-                new HashSet<>(Arrays.asList(arguments.get("authors").asString().split(","))) :
-                Set.of();
-            var filterAssignees = arguments.contains("assignees") ?
-                Arrays.asList(arguments.get("assignees").asString().split(",")) :
-                Set.of();
-            var filterLabels = arguments.contains("labels") ?
-                Arrays.asList(arguments.get("labels").asString().split(",")) :
-                Set.of();
+            var authorsOption = getOption("authors", "list", arguments);
+            var filterAuthors = authorsOption == null ?
+                Set.of() :
+                new HashSet<>(Arrays.asList(authorsOption.split(",")));
+
+            var assigneesOption = getOption("assignees", "list", arguments);
+            var filterAssignees = assigneesOption == null ?
+                Set.of() :
+                Arrays.asList(assigneesOption.split(","));
+
+            var labelsOption = getOption("labels", "list", arguments);
+            var filterLabels = labelsOption == null ?
+                Set.of() :
+                Arrays.asList(labelsOption.split(","));
 
             var defaultColumns = List.of("id", "title", "authors", "assignees", "labels");
             var columnValues = Map.of(defaultColumns.get(0), ids,
@@ -897,9 +953,10 @@ public class GitPr {
                                       defaultColumns.get(2), authors,
                                       defaultColumns.get(3), assignees,
                                       defaultColumns.get(4), labels);
-            var columns = arguments.contains("columns") ?
-                Arrays.asList(arguments.get("columns").asString().split(",")) :
-                defaultColumns;
+            var columnsOption = getOption("columns", "list", arguments);
+            var columns = columnsOption == null ?
+                defaultColumns :
+                Arrays.asList(columnsOption.split(","));
             if (columns != defaultColumns) {
                 for (var column : columns) {
                     if (!defaultColumns.contains(column)) {
@@ -944,7 +1001,8 @@ public class GitPr {
             }
             fmt += "%s\n";
 
-            if (!ids.isEmpty() && !arguments.contains("no-decoration")) {
+            var noDecoration = getSwitch("no-decoration", "list", arguments);
+            if (!ids.isEmpty() && !noDecoration) {
                 var upperCase = columns.stream()
                                        .map(String::toUpperCase)
                                        .collect(Collectors.toList());
@@ -1011,15 +1069,15 @@ public class GitPr {
 
             var fetchHead = repo.fetch(repoUrl, pr.sourceRef());
             if (action.equals("fetch")) {
-                if (arguments.contains("branch")) {
-                    var branchName = arguments.get("branch").asString();
+                var branchName = getOption("branch", "fetch", arguments);
+                if (branchName != null) {
                     repo.branch(fetchHead, branchName);
                 } else {
                     System.out.println(fetchHead.hex());
                 }
             } else if (action.equals("checkout")) {
-                if (arguments.contains("branch")) {
-                    var branchName = arguments.get("branch").asString();
+                var branchName = getOption("branch", "checkout", arguments);
+                if (branchName != null) {
                     var branch = repo.branch(fetchHead, branchName);
                     repo.checkout(branch, false);
                 } else {
@@ -1049,8 +1107,9 @@ public class GitPr {
 
             var remoteRepo = getHostedRepositoryFor(uri, repo, host);
             var pr = remoteRepo.pullRequest(prId.asString());
-            if (arguments.contains("assignees")) {
-                var usernames = Arrays.asList(arguments.get("assignees").asString().split(","));
+            var assigneesOption = getOption("assignees", "update", arguments);
+            if (assigneesOption != null) {
+                var usernames = Arrays.asList(assigneesOption.split(","));
                 var assignees = usernames.stream()
                     .map(u -> host.user(u))
                     .collect(Collectors.toList());
