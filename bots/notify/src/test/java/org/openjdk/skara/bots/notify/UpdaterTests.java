@@ -747,6 +747,58 @@ class UpdaterTests {
     }
 
     @Test
+    void testMailingListNoIdempotence(TestInfo testInfo) throws IOException {
+        try (var listServer = new TestMailmanServer();
+             var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanList = mailmanServer.getList(listAddress.address());
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false, MailingListUpdater.Mode.ALL,
+                                                 Map.of("extra1", "value1", "extra2", "value2"), Pattern.compile("none"));
+            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
+                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+
+            // No mail should be sent on the first run as there is no history
+            TestBotRunner.runPeriodicItems(notifyBot);
+            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+
+            // Save history state
+            var historyHash = localRepo.fetch(repo.url(), "history");
+
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
+            localRepo.push(editHash, repo.url(), "master");
+            TestBotRunner.runPeriodicItems(notifyBot);
+            listServer.processIncoming();
+
+            var conversations = mailmanList.conversations(Duration.ofDays(1));
+            assertEquals(1, conversations.size());
+
+            // Reset the history
+            localRepo.push(historyHash, repo.url(), "history", true);
+            TestBotRunner.runPeriodicItems(notifyBot);
+            listServer.processIncoming();
+
+            // There should now be a duplicate mail
+            conversations = mailmanList.conversations(Duration.ofDays(1));
+            assertEquals(2, conversations.size());
+        }
+    }
+
+    @Test
     void testIssue(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
@@ -891,6 +943,76 @@ class UpdaterTests {
             // And no commit link
             var links = issue.links();
             assertEquals(0, links.size());
+
+            // There should be no open issues
+            assertEquals(0, issueProject.issues().size());
+        }
+    }
+
+    @Test
+    void testIssueIdempotence(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var issueProject = credentials.getIssueProject();
+            var commitIcon = URI.create("http://www.example.com/commit.png");
+            var updater = new IssueUpdater(issueProject, false, null, true, commitIcon, true, null);
+            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
+                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Save the state
+            var historyState = localRepo.fetch(repo.url(), "history");
+
+            // Create an issue and commit a fix
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"));
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
+            localRepo.push(editHash, repo.url(), "master");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The changeset should be reflected in a comment
+            var comments = issue.comments();
+            assertEquals(1, comments.size());
+            var comment = comments.get(0);
+            assertTrue(comment.body().contains(editHash.abbreviate()));
+
+            // And in a link
+            var links = issue.links();
+            assertEquals(1, links.size());
+            var link = links.get(0);
+            assertEquals(commitIcon, link.iconUrl().orElseThrow());
+            assertEquals("Commit", link.title());
+            assertEquals(repo.webUrl(editHash), link.uri());
+
+            // As well as a fixVersion
+            var fixVersions = issue.fixVersions();
+            assertEquals(1, fixVersions.size());
+            var fixVersion = fixVersions.get(0);
+            assertEquals("0.1", fixVersion);
+
+            // Wipe the history
+            localRepo.push(historyState, repo.url(), "history", true);
+
+            // Run it again
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // There should be no new comments, links or fixVersions
+            var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            assertEquals(1, updatedIssue.comments().size());
+            assertEquals(1, updatedIssue.links().size());
+            assertEquals(1, updatedIssue.fixVersions().size());
 
             // There should be no open issues
             assertEquals(0, issueProject.issues().size());

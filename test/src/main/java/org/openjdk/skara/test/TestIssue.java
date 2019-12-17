@@ -187,6 +187,7 @@ public class TestIssue implements Issue {
 
     @Override
     public void addLink(Link link) {
+        removeLink(link.uri());
         data.links.add(link);
         data.lastUpdate = ZonedDateTime.now();
     }

@@ -32,7 +32,7 @@ import org.openjdk.skara.vcs.openjdk.*;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdateConsumer {
@@ -61,14 +61,21 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
             var commitNotification = CommitFormatters.toTextBrief(repository, commit);
             var commitMessage = CommitMessageParsers.v1.parse(commit);
             for (var commitIssue : commitMessage.issues()) {
-                var issue = issueProject.issue(commitIssue.id());
-                if (issue.isEmpty()) {
+                var optionalIssue = issueProject.issue(commitIssue.id());
+                if (optionalIssue.isEmpty()) {
                     log.severe("Cannot update issue " + commitIssue.id() + " with commit " + commit.hash().abbreviate()
                                        + " - issue not found in issue project");
                     continue;
                 }
-                issue.get().addComment(commitNotification);
-                issue.get().setState(Issue.State.RESOLVED);
+                var issue = optionalIssue.get();
+                var existingComments = issue.comments();
+                var alreadyPostedComment = existingComments.stream()
+                                                           .filter(comment -> comment.author().equals(issueProject.issueTracker().currentUser()))
+                                                           .anyMatch(comment -> comment.body().contains(commit.hash().abbreviate()));
+                if (!alreadyPostedComment) {
+                    issue.addComment(commitNotification);
+                }
+                issue.setState(Issue.State.RESOLVED);
 
                 if (commitLink) {
                     var linkBuilder = Link.create(repository.webUrl(commit.hash()), "Commit")
@@ -77,23 +84,26 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
                         linkBuilder.iconTitle("Commit");
                         linkBuilder.iconUrl(commitIcon);
                     }
-                    issue.get().addLink(linkBuilder.build());
+                    issue.addLink(linkBuilder.build());
                 }
 
                 if (setFixVersion) {
-                    if (fixVersion == null) {
+                    var requestedVersion = fixVersion;
+                    if (requestedVersion == null) {
                         try {
                             var conf = localRepository.lines(Path.of(".jcheck/conf"), commit.hash());
                             if (conf.isPresent()) {
                                 var parsed = JCheckConfiguration.parse(conf.get());
                                 var version = parsed.general().version();
-                                version.ifPresent(v -> issue.get().addFixVersion(v));
+                                requestedVersion = version.orElse(null);
                             }
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
-                    } else {
-                        issue.get().addFixVersion(fixVersion);
+                    }
+
+                    if (requestedVersion != null) {
+                        issue.addFixVersion(requestedVersion);
                     }
                 }
             }
@@ -101,18 +111,23 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
     }
 
     @Override
-    public void handleOpenJDKTagCommits(HostedRepository repository, Repository loclRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) {
+    public void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) {
 
     }
 
     @Override
-    public void handleTagCommit(HostedRepository repository, Repository loclRepository, Commit commit, Tag tag, Tag.Annotated annotation) {
+    public void handleTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag, Tag.Annotated annotation) {
 
     }
 
     @Override
-    public void handleNewBranch(HostedRepository repository, Repository loclRepository, List<Commit> commits, Branch parent, Branch branch) {
+    public void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) {
 
+    }
+
+    @Override
+    public boolean idempotent() {
+        return true;
     }
 
     @Override

@@ -55,7 +55,7 @@ public class RepositoryWorkItem implements WorkItem {
         this.updaters = updaters;
     }
 
-    private void handleNewRef(Repository localRepo, Reference ref, Collection<Reference> allRefs) {
+    private void handleNewRef(Repository localRepo, Reference ref, Collection<Reference> allRefs, boolean idempotent) {
         // Figure out the best parent ref
         var candidates = new HashSet<>(allRefs);
         candidates.remove(ref);
@@ -79,14 +79,20 @@ public class RepositoryWorkItem implements WorkItem {
                                                " detected (" + bestParent.getValue().size() + ") - skipping notifications");
         }
         for (var updater : updaters) {
+            if (updater.idempotent() != idempotent) {
+                continue;
+            }
             var branch = new Branch(ref.name());
             var parent = new Branch(bestParent.getKey().name());
             updater.handleNewBranch(repository, localRepo, bestParent.getValue(), parent, branch);
         }
     }
 
-    private void handleUpdatedRef(Repository localRepo, Reference ref, List<Commit> commits) {
+    private void handleUpdatedRef(Repository localRepo, Reference ref, List<Commit> commits, boolean idempotent) {
         for (var updater : updaters) {
+            if (updater.idempotent() != idempotent) {
+                continue;
+            }
             var branch = new Branch(ref.name());
             updater.handleCommits(repository, localRepo, commits, branch);
         }
@@ -97,20 +103,24 @@ public class RepositoryWorkItem implements WorkItem {
         var lastHash = history.branchHash(branch);
         if (lastHash.isEmpty()) {
             log.warning("No previous history found for branch '" + branch + "' - resetting mark");
+            handleNewRef(localRepo, ref, allRefs, true);
             history.setBranchHash(branch, ref.hash());
-            handleNewRef(localRepo, ref, allRefs);
+            handleNewRef(localRepo, ref, allRefs, false);
         } else {
             var commits = localRepo.commits(lastHash.get() + ".." + ref.hash()).asList();
             if (commits.size() == 0) {
                 return;
             }
-            history.setBranchHash(branch, ref.hash());
             if (commits.size() > 1000) {
+                history.setBranchHash(branch, ref.hash());
                 throw new RuntimeException("Excessive amount of new commits on branch " + branch.name() +
                                                    " detected (" + commits.size() + ") - skipping notifications");
             }
+
             Collections.reverse(commits);
-            handleUpdatedRef(localRepo, ref, commits);
+            handleUpdatedRef(localRepo, ref, commits, true);
+            history.setBranchHash(branch, ref.hash());
+            handleUpdatedRef(localRepo, ref, commits, false);
         }
     }
 
@@ -160,9 +170,6 @@ public class RepositoryWorkItem implements WorkItem {
                                 .sorted(Comparator.comparingInt(OpenJDKTag::buildNum))
                                 .collect(Collectors.toList());
         for (var tag : newJdkTags) {
-            // Update the history first - if there is a problem here we don't want to send out multiple updates
-            history.addTags(List.of(tag.tag()));
-
             var commits = new ArrayList<Commit>();
 
             // Try to determine which commits are new since the last build
@@ -183,27 +190,44 @@ public class RepositoryWorkItem implements WorkItem {
 
             Collections.reverse(commits);
             var annotation = localRepo.annotate(tag.tag());
-            for (var updater : updaters) {
-                updater.handleOpenJDKTagCommits(repository, localRepo, commits, tag, annotation.orElse(null));
-            }
+
+            // Run all notifiers that can be safely re-run
+            updaters.stream()
+                    .filter(RepositoryUpdateConsumer::idempotent)
+                    .forEach(updater -> updater.handleOpenJDKTagCommits(repository, localRepo, commits, tag, annotation.orElse(null)));
+
+            // Now update the history
+            history.addTags(List.of(tag.tag()));
+
+            // Finally run all one-shot notifiers
+            updaters.stream()
+                    .filter(updater -> !updater.idempotent())
+                    .forEach(updater -> updater.handleOpenJDKTagCommits(repository, localRepo, commits, tag, annotation.orElse(null)));
         }
 
         var newNonJdkTags = newTags.stream()
                                    .filter(tag -> OpenJDKTag.create(tag).isEmpty())
                                    .collect(Collectors.toList());
         for (var tag : newNonJdkTags) {
-            // Update the history first - if there is a problem here we don't want to send out multiple updates
-            history.addTags(List.of(tag));
-
             var commit = localRepo.lookup(tag);
             if (commit.isEmpty()) {
                 throw new RuntimeException("Failed to lookup tag '" + tag.toString() + "'");
             }
 
             var annotation = localRepo.annotate(tag);
-            for (var updater : updaters) {
-                updater.handleTagCommit(repository, localRepo, commit.get(), tag, annotation.orElse(null));
-            }
+
+            // Run all notifiers that can be safely re-run
+            updaters.stream()
+                    .filter(RepositoryUpdateConsumer::idempotent)
+                    .forEach(updater -> updater.handleTagCommit(repository, localRepo, commit.get(), tag, annotation.orElse(null)));
+
+            // Now update the history
+            history.addTags(List.of(tag));
+
+            // Finally run all one-shot notifiers
+            updaters.stream()
+                    .filter(updater -> !updater.idempotent())
+                    .forEach(updater -> updater.handleTagCommit(repository, localRepo, commit.get(), tag, annotation.orElse(null)));
         }
     }
 
