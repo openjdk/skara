@@ -966,6 +966,7 @@ public class GitPr {
             var assignees = new ArrayList<String>();
             var labels = new ArrayList<String>();
             var issues = new ArrayList<String>();
+            var branches = new ArrayList<String>();
 
             var authorsOption = getOption("authors", "list", arguments);
             var filterAuthors = authorsOption == null ?
@@ -987,13 +988,14 @@ public class GitPr {
                 Set.of() :
                 Arrays.asList(issuesOption.split(","));
 
-            var defaultColumns = List.of("id", "title", "authors", "assignees", "labels", "issues");
+            var defaultColumns = List.of("id", "title", "authors", "assignees", "labels", "issues", "branch");
             var columnValues = Map.of(defaultColumns.get(0), ids,
                                       defaultColumns.get(1), titles,
                                       defaultColumns.get(2), authors,
                                       defaultColumns.get(3), assignees,
                                       defaultColumns.get(4), labels,
-                                      defaultColumns.get(5), issues);
+                                      defaultColumns.get(5), issues,
+                                      defaultColumns.get(6), branches);
             var columnsOption = getOption("columns", "list", arguments);
             var columns = columnsOption == null ?
                 defaultColumns :
@@ -1038,6 +1040,13 @@ public class GitPr {
                 assignees.add(String.join(",", prAssignees));
                 labels.add(String.join(",", prLabels));
                 issues.add(String.join(",", prIssues));
+
+                if (pr.author().userName().equals(credentials.username()) &&
+                    pr.sourceRepository().webUrl().equals(uri)) {
+                    branches.add(pr.sourceRef());
+                } else {
+                    branches.add("");
+                }
             }
 
 
@@ -1073,7 +1082,7 @@ public class GitPr {
             var remoteRepo = getHostedRepositoryFor(uri, repo, host);
             var pr = remoteRepo.pullRequest(prId.asString());
             var repoUrl = remoteRepo.webUrl();
-            var prHeadRef = pr.sourceRef();
+            var prHeadRef = pr.fetchRef();
             var isHgGit = isMercurial && Repository.exists(repo.root().resolve(".hg").resolve("git"));
             if (isHgGit) {
                 var hgGitRepo = Repository.get(repo.root().resolve(".hg").resolve("git")).get();
@@ -1115,7 +1124,7 @@ public class GitPr {
                 return;
             }
 
-            var fetchHead = repo.fetch(repoUrl, pr.sourceRef());
+            var fetchHead = repo.fetch(repoUrl, pr.fetchRef());
             if (action.equals("fetch")) {
                 var branchName = getOption("branch", "fetch", arguments);
                 if (branchName != null) {

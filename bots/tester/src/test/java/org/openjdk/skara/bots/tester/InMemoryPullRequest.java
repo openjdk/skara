@@ -85,7 +85,17 @@ class InMemoryPullRequest implements PullRequest {
     }
 
     @Override
+    public String fetchRef() {
+        return null;
+    }
+
+    @Override
     public String sourceRef() {
+        return null;
+    }
+
+    @Override
+    public HostedRepository sourceRepository() {
         return null;
     }
 

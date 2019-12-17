@@ -216,8 +216,18 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
-    public String sourceRef() {
+    public String fetchRef() {
         return "pull/" + id() + "/head";
+    }
+
+    @Override
+    public String sourceRef() {
+        return json.get("head").get("ref").asString();
+    }
+
+    @Override
+    public HostedRepository sourceRepository() {
+        return new GitHubRepository(host, json.get("head").get("repo").get("full_name").asString());
     }
 
     @Override
