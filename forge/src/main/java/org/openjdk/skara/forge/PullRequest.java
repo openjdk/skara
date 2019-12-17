@@ -73,10 +73,22 @@ public interface PullRequest extends Issue {
     Hash headHash();
 
     /**
+     * Returns the name of the ref used for fetching the pull request.
+     * @return
+     */
+    String fetchRef();
+
+    /**
      * Returns the name of the ref the request is created from.
      * @return
      */
     String sourceRef();
+
+    /**
+     * Returns the repository the request is created from.
+     * @return
+     */
+    HostedRepository sourceRepository();
 
     /**
      * Returns the name of the ref the request is intended to be merged into.

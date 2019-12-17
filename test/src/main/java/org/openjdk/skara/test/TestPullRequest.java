@@ -134,8 +134,18 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     }
 
     @Override
+    public String fetchRef() {
+        return sourceRef;
+    }
+
+    @Override
     public String sourceRef() {
         return sourceRef;
+    }
+
+    @Override
+    public HostedRepository sourceRepository() {
+        return repository;
     }
 
     @Override

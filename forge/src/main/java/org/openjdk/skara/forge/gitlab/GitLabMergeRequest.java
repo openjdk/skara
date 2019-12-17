@@ -256,8 +256,19 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
-    public String sourceRef() {
+    public String fetchRef() {
         return "merge-requests/" + id() + "/head";
+    }
+
+    @Override
+    public String sourceRef() {
+        return json.get("source_branch").asString();
+    }
+
+    @Override
+    public HostedRepository sourceRepository() {
+        return new GitLabRepository((GitLabHost) repository.forge(),
+                                    json.get("head").get("source_project_id").asString());
     }
 
     @Override

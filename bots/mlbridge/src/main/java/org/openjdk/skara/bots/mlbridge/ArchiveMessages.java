@@ -92,7 +92,7 @@ class ArchiveMessages {
 
     private static String fetchCommand(PullRequest pr) {
         var repoUrl = pr.repository().webUrl();
-        return "git fetch " + repoUrl + " " + pr.sourceRef() + ":pull/" + pr.id();
+        return "git fetch " + repoUrl + " " + pr.fetchRef() + ":pull/" + pr.id();
     }
 
     static String composeConversation(PullRequest pr, Hash base, Hash head) {
