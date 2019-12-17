@@ -49,6 +49,10 @@ public class MailingListArchiveReaderBot implements Bot {
         this.repositories = repositories;
     }
 
+    private synchronized void invalidate(List<Email> messages) {
+        messages.forEach(m -> parsedEmailIds.remove(m.id()));
+    }
+
     synchronized void inspect(Conversation conversation) {
         // Is this a new conversation?
         if (!parsedConversations.containsKey(conversation.first().id())) {
@@ -111,7 +115,7 @@ public class MailingListArchiveReaderBot implements Bot {
             return;
         }
 
-        var workItem = new CommentPosterWorkItem(pr, bridgeCandidates);
+        var workItem = new CommentPosterWorkItem(pr, bridgeCandidates, e -> invalidate(bridgeCandidates));
         commentQueue.add(workItem);
     }
 
