@@ -138,6 +138,73 @@ public class GitPr {
         return id + ": " + issue.title();
     }
 
+
+    private static String pullRequestIdArgument(Arguments arguments, ReadOnlyRepository repo) throws IOException {
+        if (arguments.at(1).isPresent()) {
+            return arguments.at(1).asString();
+        }
+
+        var currentBranch = repo.currentBranch();
+        if (currentBranch.isPresent()) {
+            var lines = repo.config("pr." + currentBranch.get().name() + ".id");
+            if (lines.size() == 1) {
+                return lines.get(0);
+            }
+        }
+
+        exit("error: you must provide a pull request id");
+        return null;
+    }
+
+    private static String statusForPullRequest(PullRequest pr) {
+        var labels = pr.labels();
+        if (pr.isDraft()) {
+            return "DRAFT";
+        } else if (labels.contains("rfr")) {
+            return "RFR";
+        } else if (labels.contains("ready")) {
+            return "READY";
+        } else if (labels.contains("outdated")) {
+            return "OUTDATED";
+        } else if (labels.contains("oca")) {
+            return "OCA";
+        } else if (labels.contains("integrated")) {
+            return "INTEGRATED";
+        } else {
+            var checks = pr.checks(pr.headHash());
+            var jcheck = Optional.ofNullable(checks.get("jcheck"));
+            if (jcheck.isPresent()) {
+                var checkStatus = jcheck.get().status();
+                if (checkStatus == CheckStatus.IN_PROGRESS) {
+                    return "CHECKING";
+                } else if (checkStatus == CheckStatus.SUCCESS) {
+                    return "RFR";
+                } else if (checkStatus == CheckStatus.FAILURE) {
+                    return "FAILURE";
+                }
+            } else {
+                return "CHECKING";
+            }
+        }
+
+        return "UNKNOWN";
+    }
+
+    private static String statusForCheck(Check check) {
+        var checkStatus = check.status();
+        if (checkStatus == CheckStatus.IN_PROGRESS) {
+            return "RUNNING";
+        } else if (checkStatus == CheckStatus.SUCCESS) {
+            return "OK";
+        } else if (checkStatus == CheckStatus.FAILURE) {
+            return "FAILED";
+        } else if (checkStatus == CheckStatus.CANCELLED) {
+            return "CANCELLED";
+        }
+
+        return "UNKNOWN";
+    }
+
     private static List<String> issuesFromPullRequest(PullRequest pr) {
         var issueTitleIndex = -1;
         var lines = pr.body().split("\n");
@@ -438,6 +505,10 @@ public class GitPr {
             Switch.shortcut("")
                   .fullname("no-token")
                   .helptext("Do not use a personal access token (PAT). Only works for read-only operations.")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("no-checks")
+                  .helptext("Do not show check status as part of the 'git pr status' output")
                   .optional(),
             Switch.shortcut("")
                   .fullname("mercurial")
@@ -926,37 +997,24 @@ public class GitPr {
             Files.deleteIfExists(file);
 
             repo.config("pr." + currentBranch.name(), "id", pr.id().toString());
-        } else if (action.equals("integrate") || action.equals("approve") || action.equals("test")) {
-            String id = null;
-            if (arguments.at(1).isPresent()) {
-                id = arguments.at(1).asString();
-            } else {
-                if (action.equals("approve")) {
-                    exit("error: you must provide a pull request id");
-                } else {
-                    var currentBranch = repo.currentBranch();
-                    if (currentBranch.isPresent()) {
-                        var lines = repo.config("pr." + currentBranch.get().name() + ".id");
-                        if (lines.size() == 1) {
-                            id = lines.get(0);
-                        } else {
-                            exit("error: you must provide a pull request id");
-                        }
-                    }
-                }
-            }
-
+        } else if (action.equals("integrate") || action.equals("test")) {
+            var id = pullRequestIdArgument(arguments, repo);
             var pr = getPullRequest(uri, repo, host, id);
 
             if (action.equals("integrate")) {
                 pr.addComment("/integrate");
             } else if (action.equals("test")) {
                 pr.addComment("/test");
-            } else if (action.equals("approve")) {
-                pr.addReview(Review.Verdict.APPROVED, "Looks good!");
             } else {
                 throw new IllegalStateException("unexpected action: " + action);
             }
+        } else if (action.equals("approve")) {
+            var id = arguments.at(1).isPresent() ? arguments.at(1).asString() : null;
+            if (id == null) {
+                exit("error: you must provide a pull request id");
+            }
+            var pr = getPullRequest(uri, repo, host, id);
+            pr.addReview(Review.Verdict.APPROVED, "Looks good!");
         } else if (action.equals("list")) {
             var remoteRepo = getHostedRepositoryFor(uri, repo, host);
             var prs = remoteRepo.pullRequests();
@@ -967,6 +1025,7 @@ public class GitPr {
             var labels = new ArrayList<String>();
             var issues = new ArrayList<String>();
             var branches = new ArrayList<String>();
+            var statuses = new ArrayList<String>();
 
             var authorsOption = getOption("authors", "list", arguments);
             var filterAuthors = authorsOption == null ?
@@ -988,14 +1047,15 @@ public class GitPr {
                 Set.of() :
                 Arrays.asList(issuesOption.split(","));
 
-            var defaultColumns = List.of("id", "title", "authors", "assignees", "labels", "issues", "branch");
+            var defaultColumns = List.of("id", "title", "authors", "assignees", "labels", "issues", "branch", "status");
             var columnValues = Map.of(defaultColumns.get(0), ids,
                                       defaultColumns.get(1), titles,
                                       defaultColumns.get(2), authors,
                                       defaultColumns.get(3), assignees,
                                       defaultColumns.get(4), labels,
                                       defaultColumns.get(5), issues,
-                                      defaultColumns.get(6), branches);
+                                      defaultColumns.get(6), branches,
+                                      defaultColumns.get(7), statuses);
             var columnsOption = getOption("columns", "list", arguments);
             var columns = columnsOption == null ?
                 defaultColumns :
@@ -1047,6 +1107,12 @@ public class GitPr {
                 } else {
                     branches.add("");
                 }
+
+                if (columns.contains("status")) {
+                    statuses.add(statusForPullRequest(pr).toLowerCase());
+                } else {
+                    statuses.add("");
+                }
             }
 
 
@@ -1054,7 +1120,7 @@ public class GitPr {
             for (var column : columns.subList(0, columns.size() - 1)) {
                 var values = columnValues.get(column);
                 var n = Math.max(column.length(), longest(values));
-                fmt += "%-" + n + "s\t";
+                fmt += "%-" + n + "s    ";
             }
             fmt += "%s\n";
 
@@ -1171,6 +1237,29 @@ public class GitPr {
                     .map(u -> host.user(u))
                     .collect(Collectors.toList());
                 pr.setAssignees(assignees);
+            }
+        } else if (action.equals("status")) {
+            String id = pullRequestIdArgument(arguments, repo);
+            var pr = getPullRequest(uri, repo, host, id);
+            var noDecoration = getSwitch("no-decoration", "status", arguments);
+            var decoration = noDecoration ? "" : "Status: ";
+            System.out.println(decoration + statusForPullRequest(pr));
+
+            var noChecks = getSwitch("no-checks", "status", arguments);
+            if (!noChecks) {
+                var checks = pr.checks(pr.headHash());
+                var jcheck = Optional.ofNullable(checks.get("jcheck"));
+                var submit = Optional.ofNullable(checks.get("submit"));
+                var showChecks = jcheck.isPresent() || submit.isPresent();
+                if (showChecks) {
+                    System.out.println("Checks:");
+                    if (jcheck.isPresent()) {
+                        System.out.println("- jcheck: " + statusForCheck(jcheck.get()));
+                    }
+                    if (submit.isPresent()) {
+                        System.out.println("- jcheck: " + statusForCheck(jcheck.get()));
+                    }
+                }
             }
         } else {
             exit("error: unexpected action: " + action);
