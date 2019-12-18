@@ -327,7 +327,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
     }
 
     @Override
-    public boolean idempotent() {
+    public boolean isIdempotent() {
         return false;
     }
 }

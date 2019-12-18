@@ -127,7 +127,7 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
     }
 
     @Override
-    public boolean idempotent() {
+    public boolean isIdempotent() {
         return true;
     }
 

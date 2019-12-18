@@ -108,7 +108,7 @@ public class JsonUpdater implements RepositoryUpdateConsumer {
     }
 
     @Override
-    public boolean idempotent() {
+    public boolean isIdempotent() {
         return false;
     }
 }

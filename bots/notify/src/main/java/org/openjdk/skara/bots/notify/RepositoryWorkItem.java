@@ -79,7 +79,7 @@ public class RepositoryWorkItem implements WorkItem {
                                                " detected (" + bestParent.getValue().size() + ") - skipping notifications");
         }
         for (var updater : updaters) {
-            if (updater.idempotent() != runOnlyIdempotent) {
+            if (updater.isIdempotent() != runOnlyIdempotent) {
                 continue;
             }
             var branch = new Branch(ref.name());
@@ -90,7 +90,7 @@ public class RepositoryWorkItem implements WorkItem {
 
     private void handleUpdatedRef(Repository localRepo, Reference ref, List<Commit> commits, boolean runOnlyIdempotent) {
         for (var updater : updaters) {
-            if (updater.idempotent() != runOnlyIdempotent) {
+            if (updater.isIdempotent() != runOnlyIdempotent) {
                 continue;
             }
             var branch = new Branch(ref.name());
@@ -193,7 +193,7 @@ public class RepositoryWorkItem implements WorkItem {
 
             // Run all notifiers that can be safely re-run
             updaters.stream()
-                    .filter(RepositoryUpdateConsumer::idempotent)
+                    .filter(RepositoryUpdateConsumer::isIdempotent)
                     .forEach(updater -> updater.handleOpenJDKTagCommits(repository, localRepo, commits, tag, annotation.orElse(null)));
 
             // Now update the history
@@ -201,7 +201,7 @@ public class RepositoryWorkItem implements WorkItem {
 
             // Finally run all one-shot notifiers
             updaters.stream()
-                    .filter(updater -> !updater.idempotent())
+                    .filter(updater -> !updater.isIdempotent())
                     .forEach(updater -> updater.handleOpenJDKTagCommits(repository, localRepo, commits, tag, annotation.orElse(null)));
         }
 
@@ -218,7 +218,7 @@ public class RepositoryWorkItem implements WorkItem {
 
             // Run all notifiers that can be safely re-run
             updaters.stream()
-                    .filter(RepositoryUpdateConsumer::idempotent)
+                    .filter(RepositoryUpdateConsumer::isIdempotent)
                     .forEach(updater -> updater.handleTagCommit(repository, localRepo, commit.get(), tag, annotation.orElse(null)));
 
             // Now update the history
@@ -226,7 +226,7 @@ public class RepositoryWorkItem implements WorkItem {
 
             // Finally run all one-shot notifiers
             updaters.stream()
-                    .filter(updater -> !updater.idempotent())
+                    .filter(updater -> !updater.isIdempotent())
                     .forEach(updater -> updater.handleTagCommit(repository, localRepo, commit.get(), tag, annotation.orElse(null)));
         }
     }

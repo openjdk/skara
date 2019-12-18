@@ -28,5 +28,4 @@ import org.openjdk.skara.vcs.openjdk.Issue;
 public interface PullRequestUpdateConsumer {
     void handleNewIssue(PullRequest pr, Issue issue);
     void handleRemovedIssue(PullRequest pr, Issue issue);
-    boolean idempotent();
 }
