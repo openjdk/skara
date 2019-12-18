@@ -55,7 +55,7 @@ public class RepositoryWorkItem implements WorkItem {
         this.updaters = updaters;
     }
 
-    private void handleNewRef(Repository localRepo, Reference ref, Collection<Reference> allRefs, boolean idempotent) {
+    private void handleNewRef(Repository localRepo, Reference ref, Collection<Reference> allRefs, boolean runOnlyIdempotent) {
         // Figure out the best parent ref
         var candidates = new HashSet<>(allRefs);
         candidates.remove(ref);
@@ -79,7 +79,7 @@ public class RepositoryWorkItem implements WorkItem {
                                                " detected (" + bestParent.getValue().size() + ") - skipping notifications");
         }
         for (var updater : updaters) {
-            if (updater.idempotent() != idempotent) {
+            if (updater.idempotent() != runOnlyIdempotent) {
                 continue;
             }
             var branch = new Branch(ref.name());
@@ -88,9 +88,9 @@ public class RepositoryWorkItem implements WorkItem {
         }
     }
 
-    private void handleUpdatedRef(Repository localRepo, Reference ref, List<Commit> commits, boolean idempotent) {
+    private void handleUpdatedRef(Repository localRepo, Reference ref, List<Commit> commits, boolean runOnlyIdempotent) {
         for (var updater : updaters) {
-            if (updater.idempotent() != idempotent) {
+            if (updater.idempotent() != runOnlyIdempotent) {
                 continue;
             }
             var branch = new Branch(ref.name());

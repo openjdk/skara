@@ -69,9 +69,10 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
                 }
                 var issue = optionalIssue.get();
                 var existingComments = issue.comments();
+                var hashUrl = repository.webUrl(commit.hash()).toString();
                 var alreadyPostedComment = existingComments.stream()
                                                            .filter(comment -> comment.author().equals(issueProject.issueTracker().currentUser()))
-                                                           .anyMatch(comment -> comment.body().contains(commit.hash().abbreviate()));
+                                                           .anyMatch(comment -> comment.body().contains(hashUrl));
                 if (!alreadyPostedComment) {
                     issue.addComment(commitNotification);
                 }
