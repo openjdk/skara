@@ -325,4 +325,9 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
                          .build();
         list.post(email);
     }
+
+    @Override
+    public boolean isIdempotent() {
+        return false;
+    }
 }

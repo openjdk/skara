@@ -106,4 +106,9 @@ public class JsonUpdater implements RepositoryUpdateConsumer {
     @Override
     public void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) {
     }
+
+    @Override
+    public boolean isIdempotent() {
+        return false;
+    }
 }

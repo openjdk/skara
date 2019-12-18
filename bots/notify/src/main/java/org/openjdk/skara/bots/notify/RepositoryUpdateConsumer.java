@@ -33,6 +33,7 @@ public interface RepositoryUpdateConsumer {
     void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated);
     void handleTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag, Tag.Annotated annotation);
     void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch);
+    boolean isIdempotent();
 
     default void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag) {
         handleOpenJDKTagCommits(repository, localRepository, commits, tag, null);
