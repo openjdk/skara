@@ -196,7 +196,8 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false, MailingListUpdater.Mode.ALL,
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false, false, false, false,
+                                                 MailingListUpdater.Mode.ALL,
                                                  Map.of("extra1", "value1", "extra2", "value2"), Pattern.compile("none"));
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
@@ -249,7 +250,8 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false,
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null,
+                                                 false, false, false, false,
                                                  MailingListUpdater.Mode.ALL, Map.of(), Pattern.compile(".*"));
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
@@ -304,7 +306,8 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false,
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null,
+                                                 false, false, false, false,
                                                  MailingListUpdater.Mode.ALL, Map.of(), Pattern.compile(".*"));
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
@@ -356,7 +359,8 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var author = EmailAddress.from("author", "author@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, author, true,
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, author,
+                                                 true, false, false, false,
                                                  MailingListUpdater.Mode.ALL, Map.of(), Pattern.compile(".*"));
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master|another"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
@@ -431,7 +435,8 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var author = EmailAddress.from("author", "author@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, author, false,
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, author,
+                                                 false, false, false, false,
                                                  MailingListUpdater.Mode.PR_ONLY, Map.of("extra1", "value1"),
                                                  Pattern.compile(".*"));
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
@@ -511,7 +516,8 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false,
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null,
+                                                 false, false, false, false,
                                                  MailingListUpdater.Mode.PR, Map.of(), Pattern.compile(".*"));
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
@@ -600,10 +606,13 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false, MailingListUpdater.Mode.ALL,
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null,
+                                                 false, true, false, true,
+                                                 MailingListUpdater.Mode.ALL,
                                                  Map.of("extra1", "value1", "extra2", "value2"),
                                                  Pattern.compile(".*"));
-            var prOnlyUpdater = new MailingListUpdater(mailmanList, listAddress, sender, null, false,
+            var prOnlyUpdater = new MailingListUpdater(mailmanList, listAddress, sender, null,
+                                                       false, false, false, false,
                                                        MailingListUpdater.Mode.PR_ONLY, Map.of(), Pattern.compile(".*"));
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater, prOnlyUpdater), List.of(), Set.of(), Map.of());
@@ -679,6 +688,85 @@ class UpdaterTests {
     }
 
     @Test
+    void testMailinglistPlainTags(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer()) {
+            var repo = credentials.getHostedRepository();
+            var localRepoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.tag(masterHash, "jdk-12+1", "Added tag 1", "Duke Tagger", "tagger@openjdk.java.net");
+            localRepo.pushAll(repo.url());
+
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanList = mailmanServer.getList(listAddress.address());
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null,
+                                                 false, true, false, false,
+                                                 MailingListUpdater.Mode.ALL,
+                                                 Map.of("extra1", "value1", "extra2", "value2"),
+                                                 Pattern.compile(".*"));
+            var prOnlyUpdater = new MailingListUpdater(mailmanList, listAddress, sender, null,
+                                                       false, false, false, false,
+                                                       MailingListUpdater.Mode.PR_ONLY, Map.of(), Pattern.compile(".*"));
+            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
+                                          prIssuesStorage, List.of(updater, prOnlyUpdater), List.of(), Set.of(), Map.of());
+
+            // No mail should be sent on the first run as there is no history
+            TestBotRunner.runPeriodicItems(notifyBot);
+            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
+            localRepo.fetch(repo.url(), "history:history");
+            localRepo.tag(editHash, "jdk-12+2", "Added tag 2", "Duke Tagger", "tagger@openjdk.java.net");
+            CheckableRepository.appendAndCommit(localRepo, "Another line 1", "34567890: Even more fixes");
+            CheckableRepository.appendAndCommit(localRepo, "Another line 2", "45678901: Yet even more fixes");
+            var editHash2 = CheckableRepository.appendAndCommit(localRepo, "Another line 3", "56789012: Still even more fixes");
+            localRepo.tag(editHash2, "jdk-12+4", "Added tag 3", "Duke Tagger", "tagger@openjdk.java.net");
+            CheckableRepository.appendAndCommit(localRepo, "Another line 4", "67890123: Brand new fixes");
+            var editHash3 = CheckableRepository.appendAndCommit(localRepo, "Another line 5", "78901234: More brand new fixes");
+            localRepo.tag(editHash3, "jdk-13+0", "Added tag 4", "Duke Tagger", "tagger@openjdk.java.net");
+            localRepo.pushAll(repo.url());
+
+            TestBotRunner.runPeriodicItems(notifyBot);
+            listServer.processIncoming();
+            listServer.processIncoming();
+            listServer.processIncoming();
+            listServer.processIncoming();
+
+            var conversations = mailmanList.conversations(Duration.ofDays(1));
+            assertEquals(4, conversations.size());
+
+            for (var conversation : conversations) {
+                var email = conversation.first();
+                if (email.subject().equals("git: test: Added tag jdk-12+2 for changeset " + editHash.abbreviate())) {
+                    assertEquals(EmailAddress.from("Duke Tagger", "tagger@openjdk.java.net"), email.author());
+                } else if (email.subject().equals("git: test: Added tag jdk-12+4 for changeset " + editHash2.abbreviate())) {
+                    assertEquals(EmailAddress.from("Duke Tagger", "tagger@openjdk.java.net"), email.author());
+                } else if (email.subject().equals("git: test: Added tag jdk-13+0 for changeset " + editHash3.abbreviate())) {
+                    assertEquals(EmailAddress.from("Duke Tagger", "tagger@openjdk.java.net"), email.author());
+                } else if (email.subject().equals("git: test: 6 new changesets")) {
+                    assertEquals(EmailAddress.from("testauthor", "ta@none.none"), email.author());
+                } else {
+                    fail("Mismatched subject: " + email.subject());
+                }
+                assertTrue(email.hasHeader("extra1"));
+                assertEquals("value1", email.headerValue("extra1"));
+                assertTrue(email.hasHeader("extra2"));
+                assertEquals("value2", email.headerValue("extra2"));
+            }
+        }
+    }
+
+    @Test
     void testMailingListBranch(TestInfo testInfo) throws IOException {
         try (var listServer = new TestMailmanServer();
              var credentials = new HostCredentials(testInfo);
@@ -699,7 +787,9 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false, MailingListUpdater.Mode.ALL,
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null,
+                                                 false, false, true, false,
+                                                 MailingListUpdater.Mode.ALL,
                                                  Map.of("extra1", "value1", "extra2", "value2"),
                                                  Pattern.compile(".*"));
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master|newbranch."), tagStorage, branchStorage,
@@ -767,7 +857,9 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false, MailingListUpdater.Mode.ALL,
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null,
+                                                 false, false, false, false,
+                                                 MailingListUpdater.Mode.ALL,
                                                  Map.of("extra1", "value1", "extra2", "value2"), Pattern.compile("none"));
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());

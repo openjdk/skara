@@ -42,6 +42,9 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
     private final EmailAddress sender;
     private final EmailAddress author;
     private final boolean includeBranch;
+    private final boolean reportNewTags;
+    private final boolean reportNewBranches;
+    private final boolean reportNewBuilds;
     private final Mode mode;
     private final Map<String, String> headers;
     private final Pattern allowedAuthorDomains;
@@ -54,12 +57,16 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
     }
 
     MailingListUpdater(MailingList list, EmailAddress recipient, EmailAddress sender, EmailAddress author,
-                       boolean includeBranch, Mode mode, Map<String, String> headers, Pattern allowedAuthorDomains) {
+                       boolean includeBranch, boolean reportNewTags, boolean reportNewBranches, boolean reportNewBuilds,
+                       Mode mode, Map<String, String> headers, Pattern allowedAuthorDomains) {
         this.list = list;
         this.recipient = recipient;
         this.sender = sender;
         this.author = author;
         this.includeBranch = includeBranch;
+        this.reportNewTags = reportNewTags;
+        this.reportNewBranches = reportNewBranches;
+        this.reportNewBuilds = reportNewBuilds;
         this.mode = mode;
         this.headers = headers;
         this.allowedAuthorDomains = allowedAuthorDomains;
@@ -211,7 +218,11 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
 
     @Override
     public void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotation) {
-        if (mode == Mode.PR_ONLY) {
+        if ((mode == Mode.PR_ONLY) || (!reportNewTags)) {
+            return;
+        }
+        if (!reportNewBuilds) {
+            handleTagCommit(repository, localRepository, commits.get(commits.size() - 1), tag.tag(), annotation);
             return;
         }
         var writer = new StringWriter();
@@ -250,7 +261,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
 
     @Override
     public void handleTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag, Tag.Annotated annotation) {
-        if (mode == Mode.PR_ONLY) {
+        if ((mode == Mode.PR_ONLY) || (!reportNewTags)) {
             return;
         }
         var writer = new StringWriter();
@@ -297,6 +308,9 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
 
     @Override
     public void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) {
+        if ((mode == Mode.PR_ONLY) || (!reportNewBranches)) {
+            return;
+        }
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 

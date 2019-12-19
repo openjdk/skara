@@ -84,10 +84,6 @@ public class NotifyBotFactory implements BotFactory {
                 branchPattern = Pattern.compile(repo.value().get("branches").asString());
             }
 
-            var includeBranchNames = false;
-            if (repo.value().contains("branchnames")) {
-                includeBranchNames = repo.value().get("branchnames").asBoolean();
-            }
             var updaters = new ArrayList<RepositoryUpdateConsumer>();
             var prUpdaters = new ArrayList<PullRequestUpdateConsumer>();
             if (repo.value().contains("json")) {
@@ -128,8 +124,26 @@ public class NotifyBotFactory implements BotFactory {
                             Map.of();
                     var author = mailinglist.contains("author") ? EmailAddress.parse(mailinglist.get("author").asString()) : null;
                     var allowedDomains = author == null ? Pattern.compile(mailinglist.get("domains").asString()) : null;
+
+                    var includeBranchNames = false;
+                    if (mailinglist.contains("branchnames")) {
+                        includeBranchNames = mailinglist.get("branchnames").asBoolean();
+                    }
+                    var reportNewTags = true;
+                    if (mailinglist.contains("tags")) {
+                        reportNewTags = mailinglist.get("tags").asBoolean();
+                    }
+                    var reportNewBranches = true;
+                    if (mailinglist.contains("branches")) {
+                        reportNewBranches = mailinglist.get("branches").asBoolean();
+                    }
+                    var reportNewBuilds = true;
+                    if (mailinglist.contains("builds")) {
+                        reportNewBuilds = mailinglist.get("builds").asBoolean();
+                    }
                     updaters.add(new MailingListUpdater(listServer.getList(recipient), recipientAddress, sender, author,
-                                                        includeBranchNames, mode, headers, allowedDomains));
+                                                        includeBranchNames, reportNewTags, reportNewBranches, reportNewBuilds,
+                                                        mode, headers, allowedDomains));
                 }
             }
             if (repo.value().contains("issues")) {
