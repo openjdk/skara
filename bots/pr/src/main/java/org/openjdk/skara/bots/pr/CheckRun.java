@@ -358,13 +358,20 @@ class CheckRun {
         var message = new StringBuilder();
         message.append("@");
         message.append(pr.author().userName());
-        message.append(" This change can now be integrated. The commit message will be:\n");
+        message.append(" This change now passes all automated pre-integration checks. When the change also ");
+        message.append("fulfills all [project specific requirements](https://github.com/");
+        message.append(pr.repository().name());
+        message.append("/blob/");
+        message.append(pr.targetRef());
+        message.append("CONTRIBUTING.md), type `/integrate` in a new comment to proceed. After integration, ");
+        message.append("the commit message will be:\n");
         message.append("```\n");
         message.append(commitMessage);
         message.append("\n```\n");
 
         message.append("- If you would like to add a summary, use the `/summary` command.\n");
-        message.append("- To list additional contributors, use the `/contributor` command.\n");
+        message.append("- To credit additional contributors, use the `/contributor` command.\n");
+        message.append("- To add additional solved issues, use the `/solves` command.\n");
 
         var divergingCommits = prInstance.divergingCommits();
         if (divergingCommits.size() > 0) {
@@ -379,15 +386,10 @@ class CheckRun {
             }
             message.append("pushed to the `");
             message.append(pr.targetRef());
-            message.append("` branch:\n");
-            var commitList = divergingCommits.stream()
-                    .map(commit -> " * " + commit.hash().hex() + ": " + commit.message().get(0))
-                    .collect(Collectors.joining("\n"));
-            message.append(commitList);
-            message.append("\n\n");
+            message.append("` branch. ");
             if (rebasePossible) {
-                message.append("Since there are no conflicts, your changes will automatically be rebased on top of the ");
-                message.append("above commits when integrating. If you prefer to do this manually, please merge `");
+                message.append("Since there are no conflicts, your changes will automatically be rebased on top of ");
+                message.append("these commits when integrating. If you prefer to do this manually, please merge `");
                 message.append(pr.targetRef());
                 message.append("` into your branch first.\n");
             } else {
@@ -420,7 +422,7 @@ class CheckRun {
             }
             if (rebasePossible) {
                 message.append("\n\n");
-                message.append("- To flag this PR as ready for integration with the above commit message, type ");
+                message.append("➡️ To flag this PR as ready for integration with the above commit message, type ");
                 message.append("`/integrate` in a new comment. (Afterwards, your sponsor types ");
                 message.append("`/sponsor` in a new comment to perform the integration).\n");
             }
@@ -428,7 +430,7 @@ class CheckRun {
             if (divergingCommits.size() > 0) {
                 message.append("\n");
             }
-            message.append("- To integrate this PR with the above commit message, type ");
+            message.append("➡️ To integrate this PR with the above commit message, type ");
             message.append("`/integrate` in a new comment.\n");
         }
         message.append(mergeReadyMarker);
