@@ -343,7 +343,7 @@ class IntegrateTests {
 
             // The bot should reply with an instructional message (and only one)
             var pushed = pr.comments().stream()
-                           .filter(comment -> comment.body().contains("change can now be integrated"))
+                           .filter(comment -> comment.body().contains("change now passes all automated"))
                            .filter(comment -> comment.body().contains("Reviewed-by: integrationreviewer3"))
                            .count();
             assertEquals(1, pushed);
@@ -370,7 +370,7 @@ class IntegrateTests {
 
             // The instructional message should have been updated
             pushed = pr.comments().stream()
-                       .filter(comment -> comment.body().contains("change can now be integrated"))
+                       .filter(comment -> comment.body().contains("change now passes all automated"))
                        .filter(comment -> comment.body().contains("Reviewed-by: integrationreviewer3"))
                        .count();
             assertEquals(1, pushed);
@@ -382,7 +382,7 @@ class IntegrateTests {
 
             // The instructional message should have been updated
             pushed = pr.comments().stream()
-                       .filter(comment -> comment.body().contains("change can now be integrated"))
+                       .filter(comment -> comment.body().contains("change now passes all automated"))
                        .filter(comment -> comment.body().contains("Reviewed-by: integrationreviewer3, integrationreviewer2"))
                        .count();
             assertEquals(1, pushed);

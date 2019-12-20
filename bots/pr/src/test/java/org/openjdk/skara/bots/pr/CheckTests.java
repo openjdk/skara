@@ -598,7 +598,7 @@ class CheckTests {
 
             // The bot should no longer detect a conflict
             updated = pr.comments().stream()
-                        .filter(comment -> comment.body().contains("change can now be integrated"))
+                        .filter(comment -> comment.body().contains("change now passes all automated"))
                         .count();
             assertEquals(1, updated);
 

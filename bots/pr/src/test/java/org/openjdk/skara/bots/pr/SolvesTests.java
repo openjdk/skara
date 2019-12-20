@@ -22,11 +22,12 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.Review;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Repository;
+
+import org.junit.jupiter.api.*;
 
 import java.io.IOException;
 import java.util.*;
@@ -117,7 +118,7 @@ class SolvesTests {
 
             // The commit message preview should contain the additional issues
             var preview = pr.comments().stream()
-                            .filter(comment -> comment.body().contains("The commit message will be"))
+                            .filter(comment -> comment.body().contains("the commit message will be"))
                             .map(Comment::body)
                             .findFirst()
                             .orElseThrow();
