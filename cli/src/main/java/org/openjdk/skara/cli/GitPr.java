@@ -440,6 +440,12 @@ public class GitPr {
         return strings.stream().mapToInt(String::length).max().orElse(0);
     }
 
+    private static String removeTrailing(String s, String trail) {
+        return s.endsWith(trail) ?
+            s.substring(0, s.length() - trail.length()) :
+            s;
+    }
+
     public static void main(String[] args) throws IOException, InterruptedException {
         var flags = List.of(
             Option.shortcut("u")
@@ -997,17 +1003,81 @@ public class GitPr {
             Files.deleteIfExists(file);
 
             repo.config("pr." + currentBranch.name(), "id", pr.id().toString());
-        } else if (action.equals("integrate") || action.equals("test")) {
+        } else if (action.equals("integrate")) {
             var id = pullRequestIdArgument(arguments, repo);
             var pr = getPullRequest(uri, repo, host, id);
+            var integrateComment = pr.addComment("/integrate");
 
-            if (action.equals("integrate")) {
-                pr.addComment("/integrate");
-            } else if (action.equals("test")) {
-                pr.addComment("/test");
-            } else {
-                throw new IllegalStateException("unexpected action: " + action);
+            var seenIntegrateComment = false;
+            var expected = "<!-- Jmerge command reply message (" + integrateComment.id() + ") -->";
+            for (var i = 0; i < 20; i++) {
+                var comments = pr.comments();
+                for (var comment : comments) {
+                    if (!seenIntegrateComment) {
+                        if (comment.id().equals(integrateComment.id())) {
+                            seenIntegrateComment = true;
+                        }
+                        continue;
+                    }
+                    var lines = comment.body().split("\n");
+                    if (lines.length > 0 && lines[0].equals(expected)) {
+                        if (lines.length == 3 && lines[2].startsWith("Pushed as commit")) {
+                            var output = removeTrailing(lines[2], ".");
+                            System.out.println(output);
+                            System.exit(0);
+                        }
+                    }
+                }
+
+                Thread.sleep(1000);
             }
+
+            System.err.println("error: timed out waiting for response to /integrate command");
+            System.exit(1);
+        } else if (action.equals("test")) {
+            var id = pullRequestIdArgument(arguments, repo);
+            var pr = getPullRequest(uri, repo, host, id);
+            var head = pr.headHash();
+            var testComment = pr.addComment("/test");
+
+            var seenTestComment = false;
+            for (var i = 0; i < 20; i++) {
+                var comments = pr.comments();
+                for (var comment : comments) {
+                    if (!seenTestComment) {
+                        if (comment.id().equals(testComment.id())) {
+                            seenTestComment = true;
+                        }
+                        continue;
+                    }
+                    var lines = comment.body().split("\n");
+                    var n = lines.length;
+                    if (n > 0) {
+                        if (n == 4 &&
+                            lines[0].equals("<!-- TEST STARTED -->") &&
+                            lines[1].startsWith("<!-- github.com-") &&
+                            lines[2].equals("<!-- " + head.hex() + " -->")) {
+                            var output = removeTrailing(lines[3], ".");
+                            System.out.println(output);
+                            System.exit(0);
+                        } else if (n == 2 &&
+                                   lines[0].equals("<!-- TEST ERROR -->")) {
+                            var output = removeTrailing(lines[1], ".");
+                            System.out.println(output);
+                            System.exit(1);
+                        } else if (n == 4 &&
+                                   lines[0].equals("<!-- TEST PENDING -->") &&
+                                   lines[1].equals("<!--- " + head.hex() + " -->")) {
+                            var output = removeTrailing(lines[3], ".");
+                            System.out.println(output);
+                            System.exit(0);
+                        }
+                    }
+                }
+
+                Thread.sleep(1000);
+            }
+
         } else if (action.equals("approve")) {
             var id = arguments.at(1).isPresent() ? arguments.at(1).asString() : null;
             if (id == null) {
@@ -1257,7 +1327,7 @@ public class GitPr {
                         System.out.println("- jcheck: " + statusForCheck(jcheck.get()));
                     }
                     if (submit.isPresent()) {
-                        System.out.println("- jcheck: " + statusForCheck(jcheck.get()));
+                        System.out.println("- submit: " + statusForCheck(submit.get()));
                     }
                 }
             }
