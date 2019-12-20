@@ -363,7 +363,7 @@ class CheckRun {
         message.append(pr.repository().name());
         message.append("/blob/");
         message.append(pr.targetRef());
-        message.append("CONTRIBUTING.md), type `/integrate` in a new comment to proceed. After integration, ");
+        message.append("/CONTRIBUTING.md), type `/integrate` in a new comment to proceed. After integration, ");
         message.append("the commit message will be:\n");
         message.append("```\n");
         message.append(commitMessage);
