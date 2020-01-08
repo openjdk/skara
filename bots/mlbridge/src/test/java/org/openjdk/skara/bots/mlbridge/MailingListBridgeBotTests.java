@@ -104,7 +104,8 @@ class MailingListBridgeBotTests {
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory();
-             var listServer = new TestMailmanServer()) {
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
@@ -118,7 +119,7 @@ class MailingListBridgeBotTests {
                                                  Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 webrevServer.uri(),
                                                  Set.of("rfr"), Map.of(ignored.forge().currentUser().userName(),
                                                                        Pattern.compile("ready")),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
@@ -180,7 +181,7 @@ class MailingListBridgeBotTests {
             assertTrue(archiveContains(archiveFolder.path(), "Patch:"));
             assertTrue(archiveContains(archiveFolder.path(), "Changes:"));
             assertTrue(archiveContains(archiveFolder.path(), "Webrev:"));
-            assertTrue(archiveContains(archiveFolder.path(), "http://www.test.test/"));
+            assertTrue(archiveContains(archiveFolder.path(), webrevServer.uri().toString()));
             assertTrue(archiveContains(archiveFolder.path(), "webrev.00"));
             assertTrue(archiveContains(archiveFolder.path(), "Issue:"));
             assertTrue(archiveContains(archiveFolder.path(), "http://issues.test/browse/TSTPRJ-1234"));
@@ -262,7 +263,8 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = new TestMailmanServer()) {
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
@@ -276,7 +278,7 @@ class MailingListBridgeBotTests {
                                                  Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 webrevServer.uri(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
                                                  Map.of(), Duration.ZERO);
@@ -352,7 +354,8 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = new TestMailmanServer()) {
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
@@ -365,7 +368,7 @@ class MailingListBridgeBotTests {
                                                  listServer.getArchive(),
                                                  listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 webrevServer.uri(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
                                                  Map.of(), Duration.ZERO);
@@ -439,7 +442,8 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = new TestMailmanServer()) {
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -454,7 +458,7 @@ class MailingListBridgeBotTests {
                                                  listServer.getArchive(),
                                                  listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 webrevServer.uri(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
                                                  Map.of(), Duration.ZERO);
@@ -563,7 +567,8 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = new TestMailmanServer()) {
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -577,7 +582,7 @@ class MailingListBridgeBotTests {
                                                  listServer.getArchive(),
                                                  listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 webrevServer.uri(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
                                                  Map.of(), Duration.ZERO);
@@ -620,7 +625,8 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = new TestMailmanServer()) {
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
@@ -633,7 +639,7 @@ class MailingListBridgeBotTests {
                                                  listServer.getArchive(),
                                                  listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 webrevServer.uri(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
                                                  Map.of(), Duration.ZERO);
@@ -672,7 +678,8 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = new TestMailmanServer()) {
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
@@ -685,7 +692,7 @@ class MailingListBridgeBotTests {
                                                  listServer.getArchive(),
                                                  listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 webrevServer.uri(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
                                                  Map.of(), Duration.ZERO);
@@ -743,7 +750,8 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = new TestMailmanServer()) {
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
@@ -755,7 +763,7 @@ class MailingListBridgeBotTests {
                                                  listAddress, Set.of(), Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 webrevServer.uri(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
                                                  Map.of(), Duration.ZERO);
@@ -802,7 +810,8 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = new TestMailmanServer()) {
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var commenter = credentials.getHostedRepository();
@@ -815,7 +824,7 @@ class MailingListBridgeBotTests {
                                                  listAddress, Set.of(), Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 webrevServer.uri(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
                                                  Map.of(), Duration.ZERO);
@@ -925,7 +934,8 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = new TestMailmanServer()) {
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
@@ -937,7 +947,7 @@ class MailingListBridgeBotTests {
                                                  listAddress, Set.of(), Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 webrevServer.uri(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
                                                  Map.of(), Duration.ZERO);
@@ -1015,7 +1025,8 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = new TestMailmanServer()) {
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var listAddress = EmailAddress.parse(listServer.createList("test"));
@@ -1027,7 +1038,7 @@ class MailingListBridgeBotTests {
                                                  listAddress, Set.of(), Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 webrevServer.uri(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
                                                  Map.of(), Duration.ZERO);
@@ -1098,7 +1109,8 @@ class MailingListBridgeBotTests {
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory();
-             var listServer = new TestMailmanServer()) {
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
@@ -1113,7 +1125,7 @@ class MailingListBridgeBotTests {
                                                  Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 webrevServer.uri(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
                                                  Map.of(), Duration.ZERO);
@@ -1173,7 +1185,8 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = new TestMailmanServer()) {
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
@@ -1187,7 +1200,7 @@ class MailingListBridgeBotTests {
                                                  listAddress, Set.of(), Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 webrevServer.uri(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
                                                  Map.of(), Duration.ZERO);
@@ -1257,7 +1270,8 @@ class MailingListBridgeBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
-             var listServer = new TestMailmanServer()) {
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
@@ -1272,7 +1286,7 @@ class MailingListBridgeBotTests {
                                                  Set.of(Pattern.compile("ignore this comment", Pattern.MULTILINE | Pattern.DOTALL)),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 webrevServer.uri(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
                                                  Map.of(), Duration.ZERO);

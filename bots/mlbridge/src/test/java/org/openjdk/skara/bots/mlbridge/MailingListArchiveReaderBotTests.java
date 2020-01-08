@@ -56,7 +56,8 @@ class MailingListArchiveReaderBotTests {
     void simpleArchive(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
-             var listServer = new TestMailmanServer()) {
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
@@ -71,7 +72,7 @@ class MailingListArchiveReaderBotTests {
                                                  Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 webrevServer.uri(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
                                                  Map.of(), Duration.ZERO);
@@ -126,7 +127,8 @@ class MailingListArchiveReaderBotTests {
     void rememberBridged(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
-             var listServer = new TestMailmanServer()) {
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
             var ignored = credentials.getHostedRepository();
@@ -141,7 +143,7 @@ class MailingListArchiveReaderBotTests {
                                                  Set.of(),
                                                  listServer.getArchive(), listServer.getSMTP(),
                                                  archive, "webrev", Path.of("test"),
-                                                 URIBuilder.base("http://www.test.test/").build(),
+                                                 webrevServer.uri(),
                                                  Set.of(), Map.of(),
                                                  URIBuilder.base("http://issues.test/browse/").build(),
                                                  Map.of(), Duration.ZERO);
