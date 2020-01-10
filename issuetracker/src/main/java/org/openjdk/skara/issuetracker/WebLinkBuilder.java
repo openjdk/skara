@@ -24,7 +24,7 @@ package org.openjdk.skara.issuetracker;
 
 import java.net.URI;
 
-public class LinkBuilder {
+public class WebLinkBuilder {
     private final URI uri;
     private final String title;
 
@@ -36,47 +36,47 @@ public class LinkBuilder {
     private String statusIconTitle;
     private boolean resolved;
 
-    LinkBuilder(URI uri, String title) {
+    WebLinkBuilder(URI uri, String title) {
         this.uri = uri;
         this.title = title;
     }
 
-    public LinkBuilder relationship(String relationship) {
+    public WebLinkBuilder relationship(String relationship) {
         this.relationship = relationship;
         return this;
     }
 
-    public LinkBuilder summary(String summary) {
+    public WebLinkBuilder summary(String summary) {
         this.summary = summary;
         return this;
     }
 
-    public LinkBuilder iconUrl(URI iconUrl) {
+    public WebLinkBuilder iconUrl(URI iconUrl) {
         this.iconUrl = iconUrl;
         return this;
     }
 
-    public LinkBuilder iconTitle(String iconTitle) {
+    public WebLinkBuilder iconTitle(String iconTitle) {
         this.iconTitle = iconTitle;
         return this;
     }
 
-    public LinkBuilder statusIconUrl(URI statusIconUrl) {
+    public WebLinkBuilder statusIconUrl(URI statusIconUrl) {
         this.statusIconUrl = statusIconUrl;
         return this;
     }
 
-    public LinkBuilder statusIconTitle(String statusIconTitle) {
+    public WebLinkBuilder statusIconTitle(String statusIconTitle) {
         this.statusIconTitle = statusIconTitle;
         return this;
     }
 
-    public LinkBuilder resolved(boolean resolved) {
+    public WebLinkBuilder resolved(boolean resolved) {
         this.resolved = resolved;
         return this;
     }
 
     public Link build() {
-        return new Link(uri, title, relationship, summary, iconUrl, iconTitle, statusIconUrl, statusIconTitle, resolved);
+        return new Link(uri, title, relationship, summary, iconUrl, iconTitle, statusIconUrl, statusIconTitle, resolved, null);
     }
 }

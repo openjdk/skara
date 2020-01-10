@@ -52,8 +52,8 @@ public class TestIssueProject implements IssueProject {
     }
 
     @Override
-    public Issue createIssue(String title, List<String> body) {
-        return host.createIssue(this, title, body);
+    public Issue createIssue(String title, List<String> body, Map<String, String> properties) {
+        return host.createIssue(this, title, body, properties);
     }
 
     @Override

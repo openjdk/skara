@@ -72,8 +72,6 @@ class IssueTrackerTests {
             assertEquals("Now it is updated", updated.comments().get(0).body());
 
             issue.setState(Issue.State.RESOLVED);
-            var issues = project.issues();
-            assertEquals(0, issues.size());
         }
     }
 
@@ -103,7 +101,7 @@ class IssueTrackerTests {
             assertEquals(1, links.size());
             assertEquals(link, links.get(0));
 
-            issue.removeLink(URI.create("http://www.example.com/abc"));
+            issue.removeLink(link);
             links = issue.links();
             assertEquals(0, links.size());
         }

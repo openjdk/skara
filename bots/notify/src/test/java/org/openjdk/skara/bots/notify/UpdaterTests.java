@@ -915,7 +915,7 @@ class UpdaterTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Create an issue and commit a fix
-            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"));
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("type", "Enhancement"));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
             localRepo.push(editHash, repo.url(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -931,17 +931,14 @@ class UpdaterTests {
             assertEquals(1, links.size());
             var link = links.get(0);
             assertEquals(commitIcon, link.iconUrl().orElseThrow());
-            assertEquals("Commit", link.title());
-            assertEquals(repo.webUrl(editHash), link.uri());
+            assertEquals("Commit", link.title().orElseThrow());
+            assertEquals(repo.webUrl(editHash), link.uri().orElseThrow());
 
             // As well as a fixVersion
             var fixVersions = issue.fixVersions();
             assertEquals(1, fixVersions.size());
             var fixVersion = fixVersions.get(0);
             assertEquals("0.1", fixVersion);
-
-            // There should be no open issues
-            assertEquals(0, issueProject.issues().size());
         }
     }
 
@@ -970,7 +967,7 @@ class UpdaterTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Create an issue and commit a fix
-            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"));
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("type", "Enhancement"));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
             localRepo.push(editHash, repo.url(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -984,9 +981,6 @@ class UpdaterTests {
             // But not in the fixVersion
             var fixVersions = issue.fixVersions();
             assertEquals(0, fixVersions.size());
-
-            // There should be no open issues
-            assertEquals(0, issueProject.issues().size());
         }
     }
 
@@ -1015,7 +1009,7 @@ class UpdaterTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Create an issue and commit a fix
-            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"));
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("type", "Enhancement"));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
             localRepo.push(editHash, repo.url(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -1035,9 +1029,6 @@ class UpdaterTests {
             // And no commit link
             var links = issue.links();
             assertEquals(0, links.size());
-
-            // There should be no open issues
-            assertEquals(0, issueProject.issues().size());
         }
     }
 
@@ -1069,7 +1060,7 @@ class UpdaterTests {
             var historyState = localRepo.fetch(repo.url(), "history");
 
             // Create an issue and commit a fix
-            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"));
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("type", "Enhancement"));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
             localRepo.push(editHash, repo.url(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -1085,8 +1076,8 @@ class UpdaterTests {
             assertEquals(1, links.size());
             var link = links.get(0);
             assertEquals(commitIcon, link.iconUrl().orElseThrow());
-            assertEquals("Commit", link.title());
-            assertEquals(repo.webUrl(editHash), link.uri());
+            assertEquals("Commit", link.title().orElseThrow());
+            assertEquals(repo.webUrl(editHash), link.uri().orElseThrow());
 
             // As well as a fixVersion
             var fixVersions = issue.fixVersions();
@@ -1105,9 +1096,137 @@ class UpdaterTests {
             assertEquals(1, updatedIssue.comments().size());
             assertEquals(1, updatedIssue.links().size());
             assertEquals(1, updatedIssue.fixVersions().size());
+        }
+    }
 
-            // There should be no open issues
-            assertEquals(0, issueProject.issues().size());
+    @Test
+    void testIssuePoolVersion(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType(), Path.of("appendable.txt"), Set.of(), null);
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var issueProject = credentials.getIssueProject();
+            var updater = new IssueUpdater(issueProject, false, null, false, null, true, "12u14");
+            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
+                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and commit a fix
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("type", "Enhancement"));
+            issue.addFixVersion("12-pool");
+            issue.addFixVersion("tbd13");
+            issue.addFixVersion("unknown");
+
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
+            localRepo.push(editHash, repo.url(), "master");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The fixVersion should have been updated
+            var fixVersions = issue.fixVersions();
+            assertEquals(1, fixVersions.size());
+            assertEquals("12u14", fixVersions.get(0));
+        }
+    }
+
+    @Test
+    void testIssuePoolOpenVersion(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType(), Path.of("appendable.txt"), Set.of(), null);
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var issueProject = credentials.getIssueProject();
+            var updater = new IssueUpdater(issueProject, false, null, false, null, true, "12u14");
+            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
+                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and commit a fix
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("type", "Enhancement"));
+            issue.addFixVersion("12-open");
+            issue.addFixVersion("tbd13");
+            issue.addFixVersion("unknown");
+
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
+            localRepo.push(editHash, repo.url(), "master");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The fixVersion should have been updated
+            var fixVersions = issue.fixVersions();
+            assertEquals(1, fixVersions.size());
+            assertEquals("12u14", fixVersions.get(0));
+        }
+    }
+
+    @Test
+    void testIssueBackport(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType(), Path.of("appendable.txt"), Set.of(), null);
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var issueProject = credentials.getIssueProject();
+            var updater = new IssueUpdater(issueProject, false, null, false, null, true, "12.0.2");
+            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
+                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and commit a fix
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("type", "Enhancement"));
+            issue.addFixVersion("13.0.1");
+
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
+            localRepo.push(editHash, repo.url(), "master");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The fixVersion should not have been updated
+            var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            var fixVersions = updatedIssue.fixVersions();
+            assertEquals(1, fixVersions.size());
+            assertEquals("13.0.1", fixVersions.get(0));
+
+            // There should be a link
+            var links = updatedIssue.links();
+            assertEquals(1, links.size());
+            var link = links.get(0);
+            var backport = link.issue().orElseThrow();
+
+            // The backport issue should have a correct fixVersion
+            var backportFixVersions = backport.fixVersions();
+            assertEquals(1, backportFixVersions.size());
+            assertEquals("12.0.2", backportFixVersions.get(0));
+            assertEquals("Backport", backport.properties().get("type"));
         }
     }
 
@@ -1138,7 +1257,7 @@ class UpdaterTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Create an issue and a pull request to fix it
-            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"));
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("type", "Enhancement"));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "Fix that issue");
             localRepo.push(editHash, repo.url(), "edit", true);
             var pr = credentials.createPullRequest(repo, "edit", "master", issue.id() + ": Fix that issue");
@@ -1170,11 +1289,11 @@ class UpdaterTests {
             // The issue should now contain a link to the PR
             links = issue.links();
             assertEquals(1, links.size());
-            assertEquals(pr.webUrl(), links.get(0).uri());
+            assertEquals(pr.webUrl(), links.get(0).uri().orElseThrow());
             assertEquals(reviewIcon, links.get(0).iconUrl().orElseThrow());
 
             // Add another issue
-            var issue2 = issueProject.createIssue("This is another issue", List.of("Yes indeed"));
+            var issue2 = issueProject.createIssue("This is another issue", List.of("Yes indeed"), Map.of("type", "Enhancement"));
             pr.setBody("\n\n## Issues\n[" + issue.id() + "](http://www.test.test/): The issue\n[" + issue2.id() +
                                "](http://www.test2.test/): The second issue");
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -1182,10 +1301,10 @@ class UpdaterTests {
             // Both issues should contain a link to the PR
             var links1 = issue.links();
             assertEquals(1, links1.size());
-            assertEquals(pr.webUrl(), links1.get(0).uri());
+            assertEquals(pr.webUrl(), links1.get(0).uri().orElseThrow());
             var links2 = issue2.links();
             assertEquals(1, links2.size());
-            assertEquals(pr.webUrl(), links2.get(0).uri());
+            assertEquals(pr.webUrl(), links2.get(0).uri().orElseThrow());
 
             // Drop the first one
             pr.setBody("\n\n## Issue\n[" + issue2.id() + "](http://www.test2.test/): That other issue");
@@ -1196,7 +1315,7 @@ class UpdaterTests {
             assertEquals(0, links1.size());
             links2 = issue2.links();
             assertEquals(1, links2.size());
-            assertEquals(pr.webUrl(), links2.get(0).uri());
+            assertEquals(pr.webUrl(), links2.get(0).uri().orElseThrow());
         }
     }
 
@@ -1226,7 +1345,7 @@ class UpdaterTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Create an issue and a pull request to fix it
-            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"));
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("type", "Enhancement"));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "Fix that issue");
             localRepo.push(editHash, repo.url(), "edit", true);
             var pr = credentials.createPullRequest(repo, "edit", "master", issue.id() + ": Fix that issue");

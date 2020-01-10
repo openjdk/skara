@@ -37,6 +37,7 @@ class IssueData {
     final List<HostUser> assignees = new ArrayList<>();
     final List<Link> links = new ArrayList<>();
     final Set<String> fixVersions = new HashSet<>();
+    final Map<String, String> properties = new HashMap<>();
     ZonedDateTime created = ZonedDateTime.now();
     ZonedDateTime lastUpdate = created;
 }

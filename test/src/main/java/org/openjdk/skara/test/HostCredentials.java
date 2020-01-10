@@ -27,7 +27,6 @@ import org.openjdk.skara.host.*;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.URIBuilder;
-import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.vcs.*;
 
 import org.junit.jupiter.api.TestInfo;
@@ -144,14 +143,16 @@ public class HostCredentials implements AutoCloseable {
 
     private static class JiraCredentials implements Credentials {
         private final JSONObject config;
+        private final TestCredentials repoCredentials;
 
         JiraCredentials(JSONObject config) {
             this.config = config;
+            this.repoCredentials = new TestCredentials();
         }
 
         @Override
         public Forge createRepositoryHost(int userIndex) {
-            throw new RuntimeException("not supported");
+            return repoCredentials.createRepositoryHost(userIndex);
         }
 
         @Override
@@ -165,7 +166,7 @@ public class HostCredentials implements AutoCloseable {
 
         @Override
         public HostedRepository getHostedRepository(Forge host) {
-            return host.repository(config.get("project").asString()).orElseThrow();
+            return repoCredentials.getHostedRepository(host);
         }
 
         @Override
@@ -363,7 +364,7 @@ public class HostCredentials implements AutoCloseable {
     }
 
     public Issue createIssue(IssueProject issueProject, String title) {
-        var issue = issueProject.createIssue(title, List.of());
+        var issue = issueProject.createIssue(title, List.of(), Map.of());
         issuesToBeClosed.add(issue);
         return issue;
     }

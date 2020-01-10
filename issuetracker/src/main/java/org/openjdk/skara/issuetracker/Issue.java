@@ -152,11 +152,17 @@ public interface Issue {
 
     void addLink(Link link);
 
-    void removeLink(URI uri);
+    void removeLink(Link link);
 
     List<String> fixVersions();
 
     void addFixVersion(String fixVersion);
 
     void removeFixVersion(String fixVersion);
+
+    Map<String, String> properties();
+
+    void setProperty(String name, String value);
+
+    void removePropery(String name);
 }

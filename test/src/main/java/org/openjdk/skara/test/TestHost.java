@@ -162,9 +162,9 @@ public class TestHost implements Forge, IssueTracker {
                                 .collect(Collectors.toList());
     }
 
-    TestIssue createIssue(TestIssueProject issueProject, String title, List<String> body) {
+    TestIssue createIssue(TestIssueProject issueProject, String title, List<String> body, Map<String, String> properties) {
         var id = issueProject.projectName().toUpperCase() + "-" + (data.issues.size() + 1);
-        var issue = TestIssue.createNew(issueProject, id, title, body);
+        var issue = TestIssue.createNew(issueProject, id, title, body, properties);
         data.issues.put(id ,issue);
         return issue;
     }

@@ -808,7 +808,7 @@ class CheckTests {
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.push(masterHash, author.url(), "master", true);
 
-            var issue1 = issues.createIssue("My first issue", List.of("Hello"));
+            var issue1 = issues.createIssue("My first issue", List.of("Hello"), Map.of());
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
@@ -828,7 +828,7 @@ class CheckTests {
             assertTrue(pr.body().contains("My first issue"));
 
             // Change the issue
-            var issue2 = issues.createIssue("My second issue", List.of("Body"));
+            var issue2 = issues.createIssue("My second issue", List.of("Body"), Map.of());
             pr.setTitle(issue2.id() + ": This is a pull request");
 
             // Check the status again

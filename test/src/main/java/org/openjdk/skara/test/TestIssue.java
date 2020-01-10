@@ -45,10 +45,11 @@ public class TestIssue implements Issue {
         this.data = data;
     }
 
-    static TestIssue createNew(TestIssueProject issueProject, String id, String title, List<String> body) {
+    static TestIssue createNew(TestIssueProject issueProject, String id, String title, List<String> body, Map<String, String> properties) {
         var data = new IssueData();
         data.title = title;
         data.body = String.join("\n", body);
+        data.properties.putAll(properties);
         var issue = new TestIssue(issueProject, id, issueProject.issueTracker().currentUser(), issueProject.issueTracker().currentUser(), data);
         return issue;
     }
@@ -187,14 +188,41 @@ public class TestIssue implements Issue {
 
     @Override
     public void addLink(Link link) {
-        removeLink(link.uri());
-        data.links.add(link);
+        if (link.uri().isPresent()) {
+            removeLink(link);
+            data.links.add(link);
+        } else if (link.issue().isPresent()) {
+            var existing = data.links.stream()
+                                     .filter(l -> l.issue().equals(link.issue()))
+                                     .findAny();
+            existing.ifPresent(data.links::remove);
+            data.links.add(link);
+            if (existing.isEmpty()) {
+                var reverse = Link.create(this, link.relationship().get()).build();
+                link.issue().get().addLink(reverse);
+            }
+        } else {
+            throw new IllegalArgumentException("Can't add unknown link type: " + link);
+        }
         data.lastUpdate = ZonedDateTime.now();
     }
 
     @Override
-    public void removeLink(URI uri) {
-        data.links.removeIf(link -> link.uri().equals(uri));
+    public void removeLink(Link link) {
+        if (link.uri().isPresent()) {
+            data.links.removeIf(l -> l.uri().equals(link.uri()));
+        } else if (link.issue().isPresent()) {
+            var existing = data.links.stream()
+                                     .filter(l -> l.issue().equals(link.issue()))
+                                     .findAny();
+            if (existing.isPresent()) {
+                data.links.remove(existing.get());
+                var reverse = Link.create(this, "").build();
+                link.issue().get().removeLink(reverse);
+            }
+        } else {
+            throw new IllegalArgumentException("Can't remove unknown link type: " + link);
+        }
         data.lastUpdate = ZonedDateTime.now();
     }
 
@@ -212,6 +240,23 @@ public class TestIssue implements Issue {
     @Override
     public void removeFixVersion(String fixVersion) {
         data.fixVersions.remove(fixVersion);
+        data.lastUpdate = ZonedDateTime.now();
+    }
+
+    @Override
+    public Map<String, String> properties() {
+        return data.properties;
+    }
+
+    @Override
+    public void setProperty(String name, String value) {
+        data.properties.put(name, value);
+        data.lastUpdate = ZonedDateTime.now();
+    }
+
+    @Override
+    public void removePropery(String name) {
+        data.properties.remove(name);
         data.lastUpdate = ZonedDateTime.now();
     }
 }

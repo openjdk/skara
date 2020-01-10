@@ -32,7 +32,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
+import java.util.stream.*;
 
 public class JiraIssue implements Issue {
     private final JiraProject jiraProject;
@@ -333,22 +333,32 @@ public class JiraIssue implements Issue {
     @Override
     public List<Link> links() {
         var result = request.get("/remotelink").execute();
-        return result.stream()
-                     .map(JSONValue::asObject)
-                     .filter(obj -> obj.get("globalId").asString().startsWith("skaralink="))
-                     .map(this::parseLink)
-                     .collect(Collectors.toList());
+        var links = result.stream()
+                          .map(JSONValue::asObject)
+                          .filter(obj -> obj.get("globalId").asString().startsWith("skaralink="))
+                          .map(this::parseLink);
+        if (json.get("fields").contains("issuelinks")) {
+            var issueLinks = json.get("fields").get("issuelinks").stream()
+                                 .map(JSONValue::asObject)
+                                 .map(o -> Link.create(o.contains("inwardIssue") ? jiraProject.issue(o.get("inwardIssue").get("key").asString()).orElseThrow() :
+                                                               jiraProject.issue(o.get("outwardIssue").get("key").asString()).orElseThrow(),
+                                                       o.contains("inwardIssue") ? o.get("type").get("inward").asString() :
+                                                               o.get("type").get("outward").asString())
+                                               .build());
+
+            links = Stream.concat(issueLinks, links);
+        }
+        return links.collect(Collectors.toList());
     }
 
-    @Override
-    public void addLink(Link link) {
+    private void addWebLink(Link link) {
         if (!secure) {
             log.warning("Ignoring attempt to add link on issue with wrong security level");
             return;
         }
 
-        var query = JSON.object().put("globalId", "skaralink=" + link.uri().toString());
-        var object = JSON.object().put("url", link.uri().toString()).put("title", link.title());
+        var query = JSON.object().put("globalId", "skaralink=" + link.uri().orElseThrow().toString());
+        var object = JSON.object().put("url", link.uri().toString()).put("title", link.title().orElseThrow());
         var status = JSON.object().put("resolved", link.resolved());
         var icon = JSON.object();
         var statusIcon = JSON.object();
@@ -370,11 +380,65 @@ public class JiraIssue implements Issue {
                .execute();
     }
 
+    private boolean matchLinkType(JiraLinkType jiraLinkType, Link link) {
+        var relationship = link.relationship().orElseThrow().toLowerCase();
+        return (jiraLinkType.inward().toLowerCase().equals(relationship)) ||
+                (jiraLinkType.outward().toLowerCase().equals(relationship));
+    }
+
+    private boolean isOutwardLink(JiraLinkType jiraLinkType, Link link) {
+        var relationship = link.relationship().orElseThrow().toLowerCase();
+        return jiraLinkType.outward().toLowerCase().equals(relationship);
+    }
+
+    private void addIssueLink(Link link) {
+        var linkType = jiraProject.linkTypes().stream()
+                                  .filter(lt -> matchLinkType(lt, link))
+                                  .findAny().orElseThrow();
+
+        var query = JSON.object()
+                        .put("type", JSON.object().put("name", linkType.name()));
+        if (isOutwardLink(linkType, link)) {
+            query.put("inwardIssue", JSON.object().put("key", id()));
+            query.put("outwardIssue", JSON.object().put("key", link.issue().orElseThrow().id()));
+        } else {
+            query.put("outwardIssue", JSON.object().put("key", id()));
+            query.put("inwardIssue", JSON.object().put("key", link.issue().orElseThrow().id()));
+        }
+
+        jiraProject.executeLinkQuery(query);
+    }
+
     @Override
-    public void removeLink(URI uri) {
+    public void addLink(Link link) {
+        if (link.uri().isPresent() && link.title().isPresent()) {
+            addWebLink(link);
+        } else if (link.issue().isPresent() && link.relationship().isPresent()) {
+            addIssueLink(link);
+        } else {
+            throw new IllegalArgumentException("Unknown type of link: " + link);
+        }
+    }
+
+    private void removeWebLink(Link link) {
         request.delete("/remotelink")
-               .param("globalId", "skaralink=" + uri.toString())
+               .param("globalId", "skaralink=" + link.uri().orElseThrow().toString())
                .execute();
+    }
+
+    private void removeIssueLink(Link link) {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
+    public void removeLink(Link link) {
+        if (link.uri().isPresent()) {
+            removeWebLink(link);
+        } else if (link.issue().isPresent() && link.relationship().isPresent()) {
+            removeIssueLink(link);
+        } else {
+            throw new IllegalArgumentException("Unknown type of link: " + link);
+        }
     }
 
     @Override
@@ -403,5 +467,22 @@ public class JiraIssue implements Issue {
                                                                                     .put("remove", JSON.object()
                                                                                                     .put("id", jiraProject.fixVersionIdFromName(fixVersion).orElseThrow())))));
         request.put("").body(query).execute();
+    }
+
+    @Override
+    public Map<String, String> properties() {
+        var ret = new HashMap<String, String>();
+        ret.put("type", json.get("fields").get("issuetype").get("name").asString());
+        return ret;
+    }
+
+    @Override
+    public void setProperty(String name, String value) {
+
+    }
+
+    @Override
+    public void removePropery(String name) {
+
     }
 }

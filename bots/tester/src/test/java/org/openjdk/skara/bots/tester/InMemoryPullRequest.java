@@ -239,7 +239,7 @@ class InMemoryPullRequest implements PullRequest {
     }
 
     @Override
-    public void removeLink(URI uri) {
+    public void removeLink(Link link) {
 
     }
 
@@ -255,6 +255,21 @@ class InMemoryPullRequest implements PullRequest {
 
     @Override
     public void removeFixVersion(String fixVersion) {
+
+    }
+
+    @Override
+    public Map<String, String> properties() {
+        return null;
+    }
+
+    @Override
+    public void setProperty(String name, String value) {
+
+    }
+
+    @Override
+    public void removePropery(String name) {
 
     }
 

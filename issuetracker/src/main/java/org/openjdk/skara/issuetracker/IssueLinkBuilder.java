@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,13 +22,16 @@
  */
 package org.openjdk.skara.issuetracker;
 
-import java.net.URI;
-import java.util.*;
+public class IssueLinkBuilder {
+    private final Issue linked;
+    private final String relationship;
 
-public interface IssueProject {
-    IssueTracker issueTracker();
-    URI webUrl();
-    Issue createIssue(String title, List<String> body, Map<String, String> properties);
-    Optional<Issue> issue(String id);
-    List<Issue> issues();
+    IssueLinkBuilder(Issue issue, String relationship) {
+        this.linked = issue;
+        this.relationship = relationship;
+    }
+
+    public Link build() {
+        return new Link(null, null, relationship, null, null, null, null, null, false, linked);
+    }
 }
