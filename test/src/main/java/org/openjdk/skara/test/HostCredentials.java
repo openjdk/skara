@@ -27,6 +27,7 @@ import org.openjdk.skara.host.*;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.URIBuilder;
+import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.vcs.*;
 
 import org.junit.jupiter.api.TestInfo;
