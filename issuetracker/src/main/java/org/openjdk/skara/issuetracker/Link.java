@@ -35,8 +35,9 @@ public class Link {
     private final URI statusIconUrl;
     private final String statusIconTitle;
     private final boolean resolved;
+    private final Issue linked;
 
-    Link(URI uri, String title, String relationship, String summary, URI iconUrl, String iconTitle, URI statusIconUrl, String statusIconTitle, boolean resolved) {
+    Link(URI uri, String title, String relationship, String summary, URI iconUrl, String iconTitle, URI statusIconUrl, String statusIconTitle, boolean resolved, Issue linked) {
         this.uri = uri;
         this.title = title;
         this.relationship = relationship;
@@ -46,18 +47,27 @@ public class Link {
         this.statusIconUrl = statusIconUrl;
         this.statusIconTitle = statusIconTitle;
         this.resolved = resolved;
+        this.linked = linked;
     }
 
-    public static LinkBuilder create(URI uri, String title) {
-        return new LinkBuilder(uri, title);
+    public static WebLinkBuilder create(URI uri, String title) {
+        return new WebLinkBuilder(uri, title);
     }
 
-    public URI uri() {
-        return uri;
+    public static IssueLinkBuilder create(Issue issue, String relationship) {
+        return new IssueLinkBuilder(issue, relationship);
     }
 
-    public String title() {
-        return title;
+    public Optional<URI> uri() {
+        return Optional.ofNullable(uri);
+    }
+
+    public Optional<String> title() {
+        return Optional.ofNullable(title);
+    }
+
+    public Optional<Issue> issue() {
+        return Optional.ofNullable(linked);
     }
 
     public Optional<String> relationship() {
@@ -101,6 +111,7 @@ public class Link {
                 uri.equals(link.uri) &&
                 title.equals(link.title) &&
                 Objects.equals(relationship, link.relationship) &&
+                Objects.equals(linked, link.linked) &&
                 Objects.equals(summary, link.summary) &&
                 Objects.equals(iconUrl, link.iconUrl) &&
                 Objects.equals(iconTitle, link.iconTitle) &&
@@ -119,6 +130,7 @@ public class Link {
                 "uri=" + uri +
                 ", title='" + title + '\'' +
                 ", relationship='" + relationship + '\'' +
+                ", linked='" + linked + '\'' +
                 ", summary='" + summary + '\'' +
                 ", iconUrl=" + iconUrl +
                 ", iconTitle='" + iconTitle + '\'' +

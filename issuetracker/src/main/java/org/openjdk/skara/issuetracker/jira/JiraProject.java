@@ -28,6 +28,7 @@ import org.openjdk.skara.network.*;
 
 import java.net.URI;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class JiraProject implements IssueProject {
@@ -38,6 +39,9 @@ public class JiraProject implements IssueProject {
     private JSONObject projectMetadataCache = null;
     private Map<String, String> versionNameToId = null;
     private Map<String, String> versionIdToName = null;
+    private List<JiraLinkType> linkTypes = null;
+
+    private final Logger log = Logger.getLogger("org.openjdk.skara.issuetracker.jira");
 
     JiraProject(JiraHost host, RestRequest request, String projectName) {
         this.jiraHost = host;
@@ -89,6 +93,29 @@ public class JiraProject implements IssueProject {
         return Optional.ofNullable(versionNameToId.getOrDefault(name, null));
     }
 
+    private void populateLinkTypesIfNeeded() {
+        if (linkTypes != null) {
+            return;
+        }
+
+        linkTypes = request.get("issueLinkType").execute()
+                           .get("issueLinkTypes").stream()
+                           .map(JSONValue::asObject)
+                           .map(o -> new JiraLinkType(o.get("name").asString(),
+                                                      o.get("inward").asString(),
+                                                      o.get("outward").asString()))
+                           .collect(Collectors.toList());
+    }
+
+    List<JiraLinkType> linkTypes() {
+        populateLinkTypesIfNeeded();
+        return linkTypes;
+    }
+
+    void executeLinkQuery(JSONObject query) {
+        request.post("issueLink").body(query).execute();
+    }
+
     private String projectId() {
         return project().get("id").asString();
     }
@@ -118,24 +145,53 @@ public class JiraProject implements IssueProject {
     }
 
     @Override
-    public Issue createIssue(String title, List<String> body) {
+    public Issue createIssue(String title, List<String> body, Map<String, String> properties) {
         var query = JSON.object();
         var fields = JSON.object()
                          .put("project", JSON.object()
                                              .put("id", projectId()))
-                         .put("issuetype", JSON.object()
-                                               .put("id", defaultIssueType()))
                          .put("components", JSON.array()
                                                 .add(JSON.object().put("id", defaultComponent())))
                          .put("summary", title)
                          .put("description", String.join("\n", body));
-        query.put("fields", fields);
 
+        var fixupFields = JSON.object();
+        for (var property : properties.entrySet()) {
+            switch (property.getKey()) {
+                case "type":
+                    if (!property.getValue().equals("Backport")) {
+                        fields.put("issuetype", JSON.object().put("id", issueTypes().get(property.getValue())));
+                    } else {
+                        fixupFields.put("issuetype", JSON.object().put("id", issueTypes().get(property.getValue())));
+                    }
+                    break;
+                default:
+                    log.warning("Unknown issue property: " + property.getKey());
+                    break;
+            }
+        }
+
+        if (!fields.contains("issuetype")) {
+            fields.put("issuetype", JSON.object().put("id", defaultIssueType()));
+        }
+        query.put("fields", fields);
         jiraHost.securityLevel().ifPresent(securityLevel -> fields.put("security", JSON.object()
                                                                                        .put("id", securityLevel)));
         var data = request.post("issue")
                           .body(query)
                           .execute();
+
+        // Workaround - some fields cannot be set immediately
+        if (properties.containsKey("type") && properties.get("type").equals("Backport")) {
+            var id = data.get("key").asString();
+            if (id.indexOf('-') < 0) {
+                id = projectName.toUpperCase() + "-" + id;
+            }
+            var updateQuery = JSON.object().put("fields", fixupFields);
+            request.put("issue/" + id)
+                   .body(updateQuery)
+                   .execute();
+        }
 
         return issue(data.get("key").asString()).orElseThrow();
     }

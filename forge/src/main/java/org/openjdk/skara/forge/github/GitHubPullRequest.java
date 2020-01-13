@@ -519,7 +519,7 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
-    public void removeLink(URI uri) {
+    public void removeLink(Link link) {
         throw new RuntimeException("not implemented yet");
     }
 
@@ -535,6 +535,21 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public void removeFixVersion(String fixVersion) {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
+    public Map<String, String> properties() {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
+    public void setProperty(String name, String value) {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
+    public void removePropery(String name) {
         throw new RuntimeException("not implemented yet");
     }
 }

@@ -252,7 +252,7 @@ class SolvesTests {
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.url(), "edit", true);
-            var issue1 = issues.createIssue("First", List.of("Hello"));
+            var issue1 = issues.createIssue("First", List.of("Hello"), Map.of());
             var pr = credentials.createPullRequest(author, "master", "edit",
                                                    issue1.id() + ": This is a pull request");
 
@@ -263,7 +263,7 @@ class SolvesTests {
             assertTrue(pr.body().contains("## Issue\n"));
 
             // Add an extra issue
-            var issue2 = issues.createIssue("Second", List.of("There"));
+            var issue2 = issues.createIssue("Second", List.of("There"), Map.of());
             pr.addComment("/solves " + issue2.id() + ": Description");
 
             // Check that the body was updated

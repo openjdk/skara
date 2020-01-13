@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,15 +20,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.issuetracker;
+package org.openjdk.skara.issuetracker.jira;
 
-import java.net.URI;
-import java.util.*;
+public class JiraLinkType {
+    private final String name;
+    private final String inward;
+    private final String outward;
 
-public interface IssueProject {
-    IssueTracker issueTracker();
-    URI webUrl();
-    Issue createIssue(String title, List<String> body, Map<String, String> properties);
-    Optional<Issue> issue(String id);
-    List<Issue> issues();
+    JiraLinkType(String name, String inward, String outward) {
+        this.name = name;
+        this.inward = inward;
+        this.outward = outward;
+    }
+
+    String name() {
+        return name;
+    }
+
+    String inward() {
+        return inward;
+    }
+
+    String outward() {
+        return outward;
+    }
 }
