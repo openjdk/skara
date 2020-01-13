@@ -493,6 +493,10 @@ public class GitPr {
                   .helptext("Hide any decorations when listing PRs")
                   .optional(),
             Switch.shortcut("")
+                  .fullname("no-draft")
+                  .helptext("Hide all pull requests in draft state")
+                  .optional(),
+            Switch.shortcut("")
                   .fullname("ignore-workspace")
                   .helptext("Ignore local changes in worktree and staging area when creating pull request")
                   .optional(),
@@ -535,7 +539,7 @@ public class GitPr {
 
         var inputs = List.of(
             Input.position(0)
-                 .describe("list|fetch|show|checkout|apply|integrate|approve|create|close|update|test")
+                 .describe("list|fetch|show|checkout|apply|integrate|approve|create|close|update|test|status")
                  .singular()
                  .optional(),
             Input.position(1)
@@ -1096,6 +1100,7 @@ public class GitPr {
             var issues = new ArrayList<String>();
             var branches = new ArrayList<String>();
             var statuses = new ArrayList<String>();
+            var noDraft = getSwitch("no-draft", "list", arguments);
 
             var authorsOption = getOption("authors", "list", arguments);
             var filterAuthors = authorsOption == null ?
@@ -1141,6 +1146,10 @@ public class GitPr {
             }
 
             for (var pr : prs) {
+                if (pr.isDraft() && noDraft) {
+                    continue;
+                }
+
                 var prAuthor = pr.author().userName();
                 if (!filterAuthors.isEmpty() && !filterAuthors.contains(prAuthor)) {
                     continue;
