@@ -110,7 +110,7 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
     }
 
     /**
-     * Return True if the issue's fixVersionList is a match for fixVersion, using "-pool" or "-open".
+     * Return true if the issue's fixVersionList is a match for fixVersion, using "-pool" or "-open".
      *
      * If fixVersion has a major release of <N>, it matches the fixVersionList has an
      * <N>-pool or <N>-open entry and all other entries are scratch values.
@@ -130,7 +130,7 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
     }
 
     /**
-     * Return True if fixVersionList is empty or contains only scratch values.
+     * Return true if fixVersionList is empty or contains only scratch values.
      */
     private boolean matchScratchVersion(Issue issue) {
         var nonScratch = issue.fixVersions().stream()
@@ -154,12 +154,12 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
     }
 
     /**
-     * Return issue or one of its backports that applies to fixver.
+     * Return issue or one of its backports that applies to fixVersion.
      *
      * If the main issue       has the correct fixVersion, use it.
      * If an existing Backport has the correct fixVersion, use it.
-     * If the main issue       has a matching <N>-pool fixVersion, use it.
-     * If an existing Backport has a matching <N>-pool fixVersion, use it.
+     * If the main issue       has a matching <N>-pool/open fixVersion, use it.
+     * If an existing Backport has a matching <N>-pool/open fixVersion, use it.
      * If the main issue       has a "scratch" fixVersion, use it.
      * If an existing Backport has a "scratch" fixVersion, use it.
      *
@@ -264,6 +264,7 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
 
                 if (setFixVersion) {
                     if (requestedVersion != null) {
+                        // Remove any previously set versions (can only be scratch versions)
                         for (var oldVersion : issue.fixVersions()) {
                             issue.removeFixVersion(oldVersion);
                         }
