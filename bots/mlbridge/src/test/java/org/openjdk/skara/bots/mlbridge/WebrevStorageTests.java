@@ -23,7 +23,6 @@
 package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.email.EmailAddress;
-import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Repository;
 
@@ -32,13 +31,14 @@ import org.junit.jupiter.api.*;
 import java.io.IOException;
 import java.nio.file.*;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class WebrevStorageTests {
     @Test
     void overwriteExisting(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory();
+             var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
 
@@ -50,6 +50,9 @@ class WebrevStorageTests {
             localRepo.push(masterHash, author.url(), "master", true);
             localRepo.push(masterHash, archive.url(), "webrev", true);
 
+            // Check that the web link wasn't verified yet
+            assertFalse(webrevServer.isChecked());
+
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.url(), "edit", true);
@@ -59,13 +62,16 @@ class WebrevStorageTests {
 
             var from = EmailAddress.from("test", "test@test.mail");
             var storage = new WebrevStorage(archive, "webrev", Path.of("test"),
-                                            URIBuilder.base("http://www.test.test/").build(), from);
+                                            webrevServer.uri(), from);
 
             var prFolder = tempFolder.path().resolve("pr");
             var prRepo = Repository.materialize(prFolder, pr.repository().url(), "edit");
             var scratchFolder = tempFolder.path().resolve("scratch");
             var generator = storage.generator(pr, prRepo, scratchFolder);
             generator.generate(masterHash, editHash, "00");
+
+            // Check that the web link has been verified now
+            assertTrue(webrevServer.isChecked());
 
             // Update the local repository and check that the webrev has been generated
             Repository.materialize(repoFolder, archive.url(), "webrev");
@@ -81,7 +87,8 @@ class WebrevStorageTests {
     @Test
     void dropLarge(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory();
+             var webrevServer = new TestWebrevServer()) {
             var author = credentials.getHostedRepository();
             var archive = credentials.getHostedRepository();
 
@@ -107,7 +114,7 @@ class WebrevStorageTests {
 
             var from = EmailAddress.from("test", "test@test.mail");
             var storage = new WebrevStorage(archive, "webrev", Path.of("test"),
-                                            URIBuilder.base("http://www.test.test/").build(), from);
+                                            webrevServer.uri(), from);
 
             var prFolder = tempFolder.path().resolve("pr");
             var prRepo = Repository.materialize(prFolder, pr.repository().url(), "edit");

@@ -30,9 +30,12 @@ import org.openjdk.skara.webrev.Webrev;
 
 import java.io.*;
 import java.net.URI;
+import java.net.http.*;
 import java.nio.file.*;
-import java.util.Comparator;
+import java.time.*;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 class WebrevStorage {
@@ -41,6 +44,7 @@ class WebrevStorage {
     private final Path baseFolder;
     private final URI baseUri;
     private final EmailAddress author;
+    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
 
     WebrevStorage(HostedRepository storage, String ref, Path baseFolder, URI baseUri, EmailAddress author) {
         this.baseFolder = baseFolder;
@@ -141,6 +145,33 @@ class WebrevStorage {
         }
     }
 
+    private void awaitPublication(URI uri, Duration timeout) throws IOException {
+        var end = Instant.now().plus(timeout);
+        var uriBuilder = URIBuilder.base(uri);
+        var client = HttpClient.newBuilder()
+                               .connectTimeout(Duration.ofSeconds(30))
+                               .build();
+        while (Instant.now().isBefore(end)) {
+            var uncachedUri = uriBuilder.setQuery(Map.of("nocache", UUID.randomUUID().toString())).build();
+            var request = HttpRequest.newBuilder(uncachedUri)
+                                     .timeout(Duration.ofSeconds(30))
+                                     .GET()
+                                     .build();
+            try {
+                var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() < 400) {
+                    // Success!
+                    return;
+                }
+                log.info(response.statusCode() + " when checking " + uncachedUri + " - waiting...");
+                Thread.sleep(Duration.ofSeconds(10).toMillis());
+            } catch (InterruptedException ignored) {
+            }
+        }
+
+        throw new RuntimeException("No success response from " + uri + " within " + timeout);
+    }
+
     private URI createAndArchive(PullRequest pr, Repository localRepository, Path scratchPath, Hash base, Hash head, String identifier) {
         try {
             var localStorage = Repository.materialize(scratchPath, storage.url(),
@@ -156,7 +187,9 @@ class WebrevStorage {
             if (!localStorage.isClean()) {
                 push(localStorage, outputFolder, baseFolder.resolve(pr.id()).toString(), placeholder);
             }
-            return URIBuilder.base(baseUri).appendPath(relativeFolder.toString().replace('\\', '/')).build();
+            var uri = URIBuilder.base(baseUri).appendPath(relativeFolder.toString().replace('\\', '/')).build();
+            awaitPublication(uri, Duration.ofMinutes(30));
+            return uri;
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
