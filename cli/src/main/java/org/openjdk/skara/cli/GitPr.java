@@ -1014,7 +1014,7 @@ public class GitPr {
 
             var seenIntegrateComment = false;
             var expected = "<!-- Jmerge command reply message (" + integrateComment.id() + ") -->";
-            for (var i = 0; i < 20; i++) {
+            for (var i = 0; i < 90; i++) {
                 var comments = pr.comments();
                 for (var comment : comments) {
                     if (!seenIntegrateComment) {
@@ -1033,7 +1033,7 @@ public class GitPr {
                     }
                 }
 
-                Thread.sleep(1000);
+                Thread.sleep(2000);
             }
 
             System.err.println("error: timed out waiting for response to /integrate command");
@@ -1045,7 +1045,7 @@ public class GitPr {
             var testComment = pr.addComment("/test");
 
             var seenTestComment = false;
-            for (var i = 0; i < 20; i++) {
+            for (var i = 0; i < 90; i++) {
                 var comments = pr.comments();
                 for (var comment : comments) {
                     if (!seenTestComment) {
@@ -1079,7 +1079,7 @@ public class GitPr {
                     }
                 }
 
-                Thread.sleep(1000);
+                Thread.sleep(2000);
             }
 
         } else if (action.equals("approve")) {
