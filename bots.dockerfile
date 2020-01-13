@@ -23,7 +23,7 @@ FROM oraclelinux:7.5 as prerequisites-runtime
 
 WORKDIR /bots-build
 
-ARG GIT_VERSION=2.19.1
+ARG GIT_VERSION=2.19.3
 ARG MERCURIAL_VERSION=4.7.2
 
 ENV LANG en_US.UTF-8
@@ -37,7 +37,7 @@ RUN curl -sSO https://www.mercurial-scm.org/release/mercurial-${MERCURIAL_VERSIO
     cd mercurial-${MERCURIAL_VERSION} && \
     python setup.py install --force --prefix=/bots/hg
 RUN curl -sSO https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz && \
-    echo "345056aa9b8084280b1b9fe1374d232dec05a34e8849028a20bfdb56e920dbb5  git-2.19.1.tar.xz" | sha256sum --check - && \
+    echo "0457f33eedd3f5e9fb9c2ea30bf455ed9915230e3800c632ff07e00ac2466ace git-${GIT_VERSION}.tar.xz" | sha256sum --check - && \
     tar xvfJ git-${GIT_VERSION}.tar.xz && \
     cd git-${GIT_VERSION} && \
     make configure && \
