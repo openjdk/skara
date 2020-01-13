@@ -599,7 +599,7 @@ public class HgToGitConverter implements Converter {
     }
 
     private ProcessInfo fastImport(ReadOnlyRepository repo) throws IOException {
-        var command = List.of("git", "fast-import");
+        var command = List.of("git", "fast-import", "--allow-unsafe-features");
         var pb = new ProcessBuilder(command);
         pb.directory(repo.root().toFile());
 
