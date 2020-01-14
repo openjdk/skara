@@ -1122,26 +1122,25 @@ public class GitPr {
                 Set.of() :
                 Arrays.asList(issuesOption.split(","));
 
-            var defaultColumns = List.of("id", "title", "authors", "assignees", "labels", "issues", "branch", "status");
-            var columnValues = Map.of(defaultColumns.get(0), ids,
-                                      defaultColumns.get(1), titles,
-                                      defaultColumns.get(2), authors,
-                                      defaultColumns.get(3), assignees,
-                                      defaultColumns.get(4), labels,
-                                      defaultColumns.get(5), issues,
-                                      defaultColumns.get(6), branches,
-                                      defaultColumns.get(7), statuses);
+            var columnTitles = List.of("id", "title", "authors", "assignees", "labels", "issues", "branch", "status");
+            var columnValues = Map.of(columnTitles.get(0), ids,
+                                      columnTitles.get(1), titles,
+                                      columnTitles.get(2), authors,
+                                      columnTitles.get(3), assignees,
+                                      columnTitles.get(4), labels,
+                                      columnTitles.get(5), issues,
+                                      columnTitles.get(6), branches,
+                                      columnTitles.get(7), statuses);
             var columnsOption = getOption("columns", "list", arguments);
             var columns = columnsOption == null ?
-                defaultColumns :
+                List.of("id", "title", "authors", "status") :
                 Arrays.asList(columnsOption.split(","));
-            if (columns != defaultColumns) {
-                for (var column : columns) {
-                    if (!defaultColumns.contains(column)) {
-                        System.err.println("error: unknown column: " + column);
-                        System.err.println("       available columns are: " + String.join(",", defaultColumns));
-                        System.exit(1);
-                    }
+
+            for (var column : columns) {
+                if (!columnTitles.contains(column)) {
+                    System.err.println("error: unknown column: " + column);
+                    System.err.println("       available columns are: " + String.join(",", columnTitles));
+                    System.exit(1);
                 }
             }
 
