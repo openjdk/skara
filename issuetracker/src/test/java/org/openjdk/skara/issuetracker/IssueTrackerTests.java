@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.issuetracker;
 
+import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.HostCredentials;
 
 import org.junit.jupiter.api.*;
@@ -60,12 +61,13 @@ class IssueTrackerTests {
             issue.addLabel("another");
             issue.removeLabel("label");
             issue.setAssignees(List.of(project.issueTracker().currentUser()));
-            issue.addFixVersion("1.0");
-            issue.addFixVersion("2.0");
-            issue.removeFixVersion("1.0");
+            issue.setProperty("fixVersions", JSON.array().add("1.0"));
+            issue.setProperty("fixVersions", JSON.array().add("1.0").add("2.0"));
+            issue.setProperty("fixVersions", JSON.array().add("3.0"));
             var updated = project.issue(issue.id()).orElseThrow();
             assertEquals(List.of("another"), updated.labels());
-            assertEquals(List.of("2.0"), updated.fixVersions());
+            assertEquals(1, updated.properties().get("fixVersions").asArray().size());
+            assertEquals("3.0", updated.properties().get("fixVersions").get(0).asString());
             assertEquals(List.of(project.issueTracker().currentUser()), updated.assignees());
             assertEquals(1, updated.comments().size());
             assertEquals("Updated title", updated.title());

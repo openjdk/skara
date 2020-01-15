@@ -22,13 +22,15 @@
  */
 package org.openjdk.skara.issuetracker;
 
+import org.openjdk.skara.json.JSONValue;
+
 import java.net.URI;
 import java.util.*;
 
 public interface IssueProject {
     IssueTracker issueTracker();
     URI webUrl();
-    Issue createIssue(String title, List<String> body, Map<String, String> properties);
+    Issue createIssue(String title, List<String> body, Map<String, JSONValue> properties);
     Optional<Issue> issue(String id);
     List<Issue> issues();
 }

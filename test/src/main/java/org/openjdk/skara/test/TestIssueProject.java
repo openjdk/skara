@@ -23,6 +23,7 @@
 package org.openjdk.skara.test;
 
 import org.openjdk.skara.issuetracker.*;
+import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.network.URIBuilder;
 
 import java.net.URI;
@@ -52,7 +53,7 @@ public class TestIssueProject implements IssueProject {
     }
 
     @Override
-    public Issue createIssue(String title, List<String> body, Map<String, String> properties) {
+    public Issue createIssue(String title, List<String> body, Map<String, JSONValue> properties) {
         return host.createIssue(this, title, body, properties);
     }
 

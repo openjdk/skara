@@ -26,6 +26,7 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
+import org.openjdk.skara.json.*;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.*;
 
@@ -61,11 +62,11 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
 
     private boolean isPrimaryIssue(Issue issue) {
         var properties = issue.properties();
-        if (!properties.containsKey("type")) {
+        if (!properties.containsKey("issuetype")) {
             throw new RuntimeException("Unknown type for issue " + issue);
         }
-        var type = properties.get("type");
-        return primaryTypes.contains(type);
+        var type = properties.get("issuetype");
+        return primaryTypes.contains(type.asString());
     }
 
     private final static Pattern majorVersionPattern = Pattern.compile("([0-9]+)(u[0-9]+)?");
@@ -87,13 +88,22 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
         return links.stream()
                     .filter(l -> l.issue().isPresent())
                     .map(l -> l.issue().get())
-                    .filter(i -> i.properties().containsKey("type"))
-                    .filter(i -> i.properties().get("type").equals("Backport"))
+                    .filter(i -> i.properties().containsKey("issuetype"))
+                    .filter(i -> i.properties().get("issuetype").asString().equals("Backport"))
                     .collect(Collectors.toList());
     }
 
     private boolean isNonScratchVersion(String version) {
         return !version.startsWith("tbd") && !version.toLowerCase().equals("unknown");
+    }
+
+    private Set<String> fixVersions(Issue issue) {
+        if (!issue.properties().containsKey("fixVersions")) {
+            return Set.of();
+        }
+        return issue.properties().get("fixVersions").stream()
+                    .map(JSONValue::asString)
+                    .collect(Collectors.toSet());
     }
 
     /**
@@ -103,9 +113,9 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
      * other entries must be scratch values.
      */
     private boolean matchVersion(Issue issue, String fixVersion) {
-        var nonScratch = issue.fixVersions().stream()
-                              .filter(this::isNonScratchVersion)
-                              .collect(Collectors.toList());
+        var nonScratch = fixVersions(issue).stream()
+                                           .filter(this::isNonScratchVersion)
+                                           .collect(Collectors.toList());
         return nonScratch.size() == 1 && nonScratch.get(0).equals(fixVersion);
     }
 
@@ -123,9 +133,9 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
         var poolVersion = majorVersion.get() + "-pool";
         var openVersion = majorVersion.get() + "-open";
 
-        var nonScratch = issue.fixVersions().stream()
-                              .filter(this::isNonScratchVersion)
-                              .collect(Collectors.toList());
+        var nonScratch = fixVersions(issue).stream()
+                                           .filter(this::isNonScratchVersion)
+                                           .collect(Collectors.toList());
         return nonScratch.size() == 1 && (nonScratch.get(0).equals(poolVersion) || nonScratch.get(0).equals(openVersion));
     }
 
@@ -133,20 +143,27 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
      * Return true if fixVersionList is empty or contains only scratch values.
      */
     private boolean matchScratchVersion(Issue issue) {
-        var nonScratch = issue.fixVersions().stream()
-                              .filter(this::isNonScratchVersion)
-                              .collect(Collectors.toList());
+        var nonScratch = fixVersions(issue).stream()
+                                           .filter(this::isNonScratchVersion)
+                                           .collect(Collectors.toList());
         return nonScratch.size() == 0;
     }
+
+    private final static Set<String> propagatedCustomProperties =
+            Set.of("customfield_10008", "customfield_10000", "customfield_10005");
 
     /**
      * Create a backport of issue.
      */
     private Issue createBackportIssue(Issue primary) {
-        var properties = primary.properties();
-        properties.put("type", "Backport");
+        var filteredProperties = primary.properties().entrySet().stream()
+                .filter(entry -> !entry.getKey().startsWith("customfield_") || propagatedCustomProperties.contains(entry.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        var backport = primary.project().createIssue(primary.title(), primary.body().lines().collect(Collectors.toList()), properties);
+        var finalProperties = new HashMap<>(filteredProperties);
+        finalProperties.put("issuetype", JSON.of("Backport"));
+
+        var backport = primary.project().createIssue(primary.title(), primary.body().lines().collect(Collectors.toList()), finalProperties);
 
         var backportLink = Link.create(backport, "backported by").build();
         primary.addLink(backportLink);;
@@ -170,7 +187,7 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
     private Issue findIssue(Issue primary, String fixVersion) {
         log.info("Searching for properly versioned issue for primary issue " + primary.id());
         var candidates = Stream.concat(Stream.of(primary), findBackports(primary).stream()).collect(Collectors.toList());
-        candidates.forEach(c -> log.fine("Candidate: " + c.id() + " with versions: " + String.join(",", c.fixVersions())));
+        candidates.forEach(c -> log.fine("Candidate: " + c.id() + " with versions: " + String.join(",", fixVersions(c))));
         var matchingVersionIssue = candidates.stream()
                 .filter(i -> matchVersion(i, fixVersion))
                 .findFirst();
@@ -264,11 +281,7 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
 
                 if (setFixVersion) {
                     if (requestedVersion != null) {
-                        // Remove any previously set versions (can only be scratch versions)
-                        for (var oldVersion : issue.fixVersions()) {
-                            issue.removeFixVersion(oldVersion);
-                        }
-                        issue.addFixVersion(requestedVersion);
+                        issue.setProperty("fixVersions", JSON.of(requestedVersion));
                     }
                 }
             }

@@ -25,6 +25,7 @@ package org.openjdk.skara.test;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.issuetracker.*;
+import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 
 import java.io.*;
@@ -162,7 +163,7 @@ public class TestHost implements Forge, IssueTracker {
                                 .collect(Collectors.toList());
     }
 
-    TestIssue createIssue(TestIssueProject issueProject, String title, List<String> body, Map<String, String> properties) {
+    TestIssue createIssue(TestIssueProject issueProject, String title, List<String> body, Map<String, JSONValue> properties) {
         var id = issueProject.projectName().toUpperCase() + "-" + (data.issues.size() + 1);
         var issue = TestIssue.createNew(issueProject, id, title, body, properties);
         data.issues.put(id ,issue);

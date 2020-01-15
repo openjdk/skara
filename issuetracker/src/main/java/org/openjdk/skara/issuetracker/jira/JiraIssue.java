@@ -442,47 +442,30 @@ public class JiraIssue implements Issue {
     }
 
     @Override
-    public List<String> fixVersions() {
-        return json.get("fields").get("fixVersions").stream()
-                   .map(obj -> obj.get("id").asString())
-                   .map(id -> jiraProject.fixVersionNameFromId(id).orElseThrow())
-                   .collect(Collectors.toList());
-    }
+    public Map<String, JSONValue> properties() {
+        var ret = new HashMap<String, JSONValue>();
 
-    @Override
-    public void addFixVersion(String fixVersion) {
-        var query = JSON.object()
-                        .put("update", JSON.object()
-                                           .put("fixVersions", JSON.array().add(JSON.object()
-                                                                                    .put("add", JSON.object()
-                                                                                                    .put("id", jiraProject.fixVersionIdFromName(fixVersion).orElseThrow())))));
-        request.put("").body(query).execute();
-    }
-
-    @Override
-    public void removeFixVersion(String fixVersion) {
-        var query = JSON.object()
-                        .put("update", JSON.object()
-                                           .put("fixVersions", JSON.array().add(JSON.object()
-                                                                                    .put("remove", JSON.object()
-                                                                                                    .put("id", jiraProject.fixVersionIdFromName(fixVersion).orElseThrow())))));
-        request.put("").body(query).execute();
-    }
-
-    @Override
-    public Map<String, String> properties() {
-        var ret = new HashMap<String, String>();
-        ret.put("type", json.get("fields").get("issuetype").get("name").asString());
+        for (var field : json.get("fields").asObject().fields()) {
+            var value = field.value();
+            var decoded = jiraProject.decodeProperty(field.name(), value);
+            decoded.ifPresent(jsonValue -> ret.put(field.name(), jsonValue));
+        }
         return ret;
     }
 
     @Override
-    public void setProperty(String name, String value) {
-
+    public void setProperty(String name, JSONValue value) {
+        var encoded = jiraProject.encodeProperty(name, value);
+        if (encoded.isEmpty()) {
+            log.warning("Ignoring unknown property: " + name);
+            return;
+        }
+        var query = JSON.object().put("fields", JSON.object().put(name, encoded.get()));
+        request.put("").body(query).execute();
     }
 
     @Override
-    public void removePropery(String name) {
+    public void removeProperty(String name) {
 
     }
 }
