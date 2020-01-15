@@ -427,9 +427,7 @@ class CheckRun {
                 message.append("`/sponsor` in a new comment to perform the integration).\n");
             }
         } else if (rebasePossible) {
-            if (divergingCommits.size() > 0) {
-                message.append("\n");
-            }
+            message.append("\n");
             message.append("➡️ To integrate this PR with the above commit message, type ");
             message.append("`/integrate` in a new comment.\n");
         }
