@@ -37,8 +37,6 @@ public class JiraProject implements IssueProject {
     private final RestRequest request;
 
     private JSONObject projectMetadataCache = null;
-    private Map<String, String> versionNameToId = null;
-    private Map<String, String> versionIdToName = null;
     private List<JiraLinkType> linkTypes = null;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.issuetracker.jira");
@@ -72,25 +70,12 @@ public class JiraProject implements IssueProject {
         return ret;
     }
 
-    private void populateVersionsIfNeeded() {
-        if (versionIdToName != null) {
-            return;
+    private Map<String, String> versions() {
+        var ret = new HashMap<String, String>();
+        for (var type : project().get("versions").asArray()) {
+            ret.put(type.get("name").asString(), type.get("id").asString());
         }
-
-        versionNameToId = project().get("versions").stream()
-                                   .collect(Collectors.toMap(v -> v.get("name").asString(), v -> v.get("id").asString()));
-        versionIdToName = project().get("versions").stream()
-                                   .collect(Collectors.toMap(v -> v.get("id").asString(), v -> v.get("name").asString()));
-    }
-
-    Optional<String> fixVersionNameFromId(String id) {
-        populateVersionsIfNeeded();
-        return Optional.ofNullable(versionIdToName.getOrDefault(id, null));
-    }
-
-    Optional<String> fixVersionIdFromName(String name) {
-        populateVersionsIfNeeded();
-        return Optional.ofNullable(versionNameToId.getOrDefault(name, null));
+        return ret;
     }
 
     private void populateLinkTypesIfNeeded() {
@@ -134,6 +119,66 @@ public class JiraProject implements IssueProject {
         return jiraHost;
     }
 
+    private static final Set<String> knownProperties = Set.of("issuetype", "fixVersions", "versions", "priority", "components");
+
+    boolean isAllowedProperty(String name) {
+        if (knownProperties.contains(name)) {
+            return true;
+        }
+        return name.startsWith("customfield_");
+    }
+
+    Optional<JSONValue> decodeProperty(String name, JSONValue value) {
+        if (!isAllowedProperty(name)) {
+            return Optional.empty();
+        }
+        if (value.isNull()) {
+            return Optional.empty();
+        }
+
+        // Transform known fields to a better representation
+        switch (name) {
+            case "fixVersions": // fall-through
+            case "versions": // fall-through
+            case "components":
+                return Optional.of(new JSONArray(value.stream()
+                                                      .map(obj -> obj.get("name"))
+                                                      .collect(Collectors.toList())));
+            case "issuetype":
+                return Optional.of(JSON.of(value.get("name").asString()));
+            case "priority":
+                return Optional.of(JSON.of(value.get("id").asString()));
+            default:
+                return Optional.of(value);
+        }
+    }
+
+    Optional<JSONValue> encodeProperty(String name, JSONValue value) {
+        if (!isAllowedProperty(name)) {
+            return Optional.empty();
+        }
+
+        switch (name) {
+            case "fixVersions": // fall-through
+            case "versions":
+                return Optional.of(new JSONArray(value.stream()
+                                                      .map(JSONValue::asString)
+                                                      .map(s -> JSON.object().put("id", versions().get(s)))
+                                                      .collect(Collectors.toList())));
+            case "components":
+                return Optional.of(new JSONArray(value.stream()
+                                                      .map(JSONValue::asString)
+                                                      .map(s -> JSON.object().put("id", components().get(s)))
+                                                      .collect(Collectors.toList())));
+            case "issuetype":
+                return Optional.of(JSON.object().put("id", issueTypes().get(value.asString())));
+            case "priority":
+                return Optional.of(JSON.object().put("id", value.asString()));
+            default:
+                return Optional.of(value);
+        }
+    }
+
     @Override
     public IssueTracker issueTracker() {
         return jiraHost;
@@ -144,36 +189,45 @@ public class JiraProject implements IssueProject {
         return URIBuilder.base(jiraHost.getUri()).setPath("/projects/" + projectName).build();
     }
 
+    private boolean isInitialField(String name, JSONValue value) {
+        if (name.equals("project") || name.equals("summary") || name.equals("description") || name.equals("components")) {
+            return true;
+        }
+        return false;
+    }
+
     @Override
-    public Issue createIssue(String title, List<String> body, Map<String, String> properties) {
+    public Issue createIssue(String title, List<String> body, Map<String, JSONValue> properties) {
         var query = JSON.object();
-        var fields = JSON.object()
-                         .put("project", JSON.object()
-                                             .put("id", projectId()))
-                         .put("components", JSON.array()
-                                                .add(JSON.object().put("id", defaultComponent())))
-                         .put("summary", title)
-                         .put("description", String.join("\n", body));
 
-        var fixupFields = JSON.object();
+        var finalProperties = new HashMap<String, JSONValue>(properties);
+
+        // Always override certain fields
+        finalProperties.put("project", JSON.object().put("id", projectId()));
+        finalProperties.put("summary", JSON.of(title));
+        finalProperties.put("description", JSON.of(String.join("\n", body)));
+
+        // Encode optional properties as fields
         for (var property : properties.entrySet()) {
-            switch (property.getKey()) {
-                case "type":
-                    if (!property.getValue().equals("Backport")) {
-                        fields.put("issuetype", JSON.object().put("id", issueTypes().get(property.getValue())));
-                    } else {
-                        fixupFields.put("issuetype", JSON.object().put("id", issueTypes().get(property.getValue())));
-                    }
-                    break;
-                default:
-                    log.warning("Unknown issue property: " + property.getKey());
-                    break;
+            var encoded = encodeProperty(property.getKey(), property.getValue());
+            if (encoded.isEmpty()) {
+                continue;
             }
+            finalProperties.put(property.getKey(), encoded.get());
         }
 
-        if (!fields.contains("issuetype")) {
-            fields.put("issuetype", JSON.object().put("id", defaultIssueType()));
-        }
+        // Provide default values for required fields if not present
+        finalProperties.putIfAbsent("components", JSON.array().add(JSON.object().put("id", defaultComponent())));
+
+        // Filter out the fields that can be set at creation time
+        var fields = JSON.object();
+        finalProperties.entrySet().stream()
+                       .filter(entry -> isInitialField(entry.getKey(), entry.getValue()))
+                       .forEach(entry -> fields.put(entry.getKey(), entry.getValue()));
+
+        // Certain types can only be set after creation, so always start with the default value
+        fields.put("issuetype", JSON.object().put("id", defaultIssueType()));
+
         query.put("fields", fields);
         jiraHost.securityLevel().ifPresent(securityLevel -> fields.put("security", JSON.object()
                                                                                        .put("id", securityLevel)));
@@ -181,16 +235,22 @@ public class JiraProject implements IssueProject {
                           .body(query)
                           .execute();
 
-        // Workaround - some fields cannot be set immediately
-        if (properties.containsKey("type") && properties.get("type").equals("Backport")) {
+        // Apply fields that have to be set later (if any)
+        var editFields = JSON.object();
+        finalProperties.entrySet().stream()
+                       .filter(entry -> !isInitialField(entry.getKey(), entry.getValue()))
+                       .forEach(entry -> editFields.put(entry.getKey(), entry.getValue()));
+
+        if (editFields.fields().size() > 0) {
             var id = data.get("key").asString();
             if (id.indexOf('-') < 0) {
                 id = projectName.toUpperCase() + "-" + id;
             }
-            var updateQuery = JSON.object().put("fields", fixupFields);
+            var updateQuery = JSON.object().put("fields", editFields);
             request.put("issue/" + id)
                    .body(updateQuery)
                    .execute();
+
         }
 
         return issue(data.get("key").asString()).orElseThrow();

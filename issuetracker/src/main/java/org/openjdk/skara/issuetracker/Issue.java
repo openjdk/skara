@@ -23,6 +23,7 @@
 package org.openjdk.skara.issuetracker;
 
 import org.openjdk.skara.host.HostUser;
+import org.openjdk.skara.json.JSONValue;
 
 import java.net.URI;
 import java.time.ZonedDateTime;
@@ -154,15 +155,9 @@ public interface Issue {
 
     void removeLink(Link link);
 
-    List<String> fixVersions();
+    Map<String, JSONValue> properties();
 
-    void addFixVersion(String fixVersion);
+    void setProperty(String name, JSONValue value);
 
-    void removeFixVersion(String fixVersion);
-
-    Map<String, String> properties();
-
-    void setProperty(String name, String value);
-
-    void removePropery(String name);
+    void removeProperty(String name);
 }

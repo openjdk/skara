@@ -653,32 +653,17 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
-    public List<String> fixVersions() {
+    public Map<String, JSONValue> properties() {
         throw new RuntimeException("not implemented yet");
     }
 
     @Override
-    public void addFixVersion(String fixVersion) {
+    public void setProperty(String name,JSONValue value) {
         throw new RuntimeException("not implemented yet");
     }
 
     @Override
-    public void removeFixVersion(String fixVersion) {
-        throw new RuntimeException("not implemented yet");
-    }
-
-    @Override
-    public Map<String, String> properties() {
-        throw new RuntimeException("not implemented yet");
-    }
-
-    @Override
-    public void setProperty(String name, String value) {
-        throw new RuntimeException("not implemented yet");
-    }
-
-    @Override
-    public void removePropery(String name) {
+    public void removeProperty(String name) {
         throw new RuntimeException("not implemented yet");
     }
 }

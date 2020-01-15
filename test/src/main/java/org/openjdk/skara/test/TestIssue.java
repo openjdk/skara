@@ -24,6 +24,7 @@ package org.openjdk.skara.test;
 
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
+import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.network.URIBuilder;
 
 import java.net.URI;
@@ -45,7 +46,7 @@ public class TestIssue implements Issue {
         this.data = data;
     }
 
-    static TestIssue createNew(TestIssueProject issueProject, String id, String title, List<String> body, Map<String, String> properties) {
+    static TestIssue createNew(TestIssueProject issueProject, String id, String title, List<String> body, Map<String, JSONValue> properties) {
         var data = new IssueData();
         data.title = title;
         data.body = String.join("\n", body);
@@ -227,35 +228,18 @@ public class TestIssue implements Issue {
     }
 
     @Override
-    public List<String> fixVersions() {
-        return new ArrayList<>(data.fixVersions);
-    }
-
-    @Override
-    public void addFixVersion(String fixVersion) {
-        data.fixVersions.add(fixVersion);
-        data.lastUpdate = ZonedDateTime.now();
-    }
-
-    @Override
-    public void removeFixVersion(String fixVersion) {
-        data.fixVersions.remove(fixVersion);
-        data.lastUpdate = ZonedDateTime.now();
-    }
-
-    @Override
-    public Map<String, String> properties() {
+    public Map<String, JSONValue> properties() {
         return data.properties;
     }
 
     @Override
-    public void setProperty(String name, String value) {
+    public void setProperty(String name, JSONValue value) {
         data.properties.put(name, value);
         data.lastUpdate = ZonedDateTime.now();
     }
 
     @Override
-    public void removePropery(String name) {
+    public void removeProperty(String name) {
         data.properties.remove(name);
         data.lastUpdate = ZonedDateTime.now();
     }

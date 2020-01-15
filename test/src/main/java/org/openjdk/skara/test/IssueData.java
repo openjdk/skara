@@ -24,6 +24,7 @@ package org.openjdk.skara.test;
 
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
+import org.openjdk.skara.json.JSONValue;
 
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -36,8 +37,7 @@ class IssueData {
     final Set<String> labels = new HashSet<>();
     final List<HostUser> assignees = new ArrayList<>();
     final List<Link> links = new ArrayList<>();
-    final Set<String> fixVersions = new HashSet<>();
-    final Map<String, String> properties = new HashMap<>();
+    final Map<String, JSONValue> properties = new HashMap<>();
     ZonedDateTime created = ZonedDateTime.now();
     ZonedDateTime lastUpdate = created;
 }

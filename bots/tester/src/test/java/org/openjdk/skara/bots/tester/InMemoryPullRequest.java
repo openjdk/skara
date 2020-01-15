@@ -25,6 +25,7 @@ package org.openjdk.skara.bots.tester;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.issuetracker.*;
+import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 
 import java.util.*;
@@ -244,32 +245,17 @@ class InMemoryPullRequest implements PullRequest {
     }
 
     @Override
-    public List<String> fixVersions() {
+    public Map<String, JSONValue> properties() {
         return null;
     }
 
     @Override
-    public void addFixVersion(String fixVersion) {
+    public void setProperty(String name, JSONValue value) {
 
     }
 
     @Override
-    public void removeFixVersion(String fixVersion) {
-
-    }
-
-    @Override
-    public Map<String, String> properties() {
-        return null;
-    }
-
-    @Override
-    public void setProperty(String name, String value) {
-
-    }
-
-    @Override
-    public void removePropery(String name) {
+    public void removeProperty(String name) {
 
     }
 
