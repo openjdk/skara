@@ -164,6 +164,11 @@ class InMemoryPullRequest implements PullRequest {
     }
 
     @Override
+    public State state() {
+        return null;
+    }
+
+    @Override
     public Map<String, Check> checks(Hash hash) {
         return checks.get(hash.hex());
     }

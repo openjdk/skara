@@ -177,6 +177,18 @@ public class JiraIssue implements Issue {
         return ZonedDateTime.parse(json.get("fields").get("updated").asString(), dateFormat);
     }
 
+    @Override
+    public State state() {
+        switch (json.get("fields").get("status").get("name").asString()) {
+            case "Closed":
+                return State.CLOSED;
+            case "Resolved":
+                return State.RESOLVED;
+            default:
+                return State.OPEN;
+        }
+    }
+
     private Map<String, String> availableTransitions() {
         var transitions = request.get("/transitions").execute();
         return transitions.get("transitions").stream()

@@ -311,6 +311,14 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
+    public State state() {
+        if (json.get("state").asString().equals("open")) {
+            return State.OPEN;
+        }
+        return State.CLOSED;
+    }
+
+    @Override
     public Map<String, Check> checks(Hash hash) {
         var checks = request.get("commits/" + hash.hex() + "/check-runs").execute();
 

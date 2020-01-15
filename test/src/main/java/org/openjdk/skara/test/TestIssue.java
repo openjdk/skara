@@ -139,13 +139,14 @@ public class TestIssue implements Issue {
     }
 
     @Override
+    public State state() {
+        return data.state;
+    }
+
+    @Override
     public void setState(State state) {
         data.state = state;
         data.lastUpdate = ZonedDateTime.now();
-    }
-
-    boolean isOpen() {
-        return data.state.equals(Issue.State.OPEN);
     }
 
     @Override
