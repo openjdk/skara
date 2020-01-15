@@ -45,17 +45,17 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
     private final boolean commitLink;
     private final URI commitIcon;
     private final boolean setFixVersion;
-    private final String fixVersion;
+    private final Map<String, String> fixVersions;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
-    IssueUpdater(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,boolean setFixVersion, String fixVersion) {
+    IssueUpdater(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,boolean setFixVersion, Map<String, String> fixVersions) {
         this.issueProject = issueProject;
         this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
         this.commitLink = commitLink;
         this.commitIcon = commitIcon;
         this.setFixVersion = setFixVersion;
-        this.fixVersion = fixVersion;
+        this.fixVersions = fixVersions;
     }
 
     private final static Set<String> primaryTypes = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
@@ -240,7 +240,7 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
                 // The actual issue to be updated can change depending on the fix version
                 String requestedVersion = null;
                 if (setFixVersion) {
-                    requestedVersion = fixVersion;
+                    requestedVersion = fixVersions != null ? fixVersions.getOrDefault(branch.name(), null) : null;
                     if (requestedVersion == null) {
                         try {
                             var conf = localRepository.lines(Path.of(".jcheck/conf"), commit.hash());

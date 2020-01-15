@@ -1007,7 +1007,7 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var commitIcon = URI.create("http://www.example.com/commit.png");
-            var updater = new IssueUpdater(issueProject, false, null, false, commitIcon, true,"2.0");
+            var updater = new IssueUpdater(issueProject, false, null, false, commitIcon, true, Map.of("master", "2.0"));
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
@@ -1115,7 +1115,7 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var issueProject = credentials.getIssueProject();
-            var updater = new IssueUpdater(issueProject, false, null, false, null, true, "12u14");
+            var updater = new IssueUpdater(issueProject, false, null, false, null, true, Map.of("master", "12u14"));
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
@@ -1151,7 +1151,7 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var issueProject = credentials.getIssueProject();
-            var updater = new IssueUpdater(issueProject, false, null, false, null, true, "12u14");
+            var updater = new IssueUpdater(issueProject, false, null, false, null, true, Map.of("master", "12u14"));
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
@@ -1187,7 +1187,7 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var issueProject = credentials.getIssueProject();
-            var updater = new IssueUpdater(issueProject, false, null, false, null, true, "12.0.2");
+            var updater = new IssueUpdater(issueProject, false, null, false, null, true, Map.of("master", "12.0.2"));
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
