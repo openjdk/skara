@@ -2028,4 +2028,52 @@ public class RepositoryTests {
             }
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testPrune(VCS vcs) throws IOException {
+        assumeTrue(vcs == VCS.GIT); // FIXME hard to test with hg due to bookmarks and branches
+        try (var dir = new TemporaryDirectory(false)) {
+            var upstreamDir = dir.path().resolve("upstream" + (vcs == VCS.GIT ? ".git" : ".hg"));
+            var upstream = Repository.init(upstreamDir, vcs);
+
+            Files.write(upstream.root().resolve(".git").resolve("config"),
+                        List.of("[receive]", "denyCurrentBranch=ignore"),
+                        WRITE, APPEND);
+
+            var readme = upstreamDir.resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            upstream.add(readme);
+            var head = upstream.commit("Add README", "duke", "duke@openjdk.java.net");
+            var branch = upstream.branch(head, "foo");
+            var upstreamBranches = upstream.branches();
+            assertEquals(2, upstreamBranches.size());
+            assertTrue(upstreamBranches.contains(branch));
+
+            var upstreamURI = URI.create("file:///" + upstreamDir.toString().replace('\\', '/'));
+            var downstreamDir = dir.path().resolve("downstream");
+            var downstream = Repository.clone(upstreamURI, downstreamDir);
+
+            // Ensure that 'foo' branch is materialized downstream
+            downstream.checkout(branch);
+            downstream.checkout(downstream.defaultBranch());
+
+            var remotes = downstream.remotes();
+            assertEquals(1, remotes.size());
+            var downstreamBranches = downstream.branches();
+            assertEquals(2, downstreamBranches.size());
+            assertEquals(downstreamBranches, upstreamBranches);
+
+            downstream.prune(branch, remotes.get(0));
+
+            downstreamBranches = downstream.branches();
+            assertEquals(1, downstreamBranches.size());
+            assertEquals(List.of(downstream.defaultBranch()), downstreamBranches);
+
+            upstreamBranches = upstream.branches();
+            assertEquals(1, upstreamBranches.size());
+            assertEquals(List.of(upstream.defaultBranch()), upstreamBranches);
+        }
+    }
 }

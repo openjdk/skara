@@ -43,14 +43,16 @@ class MergeBot implements Bot, WorkItem {
     private final Branch fromBranch;
     private final HostedRepository to;
     private final Branch toBranch;
+    private final HostedRepository toFork;
 
     MergeBot(Path storage, HostedRepository from, Branch fromBranch,
-              HostedRepository to, Branch toBranch) {
+              HostedRepository to, Branch toBranch, HostedRepository toFork) {
         this.storage = storage;
         this.from = from;
         this.fromBranch = fromBranch;
         this.to = to;
         this.toBranch = toBranch;
+        this.toFork = toFork;
     }
 
     @Override
@@ -72,7 +74,7 @@ class MergeBot implements Bot, WorkItem {
             if (!Files.exists(dir)) {
                 log.info("Cloning " + to.name());
                 Files.createDirectories(dir);
-                repo = Repository.clone(to.url(), dir);
+                repo = Repository.clone(toFork.url(), dir);
             } else {
                 log.info("Found existing scratch directory for " + to.name());
                 repo = Repository.get(dir).orElseThrow(() -> {
@@ -80,10 +82,18 @@ class MergeBot implements Bot, WorkItem {
                 });
             }
 
-            repo.fetchAll();
-            var originToBranch = new Branch("origin/" + toBranch.name());
+            // Sync personal fork
+            var remoteBranches = repo.remoteBranches(to.url().toString());
+            for (var branch : remoteBranches) {
+                var fetchHead = repo.fetch(to.url(), branch.hash().hex());
+                repo.push(fetchHead, toFork.url(), branch.name());
+            }
 
-            // Check if pull request already created
+            // Checkout the branch to merge into
+            repo.pull(toFork.url().toString(), toBranch.name());
+            repo.checkout(toBranch, false);
+
+            // Check if merge conflict pull request is present
             var title = "Cannot automatically merge " + from.name() + ":" + fromBranch.name();
             var marker = "<!-- MERGE CONFLICTS -->";
             for (var pr : to.pullRequests()) {
@@ -92,7 +102,7 @@ class MergeBot implements Bot, WorkItem {
                     to.forge().currentUser().equals(pr.author())) {
                     var lines = pr.body().split("\n");
                     var head = new Hash(lines[1].substring(5, 45));
-                    if (repo.contains(originToBranch, head)) {
+                    if (repo.contains(toBranch, head)) {
                         log.info("Closing resolved merge conflict PR " + pr.id());
                         pr.addComment("Merge conflicts have been resolved, closing this PR");
                         pr.setState(PullRequest.State.CLOSED);
@@ -108,7 +118,7 @@ class MergeBot implements Bot, WorkItem {
             var head = repo.resolve(toBranch.name()).orElseThrow(() ->
                     new IOException("Could not resolve branch " + toBranch.name())
             );
-            if (repo.contains(originToBranch, fetchHead)) {
+            if (repo.contains(toBranch, fetchHead)) {
                 log.info("Nothing to merge");
                 return;
             }
@@ -116,7 +126,6 @@ class MergeBot implements Bot, WorkItem {
             var isAncestor = repo.isAncestor(head, fetchHead);
 
             log.info("Trying to merge into " + toBranch.name());
-            repo.checkout(toBranch, false);
             IOException error = null;
             try {
                 repo.merge(fetchHead);
@@ -134,6 +143,10 @@ class MergeBot implements Bot, WorkItem {
                 log.info("Got error: " + error.getMessage());
                 log.info("Aborting unsuccesful merge");
                 repo.abortMerge();
+
+                var fromRepoName = Path.of(from.webUrl().getPath()).getFileName();
+                var fromBranchDesc = fromRepoName + "/" + fromBranch.name();
+                repo.push(fetchHead, toFork.url(), fromBranchDesc, true);
 
                 log.info("Creating pull request to alert");
                 var mergeBase = repo.mergeBase(fetchHead, head);
@@ -164,15 +177,16 @@ class MergeBot implements Bot, WorkItem {
                 message.add("$ git commit -m 'Merge'");
                 message.add("```");
                 message.add("");
-                message.add("Push the resulting merge conflict to your personal fork and " +
-                            "create a pull request towards this repository. This pull request " +
-                            "will be closed automatically once the pull request with the resolved " +
-                            "conflicts has been integrated.");
-                var pr = from.createPullRequest(to,
-                                                toBranch.name(),
-                                                fromBranch.name(),
-                                                title,
-                                                message);
+                message.add("Push the resolved merge conflict to your personal fork and " +
+                            "create a pull request towards this repository.");
+                message.add("");
+                message.add("This pull request will be closed automatically by a bot once " +
+                            "the merge conflicts have been resolved.");
+                var pr = toFork.createPullRequest(to,
+                                                  toBranch.name(),
+                                                  fromBranchDesc,
+                                                  title,
+                                                  message);
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
