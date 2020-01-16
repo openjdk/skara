@@ -22,9 +22,8 @@
  */
 package org.openjdk.skara.bots.notify;
 
-import org.openjdk.skara.email.*;
+import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
@@ -218,18 +217,18 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
         return createBackportIssue(primary);
     }
 
-    private Optional<HostUser> findIssueUser(Commit commit) {
+    private Optional<String> findIssueUsername(Commit commit) {
         var authorEmail = EmailAddress.from(commit.author().email());
         if (authorEmail.domain().equals("openjdk.org")) {
-            return Optional.of(issueProject.issueTracker().user(authorEmail.localPart()));
-        } else {
-            var committerEmail = EmailAddress.from(commit.committer().email());
-            if (!committerEmail.domain().equals("openjdk.org")) {
-                log.severe("Cannot determine issue tracker user name from committer email: " + committerEmail);
-                return Optional.empty();
-            }
-            return Optional.of(issueProject.issueTracker().user(committerEmail.localPart()));
+            return Optional.of(authorEmail.localPart());
         }
+
+        var committerEmail = EmailAddress.from(commit.committer().email());
+        if (!committerEmail.domain().equals("openjdk.org")) {
+            log.severe("Cannot determine issue tracker user name from committer email: " + committerEmail);
+            return Optional.empty();
+        }
+        return Optional.of(committerEmail.localPart());
     }
 
     @Override
@@ -286,9 +285,10 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
                 if (issue.state() == Issue.State.OPEN) {
                     issue.setState(Issue.State.RESOLVED);
                     if (issue.assignees().isEmpty()) {
-                        var assignee = findIssueUser(commit);
-                        if (assignee.isPresent()) {
-                            issue.setAssignees(List.of(assignee.get()));
+                        var username = findIssueUsername(commit);
+                        if (username.isPresent()) {
+                            var assignee = issueProject.issueTracker().user(username.get());
+                            issue.setAssignees(List.of(assignee));
                         }
                     }
                 }
