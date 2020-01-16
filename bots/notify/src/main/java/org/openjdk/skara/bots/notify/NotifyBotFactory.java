@@ -158,12 +158,13 @@ public class NotifyBotFactory implements BotFactory {
                     commitLink = issuesConf.get("commitlink").asBoolean();
                 }
                 var setFixVersion = false;
-                String fixVersion = null;
-                if (issuesConf.contains("fixversion")) {
+                Map<String, String> fixVersions = null;
+                if (issuesConf.contains("fixversions")) {
                     setFixVersion = true;
-                    fixVersion = issuesConf.get("fixversion").asString();
+                    fixVersions = issuesConf.get("fixversions").fields().stream()
+                                            .collect(Collectors.toMap(JSONObject.Field::name, f -> f.value().asString()));
                 }
-                var updater = new IssueUpdater(issueProject, reviewLink, reviewIcon, commitLink, commitIcon, setFixVersion, fixVersion);
+                var updater = new IssueUpdater(issueProject, reviewLink, reviewIcon, commitLink, commitIcon, setFixVersion, fixVersions);
                 updaters.add(updater);
                 prUpdaters.add(updater);
             }
