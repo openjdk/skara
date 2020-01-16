@@ -160,6 +160,7 @@ class WebrevStorage {
             try {
                 var response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 if (response.statusCode() < 400) {
+                    log.info(response.statusCode() + " when checking " + uncachedUri + " - success!");
                     // Success!
                     return;
                 }
