@@ -67,9 +67,9 @@ public class TestMailmanServer implements AutoCloseable {
 
                 if (exchange.getRequestHeaders().containsKey("If-None-Match")) {
                     if (exchange.getRequestHeaders().getFirst("If-None-Match").equals(etag)) {
-                        exchange.sendResponseHeaders(304, 0);
                         lastResponseCached = true;
                         log.warning("Cache hit!");
+                        exchange.sendResponseHeaders(304, 0);
                         return;
                     } else {
                         log.warning("Cache mismatch");
