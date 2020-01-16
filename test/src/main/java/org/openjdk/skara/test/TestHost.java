@@ -159,7 +159,7 @@ public class TestHost implements Forge, IssueTracker {
         return data.pullRequests.entrySet().stream()
                                 .sorted(Comparator.comparing(Map.Entry::getKey))
                                 .map(pr -> getPullRequest(repository, pr.getKey()))
-                                .filter(TestPullRequest::isOpen)
+                                .filter(pr -> pr.state().equals(Issue.State.OPEN))
                                 .collect(Collectors.toList());
     }
 
@@ -182,7 +182,7 @@ public class TestHost implements Forge, IssueTracker {
         return data.issues.entrySet().stream()
                           .sorted(Comparator.comparing(Map.Entry::getKey))
                           .map(issue -> getIssue(issueProject, issue.getKey()))
-                          .filter(TestIssue::isOpen)
+                          .filter(i -> i.state().equals(Issue.State.OPEN))
                           .collect(Collectors.toList());
     }
 }

@@ -110,6 +110,12 @@ public interface Issue {
     }
 
     /**
+     * Returns the current state.
+     * @return
+     */
+    State state();
+
+    /**
      * Set the state.
      * @param state Desired state
      */

@@ -361,6 +361,14 @@ public class GitLabMergeRequest implements PullRequest {
         return ZonedDateTime.parse(json.get("updated_at").asString());
     }
 
+    @Override
+    public State state() {
+        if (json.get("state").asString().equals("open")) {
+            return State.OPEN;
+        }
+        return State.CLOSED;
+    }
+
     private final String checkMarker = "<!-- Merge request status check message (%s) -->";
     private final String checkResultMarker = "<!-- Merge request status check result (%s) (%s) (%s) (%s) -->";
     private final String checkResultPattern = "<!-- Merge request status check result \\(([-\\w]+)\\) \\((\\w+)\\) \\(%s\\) \\((\\S+)\\) -->";

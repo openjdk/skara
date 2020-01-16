@@ -43,6 +43,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.openjdk.skara.issuetracker.Issue.State.*;
 
 class UpdaterTests {
     private List<Path> findJsonFiles(Path folder, String partialName) throws IOException {
@@ -1206,6 +1207,7 @@ class UpdaterTests {
             // The fixVersion should not have been updated
             var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
             assertEquals(Set.of("13.0.1"), fixVersions(updatedIssue));
+            assertEquals(OPEN, updatedIssue.state());
 
             // There should be a link
             var links = updatedIssue.links();
@@ -1215,6 +1217,7 @@ class UpdaterTests {
 
             // The backport issue should have a correct fixVersion
             assertEquals(Set.of("12.0.2"), fixVersions(backport));
+            assertEquals(RESOLVED, backport.state());
 
             // Custom properties should also propagate
             assertEquals("1", backport.properties().get("priority").asString());
