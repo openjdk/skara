@@ -926,19 +926,22 @@ class UpdaterTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Create an issue and commit a fix
+            var authorEmailAddress = issueProject.issueTracker().currentUser().userName() + "@openjdk.org";
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
-            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
             localRepo.push(editHash, repo.url(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The changeset should be reflected in a comment
-            var comments = issue.comments();
+            var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+
+            var comments = updatedIssue.comments();
             assertEquals(1, comments.size());
             var comment = comments.get(0);
             assertTrue(comment.body().contains(editHash.abbreviate()));
 
             // And in a link
-            var links = issue.links();
+            var links = updatedIssue.links();
             assertEquals(1, links.size());
             var link = links.get(0);
             assertEquals(commitIcon, link.iconUrl().orElseThrow());
@@ -946,7 +949,11 @@ class UpdaterTests {
             assertEquals(repo.webUrl(editHash), link.uri().orElseThrow());
 
             // As well as a fixVersion
-            assertEquals(Set.of("0.1"), fixVersions(issue));
+            assertEquals(Set.of("0.1"), fixVersions(updatedIssue));
+
+            // The issue should be assigned and resolved
+            assertEquals(RESOLVED, updatedIssue.state());
+            assertEquals(List.of(issueProject.issueTracker().currentUser()), updatedIssue.assignees());
         }
     }
 
@@ -1200,7 +1207,8 @@ class UpdaterTests {
             issue.setProperty("fixVersions", JSON.array().add("13.0.1"));
             issue.setProperty("priority", JSON.of("1"));
 
-            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
+            var authorEmailAddress = issueProject.issueTracker().currentUser().userName() + "@openjdk.org";
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
             localRepo.push(editHash, repo.url(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
@@ -1208,6 +1216,7 @@ class UpdaterTests {
             var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
             assertEquals(Set.of("13.0.1"), fixVersions(updatedIssue));
             assertEquals(OPEN, updatedIssue.state());
+            assertEquals(List.of(), updatedIssue.assignees());
 
             // There should be a link
             var links = updatedIssue.links();
@@ -1215,9 +1224,10 @@ class UpdaterTests {
             var link = links.get(0);
             var backport = link.issue().orElseThrow();
 
-            // The backport issue should have a correct fixVersion
+            // The backport issue should have a correct fixVersion and assignee
             assertEquals(Set.of("12.0.2"), fixVersions(backport));
             assertEquals(RESOLVED, backport.state());
+            assertEquals(List.of(issueProject.issueTracker().currentUser()), backport.assignees());
 
             // Custom properties should also propagate
             assertEquals("1", backport.properties().get("priority").asString());

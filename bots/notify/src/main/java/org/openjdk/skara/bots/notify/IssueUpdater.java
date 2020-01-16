@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.notify;
 
+import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.*;
@@ -216,6 +217,20 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
         return createBackportIssue(primary);
     }
 
+    private Optional<String> findIssueUsername(Commit commit) {
+        var authorEmail = EmailAddress.from(commit.author().email());
+        if (authorEmail.domain().equals("openjdk.org")) {
+            return Optional.of(authorEmail.localPart());
+        }
+
+        var committerEmail = EmailAddress.from(commit.committer().email());
+        if (!committerEmail.domain().equals("openjdk.org")) {
+            log.severe("Cannot determine issue tracker user name from committer email: " + committerEmail);
+            return Optional.empty();
+        }
+        return Optional.of(committerEmail.localPart());
+    }
+
     @Override
     public void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) {
         for (var commit : commits) {
@@ -267,7 +282,16 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
                 if (!alreadyPostedComment) {
                     issue.addComment(commitNotification);
                 }
-                issue.setState(Issue.State.RESOLVED);
+                if (issue.state() == Issue.State.OPEN) {
+                    issue.setState(Issue.State.RESOLVED);
+                    if (issue.assignees().isEmpty()) {
+                        var username = findIssueUsername(commit);
+                        if (username.isPresent()) {
+                            var assignee = issueProject.issueTracker().user(username.get());
+                            issue.setAssignees(List.of(assignee));
+                        }
+                    }
+                }
 
                 if (commitLink) {
                     var linkBuilder = Link.create(repository.webUrl(commit.hash()), "Commit")
