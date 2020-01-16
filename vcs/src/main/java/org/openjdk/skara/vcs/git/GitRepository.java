@@ -445,8 +445,8 @@ public class GitRepository implements Repository {
         }
 
         try (var p = capture("git", "rev-parse", "--show-toplevel")) {
-            var res = await(p);
-            if (res.stdout().size() != 1) {
+            var res = p.await();
+            if (res.status() != 0 || res.stdout().size() != 1) {
                 // Perhaps this is a bare repository
                 try (var p2 = capture("git", "rev-parse", "--git-dir")) {
                     var res2 = await(p2);
