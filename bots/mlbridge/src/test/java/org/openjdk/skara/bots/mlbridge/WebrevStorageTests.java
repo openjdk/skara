@@ -70,8 +70,9 @@ class WebrevStorageTests {
             var generator = storage.generator(pr, prRepo, scratchFolder);
             generator.generate(masterHash, editHash, "00");
 
-            // Check that the web link has been verified now
+            // Check that the web link has been verified now and followed the redirect
             assertTrue(webrevServer.isChecked());
+            assertTrue(webrevServer.isRedirectFollowed());
 
             // Update the local repository and check that the webrev has been generated
             Repository.materialize(repoFolder, archive.url(), "webrev");

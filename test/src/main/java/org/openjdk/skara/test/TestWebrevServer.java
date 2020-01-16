@@ -32,17 +32,24 @@ import java.nio.charset.StandardCharsets;
 public class TestWebrevServer implements AutoCloseable {
     private final HttpServer httpServer;
     private boolean checked = false;
+    private boolean redirectFollowed = true;
 
     private class Handler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            checked = true;
             var response = "ok!";
             var responseBytes = response.getBytes(StandardCharsets.UTF_8);
-            exchange.sendResponseHeaders(200, responseBytes.length);
+            if (!exchange.getRequestURI().toString().contains("final=true")) {
+                exchange.getResponseHeaders().add("Location", exchange.getRequestURI().toString() + "&final=true");
+                exchange.sendResponseHeaders(302, responseBytes.length);
+            } else {
+                redirectFollowed = true;
+                exchange.sendResponseHeaders(200, responseBytes.length);
+            }
             OutputStream outputStream = exchange.getResponseBody();
             outputStream.write(responseBytes);
             outputStream.close();
-            checked = true;
         }
     }
 
@@ -60,6 +67,10 @@ public class TestWebrevServer implements AutoCloseable {
 
     public boolean isChecked() {
         return checked;
+    }
+
+    public boolean isRedirectFollowed() {
+        return redirectFollowed;
     }
 
     @Override

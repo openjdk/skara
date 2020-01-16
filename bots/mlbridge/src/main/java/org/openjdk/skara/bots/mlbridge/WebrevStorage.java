@@ -150,6 +150,7 @@ class WebrevStorage {
         var uriBuilder = URIBuilder.base(uri);
         var client = HttpClient.newBuilder()
                                .connectTimeout(Duration.ofSeconds(30))
+                               .followRedirects(HttpClient.Redirect.NORMAL)
                                .build();
         while (Instant.now().isBefore(end)) {
             var uncachedUri = uriBuilder.setQuery(Map.of("nocache", UUID.randomUUID().toString())).build();
