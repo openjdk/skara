@@ -370,7 +370,7 @@ public class JiraIssue implements Issue {
         }
 
         var query = JSON.object().put("globalId", "skaralink=" + link.uri().orElseThrow().toString());
-        var object = JSON.object().put("url", link.uri().toString()).put("title", link.title().orElseThrow());
+        var object = JSON.object().put("url", link.uri().orElseThrow().toString()).put("title", link.title().orElseThrow());
         var status = JSON.object().put("resolved", link.resolved());
         var icon = JSON.object();
         var statusIcon = JSON.object();
