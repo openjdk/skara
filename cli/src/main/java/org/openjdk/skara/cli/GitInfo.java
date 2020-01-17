@@ -234,8 +234,10 @@ public class GitInfo {
                 var issue = issueTracker.project(project).issue(issueId);
                 if (issue.isPresent()) {
                     for (var link : issue.get().links()) {
-                        if (link.title().equals("Review")) {
-                            System.out.println(decoration + link.uri().toString());
+                        if (link.title().isPresent() && link.uri().isPresent()) {
+                            if (link.title().get().equals("Review")) {
+                                System.out.println(decoration + link.uri().get());
+                            }
                         }
                     }
                 }
