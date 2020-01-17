@@ -590,6 +590,16 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public void prune(Branch branch, String remote) throws IOException {
+        try (var p = capture("hg", "bookmark", "--delete", branch.name())) {
+            await(p);
+        }
+        try (var p = capture("hg", "push", "--bookmark", branch.name(), remote)) {
+            await(p);
+        }
+    }
+
+    @Override
     public Hash mergeBase(Hash first, Hash second) throws IOException {
         var revset = "ancestor(" + first.hex() + ", " + second.hex() + ")";
         try (var p = capture("hg", "log", "--rev=" + revset, "--template={node}\n")) {

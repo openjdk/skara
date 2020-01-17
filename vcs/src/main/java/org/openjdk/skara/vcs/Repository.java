@@ -98,6 +98,7 @@ public interface Repository extends ReadOnlyRepository {
                String committerEmail) throws IOException;
     Tag tag(Hash hash, String tagName, String message, String authorName, String authorEmail) throws IOException;
     Branch branch(Hash hash, String branchName) throws IOException;
+    void prune(Branch branch, String remote) throws IOException;
     void delete(Branch b) throws IOException;
     void rebase(Hash hash, String committerName, String committerEmail) throws IOException;
     void merge(Hash hash) throws IOException;
