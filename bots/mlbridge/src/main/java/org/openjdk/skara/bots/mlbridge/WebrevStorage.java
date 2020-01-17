@@ -150,20 +150,27 @@ class WebrevStorage {
         var uriBuilder = URIBuilder.base(uri);
         var client = HttpClient.newBuilder()
                                .connectTimeout(Duration.ofSeconds(30))
-                               .followRedirects(HttpClient.Redirect.NORMAL)
                                .build();
         while (Instant.now().isBefore(end)) {
             var uncachedUri = uriBuilder.setQuery(Map.of("nocache", UUID.randomUUID().toString())).build();
+            log.fine("Validating webrev URL: " + uncachedUri);
             var request = HttpRequest.newBuilder(uncachedUri)
                                      .timeout(Duration.ofSeconds(30))
                                      .GET()
                                      .build();
             try {
                 var response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                if (response.statusCode() < 400) {
+                if (response.statusCode() < 300) {
                     log.info(response.statusCode() + " when checking " + uncachedUri + " - success!");
-                    // Success!
                     return;
+                }
+                if (response.statusCode() < 400) {
+                    var newLocation = response.headers().firstValue("location");
+                    if (newLocation.isPresent()) {
+                        log.info("Webrev url redirection: " + newLocation.get());
+                        uriBuilder = URIBuilder.base(newLocation.get());
+                        continue;
+                    }
                 }
                 log.info(response.statusCode() + " when checking " + uncachedUri + " - waiting...");
                 Thread.sleep(Duration.ofSeconds(10).toMillis());
