@@ -44,7 +44,7 @@ class CheckWorkItem extends PullRequestWorkItem {
     private final Map<String, String> blockingLabels;
     private final IssueProject issueProject;
 
-    private final Pattern metadataComments = Pattern.compile("<!-- (?:(add|remove) contributor)|(?:summary: ')|(?:solves: ')");
+    private final Pattern metadataComments = Pattern.compile("<!-- (?:(add|remove) contributor)|(?:summary: ')|(?:solves: ')|(?:Number of required Reviewers id marker)");
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     CheckWorkItem(PullRequest pr, HostedRepository censusRepo, String censusRef, Map<String, String> blockingLabels,

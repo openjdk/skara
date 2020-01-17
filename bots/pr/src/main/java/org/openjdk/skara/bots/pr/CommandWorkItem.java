@@ -49,7 +49,8 @@ public class CommandWorkItem extends PullRequestWorkItem {
             "sponsor", new SponsorCommand(),
             "contributor", new ContributorCommand(),
             "summary", new SummaryCommand(),
-            "solves", new SolvesCommand()
+            "solves", new SolvesCommand(),
+            "reviewers", new ReviewersCommand()
     );
 
     static class HelpCommand implements CommandHandler {

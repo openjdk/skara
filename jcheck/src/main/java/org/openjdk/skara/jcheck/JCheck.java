@@ -43,6 +43,7 @@ public class JCheck {
     private final Map<String, Set<Hash>> whitelist;
     private final List<CommitCheck> commitChecks;
     private final List<RepositoryCheck> repositoryChecks;
+    private final List<String> additionalConfiguration;
     private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck");
 
     private JCheckConfiguration cachedConfiguration = null;
@@ -54,12 +55,14 @@ public class JCheck {
            Pattern allowedBranches,
            Pattern allowedTags,
            Map<String, Set<Hash>> whitelist,
-           Set<Hash> blacklist) throws IOException {
+           Set<Hash> blacklist,
+           List<String> additionalConfiguration) throws IOException {
         this.repository = repository;
         this.census = census;
         this.parser = parser;
         this.revisionRange = revisionRange;
         this.whitelist = whitelist;
+        this.additionalConfiguration = additionalConfiguration;
 
         var utils = new Utilities();
         commitChecks = List.of(
@@ -81,9 +84,10 @@ public class JCheck {
         );
     }
 
-    private static Optional<JCheckConfiguration> parseConfiguration(ReadOnlyRepository r, Hash h) {
+    private static Optional<JCheckConfiguration> parseConfiguration(ReadOnlyRepository r, Hash h, List<String> additionalConfiguration) {
         try {
-            var content = r.lines(Paths.get(".jcheck/conf"), h).orElse(Collections.emptyList());
+            var content = new ArrayList<>(r.lines(Paths.get(".jcheck/conf"), h).orElse(Collections.emptyList()));
+            content.addAll(additionalConfiguration);
             if (content.size() == 0) {
                 return Optional.empty();
             }
@@ -104,7 +108,7 @@ public class JCheck {
 
 
         if (changesConfiguration || cachedConfiguration == null) {
-            var confAtCommit = parseConfiguration(repository, c.hash());
+            var confAtCommit = parseConfiguration(repository, c.hash(), additionalConfiguration);
             confAtCommit.ifPresent(jCheckConfiguration -> cachedConfiguration = jCheckConfiguration);
             return confAtCommit;
         } else {
@@ -218,7 +222,8 @@ public class JCheck {
                                 String tagRegex,
                                 String revisionRange,
                                 Map<String, Set<Hash>> whitelist,
-                                Set<Hash> blacklist) throws IOException {
+                                Set<Hash> blacklist,
+                                List<String> additionalConfiguration) throws IOException {
 
         var defaultBranchRegex = "|" + repository.defaultBranch().name();
         var allowedBranches = Pattern.compile("^(?:" + branchRegex + defaultBranchRegex + ")$");
@@ -227,7 +232,7 @@ public class JCheck {
         var defaultTagRegex = defaultTag.isPresent() ? "|" + defaultTag.get().name() : "";
         var allowedTags = Pattern.compile("^(?:" + tagRegex + defaultTagRegex + ")$");
 
-        var jcheck = new JCheck(repository, census, parser, revisionRange, allowedBranches, allowedTags, whitelist, blacklist);
+        var jcheck = new JCheck(repository, census, parser, revisionRange, allowedBranches, allowedTags, whitelist, blacklist, additionalConfiguration);
         return jcheck.issues();
     }
 
@@ -237,17 +242,28 @@ public class JCheck {
                                String revisionRange,
                                Hash configuration,
                                Map<String, Set<Hash>> whitelist,
-                               Set<Hash> blacklist) throws IOException {
+                               Set<Hash> blacklist,
+                               List<String> additionalConfiguration) throws IOException {
         if (repository.isEmpty()) {
             return new Issues(new ArrayList<Issue>().iterator(), null);
         }
 
-        var conf = parseConfiguration(repository, configuration);
+        var conf = parseConfiguration(repository, configuration, additionalConfiguration);
 
         var branchRegex = conf.isPresent() ?  conf.get().repository().branches() : ".*";
         var tagRegex =  conf.isPresent() ?  conf.get().repository().tags() : ".*";
 
-        return check(repository, census, parser, branchRegex, tagRegex, revisionRange, whitelist, blacklist);
+        return check(repository, census, parser, branchRegex, tagRegex, revisionRange, whitelist, blacklist, additionalConfiguration);
+    }
+
+    public static Issues check(ReadOnlyRepository repository,
+                               Census census,
+                               CommitMessageParser parser,
+                               String revisionRange,
+                               Hash configuration,
+                               Map<String, Set<Hash>> whitelist,
+                               Set<Hash> blacklist) throws IOException {
+        return check(repository, census, parser, revisionRange, configuration, whitelist, blacklist, List.of());
     }
 
     public static Issues check(ReadOnlyRepository repository,
@@ -280,7 +296,8 @@ public class JCheck {
                                 Pattern.compile(".*"),
                                 Pattern.compile(".*"),
                                 new HashMap<String, Set<Hash>>(),
-                                new HashSet<Hash>());
+                                new HashSet<Hash>(),
+                                List.of());
         return jcheck.checksForCommits();
     }
 }
