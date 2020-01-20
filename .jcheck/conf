@@ -38,4 +38,4 @@ domain=openjdk.org
 files=.*\.java$|.*\.yml$|.*\.gradle$|.*.\txt$
 
 [checks "reviewers"]
-minimum=1
+reviewers=1

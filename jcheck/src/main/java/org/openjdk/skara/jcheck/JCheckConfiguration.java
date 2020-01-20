@@ -118,8 +118,7 @@ public class JCheckConfiguration {
         config.add("message=Merge");
 
         config.add("[checks \"reviewers\"]");
-        config.add("minimum=1");
-        config.add("role=contributor");
+        config.add("contributor=1");
         config.add("ignore=duke");
 
         config.add("[checks \"committer\"]");
