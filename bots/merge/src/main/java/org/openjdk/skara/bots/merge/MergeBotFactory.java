@@ -50,16 +50,19 @@ public class MergeBotFactory implements BotFactory {
 
         var bots = new ArrayList<Bot>();
         for (var repo : specific.get("repositories").asArray()) {
-            var fromRepo = configuration.repository(repo.get("from").asString());
-            var fromBranch = new Branch(configuration.repositoryRef(repo.get("from").asString()));
+            var targetRepo = configuration.repository(repo.get("target").asString());
+            var forkRepo = configuration.repository(repo.get("fork").asString());
 
-            var toRepo = configuration.repository(repo.get("to").asString());
-            var toBranch = new Branch(configuration.repositoryRef(repo.get("to").asString()));
-            var toFork = configuration.repository(repo.get("fork").asString());
+            var specs = new ArrayList<MergeBot.Spec>();
+            for (var spec : repo.get("spec").asArray()) {
+                var from = spec.get("from").asString().split(":");
+                var fromRepo = configuration.repository(from[0]);
+                var fromBranch = new Branch(from[1]);
+                var toBranch = new Branch(spec.get("to").asString());
+                specs.add(new MergeBot.Spec(fromRepo, fromBranch, toBranch));
+            }
 
-            log.info("Setting up merging from " + fromRepo.name() + ":" + fromBranch.name() +
-                     " to " + toRepo.name() + ":" + toBranch.name());
-            bots.add(new MergeBot(storage, fromRepo, fromBranch, toRepo, toBranch, toFork));
+            bots.add(new MergeBot(storage, targetRepo, forkRepo, specs));
         }
         return bots;
     }

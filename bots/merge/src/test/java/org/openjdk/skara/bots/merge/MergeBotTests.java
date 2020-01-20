@@ -92,7 +92,8 @@ class MergeBotTests {
 
             var storage = temp.path().resolve("storage");
             var master = new Branch("master");
-            var bot = new MergeBot(storage, fromHostedRepo, master, toHostedRepo, master, toFork);
+            var specs = List.of(new MergeBot.Spec(fromHostedRepo, master, master));
+            var bot = new MergeBot(storage, toHostedRepo, toFork, specs);
             TestBotRunner.runPeriodicItems(bot);
 
             toCommits = toLocalRepo.commits().asList();
@@ -166,7 +167,8 @@ class MergeBotTests {
 
             var storage = temp.path().resolve("storage");
             var master = new Branch("master");
-            var bot = new MergeBot(storage, fromHostedRepo, master, toHostedRepo, master, toFork);
+            var specs = List.of(new MergeBot.Spec(fromHostedRepo, master, master));
+            var bot = new MergeBot(storage, toHostedRepo, toFork, specs);
             TestBotRunner.runPeriodicItems(bot);
 
             toCommits = toLocalRepo.commits().asList();
@@ -178,7 +180,7 @@ class MergeBotTests {
             var pullRequests = toHostedRepo.pullRequests();
             assertEquals(1, pullRequests.size());
             var pr = pullRequests.get(0);
-            assertEquals("Cannot automatically merge test:master", pr.title());
+            assertEquals("Cannot automatically merge test:master to master", pr.title());
         }
     }
 
@@ -235,7 +237,8 @@ class MergeBotTests {
 
             var storage = temp.path().resolve("storage");
             var master = new Branch("master");
-            var bot = new MergeBot(storage, fromHostedRepo, master, toHostedRepo, master, toFork);
+            var specs = List.of(new MergeBot.Spec(fromHostedRepo, master, master));
+            var bot = new MergeBot(storage, toHostedRepo, toFork, specs);
             TestBotRunner.runPeriodicItems(bot);
             TestBotRunner.runPeriodicItems(bot);
 
@@ -248,7 +251,7 @@ class MergeBotTests {
             var pullRequests = toHostedRepo.pullRequests();
             assertEquals(1, pullRequests.size());
             var pr = pullRequests.get(0);
-            assertEquals("Cannot automatically merge test:master", pr.title());
+            assertEquals("Cannot automatically merge test:master to master", pr.title());
         }
     }
 
@@ -305,7 +308,8 @@ class MergeBotTests {
 
             var storage = temp.path().resolve("storage");
             var master = new Branch("master");
-            var bot = new MergeBot(storage, fromHostedRepo, master, toHostedRepo, master, toFork);
+            var specs = List.of(new MergeBot.Spec(fromHostedRepo, master, master));
+            var bot = new MergeBot(storage, toHostedRepo, toFork, specs);
             TestBotRunner.runPeriodicItems(bot);
             TestBotRunner.runPeriodicItems(bot);
 
@@ -318,7 +322,7 @@ class MergeBotTests {
             var pullRequests = toHostedRepo.pullRequests();
             assertEquals(1, pullRequests.size());
             var pr = pullRequests.get(0);
-            assertEquals("Cannot automatically merge test:master", pr.title());
+            assertEquals("Cannot automatically merge test:master to master", pr.title());
 
             var fetchHead = toLocalRepo.fetch(fromHostedRepo.webUrl(), "master");
             toLocalRepo.merge(fetchHead, "ours");
@@ -386,7 +390,8 @@ class MergeBotTests {
 
             var storage = temp.path().resolve("storage");
             var master = new Branch("master");
-            var bot = new MergeBot(storage, fromHostedRepo, master, toHostedRepo, master, toFork);
+            var specs = List.of(new MergeBot.Spec(fromHostedRepo, master, master));
+            var bot = new MergeBot(storage, toHostedRepo, toFork, specs);
             TestBotRunner.runPeriodicItems(bot);
             TestBotRunner.runPeriodicItems(bot);
 
@@ -399,7 +404,7 @@ class MergeBotTests {
             var pullRequests = toHostedRepo.pullRequests();
             assertEquals(1, pullRequests.size());
             var pr = pullRequests.get(0);
-            assertEquals("Cannot automatically merge test:master", pr.title());
+            assertEquals("Cannot automatically merge test:master to master", pr.title());
 
             var fetchHead = toLocalRepo.fetch(fromHostedRepo.webUrl(), "master");
             toLocalRepo.merge(fetchHead, "ours");
@@ -425,7 +430,7 @@ class MergeBotTests {
             TestBotRunner.runPeriodicItems(bot);
             pullRequests = toHostedRepo.pullRequests();
             assertEquals(1, pullRequests.size());
-            assertEquals("Cannot automatically merge test:master", pr.title());
+            assertEquals("Cannot automatically merge test:master to master", pr.title());
         }
     }
 }
