@@ -41,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class MergeBotTests {
     @Test
     void mergeMasterBranch(TestInfo testInfo) throws IOException {
-        try (var temp = new TemporaryDirectory()) {
+        try (var temp = new TemporaryDirectory(false)) {
             var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
@@ -50,10 +50,17 @@ class MergeBotTests {
 
             var toDir = temp.path().resolve("to.git");
             var toLocalRepo = Repository.init(toDir, VCS.GIT);
-            var gitConfig = toDir.resolve(".git").resolve("config");
-            Files.write(gitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
+            var toGitConfig = toDir.resolve(".git").resolve("config");
+            Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
             var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
+
+            var forkDir = temp.path().resolve("fork.git");
+            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkGitConfig = forkDir.resolve(".git").resolve("config");
+            Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
+                        StandardOpenOption.APPEND);
+            var toFork = new TestHostedRepository(host, "test-mirror-fork", forkLocalRepo);
 
             var now = ZonedDateTime.now();
             var fromFileA = fromDir.resolve("a.txt");
@@ -85,7 +92,8 @@ class MergeBotTests {
 
             var storage = temp.path().resolve("storage");
             var master = new Branch("master");
-            var bot = new MergeBot(storage, fromHostedRepo, master, toHostedRepo, master);
+            var specs = List.of(new MergeBot.Spec(fromHostedRepo, master, master));
+            var bot = new MergeBot(storage, toHostedRepo, toFork, specs);
             TestBotRunner.runPeriodicItems(bot);
 
             toCommits = toLocalRepo.commits().asList();
@@ -108,7 +116,7 @@ class MergeBotTests {
 
     @Test
     void failingMergeTest(TestInfo testInfo) throws IOException {
-        try (var temp = new TemporaryDirectory()) {
+        try (var temp = new TemporaryDirectory(false)) {
             var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
@@ -117,10 +125,17 @@ class MergeBotTests {
 
             var toDir = temp.path().resolve("to.git");
             var toLocalRepo = Repository.init(toDir, VCS.GIT);
-            var gitConfig = toDir.resolve(".git").resolve("config");
-            Files.write(gitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
+            var toGitConfig = toDir.resolve(".git").resolve("config");
+            Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
             var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
+
+            var forkDir = temp.path().resolve("fork.git");
+            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkGitConfig = forkDir.resolve(".git").resolve("config");
+            Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
+                        StandardOpenOption.APPEND);
+            var toFork = new TestHostedRepository(host, "test-mirror-fork", forkLocalRepo);
 
             var now = ZonedDateTime.now();
             var fromFileA = fromDir.resolve("a.txt");
@@ -152,7 +167,8 @@ class MergeBotTests {
 
             var storage = temp.path().resolve("storage");
             var master = new Branch("master");
-            var bot = new MergeBot(storage, fromHostedRepo, master, toHostedRepo, master);
+            var specs = List.of(new MergeBot.Spec(fromHostedRepo, master, master));
+            var bot = new MergeBot(storage, toHostedRepo, toFork, specs);
             TestBotRunner.runPeriodicItems(bot);
 
             toCommits = toLocalRepo.commits().asList();
@@ -164,13 +180,13 @@ class MergeBotTests {
             var pullRequests = toHostedRepo.pullRequests();
             assertEquals(1, pullRequests.size());
             var pr = pullRequests.get(0);
-            assertEquals("Cannot automatically merge test:master", pr.title());
+            assertEquals("Cannot automatically merge test:master to master", pr.title());
         }
     }
 
     @Test
     void failingMergeShouldResultInOnlyOnePR(TestInfo testInfo) throws IOException {
-        try (var temp = new TemporaryDirectory()) {
+        try (var temp = new TemporaryDirectory(false)) {
             var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
@@ -179,10 +195,17 @@ class MergeBotTests {
 
             var toDir = temp.path().resolve("to.git");
             var toLocalRepo = Repository.init(toDir, VCS.GIT);
-            var gitConfig = toDir.resolve(".git").resolve("config");
-            Files.write(gitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
+            var toGitConfig = toDir.resolve(".git").resolve("config");
+            Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
             var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
+
+            var forkDir = temp.path().resolve("fork.git");
+            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkGitConfig = forkDir.resolve(".git").resolve("config");
+            Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
+                        StandardOpenOption.APPEND);
+            var toFork = new TestHostedRepository(host, "test-mirror-fork", forkLocalRepo);
 
             var now = ZonedDateTime.now();
             var fromFileA = fromDir.resolve("a.txt");
@@ -214,7 +237,8 @@ class MergeBotTests {
 
             var storage = temp.path().resolve("storage");
             var master = new Branch("master");
-            var bot = new MergeBot(storage, fromHostedRepo, master, toHostedRepo, master);
+            var specs = List.of(new MergeBot.Spec(fromHostedRepo, master, master));
+            var bot = new MergeBot(storage, toHostedRepo, toFork, specs);
             TestBotRunner.runPeriodicItems(bot);
             TestBotRunner.runPeriodicItems(bot);
 
@@ -227,7 +251,7 @@ class MergeBotTests {
             var pullRequests = toHostedRepo.pullRequests();
             assertEquals(1, pullRequests.size());
             var pr = pullRequests.get(0);
-            assertEquals("Cannot automatically merge test:master", pr.title());
+            assertEquals("Cannot automatically merge test:master to master", pr.title());
         }
     }
 
@@ -242,10 +266,17 @@ class MergeBotTests {
 
             var toDir = temp.path().resolve("to.git");
             var toLocalRepo = Repository.init(toDir, VCS.GIT);
-            var gitConfig = toDir.resolve(".git").resolve("config");
-            Files.write(gitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
+            var toGitConfig = toDir.resolve(".git").resolve("config");
+            Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
             var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
+
+            var forkDir = temp.path().resolve("fork.git");
+            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkGitConfig = forkDir.resolve(".git").resolve("config");
+            Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
+                        StandardOpenOption.APPEND);
+            var toFork = new TestHostedRepository(host, "test-mirror-fork", forkLocalRepo);
 
             var now = ZonedDateTime.now();
             var fromFileA = fromDir.resolve("a.txt");
@@ -277,7 +308,8 @@ class MergeBotTests {
 
             var storage = temp.path().resolve("storage");
             var master = new Branch("master");
-            var bot = new MergeBot(storage, fromHostedRepo, master, toHostedRepo, master);
+            var specs = List.of(new MergeBot.Spec(fromHostedRepo, master, master));
+            var bot = new MergeBot(storage, toHostedRepo, toFork, specs);
             TestBotRunner.runPeriodicItems(bot);
             TestBotRunner.runPeriodicItems(bot);
 
@@ -290,7 +322,7 @@ class MergeBotTests {
             var pullRequests = toHostedRepo.pullRequests();
             assertEquals(1, pullRequests.size());
             var pr = pullRequests.get(0);
-            assertEquals("Cannot automatically merge test:master", pr.title());
+            assertEquals("Cannot automatically merge test:master to master", pr.title());
 
             var fetchHead = toLocalRepo.fetch(fromHostedRepo.webUrl(), "master");
             toLocalRepo.merge(fetchHead, "ours");
@@ -316,10 +348,17 @@ class MergeBotTests {
 
             var toDir = temp.path().resolve("to.git");
             var toLocalRepo = Repository.init(toDir, VCS.GIT);
-            var gitConfig = toDir.resolve(".git").resolve("config");
-            Files.write(gitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
+            var toGitConfig = toDir.resolve(".git").resolve("config");
+            Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
             var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
+
+            var forkDir = temp.path().resolve("fork.git");
+            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkGitConfig = forkDir.resolve(".git").resolve("config");
+            Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
+                        StandardOpenOption.APPEND);
+            var toFork = new TestHostedRepository(host, "test-mirror-fork", forkLocalRepo);
 
             var now = ZonedDateTime.now();
             var fromFileA = fromDir.resolve("a.txt");
@@ -351,7 +390,8 @@ class MergeBotTests {
 
             var storage = temp.path().resolve("storage");
             var master = new Branch("master");
-            var bot = new MergeBot(storage, fromHostedRepo, master, toHostedRepo, master);
+            var specs = List.of(new MergeBot.Spec(fromHostedRepo, master, master));
+            var bot = new MergeBot(storage, toHostedRepo, toFork, specs);
             TestBotRunner.runPeriodicItems(bot);
             TestBotRunner.runPeriodicItems(bot);
 
@@ -364,7 +404,7 @@ class MergeBotTests {
             var pullRequests = toHostedRepo.pullRequests();
             assertEquals(1, pullRequests.size());
             var pr = pullRequests.get(0);
-            assertEquals("Cannot automatically merge test:master", pr.title());
+            assertEquals("Cannot automatically merge test:master to master", pr.title());
 
             var fetchHead = toLocalRepo.fetch(fromHostedRepo.webUrl(), "master");
             toLocalRepo.merge(fetchHead, "ours");
@@ -390,7 +430,7 @@ class MergeBotTests {
             TestBotRunner.runPeriodicItems(bot);
             pullRequests = toHostedRepo.pullRequests();
             assertEquals(1, pullRequests.size());
-            assertEquals("Cannot automatically merge test:master", pr.title());
+            assertEquals("Cannot automatically merge test:master to master", pr.title());
         }
     }
 }

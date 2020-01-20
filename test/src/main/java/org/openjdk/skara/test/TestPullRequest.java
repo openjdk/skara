@@ -36,22 +36,24 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class TestPullRequest extends TestIssue implements PullRequest {
-    private final TestHostedRepository repository;
+    private final TestHostedRepository targetRepository;
+    private final TestHostedRepository sourceRepository;
     private final String targetRef;
     private final String sourceRef;
     private final PullRequestData data;
 
-    private TestPullRequest(TestHostedRepository repository, String id, HostUser author, HostUser user, String targetRef, String sourceRef, PullRequestData data) {
-        super(repository, id, author, user, data);
-        this.repository = repository;
+    private TestPullRequest(TestHostedRepository targetRepository, TestHostedRepository sourceRepository, String id, HostUser author, HostUser user, String targetRef, String sourceRef, PullRequestData data) {
+        super(targetRepository, id, author, user, data);
+        this.targetRepository = targetRepository;
+        this.sourceRepository = sourceRepository;
         this.targetRef = targetRef;
         this.sourceRef = sourceRef;
         this.data = data;
 
         try {
-            var headHash = repository.localRepository().resolve(sourceRef).orElseThrow();
-            if (!headHash.equals(data.headHash)) {
-                data.headHash = headHash;
+            var headHash = sourceRepository.localRepository().resolve(sourceRef);
+            if (headHash.isPresent() && !headHash.get().equals(data.headHash)) {
+                data.headHash = headHash.get();
                 data.lastUpdate = ZonedDateTime.now();
             }
         } catch (IOException e) {
@@ -59,23 +61,23 @@ public class TestPullRequest extends TestIssue implements PullRequest {
         }
     }
 
-    static TestPullRequest createNew(TestHostedRepository repository, String id, String targetRef, String sourceRef, String title, List<String> body, boolean draft) {
+    static TestPullRequest createNew(TestHostedRepository targetRepository, TestHostedRepository sourceRepository, String id, String targetRef, String sourceRef, String title, List<String> body, boolean draft) {
         var data = new PullRequestData();
         data.title = title;
         data.body = String.join("\n", body);
         data.draft = draft;
-        var pr = new TestPullRequest(repository, id, repository.forge().currentUser(), repository.forge().currentUser(), targetRef, sourceRef, data);
+        var pr = new TestPullRequest(targetRepository, sourceRepository, id, targetRepository.forge().currentUser(), targetRepository.forge().currentUser(), targetRef, sourceRef, data);
         return pr;
     }
 
     static TestPullRequest createFrom(TestHostedRepository repository, TestPullRequest other) {
-        var pr = new TestPullRequest(repository, other.id, other.author, repository.forge().currentUser(), other.targetRef, other.sourceRef, other.data);
+        var pr = new TestPullRequest(repository, other.sourceRepository, other.id, other.author, repository.forge().currentUser(), other.targetRef, other.sourceRef, other.data);
         return pr;
     }
 
     @Override
     public HostedRepository repository() {
-        return repository;
+        return targetRepository;
     }
 
     @Override
@@ -91,8 +93,8 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     @Override
     public void addReview(Review.Verdict verdict, String body) {
         try {
-            var review = new Review(ZonedDateTime.now(), repository.forge().currentUser(),
-                                    verdict, repository.localRepository().resolve(sourceRef).orElseThrow(),
+            var review = new Review(ZonedDateTime.now(), targetRepository.forge().currentUser(),
+                                    verdict, targetRepository.localRepository().resolve(sourceRef).orElseThrow(),
                                     data.reviews.size(),
                                     body);
 
@@ -145,7 +147,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
 
     @Override
     public HostedRepository sourceRepository() {
-        return repository;
+        return sourceRepository;
     }
 
     @Override
@@ -155,7 +157,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
 
     @Override
     public Hash targetHash() {
-        return repository.branchHash(targetRef);
+        return targetRepository.branchHash(targetRef);
     }
 
     @Override
@@ -205,7 +207,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     @Override
     public URI webUrl() {
         try {
-            return new URI(repository.url().toString() + "/pr/" + id());
+            return new URI(targetRepository.url().toString() + "/pr/" + id());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }

@@ -627,6 +627,16 @@ public class GitRepository implements Repository {
     }
 
     @Override
+    public void prune(Branch branch, String remote) throws IOException {
+        try (var p = capture("git", "push", "--delete", remote, branch.name())) {
+            await(p);
+        }
+        try (var p = capture("git", "branch", "--delete", "--force", branch.name())) {
+            await(p);
+        }
+    }
+
+    @Override
     public Hash mergeBase(Hash first, Hash second) throws IOException {
         try (var p = capture("git", "merge-base", first.hex(), second.hex())) {
             var res = await(p);

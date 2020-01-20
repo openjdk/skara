@@ -41,7 +41,7 @@ public class TestWebrevServer implements AutoCloseable {
             var response = "ok!";
             var responseBytes = response.getBytes(StandardCharsets.UTF_8);
             if (!exchange.getRequestURI().toString().contains("final=true")) {
-                exchange.getResponseHeaders().add("Location", exchange.getRequestURI().toString() + "&final=true");
+                exchange.getResponseHeaders().add("Location", uri() + "&final=true");
                 exchange.sendResponseHeaders(302, responseBytes.length);
             } else {
                 redirectFollowed = true;

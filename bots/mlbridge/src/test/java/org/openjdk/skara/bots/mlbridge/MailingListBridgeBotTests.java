@@ -879,6 +879,8 @@ class MailingListBridgeBotTests {
             var webrevComments = comments.stream()
                                          .filter(comment -> comment.author().equals(author.forge().currentUser()))
                                          .filter(comment -> comment.body().contains("webrev"))
+                                         .filter(comment -> comment.body().contains("Full"))
+                                         .filter(comment -> comment.body().contains("Incremental"))
                                          .filter(comment -> comment.body().contains(nextHash.hex()))
                                          .filter(comment -> comment.body().contains(editHash.hex()))
                                          .collect(Collectors.toList());
@@ -1323,6 +1325,62 @@ class MailingListBridgeBotTests {
             assertFalse(archiveContains(archiveFolder.path(), "it is time to"));
             assertFalse(archiveContains(archiveFolder.path(), "Don't mind me"));
             assertFalse(archiveContains(archiveFolder.path(), "Review ignore"));
+        }
+    }
+
+    @Test
+    void replyToEmptyReview(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var archiveFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(reviewer.forge().currentUser().id())
+                                           .addAuthor(author.forge().currentUser().id());
+            var from = EmailAddress.from("test", "test@test.mail");
+            var mlBot = new MailingListBridgeBot(from, author, archive, "master", censusBuilder.build(), "master",
+                                                 listAddress, Set.of(), Set.of(),
+                                                 listServer.getArchive(),
+                                                 listServer.getSMTP(),
+                                                 archive, "webrev", Path.of("test"),
+                                                 webrevServer.uri(),
+                                                 Set.of(), Map.of(),
+                                                 URIBuilder.base("http://issues.test/browse/").build(),
+                                                 Map.of(), Duration.ZERO);
+
+            // Populate the projects repository
+            var reviewFile = Path.of("reviewfile.txt");
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
+            pr.setBody("This is now ready");
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // Make an empty approval
+            var reviewPr = reviewer.pullRequest(pr.id());
+            reviewPr.addReview(Review.Verdict.APPROVED, "");
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            pr.addComment("Thanks for the review!");
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // The approval text should be included in the quote
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "^> Marked as reviewed"));
         }
     }
 }

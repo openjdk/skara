@@ -143,9 +143,9 @@ public class TestHost implements Forge, IssueTracker {
         }
     }
 
-    TestPullRequest createPullRequest(TestHostedRepository repository, String targetRef, String sourceRef, String title, List<String> body, boolean draft) {
+    TestPullRequest createPullRequest(TestHostedRepository targetRepository, TestHostedRepository sourceRepository, String targetRef, String sourceRef, String title, List<String> body, boolean draft) {
         var id = String.valueOf(data.pullRequests.size() + 1);
-        var pr = TestPullRequest.createNew(repository, id, targetRef, sourceRef, title, body, draft);
+        var pr = TestPullRequest.createNew(targetRepository, sourceRepository, id, targetRef, sourceRef, title, body, draft);
         data.pullRequests.put(id, pr);
         return pr;
     }
