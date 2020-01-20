@@ -226,7 +226,7 @@ class ArchiveMessages {
     }
 
     static String composeReview(PullRequest pr, Review review, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole) {
-        if (review.body().isPresent()) {
+        if (review.body().isPresent() && !review.body().get().isBlank()) {
             return filterComments(review.body().get());
         } else {
             return composeReviewVerdict(review, hostUserToUserName, hostUserToRole);
@@ -235,7 +235,7 @@ class ArchiveMessages {
 
     static String composeReviewFooter(PullRequest pr, Review review, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole) {
         var result = new StringBuilder();
-        if (review.body().isPresent()) {
+        if (review.body().isPresent() && !review.body().get().isBlank()) {
             result.append(composeReviewVerdict(review, hostUserToUserName, hostUserToRole));
             result.append("\n\n");
         }
