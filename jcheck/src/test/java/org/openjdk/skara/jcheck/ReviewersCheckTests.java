@@ -337,7 +337,7 @@ class ReviewersCheckTests {
     }
 
     @Test
-    void relazedRoleAndMissingRoleShouldFail() throws IOException {
+    void relaxedRoleAndMissingRoleShouldFail() throws IOException {
         var commit = commit(List.of("bar", "contributor"));
         var check = new ReviewersCheck(census(), utils);
         var issues = toList(check.check(commit, message(commit), conf(0, 1, 1)));
