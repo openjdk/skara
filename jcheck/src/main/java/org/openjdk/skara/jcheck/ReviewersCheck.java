@@ -29,6 +29,9 @@ import org.openjdk.skara.vcs.openjdk.CommitMessage;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 import java.util.logging.Logger;
 
@@ -42,20 +45,24 @@ public class ReviewersCheck extends CommitCheck {
         this.utils = utils;
     }
 
-    private boolean hasRole(Project project, String role, String username, int version) {
+    private String nextRequiredRole(String role, Map<String, Integer> count) {
         switch (role) {
             case "lead":
-                return project.isLead(username, version);
+                return count.get("reviewer") != 0 ?
+                    "reviewer" : nextRequiredRole("reviewer", count);
             case "reviewer":
-                return project.isReviewer(username, version);
+                return count.get("committer") != 0 ?
+                    "committer" : nextRequiredRole("committer", count);
             case "committer":
-                return project.isCommitter(username, version);
+                return count.get("author") != 0 ?
+                    "author" : nextRequiredRole("author", count);
             case "author":
-                return project.isAuthor(username, version);
+                return count.get("contributor") != 0 ?
+                    "contributor" : nextRequiredRole("contributor", count);
             case "contributor":
-                return census.isContributor(username);
+                return null;
             default:
-                throw new IllegalStateException("Unsupported role: " + role);
+                throw new IllegalArgumentException("Unexpected role: " + role);
         }
     }
 
@@ -69,21 +76,18 @@ public class ReviewersCheck extends CommitCheck {
         var project = census.project(conf.general().project());
         var version = conf.census().version();
         var domain = conf.census().domain();
-        var role = conf.checks().reviewers().role();
-        var required = conf.checks().reviewers().minimum();
+
+        var numLeadRole = conf.checks().reviewers().lead();
+        var numReviewerRole = conf.checks().reviewers().reviewers();
+        var numCommitterRole = conf.checks().reviewers().committers();
+        var numAuthorRole = conf.checks().reviewers().authors();
+        var numContributorRole = conf.checks().reviewers().contributors();
+
         var ignore = conf.checks().reviewers().ignore();
         var reviewers = message.reviewers()
                                .stream()
                                .filter(r -> !ignore.contains(r))
                                .collect(Collectors.toList());
-
-        var actual = reviewers.stream()
-                              .filter(reviewer -> hasRole(project, role, reviewer, version))
-                              .count();
-        if (actual < required) {
-            log.finer("issue: too few reviewers found");
-            return iterator(new TooFewReviewersIssue(Math.toIntExact(actual), required, metadata));
-        }
 
         var invalid = reviewers.stream()
                                .filter(r -> !census.isContributor(r))
@@ -91,6 +95,55 @@ public class ReviewersCheck extends CommitCheck {
         if (!reviewers.isEmpty() && !invalid.isEmpty()) {
             log.finer("issue: invalid reviewers found");
             return iterator(new InvalidReviewersIssue(invalid, project, metadata));
+        }
+
+        var requirements = Map.of(
+                "lead", numLeadRole,
+                "reviewer", numReviewerRole,
+                "committer", numCommitterRole,
+                "author", numAuthorRole,
+                "contributor", numContributorRole);
+
+        var roles = new HashMap<String, String>();
+        for (var reviewer : reviewers) {
+            String role = null;
+            if (project.isLead(reviewer, version)) {
+                role = "lead";
+            } else if (project.isReviewer(reviewer, version)) {
+                role = "reviewer";
+            } else if (project.isCommitter(reviewer, version)) {
+                role = "committer";
+            } else if (project.isAuthor(reviewer, version)) {
+                role = "author";
+            } else if (census.isContributor(reviewer)) {
+                role = "contributor";
+            } else {
+                throw new IllegalStateException("No role for reviewer: " + reviewer);
+            }
+
+            roles.put(reviewer, role);
+        }
+
+        var missing = new HashMap<String, Integer>(requirements);
+        for (var reviewer : reviewers) {
+            var role = roles.get(reviewer);
+            if (missing.get(role) == 0) {
+                var next = nextRequiredRole(role, missing);
+                if (next != null) {
+                    missing.put(next, missing.get(next) - 1);
+                }
+            } else {
+                missing.put(role, missing.get(role) - 1);
+            }
+        }
+
+        for (var role : missing.keySet()) {
+            int required = requirements.get(role);
+            int n = missing.get(role);
+            if (n > 0) {
+                log.finer("issue: too few reviewers with role " + role + " found");
+                return iterator(new TooFewReviewersIssue(required - n, required, role, metadata));
+            }
         }
 
         var username = commit.author().name();

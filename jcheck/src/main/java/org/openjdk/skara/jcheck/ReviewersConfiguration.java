@@ -28,24 +28,42 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class ReviewersConfiguration {
-    static final ReviewersConfiguration DEFAULT = new ReviewersConfiguration(1, "reviewer", List.of("duke"));
+    static final ReviewersConfiguration DEFAULT = new ReviewersConfiguration(0, 1, 0, 0, 0, List.of("duke"));
 
-    private final int minimum;
-    private final String role;
+    private final int lead;
+    private final int reviewers;
+    private final int committers;
+    private final int authors;
+    private final int contributors;
     private final List<String> ignore;
 
-    ReviewersConfiguration(int minimum, String role, List<String> ignore) {
-        this.minimum = minimum;
-        this.role = role;
+    ReviewersConfiguration(int lead, int reviewers, int committers, int authors, int contributors, List<String> ignore) {
+        this.lead = lead;
+        this.reviewers = reviewers;
+        this.committers = committers;
+        this.authors = authors;
+        this.contributors = contributors;
         this.ignore = ignore;
     }
 
-    public int minimum() {
-        return minimum;
+    public int lead() {
+        return lead;
     }
 
-    public String role() {
-        return role;
+    public int reviewers() {
+        return reviewers;
+    }
+
+    public int committers() {
+        return committers;
+    }
+
+    public int authors() {
+        return authors;
+    }
+
+    public int contributors() {
+        return contributors;
     }
 
     public List<String> ignore() {
@@ -61,9 +79,36 @@ public class ReviewersConfiguration {
             return DEFAULT;
         }
 
-        var minimum = s.get("minimum", DEFAULT.minimum());
-        var role = s.get("role", DEFAULT.role());
+        var lead = s.get("lead", DEFAULT.lead());
+        var reviewers = s.get("reviewers", DEFAULT.reviewers());
+        var committers = s.get("committers", DEFAULT.committers());
+        var authors = s.get("authors", DEFAULT.authors());
+        var contributors = s.get("contributors", DEFAULT.contributors());
+
+        if (s.contains("minimum")) {
+            var minimum = s.get("minimum").asInt();
+            if (s.contains("role")) {
+                var role = s.get("role").asString();
+                if (role.equals("lead")) {
+                    lead = minimum;
+                } else if (role.equals("reviewer")) {
+                    reviewers = minimum;
+                } else if (role.equals("committer")) {
+                    committers = minimum;
+                } else if (role.equals("author")) {
+                    authors = minimum;
+                } else if (role.equals("contributor")) {
+                    contributors = minimum;
+                } else {
+                    throw new IllegalArgumentException("Unexpected role: " + role);
+                }
+            } else {
+                reviewers = minimum;
+            }
+        }
+
         var ignore = s.get("ignore", DEFAULT.ignore());
-        return new ReviewersConfiguration(minimum, role, ignore);
+
+        return new ReviewersConfiguration(lead, reviewers, committers, authors, contributors, ignore);
     }
 }
