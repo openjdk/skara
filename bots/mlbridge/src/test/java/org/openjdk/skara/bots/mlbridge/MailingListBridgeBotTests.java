@@ -879,6 +879,8 @@ class MailingListBridgeBotTests {
             var webrevComments = comments.stream()
                                          .filter(comment -> comment.author().equals(author.forge().currentUser()))
                                          .filter(comment -> comment.body().contains("webrev"))
+                                         .filter(comment -> comment.body().contains("Full"))
+                                         .filter(comment -> comment.body().contains("Incremental"))
                                          .filter(comment -> comment.body().contains(nextHash.hex()))
                                          .filter(comment -> comment.body().contains(editHash.hex()))
                                          .collect(Collectors.toList());

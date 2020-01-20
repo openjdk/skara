@@ -26,5 +26,5 @@ import java.net.URI;
 
 @FunctionalInterface
 interface WebrevNotification {
-    void notify(URI uri, int index, boolean isFull);
+    void notify(int index, URI full, URI incremental);
 }

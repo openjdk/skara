@@ -42,7 +42,7 @@ class ArchiveItem {
                                () -> ArchiveMessages.composeConversation(pr, base, head),
                                () -> {
                                     var fullWebrev = webrevGenerator.generate(base, head, "00");
-                                    webrevNotification.notify(fullWebrev, 0, true);
+                                    webrevNotification.notify(0, fullWebrev, null);
                                     return ArchiveMessages.composeConversationFooter(pr, issueTracker, issuePrefix, localRepo, fullWebrev, base, head);
                                });
     }
@@ -54,10 +54,9 @@ class ArchiveItem {
                                () -> ArchiveMessages.composeRevision(pr, localRepo, base, head, lastBase, lastHead),
                                () -> {
                                     var fullWebrev = webrevGenerator.generate(base, head, String.format("%02d", index));
-                                    webrevNotification.notify(fullWebrev, index, true);
                                     if (lastBase.equals(base)) {
                                         var incrementalWebrev = webrevGenerator.generate(lastHead, head, String.format("%02d-%02d", index - 1, index));
-                                        webrevNotification.notify(incrementalWebrev, index, false);
+                                        webrevNotification.notify(index, fullWebrev, incrementalWebrev);
                                         return ArchiveMessages.composeIncrementalFooter(pr, localRepo, fullWebrev, incrementalWebrev, head, lastHead);
                                     } else {
                                         // It may be possible to auto-rebase the last head onto the new base to get an incremental webrev
@@ -66,10 +65,11 @@ class ArchiveItem {
                                             localRepo.rebase(base, "duke", "duke@openjdk.org");
                                             var rebasedLastHead = localRepo.head();
                                             var incrementalWebrev = webrevGenerator.generate(rebasedLastHead, head, String.format("%02d-%02d", index - 1, index));
-                                            webrevNotification.notify(incrementalWebrev, index, false);
+                                            webrevNotification.notify(index, fullWebrev, incrementalWebrev);
                                             return ArchiveMessages.composeIncrementalFooter(pr, localRepo, fullWebrev, incrementalWebrev, head, lastHead);
                                         } catch (IOException e) {
                                             // If it doesn't work out we just post a full webrev
+                                            webrevNotification.notify(index, fullWebrev, null);
                                             return ArchiveMessages.composeRebaseFooter(pr, localRepo, fullWebrev, base, head);
                                         }
                                     }
