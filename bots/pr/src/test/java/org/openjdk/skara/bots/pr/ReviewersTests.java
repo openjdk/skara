@@ -65,21 +65,36 @@ public class ReviewersTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a help message
-            assertLastCommentContains(reviewerPr,"is the number of required Reviewers");
+            assertLastCommentContains(reviewerPr,"is the additional number of required reviewers");
 
             // Invalid syntax
             reviewerPr.addComment("/reviewers two");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a help message
-            assertLastCommentContains(reviewerPr,"is the number of required Reviewers");
+            assertLastCommentContains(reviewerPr,"is the additional number of required reviewers");
+
+            // Too many
+            reviewerPr.addComment("/reviewers 7001");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(reviewerPr,"Number of additional required reviewers has to be between");
+
+            // Too few
+            reviewerPr.addComment("/reviewers -3");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(reviewerPr,"Number of additional required reviewers has to be between");
+
+            // Unknown role
+            reviewerPr.addComment("/reviewers 2 penguins");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(reviewerPr,"Unknown role `penguins` specified");
 
             // Set the number
-            reviewerPr.addComment("/reviewers 2");
+            reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(reviewerPr,"number of required Reviewers is now set to 2");
+            assertLastCommentContains(reviewerPr,"additional required reviews from committers is now set to 1");
 
             // Approve it as another user
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
@@ -91,11 +106,30 @@ public class ReviewersTests {
             assertFalse(updatedPr.labels().contains("ready"));
 
             // Now reduce the number of required reviewers
-            reviewerPr.addComment("/reviewers 1");
+            reviewerPr.addComment("/reviewers 0");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
 
             // The PR should now be considered as ready for review
+            updatedPr = author.pullRequest(pr.id());
+            assertTrue(updatedPr.labels().contains("ready"));
+
+            // Now request that the lead reviews
+            reviewerPr.addComment("/reviewers 1 lead");
+            TestBotRunner.runPeriodicItems(prBot);
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(reviewerPr,"additional required reviews from lead is now set to 1");
+
+            // The PR should no longer be considered as ready for review
+            updatedPr = author.pullRequest(pr.id());
+            assertFalse(updatedPr.labels().contains("ready"));
+
+            // Drop the extra requirement
+            reviewerPr.addComment("/reviewers 0 lead");
+            TestBotRunner.runPeriodicItems(prBot);
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The PR should now be considered as ready for review yet again
             updatedPr = author.pullRequest(pr.id());
             assertTrue(updatedPr.labels().contains("ready"));
         }
@@ -129,11 +163,11 @@ public class ReviewersTests {
             var reviewerPr = integrator.pullRequest(pr.id());
 
             // Set the number
-            reviewerPr.addComment("/reviewers 2");
+            reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(reviewerPr,"number of required Reviewers is now set to 2");
+            assertLastCommentContains(reviewerPr,"additional required reviews from committers is now set to 1");
 
             // Approve it as another user
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
@@ -143,10 +177,10 @@ public class ReviewersTests {
             // It should not be possible to integrate yet
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(reviewerPr,"Too few reviewers found (have 1, need at least 2)");
+            assertLastCommentContains(reviewerPr,"Too few reviewers with at least role committer found (have 0, need at least 1)");
 
             // Relax the requirement
-            reviewerPr.addComment("/reviewers 1");
+            reviewerPr.addComment("/reviewers 0");
             TestBotRunner.runPeriodicItems(prBot);
 
             // It should now work fine
@@ -194,19 +228,19 @@ public class ReviewersTests {
             assertLastCommentContains(reviewerPr,"now ready to be sponsored");
 
             // Set the number
-            reviewerPr.addComment("/reviewers 2");
+            reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(reviewerPr,"number of required Reviewers is now set to 2");
+            assertLastCommentContains(reviewerPr,"additional required reviews from committers is now set to 1");
 
             // It should not be possible to sponsor
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(reviewerPr,"Too few reviewers found (have 1, need at least 2)");
+            assertLastCommentContains(reviewerPr,"Too few reviewers with at least role committer found (have 0, need at least 1)");
 
             // Relax the requirement
-            reviewerPr.addComment("/reviewers 1");
+            reviewerPr.addComment("/reviewers 0");
             TestBotRunner.runPeriodicItems(prBot);
 
             // It should now work fine

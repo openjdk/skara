@@ -27,30 +27,68 @@ import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
-import java.util.List;
+import java.util.*;
 
 public class ReviewersCommand implements CommandHandler {
+    private static final Map<String, String> roleMappings = Map.of(
+            "lead", "lead",
+            "reviewers", "reviewers",
+            "reviewer", "reviewers",
+            "committers", "committers",
+            "committer", "committers",
+            "authors", "authors",
+            "author", "author",
+            "contributors", "contributors",
+            "contributor", "contributors");
+
+    private void showHelp(PrintWriter reply) {
+        reply.println("Usage: `/reviewers <n> [<role>]` where `<n>` is the additional number of required reviewers. " +
+                              "If role is set, the reviewers need to have that project role. If omitted, role defaults to `committers`.");
+    }
+
     @Override
     public void handle(PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
         if (!ProjectPermissions.mayReview(censusInstance, comment.author())) {
-            reply.println("Only [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to set the number of required Reviewers.");
+            reply.println("Only [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to increase the number of required reviewers.");
+            return;
+        }
+
+        var splitArgs = args.split(" ");
+        if (splitArgs.length < 1 || splitArgs.length > 2) {
+            showHelp(reply);
             return;
         }
 
         int numReviewers;
         try {
-            numReviewers = Integer.parseInt(args);
+            numReviewers = Integer.parseInt(splitArgs[0]);
         } catch (NumberFormatException e) {
-            reply.println("Usage: `/reviewers <n>` where `<n>` is the number of required Reviewers.");
+            showHelp(reply);
             return;
         }
 
-        reply.println(ReviewersTracker.setReviewersMarker(numReviewers));
-        reply.println("The number of required Reviewers is now set to " + numReviewers + ".");
+        if (numReviewers < 0 || numReviewers > 10) {
+            showHelp(reply);
+            reply.println("Number of additional required reviewers has to be between 0 and 10.");
+            return;
+        }
+
+        String role = "committers";
+        if (splitArgs.length > 1) {
+            if (!roleMappings.containsKey(splitArgs[1].toLowerCase())) {
+                showHelp(reply);
+                reply.println("Unknown role `" + splitArgs[1] + "` specified.");
+                return;
+            }
+            role = roleMappings.get(splitArgs[1].toLowerCase());
+        }
+
+        reply.println(ReviewersTracker.setReviewersMarker(numReviewers, role));
+        reply.println("The number of additional required reviews from " + role + " is now set to " + numReviewers + ".");
     }
 
     @Override
     public String description() {
-        return "set the number of required Reviewers for this PR";
+        return "set the number of additional required reviewers for this PR";
     }
 }

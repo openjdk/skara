@@ -92,7 +92,8 @@ public class IntegrateCommand implements CommandHandler {
             }
 
             var issues = prInstance.createVisitor(localHash, censusInstance);
-            prInstance.executeChecks(localHash, censusInstance, issues, AdditionalConfiguration.get(pr.repository().forge().currentUser(), allComments));
+            var additionalConfiguration = AdditionalConfiguration.get(prInstance.localRepo(), localHash, pr.repository().forge().currentUser(), allComments);
+            prInstance.executeChecks(localHash, censusInstance, issues, additionalConfiguration);
             if (!issues.getMessages().isEmpty()) {
                 reply.print("Your merge request cannot be fulfilled at this time, as ");
                 reply.println("your changes failed the final jcheck:");

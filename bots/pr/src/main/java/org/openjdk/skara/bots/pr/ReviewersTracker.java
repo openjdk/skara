@@ -30,24 +30,27 @@ import java.util.regex.*;
 import java.util.stream.Collectors;
 
 class ReviewersTracker {
-    private final static String reviewersMarker = "<!-- Number of required Reviewers id marker (%d) -->";
+    private final static String reviewersMarker = "<!-- additional required reviewers id marker (%d) (%s) -->";
     private final static Pattern reviewersMarkerPattern = Pattern.compile(
-            "<!-- Number of required Reviewers id marker \\((\\d+)\\) -->");
+            "<!-- additional required reviewers id marker \\((\\d+)\\) \\((\\w+)\\) -->");
 
-    static String setReviewersMarker(int numReviewers) {
-        return String.format(reviewersMarker, numReviewers);
+    static String setReviewersMarker(int numReviewers, String role) {
+        return String.format(reviewersMarker, numReviewers, role);
     }
 
-    static Optional<Integer> currentRequiredReviewers(HostUser botUser, List<Comment> comments) {
+    static Map<String, Integer> additionalRequiredReviewers(HostUser botUser, List<Comment> comments) {
+        var ret = new HashMap<String, Integer>();
         var reviewersActions = comments.stream()
                                        .filter(comment -> comment.author().equals(botUser))
                                        .map(comment -> reviewersMarkerPattern.matcher(comment.body()))
                                        .filter(Matcher::find)
                                        .collect(Collectors.toList());
         if (reviewersActions.isEmpty()) {
-            return Optional.empty();
+            return ret;
         }
-        var lastMatch = reviewersActions.get(reviewersActions.size() - 1);
-        return Optional.of(Integer.parseInt(lastMatch.group(1)));
+        for (var reviewersAction : reviewersActions) {
+            ret.put(reviewersAction.group(2), Integer.parseInt(reviewersAction.group(1)));
+        }
+        return ret;
     }
 }
