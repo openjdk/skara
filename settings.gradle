@@ -44,6 +44,7 @@ include 'webrev'
 include 'network'
 include 'forge'
 include 'issuetracker'
+include 'version'
 
 include 'bots:bridgekeeper'
 include 'bots:cli'

@@ -29,6 +29,7 @@ import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
+import org.openjdk.skara.version.Version;
 
 import java.io.IOException;
 import java.net.*;

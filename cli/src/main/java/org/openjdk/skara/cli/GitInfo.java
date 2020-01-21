@@ -28,6 +28,7 @@ import org.openjdk.skara.issuetracker.IssueTracker;
 import org.openjdk.skara.jcheck.*;
 import org.openjdk.skara.vcs.openjdk.*;
 import org.openjdk.skara.proxy.HttpProxy;
+import org.openjdk.skara.version.Version;
 
 import java.io.IOException;
 import java.net.URI;

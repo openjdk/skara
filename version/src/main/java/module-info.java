@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,31 +20,6 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-
-module {
-    name = 'org.openjdk.skara.bots.mlbridge'
-    test {
-        requires 'org.junit.jupiter.api'
-        requires 'org.openjdk.skara.test'
-        opens 'org.openjdk.skara.bots.mlbridge' to 'org.junit.platform.commons'
-    }
-}
-
-dependencies {
-    implementation project(':ci')
-    implementation project(':bot')
-    implementation project(':mailinglist')
-    implementation project(':host')
-    implementation project(':forge')
-    implementation project(':issuetracker')
-    implementation project(':network')
-    implementation project(':census')
-    implementation project(':vcs')
-    implementation project(':jcheck')
-    implementation project(':json')
-    implementation project(':email')
-    implementation project(':webrev')
-    implementation project(':version')
-
-    testImplementation project(':test')
+module org.openjdk.skara.version {
+    exports org.openjdk.skara.version;
 }

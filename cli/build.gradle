@@ -42,13 +42,7 @@ dependencies {
     implementation project(':issuetracker')
     implementation project(':proxy')
     implementation project(':ssh')
-}
-
-
-jar {
-    manifest {
-        attributes("Implementation-Title": "org.openjdk.skara.cli", "Implementation-Version": archiveVersion)
-    }
+    implementation project(':version')
 }
 
 images {

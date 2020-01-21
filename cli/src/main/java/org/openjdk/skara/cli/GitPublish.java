@@ -24,6 +24,7 @@ package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
 import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.version.Version;
 
 import java.io.*;
 import java.nio.file.*;

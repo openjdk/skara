@@ -23,6 +23,7 @@
 package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
+import org.openjdk.skara.version.Version;
 
 import java.io.IOException;
 import java.net.URI;

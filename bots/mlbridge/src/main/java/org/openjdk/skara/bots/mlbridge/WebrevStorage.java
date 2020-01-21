@@ -27,6 +27,7 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.webrev.Webrev;
+import org.openjdk.skara.version.Version;
 
 import java.io.*;
 import java.net.URI;
@@ -56,7 +57,9 @@ class WebrevStorage {
 
     private void generate(PullRequest pr, Repository localRepository, Path folder, Hash base, Hash head) throws IOException {
         Files.createDirectories(folder);
-        Webrev.repository(localRepository).output(folder)
+        Webrev.repository(localRepository)
+              .output(folder)
+              .version(Version.fromManifest().orElse("unknown"))
               .generate(base, head);
     }
 

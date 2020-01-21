@@ -31,6 +31,7 @@ module org.openjdk.skara.cli {
     requires org.openjdk.skara.forge;
     requires org.openjdk.skara.proxy;
     requires org.openjdk.skara.ssh;
+    requires org.openjdk.skara.version;
 
     requires java.net.http;
     requires java.logging;
