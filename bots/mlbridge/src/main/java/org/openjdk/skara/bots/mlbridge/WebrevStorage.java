@@ -68,13 +68,16 @@ class WebrevStorage {
 
         var issue = Issue.fromString(pr.title());
         if (issue.isPresent()) {
-            var conf = JCheckConfiguration.from(localRepository);
-            var project = conf.general().jbs() != null ? conf.general().jbs() : conf.general().project();
-            var id = issue.get().id();
-            var issueTracker = IssueTracker.from("jira", URI.create("https://bugs.openjdk.java.net"));
-            var hostedIssue = issueTracker.project(project).issue(id);
-            if (hostedIssue.isPresent()) {
-                builder = builder.issue(hostedIssue.get().webUrl().toString());
+            var files = localRepository.files(head, List.of(Path.of(".jcheck", "conf")));
+            if (!files.isEmpty()) {
+                var conf = JCheckConfiguration.from(localRepository, head);
+                var project = conf.general().jbs() != null ? conf.general().jbs() : conf.general().project();
+                var id = issue.get().id();
+                var issueTracker = IssueTracker.from("jira", URI.create("https://bugs.openjdk.java.net"));
+                var hostedIssue = issueTracker.project(project).issue(id);
+                if (hostedIssue.isPresent()) {
+                    builder = builder.issue(hostedIssue.get().webUrl().toString());
+                }
             }
         }
 
