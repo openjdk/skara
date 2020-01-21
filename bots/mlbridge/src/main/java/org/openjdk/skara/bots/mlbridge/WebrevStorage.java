@@ -62,9 +62,11 @@ class WebrevStorage {
 
     private void generate(PullRequest pr, Repository localRepository, Path folder, Hash base, Hash head) throws IOException {
         Files.createDirectories(folder);
+        var fullName = pr.author().fullName();
         var builder = Webrev.repository(localRepository)
                             .output(folder)
-                            .version(Version.fromManifest().orElse("unknown"));
+                            .version(Version.fromManifest().orElse("unknown"))
+                            .username(fullName);
 
         var issue = Issue.fromString(pr.title());
         if (issue.isPresent()) {
