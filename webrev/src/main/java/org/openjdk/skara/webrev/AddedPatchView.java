@@ -91,28 +91,29 @@ class AddedPatchView implements View {
             fw.write(ViewUtils.pathWithUnixSeps(textualPatch.target().path().get()));
             fw.write("\n");
 
-            assert textualPatch.hunks().size() == 1;
+            var hunks = textualPatch.hunks();
+            if (hunks.size() == 1) {
+                var hunk = hunks.get(0);
 
-            var hunk = textualPatch.hunks().get(0);
+                assert hunk.source().range().start() == 0;
+                assert hunk.source().range().count() == 0;
+                assert hunk.source().lines().size() == 0;
 
-            assert hunk.source().range().start() == 0;
-            assert hunk.source().range().count() == 0;
-            assert hunk.source().lines().size() == 0;
+                fw.write("@@ -");
+                fw.write(String.valueOf(hunk.source().range().start()));
+                fw.write(",");
+                fw.write(String.valueOf(hunk.source().range().count()));
+                fw.write(" +");
+                fw.write(String.valueOf(hunk.target().range().start()));
+                fw.write(",");
+                fw.write(String.valueOf(hunk.target().range().count()));
+                fw.write(" @@\n");
 
-            fw.write("@@ -");
-            fw.write(String.valueOf(hunk.source().range().start()));
-            fw.write(",");
-            fw.write(String.valueOf(hunk.source().range().count()));
-            fw.write(" +");
-            fw.write(String.valueOf(hunk.target().range().start()));
-            fw.write(",");
-            fw.write(String.valueOf(hunk.target().range().count()));
-            fw.write(" @@\n");
-
-            for (var line : hunk.target().lines()) {
-                fw.write("+");
-                fw.write(line);
-                fw.write("\n");
+                for (var line : hunk.target().lines()) {
+                    fw.write("+");
+                    fw.write(line);
+                    fw.write("\n");
+                }
             }
         }
     }
