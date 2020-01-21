@@ -31,6 +31,7 @@ module org.openjdk.skara.bots.mlbridge {
     requires org.openjdk.skara.email;
     requires org.openjdk.skara.webrev;
     requires org.openjdk.skara.network;
+    requires org.openjdk.skara.version;
     requires java.logging;
     requires java.net.http;
 

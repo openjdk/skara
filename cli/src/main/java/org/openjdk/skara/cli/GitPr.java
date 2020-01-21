@@ -31,6 +31,7 @@ import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
+import org.openjdk.skara.version.Version;
 
 import java.io.IOException;
 import java.net.URI;

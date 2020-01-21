@@ -27,6 +27,7 @@ import org.openjdk.skara.bot.*;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.proxy.HttpProxy;
+import org.openjdk.skara.version.Version;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -123,6 +124,10 @@ public class BotLauncher {
                       .fullname("once")
                       .helptext("Instead of repeatedly executing periodical task, run each task exactly once")
                       .optional(),
+                Switch.shortcut("v")
+                      .fullname("version")
+                      .helptext("Show version")
+                      .optional(),
                 Switch.shortcut("l")
                       .fullname("list-bots")
                       .helptext("List all available bots and then exit")
@@ -141,6 +146,11 @@ public class BotLauncher {
             for (var botFactory : botFactories) {
                 System.out.println(" - " + botFactory.name() + " (" + botFactory.getClass().getModule() + ")");
             }
+            System.exit(0);
+        }
+
+        if (arguments.contains("version")) {
+            System.out.println(Version.fromManifest().orElse("unknown"));
             System.exit(0);
         }
 
