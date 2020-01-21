@@ -25,11 +25,13 @@ package org.openjdk.skara.jcheck;
 public class TooFewReviewersIssue extends CommitIssue {
     private final int numActual;
     private final int numRequired;
+    private final String role;
 
-    TooFewReviewersIssue(int numActual, int numRequired, CommitIssue.Metadata metadata) {
+    TooFewReviewersIssue(int numActual, int numRequired, String role, CommitIssue.Metadata metadata) {
         super(metadata);
         this.numActual = numActual;
         this.numRequired = numRequired;
+        this.role = role;
     }
 
     public int numRequired() {
@@ -38,6 +40,10 @@ public class TooFewReviewersIssue extends CommitIssue {
 
     public int numActual() {
         return numActual;
+    }
+
+    public String role() {
+        return role;
     }
 
     @Override

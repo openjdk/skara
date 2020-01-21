@@ -57,6 +57,9 @@ class ReviewersCheckTests {
         "  <person name=\"qux\">",
         "    <full-name>Qux</full-name>",
         "  </person>",
+        "  <person name=\"contributor\">",
+        "    <full-name>Contributor</full-name>",
+        "  </person>",
         "  <group name=\"test\">",
         "    <full-name>Test</full-name>",
         "    <person ref=\"foo\" role=\"lead\" />",
@@ -80,8 +83,7 @@ class ReviewersCheckTests {
         "project = test",
         "[checks]",
         "error = reviewers",
-        "[checks \"reviewers\"]",
-        "role = reviewer"
+        "[checks \"reviewers\"]"
     );
 
     private static Commit commit(List<String> reviewers) {
@@ -109,13 +111,27 @@ class ReviewersCheckTests {
         return conf(1);
     }
 
-    private static JCheckConfiguration conf(int minimum) {
-        return conf(minimum, List.of());
+    private static JCheckConfiguration conf(int reviewers) {
+        return conf(reviewers, 0, 0);
     }
 
-    private static JCheckConfiguration conf(int minimum, List<String> ignored) {
+    private static JCheckConfiguration conf(int reviewers, List<String> ignored) {
+        return conf(reviewers, 0, 0, ignored);
+    }
+
+    private static JCheckConfiguration conf(int reviewers, int committers) {
+        return conf(reviewers, committers, 0);
+    }
+
+    private static JCheckConfiguration conf(int reviewers, int committers, int authors) {
+        return conf(reviewers, committers, authors, List.of());
+    }
+
+    private static JCheckConfiguration conf(int reviewers, int committers, int authors, List<String> ignored) {
         var lines = new ArrayList<String>(CONFIGURATION);
-        lines.add("minimum = " + minimum);
+        lines.add("reviewers = " + reviewers);
+        lines.add("committers = " + committers);
+        lines.add("authors = " + authors);
         lines.add("ignore = " + String.join(", ", ignored));
         return JCheckConfiguration.parse(lines);
     }
@@ -155,6 +171,7 @@ class ReviewersCheckTests {
         var issue = (TooFewReviewersIssue) issues.get(0);
         assertEquals(0, issue.numActual());
         assertEquals(1, issue.numRequired());
+        assertEquals("reviewer", issue.role());
         assertEquals(commit, issue.commit());
         assertEquals(Severity.ERROR, issue.severity());
         assertEquals(check, issue.check());
@@ -171,6 +188,7 @@ class ReviewersCheckTests {
         var issue = (TooFewReviewersIssue) issues.get(0);
         assertEquals(0, issue.numActual());
         assertEquals(1, issue.numRequired());
+        assertEquals("reviewer", issue.role());
         assertEquals(commit, issue.commit());
         assertEquals(Severity.ERROR, issue.severity());
         assertEquals(check, issue.check());
@@ -187,6 +205,7 @@ class ReviewersCheckTests {
         var issue = (TooFewReviewersIssue) issues.get(0);
         assertEquals(0, issue.numActual());
         assertEquals(1, issue.numRequired());
+        assertEquals("reviewer", issue.role());
         assertEquals(commit, issue.commit());
         assertEquals(Severity.ERROR, issue.severity());
         assertEquals(check, issue.check());
@@ -203,6 +222,7 @@ class ReviewersCheckTests {
         var issue = (TooFewReviewersIssue) issues.get(0);
         assertEquals(0, issue.numActual());
         assertEquals(1, issue.numRequired());
+        assertEquals("reviewer", issue.role());
         assertEquals(commit, issue.commit());
         assertEquals(Severity.ERROR, issue.severity());
         assertEquals(check, issue.check());
@@ -215,10 +235,9 @@ class ReviewersCheckTests {
         var issues = toList(check.check(commit, message(commit), conf(1)));
 
         assertEquals(1, issues.size());
-        assertTrue(issues.get(0) instanceof TooFewReviewersIssue);
-        var issue = (TooFewReviewersIssue) issues.get(0);
-        assertEquals(0, issue.numActual());
-        assertEquals(1, issue.numRequired());
+        assertTrue(issues.get(0) instanceof InvalidReviewersIssue);
+        var issue = (InvalidReviewersIssue) issues.get(0);
+        assertEquals(List.of("unknown", "user"), issue.invalid());
         assertEquals(commit, issue.commit());
         assertEquals(Severity.ERROR, issue.severity());
         assertEquals(check, issue.check());
@@ -280,5 +299,88 @@ class ReviewersCheckTests {
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof TooFewReviewersIssue);
+    }
+
+    @Test
+    void requiringCommitterAndReviwerShouldPass() throws IOException {
+        var commit = commit(List.of("bar", "baz"));
+        var check = new ReviewersCheck(census(), utils);
+        var issues = toList(check.check(commit, message(commit), conf(1, 1)));
+
+        assertEquals(0, issues.size());
+    }
+
+    @Test
+    void missingRoleShouldFail() throws IOException {
+        var commit = commit(List.of("bar", "qux"));
+        var check = new ReviewersCheck(census(), utils);
+        var issues = toList(check.check(commit, message(commit), conf(1, 1)));
+
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0) instanceof TooFewReviewersIssue);
+        var issue = (TooFewReviewersIssue) issues.get(0);
+        assertEquals(0, issue.numActual());
+        assertEquals(1, issue.numRequired());
+        assertEquals("committer", issue.role());
+        assertEquals(commit, issue.commit());
+        assertEquals(Severity.ERROR, issue.severity());
+        assertEquals(check, issue.check());
+    }
+
+    @Test
+    void relaxedRoleShouldPass() throws IOException {
+        var commit = commit(List.of("bar", "qux"));
+        var check = new ReviewersCheck(census(), utils);
+        var issues = toList(check.check(commit, message(commit), conf(0, 1, 1)));
+
+        assertEquals(0, issues.size());
+    }
+
+    @Test
+    void relaxedRoleAndMissingRoleShouldFail() throws IOException {
+        var commit = commit(List.of("bar", "contributor"));
+        var check = new ReviewersCheck(census(), utils);
+        var issues = toList(check.check(commit, message(commit), conf(0, 1, 1)));
+
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0) instanceof TooFewReviewersIssue);
+        var issue = (TooFewReviewersIssue) issues.get(0);
+        assertEquals(0, issue.numActual());
+        assertEquals(1, issue.numRequired());
+        assertEquals("author", issue.role());
+        assertEquals(commit, issue.commit());
+        assertEquals(Severity.ERROR, issue.severity());
+        assertEquals(check, issue.check());
+    }
+
+    @Test
+    void legacyConfigurationShouldWork() throws IOException {
+        var commit = commit(List.of("bar"));
+        var check = new ReviewersCheck(census(), utils);
+        var legacyConf = new ArrayList<>(CONFIGURATION);
+        legacyConf.add("minimum = 1");
+        legacyConf.add("role = reviewer");
+        var issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(legacyConf)));
+        assertEquals(0, issues.size());
+    }
+
+    @Test
+    void legacyConfigurationShouldAcceptRole() throws IOException {
+        var commit = commit(List.of("baz"));
+        var check = new ReviewersCheck(census(), utils);
+        var legacyConf = new ArrayList<>(CONFIGURATION);
+        legacyConf.add("minimum = 1");
+        legacyConf.add("role = reviewer");
+        var issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(legacyConf)));
+
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0) instanceof TooFewReviewersIssue);
+        var issue = (TooFewReviewersIssue) issues.get(0);
+        assertEquals(0, issue.numActual());
+        assertEquals(1, issue.numRequired());
+        assertEquals("reviewer", issue.role());
+        assertEquals(commit, issue.commit());
+        assertEquals(Severity.ERROR, issue.severity());
+        assertEquals(check, issue.check());
     }
 }
