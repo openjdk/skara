@@ -28,6 +28,7 @@ import org.openjdk.skara.issuetracker.Comment;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ReviewersCommand implements CommandHandler {
     private static final Map<String, String> roleMappings = Map.of(
@@ -42,14 +43,14 @@ public class ReviewersCommand implements CommandHandler {
             "contributor", "contributors");
 
     private void showHelp(PrintWriter reply) {
-        reply.println("Usage: `/reviewers <n> [<role>]` where `<n>` is the additional number of required reviewers. " +
-                              "If role is set, the reviewers need to have that project role. If omitted, role defaults to `committers`.");
+        reply.println("Usage: `/reviewers <n> [<role>]` where `<n>` is the number of required reviewers. " +
+                              "If role is set, the reviewers need to have that project role. If omitted, role defaults to `authors`.");
     }
 
     @Override
     public void handle(PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
         if (!ProjectPermissions.mayReview(censusInstance, comment.author())) {
-            reply.println("Only [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to increase the number of required reviewers.");
+            reply.println("Only [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to change the number of required reviewers.");
             return;
         }
 
@@ -66,14 +67,13 @@ public class ReviewersCommand implements CommandHandler {
             showHelp(reply);
             return;
         }
-
-        if (numReviewers < 0 || numReviewers > 10) {
+        if (numReviewers > 10) {
             showHelp(reply);
-            reply.println("Number of additional required reviewers has to be between 0 and 10.");
+            reply.println("Cannot increase the required number of reviewers above 10 (requested: " + numReviewers + ")");
             return;
         }
 
-        String role = "committers";
+        String role = "authors";
         if (splitArgs.length > 1) {
             if (!roleMappings.containsKey(splitArgs[1].toLowerCase())) {
                 showHelp(reply);
@@ -83,8 +83,28 @@ public class ReviewersCommand implements CommandHandler {
             role = roleMappings.get(splitArgs[1].toLowerCase());
         }
 
+        var updatedLimits = ReviewersTracker.updatedRoleLimits(censusInstance.configuration(), numReviewers, role);
+        if (updatedLimits.get(role) > numReviewers) {
+            showHelp(reply);
+            reply.println("Number of required reviewers of role " + role + " cannot be decreased below " + updatedLimits.get(role));
+            return;
+        }
+
         reply.println(ReviewersTracker.setReviewersMarker(numReviewers, role));
-        reply.println("The number of additional required reviews from " + role + " is now set to " + numReviewers + ".");
+        var totalRequired = updatedLimits.values().stream().mapToInt(Integer::intValue).sum();
+        reply.print("The number of required reviews for this PR is now set to " + totalRequired);
+
+        // Create a helpful message regarding the required distribution (if applicable)
+        var nonZeroDescriptions = updatedLimits.entrySet().stream()
+                .filter(entry -> entry.getValue() > 0)
+                .map(entry -> entry.getValue() + " of role " + entry.getKey())
+                .collect(Collectors.toList());
+        if (nonZeroDescriptions.size() > 1) {
+            nonZeroDescriptions.remove(nonZeroDescriptions.size() - 1);
+            reply.print(" (with at least " + String.join(", ", nonZeroDescriptions) + ")");
+        }
+
+        reply.println(".");
     }
 
     @Override

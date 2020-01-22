@@ -32,33 +32,17 @@ import java.util.*;
 
 public class AdditionalConfiguration {
     static List<String> get(ReadOnlyRepository repository, Hash hash, HostUser botUser, List<Comment> comments) throws IOException {
-        var currentConfiguration = JCheckConfiguration.from(repository, hash);
-        var currentReviewers = currentConfiguration.checks().reviewers();
         var ret = new ArrayList<String>();
         var additionalReviewers = ReviewersTracker.additionalRequiredReviewers(botUser, comments);
-        for (var additionalReviewer : additionalReviewers.entrySet()) {
-            ret.add("[checks \"reviewers\"]");
-            var role = additionalReviewer.getKey();
-            switch (role) {
-                case "lead":
-                    ret.add("lead=" + (currentReviewers.lead() + additionalReviewer.getValue()));
-                    break;
-                case "reviewers":
-                    ret.add("reviewers=" + (currentReviewers.reviewers() + additionalReviewer.getValue()));
-                    break;
-                case "committers":
-                    ret.add("committers=" + (currentReviewers.committers() + additionalReviewer.getValue()));
-                    break;
-                case "authors":
-                    ret.add("authors=" + (currentReviewers.authors() + additionalReviewer.getValue()));
-                    break;
-                case "contributors":
-                    ret.add("contributors=" + (currentReviewers.contributors() + additionalReviewer.getValue()));
-                    break;
-                default:
-                    break;
-            }
+        if (additionalReviewers.isEmpty()) {
+            return ret;
         }
+
+        var currentConfiguration = JCheckConfiguration.from(repository, hash);
+        var updatedLimits = ReviewersTracker.updatedRoleLimits(currentConfiguration, additionalReviewers.get().number(), additionalReviewers.get().role());
+
+        ret.add("[checks \"reviewers\"]");
+        updatedLimits.forEach((role, count) -> ret.add(role + "=" + count));
         return ret;
     }
 }

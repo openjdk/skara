@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.jcheck.JCheckConfiguration;
 
 import java.util.*;
 import java.util.regex.*;
@@ -38,7 +39,66 @@ class ReviewersTracker {
         return String.format(reviewersMarker, numReviewers, role);
     }
 
-    static Map<String, Integer> additionalRequiredReviewers(HostUser botUser, List<Comment> comments) {
+    static LinkedHashMap<String, Integer> updatedRoleLimits(JCheckConfiguration checkConfiguration, int count, String role) {
+        var currentReviewers = checkConfiguration.checks().reviewers();
+
+        var updatedLimits = new LinkedHashMap<String, Integer>();
+        updatedLimits.put("lead", currentReviewers.lead());
+        updatedLimits.put("reviewers", currentReviewers.reviewers());
+        updatedLimits.put("committers", currentReviewers.committers());
+        updatedLimits.put("authors", currentReviewers.authors());
+        updatedLimits.put("contributors", currentReviewers.contributors());
+
+        // Increase the required role level by the requested amount (while subtracting higher roles)
+        var remainingAdditional = count;
+        var roles = new ArrayList<>(updatedLimits.keySet());
+        for (var r : roles) {
+            if (!r.equals(role)) {
+                remainingAdditional -= updatedLimits.get(r);
+                if (remainingAdditional <= 0) {
+                    break;
+                }
+            } else {
+                updatedLimits.replace(r, updatedLimits.get(r) + remainingAdditional);
+                break;
+            }
+        }
+
+        // Decrease lower roles (if any) to avoid increasing the total count above the requested
+        Collections.reverse(roles);
+        var remainingRemovals = count;
+        for (var r : roles) {
+            if (!r.equals(role)) {
+                var removed = Math.max(0, updatedLimits.get(r) - remainingRemovals);
+                updatedLimits.replace(r, removed);
+                remainingRemovals -= removed;
+            } else {
+                break;
+            }
+        }
+
+        return updatedLimits;
+    }
+
+    static class AdditionalRequiredReviewers {
+        private int number;
+        private String role;
+
+        AdditionalRequiredReviewers(int number, String role) {
+            this.number = number;
+            this.role = role;
+        }
+
+        int number() {
+            return number;
+        }
+
+        String role() {
+            return role;
+        }
+    }
+
+    static Optional<AdditionalRequiredReviewers> additionalRequiredReviewers(HostUser botUser, List<Comment> comments) {
         var ret = new HashMap<String, Integer>();
         var reviewersActions = comments.stream()
                                        .filter(comment -> comment.author().equals(botUser))
@@ -46,11 +106,9 @@ class ReviewersTracker {
                                        .filter(Matcher::find)
                                        .collect(Collectors.toList());
         if (reviewersActions.isEmpty()) {
-            return ret;
+            return Optional.empty();
         }
-        for (var reviewersAction : reviewersActions) {
-            ret.put(reviewersAction.group(2), Integer.parseInt(reviewersAction.group(1)));
-        }
-        return ret;
+        var last = reviewersActions.get(reviewersActions.size() - 1);
+        return Optional.of(new AdditionalRequiredReviewers(Integer.parseInt(last.group(1)), last.group(2)));
     }
 }

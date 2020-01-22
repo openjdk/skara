@@ -65,24 +65,24 @@ public class ReviewersTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a help message
-            assertLastCommentContains(reviewerPr,"is the additional number of required reviewers");
+            assertLastCommentContains(reviewerPr,"is the number of required reviewers");
 
             // Invalid syntax
             reviewerPr.addComment("/reviewers two");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a help message
-            assertLastCommentContains(reviewerPr,"is the additional number of required reviewers");
+            assertLastCommentContains(reviewerPr,"is the number of required reviewers");
 
             // Too many
             reviewerPr.addComment("/reviewers 7001");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(reviewerPr,"Number of additional required reviewers has to be between");
+            assertLastCommentContains(reviewerPr,"Cannot increase the required number of reviewers above 10 (requested: 7001)");
 
             // Too few
             reviewerPr.addComment("/reviewers -3");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(reviewerPr,"Number of additional required reviewers has to be between");
+            assertLastCommentContains(reviewerPr,"Number of required reviewers of role authors cannot be decreased below 0");
 
             // Unknown role
             reviewerPr.addComment("/reviewers 2 penguins");
@@ -90,11 +90,11 @@ public class ReviewersTests {
             assertLastCommentContains(reviewerPr,"Unknown role `penguins` specified");
 
             // Set the number
-            reviewerPr.addComment("/reviewers 1");
+            reviewerPr.addComment("/reviewers 2");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(reviewerPr,"additional required reviews from committers is now set to 1");
+            assertLastCommentContains(reviewerPr,"The number of required reviews for this PR is now set to 2 (with at least 1 of role reviewers).");
 
             // Approve it as another user
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
@@ -106,7 +106,7 @@ public class ReviewersTests {
             assertFalse(updatedPr.labels().contains("ready"));
 
             // Now reduce the number of required reviewers
-            reviewerPr.addComment("/reviewers 0");
+            reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
 
@@ -118,16 +118,17 @@ public class ReviewersTests {
             reviewerPr.addComment("/reviewers 1 lead");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(reviewerPr,"additional required reviews from lead is now set to 1");
+            assertLastCommentContains(reviewerPr,"The number of required reviews for this PR is now set to 1.");
 
             // The PR should no longer be considered as ready for review
             updatedPr = author.pullRequest(pr.id());
             assertFalse(updatedPr.labels().contains("ready"));
 
-            // Drop the extra requirement
-            reviewerPr.addComment("/reviewers 0 lead");
+            // Drop the extra requirement that it should be the lead
+            reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(reviewerPr,"The number of required reviews for this PR is now set to 1.");
 
             // The PR should now be considered as ready for review yet again
             updatedPr = author.pullRequest(pr.id());
@@ -163,11 +164,11 @@ public class ReviewersTests {
             var reviewerPr = integrator.pullRequest(pr.id());
 
             // Set the number
-            reviewerPr.addComment("/reviewers 1");
+            reviewerPr.addComment("/reviewers 2");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(reviewerPr,"additional required reviews from committers is now set to 1");
+            assertLastCommentContains(reviewerPr,"The number of required reviews for this PR is now set to 2 (with at least 1 of role reviewers).");
 
             // Approve it as another user
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
@@ -177,10 +178,10 @@ public class ReviewersTests {
             // It should not be possible to integrate yet
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(reviewerPr,"Too few reviewers with at least role committer found (have 0, need at least 1)");
+            assertLastCommentContains(reviewerPr,"Too few reviewers with at least role author found (have 0, need at least 1)");
 
             // Relax the requirement
-            reviewerPr.addComment("/reviewers 0");
+            reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
 
             // It should now work fine
@@ -228,19 +229,19 @@ public class ReviewersTests {
             assertLastCommentContains(reviewerPr,"now ready to be sponsored");
 
             // Set the number
-            reviewerPr.addComment("/reviewers 1");
+            reviewerPr.addComment("/reviewers 2");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(reviewerPr,"additional required reviews from committers is now set to 1");
+            assertLastCommentContains(reviewerPr,"The number of required reviews for this PR is now set to 2 (with at least 1 of role reviewers).");
 
             // It should not be possible to sponsor
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(reviewerPr,"Too few reviewers with at least role committer found (have 0, need at least 1)");
+            assertLastCommentContains(reviewerPr,"Too few reviewers with at least role author found (have 0, need at least 1)");
 
             // Relax the requirement
-            reviewerPr.addComment("/reviewers 0");
+            reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
 
             // It should now work fine
