@@ -66,6 +66,7 @@ class WebrevStorage {
         var builder = Webrev.repository(localRepository)
                             .output(folder)
                             .version(Version.fromManifest().orElse("unknown"))
+                            .upstream(pr.repository().webUrl().toString())
                             .username(fullName);
 
         var issue = Issue.fromString(pr.title());
