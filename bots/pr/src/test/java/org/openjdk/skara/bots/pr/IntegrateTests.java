@@ -51,7 +51,7 @@ class IntegrateTests {
                                            .addCommitter(author.forge().currentUser().id())
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -112,7 +112,7 @@ class IntegrateTests {
                                            .addCommitter(author.forge().currentUser().id())
                                            .addCommitter(committer.forge().currentUser().id())
                                            .addReviewer(integrator.forge().currentUser().id());
-            var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -159,7 +159,7 @@ class IntegrateTests {
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
-            var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -194,7 +194,7 @@ class IntegrateTests {
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
-            var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository - but without any checks enabled
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
@@ -236,7 +236,7 @@ class IntegrateTests {
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
-            var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -271,7 +271,7 @@ class IntegrateTests {
             var integrator = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
-            var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -319,7 +319,7 @@ class IntegrateTests {
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addReviewer(integrator.forge().currentUser().id());
-            var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -399,7 +399,7 @@ class IntegrateTests {
 
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
-            var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -436,7 +436,7 @@ class IntegrateTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addCommitter(author.forge().currentUser().id())
                                            .addReviewer(integrator.forge().currentUser().id());
-            var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -492,7 +492,7 @@ class IntegrateTests {
                                            .addCommitter(author.forge().currentUser().id())
                                            .addReviewer(integrator.forge().currentUser().id());
             var censusRepo = censusBuilder.build();
-            var mergeBot = new PullRequestBot(integrator, censusRepo, "master");
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusRepo).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -548,7 +548,7 @@ class IntegrateTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addCommitter(author.forge().currentUser().id())
                                            .addReviewer(integrator.forge().currentUser().id());
-            var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());

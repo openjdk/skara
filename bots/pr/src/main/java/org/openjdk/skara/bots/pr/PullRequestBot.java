@@ -43,14 +43,15 @@ class PullRequestBot implements Bot {
     private final Set<String> readyLabels;
     private final Map<String, Pattern> readyComments;
     private final IssueProject issueProject;
-    private final ConcurrentMap<Hash, Boolean> currentLabels = new ConcurrentHashMap<>();
+    private final boolean ignoreStaleReviews;
+    private final ConcurrentMap<Hash, Boolean> currentLabels;
     private final PullRequestUpdateCache updateCache;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef,
                    Map<String, List<Pattern>> labelPatterns, Map<String, String> externalCommands,
                    Map<String, String> blockingLabels, Set<String> readyLabels,
-                   Map<String, Pattern> readyComments, IssueProject issueProject) {
+                   Map<String, Pattern> readyComments, IssueProject issueProject, boolean ignoreStaleReviews) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -60,18 +61,14 @@ class PullRequestBot implements Bot {
         this.readyLabels = readyLabels;
         this.issueProject = issueProject;
         this.readyComments = readyComments;
+        this.ignoreStaleReviews = ignoreStaleReviews;
+
+        this.currentLabels = new ConcurrentHashMap<>();
         this.updateCache = new PullRequestUpdateCache();
     }
 
-    PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef,
-                   Map<String, List<Pattern>> labelPatterns, Map<String, String> externalCommands,
-                   Map<String, String> blockingLabels, Set<String> readyLabels,
-                   Map<String, Pattern> readyComments) {
-        this(repo, censusRepo, censusRef, labelPatterns, externalCommands, blockingLabels, readyLabels, readyComments, null);
-    }
-
-    PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef) {
-        this(repo, censusRepo, censusRef, Map.of(), Map.of(), Map.of(), Set.of(), Map.of(), null);
+    static PullRequestBotBuilder newBuilder() {
+        return new PullRequestBotBuilder();
     }
 
     private boolean isReady(PullRequest pr) {
@@ -113,9 +110,9 @@ class PullRequestBot implements Bot {
                     continue;
                 }
 
-                ret.add(new CheckWorkItem(pr, censusRepo, censusRef, blockingLabels, e -> updateCache.invalidate(pr), issueProject));
-                ret.add(new CommandWorkItem(pr, censusRepo, censusRef, externalCommands, e -> updateCache.invalidate(pr)));
-                ret.add(new LabelerWorkItem(pr, labelPatterns, currentLabels, e -> updateCache.invalidate(pr)));
+                ret.add(new CheckWorkItem(this, pr, e -> updateCache.invalidate(pr)));
+                ret.add(new CommandWorkItem(this, pr, e -> updateCache.invalidate(pr)));
+                ret.add(new LabelerWorkItem(this, pr, e -> updateCache.invalidate(pr)));
             }
         }
 
@@ -135,5 +132,45 @@ class PullRequestBot implements Bot {
         }
 
         return getWorkItems(webHook.get().updatedPullRequests());
+    }
+
+    HostedRepository censusRepo() {
+        return censusRepo;
+    }
+
+    String censusRef() {
+        return censusRef;
+    }
+
+    Map<String, List<Pattern>> labelPatterns() {
+        return labelPatterns;
+    }
+
+    Map<String, String> externalCommands() {
+        return externalCommands;
+    }
+
+    Map<String, String> blockingLabels() {
+        return blockingLabels;
+    }
+
+    Set<String> readyLabels() {
+        return readyLabels;
+    }
+
+    Map<String, Pattern> readyComments() {
+        return readyComments;
+    }
+
+    IssueProject issueProject() {
+        return issueProject;
+    }
+
+    ConcurrentMap<Hash, Boolean> currentLabels() {
+        return currentLabels;
+    }
+
+    boolean ignoreStaleReviews() {
+        return ignoreStaleReviews;
     }
 }

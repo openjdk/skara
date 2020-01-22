@@ -47,7 +47,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -85,8 +85,7 @@ class CheckTests {
             check = checks.get("jcheck");
             assertEquals(CheckStatus.SUCCESS, check.status());
 
-            // The PR should not be flagged as ready for review, at it is already reviewed
-            assertFalse(pr.labels().contains("rfr"));
+            // The PR should now be ready
             assertTrue(pr.labels().contains("ready"));
         }
     }
@@ -102,7 +101,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -153,8 +152,8 @@ class CheckTests {
             // Check the status again
             TestBotRunner.runPeriodicItems(checkBot);
 
-            // The PR should not be flagged as ready for review, at it is already reviewed
-            assertFalse(pr.labels().contains("rfr"));
+            // The PR should now be ready
+            assertTrue(pr.labels().contains("ready"));
 
             // The check should now be successful
             checks = pr.checks(editHash);
@@ -178,7 +177,7 @@ class CheckTests {
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addReviewer(commenter.forge().currentUser().id());
 
-            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -257,7 +256,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(author.forge().currentUser().id());
 
-            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -298,7 +297,7 @@ class CheckTests {
 
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -350,7 +349,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -388,8 +387,8 @@ class CheckTests {
             check = checks.get("jcheck");
             assertEquals(CheckStatus.SUCCESS, check.status());
 
-            // The PR should not be flagged as ready for review, at it is already reviewed
-            assertFalse(pr.labels().contains("rfr"));
+            // The PR should now be ready
+            assertTrue(pr.labels().contains("rfr"));
             assertTrue(pr.labels().contains("ready"));
 
             var addedHash = CheckableRepository.appendAndCommit(localRepo, "trailing whitespace   ");
@@ -433,7 +432,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -495,7 +494,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addCommitter(author.forge().currentUser().id())
                                            .addReviewer(integrator.forge().currentUser().id());
-            var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -546,7 +545,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addCommitter(author.forge().currentUser().id())
                                            .addReviewer(integrator.forge().currentUser().id());
-            var mergeBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -617,8 +616,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master", Map.of(), Map.of(),
-                                              Map.of("block", "Test Blocker"), Set.of(), Map.of());
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).blockingLabels(Map.of("block", "Test Blocker")).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -666,8 +664,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master", Map.of(), Map.of(),
-                                              Map.of(), Set.of("good-to-go"), Map.of());
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).readyLabels(Set.of("good-to-go")).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -708,8 +705,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master", Map.of(), Map.of(),
-                                              Map.of(), Set.of(), Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("proceed")));
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).readyComments(Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("proceed"))).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -751,8 +747,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master", Map.of(), Map.of(),
-                                              Map.of(), Set.of(), Map.of());
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
@@ -799,8 +794,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master", Map.of(), Map.of(),
-                                              Map.of(), Set.of(), Map.of(), issues);
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).issueProject(issues).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
@@ -931,7 +925,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -982,7 +976,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -1020,7 +1014,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -1055,7 +1049,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -1108,7 +1102,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = new PullRequestBot(author, censusBuilder.build(), "master");
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -1129,6 +1123,65 @@ class CheckTests {
             assertEquals(1, checks.size());
             var check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
+        }
+    }
+
+    @Test
+    void ignoreStale(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).ignoreStaleReviews(true).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "A line with");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Approve it as another user
+            var approvalPr = reviewer.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The PR should be flagged as ready
+            assertTrue(pr.labels().contains("ready"));
+
+            // Add another commit
+            editHash = CheckableRepository.replaceAndCommit(localRepo, "Another line");
+            localRepo.push(editHash, author.url(), "edit", true);
+
+            // Make sure that the push registered
+            var lastHeadHash = pr.headHash();
+            var refreshCount = 0;
+            do {
+                pr = author.pullRequest(pr.id());
+                if (refreshCount++ > 100) {
+                    fail("The PR did not update after the new push");
+                }
+            } while (pr.headHash().equals(lastHeadHash));
+
+            // Check the status again
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The PR should no longer be ready, as the review is stale
+            assertFalse(pr.labels().contains("ready"));
+            assertTrue(pr.labels().contains("rfr"));
         }
     }
 }

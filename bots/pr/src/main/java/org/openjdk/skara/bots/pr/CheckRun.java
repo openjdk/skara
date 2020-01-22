@@ -187,12 +187,6 @@ class CheckRun {
     }
 
     private void updateReadyForReview(PullRequestCheckIssueVisitor visitor, List<String> additionalErrors) {
-        // If there are no issues at all, the PR is already reviewed
-        if (visitor.getMessages().isEmpty() && additionalErrors.isEmpty()) {
-            pr.removeLabel("rfr");
-            return;
-        }
-
         // Additional errors are not allowed
         if (!additionalErrors.isEmpty()) {
             newLabels.remove("rfr");

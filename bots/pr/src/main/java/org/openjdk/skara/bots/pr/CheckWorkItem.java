@@ -39,21 +39,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 class CheckWorkItem extends PullRequestWorkItem {
-    private final HostedRepository censusRepo;
-    private final String censusRef;
-    private final Map<String, String> blockingLabels;
-    private final IssueProject issueProject;
-
     private final Pattern metadataComments = Pattern.compile("<!-- (?:(add|remove) contributor)|(?:summary: ')|(?:solves: ')");
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
-    CheckWorkItem(PullRequest pr, HostedRepository censusRepo, String censusRef, Map<String, String> blockingLabels,
-                  Consumer<RuntimeException> errorHandler, IssueProject issueProject) {
-        super(pr, errorHandler);
-        this.censusRepo = censusRepo;
-        this.censusRef = censusRef;
-        this.blockingLabels = blockingLabels;
-        this.issueProject = issueProject;
+    CheckWorkItem(PullRequestBot bot, PullRequest pr, Consumer<RuntimeException> errorHandler) {
+        super(bot, pr, errorHandler);
     }
 
     private String encodeReviewer(HostUser reviewer, CensusInstance censusInstance) {
@@ -144,7 +134,7 @@ class CheckWorkItem extends PullRequestWorkItem {
     @Override
     public void run(Path scratchPath) {
         // First determine if the current state of the PR has already been checked
-        var census = CensusInstance.create(censusRepo, censusRef, scratchPath.resolve("census"), pr);
+        var census = CensusInstance.create(bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr);
         var comments = pr.comments();
         var allReviews = pr.reviews();
         var labels = new HashSet<>(pr.labels());
@@ -158,9 +148,9 @@ class CheckWorkItem extends PullRequestWorkItem {
             }
 
             try {
-                var prInstance = new PullRequestInstance(scratchPath.resolve("pr"), pr);
+                var prInstance = new PullRequestInstance(scratchPath.resolve("pr"), pr, bot.ignoreStaleReviews());
                 CheckRun.execute(this, pr, prInstance, comments, allReviews, activeReviews, labels, census,
-                                 blockingLabels, issueProject);
+                                 bot.blockingLabels(), bot.issueProject());
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
