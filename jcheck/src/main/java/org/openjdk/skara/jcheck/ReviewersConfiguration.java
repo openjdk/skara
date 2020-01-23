@@ -86,6 +86,13 @@ public class ReviewersConfiguration {
         var contributors = s.get("contributors", DEFAULT.contributors());
 
         if (s.contains("minimum")) {
+            // Reset defaults to 0
+            lead = 0;
+            reviewers = 0;
+            committers = 0;
+            authors = 0;
+            contributors = 0;
+
             var minimum = s.get("minimum").asInt();
             if (s.contains("role")) {
                 var role = s.get("role").asString();
