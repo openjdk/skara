@@ -27,8 +27,11 @@ import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.GradleException;
 
+import java.nio.file.Files;
 import java.nio.charset.StandardCharsets;
 import java.io.IOException;
+
+import static java.util.stream.Collectors.toList;
 
 public class VersionPlugin implements Plugin<Project> {
     public void apply(Project project) {
@@ -47,7 +50,18 @@ public class VersionPlugin implements Plugin<Project> {
                 }
                 project.setProperty("version", desc);
             } else {
-                project.setProperty("version", "unknown");
+                var root = project.getRootProject().getRootDir().toPath();
+                var versionTxt = root.resolve("version.txt");
+                if (Files.exists(versionTxt)) {
+                    var lines = Files.lines(versionTxt).collect(toList());
+                    if (!lines.isEmpty()) {
+                        project.setProperty("version", lines.get(0));
+                    } else {
+                        project.setProperty("version", "unknown");
+                    }
+                } else {
+                    project.setProperty("version", "unknown");
+                }
             }
         } catch (InterruptedException e) {
             throw new GradleException("'git rev-parse' was interrupted", e);
