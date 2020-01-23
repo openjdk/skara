@@ -36,7 +36,7 @@ public class SponsorCommand implements CommandHandler {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     @Override
-    public void handle(PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
         if (ProjectPermissions.mayCommit(censusInstance, pr.author())) {
             reply.println("This change does not need sponsoring - the author is allowed to integrate it.");
             return;
@@ -72,7 +72,7 @@ public class SponsorCommand implements CommandHandler {
             var sanitizedUrl = URLEncoder.encode(pr.repository().webUrl().toString(), StandardCharsets.UTF_8);
             var path = scratchPath.resolve("pr.sponsor").resolve(sanitizedUrl);
 
-            var prInstance = new PullRequestInstance(path, pr);
+            var prInstance = new PullRequestInstance(path, pr, bot.ignoreStaleReviews());
             var localHash = prInstance.commit(censusInstance.namespace(), censusInstance.configuration().census().domain(),
                                          comment.author().id());
             var rebaseMessage = new StringWriter();

@@ -54,7 +54,7 @@ public class IntegrateCommand implements CommandHandler {
     }
 
     @Override
-    public void handle(PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
         if (!comment.author().equals(pr.author())) {
             reply.println("Only the author (@" + pr.author().userName() + ") is allowed to issue the `integrate` command.");
             return;
@@ -77,7 +77,7 @@ public class IntegrateCommand implements CommandHandler {
             var sanitizedUrl = URLEncoder.encode(pr.repository().webUrl().toString(), StandardCharsets.UTF_8);
             var path = scratchPath.resolve("pr.integrate").resolve(sanitizedUrl);
 
-            var prInstance = new PullRequestInstance(path, pr);
+            var prInstance = new PullRequestInstance(path, pr, bot.ignoreStaleReviews());
             var localHash = prInstance.commit(censusInstance.namespace(), censusInstance.configuration().census().domain(), null);
             var rebaseMessage = new StringWriter();
             var rebaseWriter = new PrintWriter(rebaseMessage);

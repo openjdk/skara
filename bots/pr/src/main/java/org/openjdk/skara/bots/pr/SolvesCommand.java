@@ -38,7 +38,7 @@ public class SolvesCommand implements CommandHandler {
     }
 
     @Override
-    public void handle(PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
         if (!comment.author().equals(pr.author())) {
             reply.println("Only the author (@" + pr.author().userName() + ") is allowed to issue the `solves` command.");
             return;

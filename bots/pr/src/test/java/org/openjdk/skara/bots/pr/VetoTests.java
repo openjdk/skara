@@ -94,7 +94,7 @@ class VetoTests {
 
             var censusBuilder = credentials.getCensusBuilder()
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -131,7 +131,7 @@ class VetoTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addCommitter(author.forge().currentUser().id())
                                            .addCommitter(vetoer.forge().currentUser().id());
-            var prBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -170,7 +170,7 @@ class VetoTests {
                                            .addCommitter(author.forge().currentUser().id())
                                            .addReviewer(vetoer.forge().currentUser().id());
 
-            var prBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -240,7 +240,7 @@ class VetoTests {
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(vetoer.forge().currentUser().id());
 
-            var prBot = new PullRequestBot(integrator, censusBuilder.build(), "master");
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());

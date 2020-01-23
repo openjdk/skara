@@ -46,7 +46,7 @@ class LabelerTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var labelBot = new PullRequestBot(author, censusBuilder.build(), "master", labelPatterns, Map.of(), Map.of(), Set.of(), Map.of());
+            var labelBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).labelPatterns(labelPatterns).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path();

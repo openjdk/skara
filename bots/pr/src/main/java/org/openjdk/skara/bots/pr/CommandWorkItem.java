@@ -34,10 +34,6 @@ import java.util.regex.*;
 import java.util.stream.*;
 
 public class CommandWorkItem extends PullRequestWorkItem {
-    private final HostedRepository censusRepo;
-    private final String censusRef;
-    private final Map<String, String> external;
-
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     private final String commandReplyMarker = "<!-- Jmerge command reply message (%s) -->";
@@ -57,7 +53,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
         static private Map<String, String> external = null;
 
         @Override
-        public void handle(PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
+        public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
             reply.println("Available commands:");
             Stream.concat(
                     commandHandlers.entrySet().stream()
@@ -73,15 +69,8 @@ public class CommandWorkItem extends PullRequestWorkItem {
         }
     }
 
-    CommandWorkItem(PullRequest pr, HostedRepository censusRepo, String censusRef, Map<String, String> external, Consumer<RuntimeException> errorHandler) {
-        super(pr, errorHandler);
-        this.censusRepo = censusRepo;
-        this.censusRef = censusRef;
-        this.external = external;
-
-        if (HelpCommand.external == null) {
-            HelpCommand.external = external;
-        }
+    CommandWorkItem(PullRequestBot bot, PullRequest pr, Consumer<RuntimeException> errorHandler) {
+        super(bot, pr, errorHandler);
     }
 
     private List<AbstractMap.SimpleEntry<String, Comment>> findCommandComments(List<Comment> comments) {
@@ -120,9 +109,9 @@ public class CommandWorkItem extends PullRequestWorkItem {
 
         var handler = commandHandlers.get(commandWord);
         if (handler != null) {
-            handler.handle(pr, censusInstance, scratchPath, commandArgs, comment, allComments, printer);
+            handler.handle(bot, pr, censusInstance, scratchPath, commandArgs, comment, allComments, printer);
         } else {
-            if (!external.containsKey(commandWord)) {
+            if (!bot.externalCommands().containsKey(commandWord)) {
                 printer.print("Unknown command `");
                 printer.print(command);
                 printer.println("` - for a list of valid commands use `/help`.");
@@ -151,7 +140,11 @@ public class CommandWorkItem extends PullRequestWorkItem {
             return;
         }
 
-        var census = CensusInstance.create(censusRepo, censusRef, scratchPath.resolve("census"), pr);
+        if (HelpCommand.external == null) {
+            HelpCommand.external = bot.externalCommands();
+        }
+
+        var census = CensusInstance.create(bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr);
         for (var entry : unprocessedCommands) {
             processCommand(pr, census, scratchPath.resolve("pr"), entry.getKey(), entry.getValue(), comments);
         }

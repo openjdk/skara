@@ -23,24 +23,16 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.PullRequest;
-import org.openjdk.skara.vcs.Hash;
 
 import java.io.*;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class LabelerWorkItem extends PullRequestWorkItem {
-    private final Map<String, List<Pattern>> labelPatterns;
-    private final ConcurrentMap<Hash, Boolean> currentLabels;
-
-    LabelerWorkItem(PullRequest pr, Map<String, List<Pattern>> labelPatterns, ConcurrentMap<Hash, Boolean> currentLabels, Consumer<RuntimeException> errorHandler) {
-        super(pr, errorHandler);
-        this.labelPatterns = labelPatterns;
-        this.currentLabels = currentLabels;
+    LabelerWorkItem(PullRequestBot bot, PullRequest pr, Consumer<RuntimeException> errorHandler) {
+        super(bot, pr, errorHandler);
     }
 
     @Override
@@ -52,7 +44,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         var labels = new HashSet<String>();
         var files = prInstance.changedFiles();
         for (var file : files) {
-            for (var label : labelPatterns.entrySet()) {
+            for (var label : bot.labelPatterns().entrySet()) {
                 for (var pattern : label.getValue()) {
                     var matcher = pattern.matcher(file.toString());
                     if (matcher.find()) {
@@ -67,14 +59,14 @@ public class LabelerWorkItem extends PullRequestWorkItem {
 
     @Override
     public void run(Path scratchPath) {
-        if (currentLabels.containsKey(pr.headHash())) {
+        if (bot.currentLabels().containsKey(pr.headHash())) {
             return;
         }
         try {
-            var prInstance = new PullRequestInstance(scratchPath.resolve("labeler"), pr);
+            var prInstance = new PullRequestInstance(scratchPath.resolve("labeler"), pr, bot.ignoreStaleReviews());
             var newLabels = getLabels(prInstance);
             var currentLabels = pr.labels().stream()
-                                  .filter(labelPatterns::containsKey)
+                                  .filter(key -> bot.labelPatterns().containsKey(key))
                                   .collect(Collectors.toSet());
 
             // Add all labels not already set
@@ -87,7 +79,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                          .filter(label -> !newLabels.contains(label))
                          .forEach(pr::removeLabel);
 
-            this.currentLabels.put(pr.headHash(), Boolean.TRUE);
+            bot.currentLabels().put(pr.headHash(), Boolean.TRUE);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

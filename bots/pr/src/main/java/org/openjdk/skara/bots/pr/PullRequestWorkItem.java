@@ -29,9 +29,11 @@ import java.util.function.Consumer;
 
 abstract class PullRequestWorkItem implements WorkItem {
     private final Consumer<RuntimeException> errorHandler;
+    final PullRequestBot bot;
     final PullRequest pr;
 
-    PullRequestWorkItem(PullRequest pr, Consumer<RuntimeException> errorHandler) {
+    PullRequestWorkItem(PullRequestBot bot, PullRequest pr, Consumer<RuntimeException> errorHandler) {
+        this.bot = bot;
         this.pr = pr;
         this.errorHandler = errorHandler;
     }

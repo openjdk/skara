@@ -41,9 +41,11 @@ class PullRequestInstance {
     private final Hash targetHash;
     private final Hash headHash;
     private final Hash baseHash;
+    private final boolean ignoreStaleReviews;
 
-    PullRequestInstance(Path localRepoPath, PullRequest pr) throws IOException  {
+    PullRequestInstance(Path localRepoPath, PullRequest pr, boolean ignoreStaleReviews) throws IOException  {
         this.pr = pr;
+        this.ignoreStaleReviews = ignoreStaleReviews;
         var repository = pr.repository();
 
         // Materialize the PR's target ref
@@ -70,12 +72,13 @@ class PullRequestInstance {
 
     private String commitMessage(List<Review> activeReviews, Namespace namespace, boolean isMerge) throws IOException {
         var reviewers = activeReviews.stream()
-                          .filter(review -> review.verdict() == Review.Verdict.APPROVED)
-                          .map(review -> review.reviewer().id())
-                          .map(namespace::get)
-                          .filter(Objects::nonNull)
-                          .map(Contributor::username)
-                          .collect(Collectors.toList());
+                                     .filter(review -> !ignoreStaleReviews || review.hash().equals(headHash))
+                                     .filter(review -> review.verdict() == Review.Verdict.APPROVED)
+                                     .map(review -> review.reviewer().id())
+                                     .map(namespace::get)
+                                     .filter(Objects::nonNull)
+                                     .map(Contributor::username)
+                                     .collect(Collectors.toList());
 
         var comments = pr.comments();
         var additionalContributors = Contributors.contributors(pr.repository().forge().currentUser(),
