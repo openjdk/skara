@@ -1184,4 +1184,60 @@ class CheckTests {
             assertTrue(pr.labels().contains("rfr"));
         }
     }
+
+    @Test
+    void targetBranchPattern(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build())
+                                         .allowedTargetBranches("^(?!master$).*")
+                                         .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.url(), "notmaster", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit",
+                                                   "This is a pull request", true);
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that the check failed
+            var checks = pr.checks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            assertEquals(CheckStatus.FAILURE, check.status());
+            assertTrue(check.summary().orElseThrow().contains("The target branch of this PR does not match the allowed set of branches"));
+
+            var anotherPr = credentials.createPullRequest(author, "notmaster", "edit",
+                                                   "This is a pull request", true);
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Approve it as another user
+            var approvalPr = reviewer.pullRequest(anotherPr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that the check passed
+            checks = anotherPr.checks(editHash);
+            assertEquals(1, checks.size());
+            check = checks.get("jcheck");
+            assertEquals(CheckStatus.SUCCESS, check.status());
+        }
+    }
+
 }

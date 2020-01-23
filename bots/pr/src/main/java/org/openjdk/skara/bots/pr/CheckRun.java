@@ -43,8 +43,6 @@ class CheckRun {
     private final List<Review> activeReviews;
     private final Set<String> labels;
     private final CensusInstance censusInstance;
-    private final Map<String, String> blockingLabels;
-    private final IssueProject issueProject;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     private final String progressMarker = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
@@ -54,7 +52,7 @@ class CheckRun {
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, PullRequestInstance prInstance, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
-                     CensusInstance censusInstance, Map<String, String> blockingLabels, IssueProject issueProject) {
+                     CensusInstance censusInstance) {
         this.workItem = workItem;
         this.pr = pr;
         this.prInstance = prInstance;
@@ -64,15 +62,17 @@ class CheckRun {
         this.labels = new HashSet<>(labels);
         this.newLabels = new HashSet<>(labels);
         this.censusInstance = censusInstance;
-        this.blockingLabels = blockingLabels;
-        this.issueProject = issueProject;
     }
 
     static void execute(CheckWorkItem workItem, PullRequest pr, PullRequestInstance prInstance, List<Comment> comments,
-                        List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance, Map<String, String> blockingLabels,
-                        IssueProject issueProject) {
-        var run = new CheckRun(workItem, pr, prInstance, comments, allReviews, activeReviews, labels, censusInstance, blockingLabels, issueProject);
+                        List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance) {
+        var run = new CheckRun(workItem, pr, prInstance, comments, allReviews, activeReviews, labels, censusInstance);
         run.checkStatus();
+    }
+
+    private boolean checkTargetBranch() {
+        var matcher = workItem.bot.allowedTargetBranches().matcher(pr.targetRef());
+        return matcher.matches();
     }
 
     // For unknown contributors, check that all commits have the same name and email
@@ -113,6 +113,13 @@ class CheckRun {
     // Additional bot-specific checks that are not handled by JCheck
     private List<String> botSpecificChecks() throws IOException {
         var ret = new ArrayList<String>();
+
+        if (!checkTargetBranch()) {
+            var error = "The target branch of this PR does not match the allowed set of branches that can be targeted. " +
+                    "The following restriction is currently in place: `" + workItem.bot.allowedTargetBranches().pattern() +
+                    "`. Please select a different target branch for this PR.";
+            ret.add(error);
+        }
 
         var baseHash = prInstance.baseHash();
         var headHash = pr.headHash();
@@ -160,7 +167,7 @@ class CheckRun {
             }
         }
 
-        for (var blocker : blockingLabels.entrySet()) {
+        for (var blocker : workItem.bot.blockingLabels().entrySet()) {
             if (labels.contains(blocker.getKey())) {
                 ret.add(blocker.getValue());
             }
@@ -263,6 +270,7 @@ class CheckRun {
         progressBody.append(getChecksList(visitor));
 
         var issue = Issue.fromString(pr.title());
+        var issueProject = workItem.bot.issueProject();
         if (issueProject != null && issue.isPresent()) {
             var allIssues = new ArrayList<Issue>();
             allIssues.add(issue.get());
