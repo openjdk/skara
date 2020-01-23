@@ -27,6 +27,7 @@ import org.openjdk.skara.json.*;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.*;
 import org.openjdk.skara.vcs.openjdk.convert.*;
+import org.openjdk.skara.version.Version;
 
 import java.io.*;
 import java.nio.file.*;

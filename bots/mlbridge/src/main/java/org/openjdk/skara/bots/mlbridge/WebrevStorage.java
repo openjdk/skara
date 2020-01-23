@@ -23,10 +23,16 @@
 package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.email.EmailAddress;
-import org.openjdk.skara.forge.*;
+import org.openjdk.skara.forge.HostedRepository;
+import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.network.URIBuilder;
-import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.vcs.Repository;
+import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.webrev.Webrev;
+import org.openjdk.skara.version.Version;
+import org.openjdk.skara.vcs.openjdk.Issue;
+import org.openjdk.skara.jcheck.JCheckConfiguration;
+import org.openjdk.skara.issuetracker.IssueTracker;
 
 import java.io.*;
 import java.net.URI;
@@ -56,8 +62,30 @@ class WebrevStorage {
 
     private void generate(PullRequest pr, Repository localRepository, Path folder, Hash base, Hash head) throws IOException {
         Files.createDirectories(folder);
-        Webrev.repository(localRepository).output(folder)
-              .generate(base, head);
+        var fullName = pr.author().fullName();
+        var builder = Webrev.repository(localRepository)
+                            .output(folder)
+                            .version(Version.fromManifest().orElse("unknown"))
+                            .upstream(pr.repository().webUrl().toString())
+                            .pullRequest(pr.webUrl().toString())
+                            .username(fullName);
+
+        var issue = Issue.fromString(pr.title());
+        if (issue.isPresent()) {
+            var files = localRepository.files(head, List.of(Path.of(".jcheck", "conf")));
+            if (!files.isEmpty()) {
+                var conf = JCheckConfiguration.from(localRepository, head);
+                var project = conf.general().jbs() != null ? conf.general().jbs() : conf.general().project();
+                var id = issue.get().id();
+                var issueTracker = IssueTracker.from("jira", URI.create("https://bugs.openjdk.java.net"));
+                var hostedIssue = issueTracker.project(project).issue(id);
+                if (hostedIssue.isPresent()) {
+                    builder = builder.issue(hostedIssue.get().webUrl().toString());
+                }
+            }
+        }
+
+        builder.generate(base, head);
     }
 
     private String generatePlaceholder(PullRequest pr, Hash base, Hash head) {

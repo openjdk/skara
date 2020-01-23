@@ -62,6 +62,7 @@ dependencies {
     implementation project(':process')
     implementation project(':args')
     implementation project(':proxy')
+    implementation project(':version')
 
     testImplementation project(':test')
 }

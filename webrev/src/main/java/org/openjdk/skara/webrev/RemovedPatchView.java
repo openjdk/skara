@@ -91,28 +91,29 @@ class RemovedPatchView implements View {
             fw.write("+++ /dev/null");
             fw.write("\n");
 
-            assert textualPatch.hunks().size() == 1;
+            var hunks = textualPatch.hunks();
+            if (hunks.size() == 1) {
+                var hunk = hunks.get(0);
 
-            var hunk = textualPatch.hunks().get(0);
+                assert hunk.target().range().start() == 0;
+                assert hunk.target().range().count() == 0;
+                assert hunk.target().lines().size() == 0;
 
-            assert hunk.target().range().start() == 0;
-            assert hunk.target().range().count() == 0;
-            assert hunk.target().lines().size() == 0;
+                fw.write("@@ -");
+                fw.write(String.valueOf(hunk.source().range().start()));
+                fw.write(",");
+                fw.write(String.valueOf(hunk.source().range().count()));
+                fw.write(" +");
+                fw.write(String.valueOf(hunk.target().range().start()));
+                fw.write(",");
+                fw.write(String.valueOf(hunk.target().range().count()));
+                fw.write(" @@\n");
 
-            fw.write("@@ -");
-            fw.write(String.valueOf(hunk.source().range().start()));
-            fw.write(",");
-            fw.write(String.valueOf(hunk.source().range().count()));
-            fw.write(" +");
-            fw.write(String.valueOf(hunk.target().range().start()));
-            fw.write(",");
-            fw.write(String.valueOf(hunk.target().range().count()));
-            fw.write(" @@\n");
-
-            for (var line : hunk.source().lines()) {
-                fw.write("-");
-                fw.write(line);
-                fw.write("\n");
+                for (var line : hunk.source().lines()) {
+                    fw.write("-");
+                    fw.write(line);
+                    fw.write("\n");
+                }
             }
         }
     }
