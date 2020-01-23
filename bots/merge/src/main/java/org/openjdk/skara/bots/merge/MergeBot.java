@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,8 +32,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Files;
 import java.net.URLEncoder;
-import java.util.List;
-import java.util.ArrayList;
+import java.time.DayOfWeek;
+import java.time.Month;
+import java.time.temporal.WeekFields;
+import java.time.ZonedDateTime;
+import java.util.*;
 import java.util.logging.Logger;
 
 class MergeBot implements Bot, WorkItem {
@@ -44,23 +47,153 @@ class MergeBot implements Bot, WorkItem {
     private final HostedRepository fork;
     private final List<Spec> specs;
 
+    private final Clock clock;
+
+    private final Map<String, Set<Integer>> hourly = new HashMap<>();
+    private final Map<String, Set<Integer>> daily = new HashMap<>();
+    private final Map<String, Set<Integer>> weekly = new HashMap<>();
+    private final Map<String, Set<Month>> monthly = new HashMap<>();
+    private final Map<String, Set<Integer>> yearly = new HashMap<>();
+
     MergeBot(Path storage, HostedRepository target, HostedRepository fork,
              List<Spec> specs) {
+        this(storage, target, fork, specs, new Clock() {
+            public ZonedDateTime now() {
+                return ZonedDateTime.now();
+            }
+        });
+    }
+
+    MergeBot(Path storage, HostedRepository target, HostedRepository fork,
+             List<Spec> specs, Clock clock) {
         this.storage = storage;
         this.target = target;
         this.fork = fork;
         this.specs = specs;
+        this.clock = clock;
     }
 
     final static class Spec {
+        final static class Frequency {
+            static enum Interval {
+                HOURLY,
+                DAILY,
+                WEEKLY,
+                MONTHLY,
+                YEARLY;
+
+                boolean isHourly() {
+                    return this.equals(HOURLY);
+                }
+
+                boolean isDaily() {
+                    return this.equals(DAILY);
+                }
+
+                boolean isWeekly() {
+                    return this.equals(WEEKLY);
+                }
+
+                boolean isMonthly() {
+                    return this.equals(MONTHLY);
+                }
+
+                boolean isYearly() {
+                    return this.equals(YEARLY);
+                }
+            }
+
+            private final Interval interval;
+            private final DayOfWeek weekday;
+            private final Month month;
+            private final int day;
+            private final int hour;
+            private final int minute;
+
+            private Frequency(Interval interval, DayOfWeek weekday, Month month, int day, int hour, int minute) {
+                this.interval = interval;
+                this.weekday = weekday;
+                this.month = month;
+                this.day = day;
+                this.hour = hour;
+                this.minute = minute;
+            }
+
+            static Frequency hourly(int minute) {
+                return new Frequency(Interval.HOURLY, null, null, -1, -1, minute);
+            }
+
+            static Frequency daily(int hour) {
+                return new Frequency(Interval.DAILY, null, null, -1, hour, -1);
+            }
+
+            static Frequency weekly(DayOfWeek weekday, int hour) {
+                return new Frequency(Interval.WEEKLY, weekday, null, -1, hour, -1);
+            }
+
+            static Frequency monthly(int day, int hour) {
+                return new Frequency(Interval.MONTHLY, null, null, day, hour, -1);
+            }
+
+            static Frequency yearly(Month month, int day, int hour) {
+                return new Frequency(Interval.YEARLY, null, month, day, hour, -1);
+            }
+
+            boolean isHourly() {
+                return interval.isHourly();
+            }
+
+            boolean isDaily() {
+                return interval.isDaily();
+            }
+
+            boolean isWeekly() {
+                return interval.isWeekly();
+            }
+
+            boolean isMonthly() {
+                return interval.isMonthly();
+            }
+
+            boolean isYearly() {
+                return interval.isYearly();
+            }
+
+            DayOfWeek weekday() {
+                return weekday;
+            }
+
+            Month month() {
+                return month;
+            }
+
+            int day() {
+                return day;
+            }
+
+            int hour() {
+                return hour;
+            }
+
+            int minute() {
+                return minute;
+            }
+        }
+
         private final HostedRepository fromRepo;
         private final Branch fromBranch;
         private final Branch toBranch;
+        private final Frequency frequency;
 
         Spec(HostedRepository fromRepo, Branch fromBranch, Branch toBranch) {
+            this(fromRepo, fromBranch, toBranch, null);
+        }
+
+        Spec(HostedRepository fromRepo, Branch fromBranch, Branch toBranch, Frequency frequency) {
             this.fromRepo = fromRepo;
             this.fromBranch = fromBranch;
             this.toBranch = toBranch;
+            this.frequency = frequency;
         }
 
         HostedRepository fromRepo() {
@@ -73,6 +206,10 @@ class MergeBot implements Bot, WorkItem {
 
         Branch toBranch() {
             return toBranch;
+        }
+
+        Optional<Frequency> frequency() {
+            return Optional.ofNullable(frequency);
         }
     }
 
@@ -126,7 +263,7 @@ class MergeBot implements Bot, WorkItem {
                 repo.checkout(toBranch, false);
 
                 // Check if merge conflict pull request is present
-                var isMergeConflictPRPresent = false;
+                var shouldMerge = true;
                 var title = "Cannot automatically merge " + fromRepo.name() + ":" + fromBranch.name() + " to " + toBranch.name();
                 var marker = "<!-- MERGE CONFLICTS -->";
                 for (var pr : prs) {
@@ -141,13 +278,85 @@ class MergeBot implements Bot, WorkItem {
                             pr.setState(PullRequest.State.CLOSED);
                         } else {
                             log.info("Outstanding unresolved merge already present");
-                            isMergeConflictPRPresent = true;
+                            shouldMerge = false;
                         }
                         break;
                     }
                 }
 
-                if (isMergeConflictPRPresent) {
+                if (spec.frequency().isPresent()) {
+                    var now = clock.now();
+                    var desc = toBranch.name() + "->" + fromRepo.name() + ":" + fromBranch.name();
+                    var freq = spec.frequency().get();
+                    if (freq.isHourly()) {
+                        if (!hourly.containsKey(desc)) {
+                            hourly.put(desc, new HashSet<Integer>());
+                        }
+                        var minute = now.getMinute();
+                        var hour = now.getHour();
+                        if (freq.minute() == minute && !hourly.get(desc).contains(hour)) {
+                            hourly.get(desc).add(hour);
+                        } else {
+                            shouldMerge = false;
+                        }
+                    } else if (freq.isDaily()) {
+                        if (!daily.containsKey(desc)) {
+                            daily.put(desc, new HashSet<Integer>());
+                        }
+                        var hour = now.getHour();
+                        var day = now.getDayOfYear();
+                        if (freq.hour() == hour && !daily.get(desc).contains(day)) {
+                            daily.get(desc).add(day);
+                        } else {
+                            shouldMerge = false;
+                        }
+                    } else if (freq.isWeekly()) {
+                        if (!weekly.containsKey(desc)) {
+                            weekly.put(desc, new HashSet<Integer>());
+                        }
+                        var weekOfYear = now.get(WeekFields.ISO.weekOfYear());
+                        var weekday = now.getDayOfWeek();
+                        var hour = now.getHour();
+                        if (freq.weekday().equals(weekday) &&
+                            freq.hour() == hour &&
+                            !weekly.get(desc).contains(weekOfYear)) {
+                            weekly.get(desc).add(weekOfYear);
+                        } else {
+                            shouldMerge = false;
+                        }
+                    } else if (freq.isMonthly()) {
+                        if (!monthly.containsKey(desc)) {
+                            monthly.put(desc, new HashSet<Month>());
+                        }
+                        var day = now.getDayOfMonth();
+                        var hour = now.getHour();
+                        var month = now.getMonth();
+                        if (freq.day() == day && freq.hour() == hour &&
+                            !monthly.get(desc).contains(month)) {
+                            monthly.get(desc).add(month);
+                        } else {
+                            shouldMerge = false;
+                        }
+                    } else if (freq.isYearly()) {
+                        if (!yearly.containsKey(desc)) {
+                            yearly.put(desc, new HashSet<Integer>());
+                        }
+                        var month = now.getMonth();
+                        var day = now.getDayOfMonth();
+                        var hour = now.getHour();
+                        var year = now.getYear();
+                        if (freq.month().equals(month) &&
+                            freq.day() == day &&
+                            freq.hour() == hour &&
+                            !yearly.get(desc).contains(year)) {
+                            yearly.get(desc).add(year);
+                        } else {
+                            shouldMerge = false;
+                        }
+                    }
+                }
+
+                if (!shouldMerge) {
                     continue;
                 }
 
