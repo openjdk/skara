@@ -79,7 +79,19 @@ public class PullRequestBotFactory implements BotFactory {
             var issueProject = repo.value().contains("issues") ?
                     configuration.issueProject(repo.value().get("issues").asString()) :
                     null;
-            var bot = PullRequestBot.newBuilder().repo(configuration.repository(repo.name())).censusRepo(censusRepo).censusRef(censusRef).labelPatterns(labelPatterns).externalCommands(external).blockingLabels(blockers).readyLabels(readyLabels).readyComments(readyComments).issueProject(issueProject).build();
+            var ignoreStaleReviews = repo.value().contains("ignorestale") && repo.value().get("ignorestale").asBoolean();
+            var bot = PullRequestBot.newBuilder()
+                                    .repo(configuration.repository(repo.name()))
+                                    .censusRepo(censusRepo)
+                                    .censusRef(censusRef)
+                                    .labelPatterns(labelPatterns)
+                                    .externalCommands(external)
+                                    .blockingLabels(blockers)
+                                    .readyLabels(readyLabels)
+                                    .readyComments(readyComments)
+                                    .issueProject(issueProject)
+                                    .ignoreStaleReviews(ignoreStaleReviews)
+                                    .build();
             ret.add(bot);
         }
 
