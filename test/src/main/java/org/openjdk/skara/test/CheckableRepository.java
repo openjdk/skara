@@ -78,7 +78,7 @@ public class CheckableRepository {
             output.append("files=.*\\.txt\n");
             output.append("\n");
             output.append("[checks \"reviewers\"]\n");
-            output.append("minimum=1\n");
+            output.append("reviewers=1\n");
         }
         repo.add(checkConf);
 

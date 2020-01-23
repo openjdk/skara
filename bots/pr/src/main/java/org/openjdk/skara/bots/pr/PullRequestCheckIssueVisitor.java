@@ -106,7 +106,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     @Override
     public void visit(TooFewReviewersIssue e) {
-        messages.add(String.format("Too few reviewers found (have %d, need at least %d)", e.numActual(), e.numRequired()));
+        messages.add(String.format("Too few reviewers with at least role %s found (have %d, need at least %d)", e.role(), e.numActual(), e.numRequired()));
         failedChecks.add(e.check().getClass());
     }
 

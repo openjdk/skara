@@ -482,7 +482,8 @@ class CheckRun {
                 }
 
                 // Determine current status
-                prInstance.executeChecks(localHash, censusInstance, visitor);
+                var additionalConfiguration = AdditionalConfiguration.get(prInstance.localRepo(), localHash, pr.repository().forge().currentUser(), comments);
+                prInstance.executeChecks(localHash, censusInstance, visitor, additionalConfiguration);
                 additionalErrors = botSpecificChecks();
             }
             else {

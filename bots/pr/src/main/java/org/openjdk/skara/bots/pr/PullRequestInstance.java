@@ -25,7 +25,7 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.census.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
-import org.openjdk.skara.jcheck.JCheck;
+import org.openjdk.skara.jcheck.*;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 import org.openjdk.skara.vcs.openjdk.*;
@@ -215,9 +215,9 @@ class PullRequestInstance {
         return new PullRequestCheckIssueVisitor(checks);
     }
 
-    void executeChecks(Hash localHash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor) throws Exception {
+    void executeChecks(Hash localHash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor, List<String> additionalConfiguration) throws Exception {
         try (var issues = JCheck.check(localRepo(), censusInstance.census(), CommitMessageParsers.v1, "HEAD~1..HEAD",
-                                       localHash, new HashMap<>(), new HashSet<>())) {
+                                       localHash, new HashMap<>(), new HashSet<>(), additionalConfiguration)) {
             for (var issue : issues) {
                 issue.accept(visitor);
             }
