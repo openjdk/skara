@@ -41,7 +41,34 @@ public class HttpProxy {
     }
 
     public static void setup() {
-        var hasSetupProxy = false;
+        try {
+            var pb = new ProcessBuilder("git", "config", "http.proxy");
+            pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
+            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
+            var p = pb.start();
+
+            var output = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
+            var res = p.waitFor();
+            if (res == 0 && output != null && !output.isEmpty()) {
+                if (output.startsWith("https://") || output.startsWith("http://")) {
+                    var uri = new URI(output);
+                    setProxyHostAndPortBasedOn(uri);
+                } else {
+                    for (var scheme : List.of("http", "https")) {
+                        var uri = new URI(scheme + "://" + output);
+                        setProxyHostAndPortBasedOn(uri);
+                    }
+                }
+                return;
+            }
+        } catch (InterruptedException e) {
+            // pass
+        } catch (IOException e) {
+            // pass
+        } catch (URISyntaxException e) {
+            // pass
+        }
+
         for (var key : List.of("http_proxy", "https_proxy")) {
             var value = System.getenv(key);
             value = value == null ? System.getenv(key.toUpperCase()) : value;
@@ -65,36 +92,6 @@ public class HttpProxy {
                               .map(s -> s.startsWith(".") ? "*" + s : s)
                               .collect(Collectors.toList());
             System.setProperty("http.nonProxyHosts", String.join("|", hosts));
-            hasSetupProxy = true;
-        }
-
-        if (!hasSetupProxy) {
-            try {
-                var pb = new ProcessBuilder("git", "config", "http.proxy");
-                pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
-                pb.redirectError(ProcessBuilder.Redirect.DISCARD);
-                var p = pb.start();
-
-                var output = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
-                var res = p.waitFor();
-                if (res == 0 && output != null && !output.isEmpty()) {
-                    if (output.startsWith("https://") || output.startsWith("http://")) {
-                        var uri = new URI(output);
-                        setProxyHostAndPortBasedOn(uri);
-                    } else {
-                        for (var scheme : List.of("http", "https")) {
-                            var uri = new URI(scheme + "://" + output);
-                            setProxyHostAndPortBasedOn(uri);
-                        }
-                    }
-                }
-            } catch (InterruptedException e) {
-                // pass
-            } catch (IOException e) {
-                // pass
-            } catch (URISyntaxException e) {
-                // pass
-            }
         }
     }
 }
