@@ -70,7 +70,7 @@ class CheckRun {
         run.checkStatus();
     }
 
-    private boolean checkTargetBranch() {
+    private boolean isTargetBranchAllowed() {
         var matcher = workItem.bot.allowedTargetBranches().matcher(pr.targetRef());
         return matcher.matches();
     }
