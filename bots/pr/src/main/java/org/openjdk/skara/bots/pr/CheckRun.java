@@ -124,7 +124,7 @@ class CheckRun {
     private List<String> botSpecificChecks() throws IOException {
         var ret = new ArrayList<String>();
 
-        if (!checkTargetBranch()) {
+        if (!isTargetBranchAllowed()) {
             var error = "The branch `" + pr.targetRef() + "` is not allowed as target branch. The allowed target branches are:\n" +
                     allowedTargetBranches().stream()
                     .map(name -> "   - " + name)
