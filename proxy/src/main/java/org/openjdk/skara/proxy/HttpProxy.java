@@ -57,6 +57,7 @@ public class HttpProxy {
             var res = p.waitFor();
             if (res == 0 && !output.isEmpty()) {
                 if (!output.startsWith("http://") && !output.startsWith("https://")) {
+                    // Try to parse it as a http url - we only care about the host and port
                     output = "http://" + output;
                 }
                 var uri = new URI(output);
@@ -77,6 +78,7 @@ public class HttpProxy {
                 var protocol = key.split("_")[0].toLowerCase();
                 try {
                     if (!value.startsWith("http://") && !value.startsWith("https://")) {
+                        // Try to parse it as a http url - we only care about the host and port
                         value = "http://" + value;
                     }
                     var uri = new URI(value);
