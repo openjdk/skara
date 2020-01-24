@@ -39,6 +39,7 @@ public class PullRequestBotBuilder {
     private Map<String, Pattern> readyComments = Map.of();
     private IssueProject issueProject = null;
     private boolean ignoreStaleReviews = false;
+    private Pattern allowedTargetBranches = Pattern.compile(".*");
 
     PullRequestBotBuilder() {
     }
@@ -93,7 +94,13 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder allowedTargetBranches(String allowedTargetBranches) {
+        this.allowedTargetBranches = Pattern.compile(allowedTargetBranches);
+        return this;
+    }
+
     public PullRequestBot build() {
-        return new PullRequestBot(repo, censusRepo, censusRef, labelPatterns, externalCommands, blockingLabels, readyLabels, readyComments, issueProject, ignoreStaleReviews);
+        return new PullRequestBot(repo, censusRepo, censusRef, labelPatterns, externalCommands, blockingLabels,
+                                  readyLabels, readyComments, issueProject, ignoreStaleReviews, allowedTargetBranches);
     }
 }

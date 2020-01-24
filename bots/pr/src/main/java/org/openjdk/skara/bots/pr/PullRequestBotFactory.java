@@ -66,8 +66,17 @@ public class PullRequestBotFactory implements BotFactory {
             var censusRepo = configuration.repository(repo.value().get("census").asString());
             var censusRef = configuration.repositoryRef(repo.value().get("census").asString());
 
-            var labelPatterns = new HashMap<String, List<Pattern>>();
+            var botBuilder = PullRequestBot.newBuilder()
+                                           .repo(configuration.repository(repo.name()))
+                                           .censusRepo(censusRepo)
+                                           .censusRef(censusRef)
+                                           .blockingLabels(blockers)
+                                           .readyLabels(readyLabels)
+                                           .readyComments(readyComments)
+                                           .externalCommands(external);
+
             if (repo.value().contains("labels")) {
+                var labelPatterns = new HashMap<String, List<Pattern>>();
                 for (var label : repo.value().get("labels").fields()) {
                     var patterns = label.value().stream()
                                         .map(JSONValue::asString)
@@ -75,24 +84,19 @@ public class PullRequestBotFactory implements BotFactory {
                                         .collect(Collectors.toList());
                     labelPatterns.put(label.name(), patterns);
                 }
+                botBuilder.labelPatterns(labelPatterns);
             }
-            var issueProject = repo.value().contains("issues") ?
-                    configuration.issueProject(repo.value().get("issues").asString()) :
-                    null;
-            var ignoreStaleReviews = repo.value().contains("ignorestale") && repo.value().get("ignorestale").asBoolean();
-            var bot = PullRequestBot.newBuilder()
-                                    .repo(configuration.repository(repo.name()))
-                                    .censusRepo(censusRepo)
-                                    .censusRef(censusRef)
-                                    .labelPatterns(labelPatterns)
-                                    .externalCommands(external)
-                                    .blockingLabels(blockers)
-                                    .readyLabels(readyLabels)
-                                    .readyComments(readyComments)
-                                    .issueProject(issueProject)
-                                    .ignoreStaleReviews(ignoreStaleReviews)
-                                    .build();
-            ret.add(bot);
+            if (repo.value().contains("issues")) {
+                botBuilder.issueProject(configuration.issueProject(repo.value().get("issues").asString()));
+            }
+            if (repo.value().contains("ignorestale")) {
+                botBuilder.ignoreStaleReviews(repo.value().get("ignorestale").asBoolean());
+            }
+            if (repo.value().contains("targetbranches")) {
+                botBuilder.allowedTargetBranches(repo.value().get("targetbranches").asString());
+            }
+
+            ret.add(botBuilder.build());
         }
 
         return ret;

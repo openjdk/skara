@@ -25,13 +25,13 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.vcs.Commit;
+import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
 import java.io.*;
 import java.util.*;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
+import java.util.regex.*;
 import java.util.stream.*;
 
 class CheckRun {
@@ -43,8 +43,6 @@ class CheckRun {
     private final List<Review> activeReviews;
     private final Set<String> labels;
     private final CensusInstance censusInstance;
-    private final Map<String, String> blockingLabels;
-    private final IssueProject issueProject;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     private final String progressMarker = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
@@ -54,7 +52,7 @@ class CheckRun {
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, PullRequestInstance prInstance, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
-                     CensusInstance censusInstance, Map<String, String> blockingLabels, IssueProject issueProject) {
+                     CensusInstance censusInstance) {
         this.workItem = workItem;
         this.pr = pr;
         this.prInstance = prInstance;
@@ -64,15 +62,27 @@ class CheckRun {
         this.labels = new HashSet<>(labels);
         this.newLabels = new HashSet<>(labels);
         this.censusInstance = censusInstance;
-        this.blockingLabels = blockingLabels;
-        this.issueProject = issueProject;
     }
 
     static void execute(CheckWorkItem workItem, PullRequest pr, PullRequestInstance prInstance, List<Comment> comments,
-                        List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance, Map<String, String> blockingLabels,
-                        IssueProject issueProject) {
-        var run = new CheckRun(workItem, pr, prInstance, comments, allReviews, activeReviews, labels, censusInstance, blockingLabels, issueProject);
+                        List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance) {
+        var run = new CheckRun(workItem, pr, prInstance, comments, allReviews, activeReviews, labels, censusInstance);
         run.checkStatus();
+    }
+
+    private boolean isTargetBranchAllowed() {
+        var matcher = workItem.bot.allowedTargetBranches().matcher(pr.targetRef());
+        return matcher.matches();
+    }
+
+    private List<String> allowedTargetBranches() {
+        var remoteBranches = prInstance.remoteBranches().stream()
+                                       .map(Reference::name)
+                                       .map(name -> workItem.bot.allowedTargetBranches().matcher(name))
+                                       .filter(Matcher::matches)
+                                       .map(Matcher::group)
+                                       .collect(Collectors.toList());
+        return remoteBranches;
     }
 
     // For unknown contributors, check that all commits have the same name and email
@@ -113,6 +123,14 @@ class CheckRun {
     // Additional bot-specific checks that are not handled by JCheck
     private List<String> botSpecificChecks() throws IOException {
         var ret = new ArrayList<String>();
+
+        if (!isTargetBranchAllowed()) {
+            var error = "The branch `" + pr.targetRef() + "` is not allowed as target branch. The allowed target branches are:\n" +
+                    allowedTargetBranches().stream()
+                    .map(name -> "   - " + name)
+                    .collect(Collectors.joining("\n"));
+            ret.add(error);
+        }
 
         var baseHash = prInstance.baseHash();
         var headHash = pr.headHash();
@@ -160,7 +178,7 @@ class CheckRun {
             }
         }
 
-        for (var blocker : blockingLabels.entrySet()) {
+        for (var blocker : workItem.bot.blockingLabels().entrySet()) {
             if (labels.contains(blocker.getKey())) {
                 ret.add(blocker.getValue());
             }
@@ -263,6 +281,7 @@ class CheckRun {
         progressBody.append(getChecksList(visitor));
 
         var issue = Issue.fromString(pr.title());
+        var issueProject = workItem.bot.issueProject();
         if (issueProject != null && issue.isPresent()) {
             var allIssues = new ArrayList<Issue>();
             allIssues.add(issue.get());

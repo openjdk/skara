@@ -44,6 +44,7 @@ class PullRequestBot implements Bot {
     private final Map<String, Pattern> readyComments;
     private final IssueProject issueProject;
     private final boolean ignoreStaleReviews;
+    private final Pattern allowedTargetBranches;
     private final ConcurrentMap<Hash, Boolean> currentLabels;
     private final PullRequestUpdateCache updateCache;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
@@ -51,7 +52,8 @@ class PullRequestBot implements Bot {
     PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef,
                    Map<String, List<Pattern>> labelPatterns, Map<String, String> externalCommands,
                    Map<String, String> blockingLabels, Set<String> readyLabels,
-                   Map<String, Pattern> readyComments, IssueProject issueProject, boolean ignoreStaleReviews) {
+                   Map<String, Pattern> readyComments, IssueProject issueProject, boolean ignoreStaleReviews,
+                   Pattern allowedTargetBranches) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -62,6 +64,7 @@ class PullRequestBot implements Bot {
         this.issueProject = issueProject;
         this.readyComments = readyComments;
         this.ignoreStaleReviews = ignoreStaleReviews;
+        this.allowedTargetBranches = allowedTargetBranches;
 
         this.currentLabels = new ConcurrentHashMap<>();
         this.updateCache = new PullRequestUpdateCache();
@@ -172,5 +175,9 @@ class PullRequestBot implements Bot {
 
     boolean ignoreStaleReviews() {
         return ignoreStaleReviews;
+    }
+
+    Pattern allowedTargetBranches() {
+        return allowedTargetBranches;
     }
 }
