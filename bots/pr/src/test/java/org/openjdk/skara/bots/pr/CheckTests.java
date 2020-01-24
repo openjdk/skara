@@ -1219,7 +1219,8 @@ class CheckTests {
             assertEquals(1, checks.size());
             var check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
-            assertTrue(check.summary().orElseThrow().contains("The target branch of this PR does not match the allowed set of branches"));
+            assertTrue(check.summary().orElseThrow().contains("The branch `master` is not allowed as target branch"));
+            assertTrue(check.summary().orElseThrow().contains("notmaster"));
 
             var anotherPr = credentials.createPullRequest(author, "notmaster", "edit",
                                                    "This is a pull request", true);

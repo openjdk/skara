@@ -226,4 +226,12 @@ class PullRequestInstance {
             }
         }
     }
+
+    List<Reference> remoteBranches() {
+        try {
+            return localRepo.remoteBranches(pr.repository().url().toString());
+        } catch (IOException e) {
+            return List.of();
+        }
+    }
 }

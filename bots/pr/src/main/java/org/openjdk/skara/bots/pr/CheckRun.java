@@ -25,13 +25,13 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.vcs.Commit;
+import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
 import java.io.*;
 import java.util.*;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
+import java.util.regex.*;
 import java.util.stream.*;
 
 class CheckRun {
@@ -75,6 +75,16 @@ class CheckRun {
         return matcher.matches();
     }
 
+    private List<String> allowedTargetBranches() {
+        var remoteBranches = prInstance.remoteBranches().stream()
+                                       .map(Reference::name)
+                                       .map(name -> workItem.bot.allowedTargetBranches().matcher(name))
+                                       .filter(Matcher::matches)
+                                       .map(Matcher::group)
+                                       .collect(Collectors.toList());
+        return remoteBranches;
+    }
+
     // For unknown contributors, check that all commits have the same name and email
     private boolean checkCommitAuthor(List<Commit> commits) throws IOException {
         var author = censusInstance.namespace().get(pr.author().id());
@@ -115,9 +125,10 @@ class CheckRun {
         var ret = new ArrayList<String>();
 
         if (!checkTargetBranch()) {
-            var error = "The target branch of this PR does not match the allowed set of branches that can be targeted. " +
-                    "The following restriction is currently in place: `" + workItem.bot.allowedTargetBranches().pattern() +
-                    "`. Please select a different target branch for this PR.";
+            var error = "The branch `" + pr.targetRef() + "` is not allowed as target branch. The allowed target branches are:\n" +
+                    allowedTargetBranches().stream()
+                    .map(name -> "   - " + name)
+                    .collect(Collectors.joining("\n"));
             ret.add(error);
         }
 
