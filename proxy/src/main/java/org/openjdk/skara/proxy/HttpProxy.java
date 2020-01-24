@@ -23,21 +23,27 @@
 package org.openjdk.skara.proxy;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class HttpProxy {
-    private static void setProxyHostAndPortBasedOn(URI uri) {
-        var scheme = uri.getScheme();
+    private static final Logger log = Logger.getLogger("org.openjdk.skara.proxy");
+
+    private static boolean setProxyHostAndPortBasedOn(String protocol, URI uri) {
         var port = String.valueOf(uri.getPort() == -1 ? 80 : uri.getPort());
-        if (System.getProperty(scheme + ".proxyHost") == null) {
-            System.setProperty(scheme + ".proxyHost", uri.getHost());
-            System.setProperty(scheme + ".proxyPort", port);
+        if (System.getProperty(protocol + ".proxyHost") == null) {
+            log.fine("Setting " + protocol + " proxy to " + uri.getHost() + ":" + port);
+            System.setProperty(protocol + ".proxyHost", uri.getHost());
+            System.setProperty(protocol + ".proxyPort", port);
+            return true;
         }
+
+        log.fine("Not overriding " + protocol + " proxy setting. Current value: " +
+                         System.getProperty(protocol + ".proxyHost") + ":" + System.getProperty(protocol + ".proxyPort"));
+        return false;
     }
 
     public static void setup() {
@@ -49,37 +55,34 @@ public class HttpProxy {
 
             var output = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
             var res = p.waitFor();
-            if (res == 0 && output != null && !output.isEmpty()) {
-                if (output.startsWith("https://") || output.startsWith("http://")) {
-                    var uri = new URI(output);
-                    setProxyHostAndPortBasedOn(uri);
-                } else {
-                    for (var scheme : List.of("http", "https")) {
-                        var uri = new URI(scheme + "://" + output);
-                        setProxyHostAndPortBasedOn(uri);
-                    }
+            if (res == 0 && !output.isEmpty()) {
+                if (!output.startsWith("http://") && !output.startsWith("https://")) {
+                    // Try to parse it as a http url - we only care about the host and port
+                    output = "http://" + output;
+                }
+                var uri = new URI(output);
+                for (var protocol : List.of("http", "https")) {
+                    setProxyHostAndPortBasedOn(protocol, uri);
                 }
                 return;
             }
-        } catch (InterruptedException e) {
-            // pass
-        } catch (IOException e) {
-            // pass
-        } catch (URISyntaxException e) {
+        } catch (InterruptedException | IOException | URISyntaxException e) {
             // pass
         }
 
+        boolean hasSetProxy = false;
         for (var key : List.of("http_proxy", "https_proxy")) {
             var value = System.getenv(key);
             value = value == null ? System.getenv(key.toUpperCase()) : value;
             if (value != null) {
+                var protocol = key.split("_")[0].toLowerCase();
                 try {
                     if (!value.startsWith("http://") && !value.startsWith("https://")) {
-                        var scheme = key.split("_")[0];
-                        value = scheme + "://" + value;
+                        // Try to parse it as a http url - we only care about the host and port
+                        value = "http://" + value;
                     }
                     var uri = new URI(value);
-                    setProxyHostAndPortBasedOn(uri);
+                    hasSetProxy |= setProxyHostAndPortBasedOn(protocol, uri);
                 } catch (URISyntaxException e) {
                     // pass
                 }
@@ -87,11 +90,17 @@ public class HttpProxy {
         }
         var no_proxy = System.getenv("no_proxy");
         no_proxy = no_proxy == null ? System.getenv("NO_PROXY") : no_proxy;
-        if (no_proxy != null && System.getProperty("http.nonProxyHosts") == null) {
-            var hosts = Arrays.stream(no_proxy.split(","))
-                              .map(s -> s.startsWith(".") ? "*" + s : s)
-                              .collect(Collectors.toList());
-            System.setProperty("http.nonProxyHosts", String.join("|", hosts));
+        if (no_proxy != null) {
+            if (System.getProperty("http.nonProxyHosts") == null || hasSetProxy) {
+                var hosts = Arrays.stream(no_proxy.split(","))
+                                  .map(s -> s.startsWith(".") ? "*" + s : s)
+                                  .collect(Collectors.toList());
+                System.setProperty("http.nonProxyHosts", String.join("|", hosts));
+                log.fine("Setting nonProxyHosts to " + String.join("|", hosts));
+            } else {
+                log.fine("Not overriding nonProxyHosts setting. Current value: " +
+                                 System.getProperty("http.nonProxyHosts"));
+            }
         }
     }
 }

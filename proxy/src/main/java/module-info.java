@@ -21,5 +21,6 @@
  * questions.
  */
 module org.openjdk.skara.proxy {
+    requires java.logging;
     exports org.openjdk.skara.proxy;
 }
