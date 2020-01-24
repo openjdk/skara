@@ -82,6 +82,11 @@ public class CommentPosterWorkItem implements WorkItem {
                 "](mailto:" + email.author().address() + ") on [" + email.sender().localPart() +
                 "](mailto:" + email.sender().address() + "):*\n\n" +
                 TextToMarkdown.escapeFormatting(email.body());
+        if (body.length() > 64000) {
+            body = body.substring(0, 64000) + "...\n\n" + "" +
+                    "This message was too large to bridge in full, and has been truncated. " +
+                    "Please check the mailing list archive to see the full text.";
+        }
         pr.addComment(body);
     }
 

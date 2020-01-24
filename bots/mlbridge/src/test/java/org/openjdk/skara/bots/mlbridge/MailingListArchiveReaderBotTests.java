@@ -38,10 +38,8 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MailingListArchiveReaderBotTests {
-    private void addReply(Conversation conversation, MailingList mailingList, PullRequest pr) {
+    private void addReply(Conversation conversation, MailingList mailingList, PullRequest pr, String reply) {
         var first = conversation.first();
-
-        var reply = "Looks good";
         var references = first.id().toString();
         var email = Email.create(EmailAddress.from("Commenter", "c@test.test"), "Re: RFR: " + pr.title(), reply)
                          .recipient(first.author())
@@ -50,6 +48,10 @@ class MailingListArchiveReaderBotTests {
                          .header("References", references)
                          .build();
         mailingList.post(email);
+    }
+
+    private void addReply(Conversation conversation, MailingList mailingList, PullRequest pr) {
+        addReply(conversation, mailingList, pr, "Looks good");
     }
 
     @Test
@@ -192,6 +194,80 @@ class MailingListArchiveReaderBotTests {
             // The new bridge should not have made duplicate posts
             var notUpdated = pr.comments();
             assertEquals(2, notUpdated.size());
+        }
+    }
+
+    @Test
+    void largeEmail(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
+            var author = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+            var ignored = credentials.getHostedRepository();
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var from = EmailAddress.from("test", "test@test.mail");
+            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
+                                                 censusBuilder.build(), "master",
+                                                 listAddress,
+                                                 Set.of(ignored.forge().currentUser().userName()),
+                                                 Set.of(),
+                                                 listServer.getArchive(), listServer.getSMTP(),
+                                                 archive, "webrev", Path.of("test"),
+                                                 webrevServer.uri(),
+                                                 Set.of(), Map.of(),
+                                                 URIBuilder.base("http://issues.test/browse/").build(),
+                                                 Map.of(), Duration.ZERO);
+
+            // The mailing list as well
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(),
+                                                                             Duration.ZERO);
+            var mailmanList = mailmanServer.getList(listAddress.address());
+            var readerBot = new MailingListArchiveReaderBot(from, Set.of(mailmanList), Set.of(archive));
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
+                                                               "Change msg\n\nWith several lines");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
+            pr.setBody("This should now be ready");
+
+            // Run an archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // Run an archive pass
+            TestBotRunner.runPeriodicItems(readerBot);
+            TestBotRunner.runPeriodicItems(readerBot);
+
+            // Post a large reply directly to the list
+            var conversations = mailmanList.conversations(Duration.ofDays(1));
+            assertEquals(1, conversations.size());
+
+            var replyBody = "This line is about 30 bytes long\n".repeat(1000 * 10);
+            addReply(conversations.get(0), mailmanList, pr, replyBody);
+            listServer.processIncoming();
+
+            // Another archive reader pass - has to be done twice
+            TestBotRunner.runPeriodicItems(readerBot);
+            TestBotRunner.runPeriodicItems(readerBot);
+
+            // The bridge should now have processed the reply
+            var updated = pr.comments();
+            assertEquals(2, updated.size());
+            assertTrue(updated.get(1).body().contains("Mailing list message from"));
+            assertTrue(updated.get(1).body().contains("[Commenter](mailto:c@test.test)"));
+            assertTrue(updated.get(1).body().contains("[test](mailto:test@" + listAddress.domain() + ")"));
+            assertTrue(updated.get(1).body().contains("This message was too large"));
         }
     }
 }
