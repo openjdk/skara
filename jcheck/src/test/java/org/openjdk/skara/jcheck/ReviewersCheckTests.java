@@ -383,4 +383,36 @@ class ReviewersCheckTests {
         assertEquals(Severity.ERROR, issue.severity());
         assertEquals(check, issue.check());
     }
+
+    @Test
+    void legacyConfigurationShouldAcceptCommitterRole() throws IOException {
+        var commit = commit(List.of("foo"));
+        var check = new ReviewersCheck(census(), utils);
+        var legacyConf = new ArrayList<>(CONFIGURATION);
+        legacyConf.add("minimum = 1");
+        legacyConf.add("role = committer");
+
+        var issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(legacyConf)));
+        assertEquals(0, issues.size());
+
+        commit = commit(List.of("bar"));
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(legacyConf)));
+        assertEquals(0, issues.size());
+
+        commit = commit(List.of("baz"));
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(legacyConf)));
+        assertEquals(0, issues.size());
+
+        commit = commit(List.of("qux"));
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(legacyConf)));
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0) instanceof TooFewReviewersIssue);
+        var issue = (TooFewReviewersIssue) issues.get(0);
+        assertEquals(0, issue.numActual());
+        assertEquals(1, issue.numRequired());
+        assertEquals("committer", issue.role());
+        assertEquals(commit, issue.commit());
+        assertEquals(Severity.ERROR, issue.severity());
+        assertEquals(check, issue.check());
+    }
 }
