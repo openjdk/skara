@@ -27,6 +27,8 @@ import org.openjdk.skara.vcs.Branch;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.time.DayOfWeek;
+import java.time.Month;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -36,6 +38,96 @@ public class MergeBotFactory implements BotFactory {
     @Override
     public String name() {
         return "merge";
+    }
+
+    private static MergeBot.Spec.Frequency.Interval toInterval(String s) {
+        switch (s.toLowerCase()) {
+            case "hourly":
+                return MergeBot.Spec.Frequency.Interval.HOURLY;
+            case "daily":
+                return MergeBot.Spec.Frequency.Interval.DAILY;
+            case "weekly":
+                return MergeBot.Spec.Frequency.Interval.WEEKLY;
+            case "monthly":
+                return MergeBot.Spec.Frequency.Interval.MONTHLY;
+            case "yearly":
+                return MergeBot.Spec.Frequency.Interval.YEARLY;
+            default:
+                throw new IllegalArgumentException("Unknown interval: " + s);
+        }
+    }
+
+    private static DayOfWeek toWeekday(String s) {
+        switch (s.toLowerCase()) {
+            case "monday":
+                return DayOfWeek.MONDAY;
+            case "tuesday":
+                return DayOfWeek.TUESDAY;
+            case "wednesday":
+                return DayOfWeek.WEDNESDAY;
+            case "thursday":
+                return DayOfWeek.THURSDAY;
+            case "friday":
+                return DayOfWeek.FRIDAY;
+            case "saturday":
+                return DayOfWeek.SATURDAY;
+            case "sunday":
+                return DayOfWeek.SUNDAY;
+            default:
+                throw new IllegalArgumentException("Unknown weekday: " + s);
+        }
+    }
+
+    private static Month toMonth(String s) {
+        switch (s.toLowerCase()) {
+            case "january":
+                return Month.JANUARY;
+            case "february":
+                return Month.FEBRUARY;
+            case "march":
+                return Month.MARCH;
+            case "april":
+                return Month.APRIL;
+            case "may":
+                return Month.MAY;
+            case "june":
+                return Month.JUNE;
+            case "july":
+                return Month.JULY;
+            case "august":
+                return Month.AUGUST;
+            case "september":
+                return Month.SEPTEMBER;
+            case "october":
+                return Month.OCTOBER;
+            case "november":
+                return Month.NOVEMBER;
+            case "december":
+                return Month.DECEMBER;
+            default:
+                throw new IllegalArgumentException("Unknown month: " + s);
+        }
+    }
+
+    private static int toDay(int i) {
+        if (i < 0 || i > 30) {
+            throw new IllegalArgumentException("Unknown day: " + i);
+        }
+        return i;
+    }
+
+    private static int toHour(int i) {
+        if (i < 0 || i > 23) {
+            throw new IllegalArgumentException("Unknown hour: " + i);
+        }
+        return i;
+    }
+
+    private static int toMinute(int i) {
+        if (i < 0 || i > 59) {
+            throw new IllegalArgumentException("Unknown minute: " + i);
+        }
+        return i;
     }
 
     @Override
@@ -59,7 +151,36 @@ public class MergeBotFactory implements BotFactory {
                 var fromRepo = configuration.repository(from[0]);
                 var fromBranch = new Branch(from[1]);
                 var toBranch = new Branch(spec.get("to").asString());
-                specs.add(new MergeBot.Spec(fromRepo, fromBranch, toBranch));
+
+                MergeBot.Spec.Frequency frequency = null;
+                if (spec.contains("frequency")) {
+                    var freq = spec.get("frequency").asObject();
+                    var interval = toInterval(freq.get("interval").asString());
+                    if (interval.isHourly()) {
+                        var minute = toMinute(freq.get("minute").asInt());
+                        frequency = MergeBot.Spec.Frequency.hourly(minute);
+                    } else if (interval.isDaily()) {
+                        var hour = toHour(freq.get("hour").asInt());
+                        frequency = MergeBot.Spec.Frequency.daily(hour);
+                    } else if (interval.isWeekly()) {
+                        var weekday = toWeekday(freq.get("weekday").asString());
+                        var hour = toHour(freq.get("hour").asInt());
+                        frequency = MergeBot.Spec.Frequency.weekly(weekday, hour);
+                    } else if (interval.isMonthly()) {
+                        var day = toDay(freq.get("day").asInt());
+                        var hour = toHour(freq.get("hour").asInt());
+                        frequency = MergeBot.Spec.Frequency.monthly(day, hour);
+                    } else if (interval.isYearly()) {
+                        var month = toMonth(freq.get("month").asString());
+                        var day = toDay(freq.get("day").asInt());
+                        var hour = toHour(freq.get("hour").asInt());
+                        frequency = MergeBot.Spec.Frequency.yearly(month, day, hour);
+                    } else {
+                        throw new IllegalStateException("Unexpected interval: " + interval);
+                    }
+                }
+
+                specs.add(new MergeBot.Spec(fromRepo, fromBranch, toBranch, frequency));
             }
 
             bots.add(new MergeBot(storage, targetRepo, forkRepo, specs));

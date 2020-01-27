@@ -43,6 +43,9 @@ clean:
 images:
 	@sh gradlew images
 
+bots:
+	@sh gradlew :bots:cli:images
+
 install: all $(LAUNCHERS) $(MANPAGES) $(sharedir)/skara
 	@echo "Successfully installed to $(prefix)"
 
@@ -65,4 +68,4 @@ $(bindir)/%: $(BUILD)/bin/%
 	@sed 's~export JAVA_HOME=.*$$~export JAVA_HOME\=$(sharedir)\/skara~' < $< > $@
 	@chmod 755 $@
 
-.PHONY: all check clean images install test uninstall
+.PHONY: all bots check clean images install test uninstall
