@@ -136,9 +136,8 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
     private List<Commit> filterAndSendPrCommits(HostedRepository repository, List<Commit> commits) {
         var ret = new ArrayList<Commit>();
 
-        var rfrs = list.conversations(Duration.ofDays(365)).stream()
-                       .map(Conversation::first)
-                       .filter(email -> email.subject().startsWith("RFR: "))
+        var rfrsConvos = list.conversations(Duration.ofDays(365)).stream()
+                       .filter(conv -> conv.first().subject().startsWith("RFR: "))
                        .collect(Collectors.toList());
 
         for (var commit : commits) {
@@ -153,18 +152,25 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
             var prLink = candidate.webUrl();
             var prLinkPattern = Pattern.compile("^(?:PR: )?" + Pattern.quote(prLink.toString()), Pattern.MULTILINE);
 
-            var rfrCandidates = rfrs.stream()
-                                    .filter(email -> prLinkPattern.matcher(email.body()).find())
+            var rfrCandidates = rfrsConvos.stream()
+                                    .filter(conv -> prLinkPattern.matcher(conv.first().body()).find())
                                     .collect(Collectors.toList());
             if (rfrCandidates.size() != 1) {
                 log.warning("Pull request " + prLink + " found in " + rfrCandidates.size() + " RFR threads - expected 1");
                 ret.add(commit);
                 continue;
             }
-            var rfr = rfrCandidates.get(0);
+            var rfrConv = rfrCandidates.get(0);
+            var alreadyNotified = rfrConv.allMessages().stream()
+                                         .anyMatch(email -> email.subject().startsWith("Re: [Integrated"));
+            if (alreadyNotified) {
+                log.warning("Pull request " + prLink + " already contains an integration message - skipping");
+                ret.add(commit);
+                continue;
+            }
 
             var body = CommitFormatters.toText(repository, commit);
-            var email = Email.reply(rfr, "Re: [Integrated] " + rfr.subject(), body)
+            var email = Email.reply(rfrConv.first(), "Re: [Integrated] " + rfrConv.first().subject(), body)
                              .sender(sender)
                              .author(commitToAuthor(commit))
                              .recipient(recipient)
