@@ -596,6 +596,96 @@ class UpdaterTests {
     }
 
     @Test
+    void testMailingListPROnce(TestInfo testInfo) throws IOException {
+        try (var listServer = new TestMailmanServer();
+             var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.branch(masterHash, "other");
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanList = mailmanServer.getList(listAddress.address());
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null,
+                                                 false, false, false, false,
+                                                 MailingListUpdater.Mode.PR, Map.of(), Pattern.compile(".*"));
+            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master|other"), tagStorage, branchStorage,
+                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+
+            // No mail should be sent on the first run as there is no history
+            TestBotRunner.runPeriodicItems(notifyBot);
+            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+
+            localRepo.checkout(masterHash, true);
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
+            localRepo.push(editHash, repo.url(), "edit");
+            var pr = credentials.createPullRequest(repo, "master", "edit", "RFR: My PR");
+
+            // PR hasn't been integrated yet, so there should be no mail
+            TestBotRunner.runPeriodicItems(notifyBot);
+            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+
+            // Simulate an RFR email
+            var rfr = Email.create("RFR: My PR", "PR:\n" + pr.webUrl().toString())
+                           .author(EmailAddress.from("duke", "duke@duke.duke"))
+                           .recipient(listAddress)
+                           .build();
+            mailmanList.post(rfr);
+            listServer.processIncoming();
+
+            // And an integration
+            pr.addComment("Pushed as commit " + editHash.hex() + ".");
+            localRepo.push(editHash, repo.url(), "master", true);
+
+            TestBotRunner.runPeriodicItems(notifyBot);
+            listServer.processIncoming();
+
+            var conversations = mailmanList.conversations(Duration.ofDays(1));
+            assertEquals(1, conversations.size());
+
+            var prConversation = conversations.get(0);
+            var prEmail = prConversation.replies(prConversation.first()).get(0);
+            assertEquals(listAddress, prEmail.sender());
+            assertEquals(EmailAddress.from("testauthor", "ta@none.none"), prEmail.author());
+            assertEquals(prEmail.recipients(), List.of(listAddress));
+            assertEquals("Re: [Integrated] RFR: My PR", prEmail.subject());
+            assertFalse(prEmail.subject().contains("master"));
+            assertTrue(prEmail.body().contains("Changeset: " + editHash.abbreviate()));
+            assertTrue(prEmail.body().contains("23456789: More fixes"));
+            assertFalse(prEmail.body().contains("Committer"));
+            assertFalse(prEmail.body().contains(masterHash.abbreviate()));
+
+            // Now push the change to another monitored branch
+            localRepo.push(editHash, repo.url(), "other", true);
+            TestBotRunner.runPeriodicItems(notifyBot);
+            listServer.processIncoming();
+
+            // The change should now end up as a separate notification thread
+            conversations = mailmanList.conversations(Duration.ofDays(1));
+            conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
+            assertEquals(2, conversations.size());
+
+            var pushConversation = conversations.get(1);
+            var pushEmail = pushConversation.first();
+            assertEquals(listAddress, pushEmail.sender());
+            assertEquals(EmailAddress.from("testauthor", "ta@none.none"), pushEmail.author());
+            assertEquals(pushEmail.recipients(), List.of(listAddress));
+            assertTrue(pushEmail.subject().contains("23456789: More fixes"));
+        }
+    }
+
+    @Test
     void testMailinglistTag(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
