@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
 
 class IntegrateTests {
     @Test
@@ -580,6 +581,62 @@ class IntegrateTests {
                           .filter(comment -> comment.body().contains("Please merge `master`"))
                           .count();
             assertEquals(1, error);
+        }
+    }
+
+    @Test
+    void noAutoRebase(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var pushedFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Approve it as another user
+            var approvalPr = integrator.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // Push something unrelated to master
+            localRepo.checkout(masterHash, true);
+            var unrelated = localRepo.root().resolve("unrelated.txt");
+            Files.writeString(unrelated, "Hello");
+            localRepo.add(unrelated);
+            var unrelatedHash = localRepo.commit("Unrelated", "X", "x@y.z");
+            localRepo.push(unrelatedHash, author.url(), "master");
+
+            // Attempt a merge
+            pr.addComment("/integrate " + masterHash);
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an error message
+            assertLastCommentContains(pr, "the target branch is no longer at the requested hash");
+
+            // Now use the correct target hash
+            pr.addComment("/integrate " + unrelatedHash);
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an ok message
+            assertLastCommentContains(pr, "Pushed as commit");
+
+            // The change should now be present on the master branch
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
+            assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
         }
     }
 }

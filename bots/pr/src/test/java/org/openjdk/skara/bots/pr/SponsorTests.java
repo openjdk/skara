@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
 
 class SponsorTests {
     private void runSponsortest(TestInfo testInfo, boolean isAuthor) throws IOException {
@@ -380,6 +381,85 @@ class SponsorTests {
                            .filter(comment -> comment.body().contains("commit was automatically rebased without conflicts"))
                            .count();
             assertEquals(1, pushed);
+
+            // The change should now be present on the master branch
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
+            assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
+        }
+    }
+
+    @Test
+    void noAutoRebase(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var pushedFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Approve it as another user
+            var approvalPr = integrator.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // Push something unrelated to master
+            localRepo.checkout(masterHash, true);
+            var unrelated = localRepo.root().resolve("unrelated.txt");
+            Files.writeString(unrelated, "Hello");
+            localRepo.add(unrelated);
+            var unrelatedHash = localRepo.commit("Unrelated", "X", "x@y.z");
+            localRepo.push(unrelatedHash, author.url(), "master");
+
+            // Issue a merge command without being a Committer
+            pr.addComment("/integrate " + masterHash);
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an error message
+            assertLastCommentContains(pr, "the target branch is no longer at the requested hash");
+
+            // Now choose the actual hash
+            pr.addComment("/integrate " + unrelatedHash);
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply that a sponsor is required
+            assertLastCommentContains(pr, "your sponsor will make the final decision on which target hash");
+
+            // Push more unrelated things
+            Files.writeString(unrelated, "Hello again");
+            localRepo.add(unrelated);
+            var unrelatedHash2 = localRepo.commit("Unrelated 2", "X", "x@y.z");
+            localRepo.push(unrelatedHash2, author.url(), "master");
+
+            // Reviewer now agrees to sponsor
+            var reviewerPr = reviewer.pullRequest(pr.id());
+            reviewerPr.addComment("/sponsor " + unrelatedHash);
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an error message
+            assertLastCommentContains(pr, "head of the target branch is no longer at the requested hash");
+
+            // Use the current hash
+            reviewerPr.addComment("/sponsor " + unrelatedHash2);
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an ok message
+            assertLastCommentContains(pr, "Pushed as commit");
 
             // The change should now be present on the master branch
             var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
