@@ -46,7 +46,8 @@ public class CommandWorkItem extends PullRequestWorkItem {
             "contributor", new ContributorCommand(),
             "summary", new SummaryCommand(),
             "solves", new SolvesCommand(),
-            "reviewers", new ReviewersCommand()
+            "reviewers", new ReviewersCommand(),
+            "csr", new CSRCommand()
     );
 
     static class HelpCommand implements CommandHandler {
@@ -94,6 +95,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
     }
 
     private void processCommand(PullRequest pr, CensusInstance censusInstance, Path scratchPath, String command, Comment comment, List<Comment> allComments) {
+        System.out.println("processing command " + command);
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
