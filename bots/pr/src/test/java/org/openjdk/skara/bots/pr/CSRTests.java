@@ -73,7 +73,7 @@ class CSRTests {
 
             // The bot should reply with a message that a CSR is needed
             assertLastCommentContains(pr, "has indicated that a " +
-                                          "[compatability and specification](https://wiki.openjdk.java.net/display/csr/Main) (CSR) request " +
+                                          "[compatibility and specification](https://wiki.openjdk.java.net/display/csr/Main) (CSR) request " +
                                           "is needed for this pull request.");
             assertTrue(pr.labels().contains("csr"));
 
@@ -165,7 +165,7 @@ class CSRTests {
 
             // The bot should reply with a message that the CSR is already aproved
             assertLastCommentContains(pr, "has indicated that a " +
-                                          "[compatability and specification](https://wiki.openjdk.java.net/display/csr/Main) " +
+                                          "[compatibility and specification](https://wiki.openjdk.java.net/display/csr/Main) " +
                                           "(CSR) request is needed for this pull request.");
             assertLastCommentContains(pr, "this pull request must refer to an issue in [JBS]");
             assertLastCommentContains(pr, "to be able to link it to a CSR request. To refer this pull request to an issue in JBS");
@@ -278,7 +278,7 @@ class CSRTests {
 
             // The bot should reply with a message that the PR must refer to an issue in JBS
             assertLastCommentContains(pr, "has indicated that a " +
-                                          "[compatability and specification](https://wiki.openjdk.java.net/display/csr/Main) " +
+                                          "[compatibility and specification](https://wiki.openjdk.java.net/display/csr/Main) " +
                                           "(CSR) request is needed for this pull request.");
             assertLastCommentContains(pr, "this pull request must refer to an issue in [JBS]");
             assertLastCommentContains(pr, "to be able to link it to a CSR request. To refer this pull request to an issue in JBS");
@@ -320,7 +320,7 @@ class CSRTests {
 
             // The bot should reply with a message that a CSR is needed
             assertLastCommentContains(pr, "has indicated that a " +
-                                          "[compatability and specification](https://wiki.openjdk.java.net/display/csr/Main) (CSR) request " +
+                                          "[compatibility and specification](https://wiki.openjdk.java.net/display/csr/Main) (CSR) request " +
                                           "is needed for this pull request.");
             assertTrue(pr.labels().contains("csr"));
 

@@ -40,7 +40,7 @@ public class CSRCommand implements CommandHandler {
 
     private static void csrReply(PrintWriter writer) {
         writer.println("has indicated that a " +
-                      "[compatability and specification](https://wiki.openjdk.java.net/display/csr/Main) (CSR) request " +
+                      "[compatibility and specification](https://wiki.openjdk.java.net/display/csr/Main) (CSR) request " +
                       "is needed for this pull request.");
     }
 
@@ -131,7 +131,6 @@ public class CSRCommand implements CommandHandler {
 
     @Override
     public String description() {
-        return "require a compatability and specification request (CSR) for this pull request";
+        return "require a compatibility and specification request (CSR) for this pull request";
     }
 }
-
