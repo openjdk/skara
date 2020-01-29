@@ -95,7 +95,6 @@ public class CommandWorkItem extends PullRequestWorkItem {
     }
 
     private void processCommand(PullRequest pr, CensusInstance censusInstance, Path scratchPath, String command, Comment comment, List<Comment> allComments) {
-        System.out.println("processing command " + command);
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
