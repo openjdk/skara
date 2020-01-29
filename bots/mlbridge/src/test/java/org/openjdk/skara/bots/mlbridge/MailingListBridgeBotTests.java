@@ -113,18 +113,26 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
-                                                 censusBuilder.build(), "master", listAddress,
-                                                 Set.of(ignored.forge().currentUser().userName()),
-                                                 Set.of(),
-                                                 listServer.getArchive(), listServer.getSMTP(),
-                                                 archive, "webrev", Path.of("test"),
-                                                 webrevServer.uri(),
-                                                 Set.of("rfr"), Map.of(ignored.forge().currentUser().userName(),
-                                                                       Pattern.compile("ready")),
-                                                 URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of("Extra1", "val1", "Extra2", "val2"),
-                                                 Duration.ZERO);
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .ignoredComments(Set.of())
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .readyLabels(Set.of("rfr"))
+                                            .readyComments(Map.of(ignored.forge().currentUser().userName(), Pattern.compile("ready")))
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .headers(Map.of("Extra1", "val1", "Extra2", "val2"))
+                                            .sendInterval(Duration.ZERO)
+                                            .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -272,16 +280,21 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
-                                                 censusBuilder.build(), "master", listAddress,
-                                                 Set.of(ignored.forge().currentUser().userName()),
-                                                 Set.of(),
-                                                 listServer.getArchive(), listServer.getSMTP(),
-                                                 archive, "webrev", Path.of("test"),
-                                                 webrevServer.uri(),
-                                                 Set.of(), Map.of(),
-                                                 URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of(), Duration.ZERO);
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -362,16 +375,20 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
-                                                 censusBuilder.build(), "master",
-                                                 listAddress, Set.of(), Set.of(),
-                                                 listServer.getArchive(),
-                                                 listServer.getSMTP(),
-                                                 archive, "webrev", Path.of("test"),
-                                                 webrevServer.uri(),
-                                                 Set.of(), Map.of(),
-                                                 URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of(), Duration.ZERO);
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -452,16 +469,20 @@ class MailingListBridgeBotTests {
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
-                                                 censusBuilder.build(), "master",
-                                                 listAddress, Set.of(), Set.of(),
-                                                 listServer.getArchive(),
-                                                 listServer.getSMTP(),
-                                                 archive, "webrev", Path.of("test"),
-                                                 webrevServer.uri(),
-                                                 Set.of(), Map.of(),
-                                                 URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of(), Duration.ZERO);
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -577,15 +598,20 @@ class MailingListBridgeBotTests {
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, "master", censusBuilder.build(), "master",
-                                                 listAddress, Set.of(), Set.of(),
-                                                 listServer.getArchive(),
-                                                 listServer.getSMTP(),
-                                                 archive, "webrev", Path.of("test"),
-                                                 webrevServer.uri(),
-                                                 Set.of(), Map.of(),
-                                                 URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of(), Duration.ZERO);
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -633,16 +659,20 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
-                                                 censusBuilder.build(), "master",
-                                                 listAddress, Set.of(), Set.of(),
-                                                 listServer.getArchive(),
-                                                 listServer.getSMTP(),
-                                                 archive, "webrev", Path.of("test"),
-                                                 webrevServer.uri(),
-                                                 Set.of(), Map.of(),
-                                                 URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of(), Duration.ZERO);
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -686,16 +716,20 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
-                                                 censusBuilder.build(), "master",
-                                                 listAddress, Set.of(), Set.of(),
-                                                 listServer.getArchive(),
-                                                 listServer.getSMTP(),
-                                                 archive, "webrev", Path.of("test"),
-                                                 webrevServer.uri(),
-                                                 Set.of(), Map.of(),
-                                                 URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of(), Duration.ZERO);
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -758,15 +792,20 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
-                                                 censusBuilder.build(), "master",
-                                                 listAddress, Set.of(), Set.of(),
-                                                 listServer.getArchive(), listServer.getSMTP(),
-                                                 archive, "webrev", Path.of("test"),
-                                                 webrevServer.uri(),
-                                                 Set.of(), Map.of(),
-                                                 URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of(), Duration.ZERO);
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -819,15 +858,20 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
-                                                 censusBuilder.build(), "master",
-                                                 listAddress, Set.of(), Set.of(),
-                                                 listServer.getArchive(), listServer.getSMTP(),
-                                                 archive, "webrev", Path.of("test"),
-                                                 webrevServer.uri(),
-                                                 Set.of(), Map.of(),
-                                                 URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of(), Duration.ZERO);
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -944,15 +988,20 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var sender = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(sender, author, archive, "master",
-                                                 censusBuilder.build(), "master",
-                                                 listAddress, Set.of(), Set.of(),
-                                                 listServer.getArchive(), listServer.getSMTP(),
-                                                 archive, "webrev", Path.of("test"),
-                                                 webrevServer.uri(),
-                                                 Set.of(), Map.of(),
-                                                 URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of(), Duration.ZERO);
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(sender)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -1035,15 +1084,21 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var sender = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(sender, author, archive, "archive",
-                                                 censusBuilder.build(), "master",
-                                                 listAddress, Set.of(), Set.of(),
-                                                 listServer.getArchive(), listServer.getSMTP(),
-                                                 archive, "webrev", Path.of("test"),
-                                                 webrevServer.uri(),
-                                                 Set.of(), Map.of(),
-                                                 URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of(), Duration.ZERO);
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(sender)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .archiveRef("archive")
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -1120,17 +1175,21 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
-                                                 censusBuilder.build(), "master",
-                                                 listAddress,
-                                                 Set.of(ignored.forge().currentUser().userName()),
-                                                 Set.of(),
-                                                 listServer.getArchive(), listServer.getSMTP(),
-                                                 archive, "webrev", Path.of("test"),
-                                                 webrevServer.uri(),
-                                                 Set.of(), Map.of(),
-                                                 URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of(), Duration.ZERO);
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -1173,10 +1232,10 @@ class MailingListBridgeBotTests {
             // The webrev comment should not contain duplicate entries
             comments = pr.comments();
             webrevComments = comments.stream()
-                                         .filter(comment -> comment.author().equals(author.forge().currentUser()))
-                                         .filter(comment -> comment.body().contains("webrev"))
-                                         .filter(comment -> comment.body().contains(editHash.hex()))
-                                         .collect(Collectors.toList());
+                                     .filter(comment -> comment.author().equals(author.forge().currentUser()))
+                                     .filter(comment -> comment.body().contains("webrev"))
+                                     .filter(comment -> comment.body().contains(editHash.hex()))
+                                     .collect(Collectors.toList());
             assertEquals(1, webrevComments.size());
             assertEquals(1, countSubstrings(webrevComments.get(0).body(), "webrev.00"));
         }
@@ -1197,15 +1256,20 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id());
-            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
-                                                 censusBuilder.build(), "master",
-                                                 listAddress, Set.of(), Set.of(),
-                                                 listServer.getArchive(), listServer.getSMTP(),
-                                                 archive, "webrev", Path.of("test"),
-                                                 webrevServer.uri(),
-                                                 Set.of(), Map.of(),
-                                                 URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of(), Duration.ZERO);
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -1281,17 +1345,22 @@ class MailingListBridgeBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
-                                                 censusBuilder.build(), "master",
-                                                 listAddress,
-                                                 Set.of(ignored.forge().currentUser().userName()),
-                                                 Set.of(Pattern.compile("ignore this comment", Pattern.MULTILINE | Pattern.DOTALL)),
-                                                 listServer.getArchive(), listServer.getSMTP(),
-                                                 archive, "webrev", Path.of("test"),
-                                                 webrevServer.uri(),
-                                                 Set.of(), Map.of(),
-                                                 URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of(), Duration.ZERO);
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .ignoredComments(Set.of(Pattern.compile("ignore this comment", Pattern.MULTILINE | Pattern.DOTALL)))
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");
@@ -1343,15 +1412,20 @@ class MailingListBridgeBotTests {
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, "master", censusBuilder.build(), "master",
-                                                 listAddress, Set.of(), Set.of(),
-                                                 listServer.getArchive(),
-                                                 listServer.getSMTP(),
-                                                 archive, "webrev", Path.of("test"),
-                                                 webrevServer.uri(),
-                                                 Set.of(), Map.of(),
-                                                 URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of(), Duration.ZERO);
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
 
             // Populate the projects repository
             var reviewFile = Path.of("reviewfile.txt");

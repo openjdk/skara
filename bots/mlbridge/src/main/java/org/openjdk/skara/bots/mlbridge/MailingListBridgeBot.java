@@ -81,6 +81,10 @@ public class MailingListBridgeBot implements Bot {
         this.updateCache = new PullRequestUpdateCache();
     }
 
+    static MailingListBridgeBotBuilder newBuilder() {
+        return new MailingListBridgeBotBuilder();
+    }
+
     HostedRepository codeRepo() {
         return codeRepo;
     }

@@ -89,12 +89,27 @@ public class MailingListBridgeBotFactory implements BotFactory {
 
             var list = EmailAddress.parse(repoConfig.get("list").asString());
             var folder = repoConfig.contains("folder") ? repoConfig.get("folder").asString() : configuration.repositoryName(repo);
-            var bot = new MailingListBridgeBot(from, configuration.repository(repo), archiveRepo, archiveRef,
-                                               censusRepo, censusRef,
-                                               list, ignoredUsers, ignoredComments, listArchive, listSmtp,
-                                               webrevRepo, webrevRef, Path.of(folder),
-                                               URIBuilder.base(webrevWeb).build(), readyLabels, readyComments,
-                                               issueTracker, headers, interval);
+            var bot = MailingListBridgeBot.newBuilder().from(from)
+                                          .repo(configuration.repository(repo))
+                                          .archive(archiveRepo)
+                                          .archiveRef(archiveRef)
+                                          .censusRepo(censusRepo)
+                                          .censusRef(censusRef)
+                                          .list(list)
+                                          .ignoredUsers(ignoredUsers)
+                                          .ignoredComments(ignoredComments)
+                                          .listArchive(listArchive)
+                                          .smtpServer(listSmtp)
+                                          .webrevStorageRepository(webrevRepo)
+                                          .webrevStorageRef(webrevRef)
+                                          .webrevStorageBase(Path.of(folder))
+                                          .webrevStorageBaseUri(URIBuilder.base(webrevWeb).build())
+                                          .readyLabels(readyLabels)
+                                          .readyComments(readyComments)
+                                          .issueTracker(issueTracker)
+                                          .headers(headers)
+                                          .sendInterval(interval)
+                                          .build();
             ret.add(bot);
 
             allListNames.add(list);
