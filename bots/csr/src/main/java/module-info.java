@@ -20,42 +20,12 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-rootProject.name = 'skara'
+module org.openjdk.skara.bots.csr {
+    requires org.openjdk.skara.bot;
+    requires org.openjdk.skara.vcs;
+    requires org.openjdk.skara.forge;
+    requires org.openjdk.skara.issuetracker;
+    requires java.logging;
 
-include 'args'
-include 'bot'
-include 'ci'
-include 'cli'
-include 'census'
-include 'email'
-include 'encoding'
-include 'host'
-include 'ini'
-include 'jcheck'
-include 'json'
-include 'mailinglist'
-include 'process'
-include 'proxy'
-include 'storage'
-include 'ssh'
-include 'test'
-include 'vcs'
-include 'webrev'
-include 'network'
-include 'forge'
-include 'issuetracker'
-include 'version'
-
-include 'bots:bridgekeeper'
-include 'bots:cli'
-include 'bots:csr'
-include 'bots:forward'
-include 'bots:hgbridge'
-include 'bots:merge'
-include 'bots:mirror'
-include 'bots:mlbridge'
-include 'bots:notify'
-include 'bots:pr'
-include 'bots:submit'
-include 'bots:tester'
-include 'bots:topological'
+    provides org.openjdk.skara.bot.BotFactory with org.openjdk.skara.bots.csr.CSRBotFactory;
+}
