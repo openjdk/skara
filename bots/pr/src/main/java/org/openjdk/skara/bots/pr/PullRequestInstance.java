@@ -196,11 +196,15 @@ class PullRequestInstance {
     }
 
     Repository localRepo() {
-        return this.localRepo;
+        return localRepo;
     }
 
     Hash baseHash() {
-        return this.baseHash;
+        return baseHash;
+    }
+
+    Hash targetHash() {
+        return targetHash;
     }
 
     Set<Path> changedFiles() throws IOException {

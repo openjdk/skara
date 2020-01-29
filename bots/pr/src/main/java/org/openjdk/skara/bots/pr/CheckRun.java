@@ -402,9 +402,12 @@ class CheckRun {
             message.append("` branch. ");
             if (rebasePossible) {
                 message.append("Since there are no conflicts, your changes will automatically be rebased on top of ");
-                message.append("these commits when integrating. If you prefer to do this manually, please merge `");
+                message.append("these commits when integrating. If you prefer to avoid automatic rebasing, please merge `");
                 message.append(pr.targetRef());
-                message.append("` into your branch first.\n");
+                message.append("` into your branch, and then specify the current head hash when integrating, like this: ");
+                message.append("`/integrate ");
+                message.append(prInstance.targetHash());
+                message.append("`.\n");
             } else {
                 message.append("Your changes cannot be rebased automatically without conflicts, so you will need to ");
                 message.append("merge `");

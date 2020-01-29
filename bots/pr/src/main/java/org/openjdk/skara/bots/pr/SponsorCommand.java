@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.vcs.Hash;
 
 import java.io.*;
 import java.net.URLEncoder;
@@ -75,7 +76,19 @@ public class SponsorCommand implements CommandHandler {
             var prInstance = new PullRequestInstance(path, pr, bot.ignoreStaleReviews());
             var localHash = prInstance.commit(censusInstance.namespace(), censusInstance.configuration().census().domain(),
                                          comment.author().id());
+
+            // Validate the target hash if requested
             var rebaseMessage = new StringWriter();
+            if (!args.isBlank()) {
+                var wantedHash = new Hash(args);
+                if (!prInstance.targetHash().equals(wantedHash)) {
+                    reply.print("The head of the target branch is no longer at the requested hash " + wantedHash);
+                    reply.println(" - it has moved to " + prInstance.targetHash() + ". Aborting integration.");
+                    return;
+                }
+            }
+
+            // Now rebase onto the target hash
             var rebaseWriter = new PrintWriter(rebaseMessage);
             var rebasedHash = prInstance.rebase(localHash, rebaseWriter);
             if (rebasedHash.isEmpty()) {
@@ -101,12 +114,13 @@ public class SponsorCommand implements CommandHandler {
 
             if (!localHash.equals(pr.targetHash())) {
                 reply.println(rebaseMessage.toString());
-                reply.println("Pushed as commit " + rebasedHash.get().hex() + ".");
-                prInstance.localRepo().push(rebasedHash.get(), pr.repository().url(), pr.targetRef());
+                reply.println("Pushed as commit " + localHash.hex() + ".");
+                prInstance.localRepo().push(localHash, pr.repository().url(), pr.targetRef());
                 pr.setState(PullRequest.State.CLOSED);
                 pr.addLabel("integrated");
                 pr.removeLabel("sponsor");
                 pr.removeLabel("ready");
+                pr.removeLabel("rfr");
             } else {
                 reply.print("Warning! This commit did not result in any changes! ");
                 reply.println("No push attempt will be made.");

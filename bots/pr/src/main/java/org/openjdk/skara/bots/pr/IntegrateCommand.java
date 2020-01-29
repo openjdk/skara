@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.vcs.Hash;
 
 import java.io.*;
 import java.net.URLEncoder;
@@ -79,7 +80,19 @@ public class IntegrateCommand implements CommandHandler {
 
             var prInstance = new PullRequestInstance(path, pr, bot.ignoreStaleReviews());
             var localHash = prInstance.commit(censusInstance.namespace(), censusInstance.configuration().census().domain(), null);
+
+            // Validate the target hash if requested
             var rebaseMessage = new StringWriter();
+            if (!args.isBlank()) {
+                var wantedHash = new Hash(args);
+                if (!prInstance.targetHash().equals(wantedHash)) {
+                    reply.print("The head of the target branch is no longer at the requested hash " + wantedHash);
+                    reply.println(" - it has moved to " + prInstance.targetHash() + ". Aborting integration.");
+                    return;
+                }
+            };
+
+            // Now rebase onto the target hash
             var rebaseWriter = new PrintWriter(rebaseMessage);
             var rebasedHash = prInstance.rebase(localHash, rebaseWriter);
             if (rebasedHash.isEmpty()) {
@@ -108,6 +121,9 @@ public class IntegrateCommand implements CommandHandler {
                 if (!ProjectPermissions.mayCommit(censusInstance, pr.author())) {
                     reply.println(ReadyForSponsorTracker.addIntegrationMarker(pr.headHash()));
                     reply.println("Your change (at version " + pr.headHash() + ") is now ready to be sponsored by a Committer.");
+                    if (!args.isBlank()) {
+                        reply.println("Note that your sponsor will make the final decision on which target hash to integrate onto.");
+                    }
                     pr.addLabel("sponsor");
                     return;
                 }
@@ -121,11 +137,12 @@ public class IntegrateCommand implements CommandHandler {
             // Rebase and push it!
             if (!localHash.equals(pr.targetHash())) {
                 reply.println(rebaseMessage.toString());
-                reply.println("Pushed as commit " + rebasedHash.get().hex() + ".");
-                prInstance.localRepo().push(rebasedHash.get(), pr.repository().url(), pr.targetRef());
+                reply.println("Pushed as commit " + localHash.hex() + ".");
+                prInstance.localRepo().push(localHash, pr.repository().url(), pr.targetRef());
                 pr.setState(PullRequest.State.CLOSED);
                 pr.addLabel("integrated");
                 pr.removeLabel("ready");
+                pr.removeLabel("rfr");
             } else {
                 reply.print("Warning! Your commit did not result in any changes! ");
                 reply.println("No push attempt will be made.");
