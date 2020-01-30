@@ -122,7 +122,7 @@ public class IntegrateCommand implements CommandHandler {
                     reply.println(ReadyForSponsorTracker.addIntegrationMarker(pr.headHash()));
                     reply.println("Your change (at version " + pr.headHash() + ") is now ready to be sponsored by a Committer.");
                     if (!args.isBlank()) {
-                        reply.println("Note that your sponsor will make the final decision on which target hash to integrate onto.");
+                        reply.println("Note that your sponsor will make the final decision onto which target hash to integrate.");
                     }
                     pr.addLabel("sponsor");
                     return;
