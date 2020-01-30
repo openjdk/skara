@@ -438,7 +438,7 @@ class SponsorTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply that a sponsor is required
-            assertLastCommentContains(pr, "your sponsor will make the final decision on which target hash");
+            assertLastCommentContains(pr, "your sponsor will make the final decision onto which target hash to integrate");
 
             // Push more unrelated things
             Files.writeString(unrelated, "Hello again");
