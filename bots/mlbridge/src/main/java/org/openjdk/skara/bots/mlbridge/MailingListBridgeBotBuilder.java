@@ -52,6 +52,7 @@ public class MailingListBridgeBotBuilder {
     private URI issueTracker;
     private Map<String, String> headers = Map.of();
     private Duration sendInterval = Duration.ZERO;
+    private Duration cooldown = Duration.ZERO;
 
     MailingListBridgeBotBuilder() {
     }
@@ -156,7 +157,15 @@ public class MailingListBridgeBotBuilder {
         return this;
     }
 
+    public MailingListBridgeBotBuilder cooldown(Duration cooldown) {
+        this.cooldown = cooldown;
+        return this;
+    }
+
     public MailingListBridgeBot build() {
-        return new MailingListBridgeBot(from, repo, archive, archiveRef, censusRepo, censusRef, list, ignoredUsers, ignoredComments, listArchive, smtpServer, webrevStorageRepository, webrevStorageRef, webrevStorageBase, webrevStorageBaseUri, readyLabels, readyComments, issueTracker, headers, sendInterval);
+        return new MailingListBridgeBot(from, repo, archive, archiveRef, censusRepo, censusRef, list,
+                                        ignoredUsers, ignoredComments, listArchive, smtpServer,
+                                        webrevStorageRepository, webrevStorageRef, webrevStorageBase, webrevStorageBaseUri,
+                                        readyLabels, readyComments, issueTracker, headers, sendInterval, cooldown);
     }
 }

@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 class ArchiveItem {
     private final String id;
     private final ZonedDateTime created;
+    private final ZonedDateTime updated;
     private final HostUser author;
     private final Map<String, String> extraHeaders;
     private final ArchiveItem parent;
@@ -23,9 +24,10 @@ class ArchiveItem {
     private final Supplier<String> body;
     private final Supplier<String> footer;
 
-    private ArchiveItem(ArchiveItem parent, String id, ZonedDateTime created, HostUser author, Map<String, String> extraHeaders, Supplier<String> subject, Supplier<String> header, Supplier<String> body, Supplier<String> footer) {
+    private ArchiveItem(ArchiveItem parent, String id, ZonedDateTime created, ZonedDateTime updated, HostUser author, Map<String, String> extraHeaders, Supplier<String> subject, Supplier<String> header, Supplier<String> body, Supplier<String> footer) {
         this.id = id;
         this.created = created;
+        this.updated = updated;
         this.author = author;
         this.extraHeaders = extraHeaders;
         this.parent = parent;
@@ -36,7 +38,7 @@ class ArchiveItem {
     }
 
     static ArchiveItem from(PullRequest pr, Repository localRepo, URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, Hash base, Hash head) {
-        return new ArchiveItem(null, "fc", pr.createdAt(), pr.author(), Map.of("PR-Head-Hash", head.hex(), "PR-Base-Hash", base.hex()),
+        return new ArchiveItem(null, "fc", pr.createdAt(), pr.updatedAt(), pr.author(), Map.of("PR-Head-Hash", head.hex(), "PR-Base-Hash", base.hex()),
                                () -> "RFR: " + pr.title(),
                                () -> "",
                                () -> ArchiveMessages.composeConversation(pr, base, head),
@@ -48,7 +50,7 @@ class ArchiveItem {
     }
 
     static ArchiveItem from(PullRequest pr, Repository localRepo, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, Hash lastBase, Hash lastHead, Hash base, Hash head, int index, ArchiveItem parent) {
-        return new ArchiveItem(parent,"ha" + head.hex(), ZonedDateTime.now(), pr.author(), Map.of("PR-Head-Hash", head.hex(), "PR-Base-Hash", base.hex()),
+        return new ArchiveItem(parent,"ha" + head.hex(), ZonedDateTime.now(), ZonedDateTime.now(), pr.author(), Map.of("PR-Head-Hash", head.hex(), "PR-Base-Hash", base.hex()),
                                () -> String.format("Re: [Rev %02d] RFR: %s", index, pr.title()),
                                () -> "",
                                () -> ArchiveMessages.composeRevision(pr, localRepo, base, head, lastBase, lastHead),
@@ -77,7 +79,7 @@ class ArchiveItem {
     }
 
     static ArchiveItem from(PullRequest pr, Comment comment, HostUserToEmailAuthor hostUserToEmailAuthor, ArchiveItem parent) {
-        return new ArchiveItem(parent, "pc" + comment.id(), comment.createdAt(), comment.author(), Map.of(),
+        return new ArchiveItem(parent, "pc" + comment.id(), comment.createdAt(), comment.updatedAt(), comment.author(), Map.of(),
                                () -> ArchiveMessages.composeReplySubject(parent.subject()),
                                () -> ArchiveMessages.composeReplyHeader(parent.createdAt(), hostUserToEmailAuthor.author(parent.author)),
                                () -> ArchiveMessages.composeComment(comment),
@@ -85,7 +87,7 @@ class ArchiveItem {
     }
 
     static ArchiveItem from(PullRequest pr, Review review, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, ArchiveItem parent) {
-        return new ArchiveItem(parent, "rv" + review.id(), review.createdAt(), review.reviewer(), Map.of(),
+        return new ArchiveItem(parent, "rv" + review.id(), review.createdAt(), review.createdAt(), review.reviewer(), Map.of(),
                                () -> ArchiveMessages.composeReplySubject(parent.subject()),
                                () -> ArchiveMessages.composeReplyHeader(parent.createdAt(), hostUserToEmailAuthor.author(parent.author())),
                                () -> ArchiveMessages.composeReview(pr, review, hostUserToUserName, hostUserToRole),
@@ -93,7 +95,7 @@ class ArchiveItem {
     }
 
     static ArchiveItem from(PullRequest pr, ReviewComment reviewComment, HostUserToEmailAuthor hostUserToEmailAuthor, ArchiveItem parent) {
-        return new ArchiveItem(parent, "rc" + reviewComment.id(), reviewComment.createdAt(), reviewComment.author(), Map.of(),
+        return new ArchiveItem(parent, "rc" + reviewComment.id(), reviewComment.createdAt(), reviewComment.updatedAt(), reviewComment.author(), Map.of(),
                                () -> ArchiveMessages.composeReplySubject(parent.subject()),
                                () -> ArchiveMessages.composeReplyHeader(parent.createdAt(), hostUserToEmailAuthor.author(parent.author())),
                                () -> ArchiveMessages.composeReviewComment(pr, reviewComment) ,
@@ -168,6 +170,10 @@ class ArchiveItem {
 
     ZonedDateTime createdAt() {
         return created;
+    }
+
+    ZonedDateTime updatedAt() {
+        return updated;
     }
 
     HostUser author() {

@@ -76,6 +76,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
                 .map(JSONValue::asObject)
                 .collect(Collectors.toMap(obj -> obj.get("user").asString(),
                                           obj -> Pattern.compile(obj.get("pattern").asString())));
+        var cooldown = specific.contains("cooldown") ? Duration.parse(specific.get("cooldown").asString()) : Duration.ofMinutes(1);
 
         for (var repoConfig : specific.get("repositories").asArray()) {
             var repo = repoConfig.get("repository").asString();
@@ -109,6 +110,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
                                           .issueTracker(issueTracker)
                                           .headers(headers)
                                           .sendInterval(interval)
+                                          .cooldown(cooldown)
                                           .build();
             ret.add(bot);
 

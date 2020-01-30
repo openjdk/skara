@@ -24,7 +24,7 @@ package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.email.*;
-import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.mailinglist.*;
@@ -33,12 +33,12 @@ import org.openjdk.skara.vcs.Repository;
 import java.io.*;
 import java.net.URI;
 import java.nio.file.Path;
-import java.time.Duration;
+import java.time.*;
 import java.util.*;
 import java.util.function.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import java.util.stream.*;
 
 class ArchiveWorkItem implements WorkItem {
     private final PullRequest pr;
@@ -80,34 +80,6 @@ class ArchiveWorkItem implements WorkItem {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-    }
-
-    private static final Pattern replyToPattern = Pattern.compile("^\\s*@([-A-Za-z0-9]+)");
-
-    private Optional<Comment> getParentPost(Comment post, List<Comment> all) {
-        var matcher = replyToPattern.matcher(post.body());
-        if (matcher.find()) {
-            var replyToName = matcher.group(1);
-            var replyToNamePattern = Pattern.compile("^" + replyToName + "$");
-
-            var postIterator = all.listIterator();
-            while (postIterator.hasNext()) {
-                var cur = postIterator.next();
-                if (cur == post) {
-                    break;
-                }
-            }
-
-            while (postIterator.hasPrevious()) {
-                var cur = postIterator.previous();
-                var userMatcher = replyToNamePattern.matcher(cur.author().userName());
-                if (userMatcher.matches()) {
-                    return Optional.of(cur);
-                }
-            }
-        }
-
-        return Optional.empty();
     }
 
     private Repository materializeArchive(Path scratchPath) {
@@ -312,7 +284,7 @@ class ArchiveWorkItem implements WorkItem {
             }
 
             var webrevGenerator = bot.webrevStorage().generator(pr, localRepo, webrevPath);
-            var newMails = archiver.generateNewEmails(sentMails, localRepo, bot.issueTracker(), jbs.toUpperCase(), webrevGenerator,
+            var newMails = archiver.generateNewEmails(sentMails, bot.cooldown(), localRepo, bot.issueTracker(), jbs.toUpperCase(), webrevGenerator,
                                                       (index, full, inc) -> updateWebrevComment(comments, index, full, inc),
                                                       user -> getAuthorAddress(census, user),
                                                       user -> getAuthorUserName(census, user),

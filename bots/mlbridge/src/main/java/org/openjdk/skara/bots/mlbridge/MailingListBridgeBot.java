@@ -51,6 +51,7 @@ public class MailingListBridgeBot implements Bot {
     private final URI issueTracker;
     private final PullRequestUpdateCache updateCache;
     private final Duration sendInterval;
+    private final Duration cooldown;
 
     MailingListBridgeBot(EmailAddress from, HostedRepository repo, HostedRepository archive, String archiveRef,
                          HostedRepository censusRepo, String censusRef, EmailAddress list,
@@ -58,7 +59,7 @@ public class MailingListBridgeBot implements Bot {
                          HostedRepository webrevStorageRepository, String webrevStorageRef,
                          Path webrevStorageBase, URI webrevStorageBaseUri, Set<String> readyLabels,
                          Map<String, Pattern> readyComments, URI issueTracker, Map<String, String> headers,
-                         Duration sendInterval) {
+                         Duration sendInterval, Duration cooldown) {
         emailAddress = from;
         codeRepo = repo;
         archiveRepo = archive;
@@ -75,6 +76,7 @@ public class MailingListBridgeBot implements Bot {
         this.headers = headers;
         this.issueTracker = issueTracker;
         this.sendInterval = sendInterval;
+        this.cooldown = cooldown;
 
         this.webrevStorage = new WebrevStorage(webrevStorageRepository, webrevStorageRef, webrevStorageBase,
                                                webrevStorageBaseUri, from);
@@ -115,6 +117,10 @@ public class MailingListBridgeBot implements Bot {
 
     Duration sendInterval() {
         return sendInterval;
+    }
+
+    Duration cooldown() {
+        return cooldown;
     }
 
     Set<String> ignoredUsers() {
