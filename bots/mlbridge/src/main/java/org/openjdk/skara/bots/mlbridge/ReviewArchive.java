@@ -9,7 +9,9 @@ import org.openjdk.skara.vcs.*;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
+import java.time.*;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.stream.*;
 
 class ReviewArchive {
@@ -21,6 +23,8 @@ class ReviewArchive {
     private final List<Comment> comments = new ArrayList<>();
     private final List<Review> reviews = new ArrayList<>();
     private final List<ReviewComment> reviewComments = new ArrayList<>();
+
+    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
 
     ReviewArchive(PullRequest pr, EmailAddress sender, Hash base, Hash head) {
         this.pr = pr;
@@ -172,15 +176,25 @@ class ReviewArchive {
         return uniqueMessageId.localPart().split("\\.")[0];
     }
 
-    List<Email> generateNewEmails(List<Email> sentEmails, Repository localRepo, URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole) {
+    List<Email> generateNewEmails(List<Email> sentEmails, Duration cooldown, Repository localRepo, URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole) {
+        var ret = new ArrayList<Email>();
         var allItems = generateArchiveItems(sentEmails, localRepo, issueTracker, issuePrefix, hostUserToEmailAuthor, hostUserToUserName, hostUserToRole, webrevGenerator, webrevNotification);
         var sentItemIds = sentItemIds(sentEmails);
         var unsentItems = allItems.stream()
                                   .filter(item -> !sentItemIds.contains(getStableMessageId(getUniqueMessageId(item.id()))))
                                   .collect(Collectors.toList());
+        if (unsentItems.isEmpty()) {
+            return ret;
+        }
+        var lastUpdate = unsentItems.stream()
+                                    .map(ArchiveItem::updatedAt)
+                                    .max(ZonedDateTime::compareTo).orElseThrow();
+        if (lastUpdate.plus(cooldown).isAfter(ZonedDateTime.now())) {
+            log.info("Waiting for new content to settle down - last update was at " + lastUpdate);
+            return ret;
+        }
 
         var combinedItems = collapsableItems(unsentItems);
-        var ret = new ArrayList<Email>();
         for (var itemList : combinedItems) {
             // Simply combine all message bodies
             var body = new StringBuilder();

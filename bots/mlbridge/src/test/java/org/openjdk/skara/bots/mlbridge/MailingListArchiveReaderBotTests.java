@@ -67,17 +67,21 @@ class MailingListArchiveReaderBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
-                                                 censusBuilder.build(), "master",
-                                                 listAddress,
-                                                 Set.of(ignored.forge().currentUser().userName()),
-                                                 Set.of(),
-                                                 listServer.getArchive(), listServer.getSMTP(),
-                                                 archive, "webrev", Path.of("test"),
-                                                 webrevServer.uri(),
-                                                 Set.of(), Map.of(),
-                                                 URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of(), Duration.ZERO);
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
 
             // The mailing list as well
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(),
@@ -138,17 +142,21 @@ class MailingListArchiveReaderBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
-                                                 censusBuilder.build(), "master",
-                                                 listAddress,
-                                                 Set.of(ignored.forge().currentUser().userName()),
-                                                 Set.of(),
-                                                 listServer.getArchive(), listServer.getSMTP(),
-                                                 archive, "webrev", Path.of("test"),
-                                                 webrevServer.uri(),
-                                                 Set.of(), Map.of(),
-                                                 URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of(), Duration.ZERO);
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
 
             // The mailing list as well
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(),
@@ -210,17 +218,21 @@ class MailingListArchiveReaderBotTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = new MailingListBridgeBot(from, author, archive, "master",
-                                                 censusBuilder.build(), "master",
-                                                 listAddress,
-                                                 Set.of(ignored.forge().currentUser().userName()),
-                                                 Set.of(),
-                                                 listServer.getArchive(), listServer.getSMTP(),
-                                                 archive, "webrev", Path.of("test"),
-                                                 webrevServer.uri(),
-                                                 Set.of(), Map.of(),
-                                                 URIBuilder.base("http://issues.test/browse/").build(),
-                                                 Map.of(), Duration.ZERO);
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
 
             // The mailing list as well
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(),
