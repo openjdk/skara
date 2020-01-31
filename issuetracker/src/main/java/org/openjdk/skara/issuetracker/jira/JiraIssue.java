@@ -347,6 +347,7 @@ public class JiraIssue implements Issue {
         var result = request.get("/remotelink").execute();
         var links = result.stream()
                           .map(JSONValue::asObject)
+                          .filter(obj -> obj.contains("globalId"))
                           .filter(obj -> obj.get("globalId").asString().startsWith("skaralink="))
                           .map(this::parseLink);
         if (json.get("fields").contains("issuelinks")) {
