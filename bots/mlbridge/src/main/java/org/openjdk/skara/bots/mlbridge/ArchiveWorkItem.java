@@ -44,12 +44,14 @@ class ArchiveWorkItem implements WorkItem {
     private final PullRequest pr;
     private final MailingListBridgeBot bot;
     private final Consumer<RuntimeException> exceptionConsumer;
+    private final Consumer<Instant> retryConsumer;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
 
-    ArchiveWorkItem(PullRequest pr, MailingListBridgeBot bot, Consumer<RuntimeException> exceptionConsumer) {
+    ArchiveWorkItem(PullRequest pr, MailingListBridgeBot bot, Consumer<RuntimeException> exceptionConsumer, Consumer<Instant> retryConsumer) {
         this.pr = pr;
         this.bot = bot;
         this.exceptionConsumer = exceptionConsumer;
+        this.retryConsumer = retryConsumer;
     }
 
     @Override
@@ -288,7 +290,8 @@ class ArchiveWorkItem implements WorkItem {
                                                       (index, full, inc) -> updateWebrevComment(comments, index, full, inc),
                                                       user -> getAuthorAddress(census, user),
                                                       user -> getAuthorUserName(census, user),
-                                                      user -> getAuthorRole(census, user));
+                                                      user -> getAuthorRole(census, user),
+                                                      retryConsumer);
             if (newMails.isEmpty()) {
                 return;
             }
