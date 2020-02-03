@@ -18,6 +18,7 @@ repository:
 - git-translate - translate between [Mercurial](https://mercurial-scm.org/)
 and [Git](https://git-scm.com/) hashes
 - git-skara - learn about and update the Skara CLI tools
+- git-publish - publishes a local branch to a remote repository
 
 There are also CLI tools available for importing OpenJDK
 [Mercurial](https://mercurial-scm.org/) repositories into
