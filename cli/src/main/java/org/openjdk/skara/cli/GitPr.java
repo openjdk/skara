@@ -507,6 +507,10 @@ public class GitPr {
                   .helptext("Hide all pull requests in draft state")
                   .optional(),
             Switch.shortcut("")
+                  .fullname("draft")
+                  .helptext("Create a pull request in draft state")
+                  .optional(),
+            Switch.shortcut("")
                   .fullname("ignore-workspace")
                   .helptext("Ignore local changes in worktree and staging area when creating pull request")
                   .optional(),
@@ -1060,7 +1064,8 @@ public class GitPr {
                 body = Collections.emptyList();
             }
 
-            var pr = remoteRepo.createPullRequest(parentRepo, targetBranch, currentBranch.name(), title, body);
+            var isDraft = getSwitch("draft", "create", arguments);
+            var pr = remoteRepo.createPullRequest(parentRepo, targetBranch, currentBranch.name(), title, body, isDraft);
             var assigneesOption = getOption("assignees", "create", arguments);
             if (assigneesOption != null) {
                 var usernames = Arrays.asList(assigneesOption.split(","));
