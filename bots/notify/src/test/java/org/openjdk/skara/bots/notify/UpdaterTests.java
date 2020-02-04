@@ -490,7 +490,7 @@ class UpdaterTests {
             assertEquals(listAddress, email.sender());
             assertEquals(author, email.author());
             assertEquals(email.recipients(), List.of(listAddress));
-            assertEquals("Re: [Integrated] RFR: My PR", email.subject());
+            assertEquals("[Integrated] RFR: My PR", email.subject());
             assertFalse(email.subject().contains("master"));
             assertTrue(email.body().contains("Changeset: " + editHash.abbreviate()));
             assertTrue(email.body().contains("23456789: More fixes"));
@@ -580,7 +580,7 @@ class UpdaterTests {
             assertEquals(listAddress, prEmail.sender());
             assertEquals(EmailAddress.from("testauthor", "ta@none.none"), prEmail.author());
             assertEquals(prEmail.recipients(), List.of(listAddress));
-            assertEquals("Re: [Integrated] RFR: My PR", prEmail.subject());
+            assertEquals("[Integrated] RFR: My PR", prEmail.subject());
             assertFalse(prEmail.subject().contains("master"));
             assertTrue(prEmail.body().contains("Changeset: " + editHash.abbreviate()));
             assertTrue(prEmail.body().contains("23456789: More fixes"));
@@ -659,7 +659,7 @@ class UpdaterTests {
             assertEquals(listAddress, prEmail.sender());
             assertEquals(EmailAddress.from("testauthor", "ta@none.none"), prEmail.author());
             assertEquals(prEmail.recipients(), List.of(listAddress));
-            assertEquals("Re: [Integrated] RFR: My PR", prEmail.subject());
+            assertEquals("[Integrated] RFR: My PR", prEmail.subject());
             assertFalse(prEmail.subject().contains("master"));
             assertTrue(prEmail.body().contains("Changeset: " + editHash.abbreviate()));
             assertTrue(prEmail.body().contains("23456789: More fixes"));

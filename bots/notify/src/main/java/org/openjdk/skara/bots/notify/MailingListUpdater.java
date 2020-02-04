@@ -162,7 +162,8 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
             }
             var rfrConv = rfrCandidates.get(0);
             var alreadyNotified = rfrConv.allMessages().stream()
-                                         .anyMatch(email -> email.subject().startsWith("Re: [Integrated"));
+                                         .anyMatch(email -> email.subject().contains("[Integrated]") &&
+                                                 email.body().contains(commit.hash().abbreviate()));
             if (alreadyNotified) {
                 log.warning("Pull request " + prLink + " already contains an integration message - skipping");
                 ret.add(commit);

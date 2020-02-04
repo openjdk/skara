@@ -436,7 +436,7 @@ class MailingListBridgeBotTests {
             var reviewReply = conversations.get(0).replies(mail).get(1);
             assertEquals(2, reviewReply.body().split("^On.*wrote:").length);
             assertEquals(2, reviewReply.body().split("> This is now ready").length, reviewReply.body());
-            assertEquals("Re: RFR: This is a pull request", reviewReply.subject());
+            assertEquals("RFR: This is a pull request", reviewReply.subject());
             assertTrue(reviewReply.body().contains("Review comment\n\n"), reviewReply.body());
             assertTrue(reviewReply.body().contains("Another review comment"), reviewReply.body());
 
@@ -549,7 +549,7 @@ class MailingListBridgeBotTests {
             var thread1 = conversations.get(0).replies(mail).get(0);
             assertEquals(2, thread1.body().split("^On.*wrote:").length);
             assertEquals(2, thread1.body().split("> This is now ready").length, thread1.body());
-            assertEquals("Re: RFR: This is a pull request", thread1.subject());
+            assertEquals("RFR: This is a pull request", thread1.subject());
             assertTrue(thread1.body().contains("Review comment\n\n"), thread1.body());
             assertFalse(thread1.body().contains("Another review comment"), thread1.body());
             var thread1reply1 = conversations.get(0).replies(thread1).get(0);
@@ -564,7 +564,7 @@ class MailingListBridgeBotTests {
             var thread2 = conversations.get(0).replies(mail).get(1);
             assertEquals(2, thread2.body().split("^On.*wrote:").length);
             assertEquals(2, thread2.body().split("> This is now ready").length, thread2.body());
-            assertEquals("Re: RFR: This is a pull request", thread2.subject());
+            assertEquals("RFR: This is a pull request", thread2.subject());
             assertFalse(thread2.body().contains("Review comment\n\n"), thread2.body());
             assertTrue(thread2.body().contains("Another review comment"), thread2.body());
             var thread2reply1 = conversations.get(0).replies(thread2).get(0);
@@ -574,9 +574,9 @@ class MailingListBridgeBotTests {
 
             var replies = conversations.get(0).replies(mail);
             var thread3 = replies.get(2);
-            assertEquals("Re: RFR: This is a pull request", thread3.subject());
+            assertEquals("RFR: This is a pull request", thread3.subject());
             var thread4 = replies.get(3);
-            assertEquals("Re: RFR: This is a pull request", thread4.subject());
+            assertEquals("RFR: This is a pull request", thread4.subject());
             assertTrue(thread4.body().contains("Looks fine"));
             assertTrue(thread4.body().contains("The final review comment"));
             assertTrue(thread4.body().contains("Marked as reviewed by integrationreviewer1 (Reviewer)"));
@@ -969,9 +969,9 @@ class MailingListBridgeBotTests {
             assertEquals(1, updatedConversations.size());
             var conversation = updatedConversations.get(0);
             assertEquals(6, conversation.allMessages().size());
-            assertEquals("Re: [Rev 01] RFR: This is a pull request", conversation.allMessages().get(1).subject());
-            assertEquals("Re: [Rev 01] RFR: This is a pull request", conversation.allMessages().get(2).subject(), conversation.allMessages().get(2).toString());
-            assertEquals("Re: [Rev 04] RFR: This is a pull request", conversation.allMessages().get(5).subject());
+            assertEquals("[Rev 01] RFR: This is a pull request", conversation.allMessages().get(1).subject());
+            assertEquals("[Rev 01] RFR: This is a pull request", conversation.allMessages().get(2).subject(), conversation.allMessages().get(2).toString());
+            assertEquals("[Rev 04] RFR: This is a pull request", conversation.allMessages().get(5).subject());
         }
     }
 
@@ -1067,7 +1067,7 @@ class MailingListBridgeBotTests {
                 assertEquals(listAddress, newMail.sender());
                 assertFalse(newMail.hasHeader("PR-Head-Hash"));
             }
-            assertEquals("Re: [Rev 01] RFR: This is a pull request", conversations.get(0).allMessages().get(1).subject());
+            assertEquals("[Rev 01] RFR: This is a pull request", conversations.get(0).allMessages().get(1).subject());
         }
     }
 
