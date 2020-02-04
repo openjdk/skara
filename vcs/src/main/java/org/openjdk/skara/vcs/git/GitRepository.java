@@ -257,24 +257,13 @@ public class GitRepository implements Repository {
     }
 
     @Override
+
     public boolean isHealthy() throws IOException {
-        var refs = refs();
-        if (refs.size() == 0) {
-            return true;
-        }
-
-        var name = "health-check";
-        try (var p = capture("git", "branch", name, refs.get(0).hex())) {
+        try (var p = capture("git", "fsck", "--connectivity-only")) {
             if (p.await().status() != 0) {
                 return false;
             }
         }
-        try (var p = capture("git", "branch", "-D", name)) {
-            if (p.await().status() != 0) {
-                return false;
-            }
-        }
-
         return true;
     }
 
