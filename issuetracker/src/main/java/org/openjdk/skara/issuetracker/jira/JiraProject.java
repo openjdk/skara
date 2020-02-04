@@ -196,6 +196,22 @@ public class JiraProject implements IssueProject {
         return false;
     }
 
+    // Custom fields are set a bit differently depending on their type
+    private JSONValue filterCustomFieldValue(String name, JSONValue unfiltered) {
+        if (!name.startsWith("customfield_")) {
+            return unfiltered;
+        }
+        if (unfiltered instanceof JSONObject) {
+            if (unfiltered.asObject().contains("id")) {
+                return unfiltered.get("id");
+            } else {
+                return unfiltered;
+            }
+        } else {
+            return unfiltered;
+        }
+    }
+
     @Override
     public Issue createIssue(String title, List<String> body, Map<String, JSONValue> properties) {
         var query = JSON.object();
@@ -239,7 +255,8 @@ public class JiraProject implements IssueProject {
         var editFields = JSON.object();
         finalProperties.entrySet().stream()
                        .filter(entry -> !isInitialField(entry.getKey(), entry.getValue()))
-                       .forEach(entry -> editFields.put(entry.getKey(), entry.getValue()));
+                       .forEach(entry -> editFields.put(entry.getKey(), filterCustomFieldValue(entry.getKey(),
+                                                                                               entry.getValue())));
 
         if (editFields.fields().size() > 0) {
             var id = data.get("key").asString();
