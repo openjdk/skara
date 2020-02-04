@@ -23,7 +23,7 @@
 package org.openjdk.skara.test;
 
 import com.sun.net.httpserver.*;
-import org.openjdk.skara.email.EmailAddress;
+import org.openjdk.skara.email.*;
 import org.openjdk.skara.mailinglist.Mbox;
 import org.openjdk.skara.network.URIBuilder;
 
@@ -34,14 +34,12 @@ import java.nio.file.*;
 import java.security.*;
 import java.time.Duration;
 import java.util.*;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 public class TestMailmanServer implements AutoCloseable {
     private final HttpServer httpServer;
     private final SMTPServer smtpServer;
     private final Map<String, Path> lists = new HashMap<>();
-    private final Logger log = Logger.getLogger("org.openjdk.skara.test");
 
     private boolean lastResponseCached;
 
@@ -58,7 +56,6 @@ public class TestMailmanServer implements AutoCloseable {
             var response = Files.readString(list);
             lastResponseCached = false;
 
-            log.warning("Read " + response.length() + " chars");
             try {
                 var digest = MessageDigest.getInstance("SHA-256");
                 digest.update(response.getBytes(StandardCharsets.UTF_8));
@@ -68,14 +65,9 @@ public class TestMailmanServer implements AutoCloseable {
                 if (exchange.getRequestHeaders().containsKey("If-None-Match")) {
                     if (exchange.getRequestHeaders().getFirst("If-None-Match").equals(etag)) {
                         lastResponseCached = true;
-                        log.warning("Cache hit!");
                         exchange.sendResponseHeaders(304, 0);
                         return;
-                    } else {
-                        log.warning("Cache mismatch");
                     }
-                } else {
-                    log.warning("No If-None-Match tag");
                 }
 
                 var responseBytes = response.getBytes(StandardCharsets.UTF_8);
@@ -117,7 +109,14 @@ public class TestMailmanServer implements AutoCloseable {
 
     public void processIncoming(Duration timeout) throws IOException {
         var email = smtpServer.receive(timeout);
-        var mboxEntry = Mbox.fromMail(email);
+        var subject = email.subject();
+        if (subject.startsWith("Re: ")) {
+            subject = subject.substring(4);
+        }
+        var stripped = Email.from(email)
+                            .subject(subject)
+                            .build();
+        var mboxEntry = Mbox.fromMail(stripped);
 
         var listPath = email.recipients().stream()
                             .filter(recipient -> lists.containsKey(recipient.localPart()))
