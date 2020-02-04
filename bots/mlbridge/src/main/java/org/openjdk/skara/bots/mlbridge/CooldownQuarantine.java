@@ -29,21 +29,11 @@ import java.util.*;
 import java.util.logging.Logger;
 
 public class CooldownQuarantine {
-    private final Map<HostedRepository, String> repositoryIds = new HashMap<>();
     private final Map<String, Instant> quarantineEnd = new HashMap<>();
-
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
 
-    private String getUniqueId(PullRequest pr) {
-        var repo = pr.repository();
-        if (!repositoryIds.containsKey(repo)) {
-            repositoryIds.put(repo, Integer.toString(repositoryIds.size()));
-        }
-        return repositoryIds.get(repo) + ";" + pr.id();
-    }
-
     public synchronized boolean inQuarantine(PullRequest pr) {
-        var uniqueId = getUniqueId(pr);
+        var uniqueId = pr.webUrl().toString();
 
         if (!quarantineEnd.containsKey(uniqueId)) {
             return false;
@@ -59,7 +49,7 @@ public class CooldownQuarantine {
     }
 
     public synchronized void updateQuarantineEnd(PullRequest pr, Instant end) {
-        var uniqueId = getUniqueId(pr);
+        var uniqueId = pr.webUrl().toString();
         var currentEnd = quarantineEnd.getOrDefault(uniqueId, Instant.now());
         if (end.isAfter(currentEnd)) {
             quarantineEnd.put(uniqueId, end);

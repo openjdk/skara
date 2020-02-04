@@ -29,18 +29,8 @@ import java.util.*;
 import java.util.logging.Logger;
 
 public class PullRequestUpdateCache {
-    private final Map<HostedRepository, String> repositoryIds = new HashMap<>();
     private final Map<String, ZonedDateTime> lastUpdates = new HashMap<>();
-
     private final Logger log = Logger.getLogger("org.openjdk.skara.host");
-
-    private String getUniqueId(PullRequest pr) {
-        var repo = pr.repository();
-        if (!repositoryIds.containsKey(repo)) {
-            repositoryIds.put(repo, Integer.toString(repositoryIds.size()));
-        }
-        return repositoryIds.get(repo) + ";" + pr.id();
-    }
 
     public synchronized boolean needsUpdate(PullRequest pr) {
         // GitLab CE does not update this field on events such as adding an award
@@ -48,7 +38,7 @@ public class PullRequestUpdateCache {
             return true;
         }
 
-        var uniqueId = getUniqueId(pr);
+        var uniqueId = pr.webUrl().toString();
         var update = pr.updatedAt();
 
         if (!lastUpdates.containsKey(uniqueId)) {
@@ -65,7 +55,7 @@ public class PullRequestUpdateCache {
     }
 
     public synchronized void invalidate(PullRequest pr) {
-        var uniqueId = getUniqueId(pr);
+        var uniqueId = pr.webUrl().toString();
         lastUpdates.remove(uniqueId);
     }
 }
