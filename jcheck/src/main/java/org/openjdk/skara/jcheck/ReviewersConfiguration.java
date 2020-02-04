@@ -79,11 +79,11 @@ public class ReviewersConfiguration {
             return DEFAULT;
         }
 
-        var lead = s.get("lead", DEFAULT.lead());
-        var reviewers = s.get("reviewers", DEFAULT.reviewers());
-        var committers = s.get("committers", DEFAULT.committers());
-        var authors = s.get("authors", DEFAULT.authors());
-        var contributors = s.get("contributors", DEFAULT.contributors());
+        var lead = s.get("lead", 0);
+        var reviewers = s.get("reviewers", 0);
+        var committers = s.get("committers", 0);
+        var authors = s.get("authors", 0);
+        var contributors = s.get("contributors", 0);
 
         if (s.contains("minimum")) {
             // Reset defaults to 0
