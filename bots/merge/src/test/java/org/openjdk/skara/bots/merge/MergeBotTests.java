@@ -109,7 +109,7 @@ class MergeBotTests {
             var known = Set.of(toHashA, fromHashB, toHashC);
             var merge = toCommits.stream().filter(c -> !known.contains(c.hash())).findAny().get();
             assertTrue(merge.isMerge());
-            assertEquals(List.of("Merge"), merge.message());
+            assertEquals(List.of("Merge branch: 'master' into: 'master'"), merge.message());
             assertEquals("duke", merge.author().name());
             assertEquals("duke@openjdk.org", merge.author().email());
 
@@ -538,7 +538,7 @@ class MergeBotTests {
             var known = Set.of(toHashA, fromHashB, toHashC);
             var merge = toCommits.stream().filter(c -> !known.contains(c.hash())).findAny().get();
             assertTrue(merge.isMerge());
-            assertEquals(List.of("Merge"), merge.message());
+            assertEquals(List.of("Merge branch: 'master' into: 'master'"), merge.message());
             assertEquals("duke", merge.author().name());
             assertEquals("duke@openjdk.org", merge.author().email());
 
@@ -653,7 +653,7 @@ class MergeBotTests {
             var known = Set.of(toHashA, fromHashB, toHashC);
             var merge = toCommits.stream().filter(c -> !known.contains(c.hash())).findAny().get();
             assertTrue(merge.isMerge());
-            assertEquals(List.of("Merge"), merge.message());
+            assertEquals(List.of("Merge branch: 'master' into: 'master'"), merge.message());
             assertEquals("duke", merge.author().name());
             assertEquals("duke@openjdk.org", merge.author().email());
 
@@ -774,7 +774,7 @@ class MergeBotTests {
             var known = Set.of(toHashA, fromHashB, toHashC);
             var merge = toCommits.stream().filter(c -> !known.contains(c.hash())).findAny().get();
             assertTrue(merge.isMerge());
-            assertEquals(List.of("Merge"), merge.message());
+            assertEquals(List.of("Merge branch: 'master' into: 'master'"), merge.message());
             assertEquals("duke", merge.author().name());
             assertEquals("duke@openjdk.org", merge.author().email());
 
@@ -895,7 +895,7 @@ class MergeBotTests {
             var known = Set.of(toHashA, fromHashB, toHashC);
             var merge = toCommits.stream().filter(c -> !known.contains(c.hash())).findAny().get();
             assertTrue(merge.isMerge());
-            assertEquals(List.of("Merge"), merge.message());
+            assertEquals(List.of("Merge branch: 'master' into: 'master'"), merge.message());
             assertEquals("duke", merge.author().name());
             assertEquals("duke@openjdk.org", merge.author().email());
 
@@ -1016,7 +1016,7 @@ class MergeBotTests {
             var known = Set.of(toHashA, fromHashB, toHashC);
             var merge = toCommits.stream().filter(c -> !known.contains(c.hash())).findAny().get();
             assertTrue(merge.isMerge());
-            assertEquals(List.of("Merge"), merge.message());
+            assertEquals(List.of("Merge branch: 'master' into: 'master'"), merge.message());
             assertEquals("duke", merge.author().name());
             assertEquals("duke@openjdk.org", merge.author().email());
 
