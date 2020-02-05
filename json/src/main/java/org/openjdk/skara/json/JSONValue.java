@@ -54,6 +54,34 @@ public interface JSONValue {
         throw new IllegalStateException("Unsupported conversion to object");
     }
 
+    default boolean isInt() {
+        return false;
+    }
+
+    default boolean isLong() {
+        return false;
+    }
+
+    default boolean isDouble() {
+        return false;
+    }
+
+    default boolean isString() {
+        return false;
+    }
+
+    default boolean isBoolean() {
+        return false;
+    }
+
+    default boolean isArray() {
+        return false;
+    }
+
+    default boolean isObject() {
+        return false;
+    }
+
     default boolean isNull() {
         return false;
     }

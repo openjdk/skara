@@ -30,6 +30,11 @@ public class JSONBoolean implements JSONValue {
     }
 
     @Override
+    public boolean isBoolean() {
+        return true;
+    }
+
+    @Override
     public boolean asBoolean() {
         return value;
     }
