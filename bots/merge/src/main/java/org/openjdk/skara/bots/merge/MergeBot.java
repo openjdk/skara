@@ -241,12 +241,21 @@ class MergeBot implements Bot, WorkItem {
                 });
             }
 
+
+            // Must set up user.name and user.email for pull to work
+            var username = fork.forge().currentUser().userName();
+            repo.config("user", "name", username, false);
+            repo.config("user", "email", username + "@openjdk.org", false);
+
             // Sync personal fork
             var remoteBranches = repo.remoteBranches(target.url().toString());
             for (var branch : remoteBranches) {
                 var fetchHead = repo.fetch(target.url(), branch.hash().hex());
                 repo.push(fetchHead, fork.url(), branch.name());
             }
+
+            // Must fetch once to update refs/heads
+            repo.fetchAll();
 
             var prs = target.pullRequests();
             var currentUser = target.forge().currentUser();
@@ -256,7 +265,7 @@ class MergeBot implements Bot, WorkItem {
                 var fromRepo = spec.fromRepo();
                 var fromBranch = spec.fromBranch();
 
-                log.info("Trying to merge " + fromRepo.name() + ":" + fromBranch.name() + " to " + toBranch.name());
+                log.info("Deciding whether to merge " + fromRepo.name() + ":" + fromBranch.name() + " to " + toBranch.name());
 
                 // Checkout the branch to merge into
                 repo.pull(fork.url().toString(), toBranch.name());
@@ -273,11 +282,11 @@ class MergeBot implements Bot, WorkItem {
                         var lines = pr.body().split("\n");
                         var head = new Hash(lines[1].substring(5, 45));
                         if (repo.contains(toBranch, head)) {
-                            log.info("Closing resolved merge conflict PR " + pr.id());
+                            log.info("Closing resolved merge conflict PR " + pr.id() + ", will try merge");
                             pr.addComment("Merge conflicts have been resolved, closing this PR");
                             pr.setState(PullRequest.State.CLOSED);
                         } else {
-                            log.info("Outstanding unresolved merge already present");
+                            log.info("Outstanding unresolved merge already present, will not merge");
                             shouldMerge = false;
                         }
                         break;
@@ -357,9 +366,11 @@ class MergeBot implements Bot, WorkItem {
                 }
 
                 if (!shouldMerge) {
+                    log.info("Will not merge " + fromRepo.name() + ":" + fromBranch.name() + " to " + toBranch.name());
                     continue;
                 }
 
+                log.info("Merging " + fromRepo.name() + ":" + fromBranch.name() + " to " + toBranch.name());
                 log.info("Fetching " + fromRepo.name() + ":" + fromBranch.name());
                 var fetchHead = repo.fetch(fromRepo.url(), fromBranch.name());
                 var head = repo.resolve(toBranch.name()).orElseThrow(() ->
