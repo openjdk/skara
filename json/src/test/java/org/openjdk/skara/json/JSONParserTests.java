@@ -611,4 +611,12 @@ public class JSONParserTests {
         assertFalse(json.get("foo").isArray());
         assertFalse(json.get("foo").isNull());
     }
+
+    @Test
+    public void testJSONObjectWithNullField() {
+        var json = JSON.parse("{ \"foo\": null }");
+
+        assertNotNull(json.get("foo"));
+        assertTrue(json.get("foo").isNull());
+    }
 }
