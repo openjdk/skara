@@ -226,7 +226,7 @@ class MergeBot implements Bot, WorkItem {
     public void run(Path scratchPath) {
         try {
             var sanitizedUrl =
-                URLEncoder.encode(target.webUrl().toString(), StandardCharsets.UTF_8);
+                URLEncoder.encode(fork.webUrl().toString(), StandardCharsets.UTF_8);
             var dir = storage.resolve(sanitizedUrl);
 
             Repository repo = null;
@@ -240,12 +240,6 @@ class MergeBot implements Bot, WorkItem {
                         return new RuntimeException("Repository in " + dir + " has vanished");
                 });
             }
-
-
-            // Must set up user.name and user.email for pull to work
-            var username = fork.forge().currentUser().userName();
-            repo.config("user", "name", username, false);
-            repo.config("user", "email", username + "@openjdk.org", false);
 
             // Sync personal fork
             var remoteBranches = repo.remoteBranches(target.url().toString());
@@ -268,8 +262,11 @@ class MergeBot implements Bot, WorkItem {
                 log.info("Deciding whether to merge " + fromRepo.name() + ":" + fromBranch.name() + " to " + toBranch.name());
 
                 // Checkout the branch to merge into
-                repo.pull(fork.url().toString(), toBranch.name());
                 repo.checkout(toBranch, false);
+                var remoteBranch = new Branch(repo.upstreamFor(toBranch).orElseThrow(() ->
+                    new IllegalStateException("Could not get remote branch name for " + toBranch.name())
+                ));
+                repo.merge(remoteBranch); // should always be a fast-forward merge
 
                 // Check if merge conflict pull request is present
                 var shouldMerge = true;

@@ -916,11 +916,20 @@ public class GitRepository implements Repository {
 
     @Override
     public void merge(Hash h) throws IOException {
-        merge(h, null);
+        merge(h.hex(), null);
+    }
+
+    @Override
+    public void merge(Branch b) throws IOException {
+        merge(b.name(), null);
     }
 
     @Override
     public void merge(Hash h, String strategy) throws IOException {
+        merge(h.hex(), strategy);
+    }
+
+    private void merge(String ref, String strategy) throws IOException {
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("git", "-c", "user.name=unused", "-c", "user.email=unused",
                            "merge", "--no-commit"));
@@ -928,7 +937,7 @@ public class GitRepository implements Repository {
             cmd.add("-s");
             cmd.add(strategy);
         }
-        cmd.add(h.hex());
+        cmd.add(ref);
         try (var p = capture(cmd)) {
             await(p);
         }
