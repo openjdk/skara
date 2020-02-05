@@ -25,6 +25,7 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.json.JSON;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
@@ -117,9 +118,9 @@ public class CSRCommand implements CommandHandler {
             return;
         }
 
-        var resolution = csr.properties().get("resolution");
         var resolutionName = "Unresolved";
-        if (!resolution.isNull() && resolution.asObject().contains("name")) {
+        var resolution = csr.properties().getOrDefault("resolution", JSON.of());
+        if (resolution.isObject() && resolution.asObject().contains("name")) {
             var nameField = resolution.get("name");
             if (nameField.isString()) {
                 resolutionName = resolution.get("name").asString();
