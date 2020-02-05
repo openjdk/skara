@@ -127,12 +127,12 @@ public class CSRCommand implements CommandHandler {
             }
         }
         if (csr.state() == Issue.State.CLOSED && resolutionName.equals("Approved")) {
-            reply.println("the issue for this pull request, (" + jbsIssue.get().id() + ")[" + jbsIssue.get().webUrl() + "], already has " +
-                          "an approved CSR request: (" + csr.id() + ")[" + csr.webUrl() + "]");
+            reply.println("the issue for this pull request, [" + jbsIssue.get().id() + "](" + jbsIssue.get().webUrl() + "), already has " +
+                          "an approved CSR request: [" + csr.id() + "](" + csr.webUrl() + ")");
         } else {
             reply.println("this pull request will not be integrated until the [CSR](https://wiki.openjdk.java.net/display/csr/Main) " +
-                          "request " + "(" + csr.id() + ")[" + csr.webUrl() + "]" + " for issue " +
-                          "(" + jbsIssue.get().id() + ")[" + jbsIssue.get().webUrl() + "] has been approved.");
+                          "request " + "[" + csr.id() + "](" + csr.webUrl() + ")" + " for issue " +
+                          "[" + jbsIssue.get().id() + "](" + jbsIssue.get().webUrl() + ") has been approved.");
             pr.addLabel(CSR_LABEL);
         }
     }
