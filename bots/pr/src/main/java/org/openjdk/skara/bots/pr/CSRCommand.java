@@ -117,8 +117,15 @@ public class CSRCommand implements CommandHandler {
             return;
         }
 
-        var resolution = csr.properties().get("resolution").get("name").asString();
-        if (csr.state() == Issue.State.CLOSED && resolution.equals("Approved")) {
+        var resolution = csr.properties().get("resolution");
+        var resolutionName = "Unresolved";
+        if (!resolution.isNull() && resolution.asObject().contains("name")) {
+            var nameField = resolution.get("name");
+            if (nameField.isString()) {
+                resolutionName = resolution.get("name").asString();
+            }
+        }
+        if (csr.state() == Issue.State.CLOSED && resolutionName.equals("Approved")) {
             reply.println("the issue for this pull request, (" + jbsIssue.get().id() + ")[" + jbsIssue.get().webUrl() + "], already has " +
                           "an approved CSR request: (" + csr.id() + ")[" + csr.webUrl() + "]");
         } else {

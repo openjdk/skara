@@ -44,6 +44,11 @@ public class JSONArray implements JSONValue, Iterable<JSONValue> {
     }
 
     @Override
+    public boolean isArray() {
+        return true;
+    }
+
+    @Override
     public JSONArray asArray() {
         return this;
     }
