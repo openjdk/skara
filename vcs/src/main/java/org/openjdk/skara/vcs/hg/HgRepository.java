@@ -857,15 +857,24 @@ public class HgRepository implements Repository {
 
     @Override
     public void merge(Hash h) throws IOException {
-        merge(h, null);
+        merge(h.hex(), null);
     }
 
     @Override
-    public void merge(Hash h, String stragegy) throws IOException {
+    public void merge(Branch b) throws IOException {
+        merge(b.name(), null);
+    }
+
+    @Override
+    public void merge(Hash h, String strategy) throws IOException {
+        merge(h.hex(), strategy);
+    }
+
+    private void merge(String ref, String strategy) throws IOException {
         var cmd = new ArrayList<String>();
-        cmd.addAll(List.of("hg", "merge", "--rev=" + h.hex()));
-        if (stragegy != null) {
-            cmd.add("--tool=" + stragegy);
+        cmd.addAll(List.of("hg", "merge", "--rev=" + ref));
+        if (strategy != null) {
+            cmd.add("--tool=" + strategy);
         }
         try (var p = capture(cmd)) {
             await(p);
