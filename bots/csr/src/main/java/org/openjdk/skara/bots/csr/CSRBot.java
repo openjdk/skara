@@ -25,11 +25,14 @@ package org.openjdk.skara.bots.csr;
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.forge.PullRequestUpdateCache;
 import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.issuetracker.Issue;
 
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Logger;
 
 class CSRBot implements Bot, WorkItem {
@@ -37,10 +40,13 @@ class CSRBot implements Bot, WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final HostedRepository repo;
     private final IssueProject project;
+    private final PullRequestUpdateCache cache;
+    private final Set<String> hasCSRLabel = new HashSet<>();
 
     CSRBot(HostedRepository repo, IssueProject project) {
         this.repo = repo;
         this.project = project;
+        this.cache = new PullRequestUpdateCache();
     }
 
     @Override
@@ -58,32 +64,46 @@ class CSRBot implements Bot, WorkItem {
 
     @Override
     public void run(Path scratchPath) {
-        for (var pr : repo.pullRequests()) {
+        var prs = repo.pullRequests();
+        for (var pr : prs) {
+            if (!cache.needsUpdate(pr)) {
+                continue;
+            }
+
             log.info("Checking CSR label for " + describe(pr) + "...");
             if (pr.labels().contains(CSR_LABEL)) {
-                var issue = org.openjdk.skara.vcs.openjdk.Issue.fromString(pr.title());
-                if (issue.isEmpty()) {
-                    log.info("No issue found in title for " + describe(pr));
-                    continue;
-                }
-                var jbsIssue = project.issue(issue.get().id());
-                if (jbsIssue.isEmpty()) {
-                    log.info("No issue found in JBS for " + describe(pr));
-                    continue;
-                }
+                hasCSRLabel.add(pr.id());
+            }
+        }
 
-                for (var link : jbsIssue.get().links()) {
-                    var relationship = link.relationship();
-                    if (relationship.isPresent() && relationship.get().equals("csr for")) {
-                        var csr = link.issue().orElseThrow(
-                                () -> new IllegalStateException("Link with title 'csr for' does not contain issue")
-                        );
-                        var resolution = csr.properties().get("resolution").get("name").asString();
-                        log.info("Found CSR for " + describe(pr));
-                        if (csr.state() == Issue.State.CLOSED && resolution.equals("Approved")) {
-                            log.info("CSR closed and approved for " + repo.name() + "#" + pr.id() + ", removing csr label");
-                            pr.removeLabel(CSR_LABEL);
-                        }
+        for (var pr : prs) {
+            if (!hasCSRLabel.contains(pr.id())) {
+                continue;
+            }
+
+            var issue = org.openjdk.skara.vcs.openjdk.Issue.fromString(pr.title());
+            if (issue.isEmpty()) {
+                log.info("No issue found in title for " + describe(pr));
+                continue;
+            }
+            var jbsIssue = project.issue(issue.get().id());
+            if (jbsIssue.isEmpty()) {
+                log.info("No issue found in JBS for " + describe(pr));
+                continue;
+            }
+
+            for (var link : jbsIssue.get().links()) {
+                var relationship = link.relationship();
+                if (relationship.isPresent() && relationship.get().equals("csr for")) {
+                    var csr = link.issue().orElseThrow(
+                            () -> new IllegalStateException("Link with title 'csr for' does not contain issue")
+                    );
+                    var resolution = csr.properties().get("resolution").get("name").asString();
+                    log.info("Found CSR for " + describe(pr));
+                    if (csr.state() == Issue.State.CLOSED && resolution.equals("Approved")) {
+                        log.info("CSR closed and approved for " + repo.name() + "#" + pr.id() + ", removing csr label");
+                        pr.removeLabel(CSR_LABEL);
+                        hasCSRLabel.remove(pr.id());
                     }
                 }
             }
