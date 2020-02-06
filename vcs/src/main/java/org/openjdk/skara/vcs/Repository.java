@@ -102,6 +102,7 @@ public interface Repository extends ReadOnlyRepository {
     void delete(Branch b) throws IOException;
     void rebase(Hash hash, String committerName, String committerEmail) throws IOException;
     void merge(Hash hash) throws IOException;
+    void merge(Branch branch) throws IOException;
     void merge(Hash hash, String strategy) throws IOException;
     void abortMerge() throws IOException;
     void addRemote(String name, String path) throws IOException;

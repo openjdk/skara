@@ -30,6 +30,11 @@ class JSONString implements JSONValue {
     }
 
     @Override
+    public boolean isString() {
+        return true;
+    }
+
+    @Override
     public String asString() {
         return value;
     }

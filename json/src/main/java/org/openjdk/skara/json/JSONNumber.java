@@ -34,6 +34,16 @@ class JSONNumber implements JSONValue {
     }
 
     @Override
+    public boolean isInt() {
+        return true;
+    }
+
+    @Override
+    public boolean isLong() {
+        return true;
+    }
+
+    @Override
     public int asInt() {
         return Math.toIntExact(value);
     }
