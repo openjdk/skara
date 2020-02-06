@@ -291,16 +291,4 @@ public class RepositoryWorkItem implements WorkItem {
             throw new UncheckedIOException(e);
         }
     }
-
-    @Override
-    public String toString() {
-        return "RepositoryWorkItem{" +
-                "repository=" + repository +
-                ", storagePath=" + storagePath +
-                ", branches=" + branches +
-                ", tagStorageBuilder=" + tagStorageBuilder +
-                ", branchStorageBuilder=" + branchStorageBuilder +
-                ", updaters=" + updaters +
-                '}';
-    }
 }
