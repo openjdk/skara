@@ -166,7 +166,12 @@ public class MailingListBridgeBot implements Bot {
         List<WorkItem> ret = new LinkedList<>();
 
         for (var pr : codeRepo.pullRequests()) {
-            if (!cooldownQuarantine.inQuarantine(pr) || updateCache.needsUpdate(pr)) {
+            var quarantineStatus = cooldownQuarantine.status(pr);
+            if (quarantineStatus == CooldownQuarantine.Status.IN_QUARANTINE) {
+                continue;
+            }
+            if ((quarantineStatus == CooldownQuarantine.Status.JUST_RELEASED) ||
+                    (quarantineStatus == CooldownQuarantine.Status.NOT_IN_QUARANTINE && updateCache.needsUpdate(pr))) {
                 ret.add(new ArchiveWorkItem(pr, this,
                                             e -> updateCache.invalidate(pr),
                                             r -> cooldownQuarantine.updateQuarantineEnd(pr, r)));
