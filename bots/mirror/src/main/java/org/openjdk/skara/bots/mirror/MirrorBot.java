@@ -85,7 +85,7 @@ class MirrorBot implements Bot, WorkItem {
 
     @Override
     public String toString() {
-        return "MirrorBot@" + from.name() + "-> " + to.name();
+        return "MirrorBot@" + from.name() + "->" + to.name();
     }
 
     @Override
