@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -55,9 +55,10 @@ public class EmailAddress {
         this.domain = domain;
     }
 
-    private static Pattern decoratedAddressPattern = Pattern.compile("(?<name>.*?)(?:\\s*)<(?<local>.*)@(?<domain>.*?)>");
+    private final static Pattern decoratedAddressPattern = Pattern.compile("(?<name>.*?)(?:\\s*)<(?<local>.*)@(?<domain>.*?)>");
     private final static Pattern obfuscatedPattern = Pattern.compile("(?<local>.*) at (?<domain>.*) \\((?<name>.*)\\)");
-    private static Pattern plainAddressPattern = Pattern.compile("(?<name>)(?<local>.*)@(?<domain>.*?)");
+    private final static Pattern plainAddressPattern = Pattern.compile("(?<name>)(?<local>.*)@(?<domain>.*?)");
+    private final static Pattern unqualifiedDecoratedAddressPattern = Pattern.compile("(?<name>.*?)(?:\\s*)<(?<local>.*)(?<domain>)>");
 
     public static EmailAddress parse(String address) {
         var matcher = decoratedAddressPattern.matcher(address);
@@ -66,7 +67,10 @@ public class EmailAddress {
             if (!matcher.matches()) {
                 matcher = plainAddressPattern.matcher(address);
                 if (!matcher.matches()) {
-                    throw new IllegalArgumentException("Cannot parse email address: " + address);
+                    matcher = unqualifiedDecoratedAddressPattern.matcher(address);
+                    if (!matcher.matches()) {
+                        throw new IllegalArgumentException("Cannot parse email address: " + address);
+                    }
                 }
             }
         }
