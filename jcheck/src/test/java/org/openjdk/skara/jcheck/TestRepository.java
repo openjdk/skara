@@ -132,6 +132,10 @@ class TestRepository implements ReadOnlyRepository {
         return Optional.empty();
     }
 
+    public List<CommitMetadata> commitMetadata(String range) throws IOException {
+        return List.of();
+    }
+
     public List<CommitMetadata> commitMetadata() throws IOException {
         return List.of();
     }

@@ -251,6 +251,11 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public List<CommitMetadata> commitMetadata(String range) throws IOException {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
     public List<CommitMetadata> commitMetadata() throws IOException {
         var ext = Files.createTempFile("ext", ".py");
         copyResource(EXT_PY, ext);

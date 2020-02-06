@@ -67,7 +67,7 @@ public class RepositoryWorkItem implements WorkItem {
         var bestParent = candidates.stream()
                                    .map(c -> {
                                        try {
-                                           return new AbstractMap.SimpleEntry<>(c, localRepo.commits(c.hash().hex() + ".." + ref.hash(), true).asList());
+                                           return new AbstractMap.SimpleEntry<>(c, localRepo.commitMetadata(c.hash().hex() + ".." + ref.hash()));
                                        } catch (IOException e) {
                                            throw new UncheckedIOException(e);
                                        }
@@ -78,13 +78,18 @@ public class RepositoryWorkItem implements WorkItem {
             throw new RuntimeException("Excessive amount of unique commits on new branch " + ref.name() +
                                                " detected (" + bestParent.getValue().size() + ") - skipping notifications");
         }
-        for (var updater : updaters) {
-            if (updater.isIdempotent() != runOnlyIdempotent) {
-                continue;
+        try {
+            var bestParentCommits = localRepo.commits(bestParent.getKey().hash().hex() + ".." + ref.hash(), true);
+            for (var updater : updaters) {
+                if (updater.isIdempotent() != runOnlyIdempotent) {
+                    continue;
+                }
+                var branch = new Branch(ref.name());
+                var parent = new Branch(bestParent.getKey().name());
+                updater.handleNewBranch(repository, localRepo, bestParentCommits.asList(), parent, branch);
             }
-            var branch = new Branch(ref.name());
-            var parent = new Branch(bestParent.getKey().name());
-            updater.handleNewBranch(repository, localRepo, bestParent.getValue(), parent, branch);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -107,17 +112,17 @@ public class RepositoryWorkItem implements WorkItem {
             history.setBranchHash(branch, ref.hash());
             handleNewRef(localRepo, ref, allRefs, false);
         } else {
-            var commits = localRepo.commits(lastHash.get() + ".." + ref.hash()).asList();
-            if (commits.size() == 0) {
+            var commitMetadata = localRepo.commitMetadata(lastHash.get() + ".." + ref.hash());
+            if (commitMetadata.size() == 0) {
                 return;
             }
-            if (commits.size() > 1000) {
+            if (commitMetadata.size() > 1000) {
                 history.setBranchHash(branch, ref.hash());
                 throw new RuntimeException("Excessive amount of new commits on branch " + branch.name() +
-                                                   " detected (" + commits.size() + ") - skipping notifications");
+                                                   " detected (" + commitMetadata.size() + ") - skipping notifications");
             }
 
-            Collections.reverse(commits);
+            var commits = localRepo.commits(lastHash.get() + ".." + ref.hash(), true).asList();
             handleUpdatedRef(localRepo, ref, commits, true);
             history.setBranchHash(branch, ref.hash());
             handleUpdatedRef(localRepo, ref, commits, false);
@@ -285,5 +290,17 @@ public class RepositoryWorkItem implements WorkItem {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "RepositoryWorkItem{" +
+                "repository=" + repository +
+                ", storagePath=" + storagePath +
+                ", branches=" + branches +
+                ", tagStorageBuilder=" + tagStorageBuilder +
+                ", branchStorageBuilder=" + branchStorageBuilder +
+                ", updaters=" + updaters +
+                '}';
     }
 }

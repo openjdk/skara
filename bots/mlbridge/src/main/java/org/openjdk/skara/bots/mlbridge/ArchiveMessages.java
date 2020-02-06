@@ -107,7 +107,7 @@ class ArchiveMessages {
         try {
             if (base.equals(lastBase)) {
                 if (localRepository.isAncestor(lastHead, head)) {
-                    var updateCount = localRepository.commits(lastHead.hex() + ".." + head.hex()).stream().count();
+                    var updateCount = localRepository.commitMetadata(lastHead.hex() + ".." + head.hex()).size();
                     return "The pull request has been updated with " + updateCount + " additional commit" + (updateCount != 1 ? "s" : "") + ".";
                 } else {
                     return "Previous commits in this pull request have been removed, probably due to a force push. " +
