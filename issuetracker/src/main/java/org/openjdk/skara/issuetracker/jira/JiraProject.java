@@ -201,7 +201,7 @@ public class JiraProject implements IssueProject {
         if (!name.startsWith("customfield_")) {
             return unfiltered;
         }
-        if (unfiltered instanceof JSONObject) {
+        if (unfiltered.isObject()) {
             if (unfiltered.asObject().contains("id")) {
                 return unfiltered.get("id");
             } else {
