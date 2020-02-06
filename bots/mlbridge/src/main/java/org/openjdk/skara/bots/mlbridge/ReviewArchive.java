@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.time.*;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 import java.util.stream.*;
 
@@ -176,7 +177,7 @@ class ReviewArchive {
         return uniqueMessageId.localPart().split("\\.")[0];
     }
 
-    List<Email> generateNewEmails(List<Email> sentEmails, Duration cooldown, Repository localRepo, URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole) {
+    List<Email> generateNewEmails(List<Email> sentEmails, Duration cooldown, Repository localRepo, URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, Consumer<Instant> retryConsumer) {
         var ret = new ArrayList<Email>();
         var allItems = generateArchiveItems(sentEmails, localRepo, issueTracker, issuePrefix, hostUserToEmailAuthor, hostUserToUserName, hostUserToRole, webrevGenerator, webrevNotification);
         var sentItemIds = sentItemIds(sentEmails);
@@ -189,8 +190,11 @@ class ReviewArchive {
         var lastUpdate = unsentItems.stream()
                                     .map(ArchiveItem::updatedAt)
                                     .max(ZonedDateTime::compareTo).orElseThrow();
+        var mayUpdate = lastUpdate.plus(cooldown);
         if (lastUpdate.plus(cooldown).isAfter(ZonedDateTime.now())) {
             log.info("Waiting for new content to settle down - last update was at " + lastUpdate);
+            log.info("Retry again after " + mayUpdate);
+            retryConsumer.accept(mayUpdate.toInstant());
             return ret;
         }
 

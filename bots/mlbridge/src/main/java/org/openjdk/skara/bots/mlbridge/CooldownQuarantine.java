@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,42 +20,39 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.forge;
+package org.openjdk.skara.bots.mlbridge;
 
-import org.openjdk.skara.forge.gitlab.GitLabMergeRequest;
+import org.openjdk.skara.forge.*;
 
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.util.*;
 import java.util.logging.Logger;
 
-public class PullRequestUpdateCache {
-    private final Map<String, ZonedDateTime> lastUpdates = new HashMap<>();
-    private final Logger log = Logger.getLogger("org.openjdk.skara.host");
+public class CooldownQuarantine {
+    private final Map<String, Instant> quarantineEnd = new HashMap<>();
+    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
 
-    public synchronized boolean needsUpdate(PullRequest pr) {
-        // GitLab CE does not update this field on events such as adding an award
-        if (pr instanceof GitLabMergeRequest) {
-            return true;
-        }
-
+    public synchronized boolean inQuarantine(PullRequest pr) {
         var uniqueId = pr.webUrl().toString();
-        var update = pr.updatedAt();
 
-        if (!lastUpdates.containsKey(uniqueId)) {
-            lastUpdates.put(uniqueId, update);
-            return true;
+        if (!quarantineEnd.containsKey(uniqueId)) {
+            return false;
         }
-        var lastUpdate = lastUpdates.get(uniqueId);
-        if (lastUpdate.isBefore(update)) {
-            lastUpdates.put(uniqueId, update);
-            return true;
+        var end = quarantineEnd.get(uniqueId);
+        if (end.isBefore(Instant.now())) {
+            log.info("Released from cooldown quarantine: " + pr.repository().name() + "#" + pr.id());
+            quarantineEnd.remove(uniqueId);
+            return false;
         }
-        log.info("Skipping update for " + pr.repository().name() + "#" + pr.id());
-        return false;
+        log.info("Quarantined due to cooldown: " + pr.repository().name() + "#" + pr.id());
+        return true;
     }
 
-    public synchronized void invalidate(PullRequest pr) {
+    public synchronized void updateQuarantineEnd(PullRequest pr, Instant end) {
         var uniqueId = pr.webUrl().toString();
-        lastUpdates.remove(uniqueId);
+        var currentEnd = quarantineEnd.getOrDefault(uniqueId, Instant.now());
+        if (end.isAfter(currentEnd)) {
+            quarantineEnd.put(uniqueId, end);
+        }
     }
 }

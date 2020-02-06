@@ -34,14 +34,17 @@ import org.junit.jupiter.api.*;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.time.Duration;
+import java.time.*;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class MailingListBridgeBotTests {
+    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge.test");
+
     private Optional<String> archiveContents(Path archive) {
         try {
             var mbox = Files.find(archive, 50, (path, attrs) -> path.toString().endsWith(".mbox")).findAny();
@@ -1520,6 +1523,85 @@ class MailingListBridgeBotTests {
             // Check the archive
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Looks good"));
+        }
+    }
+
+    @Test
+    void retryAfterCooldown(TestInfo testInfo) throws IOException, InterruptedException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var archiveFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
+            var bot = credentials.getHostedRepository();
+            var author = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var from = EmailAddress.from("test", "test@test.mail");
+            var cooldown = Duration.ofMillis(500);
+            var mlBotBuilder = MailingListBridgeBot.newBuilder()
+                                                   .from(from)
+                                                   .repo(bot)
+                                                   .ignoredUsers(Set.of(bot.forge().currentUser().userName()))
+                                                   .archive(archive)
+                                                   .censusRepo(censusBuilder.build())
+                                                   .list(listAddress)
+                                                   .listArchive(listServer.getArchive())
+                                                   .smtpServer(listServer.getSMTP())
+                                                   .webrevStorageRepository(archive)
+                                                   .webrevStorageRef("webrev")
+                                                   .webrevStorageBase(Path.of("test"))
+                                                   .webrevStorageBaseUri(webrevServer.uri())
+                                                   .issueTracker(URIBuilder.base("http://issues.test/browse/").build());
+
+            // Populate the projects repository
+            var reviewFile = Path.of("reviewfile.txt");
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Line 1\nLine 2\nLine 3\nLine 4");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
+            pr.setBody("This is now ready");
+
+            var mlBot = mlBotBuilder.cooldown(cooldown).build();
+            Thread.sleep(cooldown.toMillis());
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // Make a comment and run the check within the cooldown period
+            int counter;
+            for (counter = 1; counter < 10; ++counter) {
+                var start = Instant.now();
+                pr.addComment("Looks good - " + counter + " -");
+
+                // The bot should not bridge the comment due to cooldown
+                TestBotRunner.runPeriodicItems(mlBot);
+                var elapsed = Duration.between(start, Instant.now());
+                if (elapsed.compareTo(cooldown) < 0) {
+                    break;
+                } else {
+                    log.info("Didn't do the test in time - retrying (elapsed: " + elapsed + " required: " + cooldown + ")");
+                    listServer.processIncoming();
+                    cooldown = cooldown.multipliedBy(2);
+                    mlBot = mlBotBuilder.cooldown(cooldown).build();
+                }
+            }
+            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+
+            // But after the cooldown period has passed, it should
+            Thread.sleep(cooldown.toMillis());
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // Check the archive
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertTrue(archiveContains(archiveFolder.path(), "Looks good - " + counter + " -"));
         }
     }
 }
