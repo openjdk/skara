@@ -98,6 +98,11 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
         log.fine("Posting prune notification message");
         pr.addComment(noticeMarker + "\n\n" + message);
     }
+
+    @Override
+    public String toString() {
+        return "PullRequestPrunerBotWorkItem@" + repository.name() + "#" + pr.id();
+    }
 }
 
 public class PullRequestPrunerBot implements Bot {

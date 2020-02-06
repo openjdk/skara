@@ -150,4 +150,9 @@ public class CommandWorkItem extends PullRequestWorkItem {
             processCommand(pr, census, scratchPath.resolve("pr"), entry.getKey(), entry.getValue(), comments);
         }
     }
+
+    @Override
+    public String toString() {
+        return "CommandWorkItem@" + pr.repository().name() + "#" + pr.id();
+    }
 }
