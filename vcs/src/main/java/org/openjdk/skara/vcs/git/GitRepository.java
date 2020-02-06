@@ -190,9 +190,9 @@ public class GitRepository implements Repository {
         return lookup(hash);
     }
 
-    public List<CommitMetadata> commitMetadata() throws IOException {
-        var revisions = "--all";
-        var p = start("git", "rev-list", "--format=" + GitCommitMetadata.FORMAT, "--no-abbrev", "--reverse", "--no-color", revisions);
+    @Override
+    public List<CommitMetadata> commitMetadata(String range) throws IOException {
+        var p = start("git", "rev-list", "--format=" + GitCommitMetadata.FORMAT, "--no-abbrev", "--reverse", "--no-color", range);
         var reader = new UnixStreamReader(p.getInputStream());
         var result = new ArrayList<CommitMetadata>();
 
@@ -208,6 +208,11 @@ public class GitRepository implements Repository {
 
         await(p);
         return result;
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata() throws IOException {
+        return commitMetadata("--all");
     }
 
     private List<Hash> refs() throws IOException {
