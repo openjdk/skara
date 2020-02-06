@@ -538,9 +538,11 @@ public class GitPr {
                   .helptext("Print the version of this tool")
                   .optional());
 
+        var actions = List.of("list", "fetch", "show", "checkout", "apply", "integrate",
+                              "approve", "create", "close", "update", "test", "status");
         var inputs = List.of(
             Input.position(0)
-                 .describe("list|fetch|show|checkout|apply|integrate|approve|create|close|update|test|status")
+                 .describe(String.join("|", actions))
                  .singular()
                  .optional(),
             Input.position(1)
@@ -604,6 +606,15 @@ public class GitPr {
             if (lines.size() == 1) {
                 action = lines.get(0);
             }
+        }
+
+        if (action == null) {
+            System.err.println("error: you must supply a valid action:");
+            for (var a : actions) {
+                System.err.println("       - " + a);
+            }
+            System.err.println("You can also configure a default action by running 'git configure --global pr.default <action>'");
+            System.exit(1);
         }
 
         if (!shouldUseToken &&
