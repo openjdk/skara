@@ -32,20 +32,26 @@ public class CooldownQuarantine {
     private final Map<String, Instant> quarantineEnd = new HashMap<>();
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
 
-    public synchronized boolean inQuarantine(PullRequest pr) {
+    enum Status {
+        NOT_IN_QUARANTINE,
+        IN_QUARANTINE,
+        JUST_RELEASED
+    }
+
+    public synchronized Status status(PullRequest pr) {
         var uniqueId = pr.webUrl().toString();
 
         if (!quarantineEnd.containsKey(uniqueId)) {
-            return false;
+            return Status.NOT_IN_QUARANTINE;
         }
         var end = quarantineEnd.get(uniqueId);
         if (end.isBefore(Instant.now())) {
             log.info("Released from cooldown quarantine: " + pr.repository().name() + "#" + pr.id());
             quarantineEnd.remove(uniqueId);
-            return false;
+            return Status.JUST_RELEASED;
         }
         log.info("Quarantined due to cooldown: " + pr.repository().name() + "#" + pr.id());
-        return true;
+        return Status.IN_QUARANTINE;
     }
 
     public synchronized void updateQuarantineEnd(PullRequest pr, Instant end) {
