@@ -210,7 +210,7 @@ public class GitSync {
             }
             System.out.print("Syncing " + from + "/" + name + " to " + to + "/" + name + "... ");
             System.out.flush();
-            var fetchHead = repo.fetch(fromPullPath, branch.hash().hex());
+            var fetchHead = repo.fetch(fromPullPath, branch.name());
             repo.push(fetchHead, toPushPath, name);
             System.out.println("done");
         }
