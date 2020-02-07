@@ -369,7 +369,7 @@ public class GitPr {
         pb.inheritIO();
 
         // git will return 141 (128 + 13) when it receive SIGPIPE (signal 13) from
-        // e.g. less when a user exits less when looking at a large diff. Therefore 
+        // e.g. less when a user exits less when looking at a large diff. Therefore
         // must allow 141 as a valid exit code.
         await(pb.start(), 141);
     }
