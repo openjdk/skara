@@ -63,7 +63,10 @@ public class LabelerWorkItem extends PullRequestWorkItem {
             return;
         }
         try {
-            var prInstance = new PullRequestInstance(scratchPath.resolve("labeler"), pr, bot.ignoreStaleReviews());
+            var prInstance = new PullRequestInstance(scratchPath.resolve("labeler"),
+                                                     bot.seedStorage().orElse(scratchPath.resolve("seeds")),
+                                                     pr,
+                                                     bot.ignoreStaleReviews());
             var newLabels = getLabels(prInstance);
             var currentLabels = pr.labels().stream()
                                   .filter(key -> bot.labelPatterns().containsKey(key))

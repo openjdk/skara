@@ -1038,13 +1038,17 @@ public class GitRepository implements Repository {
         }
     }
 
-    public static Repository clone(URI from, Path to, boolean isBare) throws IOException {
+    public static Repository clone(URI from, Path to, boolean isBare, Path seed) throws IOException {
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("git", "clone"));
         if (isBare) {
             cmd.add("--bare");
         } else {
             cmd.add("--recurse-submodules");
+        }
+        if (seed != null) {
+            cmd.add("--reference-if-able");
+            cmd.add(seed.toString());
         }
         cmd.addAll(List.of(from.toString(), to.toString()));
         try (var p = capture(Path.of("").toAbsolutePath(), cmd)) {

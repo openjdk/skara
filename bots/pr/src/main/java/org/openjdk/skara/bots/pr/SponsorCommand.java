@@ -73,7 +73,10 @@ public class SponsorCommand implements CommandHandler {
             var sanitizedUrl = URLEncoder.encode(pr.repository().webUrl().toString(), StandardCharsets.UTF_8);
             var path = scratchPath.resolve("pr.sponsor").resolve(sanitizedUrl);
 
-            var prInstance = new PullRequestInstance(path, pr, bot.ignoreStaleReviews());
+            var prInstance = new PullRequestInstance(path,
+                                                     bot.seedStorage().orElse(scratchPath.resolve("seeds")),
+                                                     pr,
+                                                     bot.ignoreStaleReviews());
             var localHash = prInstance.commit(censusInstance.namespace(), censusInstance.configuration().census().domain(),
                                          comment.author().id());
 

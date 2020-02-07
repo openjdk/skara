@@ -25,6 +25,7 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.issuetracker.IssueProject;
 
+import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -40,6 +41,7 @@ public class PullRequestBotBuilder {
     private IssueProject issueProject = null;
     private boolean ignoreStaleReviews = false;
     private Pattern allowedTargetBranches = Pattern.compile(".*");
+    private Path seedStorage = null;
 
     PullRequestBotBuilder() {
     }
@@ -99,8 +101,14 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder seedStorage(Path seedStorage) {
+        this.seedStorage = seedStorage;
+        return this;
+    }
+
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelPatterns, externalCommands, blockingLabels,
-                                  readyLabels, readyComments, issueProject, ignoreStaleReviews, allowedTargetBranches);
+                                  readyLabels, readyComments, issueProject, ignoreStaleReviews, allowedTargetBranches,
+                                  seedStorage);
     }
 }
