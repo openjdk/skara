@@ -441,7 +441,10 @@ class MergeBot implements Bot, WorkItem {
                     message.add("");
                     message.add("This pull request will be closed automatically by a bot once " +
                                 "the merge conflicts have been resolved.");
-                    fork.createPullRequest(target,
+                    var prTarget = fork.forge().repository(target.name()).orElseThrow(() ->
+                            new IllegalStateException("Can't get well-known repository " + target.name())
+                    );
+                    fork.createPullRequest(prTarget,
                                            toBranch.name(),
                                            branchDesc,
                                            title,
