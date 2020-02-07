@@ -251,8 +251,11 @@ class MergeBot implements Bot, WorkItem {
             // Must fetch once to update refs/heads
             repo.fetchAll();
 
-            var prs = target.pullRequests();
-            var currentUser = target.forge().currentUser();
+            var prTarget = fork.forge().repository(target.name()).orElseThrow(() ->
+                    new IllegalStateException("Can't get well-known repository " + target.name())
+            );
+            var prs = prTarget.pullRequests();
+            var currentUser = prTarget.forge().currentUser();
 
             for (var spec : specs) {
                 var toBranch = spec.toBranch();
@@ -391,7 +394,10 @@ class MergeBot implements Bot, WorkItem {
                 if (error == null) {
                     log.info("Pushing successful merge");
                     if (!isAncestor) {
-                        repo.commit("Automatic merge of " + fromBranch + " into " + toBranch,
+                        var targetName = Path.of(target.name()).getFileName();
+                        var fromName = Path.of(fromRepo.name()).getFileName();
+                        var fromDesc = targetName.equals(fromName) ? fromBranch : fromName + ":" + fromBranch;
+                        repo.commit("Automatic merge of " + fromDesc + " into " + toBranch,
                                 "duke", "duke@openjdk.org");
                     }
                     repo.push(toBranch, target.url().toString(), false);
@@ -438,7 +444,7 @@ class MergeBot implements Bot, WorkItem {
                     message.add("");
                     message.add("This pull request will be closed automatically by a bot once " +
                                 "the merge conflicts have been resolved.");
-                    fork.createPullRequest(target,
+                    fork.createPullRequest(prTarget,
                                            toBranch.name(),
                                            branchDesc,
                                            title,

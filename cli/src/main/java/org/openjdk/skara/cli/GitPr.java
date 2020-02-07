@@ -271,10 +271,13 @@ public class GitPr {
         return Optional.empty();
     }
 
-    private static void await(Process p) throws IOException {
+    private static void await(Process p, Integer... allowedExitCodes) throws IOException {
+        var allowed = new HashSet<>(Arrays.asList(allowedExitCodes));
+        allowed.add(0);
         try {
             var res = p.waitFor();
-            if (res != 0) {
+
+            if (!allowed.contains(res)) {
                 throw new IOException("Unexpected exit code " + res);
             }
         } catch (InterruptedException e) {
@@ -364,7 +367,11 @@ public class GitPr {
             pb.directory(dir.toFile());
         }
         pb.inheritIO();
-        await(pb.start());
+
+        // git will return 141 (128 + 13) when it receive SIGPIPE (signal 13) from
+        // e.g. less when a user exits less when looking at a large diff. Therefore
+        // must allow 141 as a valid exit code.
+        await(pb.start(), 141);
     }
 
     private static void gimport() throws IOException {
