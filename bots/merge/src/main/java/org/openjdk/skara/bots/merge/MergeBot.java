@@ -391,7 +391,10 @@ class MergeBot implements Bot, WorkItem {
                 if (error == null) {
                     log.info("Pushing successful merge");
                     if (!isAncestor) {
-                        repo.commit("Automatic merge of " + fromBranch + " into " + toBranch,
+                        var targetName = Path.of(target.name()).getFileName();
+                        var fromName = Path.of(fromRepo.name()).getFileName();
+                        var fromDesc = targetName.equals(fromName) ? fromBranch : fromName + ":" + fromBranch;
+                        repo.commit("Automatic merge of " + fromDesc + " into " + toBranch,
                                 "duke", "duke@openjdk.org");
                     }
                     repo.push(toBranch, target.url().toString(), false);
