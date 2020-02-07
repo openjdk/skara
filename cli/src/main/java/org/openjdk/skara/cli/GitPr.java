@@ -891,9 +891,41 @@ public class GitPr {
                 }
             }
 
+            var remoteRepo = host.repository(projectName(uri)).orElseThrow(() ->
+                    new IOException("Could not find repository at " + uri.toString())
+            );
+
             var targetBranch = getOption("branch", "create", arguments);
             if (targetBranch == null) {
-                targetBranch = "master";
+                var upstreamBranchNames = repo.remoteBranches(remoteRepo.webUrl().toString())
+                                              .stream()
+                                              .map(r -> r.name())
+                                              .collect(Collectors.toSet());
+                var remoteBranches = repo.branches(remote);
+                var candidates = new ArrayList<Branch>();
+                for (var b : remoteBranches) {
+                    var withoutRemotePrefix = b.name().substring(0, remote.length() + 1);
+                    if (upstreamBranchNames.contains(withoutRemotePrefix)) {
+                        candidates.add(b);
+                    }
+                }
+
+                Branch closest = null;
+                var shortestDistance = Integer.MAX_VALUE;
+                for (var b : candidates) {
+                    var distance = repo.commitMetadata(b.name() + ".." + currentBranch.name()).size();
+                    if (distance < shortestDistance) {
+                        closest = b;
+                    }
+                }
+
+                if (closest != null) {
+                    targetBranch = closest.name().substring(0, remote.length() + 1);
+                } else {
+                    System.err.println("error: cannot automatically infer target branch");
+                    System.err.println("       use --branch to specify target branch");
+                    System.exit(1);
+                }
             }
             var commits = repo.commits(targetBranch + ".." + upstream.get()).asList();
             if (commits.isEmpty()) {
@@ -911,9 +943,6 @@ public class GitPr {
                 }
             }
 
-            var remoteRepo = host.repository(projectName(uri)).orElseThrow(() ->
-                    new IOException("Could not find repository at " + uri.toString())
-            );
             if (token == null) {
                 GitCredentials.approve(credentials);
             }
