@@ -251,8 +251,11 @@ class MergeBot implements Bot, WorkItem {
             // Must fetch once to update refs/heads
             repo.fetchAll();
 
-            var prs = target.pullRequests();
-            var currentUser = target.forge().currentUser();
+            var prTarget = fork.forge().repository(target.name()).orElseThrow(() ->
+                    new IllegalStateException("Can't get well-known repository " + target.name())
+            );
+            var prs = prTarget.pullRequests();
+            var currentUser = prTarget.forge().currentUser();
 
             for (var spec : specs) {
                 var toBranch = spec.toBranch();
@@ -441,9 +444,6 @@ class MergeBot implements Bot, WorkItem {
                     message.add("");
                     message.add("This pull request will be closed automatically by a bot once " +
                                 "the merge conflicts have been resolved.");
-                    var prTarget = fork.forge().repository(target.name()).orElseThrow(() ->
-                            new IllegalStateException("Can't get well-known repository " + target.name())
-                    );
                     fork.createPullRequest(prTarget,
                                            toBranch.name(),
                                            branchDesc,
