@@ -1,10 +1,32 @@
+/*
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
 package org.openjdk.skara.forge;
 
 import org.openjdk.skara.vcs.*;
 
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.*;
-import java.util.UUID;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class HostedRepositoryInstance {
@@ -20,61 +42,106 @@ public class HostedRepositoryInstance {
         this.ref = ref;
     }
 
+    private static class NewClone {
+        private final Repository repository;
+        private final Hash fetchHead;
+
+        NewClone(Repository repository, Hash fetchHead) {
+            this.repository = repository;
+            this.fetchHead = fetchHead;
+        }
+
+        Repository repository() {
+            return repository;
+        }
+
+        Hash fetchHead() {
+            return fetchHead;
+        }
+    }
+
+    private void clearDirectory(Path directory) {
+        try {
+            Files.walk(directory)
+                 .map(Path::toFile)
+                 .sorted(Comparator.reverseOrder())
+                 .forEach(File::delete);
+        } catch (IOException io) {
+            throw new RuntimeException(io);
+        }
+    }
+
     private void initializeSeed() throws IOException {
         if (!Files.exists(seed)) {
+            Files.createDirectories(seed.getParent());
             var tmpSeedFolder = seed.resolveSibling(seed.getFileName().toString() + "-" + UUID.randomUUID());
             Repository.clone(hostedRepository.url(), tmpSeedFolder, true);
             try {
                 Files.move(tmpSeedFolder, seed);
+                log.info("Seeded repository " + hostedRepository.name() + " into " + seed);
             } catch (IOException e) {
                 log.info("Failed to populate seed folder " + seed + " - perhaps due to a benign race. Ignoring..");
+                clearDirectory(tmpSeedFolder);
+            }
+        }
+    }
+
+    private Repository cloneSeeded(Path path) throws IOException {
+        initializeSeed();
+        log.info("Using seed folder " + seed + " when cloning into " + path);
+        return Repository.clone(hostedRepository.url(), path, false, seed);
+    }
+
+    private NewClone fetchRef(Repository repository) throws IOException {
+        var fetchHead = repository.fetch(hostedRepository.url(), "+" + ref + ":" + ref);
+        return new NewClone(repository, fetchHead);
+    }
+
+    private NewClone materializeClone(Path path) throws IOException {
+        var localRepo = Repository.get(path);
+        if (localRepo.isEmpty()) {
+            return fetchRef(cloneSeeded(path));
+        }
+        else {
+            var localRepoInstance = localRepo.get();
+            if (!localRepoInstance.isHealthy()) {
+                var preserveUnhealthy = seed.resolveSibling(seed.getFileName().toString() + "-unhealthy-" + UUID.randomUUID());
+                log.severe("Unhealthy local repository detected - preserved in: " + preserveUnhealthy);
+                Files.move(localRepoInstance.root(), preserveUnhealthy);
+                return fetchRef(cloneSeeded(path));
+            }
+            else {
+                try {
+                    localRepoInstance.clean();
+                    return fetchRef(localRepoInstance);
+                } catch (IOException e) {
+                    var preserveUnclean = seed.resolveSibling(seed.getFileName().toString() + "-unclean-" + UUID.randomUUID());
+                    log.severe("Uncleanable local repository detected - preserved in: " + preserveUnclean);
+                    Files.move(localRepoInstance.root(), preserveUnclean);
+                    return fetchRef(cloneSeeded(path));
+                }
             }
         }
     }
 
     public Repository materialize(Path path) throws IOException {
-        var localRepo = hostedRepository.url().getPath().endsWith(".git") ? Repository.init(path, VCS.GIT) : Repository.init(path, VCS.HG);
-        if (!localRepo.exists()) {
-            initializeSeed();
-            return Repository.clone(hostedRepository.url(), path, true, seed);
-        }
-
-        if (!localRepo.isHealthy()) {
-            var preserveUnhealthy = seed.resolveSibling(seed.getFileName().toString() + "-unhealthy-" + UUID.randomUUID());
-            log.severe("Unhealthy local repository detected - preserved in: " + preserveUnhealthy);
-            Files.move(localRepo.root(), preserveUnhealthy);
-            initializeSeed();
-            return Repository.clone(hostedRepository.url(), path, true, seed);
-        }
-
-        try {
-            localRepo.clean();
-        } catch (IOException e) {
-            var preserveUnclean = seed.resolveSibling(seed.getFileName().toString() + "-unclean-" + UUID.randomUUID());
-            log.severe("Uncleanable local repository detected - preserved in: " + preserveUnclean);
-            Files.move(localRepo.root(), preserveUnclean);
-            initializeSeed();
-            return Repository.clone(hostedRepository.url(), path, true, seed);
-        }
-
-        localRepo.fetch(hostedRepository.url(), ref);
-        return localRepo;
+        var clone = materializeClone(path);
+        return clone.repository();
     }
 
     public Repository checkout(Path path) throws IOException {
-        var localRepo = materialize(path);
-        var refHash = localRepo.resolve(ref).orElseThrow();
+        var clone = materializeClone(path);
+        var localRepo = clone.repository();
         try {
-            localRepo.checkout(refHash, true);
+            localRepo.checkout(clone.fetchHead(), true);
         } catch (IOException e) {
             var preserveUnchecked = seed.resolveSibling(seed.getFileName().toString() + "-unchecked-" + UUID.randomUUID());
             log.severe("Uncheckoutable local repository detected - preserved in: " + preserveUnchecked);
             Files.move(localRepo.root(), preserveUnchecked);
-            initializeSeed();
-            localRepo = Repository.clone(hostedRepository.url(), path, true, seed);
-            localRepo.checkout(refHash, true);
+            clone = fetchRef(cloneSeeded(path));
+            localRepo = clone.repository();
+            localRepo.checkout(clone.fetchHead(), true);
         }
         return localRepo;
     }
-
 }
