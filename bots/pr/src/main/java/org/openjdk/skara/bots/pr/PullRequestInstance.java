@@ -223,7 +223,7 @@ class PullRequestInstance {
     }
 
     void executeChecks(Hash localHash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor, List<String> additionalConfiguration) throws Exception {
-        try (var issues = JCheck.check(localRepo(), censusInstance.census(), CommitMessageParsers.v1, "HEAD~1..HEAD",
+        try (var issues = JCheck.check(localRepo(), censusInstance.census(), CommitMessageParsers.v1, "HEAD^!",
                                        localHash, new HashMap<>(), new HashSet<>(), additionalConfiguration)) {
             for (var issue : issues) {
                 issue.accept(visitor);
