@@ -894,33 +894,49 @@ public class GitPr {
             var remoteRepo = host.repository(projectName(uri)).orElseThrow(() ->
                     new IOException("Could not find repository at " + uri.toString())
             );
+            if (token == null) {
+                GitCredentials.approve(credentials);
+            }
+            var parentRepo = remoteRepo.parent().orElseThrow(() ->
+                    new IOException("error: remote repository " + remotePullPath + " is not a fork of any repository")
+            );
 
             var targetBranch = getOption("branch", "create", arguments);
             if (targetBranch == null) {
-                var upstreamBranchNames = repo.remoteBranches(remoteRepo.webUrl().toString())
+                var upstreamBranchNames = repo.remoteBranches(parentRepo.webUrl().toString())
                                               .stream()
                                               .map(r -> r.name())
                                               .collect(Collectors.toSet());
                 var remoteBranches = repo.branches(remote);
                 var candidates = new ArrayList<Branch>();
                 for (var b : remoteBranches) {
-                    var withoutRemotePrefix = b.name().substring(0, remote.length() + 1);
+                    var withoutRemotePrefix = b.name().substring(remote.length() + 1);
                     if (upstreamBranchNames.contains(withoutRemotePrefix)) {
                         candidates.add(b);
                     }
                 }
 
+                var localBranches = repo.branches();
                 Branch closest = null;
                 var shortestDistance = Integer.MAX_VALUE;
                 for (var b : candidates) {
-                    var distance = repo.commitMetadata(b.name() + ".." + currentBranch.name()).size();
+                    var from = b.name();
+                    for (var localBranch : localBranches) {
+                        var trackingBranch = repo.upstreamFor(localBranch);
+                        if (trackingBranch.isPresent() &&
+                            trackingBranch.get().equals(b.name())) {
+                            from = localBranch.name();
+                        }
+                    }
+                    var distance = repo.commitMetadata(from + "..." + currentBranch.name()).size();
                     if (distance < shortestDistance) {
                         closest = b;
+                        shortestDistance = distance;
                     }
                 }
 
                 if (closest != null) {
-                    targetBranch = closest.name().substring(0, remote.length() + 1);
+                    targetBranch = closest.name().substring(remote.length() + 1);
                 } else {
                     System.err.println("error: cannot automatically infer target branch");
                     System.err.println("       use --branch to specify target branch");
@@ -942,12 +958,6 @@ public class GitPr {
                     System.exit(err);
                 }
             }
-
-            if (token == null) {
-                GitCredentials.approve(credentials);
-            }
-            var parentRepo = remoteRepo.parent().orElseThrow(() ->
-                    new IOException("error: remote repository " + remotePullPath + " is not a fork of any repository"));
 
             var project = jbsProjectFromJcheckConf(repo);
             var issue = getIssue(currentBranch, project);
