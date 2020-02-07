@@ -233,9 +233,9 @@ public class GitPr {
         return issues;
     }
 
-    private static String jbsProjectFromJcheckConf(Repository repo) throws IOException {
-        var conf = JCheckConfiguration.from(repo, repo.resolve("master").orElseThrow(() ->
-            new IOException("Could not resolve 'master' branch")
+    private static String jbsProjectFromJcheckConf(Repository repo, String targetBranch) throws IOException {
+        var conf = JCheckConfiguration.from(repo, repo.resolve(targetBranch).orElseThrow(() ->
+            new IOException("Could not resolve '" + targetBranch + "' branch")
         ));
 
         return conf.general().jbs();
@@ -959,7 +959,7 @@ public class GitPr {
                 }
             }
 
-            var project = jbsProjectFromJcheckConf(repo);
+            var project = jbsProjectFromJcheckConf(repo, targetBranch);
             var issue = getIssue(currentBranch, project);
             var file = Files.createTempFile("PULL_REQUEST_", ".md");
             if (issue.isPresent()) {
