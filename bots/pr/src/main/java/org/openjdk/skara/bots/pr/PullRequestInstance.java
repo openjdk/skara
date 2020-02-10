@@ -43,14 +43,13 @@ class PullRequestInstance {
     private final Hash baseHash;
     private final boolean ignoreStaleReviews;
 
-    PullRequestInstance(Path localRepoPath, Path seedPath, PullRequest pr, boolean ignoreStaleReviews) throws IOException  {
+    PullRequestInstance(Path localRepoPath, HostedRepositoryPool hostedRepositoryPool, PullRequest pr, boolean ignoreStaleReviews) throws IOException  {
         this.pr = pr;
         this.ignoreStaleReviews = ignoreStaleReviews;
 
         // Materialize the PR's target ref
         var repository = pr.repository();
-        var hostedRepositoryInstance = new HostedRepositoryInstance(repository, seedPath, pr.targetRef());
-        localRepo = hostedRepositoryInstance.checkout(localRepoPath);
+        localRepo = hostedRepositoryPool.checkout(pr, localRepoPath);
         localRepo.fetch(repository.url(), "+" + pr.sourceRef() + ":pr_prinstance_" + pr.id());
 
         targetHash = pr.targetHash();

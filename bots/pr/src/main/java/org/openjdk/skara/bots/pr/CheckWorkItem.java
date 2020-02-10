@@ -148,8 +148,9 @@ class CheckWorkItem extends PullRequestWorkItem {
             }
 
             try {
+                var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
                 var prInstance = new PullRequestInstance(scratchPath.resolve("pr"),
-                                                         bot.seedStorage().orElse(scratchPath.resolve("seeds")),
+                                                         new HostedRepositoryPool(seedPath),
                                                          pr,
                                                          bot.ignoreStaleReviews());
                 CheckRun.execute(this, pr, prInstance, comments, allReviews, activeReviews, labels, census);

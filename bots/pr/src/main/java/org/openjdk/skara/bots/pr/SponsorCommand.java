@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.Hash;
 
@@ -73,8 +73,9 @@ public class SponsorCommand implements CommandHandler {
             var sanitizedUrl = URLEncoder.encode(pr.repository().webUrl().toString(), StandardCharsets.UTF_8);
             var path = scratchPath.resolve("pr.sponsor").resolve(sanitizedUrl);
 
+            var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
             var prInstance = new PullRequestInstance(path,
-                                                     bot.seedStorage().orElse(scratchPath.resolve("seeds")),
+                                                     new HostedRepositoryPool(seedPath),
                                                      pr,
                                                      bot.ignoreStaleReviews());
             var localHash = prInstance.commit(censusInstance.namespace(), censusInstance.configuration().census().domain(),
