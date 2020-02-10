@@ -120,6 +120,15 @@ public class GitRepository implements Repository {
         }
     }
 
+    public List<Branch> branches(String remote) throws IOException {
+        try (var p = capture("git", "for-each-ref", "--format=%(refname:short)", "refs/remotes/" + remote + "/")) {
+            return await(p).stdout()
+                           .stream()
+                           .map(Branch::new)
+                           .collect(Collectors.toList());
+        }
+    }
+
     public List<Tag> tags() throws IOException {
         try (var p = capture("git", "for-each-ref", "--format=%(refname:short)", "refs/tags")) {
             return await(p).stdout()

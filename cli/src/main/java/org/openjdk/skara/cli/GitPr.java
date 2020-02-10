@@ -233,9 +233,9 @@ public class GitPr {
         return issues;
     }
 
-    private static String jbsProjectFromJcheckConf(Repository repo) throws IOException {
-        var conf = JCheckConfiguration.from(repo, repo.resolve("master").orElseThrow(() ->
-            new IOException("Could not resolve 'master' branch")
+    private static String jbsProjectFromJcheckConf(Repository repo, String targetBranch) throws IOException {
+        var conf = JCheckConfiguration.from(repo, repo.resolve(targetBranch).orElseThrow(() ->
+            new IOException("Could not resolve '" + targetBranch + "' branch")
         ));
 
         return conf.general().jbs();
@@ -898,9 +898,57 @@ public class GitPr {
                 }
             }
 
+            var remoteRepo = host.repository(projectName(uri)).orElseThrow(() ->
+                    new IOException("Could not find repository at " + uri.toString())
+            );
+            if (token == null) {
+                GitCredentials.approve(credentials);
+            }
+            var parentRepo = remoteRepo.parent().orElseThrow(() ->
+                    new IOException("error: remote repository " + remotePullPath + " is not a fork of any repository")
+            );
+
             var targetBranch = getOption("branch", "create", arguments);
             if (targetBranch == null) {
-                targetBranch = "master";
+                var upstreamBranchNames = repo.remoteBranches(parentRepo.webUrl().toString())
+                                              .stream()
+                                              .map(r -> r.name())
+                                              .collect(Collectors.toSet());
+                var remoteBranches = repo.branches(remote);
+                var candidates = new ArrayList<Branch>();
+                for (var b : remoteBranches) {
+                    var withoutRemotePrefix = b.name().substring(remote.length() + 1);
+                    if (upstreamBranchNames.contains(withoutRemotePrefix)) {
+                        candidates.add(b);
+                    }
+                }
+
+                var localBranches = repo.branches();
+                Branch closest = null;
+                var shortestDistance = Integer.MAX_VALUE;
+                for (var b : candidates) {
+                    var from = b.name();
+                    for (var localBranch : localBranches) {
+                        var trackingBranch = repo.upstreamFor(localBranch);
+                        if (trackingBranch.isPresent() &&
+                            trackingBranch.get().equals(b.name())) {
+                            from = localBranch.name();
+                        }
+                    }
+                    var distance = repo.commitMetadata(from + "..." + currentBranch.name()).size();
+                    if (distance < shortestDistance) {
+                        closest = b;
+                        shortestDistance = distance;
+                    }
+                }
+
+                if (closest != null) {
+                    targetBranch = closest.name().substring(remote.length() + 1);
+                } else {
+                    System.err.println("error: cannot automatically infer target branch");
+                    System.err.println("       use --branch to specify target branch");
+                    System.exit(1);
+                }
             }
             var commits = repo.commits(targetBranch + ".." + upstream.get()).asList();
             if (commits.isEmpty()) {
@@ -918,16 +966,7 @@ public class GitPr {
                 }
             }
 
-            var remoteRepo = host.repository(projectName(uri)).orElseThrow(() ->
-                    new IOException("Could not find repository at " + uri.toString())
-            );
-            if (token == null) {
-                GitCredentials.approve(credentials);
-            }
-            var parentRepo = remoteRepo.parent().orElseThrow(() ->
-                    new IOException("error: remote repository " + remotePullPath + " is not a fork of any repository"));
-
-            var project = jbsProjectFromJcheckConf(repo);
+            var project = jbsProjectFromJcheckConf(repo, targetBranch);
             var issue = getIssue(currentBranch, project);
             var file = Files.createTempFile("PULL_REQUEST_", ".md");
             if (issue.isPresent()) {

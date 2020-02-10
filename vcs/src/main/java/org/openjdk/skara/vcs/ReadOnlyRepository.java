@@ -34,6 +34,7 @@ public interface ReadOnlyRepository {
     Optional<Bookmark> currentBookmark() throws IOException;
     Branch defaultBranch() throws IOException;
     List<Branch> branches() throws IOException;
+    List<Branch> branches(String remote) throws IOException;
     Optional<Tag> defaultTag() throws IOException;
     List<Tag> tags() throws IOException;
     Commits commits() throws IOException;
