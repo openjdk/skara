@@ -133,6 +133,12 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public List<Branch> branches(String remote) throws IOException {
+        // Mercurial does not have namespacing of branch names
+        return branches();
+    }
+
+    @Override
     public List<Tag> tags() throws IOException {
         try (var p = capture("hg", "tags")) {
             return await(p).stdout()
