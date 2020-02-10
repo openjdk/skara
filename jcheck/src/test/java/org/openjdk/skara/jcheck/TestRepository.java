@@ -238,6 +238,10 @@ class TestRepository implements ReadOnlyRepository {
         return Collections.emptyList();
     }
 
+    public List<StatusEntry> status() throws IOException {
+        return Collections.emptyList();
+    }
+
     public boolean contains(Branch b, Hash h) throws IOException {
         return false;
     }
