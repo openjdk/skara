@@ -78,7 +78,11 @@ public class IntegrateCommand implements CommandHandler {
             var sanitizedUrl = URLEncoder.encode(pr.repository().webUrl().toString(), StandardCharsets.UTF_8);
             var path = scratchPath.resolve("pr.integrate").resolve(sanitizedUrl);
 
-            var prInstance = new PullRequestInstance(path, pr, bot.ignoreStaleReviews());
+            var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
+            var prInstance = new PullRequestInstance(path,
+                                                     new HostedRepositoryPool(seedPath),
+                                                     pr,
+                                                     bot.ignoreStaleReviews());
             var localHash = prInstance.commit(censusInstance.namespace(), censusInstance.configuration().census().domain(), null);
 
             // Validate the target hash if requested

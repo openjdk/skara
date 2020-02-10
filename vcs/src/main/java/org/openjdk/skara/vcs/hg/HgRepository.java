@@ -1097,7 +1097,7 @@ public class HgRepository implements Repository {
         return Optional.of(b.name());
     }
 
-    public static Repository clone(URI from, Path to, boolean isBare) throws IOException {
+    public static Repository clone(URI from, Path to, boolean isBare, Path seed) throws IOException {
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("hg", "clone"));
         if (isBare) {
@@ -1186,7 +1186,7 @@ public class HgRepository implements Repository {
     @Override
     public void addSubmodule(String pullPath, Path path) throws IOException {
         var uri = Files.exists(Path.of(pullPath)) ? Path.of(pullPath).toUri().toString() : pullPath;
-        HgRepository.clone(URI.create(uri), root().resolve(path).toAbsolutePath(), false);
+        HgRepository.clone(URI.create(uri), root().resolve(path).toAbsolutePath(), false, null);
         var hgSub = root().resolve(".hgsub");
         Files.writeString(hgSub, path.toString() + " = " + pullPath + "\n",
                           StandardOpenOption.WRITE, StandardOpenOption.APPEND, StandardOpenOption.CREATE);

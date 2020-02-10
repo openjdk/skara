@@ -73,7 +73,8 @@ public class PullRequestBotFactory implements BotFactory {
                                            .blockingLabels(blockers)
                                            .readyLabels(readyLabels)
                                            .readyComments(readyComments)
-                                           .externalCommands(external);
+                                           .externalCommands(external)
+                                           .seedStorage(configuration.storageFolder().resolve("seeds"));
 
             if (repo.value().contains("labels")) {
                 var labelPatterns = new HashMap<String, List<Pattern>>();

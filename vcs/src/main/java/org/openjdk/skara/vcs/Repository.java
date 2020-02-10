@@ -28,7 +28,6 @@ import org.openjdk.skara.vcs.hg.HgRepository;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
-import java.nio.file.Files;
 import java.time.ZonedDateTime;
 import java.util.*;
 
@@ -194,13 +193,17 @@ public interface Repository extends ReadOnlyRepository {
     }
 
     static Repository clone(URI from, Path to, boolean isBare) throws IOException {
-        return from.getPath().toString().endsWith(".git") ?
-            GitRepository.clone(from, to, isBare) : HgRepository.clone(from, to, isBare);
+        return clone(from, to, isBare, null);
+    }
+
+    static Repository clone(URI from, Path to, boolean isBare, Path seed) throws IOException {
+        return from.getPath().endsWith(".git") ?
+            GitRepository.clone(from, to, isBare, seed) : HgRepository.clone(from, to, isBare, seed);
     }
 
     static Repository mirror(URI from, Path to) throws IOException {
         return from.getPath().toString().endsWith(".git") ?
             GitRepository.mirror(from, to) :
-            HgRepository.clone(from, to, true); // hg does not have concept of "mirror"
+            HgRepository.clone(from, to, true, null); // hg does not have concept of "mirror"
     }
 }
