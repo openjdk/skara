@@ -47,10 +47,10 @@ class PullRequestInstance {
         this.pr = pr;
         this.ignoreStaleReviews = ignoreStaleReviews;
 
-        // Materialize the PR's target ref
+        // Materialize the PR's source and target ref
         var repository = pr.repository();
         localRepo = hostedRepositoryPool.checkout(pr, localRepoPath);
-        localRepo.fetch(repository.url(), "+" + pr.sourceRef() + ":pr_prinstance_" + pr.id());
+        localRepo.fetch(repository.url(), "+" + pr.targetRef() + ":pr_prinstance");
 
         targetHash = pr.targetHash();
         headHash = pr.headHash();
