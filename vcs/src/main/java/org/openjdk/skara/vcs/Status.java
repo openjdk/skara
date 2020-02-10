@@ -30,7 +30,8 @@ public class Status {
         DELETED,
         RENAMED,
         COPIED,
-        MODIFIED
+        MODIFIED,
+        UNMERGED
     }
 
     private Operation op;
@@ -61,6 +62,10 @@ public class Status {
         return op == Operation.MODIFIED;
     }
 
+    public boolean isUnmerged() {
+        return op == Operation.UNMERGED;
+    }
+
     public int score() {
         return score;
     }
@@ -76,6 +81,10 @@ public class Status {
 
         if (c == 'D') {
             return new Status(Operation.DELETED, -1);
+        }
+
+        if (c == 'U') {
+            return new Status(Operation.UNMERGED, -1);
         }
 
         if (c == 'R') {
@@ -103,6 +112,9 @@ public class Status {
         }
         if (c == 'D') {
             return new Status(Operation.DELETED, -1);
+        }
+        if (c == 'U') {
+            return new Status(Operation.UNMERGED, -1);
         }
 
         var score = 0;
@@ -135,6 +147,8 @@ public class Status {
                 return "D";
             case MODIFIED:
                 return "M";
+            case UNMERGED:
+                return "U";
             case RENAMED:
                 return "R" + score;
             case COPIED:

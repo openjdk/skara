@@ -750,6 +750,12 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public List<StatusEntry> status() throws IOException {
+        // TODO: can use merge.mergestate.read(repo) to implement diff-git-raw-workspace
+        throw new RuntimeException("Not implemented yet");
+    }
+
+    @Override
     public void dump(FileEntry entry, Path to) throws IOException {
         var output = to.toAbsolutePath();
         try (var p = capture("hg", "cat", "--output=" + output.toString(),

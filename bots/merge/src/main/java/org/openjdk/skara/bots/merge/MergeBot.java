@@ -37,6 +37,7 @@ import java.time.Month;
 import java.time.temporal.WeekFields;
 import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.logging.Logger;
 
 class MergeBot implements Bot, WorkItem {
@@ -391,12 +392,12 @@ class MergeBot implements Bot, WorkItem {
                     error = e;
                 }
 
+                var targetName = Path.of(target.name()).getFileName();
+                var fromName = Path.of(fromRepo.name()).getFileName();
+                var fromDesc = targetName.equals(fromName) ? fromBranch : fromName + ":" + fromBranch;
                 if (error == null) {
                     log.info("Pushing successful merge");
                     if (!isAncestor) {
-                        var targetName = Path.of(target.name()).getFileName();
-                        var fromName = Path.of(fromRepo.name()).getFileName();
-                        var fromDesc = targetName.equals(fromName) ? fromBranch : fromName + ":" + fromBranch;
                         repo.commit("Automatic merge of " + fromDesc + " into " + toBranch,
                                 "duke", "duke@openjdk.org");
                     }
@@ -404,6 +405,7 @@ class MergeBot implements Bot, WorkItem {
                 } else {
                     log.info("Got error: " + error.getMessage());
                     log.info("Aborting unsuccesful merge");
+                    var status = repo.status();
                     repo.abortMerge();
 
                     var fromRepoName = Path.of(fromRepo.webUrl().getPath()).getFileName();
@@ -412,23 +414,44 @@ class MergeBot implements Bot, WorkItem {
 
                     log.info("Creating pull request to alert");
                     var mergeBase = repo.mergeBase(fetchHead, head);
-                    var commits = repo.commits(mergeBase.hex() + ".." + fetchHead.hex(), true).asList();
 
                     var message = new ArrayList<String>();
                     message.add(marker);
                     message.add("<!-- " + fetchHead.hex() + " -->");
-                    message.add("The following commits from `" + fromRepo.name() + ":" + fromBranch.name() +
-                                "` could *not* be automatically merged into `" + toBranch.name() + "`:");
-                    message.add("");
-                    for (var commit : commits) {
-                        message.add("- " + commit.hash().abbreviate() + ": " + commit.message().get(0));
+
+                    var commits = repo.commits(mergeBase.hex() + ".." + fetchHead.hex(), true).asList();
+                    if (commits.size() <= 10) {
+                        message.add("The following commits from " + fromDesc + " could *not* be " +
+                                    "automatically merged into " + toBranch.name() + ":");
+                        message.add("");
+                        for (var commit : commits) {
+                            message.add("- " + commit.hash().abbreviate() + ": " + commit.message().get(0));
+                        }
+                        message.add("");
+                    } else {
+                        message.add("Could *not* automatically merge " + commits.size() + " commits from " +
+                                    fromDesc + " into " + toBranch.name() + ".");
+                    }
+
+                    var unmerged = status.stream().filter(s -> s.status().isUnmerged()).collect(Collectors.toList());
+                    if (unmerged.size() <= 10) {
+                        message.add("The following files contains merge conflicts:");
+                        message.add("");
+                        for (var fileStatus : unmerged) {
+                            message.add("- " + fileStatus.source().path().orElseThrow());
+                        }
+                    } else {
+                        message.add("Over " + unmerged.size() + " files contains merge conflicts.");
                     }
                     message.add("");
+
                     message.add("To manually resolve these merge conflicts, please create a personal fork of " +
                                 target.webUrl() + " and execute the following commands:");
                     message.add("");
                     message.add("```bash");
                     message.add("$ git checkout " + toBranch.name());
+                    message.add("$ git pull " + target.webUrl() + " " + toBranch.name());
+                    message.add("$ git checkout --branch merge-" + fromBranch.name() + "-into-" + toBranch.name());
                     message.add("$ git pull " + fromRepo.webUrl() + " " + fromBranch.name());
                     message.add("```");
                     message.add("");
@@ -436,11 +459,22 @@ class MergeBot implements Bot, WorkItem {
                     message.add("");
                     message.add("```bash");
                     message.add("$ git add paths/to/files/with/conflicts");
-                    message.add("$ git commit -m 'Merge'");
+                    message.add("$ git commit -m 'Merge " + fromDesc + "'");
                     message.add("```");
                     message.add("");
-                    message.add("Push the resolved merge conflict to your personal fork and " +
-                                "create a pull request towards this repository.");
+                    message.add("Push the merge commit to your personal fork:");
+                    message.add("");
+                    message.add("```bash");
+                    message.add("$ git push -u origin merge-" + fromBranch.name() + "-into-" + toBranch.name());
+                    message.add("```");
+                    message.add("");
+                    message.add("Now processed to create a pull request towards this repository.");
+                    message.add("If you are using the [Skara](https://wiki.openjdk.java.net/display/skara#Skara-Skara)" +
+                                "CLI tooling then you can run the following command to create the pull request:");
+                    message.add("");
+                    message.add("```bash");
+                    message.add("$ git pr create");
+                    message.add("```");
                     message.add("");
                     message.add("This pull request will be closed automatically by a bot once " +
                                 "the merge conflicts have been resolved.");
