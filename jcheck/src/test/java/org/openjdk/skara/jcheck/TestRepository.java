@@ -60,6 +60,11 @@ class TestRepository implements ReadOnlyRepository {
         return branches;
     }
 
+    @Override
+    public List<Branch> branches(String remote) throws IOException {
+        return branches;
+    }
+
     void setBranches(List<Branch> branches) {
         this.branches = branches;
     }
