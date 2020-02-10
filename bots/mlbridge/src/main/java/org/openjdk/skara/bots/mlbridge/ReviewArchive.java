@@ -55,7 +55,7 @@ class ReviewArchive {
                         .findAny();
     }
 
-    private List<ArchiveItem> generateArchiveItems(List<Email> sentEmails, Repository localRepo, URI issueTracker, String issuePrefix, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification) {
+    private List<ArchiveItem> generateArchiveItems(List<Email> sentEmails, Repository localRepo, URI issueTracker, String issuePrefix, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, String subjectPrefix) {
         var generated = new ArrayList<ArchiveItem>();
         Hash lastBase = null;
         Hash lastHead = null;
@@ -68,10 +68,10 @@ class ReviewArchive {
                 var curHead = new Hash(email.headerValue("PR-Head-Hash"));
 
                 if (generated.isEmpty()) {
-                    var first = ArchiveItem.from(pr, localRepo, issueTracker, issuePrefix, webrevGenerator, webrevNotification, curBase, curHead);
+                    var first = ArchiveItem.from(pr, localRepo, issueTracker, issuePrefix, webrevGenerator, webrevNotification, curBase, curHead, subjectPrefix);
                     generated.add(first);
                 } else {
-                    var revision = ArchiveItem.from(pr, localRepo, webrevGenerator, webrevNotification, lastBase, lastHead, curBase, curHead, ++revisionIndex, generated.get(0));
+                    var revision = ArchiveItem.from(pr, localRepo, webrevGenerator, webrevNotification, lastBase, lastHead, curBase, curHead, ++revisionIndex, generated.get(0), subjectPrefix);
                     generated.add(revision);
                 }
 
@@ -83,10 +83,10 @@ class ReviewArchive {
         // Check if we're at a revision not previously reported
         if (!base.equals(lastBase) || !head.equals(lastHead)) {
             if (generated.isEmpty()) {
-                var first = ArchiveItem.from(pr, localRepo, issueTracker, issuePrefix, webrevGenerator, webrevNotification, base, head);
+                var first = ArchiveItem.from(pr, localRepo, issueTracker, issuePrefix, webrevGenerator, webrevNotification, base, head, subjectPrefix);
                 generated.add(first);
             } else {
-                var revision = ArchiveItem.from(pr, localRepo, webrevGenerator, webrevNotification, lastBase, lastHead, base, head, ++revisionIndex, generated.get(0));
+                var revision = ArchiveItem.from(pr, localRepo, webrevGenerator, webrevNotification, lastBase, lastHead, base, head, ++revisionIndex, generated.get(0), subjectPrefix);
                 generated.add(revision);
             }
         }
@@ -177,9 +177,9 @@ class ReviewArchive {
         return uniqueMessageId.localPart().split("\\.")[0];
     }
 
-    List<Email> generateNewEmails(List<Email> sentEmails, Duration cooldown, Repository localRepo, URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, Consumer<Instant> retryConsumer) {
+    List<Email> generateNewEmails(List<Email> sentEmails, Duration cooldown, Repository localRepo, URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, String subjectPrefix, Consumer<Instant> retryConsumer) {
         var ret = new ArrayList<Email>();
-        var allItems = generateArchiveItems(sentEmails, localRepo, issueTracker, issuePrefix, hostUserToEmailAuthor, hostUserToUserName, hostUserToRole, webrevGenerator, webrevNotification);
+        var allItems = generateArchiveItems(sentEmails, localRepo, issueTracker, issuePrefix, hostUserToEmailAuthor, hostUserToUserName, hostUserToRole, webrevGenerator, webrevNotification, subjectPrefix);
         var sentItemIds = sentItemIds(sentEmails);
         var unsentItems = allItems.stream()
                                   .filter(item -> !sentItemIds.contains(getStableMessageId(getUniqueMessageId(item.id()))))

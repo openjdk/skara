@@ -197,6 +197,29 @@ class ArchiveWorkItem implements WorkItem {
         return "no project role";
     }
 
+    private String subjectPrefix() {
+        var ret = new StringBuilder();
+        var branchName = pr.targetRef();
+        var repoName = Path.of(pr.repository().name()).getFileName().toString();
+        var useBranchInSubject = bot.branchInSubject().matcher(branchName).matches();
+        var useRepoInSubject = bot.repoInSubject().matcher(repoName).matches();
+
+        if (useBranchInSubject || useRepoInSubject) {
+            ret.append("[");
+            if (useRepoInSubject) {
+                ret.append(repoName);
+                if (useBranchInSubject) {
+                    ret.append(":");
+                }
+            }
+            if (useBranchInSubject) {
+                ret.append(branchName);
+            }
+            ret.append("] ");
+        }
+        return ret.toString();
+    }
+
     @Override
     public void run(Path scratchPath) {
         var path = scratchPath.resolve("mlbridge");
@@ -291,7 +314,9 @@ class ArchiveWorkItem implements WorkItem {
                                                       user -> getAuthorAddress(census, user),
                                                       user -> getAuthorUserName(census, user),
                                                       user -> getAuthorRole(census, user),
-                                                      retryConsumer);
+                                                      subjectPrefix(),
+                                                      retryConsumer
+                                                      );
             if (newMails.isEmpty()) {
                 return;
             }

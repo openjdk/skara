@@ -37,9 +37,9 @@ class ArchiveItem {
         this.footer = footer;
     }
 
-    static ArchiveItem from(PullRequest pr, Repository localRepo, URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, Hash base, Hash head) {
+    static ArchiveItem from(PullRequest pr, Repository localRepo, URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, Hash base, Hash head, String subjectPrefix) {
         return new ArchiveItem(null, "fc", pr.createdAt(), pr.updatedAt(), pr.author(), Map.of("PR-Head-Hash", head.hex(), "PR-Base-Hash", base.hex()),
-                               () -> "RFR: " + pr.title(),
+                               () -> subjectPrefix + "RFR: " + pr.title(),
                                () -> "",
                                () -> ArchiveMessages.composeConversation(pr, base, head),
                                () -> {
@@ -49,9 +49,9 @@ class ArchiveItem {
                                });
     }
 
-    static ArchiveItem from(PullRequest pr, Repository localRepo, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, Hash lastBase, Hash lastHead, Hash base, Hash head, int index, ArchiveItem parent) {
+    static ArchiveItem from(PullRequest pr, Repository localRepo, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, Hash lastBase, Hash lastHead, Hash base, Hash head, int index, ArchiveItem parent, String subjectPrefix) {
         return new ArchiveItem(parent,"ha" + head.hex(), ZonedDateTime.now(), ZonedDateTime.now(), pr.author(), Map.of("PR-Head-Hash", head.hex(), "PR-Base-Hash", base.hex()),
-                               () -> String.format("Re: [Rev %02d] RFR: %s", index, pr.title()),
+                               () -> String.format("Re: %s[Rev %02d] RFR: %s", subjectPrefix, index, pr.title()),
                                () -> "",
                                () -> ArchiveMessages.composeRevision(pr, localRepo, base, head, lastBase, lastHead),
                                () -> {
