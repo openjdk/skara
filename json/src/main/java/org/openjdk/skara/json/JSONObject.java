@@ -55,6 +55,11 @@ public class JSONObject implements JSONValue {
     }
 
     @Override
+    public boolean isObject() {
+        return true;
+    }
+
+    @Override
     public JSONObject asObject() {
         return this;
     }

@@ -469,6 +469,14 @@ public class JSONParserTests {
     public void testIsNull() {
         var json = JSON.parse("[{\"id\":705,\"type\":null,\"body\":\"description\"}]");
         assertTrue(json.get(0).get("type").isNull());
+        assertFalse(json.get(0).get("type").isInt());
+        assertFalse(json.get(0).get("type").isLong());
+        assertFalse(json.get(0).get("type").isDouble());
+        assertFalse(json.get(0).get("type").isString());
+        assertFalse(json.get(0).get("type").isBoolean());
+        assertFalse(json.get(0).get("type").isArray());
+        assertFalse(json.get(0).get("type").isObject());
+
         assertFalse(json.get(0).get("id").isNull());
     }
 
@@ -497,5 +505,118 @@ public class JSONParserTests {
     public void testObjectWithWhitespace() {
         var json = JSON.parse("{ \"foo\": { } }");
         assertEquals(0, json.get("foo").asObject().fields().size());
+    }
+
+    @Test
+    public void testIsInt() {
+        var json = JSON.parse("{ \"foo\": 1 }");
+
+        assertTrue(json.get("foo").isInt());
+        assertTrue(json.get("foo").isLong());
+
+        assertFalse(json.get("foo").isDouble());
+        assertFalse(json.get("foo").isString());
+        assertFalse(json.get("foo").isBoolean());
+        assertFalse(json.get("foo").isArray());
+        assertFalse(json.get("foo").isObject());
+        assertFalse(json.get("foo").isNull());
+    }
+
+    @Test
+    public void testIsLong() {
+        var json = JSON.parse("{ \"foo\": 1337 }");
+
+        assertTrue(json.get("foo").isInt());
+        assertTrue(json.get("foo").isLong());
+
+        assertFalse(json.get("foo").isDouble());
+        assertFalse(json.get("foo").isString());
+        assertFalse(json.get("foo").isBoolean());
+        assertFalse(json.get("foo").isArray());
+        assertFalse(json.get("foo").isObject());
+        assertFalse(json.get("foo").isNull());
+    }
+
+    @Test
+    public void testIsDouble() {
+        var json = JSON.parse("{ \"foo\": 17.7 }");
+
+        assertTrue(json.get("foo").isDouble());
+
+        assertFalse(json.get("foo").isInt());
+        assertFalse(json.get("foo").isLong());
+        assertFalse(json.get("foo").isBoolean());
+        assertFalse(json.get("foo").isString());
+        assertFalse(json.get("foo").isArray());
+        assertFalse(json.get("foo").isObject());
+        assertFalse(json.get("foo").isNull());
+    }
+
+    @Test
+    public void testIsString() {
+        var json = JSON.parse("{ \"foo\": \"bar\" }");
+
+        assertTrue(json.get("foo").isString());
+
+        assertFalse(json.get("foo").isInt());
+        assertFalse(json.get("foo").isLong());
+        assertFalse(json.get("foo").isDouble());
+        assertFalse(json.get("foo").isBoolean());
+        assertFalse(json.get("foo").isArray());
+        assertFalse(json.get("foo").isObject());
+        assertFalse(json.get("foo").isNull());
+    }
+
+    @Test
+    public void testIsBoolean() {
+        var json = JSON.parse("{ \"foo\": true }");
+
+        assertTrue(json.get("foo").isBoolean());
+
+        assertFalse(json.get("foo").isInt());
+        assertFalse(json.get("foo").isLong());
+        assertFalse(json.get("foo").isDouble());
+        assertFalse(json.get("foo").isString());
+        assertFalse(json.get("foo").isArray());
+        assertFalse(json.get("foo").isObject());
+        assertFalse(json.get("foo").isNull());
+    }
+
+    @Test
+    public void testIsArray() {
+        var json = JSON.parse("{ \"foo\": [1,2,3] }");
+
+        assertTrue(json.get("foo").isArray());
+
+        assertFalse(json.get("foo").isInt());
+        assertFalse(json.get("foo").isLong());
+        assertFalse(json.get("foo").isDouble());
+        assertFalse(json.get("foo").isBoolean());
+        assertFalse(json.get("foo").isString());
+        assertFalse(json.get("foo").isObject());
+        assertFalse(json.get("foo").isNull());
+    }
+
+    @Test
+    public void testIsObject() {
+        var json = JSON.parse("{ \"foo\": { \"bar\": true } }");
+
+        assertTrue(json.get("foo").isObject());
+
+        assertFalse(json.get("foo").isInt());
+        assertFalse(json.get("foo").isLong());
+        assertFalse(json.get("foo").isDouble());
+        assertFalse(json.get("foo").isBoolean());
+        assertFalse(json.get("foo").isString());
+        assertFalse(json.get("foo").isArray());
+        assertFalse(json.get("foo").isNull());
+    }
+
+    @Test
+    public void testJSONObjectWithNullField() {
+        var json = JSON.parse("{ \"foo\": null }");
+
+        assertNotNull(json.get("foo"));
+        assertTrue(json.get("foo").isNull());
     }
 }

@@ -30,6 +30,11 @@ public class JSONDecimal implements JSONValue {
     }
 
     @Override
+    public boolean isDouble() {
+        return true;
+    }
+
+    @Override
     public double asDouble() {
         return value;
     }

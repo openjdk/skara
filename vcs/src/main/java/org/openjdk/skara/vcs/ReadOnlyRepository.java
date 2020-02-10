@@ -48,6 +48,7 @@ public interface ReadOnlyRepository {
     Optional<Commit> lookup(Branch b) throws IOException;
     Optional<Commit> lookup(Tag t) throws IOException;
     List<CommitMetadata> commitMetadata() throws IOException;
+    List<CommitMetadata> commitMetadata(String range) throws IOException;
     Path root() throws IOException;
     boolean exists() throws IOException;
     boolean isHealthy() throws IOException;

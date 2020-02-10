@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,7 +27,6 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class EmailAddressTests {
-
     @Test
     void simple() {
         var address = EmailAddress.parse("Full Name <full@name.com>");
@@ -55,4 +54,12 @@ class EmailAddressTests {
         assertEquals("no", address.localPart());
     }
 
+    @Test
+    void noDomain() {
+        var address = EmailAddress.parse("<noone.ever.>");
+        assertFalse(address.fullName().isPresent());
+        assertEquals("noone.ever.@", address.address());
+        assertEquals("", address.domain());
+        assertEquals("noone.ever.", address.localPart());
+    }
 }

@@ -92,7 +92,7 @@ class CSRBot implements Bot, WorkItem {
 
     @Override
     public String toString() {
-        return "CSRBot@(" + repo.name() + ")";
+        return "CSRBot@" + repo.name();
     }
 
     @Override

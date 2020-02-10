@@ -378,4 +378,47 @@ class CSRTests {
             assertLastCommentContains(pr, "has been approved.");
         }
     }
+
+    @Test
+    void csrWithNullResolution(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var issue = issues.createIssue("This is an issue", List.of(), Map.of());
+
+            var csr = issues.createIssue("This is an approved CSR", List.of(), Map.of("resolution", JSON.of()));
+            csr.setState(Issue.State.OPEN);
+            issue.addLink(Link.create(csr, "csr for").build());
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(reviewer.forge().currentUser().id())
+                                           .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue.id() + ": This is an issue");
+
+            // Require CSR
+            var prAsReviewer = reviewer.pullRequest(pr.id());
+            prAsReviewer.addComment("/csr");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a message that the PR will not be integrated until the CSR is approved
+            assertLastCommentContains(pr, "this pull request will not be integrated until the [CSR]");
+            assertLastCommentContains(pr, "for issue ");
+            assertLastCommentContains(pr, "has been approved.");
+        }
+    }
 }

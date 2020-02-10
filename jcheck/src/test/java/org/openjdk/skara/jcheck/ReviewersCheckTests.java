@@ -75,6 +75,14 @@ class ReviewersCheckTests {
         "    <person role=\"committer\" ref=\"baz\" />",
         "    <person role=\"author\" ref=\"qux\" />",
         "  </project>",
+        "  <project name=\"jdk\">",
+        "    <full-name>TestJDK</full-name>",
+        "    <sponsor ref=\"test\" />",
+        "    <person role=\"lead\" ref=\"foo\" />",
+        "    <person role=\"reviewer\" ref=\"bar\" />",
+        "    <person role=\"committer\" ref=\"baz\" />",
+        "    <person role=\"author\" ref=\"qux\" />",
+        "  </project>",
         "</census>"
     );
 
@@ -94,7 +102,11 @@ class ReviewersCheckTests {
         var hash = new Hash("0123456789012345678901234567890123456789");
         var parents = List.of(new Hash("12345789012345789012345678901234567890"));
         var date = ZonedDateTime.now();
-        var message = List.of("Initial commit", "", "Reviewed-by: " + String.join(", ", reviewers));
+        var message = new ArrayList<String>();
+        message.addAll(List.of("Initial commit"));
+        if (!reviewers.isEmpty()) {
+            message.addAll(List.of("", "Reviewed-by: " + String.join(", ", reviewers)));
+        }
         var metadata = new CommitMetadata(hash, parents, author, author, date, message);
         return new Commit(metadata, List.of());
     }
@@ -445,5 +457,55 @@ class ReviewersCheckTests {
         assertEquals(commit, issue.commit());
         assertEquals(Severity.ERROR, issue.severity());
         assertEquals(check, issue.check());
+    }
+
+    @Test
+    void oldJDKConfigurationShouldRequireContributor() throws IOException {
+        var commit = commit(List.of("foo"));
+        var check = new ReviewersCheck(census(), utils);
+        var oldJDKConf = new ArrayList<String>();
+        oldJDKConf.add("project=jdk");
+        oldJDKConf.add("bugids=dup");
+
+        var issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf)));
+        assertEquals(0, issues.size());
+
+        commit = commit(List.of("bar"));
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf)));
+        assertEquals(0, issues.size());
+
+        commit = commit(List.of("baz"));
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf)));
+        assertEquals(0, issues.size());
+
+        commit = commit(List.of("qux"));
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf)));
+        assertEquals(0, issues.size());
+
+        commit = commit(List.of("contributor"));
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf)));
+        assertEquals(0, issues.size());
+
+        commit = commit(List.of());
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf)));
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0) instanceof TooFewReviewersIssue);
+        var issue = (TooFewReviewersIssue) issues.get(0);
+        assertEquals(0, issue.numActual());
+        assertEquals(1, issue.numRequired());
+        assertEquals("contributor", issue.role());
+        assertEquals(commit, issue.commit());
+        assertEquals(Severity.ERROR, issue.severity());
+        assertEquals(check, issue.check());
+
+        commit = commit(List.of("unknown"));
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf)));
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0) instanceof InvalidReviewersIssue);
+        var invalidIssue = (InvalidReviewersIssue) issues.get(0);
+        assertEquals(List.of("unknown"), invalidIssue.invalid());
+        assertEquals(commit, invalidIssue.commit());
+        assertEquals(Severity.ERROR, invalidIssue.severity());
+        assertEquals(check, invalidIssue.check());
     }
 }

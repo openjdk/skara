@@ -51,7 +51,7 @@ public class CommentPosterWorkItem implements WorkItem {
 
     @Override
     public String toString() {
-        return "CommentPosterWorkItem@" + pr.toString();
+        return "CommentPosterWorkItem@" + pr.repository().name() + "#" + pr.id();
     }
 
     @Override

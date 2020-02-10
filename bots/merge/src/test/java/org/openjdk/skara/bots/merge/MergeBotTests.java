@@ -109,7 +109,7 @@ class MergeBotTests {
             var known = Set.of(toHashA, fromHashB, toHashC);
             var merge = toCommits.stream().filter(c -> !known.contains(c.hash())).findAny().get();
             assertTrue(merge.isMerge());
-            assertEquals(List.of("Merge"), merge.message());
+            assertEquals(List.of("Automatic merge of test:master into master"), merge.message());
             assertEquals("duke", merge.author().name());
             assertEquals("duke@openjdk.org", merge.author().email());
 
@@ -538,7 +538,7 @@ class MergeBotTests {
             var known = Set.of(toHashA, fromHashB, toHashC);
             var merge = toCommits.stream().filter(c -> !known.contains(c.hash())).findAny().get();
             assertTrue(merge.isMerge());
-            assertEquals(List.of("Merge"), merge.message());
+            assertEquals(List.of("Automatic merge of test:master into master"), merge.message());
             assertEquals("duke", merge.author().name());
             assertEquals("duke@openjdk.org", merge.author().email());
 
@@ -583,7 +583,7 @@ class MergeBotTests {
             var toGitConfig = toDir.resolve(".git").resolve("config");
             Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
-            var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
+            var toHostedRepo = new TestHostedRepository(host, "test", toLocalRepo);
 
             var forkDir = temp.path().resolve("fork.git");
             var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
@@ -653,7 +653,7 @@ class MergeBotTests {
             var known = Set.of(toHashA, fromHashB, toHashC);
             var merge = toCommits.stream().filter(c -> !known.contains(c.hash())).findAny().get();
             assertTrue(merge.isMerge());
-            assertEquals(List.of("Merge"), merge.message());
+            assertEquals(List.of("Automatic merge of master into master"), merge.message());
             assertEquals("duke", merge.author().name());
             assertEquals("duke@openjdk.org", merge.author().email());
 
@@ -774,7 +774,7 @@ class MergeBotTests {
             var known = Set.of(toHashA, fromHashB, toHashC);
             var merge = toCommits.stream().filter(c -> !known.contains(c.hash())).findAny().get();
             assertTrue(merge.isMerge());
-            assertEquals(List.of("Merge"), merge.message());
+            assertEquals(List.of("Automatic merge of test:master into master"), merge.message());
             assertEquals("duke", merge.author().name());
             assertEquals("duke@openjdk.org", merge.author().email());
 
@@ -825,7 +825,7 @@ class MergeBotTests {
             var toGitConfig = toDir.resolve(".git").resolve("config");
             Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
-            var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
+            var toHostedRepo = new TestHostedRepository(host, "test", toLocalRepo);
 
             var forkDir = temp.path().resolve("fork.git");
             var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
@@ -895,7 +895,7 @@ class MergeBotTests {
             var known = Set.of(toHashA, fromHashB, toHashC);
             var merge = toCommits.stream().filter(c -> !known.contains(c.hash())).findAny().get();
             assertTrue(merge.isMerge());
-            assertEquals(List.of("Merge"), merge.message());
+            assertEquals(List.of("Automatic merge of master into master"), merge.message());
             assertEquals("duke", merge.author().name());
             assertEquals("duke@openjdk.org", merge.author().email());
 
@@ -946,7 +946,7 @@ class MergeBotTests {
             var toGitConfig = toDir.resolve(".git").resolve("config");
             Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
-            var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
+            var toHostedRepo = new TestHostedRepository(host, "test", toLocalRepo);
 
             var forkDir = temp.path().resolve("fork.git");
             var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
@@ -1016,7 +1016,7 @@ class MergeBotTests {
             var known = Set.of(toHashA, fromHashB, toHashC);
             var merge = toCommits.stream().filter(c -> !known.contains(c.hash())).findAny().get();
             assertTrue(merge.isMerge());
-            assertEquals(List.of("Merge"), merge.message());
+            assertEquals(List.of("Automatic merge of master into master"), merge.message());
             assertEquals("duke", merge.author().name());
             assertEquals("duke@openjdk.org", merge.author().email());
 

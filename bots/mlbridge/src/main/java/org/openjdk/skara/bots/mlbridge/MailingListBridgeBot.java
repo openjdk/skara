@@ -28,7 +28,7 @@ import org.openjdk.skara.forge.*;
 
 import java.net.URI;
 import java.nio.file.Path;
-import java.time.Duration;
+import java.time.*;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -52,6 +52,7 @@ public class MailingListBridgeBot implements Bot {
     private final PullRequestUpdateCache updateCache;
     private final Duration sendInterval;
     private final Duration cooldown;
+    private final CooldownQuarantine cooldownQuarantine;
 
     MailingListBridgeBot(EmailAddress from, HostedRepository repo, HostedRepository archive, String archiveRef,
                          HostedRepository censusRepo, String censusRef, EmailAddress list,
@@ -78,9 +79,10 @@ public class MailingListBridgeBot implements Bot {
         this.sendInterval = sendInterval;
         this.cooldown = cooldown;
 
-        this.webrevStorage = new WebrevStorage(webrevStorageRepository, webrevStorageRef, webrevStorageBase,
-                                               webrevStorageBaseUri, from);
-        this.updateCache = new PullRequestUpdateCache();
+        webrevStorage = new WebrevStorage(webrevStorageRepository, webrevStorageRef, webrevStorageBase,
+                                          webrevStorageBaseUri, from);
+        updateCache = new PullRequestUpdateCache();
+        cooldownQuarantine = new CooldownQuarantine();
     }
 
     static MailingListBridgeBotBuilder newBuilder() {
@@ -164,8 +166,15 @@ public class MailingListBridgeBot implements Bot {
         List<WorkItem> ret = new LinkedList<>();
 
         for (var pr : codeRepo.pullRequests()) {
-            if (updateCache.needsUpdate(pr)) {
-                ret.add(new ArchiveWorkItem(pr, this, e -> updateCache.invalidate(pr)));
+            var quarantineStatus = cooldownQuarantine.status(pr);
+            if (quarantineStatus == CooldownQuarantine.Status.IN_QUARANTINE) {
+                continue;
+            }
+            if ((quarantineStatus == CooldownQuarantine.Status.JUST_RELEASED) ||
+                    (quarantineStatus == CooldownQuarantine.Status.NOT_IN_QUARANTINE && updateCache.needsUpdate(pr))) {
+                ret.add(new ArchiveWorkItem(pr, this,
+                                            e -> updateCache.invalidate(pr),
+                                            r -> cooldownQuarantine.updateQuarantineEnd(pr, r)));
             }
         }
 

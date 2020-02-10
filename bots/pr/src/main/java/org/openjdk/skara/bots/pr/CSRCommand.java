@@ -25,6 +25,7 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.json.JSON;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
@@ -117,14 +118,21 @@ public class CSRCommand implements CommandHandler {
             return;
         }
 
-        var resolution = csr.properties().get("resolution").get("name").asString();
-        if (csr.state() == Issue.State.CLOSED && resolution.equals("Approved")) {
-            reply.println("the issue for this pull request, (" + jbsIssue.get().id() + ")[" + jbsIssue.get().webUrl() + "], already has " +
-                          "an approved CSR request: (" + csr.id() + ")[" + csr.webUrl() + "]");
+        var resolutionName = "Unresolved";
+        var resolution = csr.properties().getOrDefault("resolution", JSON.of());
+        if (resolution.isObject() && resolution.asObject().contains("name")) {
+            var nameField = resolution.get("name");
+            if (nameField.isString()) {
+                resolutionName = resolution.get("name").asString();
+            }
+        }
+        if (csr.state() == Issue.State.CLOSED && resolutionName.equals("Approved")) {
+            reply.println("the issue for this pull request, [" + jbsIssue.get().id() + "](" + jbsIssue.get().webUrl() + "), already has " +
+                          "an approved CSR request: [" + csr.id() + "](" + csr.webUrl() + ")");
         } else {
             reply.println("this pull request will not be integrated until the [CSR](https://wiki.openjdk.java.net/display/csr/Main) " +
-                          "request " + "(" + csr.id() + ")[" + csr.webUrl() + "]" + " for issue " +
-                          "(" + jbsIssue.get().id() + ")[" + jbsIssue.get().webUrl() + "] has been approved.");
+                          "request " + "[" + csr.id() + "](" + csr.webUrl() + ")" + " for issue " +
+                          "[" + jbsIssue.get().id() + "](" + jbsIssue.get().webUrl() + ") has been approved.");
             pr.addLabel(CSR_LABEL);
         }
     }

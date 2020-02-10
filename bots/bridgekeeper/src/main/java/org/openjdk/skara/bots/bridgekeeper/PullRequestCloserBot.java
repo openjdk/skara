@@ -91,6 +91,11 @@ class PullRequestCloserBotWorkItem implements WorkItem {
     public void handleRuntimeException(RuntimeException e) {
         errorHandler.accept(e);
     }
+
+    @Override
+    public String toString() {
+        return "PullRequestCloserBotWorkItem@" + repository.name() + "#" + pr.id();
+    }
 }
 
 public class PullRequestCloserBot implements Bot {

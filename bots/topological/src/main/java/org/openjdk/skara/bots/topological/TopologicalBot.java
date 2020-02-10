@@ -177,7 +177,7 @@ class TopologicalBot implements Bot, WorkItem {
 
     @Override
     public String toString() {
-        return "TopoBot@(" + hostedRepo + ")";
+        return "TopologicalBot@" + hostedRepo.name();
     }
 
     @Override

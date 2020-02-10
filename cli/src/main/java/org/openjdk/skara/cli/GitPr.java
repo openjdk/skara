@@ -271,10 +271,13 @@ public class GitPr {
         return Optional.empty();
     }
 
-    private static void await(Process p) throws IOException {
+    private static void await(Process p, Integer... allowedExitCodes) throws IOException {
+        var allowed = new HashSet<>(Arrays.asList(allowedExitCodes));
+        allowed.add(0);
         try {
             var res = p.waitFor();
-            if (res != 0) {
+
+            if (!allowed.contains(res)) {
                 throw new IOException("Unexpected exit code " + res);
             }
         } catch (InterruptedException e) {
@@ -364,7 +367,11 @@ public class GitPr {
             pb.directory(dir.toFile());
         }
         pb.inheritIO();
-        await(pb.start());
+
+        // git will return 141 (128 + 13) when it receive SIGPIPE (signal 13) from
+        // e.g. less when a user exits less when looking at a large diff. Therefore
+        // must allow 141 as a valid exit code.
+        await(pb.start(), 141);
     }
 
     private static void gimport() throws IOException {
@@ -538,9 +545,11 @@ public class GitPr {
                   .helptext("Print the version of this tool")
                   .optional());
 
+        var actions = List.of("list", "fetch", "show", "checkout", "apply", "integrate",
+                              "approve", "create", "close", "update", "test", "status");
         var inputs = List.of(
             Input.position(0)
-                 .describe("list|fetch|show|checkout|apply|integrate|approve|create|close|update|test|status")
+                 .describe(String.join("|", actions))
                  .singular()
                  .optional(),
             Input.position(1)
@@ -604,6 +613,15 @@ public class GitPr {
             if (lines.size() == 1) {
                 action = lines.get(0);
             }
+        }
+
+        if (action == null) {
+            System.err.println("error: you must supply a valid action:");
+            for (var a : actions) {
+                System.err.println("       - " + a);
+            }
+            System.err.println("You can also configure a default action by running 'git configure --global pr.default <action>'");
+            System.exit(1);
         }
 
         if (!shouldUseToken &&

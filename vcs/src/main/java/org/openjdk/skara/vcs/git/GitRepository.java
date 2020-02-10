@@ -190,9 +190,9 @@ public class GitRepository implements Repository {
         return lookup(hash);
     }
 
-    public List<CommitMetadata> commitMetadata() throws IOException {
-        var revisions = "--all";
-        var p = start("git", "rev-list", "--format=" + GitCommitMetadata.FORMAT, "--no-abbrev", "--reverse", "--no-color", revisions);
+    @Override
+    public List<CommitMetadata> commitMetadata(String range) throws IOException {
+        var p = start("git", "rev-list", "--format=" + GitCommitMetadata.FORMAT, "--no-abbrev", "--reverse", "--no-color", range);
         var reader = new UnixStreamReader(p.getInputStream());
         var result = new ArrayList<CommitMetadata>();
 
@@ -208,6 +208,11 @@ public class GitRepository implements Repository {
 
         await(p);
         return result;
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata() throws IOException {
+        return commitMetadata("--all");
     }
 
     private List<Hash> refs() throws IOException {
@@ -257,24 +262,13 @@ public class GitRepository implements Repository {
     }
 
     @Override
+
     public boolean isHealthy() throws IOException {
-        var refs = refs();
-        if (refs.size() == 0) {
-            return true;
-        }
-
-        var name = "health-check";
-        try (var p = capture("git", "branch", name, refs.get(0).hex())) {
+        try (var p = capture("git", "fsck", "--connectivity-only")) {
             if (p.await().status() != 0) {
                 return false;
             }
         }
-        try (var p = capture("git", "branch", "-D", name)) {
-            if (p.await().status() != 0) {
-                return false;
-            }
-        }
-
         return true;
     }
 
@@ -916,11 +910,20 @@ public class GitRepository implements Repository {
 
     @Override
     public void merge(Hash h) throws IOException {
-        merge(h, null);
+        merge(h.hex(), null);
+    }
+
+    @Override
+    public void merge(Branch b) throws IOException {
+        merge(b.name(), null);
     }
 
     @Override
     public void merge(Hash h, String strategy) throws IOException {
+        merge(h.hex(), strategy);
+    }
+
+    private void merge(String ref, String strategy) throws IOException {
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("git", "-c", "user.name=unused", "-c", "user.email=unused",
                            "merge", "--no-commit"));
@@ -928,7 +931,7 @@ public class GitRepository implements Repository {
             cmd.add("-s");
             cmd.add(strategy);
         }
-        cmd.add(h.hex());
+        cmd.add(ref);
         try (var p = capture(cmd)) {
             await(p);
         }
