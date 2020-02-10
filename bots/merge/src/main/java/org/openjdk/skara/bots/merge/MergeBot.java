@@ -468,7 +468,7 @@ class MergeBot implements Bot, WorkItem {
                     message.add("$ git push -u origin merge-" + fromBranch.name() + "-into-" + toBranch.name());
                     message.add("```");
                     message.add("");
-                    message.add("Now processed to create a pull request towards this repository.");
+                    message.add("Now proceed to create a pull request towards this repository.");
                     message.add("If you are using the [Skara](https://wiki.openjdk.java.net/display/skara#Skara-Skara)" +
                                 "CLI tooling then you can run the following command to create the pull request:");
                     message.add("");
