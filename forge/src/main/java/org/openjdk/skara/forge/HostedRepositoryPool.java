@@ -99,7 +99,7 @@ public class HostedRepositoryPool {
         }
 
         private NewClone fetchRef(Repository repository) throws IOException {
-            var fetchHead = repository.fetch(hostedRepository.url(), "+" + ref + ":" + ref);
+            var fetchHead = repository.fetch(hostedRepository.url(), "+" + ref + ":hostedrepositorypool");
             return new NewClone(repository, fetchHead);
         }
 
@@ -112,7 +112,7 @@ public class HostedRepositoryPool {
                 if (!localRepoInstance.isHealthy()) {
                     var preserveUnhealthy = seed.resolveSibling(seed.getFileName().toString() + "-unhealthy-" + UUID.randomUUID());
                     log.severe("Unhealthy local repository detected - preserved in: " + preserveUnhealthy);
-                    Files.move(localRepoInstance.root(), preserveUnhealthy);
+                    Files.move(path, preserveUnhealthy);
                     return fetchRef(cloneSeeded(path));
                 } else {
                     try {
@@ -121,7 +121,7 @@ public class HostedRepositoryPool {
                     } catch (IOException e) {
                         var preserveUnclean = seed.resolveSibling(seed.getFileName().toString() + "-unclean-" + UUID.randomUUID());
                         log.severe("Uncleanable local repository detected - preserved in: " + preserveUnclean);
-                        Files.move(localRepoInstance.root(), preserveUnclean);
+                        Files.move(path, preserveUnclean);
                         return fetchRef(cloneSeeded(path));
                     }
                 }
@@ -158,6 +158,6 @@ public class HostedRepositoryPool {
     }
 
     public Repository checkout(PullRequest pr, Path path) throws IOException {
-        return checkout(pr.repository(), pr.sourceRef(), path);
+        return checkout(pr.repository(), pr.headHash().hex(), path);
     }
 }
