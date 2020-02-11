@@ -64,7 +64,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         }
         try {
             var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
-            var prInstance = new PullRequestInstance(scratchPath.resolve("labeler"),
+            var prInstance = new PullRequestInstance(scratchPath.resolve("pr").resolve("labeler"),
                                                      new HostedRepositoryPool(seedPath),
                                                      pr,
                                                      bot.ignoreStaleReviews());

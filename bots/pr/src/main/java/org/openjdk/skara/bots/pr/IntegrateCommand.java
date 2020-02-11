@@ -76,7 +76,7 @@ public class IntegrateCommand implements CommandHandler {
         // Run a final jcheck to ensure the change has been properly reviewed
         try {
             var sanitizedUrl = URLEncoder.encode(pr.repository().webUrl().toString(), StandardCharsets.UTF_8);
-            var path = scratchPath.resolve("pr.integrate").resolve(sanitizedUrl);
+            var path = scratchPath.resolve("integrate").resolve(sanitizedUrl);
 
             var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
             var prInstance = new PullRequestInstance(path,
