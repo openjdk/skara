@@ -55,11 +55,11 @@ public class ContributorCommand implements CommandHandler {
             case "add": {
                 var fullName = contributor.fullName().orElseThrow(IllegalStateException::new);
                 if (!fullNamePattern.matcher(fullName).matches()) {
-                    reply.println("The full name is *not* of the format " + CommitMessageSyntax.REAL_NAME_REGEX);
+                    reply.println("The full name is *not* of the format `" + CommitMessageSyntax.REAL_NAME_REGEX + "`");
                     break;
                 }
                 if (!emailPattern.matcher(contributor.address()).matches()) {
-                    reply.println("The email is *not* of the format " + CommitMessageSyntax.EMAIL_ADDR_REGEX);
+                    reply.println("The email is *not* of the format `" + CommitMessageSyntax.EMAIL_ADDR_REGEX + "`");
                     break;
                 }
                 reply.println(Contributors.addContributorMarker(contributor));
@@ -72,7 +72,15 @@ public class ContributorCommand implements CommandHandler {
                     reply.println(Contributors.removeContributorMarker(contributor));
                     reply.println("Contributor `" + contributor.toString() + "` successfully removed.");
                 } else {
-                    reply.println("Contributor `" + contributor.toString() + "` was not found.");
+                    if (existing.isEmpty()) {
+                        reply.println("There are no additional contributors associated with this pull request.");
+                    } else {
+                        reply.println("Contributor `" + contributor.toString() + "` was not found.");
+                        reply.println("Current additional contributors are:");
+                        for (var e : existing) {
+                            reply.println("- `" + e.toString() + "`");
+                        }
+                    }
                     break;
                 }
                 break;
