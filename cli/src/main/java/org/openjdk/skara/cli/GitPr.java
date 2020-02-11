@@ -161,16 +161,16 @@ public class GitPr {
         var labels = pr.labels();
         if (pr.isDraft()) {
             return "DRAFT";
-        } else if (labels.contains("rfr")) {
-            return "RFR";
+        } else if (labels.contains("integrated")) {
+            return "INTEGRATED";
         } else if (labels.contains("ready")) {
             return "READY";
+        } else if (labels.contains("rfr")) {
+            return "RFR";
         } else if (labels.contains("outdated")) {
             return "OUTDATED";
         } else if (labels.contains("oca")) {
             return "OCA";
-        } else if (labels.contains("integrated")) {
-            return "INTEGRATED";
         } else {
             var checks = pr.checks(pr.headHash());
             var jcheck = Optional.ofNullable(checks.get("jcheck"));
