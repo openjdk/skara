@@ -112,18 +112,19 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     @Override
     public void visit(InvalidReviewersIssue e) {
-        log.fine("ignored: invalid reviewers: " + e.invalid());
+        var invalid = String.join(", ", e.invalid());
+        throw new IllegalStateException("Invalid reviewers " + invalid);
     }
 
     @Override
     public void visit(MergeMessageIssue e) {
-        var hex = e.commit().hash().abbreviate();
-        log.fine("ignored: " + hex + ": merge commits should only have commit message 'Merge'");
+        var message = String.join("\n", e.commit().message());
+        throw new IllegalStateException("Merge commit message is not " + e.expected() + ", but: " + message);
     }
 
     @Override
     public void visit(HgTagCommitIssue e) {
-        log.fine("ignored: invalid tag commit");
+        throw new IllegalStateException("Hg tag commit issue - should not happen");
     }
 
     @Override
@@ -143,12 +144,12 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     @Override
     public void visit(AuthorNameIssue issue) {
-        log.fine("ignored: invalid author name");
+        throw new IllegalStateException("Invalid author name: " + issue.commit().author());
     }
 
     @Override
     public void visit(AuthorEmailIssue issue) {
-        log.fine("ignored: invalid author email");
+        throw new IllegalStateException("Invalid author email: " + issue.commit().author());
     }
 
     @Override
@@ -186,7 +187,8 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     @Override
     public void visit(MessageIssue issue) {
-        log.fine("ignored: incorrectly formatted commit message");
+        var message = String.join("\n", issue.commit().message());
+        throw new IllegalStateException("Incorrectly formatted commit message: " + message);
     }
 
     @Override
