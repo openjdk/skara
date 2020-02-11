@@ -112,16 +112,18 @@ public class HostedRepositoryPool {
                     log.throwing("HostedRepositoryInstance", "preserveOldClone", e);
                 }
             }
-            var preserved = seed.resolveSibling(seed.getFileName().toString() + "-" + reason + "-" + UUID.randomUUID());
-            log.severe("Invalid local repository detected (" + reason + ") - preserved in: " + preserved);
-            try {
-                Files.move(path, preserved);
-            } catch (IOException e) {
-                log.severe("Failed to preserve old clone at " + path);
-                log.throwing("HostedRepositoryInstance", "preserveOldClone", e);
-            } finally {
-                if (Files.exists(path)) {
-                    clearDirectory(path);
+            if (Files.exists(path)) {
+                var preserved = seed.resolveSibling(seed.getFileName().toString() + "-" + reason + "-" + UUID.randomUUID());
+                log.severe("Invalid local repository detected (" + reason + ") - preserved in: " + preserved);
+                try {
+                    Files.move(path, preserved);
+                } catch (IOException e) {
+                    log.severe("Failed to preserve old clone at " + path);
+                    log.throwing("HostedRepositoryInstance", "preserveOldClone", e);
+                } finally {
+                    if (Files.exists(path)) {
+                        clearDirectory(path);
+                    }
                 }
             }
         }
@@ -129,6 +131,7 @@ public class HostedRepositoryPool {
         private NewClone materializeClone(Path path) throws IOException {
             var localRepo = Repository.get(path);
             if (localRepo.isEmpty()) {
+                removeOldClone(path, "norepo");
                 return fetchRef(cloneSeeded(path));
             } else {
                 var localRepoInstance = localRepo.get();
