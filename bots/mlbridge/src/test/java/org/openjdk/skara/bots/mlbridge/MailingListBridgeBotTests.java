@@ -1653,6 +1653,9 @@ class MailingListBridgeBotTests {
                     break;
                 } else {
                     log.info("Didn't do the test in time - retrying (elapsed: " + elapsed + " required: " + cooldown + ")");
+                    // Make sure to run the bot once more after the cooldown has expired to reset the state
+                    Thread.sleep(cooldown.toMillis());
+                    TestBotRunner.runPeriodicItems(mlBot);
                     listServer.processIncoming();
                     cooldown = cooldown.multipliedBy(2);
                     mlBot = mlBotBuilder.cooldown(cooldown).build();
@@ -1733,6 +1736,9 @@ class MailingListBridgeBotTests {
                     break;
                 } else {
                     log.info("Didn't do the test in time - retrying (elapsed: " + elapsed + " required: " + cooldown + ")");
+                    // Make sure to run the bot once more after the cooldown has expired to reset the state
+                    Thread.sleep(cooldown.toMillis());
+                    TestBotRunner.runPeriodicItems(mlBot);
                     listServer.processIncoming();
                     cooldown = cooldown.multipliedBy(2);
                     mlBot = mlBotBuilder.cooldown(cooldown).build();
