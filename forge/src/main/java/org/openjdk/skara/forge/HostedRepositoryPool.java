@@ -103,6 +103,29 @@ public class HostedRepositoryPool {
             return new NewClone(repository, fetchHead);
         }
 
+        private void removeOldClone(Path path, String reason) {
+            if (!Files.exists(seed)) {
+                try {
+                    Files.createDirectories(seed.getParent());
+                } catch (IOException e) {
+                    log.severe("Failed to create seed parent folder: " + seed.getParent());
+                    log.throwing("HostedRepositoryInstance", "preserveOldClone", e);
+                }
+            }
+            var preserved = seed.resolveSibling(seed.getFileName().toString() + "-" + reason + "-" + UUID.randomUUID());
+            log.severe("Invalid local repository detected (" + reason + ") - preserved in: " + preserved);
+            try {
+                Files.move(path, preserved);
+            } catch (IOException e) {
+                log.severe("Failed to preserve old clone at " + path);
+                log.throwing("HostedRepositoryInstance", "preserveOldClone", e);
+            } finally {
+                if (Files.exists(path)) {
+                    clearDirectory(path);
+                }
+            }
+        }
+
         private NewClone materializeClone(Path path) throws IOException {
             var localRepo = Repository.get(path);
             if (localRepo.isEmpty()) {
@@ -110,18 +133,14 @@ public class HostedRepositoryPool {
             } else {
                 var localRepoInstance = localRepo.get();
                 if (!localRepoInstance.isHealthy()) {
-                    var preserveUnhealthy = seed.resolveSibling(seed.getFileName().toString() + "-unhealthy-" + UUID.randomUUID());
-                    log.severe("Unhealthy local repository detected - preserved in: " + preserveUnhealthy);
-                    Files.move(path, preserveUnhealthy);
+                    removeOldClone(path, "unhealthy");
                     return fetchRef(cloneSeeded(path));
                 } else {
                     try {
                         localRepoInstance.clean();
                         return fetchRef(localRepoInstance);
                     } catch (IOException e) {
-                        var preserveUnclean = seed.resolveSibling(seed.getFileName().toString() + "-unclean-" + UUID.randomUUID());
-                        log.severe("Uncleanable local repository detected - preserved in: " + preserveUnclean);
-                        Files.move(path, preserveUnclean);
+                        removeOldClone(path, "uncleanable");
                         return fetchRef(cloneSeeded(path));
                     }
                 }
