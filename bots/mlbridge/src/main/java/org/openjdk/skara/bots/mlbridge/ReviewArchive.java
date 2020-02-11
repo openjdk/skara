@@ -66,12 +66,13 @@ class ReviewArchive {
             if (email.hasHeader("PR-Base-Hash")) {
                 var curBase = new Hash(email.headerValue("PR-Base-Hash"));
                 var curHead = new Hash(email.headerValue("PR-Head-Hash"));
+                var created = email.date();
 
                 if (generated.isEmpty()) {
-                    var first = ArchiveItem.from(pr, localRepo, issueTracker, issuePrefix, webrevGenerator, webrevNotification, curBase, curHead);
+                    var first = ArchiveItem.from(pr, localRepo, issueTracker, issuePrefix, webrevGenerator, webrevNotification, pr.createdAt(), pr.updatedAt(), curBase, curHead);
                     generated.add(first);
                 } else {
-                    var revision = ArchiveItem.from(pr, localRepo, webrevGenerator, webrevNotification, lastBase, lastHead, curBase, curHead, ++revisionIndex, generated.get(0));
+                    var revision = ArchiveItem.from(pr, localRepo, webrevGenerator, webrevNotification, created, created, lastBase, lastHead, curBase, curHead, ++revisionIndex, generated.get(0));
                     generated.add(revision);
                 }
 
@@ -83,10 +84,10 @@ class ReviewArchive {
         // Check if we're at a revision not previously reported
         if (!base.equals(lastBase) || !head.equals(lastHead)) {
             if (generated.isEmpty()) {
-                var first = ArchiveItem.from(pr, localRepo, issueTracker, issuePrefix, webrevGenerator, webrevNotification, base, head);
+                var first = ArchiveItem.from(pr, localRepo, issueTracker, issuePrefix, webrevGenerator, webrevNotification, pr.createdAt(), pr.updatedAt(), base, head);
                 generated.add(first);
             } else {
-                var revision = ArchiveItem.from(pr, localRepo, webrevGenerator, webrevNotification, lastBase, lastHead, base, head, ++revisionIndex, generated.get(0));
+                var revision = ArchiveItem.from(pr, localRepo, webrevGenerator, webrevNotification, pr.updatedAt(), pr.updatedAt(), lastBase, lastHead, base, head, ++revisionIndex, generated.get(0));
                 generated.add(revision);
             }
         }

@@ -37,8 +37,10 @@ class ArchiveItem {
         this.footer = footer;
     }
 
-    static ArchiveItem from(PullRequest pr, Repository localRepo, URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, Hash base, Hash head) {
-        return new ArchiveItem(null, "fc", pr.createdAt(), pr.updatedAt(), pr.author(), Map.of("PR-Head-Hash", head.hex(), "PR-Base-Hash", base.hex()),
+    static ArchiveItem from(PullRequest pr, Repository localRepo, URI issueTracker, String issuePrefix,
+                            WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification,
+                            ZonedDateTime created, ZonedDateTime updated, Hash base, Hash head) {
+        return new ArchiveItem(null, "fc", created, updated, pr.author(), Map.of("PR-Head-Hash", head.hex(), "PR-Base-Hash", base.hex()),
                                () -> "RFR: " + pr.title(),
                                () -> "",
                                () -> ArchiveMessages.composeConversation(pr, base, head),
@@ -49,8 +51,10 @@ class ArchiveItem {
                                });
     }
 
-    static ArchiveItem from(PullRequest pr, Repository localRepo, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, Hash lastBase, Hash lastHead, Hash base, Hash head, int index, ArchiveItem parent) {
-        return new ArchiveItem(parent,"ha" + head.hex(), ZonedDateTime.now(), ZonedDateTime.now(), pr.author(), Map.of("PR-Head-Hash", head.hex(), "PR-Base-Hash", base.hex()),
+    static ArchiveItem from(PullRequest pr, Repository localRepo, WebrevStorage.WebrevGenerator webrevGenerator,
+                            WebrevNotification webrevNotification, ZonedDateTime created, ZonedDateTime updated,
+                            Hash lastBase, Hash lastHead, Hash base, Hash head, int index, ArchiveItem parent) {
+        return new ArchiveItem(parent,"ha" + head.hex(), created, updated, pr.author(), Map.of("PR-Head-Hash", head.hex(), "PR-Base-Hash", base.hex()),
                                () -> String.format("Re: [Rev %02d] RFR: %s", index, pr.title()),
                                () -> "",
                                () -> ArchiveMessages.composeRevision(pr, localRepo, base, head, lastBase, lastHead),
