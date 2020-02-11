@@ -72,7 +72,15 @@ public class ContributorCommand implements CommandHandler {
                     reply.println(Contributors.removeContributorMarker(contributor));
                     reply.println("Contributor `" + contributor.toString() + "` successfully removed.");
                 } else {
-                    reply.println("Contributor `" + contributor.toString() + "` was not found.");
+                    if (existing.isEmpty()) {
+                        reply.println("There are no additional contributors associated with this pull request.");
+                    } else {
+                        reply.println("Contributor `" + contributor.toString() + "` was not found.");
+                        reply.println("Current additional contributors are:");
+                        for (var e : existing) {
+                            reply.println("- `" + e.toString() + "`");
+                        }
+                    }
                     break;
                 }
                 break;
