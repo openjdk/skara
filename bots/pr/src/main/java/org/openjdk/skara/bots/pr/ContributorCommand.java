@@ -55,11 +55,11 @@ public class ContributorCommand implements CommandHandler {
             case "add": {
                 var fullName = contributor.fullName().orElseThrow(IllegalStateException::new);
                 if (!fullNamePattern.matcher(fullName).matches()) {
-                    reply.println("The full name is *not* of the format " + CommitMessageSyntax.REAL_NAME_REGEX);
+                    reply.println("The full name is *not* of the format `" + CommitMessageSyntax.REAL_NAME_REGEX + "`");
                     break;
                 }
                 if (!emailPattern.matcher(contributor.address()).matches()) {
-                    reply.println("The email is *not* of the format " + CommitMessageSyntax.EMAIL_ADDR_REGEX);
+                    reply.println("The email is *not* of the format `" + CommitMessageSyntax.EMAIL_ADDR_REGEX + "`");
                     break;
                 }
                 reply.println(Contributors.addContributorMarker(contributor));
