@@ -1527,6 +1527,72 @@ class MailingListBridgeBotTests {
     }
 
     @Test
+    void cooldownNewRevision(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var archiveFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
+            var bot = credentials.getHostedRepository();
+            var author = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var from = EmailAddress.from("test", "test@test.mail");
+            var mlBotBuilder = MailingListBridgeBot.newBuilder()
+                                                   .from(from)
+                                                   .repo(bot)
+                                                   .ignoredUsers(Set.of(bot.forge().currentUser().userName()))
+                                                   .archive(archive)
+                                                   .censusRepo(censusBuilder.build())
+                                                   .list(listAddress)
+                                                   .listArchive(listServer.getArchive())
+                                                   .smtpServer(listServer.getSMTP())
+                                                   .webrevStorageRepository(archive)
+                                                   .webrevStorageRef("webrev")
+                                                   .webrevStorageBase(Path.of("test"))
+                                                   .webrevStorageBaseUri(webrevServer.uri())
+                                                   .issueTracker(URIBuilder.base("http://issues.test/browse/").build());
+
+            // Populate the projects repository
+            var reviewFile = Path.of("reviewfile.txt");
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Line 1\nLine 2\nLine 3\nLine 4");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
+            pr.setBody("This is now ready");
+
+            var mlBot = mlBotBuilder.build();
+            var mlBotWithCooldown = mlBotBuilder.cooldown(Duration.ofDays(1)).build();
+
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // Commit another revision
+            var updatedHash = CheckableRepository.appendAndCommit(localRepo, "More stuff");
+            localRepo.push(updatedHash, author.url(), "edit");
+
+            // Bot with cooldown configured should not create a new webrev
+            TestBotRunner.runPeriodicItems(mlBotWithCooldown);
+            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+
+            // But without, it should
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // Check the archive
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertTrue(archiveContains(archiveFolder.path(), "webrev.01"));
+        }
+    }
+
+    @Test
     void retryAfterCooldown(TestInfo testInfo) throws IOException, InterruptedException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
@@ -1602,6 +1668,86 @@ class MailingListBridgeBotTests {
             // Check the archive
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Looks good - " + counter + " -"));
+        }
+    }
+
+    @Test
+    void retryNewRevisionAfterCooldown(TestInfo testInfo) throws IOException, InterruptedException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var archiveFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
+            var bot = credentials.getHostedRepository();
+            var author = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var from = EmailAddress.from("test", "test@test.mail");
+            var cooldown = Duration.ofMillis(500);
+            var mlBotBuilder = MailingListBridgeBot.newBuilder()
+                                                   .from(from)
+                                                   .repo(bot)
+                                                   .ignoredUsers(Set.of(bot.forge().currentUser().userName()))
+                                                   .archive(archive)
+                                                   .censusRepo(censusBuilder.build())
+                                                   .list(listAddress)
+                                                   .listArchive(listServer.getArchive())
+                                                   .smtpServer(listServer.getSMTP())
+                                                   .webrevStorageRepository(archive)
+                                                   .webrevStorageRef("webrev")
+                                                   .webrevStorageBase(Path.of("test"))
+                                                   .webrevStorageBaseUri(webrevServer.uri())
+                                                   .issueTracker(URIBuilder.base("http://issues.test/browse/").build());
+
+            // Populate the projects repository
+            var reviewFile = Path.of("reviewfile.txt");
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Line 1\nLine 2\nLine 3\nLine 4");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
+            pr.setBody("This is now ready");
+
+            var mlBot = mlBotBuilder.cooldown(cooldown).build();
+            Thread.sleep(cooldown.toMillis());
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // Make a new revision and run the check within the cooldown period
+            int counter;
+            for (counter = 1; counter < 10; ++counter) {
+                var start = Instant.now();
+                var revHash = CheckableRepository.appendAndCommit(localRepo, "more stuff", "Update number - " + counter + " -");
+                localRepo.push(revHash, author.url(), "edit");
+
+                // The bot should not bridge the new revision due to cooldown
+                TestBotRunner.runPeriodicItems(mlBot);
+                var elapsed = Duration.between(start, Instant.now());
+                if (elapsed.compareTo(cooldown) < 0) {
+                    break;
+                } else {
+                    log.info("Didn't do the test in time - retrying (elapsed: " + elapsed + " required: " + cooldown + ")");
+                    listServer.processIncoming();
+                    cooldown = cooldown.multipliedBy(2);
+                    mlBot = mlBotBuilder.cooldown(cooldown).build();
+                }
+            }
+            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+
+            // But after the cooldown period has passed, it should
+            Thread.sleep(cooldown.toMillis());
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // Check the archive
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertTrue(archiveContains(archiveFolder.path(), "Update number - " + counter + " -"));
         }
     }
 }
