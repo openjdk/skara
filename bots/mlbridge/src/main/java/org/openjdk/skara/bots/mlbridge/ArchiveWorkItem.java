@@ -247,10 +247,16 @@ class ArchiveWorkItem implements WorkItem {
 
         // Materialize the PR's target ref
         try {
+            // Materialize the PR's source and target ref
+            var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
+            var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
             var repository = pr.repository();
-            var localRepo = Repository.materialize(scratchPath.resolve("mlbridge-mergebase"), repository.url(), pr.targetRef());
-            var targetHash = localRepo.fetch(repository.url(), pr.targetRef());
-            var headHash = localRepo.fetch(repository.url(), pr.headHash().hex());
+            var localRepoPath = scratchPath.resolve("mlbridge-mergebase");
+            var localRepo = hostedRepositoryPool.checkout(pr, localRepoPath.resolve(repository.name()));
+            localRepo.fetch(repository.url(), "+" + pr.targetRef() + ":mlbridge_prinstance");
+
+            var targetHash = pr.targetHash();
+            var headHash = pr.headHash();
             var baseHash = localRepo.mergeBase(targetHash, headHash);
 
             var webrevPath = scratchPath.resolve("mlbridge-webrevs");
