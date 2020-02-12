@@ -53,6 +53,7 @@ public class MailingListBridgeBotBuilder {
     private Map<String, String> headers = Map.of();
     private Duration sendInterval = Duration.ZERO;
     private Duration cooldown = Duration.ZERO;
+    private Path seedStorage = null;
 
     MailingListBridgeBotBuilder() {
     }
@@ -162,10 +163,16 @@ public class MailingListBridgeBotBuilder {
         return this;
     }
 
+    public MailingListBridgeBotBuilder seedStorage(Path seedStorage) {
+        this.seedStorage = seedStorage;
+        return this;
+    }
+
     public MailingListBridgeBot build() {
         return new MailingListBridgeBot(from, repo, archive, archiveRef, censusRepo, censusRef, list,
                                         ignoredUsers, ignoredComments, listArchive, smtpServer,
                                         webrevStorageRepository, webrevStorageRef, webrevStorageBase, webrevStorageBaseUri,
-                                        readyLabels, readyComments, issueTracker, headers, sendInterval, cooldown);
+                                        readyLabels, readyComments, issueTracker, headers, sendInterval, cooldown,
+                                        seedStorage);
     }
 }
