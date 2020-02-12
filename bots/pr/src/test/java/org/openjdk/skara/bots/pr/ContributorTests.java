@@ -84,7 +84,7 @@ class ContributorTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with an error message
-            assertLastCommentContains(pr,"was not found");
+            assertLastCommentContains(pr,"There are no additional contributors associated with this pull request");
 
             // Now add someone back again
             pr.addComment("/contributor add Test Person <test@test.test>");
@@ -180,6 +180,120 @@ class ContributorTests {
                           .filter(comment -> comment.body().contains("Only the author"))
                           .count();
             assertEquals(1, error);
+        }
+    }
+
+    @Test
+    void invalidFullName(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(integrator.forge().currentUser().id())
+                                           .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Use an invalid full name
+            pr.addComment("/contributor add Foo! Bar <foo.bar@host.com>");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with an error message
+            assertLastCommentContains(pr, "The full name is *not* of the format");
+        }
+    }
+
+    @Test
+    void invalidEmail(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(integrator.forge().currentUser().id())
+                                           .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Use an invalid full name
+            pr.addComment("/contributor add Foo Bar <Foo.Bar@host.com>");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with an error message
+            assertLastCommentContains(pr, "The email is *not* of the format");
+        }
+    }
+
+    @Test
+    void removeContributor(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(integrator.forge().currentUser().id())
+                                           .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Remove a contributor that hasn't been added
+            pr.addComment("/contributor remove Foo Bar <foo.bar@host.com>");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "There are no additional contributors associated with this pull request.");
+
+            // Add a contributor
+            pr.addComment("/contributor add Foo Bar <foo.bar@host.com>");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "successfully added.");
+
+            // Remove another (not added) contributor
+            pr.addComment("/contributor remove Baz Bar <baz.bar@host.com>");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "Contributor `Baz Bar <baz.bar@host.com>` was not found.");
+            assertLastCommentContains(pr, "Current additional contributors are:");
+            assertLastCommentContains(pr, "- `Foo Bar <foo.bar@host.com>`");
+
+            // Remove an existing contributor
+            pr.addComment("/contributor remove Foo Bar <foo.bar@host.com>");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "successfully removed.");
         }
     }
 }

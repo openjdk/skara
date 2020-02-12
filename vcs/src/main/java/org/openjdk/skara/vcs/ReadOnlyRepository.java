@@ -34,6 +34,7 @@ public interface ReadOnlyRepository {
     Optional<Bookmark> currentBookmark() throws IOException;
     Branch defaultBranch() throws IOException;
     List<Branch> branches() throws IOException;
+    List<Branch> branches(String remote) throws IOException;
     Optional<Tag> defaultTag() throws IOException;
     List<Tag> tags() throws IOException;
     Commits commits() throws IOException;
@@ -77,6 +78,7 @@ public interface ReadOnlyRepository {
 
     void dump(FileEntry entry, Path to) throws IOException;
     List<StatusEntry> status(Hash from, Hash to) throws IOException;
+    List<StatusEntry> status() throws IOException;
     Diff diff(Hash base, Hash head) throws IOException;
     Diff diff(Hash base, Hash head, List<Path> files) throws IOException;
     Diff diff(Hash head) throws IOException;

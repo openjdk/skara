@@ -28,6 +28,7 @@ import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.Hash;
 
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
@@ -45,6 +46,7 @@ class PullRequestBot implements Bot {
     private final IssueProject issueProject;
     private final boolean ignoreStaleReviews;
     private final Pattern allowedTargetBranches;
+    private final Path seedStorage;
     private final ConcurrentMap<Hash, Boolean> currentLabels;
     private final PullRequestUpdateCache updateCache;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
@@ -53,7 +55,7 @@ class PullRequestBot implements Bot {
                    Map<String, List<Pattern>> labelPatterns, Map<String, String> externalCommands,
                    Map<String, String> blockingLabels, Set<String> readyLabels,
                    Map<String, Pattern> readyComments, IssueProject issueProject, boolean ignoreStaleReviews,
-                   Pattern allowedTargetBranches) {
+                   Pattern allowedTargetBranches, Path seedStorage) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -65,6 +67,7 @@ class PullRequestBot implements Bot {
         this.readyComments = readyComments;
         this.ignoreStaleReviews = ignoreStaleReviews;
         this.allowedTargetBranches = allowedTargetBranches;
+        this.seedStorage = seedStorage;
 
         this.currentLabels = new ConcurrentHashMap<>();
         this.updateCache = new PullRequestUpdateCache();
@@ -179,5 +182,9 @@ class PullRequestBot implements Bot {
 
     Pattern allowedTargetBranches() {
         return allowedTargetBranches;
+    }
+
+    Optional<Path> seedStorage() {
+        return Optional.ofNullable(seedStorage);
     }
 }

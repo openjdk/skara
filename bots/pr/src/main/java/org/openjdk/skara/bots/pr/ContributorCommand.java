@@ -25,6 +25,7 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.vcs.openjdk.CommitMessageSyntax;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
@@ -33,6 +34,8 @@ import java.util.regex.Pattern;
 
 public class ContributorCommand implements CommandHandler {
     private static final Pattern commandPattern = Pattern.compile("^(add|remove)\\s+(.*?\\s+<\\S+>)$");
+    private static final Pattern fullNamePattern = Pattern.compile(CommitMessageSyntax.REAL_NAME_REGEX);
+    private static final Pattern emailPattern = Pattern.compile(CommitMessageSyntax.EMAIL_ADDR_REGEX);
 
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
@@ -49,20 +52,39 @@ public class ContributorCommand implements CommandHandler {
 
         var contributor = EmailAddress.parse(matcher.group(2));
         switch (matcher.group(1)) {
-            case "add":
+            case "add": {
+                var fullName = contributor.fullName().orElseThrow(IllegalStateException::new);
+                if (!fullNamePattern.matcher(fullName).matches()) {
+                    reply.println("The full name is *not* of the format `" + CommitMessageSyntax.REAL_NAME_REGEX + "`");
+                    break;
+                }
+                if (!emailPattern.matcher(contributor.address()).matches()) {
+                    reply.println("The email is *not* of the format `" + CommitMessageSyntax.EMAIL_ADDR_REGEX + "`");
+                    break;
+                }
                 reply.println(Contributors.addContributorMarker(contributor));
                 reply.println("Contributor `" + contributor.toString() + "` successfully added.");
                 break;
-            case "remove":
+            }
+            case "remove": {
                 var existing = new HashSet<>(Contributors.contributors(pr.repository().forge().currentUser(), allComments));
                 if (existing.contains(contributor)) {
                     reply.println(Contributors.removeContributorMarker(contributor));
                     reply.println("Contributor `" + contributor.toString() + "` successfully removed.");
                 } else {
-                    reply.println("Contributor `" + contributor.toString() + "` was not found.");
+                    if (existing.isEmpty()) {
+                        reply.println("There are no additional contributors associated with this pull request.");
+                    } else {
+                        reply.println("Contributor `" + contributor.toString() + "` was not found.");
+                        reply.println("Current additional contributors are:");
+                        for (var e : existing) {
+                            reply.println("- `" + e.toString() + "`");
+                        }
+                    }
                     break;
                 }
                 break;
+            }
         }
     }
 

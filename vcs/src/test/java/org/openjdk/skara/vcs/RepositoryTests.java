@@ -2076,4 +2076,41 @@ public class RepositoryTests {
             assertEquals(List.of(upstream.defaultBranch()), upstreamBranches);
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testUnmergedStatus(VCS vcs) throws IOException {
+        assumeTrue(vcs == VCS.GIT);
+        try (var dir = new TemporaryDirectory(false)) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, world!"));
+            r.add(readme);
+            var first = r.commit("Added README", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme, List.of("One more line"), WRITE, APPEND);
+            r.add(readme);
+            var second = r.commit("Modified README", "duke", "duke@openjdk.java.net");
+
+            r.checkout(first, false);
+
+            Files.write(readme, List.of("Another line"), WRITE, APPEND);
+            r.add(readme);
+            var third = r.commit("Modified README again", "duke", "duke@openjdk.java.net");
+
+            assertThrows(IOException.class, () -> { r.merge(second); });
+
+            var status = r.status();
+            for (var s : status) {
+                System.out.println(s.status() + " " + s.source().path().get());
+            }
+            assertEquals(2, status.size());
+            var statusEntry = status.get(0);
+            assertTrue(statusEntry.status().isUnmerged());
+            assertEquals(Path.of("README"), statusEntry.source().path().get());
+            assertEquals(Optional.empty(), statusEntry.source().type());
+            assertEquals("0".repeat(40), statusEntry.source().hash().hex());
+        }
+    }
 }

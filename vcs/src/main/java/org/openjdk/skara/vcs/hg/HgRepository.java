@@ -133,6 +133,12 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public List<Branch> branches(String remote) throws IOException {
+        // Mercurial does not have namespacing of branch names
+        return branches();
+    }
+
+    @Override
     public List<Tag> tags() throws IOException {
         try (var p = capture("hg", "tags")) {
             return await(p).stdout()
@@ -744,6 +750,12 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public List<StatusEntry> status() throws IOException {
+        // TODO: can use merge.mergestate.read(repo) to implement diff-git-raw-workspace
+        throw new RuntimeException("Not implemented yet");
+    }
+
+    @Override
     public void dump(FileEntry entry, Path to) throws IOException {
         var output = to.toAbsolutePath();
         try (var p = capture("hg", "cat", "--output=" + output.toString(),
@@ -1091,7 +1103,7 @@ public class HgRepository implements Repository {
         return Optional.of(b.name());
     }
 
-    public static Repository clone(URI from, Path to, boolean isBare) throws IOException {
+    public static Repository clone(URI from, Path to, boolean isBare, Path seed) throws IOException {
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("hg", "clone"));
         if (isBare) {
@@ -1180,7 +1192,7 @@ public class HgRepository implements Repository {
     @Override
     public void addSubmodule(String pullPath, Path path) throws IOException {
         var uri = Files.exists(Path.of(pullPath)) ? Path.of(pullPath).toUri().toString() : pullPath;
-        HgRepository.clone(URI.create(uri), root().resolve(path).toAbsolutePath(), false);
+        HgRepository.clone(URI.create(uri), root().resolve(path).toAbsolutePath(), false, null);
         var hgSub = root().resolve(".hgsub");
         Files.writeString(hgSub, path.toString() + " = " + pullPath + "\n",
                           StandardOpenOption.WRITE, StandardOpenOption.APPEND, StandardOpenOption.CREATE);

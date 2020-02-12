@@ -120,6 +120,15 @@ public class GitRepository implements Repository {
         }
     }
 
+    public List<Branch> branches(String remote) throws IOException {
+        try (var p = capture("git", "for-each-ref", "--format=%(refname:short)", "refs/remotes/" + remote + "/")) {
+            return await(p).stdout()
+                           .stream()
+                           .map(Branch::new)
+                           .collect(Collectors.toList());
+        }
+    }
+
     public List<Tag> tags() throws IOException {
         try (var p = capture("git", "for-each-ref", "--format=%(refname:short)", "refs/tags")) {
             return await(p).stdout()
@@ -818,7 +827,20 @@ public class GitRepository implements Repository {
 
     @Override
     public List<StatusEntry> status(Hash from, Hash to) throws IOException {
-        try (var p = capture("git", "diff", "--raw", "--find-renames=99%", "--find-copies=99%", "--find-copies-harder", "--no-abbrev", "--no-color", from.hex(), to.hex())) {
+        var cmd = new ArrayList<String>();
+        cmd.addAll(List.of("git", "diff", "--raw",
+                                          "--find-renames=99%",
+                                          "--find-copies=99%",
+                                          "--find-copies-harder",
+                                          "--no-abbrev",
+                                          "--no-color"));
+        if (from != null) {
+            cmd.add(from.hex());
+        }
+        if (to != null) {
+            cmd.add(to.hex());
+        }
+        try (var p = capture(cmd)) {
             var res = await(p);
             var entries = new ArrayList<StatusEntry>();
             for (var line : res.stdout()) {
@@ -826,6 +848,11 @@ public class GitRepository implements Repository {
             }
             return entries;
         }
+    }
+
+    @Override
+    public List<StatusEntry> status() throws IOException {
+        return status(null, null);
     }
 
     @Override
@@ -1041,13 +1068,17 @@ public class GitRepository implements Repository {
         }
     }
 
-    public static Repository clone(URI from, Path to, boolean isBare) throws IOException {
+    public static Repository clone(URI from, Path to, boolean isBare, Path seed) throws IOException {
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("git", "clone"));
         if (isBare) {
             cmd.add("--bare");
         } else {
             cmd.add("--recurse-submodules");
+        }
+        if (seed != null) {
+            cmd.add("--reference-if-able");
+            cmd.add(seed.toString());
         }
         cmd.addAll(List.of(from.toString(), to.toString()));
         try (var p = capture(Path.of("").toAbsolutePath(), cmd)) {

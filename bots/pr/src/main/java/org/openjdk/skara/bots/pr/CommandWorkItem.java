@@ -147,7 +147,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
 
         var census = CensusInstance.create(bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr);
         for (var entry : unprocessedCommands) {
-            processCommand(pr, census, scratchPath.resolve("pr"), entry.getKey(), entry.getValue(), comments);
+            processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), entry.getKey(), entry.getValue(), comments);
         }
     }
 

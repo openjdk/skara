@@ -60,6 +60,11 @@ class TestRepository implements ReadOnlyRepository {
         return branches;
     }
 
+    @Override
+    public List<Branch> branches(String remote) throws IOException {
+        return branches;
+    }
+
     void setBranches(List<Branch> branches) {
         this.branches = branches;
     }
@@ -230,6 +235,10 @@ class TestRepository implements ReadOnlyRepository {
     }
 
     public List<StatusEntry> status(Hash from, Hash to) throws IOException {
+        return Collections.emptyList();
+    }
+
+    public List<StatusEntry> status() throws IOException {
         return Collections.emptyList();
     }
 

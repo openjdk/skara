@@ -122,6 +122,8 @@ public class GitHubPullRequest implements PullRequest {
                 break;
         }
         query.put("body", body);
+        query.put("commit_id", headHash().hex());
+        query.put("comments", JSON.array());
         request.post("pulls/" + json.get("number").toString() + "/reviews")
                .body(query)
                .execute();
