@@ -97,7 +97,7 @@ public class TestBot implements Bot {
                     jobs = ci.jobsFor(pr);
                 } catch (IOException e) {
                     log.info("Could not retrieve test jobs for PR: " + desc);
-                    log.info(e.getMessage());
+                    log.throwing("TestBot", "getPeriodicItems", e);
                 }
 
                 if (!jobs.isEmpty()) {
