@@ -29,6 +29,7 @@ import org.openjdk.skara.vcs.*;
 import java.io.*;
 import java.net.*;
 import java.nio.file.Path;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -70,6 +71,14 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     @Override
     public List<PullRequest> pullRequests() {
         return new ArrayList<>(host.getPullRequests(this));
+    }
+
+    @Override
+    public List<PullRequest> pullRequests(ZonedDateTime updatedAfter) {
+        return host.getPullRequests(this).stream()
+                   .filter(pr -> pr.updatedAt().isAfter(updatedAfter))
+                   .sorted(Comparator.comparing(PullRequest::updatedAt).reversed())
+                   .collect(Collectors.toList());
     }
 
     @Override

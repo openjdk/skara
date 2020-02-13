@@ -1642,26 +1642,36 @@ class MailingListBridgeBotTests {
 
             // Make a comment and run the check within the cooldown period
             int counter;
+            boolean noMailReceived = false;
             for (counter = 1; counter < 10; ++counter) {
                 var start = Instant.now();
                 pr.addComment("Looks good - " + counter + " -");
 
                 // The bot should not bridge the comment due to cooldown
                 TestBotRunner.runPeriodicItems(mlBot);
+                try {
+                    noMailReceived = false;
+                    listServer.processIncoming(Duration.ofMillis(1));
+                } catch (RuntimeException e) {
+                    noMailReceived = true;
+                }
                 var elapsed = Duration.between(start, Instant.now());
                 if (elapsed.compareTo(cooldown) < 0) {
                     break;
                 } else {
                     log.info("Didn't do the test in time - retrying (elapsed: " + elapsed + " required: " + cooldown + ")");
-                    // Make sure to run the bot once more after the cooldown has expired to reset the state
+                    // Ensure that the cooldown expires
                     Thread.sleep(cooldown.toMillis());
-                    TestBotRunner.runPeriodicItems(mlBot);
-                    listServer.processIncoming();
+                    // If no mail was received, we have to flush it out
+                    if (noMailReceived) {
+                        TestBotRunner.runPeriodicItems(mlBot);
+                        listServer.processIncoming();
+                    }
                     cooldown = cooldown.multipliedBy(2);
                     mlBot = mlBotBuilder.cooldown(cooldown).build();
                 }
             }
-            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+            assertTrue(noMailReceived);
 
             // But after the cooldown period has passed, it should
             Thread.sleep(cooldown.toMillis());
@@ -1724,6 +1734,7 @@ class MailingListBridgeBotTests {
 
             // Make a new revision and run the check within the cooldown period
             int counter;
+            boolean noMailReceived = false;
             for (counter = 1; counter < 10; ++counter) {
                 var start = Instant.now();
                 var revHash = CheckableRepository.appendAndCommit(localRepo, "more stuff", "Update number - " + counter + " -");
@@ -1731,20 +1742,29 @@ class MailingListBridgeBotTests {
 
                 // The bot should not bridge the new revision due to cooldown
                 TestBotRunner.runPeriodicItems(mlBot);
+                try {
+                    noMailReceived = false;
+                    listServer.processIncoming(Duration.ofMillis(1));
+                } catch (RuntimeException e) {
+                    noMailReceived = true;
+                }
                 var elapsed = Duration.between(start, Instant.now());
                 if (elapsed.compareTo(cooldown) < 0) {
                     break;
                 } else {
                     log.info("Didn't do the test in time - retrying (elapsed: " + elapsed + " required: " + cooldown + ")");
-                    // Make sure to run the bot once more after the cooldown has expired to reset the state
+                    // Ensure that the cooldown expires
                     Thread.sleep(cooldown.toMillis());
-                    TestBotRunner.runPeriodicItems(mlBot);
-                    listServer.processIncoming();
+                    // If no mail was received, we have to flush it out
+                    if (noMailReceived) {
+                        TestBotRunner.runPeriodicItems(mlBot);
+                        listServer.processIncoming();
+                    }
                     cooldown = cooldown.multipliedBy(2);
                     mlBot = mlBotBuilder.cooldown(cooldown).build();
                 }
             }
-            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+            assertTrue(noMailReceived);
 
             // But after the cooldown period has passed, it should
             Thread.sleep(cooldown.toMillis());

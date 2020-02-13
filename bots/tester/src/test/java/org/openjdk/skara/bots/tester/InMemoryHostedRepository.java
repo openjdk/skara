@@ -27,6 +27,7 @@ import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 
 import java.net.URI;
+import java.time.ZonedDateTime;
 import java.util.*;
 
 class InMemoryHostedRepository implements HostedRepository {
@@ -57,6 +58,11 @@ class InMemoryHostedRepository implements HostedRepository {
 
     @Override
     public List<PullRequest> pullRequests() {
+        return null;
+    }
+
+    @Override
+    public List<PullRequest> pullRequests(ZonedDateTime updatedAfter) {
         return null;
     }
 

@@ -30,6 +30,7 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.time.*;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 public class MailingListBridgeBot implements Bot {
@@ -54,6 +55,11 @@ public class MailingListBridgeBot implements Bot {
     private final Duration cooldown;
     private final Path seedStorage;
     private final CooldownQuarantine cooldownQuarantine;
+
+    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
+
+    private ZonedDateTime lastPartialUpdate;
+    private ZonedDateTime lastFullUpdate;
 
     MailingListBridgeBot(EmailAddress from, HostedRepository repo, HostedRepository archive, String archiveRef,
                          HostedRepository censusRepo, String censusRef, EmailAddress list,
@@ -170,8 +176,20 @@ public class MailingListBridgeBot implements Bot {
     @Override
     public List<WorkItem> getPeriodicItems() {
         List<WorkItem> ret = new LinkedList<>();
+        List<PullRequest> prs;
 
-        for (var pr : codeRepo.pullRequests()) {
+        if (lastFullUpdate == null || lastFullUpdate.isBefore(ZonedDateTime.now().minus(Duration.ofMinutes(10)))) {
+            lastFullUpdate = ZonedDateTime.now();
+            lastPartialUpdate = lastFullUpdate;
+            log.info("Fetching all open pull requests");
+            prs = codeRepo.pullRequests();
+        } else {
+            log.info("Fetching only pull requests updated after " + lastPartialUpdate.minus(cooldown));
+            prs = codeRepo.pullRequests(lastPartialUpdate.minus(cooldown));
+            lastPartialUpdate = ZonedDateTime.now();
+        }
+
+        for (var pr : prs) {
             var quarantineStatus = cooldownQuarantine.status(pr);
             if (quarantineStatus == CooldownQuarantine.Status.IN_QUARANTINE) {
                 continue;
