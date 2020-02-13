@@ -26,6 +26,7 @@ import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 
 import java.net.URI;
+import java.time.ZonedDateTime;
 import java.util.*;
 
 public interface HostedRepository {
@@ -37,7 +38,18 @@ public interface HostedRepository {
                                   List<String> body,
                                   boolean draft);
     PullRequest pullRequest(String id);
+
+    /**
+     * Returns a list of all open pull requests.
+     */
     List<PullRequest> pullRequests();
+
+    /**
+     * Returns a list of all pull requests (both open and closed) that have been updated after the
+     * provided time, ordered by latest updated first. If there are many pull requests that
+     * match, the list may have been truncated.
+     */
+    List<PullRequest> pullRequests(ZonedDateTime updatedAfter);
     List<PullRequest> findPullRequestsWithComment(String author, String body);
     Optional<PullRequest> parsePullRequestUrl(String url);
     String name();

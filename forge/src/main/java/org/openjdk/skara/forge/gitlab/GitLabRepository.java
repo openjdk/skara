@@ -29,7 +29,8 @@ import org.openjdk.skara.vcs.*;
 
 import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -107,6 +108,16 @@ public class GitLabRepository implements HostedRepository {
     public List<PullRequest> pullRequests() {
         return request.get("merge_requests")
                       .param("state", "opened")
+                      .execute().stream()
+                      .map(value -> new GitLabMergeRequest(this, value, request))
+                      .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<PullRequest> pullRequests(ZonedDateTime updatedAfter) {
+        return request.get("merge_requests")
+                      .param("order_by", "updated_at")
+                      .param("updated_after", updatedAfter.format(DateTimeFormatter.ISO_DATE_TIME))
                       .execute().stream()
                       .map(value -> new GitLabMergeRequest(this, value, request))
                       .collect(Collectors.toList());

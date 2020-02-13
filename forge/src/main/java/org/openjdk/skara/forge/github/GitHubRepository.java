@@ -29,6 +29,7 @@ import org.openjdk.skara.vcs.*;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -126,6 +127,19 @@ public class GitHubRepository implements HostedRepository {
     public List<PullRequest> pullRequests() {
         return request.get("pulls").execute().asArray().stream()
                       .map(jsonValue -> new GitHubPullRequest(this, jsonValue, request))
+                      .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<PullRequest> pullRequests(ZonedDateTime updatedAfter) {
+        return request.get("pulls")
+                      .param("state", "all")
+                      .param("sort", "updated")
+                      .param("direction", "desc")
+                      .maxPages(1)
+                      .execute().asArray().stream()
+                      .map(jsonValue -> new GitHubPullRequest(this, jsonValue, request))
+                      .filter(pr -> pr.updatedAt().isAfter(updatedAfter))
                       .collect(Collectors.toList());
     }
 
