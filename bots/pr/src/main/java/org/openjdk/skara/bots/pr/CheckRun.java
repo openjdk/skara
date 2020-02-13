@@ -346,7 +346,7 @@ class CheckRun {
 
         progressBody.append("\n\n## Instructions\n");
         progressBody.append("To checkout these changes locally:\n");
-        progressBody.append(bashCodeBlock(checkoutCommands(pr)));
+        progressBody.append(bashCodeBlock(checkoutCommands()));
 
         return progressBody.toString();
     }
@@ -355,7 +355,7 @@ class CheckRun {
         return "```bash\n" + content + "```\n";
     }
 
-    private static String checkoutCommands(PullRequest pr) {
+    private String checkoutCommands() {
         var repoUrl = pr.repository().webUrl();
         return
            "$ git fetch " + repoUrl + " " + pr.fetchRef() + ":pull/" + pr.id() + "\n" +
