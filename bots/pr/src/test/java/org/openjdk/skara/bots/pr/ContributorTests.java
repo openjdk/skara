@@ -29,6 +29,7 @@ import org.openjdk.skara.vcs.Repository;
 import org.junit.jupiter.api.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
@@ -294,6 +295,65 @@ class ContributorTests {
             pr.addComment("/contributor remove Foo Bar <foo.bar@host.com>");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "successfully removed.");
+        }
+    }
+
+    @Test
+    void prBodyUpdates(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(integrator.forge().currentUser().id())
+                                           .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Add a contributor
+            pr.addComment("/contributor add Foo Bar <foo.bar@host.com>");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "successfully added.");
+
+            // Verify that body is updated
+            var body = pr.body().split("\n");
+            var contributorsHeaderIndex = -1;
+            for (var i = 0; i < body.length; i++) {
+                var line = body[i];
+                if (line.equals("## Contributors")) {
+                    contributorsHeaderIndex = i;
+                    break;
+                }
+            }
+            assertNotEquals(contributorsHeaderIndex, -1);
+            var contributors = new ArrayList<String>();
+            for (var i = contributorsHeaderIndex + 1; i < body.length && body[i].startsWith(" * "); i++) {
+                contributors.add(body[i].substring(3));
+            }
+            assertEquals(1, contributors.size());
+            assertEquals("Foo Bar `<foo.bar@host.com>`", contributors.get(0));
+
+            // Remove contributor
+            pr.addComment("/contributor remove Foo Bar <foo.bar@host.com>");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "successfully removed.");
+
+            // Verify that body does not contain "Contributors" section
+            for (var line : pr.body().split("\n")) {
+                assertNotEquals("## Contributors", line);
+            }
         }
     }
 }

@@ -27,6 +27,7 @@ import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
+import org.openjdk.skara.email.EmailAddress;
 
 import java.io.*;
 import java.util.*;
@@ -275,6 +276,23 @@ class CheckRun {
         }
     }
 
+    private String formatContributor(EmailAddress contributor) {
+        var name = contributor.fullName().orElseThrow();
+        return name + " `<" + contributor.address() + ">`";
+    }
+
+    private Optional<String> getContributorsList(List<Comment> comments) {
+        var contributors = Contributors.contributors(pr.repository().forge().currentUser(), comments)
+                                       .stream()
+                                       .map(c -> " * " + formatContributor(c))
+                                       .collect(Collectors.joining("\n"));
+        if (contributors.length() > 0) {
+            return Optional.of(contributors);
+        } else {
+            return Optional.empty();
+        }
+    }
+
     private String getStatusMessage(List<Comment> comments, List<Review> reviews, PullRequestCheckIssueVisitor visitor) {
         var progressBody = new StringBuilder();
         progressBody.append("## Progress\n");
@@ -312,6 +330,11 @@ class CheckRun {
         getReviewersList(reviews).ifPresent(reviewers -> {
             progressBody.append("\n\n## Approvers\n");
             progressBody.append(reviewers);
+        });
+
+        getContributorsList(comments).ifPresent(contributors -> {
+            progressBody.append("\n\n## Contributors\n");
+            progressBody.append(contributors);
         });
 
         return progressBody.toString();
