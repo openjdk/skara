@@ -111,6 +111,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
                                           .headers(headers)
                                           .sendInterval(interval)
                                           .cooldown(cooldown)
+                                          .seedStorage(configuration.storageFolder().resolve("seeds"))
                                           .build();
             ret.add(bot);
 
