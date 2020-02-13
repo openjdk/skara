@@ -90,30 +90,36 @@ public class MailingListBridgeBotFactory implements BotFactory {
 
             var list = EmailAddress.parse(repoConfig.get("list").asString());
             var folder = repoConfig.contains("folder") ? repoConfig.get("folder").asString() : configuration.repositoryName(repo);
-            var bot = MailingListBridgeBot.newBuilder().from(from)
-                                          .repo(configuration.repository(repo))
-                                          .archive(archiveRepo)
-                                          .archiveRef(archiveRef)
-                                          .censusRepo(censusRepo)
-                                          .censusRef(censusRef)
-                                          .list(list)
-                                          .ignoredUsers(ignoredUsers)
-                                          .ignoredComments(ignoredComments)
-                                          .listArchive(listArchive)
-                                          .smtpServer(listSmtp)
-                                          .webrevStorageRepository(webrevRepo)
-                                          .webrevStorageRef(webrevRef)
-                                          .webrevStorageBase(Path.of(folder))
-                                          .webrevStorageBaseUri(URIBuilder.base(webrevWeb).build())
-                                          .readyLabels(readyLabels)
-                                          .readyComments(readyComments)
-                                          .issueTracker(issueTracker)
-                                          .headers(headers)
-                                          .sendInterval(interval)
-                                          .cooldown(cooldown)
-                                          .seedStorage(configuration.storageFolder().resolve("seeds"))
-                                          .build();
-            ret.add(bot);
+            var botBuilder = MailingListBridgeBot.newBuilder().from(from)
+                                                 .repo(configuration.repository(repo))
+                                                 .archive(archiveRepo)
+                                                 .archiveRef(archiveRef)
+                                                 .censusRepo(censusRepo)
+                                                 .censusRef(censusRef)
+                                                 .list(list)
+                                                 .ignoredUsers(ignoredUsers)
+                                                 .ignoredComments(ignoredComments)
+                                                 .listArchive(listArchive)
+                                                 .smtpServer(listSmtp)
+                                                 .webrevStorageRepository(webrevRepo)
+                                                 .webrevStorageRef(webrevRef)
+                                                 .webrevStorageBase(Path.of(folder))
+                                                 .webrevStorageBaseUri(URIBuilder.base(webrevWeb).build())
+                                                 .readyLabels(readyLabels)
+                                                 .readyComments(readyComments)
+                                                 .issueTracker(issueTracker)
+                                                 .headers(headers)
+                                                 .sendInterval(interval)
+                                                 .cooldown(cooldown)
+                                                 .seedStorage(configuration.storageFolder().resolve("seeds"));
+
+            if (repoConfig.contains("reponame")) {
+                botBuilder.repoInSubject(Pattern.compile(repoConfig.get("reponame").asString()));
+            }
+            if (repoConfig.contains("branchname")) {
+                botBuilder.branchInSubject(Pattern.compile(repoConfig.get("branchname").asString()));
+            }
+            ret.add(botBuilder.build());
 
             allListNames.add(list);
             allRepositories.add(configuration.repository(repo));
