@@ -114,7 +114,8 @@ public class GitLabHost implements Forge {
         var id = details.get("id").asInt();
         var username = details.get("username").asString();
         var name = details.get("name").asString();
-        return new HostUser(id, username, name);
+        var email = details.get("email").asString();
+        return new HostUser(id, username, name, email);
     }
 
     @Override

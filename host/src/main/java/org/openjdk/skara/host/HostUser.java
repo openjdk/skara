@@ -23,6 +23,7 @@
 package org.openjdk.skara.host;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 public class HostUser {
@@ -30,23 +31,41 @@ public class HostUser {
     private final String username;
     private final Supplier<String> nameSupplier;
     private String name;
+    private String email;
 
-    public HostUser(String id, String username, Supplier<String> nameSupplier) {
+    public HostUser(String id, String username, Supplier<String> nameSupplier, String email) {
         this.id = id;
         this.username = username;
         this.nameSupplier = nameSupplier;
+        this.email = email;
+    }
+
+    public HostUser(String id, String username, Supplier<String> nameSupplier) {
+        this(id, username, nameSupplier, null);
     }
 
     public HostUser(String id, String username, String name) {
         this(id, username, () -> name);
     }
 
+    public HostUser(String id, String username, String name, String email) {
+        this(id, username, () -> name, email);
+    }
+
     public HostUser(int id, String username, String name) {
         this(String.valueOf(id), username, name);
     }
 
+    public HostUser(int id, String username, String name, String email) {
+        this(String.valueOf(id), username, name, email);
+    }
+
     public HostUser(int id, String username, Supplier<String> nameSupplier) {
         this(String.valueOf(id), username, nameSupplier);
+    }
+
+    public HostUser(int id, String username, Supplier<String> nameSupplier, String email) {
+        this(String.valueOf(id), username, nameSupplier, email);
     }
 
     @Override
@@ -80,6 +99,10 @@ public class HostUser {
             name = nameSupplier.get();
         }
         return name;
+    }
+
+    public Optional<String> email() {
+        return Optional.ofNullable(email);
     }
 
     @Override
