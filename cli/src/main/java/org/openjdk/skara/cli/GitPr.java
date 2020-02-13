@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -40,12 +40,11 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
 public class GitPr {
-    private static final StandardOpenOption APPEND = StandardOpenOption.APPEND;
     private static final Pattern ISSUE_ID_PATTERN = Pattern.compile("([A-Za-z][A-Za-z0-9]+)?-([0-9]+)");
     private static final Pattern ISSUE_MARKDOWN_PATTERN =
         Pattern.compile("^\\[([A-Z]+-[0-9]+)\\]\\(https:\\/\\/bugs.openjdk.java.net\\/browse\\/[A-Z]+-[0-9]+\\): .*$");
@@ -53,13 +52,6 @@ public class GitPr {
     private static void exit(String fmt, Object...args) {
         System.err.println(String.format(fmt, args));
         System.exit(1);
-    }
-
-    private static <T> Supplier<T> die(String fmt, Object... args) {
-        return () -> {
-            exit(fmt, args);
-            return null;
-        };
     }
 
     private static String gitConfig(String key) {
@@ -304,7 +296,17 @@ public class GitPr {
             editor = "vi";
         }
 
-        var pb = new ProcessBuilder(editor, file.toString());
+        // As an editor command may have multiple arguments, we need to add each single one
+        // to the ProcessBuilder. Arguments are split by whitespace and can be quoted.
+        // e.g. I found core.editor =
+        // \"C:\\\\Program Files\\\\Notepad++\\\\notepad++.exe\" -multiInst -notabbar -nosession -noPlugin
+        List<String> editorParts = new ArrayList<>();
+        Matcher em = Pattern.compile("\\s*([^\"]\\S*|\".+?\")\\s*").matcher(editor);
+        while (em.find()) {
+            editorParts.add(em.group(1));
+        }
+        editorParts.add(file.toString());
+        var pb = new ProcessBuilder(editorParts);
         pb.inheritIO();
         var p = pb.start();
         try {

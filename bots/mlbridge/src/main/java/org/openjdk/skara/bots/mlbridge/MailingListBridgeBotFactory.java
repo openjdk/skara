@@ -110,7 +110,8 @@ public class MailingListBridgeBotFactory implements BotFactory {
                                                  .issueTracker(issueTracker)
                                                  .headers(headers)
                                                  .sendInterval(interval)
-                                                 .cooldown(cooldown);
+                                                 .cooldown(cooldown)
+                                                 .seedStorage(configuration.storageFolder().resolve("seeds"));
 
             if (repoConfig.contains("reponame")) {
                 botBuilder.repoInSubject(Pattern.compile(repoConfig.get("reponame").asString()));

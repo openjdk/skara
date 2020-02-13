@@ -54,6 +54,7 @@ public class MailingListBridgeBot implements Bot {
     private final Duration cooldown;
     private final Pattern repoInSubject;
     private final Pattern branchInSubject;
+    private final Path seedStorage;
     private final CooldownQuarantine cooldownQuarantine;
 
     MailingListBridgeBot(EmailAddress from, HostedRepository repo, HostedRepository archive, String archiveRef,
@@ -62,7 +63,8 @@ public class MailingListBridgeBot implements Bot {
                          HostedRepository webrevStorageRepository, String webrevStorageRef,
                          Path webrevStorageBase, URI webrevStorageBaseUri, Set<String> readyLabels,
                          Map<String, Pattern> readyComments, URI issueTracker, Map<String, String> headers,
-                         Duration sendInterval, Duration cooldown, Pattern repoInSubject, Pattern branchInSubject) {
+                         Duration sendInterval, Duration cooldown, Pattern repoInSubject, Pattern branchInSubject,
+                         Path seedStorage) {
         emailAddress = from;
         codeRepo = repo;
         archiveRepo = archive;
@@ -82,6 +84,7 @@ public class MailingListBridgeBot implements Bot {
         this.cooldown = cooldown;
         this.repoInSubject = repoInSubject;
         this.branchInSubject = branchInSubject;
+        this.seedStorage = seedStorage;
 
         webrevStorage = new WebrevStorage(webrevStorageRepository, webrevStorageRef, webrevStorageBase,
                                           webrevStorageBaseUri, from);
@@ -171,6 +174,10 @@ public class MailingListBridgeBot implements Bot {
 
     Pattern branchInSubject() {
         return branchInSubject;
+    }
+
+    Optional<Path> seedStorage() {
+        return Optional.ofNullable(seedStorage);
     }
 
     @Override
