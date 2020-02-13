@@ -344,8 +344,24 @@ class CheckRun {
             progressBody.append(contributors);
         });
 
+        progressBody.append("\n\n## Instructions\n");
+        progressBody.append("To checkout these changes locally:\n");
+        progressBody.append(bashCodeBlock(checkoutCommands(pr)));
+
         return progressBody.toString();
     }
+
+    private static String bashCodeBlock(String content) {
+        return "```bash\n" + content + "```\n";
+    }
+
+    private static String checkoutCommands(PullRequest pr) {
+        var repoUrl = pr.repository().webUrl();
+        return
+           "$ git fetch " + repoUrl + " " + pr.fetchRef() + ":pull/" + pr.id() + "\n" +
+           "$ git checkout pull/" + pr.id() + "\n";
+    }
+
 
     private String updateStatusMessage(String message) {
         var description = pr.body();
