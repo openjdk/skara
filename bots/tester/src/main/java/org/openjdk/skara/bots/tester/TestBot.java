@@ -30,6 +30,7 @@ import org.openjdk.skara.forge.*;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class TestBot implements Bot {
@@ -43,6 +44,7 @@ public class TestBot implements Bot {
         }
     }
 
+    private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final ContinuousIntegration ci;
     private final String approversGroupId;
     private final List<String> availableJobs;
@@ -88,38 +90,43 @@ public class TestBot implements Bot {
                                          pr));
             } else {
                 // is there a job running for this PR?
+                var desc = pr.repository().name() + "#" + pr.id();
+                List<Job> jobs = List.of();
                 try {
-                    var jobs = ci.jobsFor(pr);
-                    if (!jobs.isEmpty()) {
-                        var shouldUpdate = false;
-                        for (var job : jobs) {
-                            if (!states.containsKey(job.id())) {
+                    log.info("Getting test jobs for " + desc);
+                    jobs = ci.jobsFor(pr);
+                } catch (IOException e) {
+                    log.info("Could not retrieve test jobs for PR: " + desc);
+                    log.throwing("TestBot", "getPeriodicItems", e);
+                }
+
+                if (!jobs.isEmpty()) {
+                    var shouldUpdate = false;
+                    for (var job : jobs) {
+                        if (!states.containsKey(job.id())) {
+                            shouldUpdate = true;
+                            states.put(job.id(), new Observation(job.state(), job.state()));
+                        } else {
+                            var observed = states.get(job.id());
+
+                            if (!observed.last.equals(Job.State.COMPLETED) ||
+                                !observed.nextToLast.equals(Job.State.COMPLETED)) {
                                 shouldUpdate = true;
-                                states.put(job.id(), new Observation(job.state(), job.state()));
-                            } else {
-                                var observed = states.get(job.id());
-
-                                if (!observed.last.equals(Job.State.COMPLETED) ||
-                                    !observed.nextToLast.equals(Job.State.COMPLETED)) {
-                                    shouldUpdate = true;
-                                }
-
-                                observed.nextToLast = observed.last;
-                                observed.last = job.state();
                             }
-                        }
-                        if (shouldUpdate) {
-                            ret.add(new TestWorkItem(ci,
-                                                     approversGroupId,
-                                                     availableJobs,
-                                                     defaultJobs,
-                                                     name,
-                                                     storage,
-                                                     pr));
+
+                            observed.nextToLast = observed.last;
+                            observed.last = job.state();
                         }
                     }
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
+                    if (shouldUpdate) {
+                        ret.add(new TestWorkItem(ci,
+                                                 approversGroupId,
+                                                 availableJobs,
+                                                 defaultJobs,
+                                                 name,
+                                                 storage,
+                                                 pr));
+                    }
                 }
             }
         }
