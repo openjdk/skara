@@ -22,9 +22,11 @@
  */
 package org.openjdk.skara.host;
 
+import java.util.Optional;
+
 public interface Host {
     boolean isValid();
-    HostUser user(String username);
+    Optional<HostUser> user(String username);
     HostUser currentUser();
     boolean isMemberOf(String groupId, HostUser user);
 }

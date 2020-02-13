@@ -128,7 +128,7 @@ public class GitHubHost implements Forge {
 
     private String getFullName(String userName) {
         var details = user(userName);
-        return details.fullName();
+        return details.get().fullName();
     }
 
     // Most GitHub API's return user information in this format
@@ -182,9 +182,15 @@ public class GitHubHost implements Forge {
     }
 
     @Override
-    public HostUser user(String username) {
-        var details = request.get("users/" + URLEncoder.encode(username, StandardCharsets.UTF_8)).execute().asObject();
-        return asHostUser(details);
+    public Optional<HostUser> user(String username) {
+        var details = request.get("users/" + URLEncoder.encode(username, StandardCharsets.UTF_8))
+                             .onError(r -> JSON.of())
+                             .execute();
+        if (details.isNull()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(asHostUser(details.asObject()));
     }
 
     private static HostUser asHostUser(JSONObject details) {
@@ -205,7 +211,7 @@ public class GitHubHost implements Forge {
             if (application != null) {
                 var appDetails = application.getAppDetails();
                 var appName = appDetails.get("name").asString() + "[bot]";
-                currentUser = user(appName);
+                currentUser = user(appName).get();
             } else if (pat != null) {
                 // Cannot always trust username in PAT, e.g. Git Credential Manager
                 // on Windows always return "PersonalAccessToken" as username.

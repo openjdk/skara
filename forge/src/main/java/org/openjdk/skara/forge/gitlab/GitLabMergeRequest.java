@@ -66,7 +66,7 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public HostUser author() {
-        return repository.forge().user(json.get("author").get("username").asString());
+        return repository.forge().user(json.get("author").get("username").asString()).get();
     }
 
     @Override
@@ -122,7 +122,7 @@ public class GitLabMergeRequest implements PullRequest {
                               }
                           }
                           var id = obj.get("id").asInt();
-                          return new Review(createdAt, reviewer, verdict, hash, id, null);
+                          return new Review(createdAt, reviewer.get(), verdict, hash, id, null);
                       })
                       .collect(Collectors.toList());
     }
@@ -624,7 +624,7 @@ public class GitLabMergeRequest implements PullRequest {
         var assignee = json.get("assignee").asObject();
         if (assignee != null) {
             var user = repository.forge().user(assignee.get("username").asString());
-            return List.of(user);
+            return List.of(user.get());
         }
         return Collections.emptyList();
     }
