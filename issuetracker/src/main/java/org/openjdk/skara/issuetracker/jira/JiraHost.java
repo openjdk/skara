@@ -93,14 +93,19 @@ public class JiraHost implements IssueTracker {
     }
 
     @Override
-    public HostUser user(String username) {
+    public Optional<HostUser> user(String username) {
         var data = request.get("user")
                           .param("username", username)
+                          .onError(r -> JSON.of())
                           .execute();
+        if (data.isNull()) {
+            return Optional.empty();
+        }
+
         var user = new HostUser(data.get("name").asString(),
                                 data.get("name").asString(),
                                 data.get("displayName").asString());
-        return user;
+        return Optional.of(user);
     }
 
     @Override
