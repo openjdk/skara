@@ -202,7 +202,8 @@ public class GitHubHost implements Forge {
         if (name == null) {
             name = login;
         }
-        return new HostUser(id, login, name);
+        var email = details.get("email").asString();
+        return new HostUser(id, login, name, email);
     }
 
     @Override
