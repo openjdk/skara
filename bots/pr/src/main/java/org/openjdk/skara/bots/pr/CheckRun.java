@@ -44,6 +44,7 @@ class CheckRun {
     private final List<Review> activeReviews;
     private final Set<String> labels;
     private final CensusInstance censusInstance;
+    private final boolean ignoreStaleReviews;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     private final String progressMarker = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
@@ -53,7 +54,7 @@ class CheckRun {
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, PullRequestInstance prInstance, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
-                     CensusInstance censusInstance) {
+                     CensusInstance censusInstance, boolean ignoreStaleReviews) {
         this.workItem = workItem;
         this.pr = pr;
         this.prInstance = prInstance;
@@ -63,11 +64,13 @@ class CheckRun {
         this.labels = new HashSet<>(labels);
         this.newLabels = new HashSet<>(labels);
         this.censusInstance = censusInstance;
+        this.ignoreStaleReviews = ignoreStaleReviews;
     }
 
     static void execute(CheckWorkItem workItem, PullRequest pr, PullRequestInstance prInstance, List<Comment> comments,
-                        List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance) {
-        var run = new CheckRun(workItem, pr, prInstance, comments, allReviews, activeReviews, labels, censusInstance);
+                        List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance,
+                        boolean ignoreStaleReviews) {
+        var run = new CheckRun(workItem, pr, prInstance, comments, allReviews, activeReviews, labels, censusInstance, ignoreStaleReviews);
         run.checkStatus();
     }
 
@@ -264,7 +267,11 @@ class CheckRun {
                                .map(review -> {
                                    var entry = " * " + formatReviewer(review.reviewer());
                                    if (!review.hash().equals(pr.headHash())) {
-                                       entry += " **Note!** Review applies to " + review.hash();
+                                       if (ignoreStaleReviews) {
+                                           entry += " 🔄 Re-review required (review applies to " + review.hash() + ")";
+                                       } else {
+                                           entry += " ⚠️ Review applies to " + review.hash();
+                                       }
                                    }
                                    return entry;
                                })
@@ -328,7 +335,7 @@ class CheckRun {
         }
 
         getReviewersList(reviews).ifPresent(reviewers -> {
-            progressBody.append("\n\n## Approvers\n");
+            progressBody.append("\n\n## Reviewers\n");
             progressBody.append(reviewers);
         });
 
