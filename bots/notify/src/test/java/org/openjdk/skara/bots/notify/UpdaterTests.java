@@ -1008,7 +1008,7 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var commitIcon = URI.create("http://www.example.com/commit.png");
-            var updater = new IssueUpdater(issueProject, false, null, true, commitIcon, true, null);
+            var updater = new IssueUpdater(issueProject, false, null, true, commitIcon, true, null, false);
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
@@ -1064,7 +1064,7 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var commitIcon = URI.create("http://www.example.com/commit.png");
-            var updater = new IssueUpdater(issueProject, false, null, true, commitIcon, true, null);
+            var updater = new IssueUpdater(issueProject, false, null, true, commitIcon, true, null, false);
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
@@ -1105,7 +1105,7 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var commitIcon = URI.create("http://www.example.com/commit.png");
-            var updater = new IssueUpdater(issueProject, false, null, false, commitIcon, true, Map.of("master", "2.0"));
+            var updater = new IssueUpdater(issueProject, false, null, false, commitIcon, true, Map.of("master", "2.0"), false);
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
@@ -1150,7 +1150,7 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var commitIcon = URI.create("http://www.example.com/commit.png");
-            var updater = new IssueUpdater(issueProject, false, null, true, commitIcon, true, null);
+            var updater = new IssueUpdater(issueProject, false, null, true, commitIcon, true, null, false);
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
@@ -1213,7 +1213,7 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var issueProject = credentials.getIssueProject();
-            var updater = new IssueUpdater(issueProject, false, null, false, null, true, Map.of("master", "12u14"));
+            var updater = new IssueUpdater(issueProject, false, null, false, null, true, Map.of("master", "12u14"), false);
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
@@ -1249,7 +1249,7 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var issueProject = credentials.getIssueProject();
-            var updater = new IssueUpdater(issueProject, false, null, false, null, true, Map.of("master", "12u14"));
+            var updater = new IssueUpdater(issueProject, false, null, false, null, true, Map.of("master", "12u14"), false);
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
@@ -1285,7 +1285,7 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var issueProject = credentials.getIssueProject();
-            var updater = new IssueUpdater(issueProject, false, null, false, null, true, Map.of("master", "12.0.2"));
+            var updater = new IssueUpdater(issueProject, false, null, false, null, true, Map.of("master", "12.0.2"), false);
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
 
@@ -1357,7 +1357,7 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var reviewIcon = URI.create("http://www.example.com/review.png");
-            var updater = new IssueUpdater(issueProject, true, reviewIcon, false, null, false, null);
+            var updater = new IssueUpdater(issueProject, true, reviewIcon, false, null, false, null, false);
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(), List.of(updater), Set.of("rfr"),
                                           Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("This is now ready")));
@@ -1446,7 +1446,7 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var reviewIcon = URI.create("http://www.example.com/review.png");
-            var updater = new IssueUpdater(issueProject, false, reviewIcon, false, null, false,null);
+            var updater = new IssueUpdater(issueProject, false, reviewIcon, false, null, false,null, false);
             var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
                                           prIssuesStorage, List.of(), List.of(updater), Set.of("rfr"),
                                           Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("This is now ready")));
@@ -1473,6 +1473,68 @@ class UpdaterTests {
             // The issue should still not contain a link to the PR
             var links = issue.links();
             assertEquals(0, links.size());
+        }
+    }
+
+    @Test
+    void testPullRequestPROnly(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var issueProject = credentials.getIssueProject();
+            var reviewIcon = URI.create("http://www.example.com/review.png");
+            var updater = new IssueUpdater(issueProject, true, reviewIcon, false, null, false, null, true);
+            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile(".*"), tagStorage, branchStorage,
+                                          prIssuesStorage, List.of(updater), List.of(updater), Set.of(), Map.of());
+
+            // Initialize history
+            localRepo.push(localRepo.resolve("master").orElseThrow(), repo.url(), "other");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and a pull request to fix it
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
+            localRepo.push(editHash, repo.url(), "edit", true);
+            var pr = credentials.createPullRequest(repo, "other", "edit", issue.id() + ": Fix that issue");
+            pr.setBody("\n\n## Issue\n[" + issue.id() + "](http://www.test.test/): The issue");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The issue should now contain a link to the PR
+            var links = issue.links();
+            assertEquals(1, links.size());
+            assertEquals(pr.webUrl(), links.get(0).uri().orElseThrow());
+            assertEquals(reviewIcon, links.get(0).iconUrl().orElseThrow());
+
+            // Simulate integration
+            localRepo.push(editHash, repo.url(), "other");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The changeset should be reflected in a comment
+            var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+
+            var comments = updatedIssue.comments();
+            assertEquals(1, comments.size());
+            var comment = comments.get(0);
+            assertTrue(comment.body().contains(editHash.abbreviate()));
+
+            // Now simulate a merge to another branch
+            localRepo.push(editHash, repo.url(), "master");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // No additional comment should have been made
+            updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            comments = updatedIssue.comments();
+            assertEquals(1, comments.size());
         }
     }
 }
