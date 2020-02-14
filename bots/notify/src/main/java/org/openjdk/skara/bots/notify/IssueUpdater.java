@@ -306,7 +306,9 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
                         var username = findIssueUsername(commit);
                         if (username.isPresent()) {
                             var assignee = issueProject.issueTracker().user(username.get());
-                            issue.setAssignees(List.of(assignee));
+                            if (assignee.isPresent()) {
+                                issue.setAssignees(List.of(assignee.get()));
+                            }
                         }
                     }
                 }

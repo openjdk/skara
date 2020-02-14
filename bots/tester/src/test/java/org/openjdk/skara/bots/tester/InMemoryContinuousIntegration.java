@@ -59,8 +59,8 @@ class InMemoryContinuousIntegration implements ContinuousIntegration {
     }
 
     @Override
-    public HostUser user(String username) {
-        return users.get(username);
+    public Optional<HostUser> user(String username) {
+        return Optional.ofNullable(users.get(username));
     }
 
     @Override

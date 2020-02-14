@@ -803,6 +803,8 @@ public class GitPr {
                     var usernames = Arrays.asList(arguments.get("assignees").asString().split(","));
                     var assignees = usernames.stream()
                                              .map(u -> host.user(u))
+                                             .filter(Optional::isPresent)
+                                             .map(Optional::get)
                                              .collect(Collectors.toList());
                     pr.setAssignees(assignees);
                 }
@@ -1060,6 +1062,8 @@ public class GitPr {
                 var usernames = Arrays.asList(assigneesOption.split(","));
                 var assignees = usernames.stream()
                                          .map(u -> host.user(u))
+                                         .filter(Optional::isPresent)
+                                         .map(Optional::get)
                                          .collect(Collectors.toList());
                 pr.setAssignees(assignees);
             }
@@ -1373,6 +1377,8 @@ public class GitPr {
                 var usernames = Arrays.asList(assigneesOption.split(","));
                 var assignees = usernames.stream()
                     .map(u -> host.user(u))
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
                     .collect(Collectors.toList());
                 pr.setAssignees(assignees);
             }

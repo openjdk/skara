@@ -42,8 +42,8 @@ class InMemoryHost implements Forge {
     }
 
     @Override
-    public HostUser user(String username) {
-        return null;
+    public Optional<HostUser> user(String username) {
+        return Optional.empty();
     }
 
     @Override
