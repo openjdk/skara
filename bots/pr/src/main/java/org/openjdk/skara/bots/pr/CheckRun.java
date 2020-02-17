@@ -347,7 +347,6 @@ class CheckRun {
         });
 
         progressBody.append("\n\n### Download\n");
-        progressBody.append("To checkout these changes locally:\n");
         progressBody.append(checkoutCommands());
 
         return progressBody.toString();
@@ -359,7 +358,6 @@ class CheckRun {
            "`$ git fetch " + repoUrl + " " + pr.fetchRef() + ":pull/" + pr.id() + "`\n" +
            "`$ git checkout pull/" + pr.id() + "`\n";
     }
-
 
     private String updateStatusMessage(String message) {
         var description = pr.body();
