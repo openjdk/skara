@@ -257,14 +257,14 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
 
                 String requestedVersion = null;
                 if (prOnly) {
-                    var pullRequests = issue.links().stream()
+                    var pullRequestCount = issue.links().stream()
                                             .filter(link -> link.title().orElse("notitle").equals("Review"))
                                             .filter(link -> link.summary().orElse("nosummary").startsWith(repository.name() + "/"))
                                             .map(link -> link.summary().orElseThrow().substring(repository.name().length() + 1))
                                             .map(repository::pullRequest)
                                             .filter(pr -> pr.targetRef().equals(branch.name()))
-                                            .collect(Collectors.toList());
-                    if (pullRequests.size() == 0) {
+                                            .count();
+                    if (pullRequestCount == 0) {
                         log.info("Skipping commit " + commit.hash().abbreviate() + " for repository " + repository.name() +
                                          " on branch " + branch.name() + " - no matching PR found");
                         continue;
