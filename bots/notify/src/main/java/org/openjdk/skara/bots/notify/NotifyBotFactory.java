@@ -164,7 +164,15 @@ public class NotifyBotFactory implements BotFactory {
                     fixVersions = issuesConf.get("fixversions").fields().stream()
                                             .collect(Collectors.toMap(JSONObject.Field::name, f -> f.value().asString()));
                 }
-                var updater = new IssueUpdater(issueProject, reviewLink, reviewIcon, commitLink, commitIcon, setFixVersion, fixVersions);
+                var prOnly = false;
+                if (issuesConf.contains("pronly")) {
+                    prOnly = issuesConf.get("pronly").asBoolean();
+                    if (setFixVersion) {
+                        throw new RuntimeException("cannot combine pronly with fixversions");
+                    }
+                }
+                var updater = new IssueUpdater(issueProject, reviewLink, reviewIcon, commitLink, commitIcon,
+                                               setFixVersion, fixVersions, prOnly);
                 updaters.add(updater);
                 prUpdaters.add(updater);
             }
