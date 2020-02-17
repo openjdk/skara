@@ -302,7 +302,8 @@ class CheckRun {
 
     private String getStatusMessage(List<Comment> comments, List<Review> reviews, PullRequestCheckIssueVisitor visitor) {
         var progressBody = new StringBuilder();
-        progressBody.append("## Progress\n");
+        progressBody.append("</hr>");
+        progressBody.append("### Progress\n");
         progressBody.append(getChecksList(visitor));
 
         var issue = Issue.fromString(pr.title());
@@ -311,13 +312,14 @@ class CheckRun {
             var allIssues = new ArrayList<Issue>();
             allIssues.add(issue.get());
             allIssues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments));
-            progressBody.append("\n\n## Issue");
+            progressBody.append("\n\n### Issue");
             if (allIssues.size() > 1) {
                 progressBody.append("s");
             }
             progressBody.append("\n");
             for (var currentIssue : allIssues) {
                 var iss = issueProject.issue(currentIssue.id());
+                progressBody.append(" * ");
                 if (iss.isPresent()) {
                     progressBody.append("[");
                     progressBody.append(iss.get().id());
@@ -335,31 +337,27 @@ class CheckRun {
         }
 
         getReviewersList(reviews).ifPresent(reviewers -> {
-            progressBody.append("\n\n## Reviewers\n");
+            progressBody.append("\n\n### Reviewers\n");
             progressBody.append(reviewers);
         });
 
         getContributorsList(comments).ifPresent(contributors -> {
-            progressBody.append("\n\n## Contributors\n");
+            progressBody.append("\n\n### Contributors\n");
             progressBody.append(contributors);
         });
 
-        progressBody.append("\n\n## Instructions\n");
+        progressBody.append("\n\n### Download\n");
         progressBody.append("To checkout these changes locally:\n");
-        progressBody.append(bashCodeBlock(checkoutCommands()));
+        progressBody.append(checkoutCommands());
 
         return progressBody.toString();
-    }
-
-    private static String bashCodeBlock(String content) {
-        return "```bash\n" + content + "```\n";
     }
 
     private String checkoutCommands() {
         var repoUrl = pr.repository().webUrl();
         return
-           "$ git fetch " + repoUrl + " " + pr.fetchRef() + ":pull/" + pr.id() + "\n" +
-           "$ git checkout pull/" + pr.id() + "\n";
+           "`$ git fetch " + repoUrl + " " + pr.fetchRef() + ":pull/" + pr.id() + "`\n" +
+           "`$ git checkout pull/" + pr.id() + "`\n";
     }
 
 
