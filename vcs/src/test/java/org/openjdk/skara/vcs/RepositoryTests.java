@@ -1963,7 +1963,7 @@ public class RepositoryTests {
     @ParameterizedTest
     @EnumSource(VCS.class)
     void testAnnotateTag(VCS vcs) throws IOException {
-        try (var dir = new TemporaryDirectory()) {
+        try (var dir = new TemporaryDirectory(false)) {
             var repo = Repository.init(dir.path(), vcs);
             var readme = repo.root().resolve("README");
             var now = ZonedDateTime.now();

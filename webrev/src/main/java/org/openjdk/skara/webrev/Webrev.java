@@ -29,6 +29,7 @@ import java.net.URISyntaxException;
 import java.nio.channels.FileChannel;
 import java.nio.file.*;
 import java.util.*;
+import java.util.function.Function;
 
 import static java.nio.file.StandardOpenOption.*;
 
@@ -60,6 +61,8 @@ public class Webrev {
         private String pullRequest;
         private String branch;
         private String issue;
+        private Function<String, String> issueLinker;
+        private Function<String, String> commitLinker;
         private String version;
         private List<Path> files = List.of();
 
@@ -95,6 +98,16 @@ public class Webrev {
 
         public Builder issue(String issue) {
             this.issue = issue;
+            return this;
+        }
+
+        public Builder issueLinker(Function<String, String> issueLinker) {
+            this.issueLinker = issueLinker;
+            return this;
+        }
+
+        public Builder commitLinker(Function<String, String> commitLinker) {
+            this.commitLinker = commitLinker;
             return this;
         }
 
@@ -174,7 +187,7 @@ public class Webrev {
 
             var headHash = head == null ? repository.head() : head;
             var fileViews = new ArrayList<FileView>();
-            var formatter = new MetadataFormatter();
+            var formatter = new MetadataFormatter(issueLinker);
             for (var patch : patches) {
                 var status = patch.status();
                 var path = status.isDeleted() ?
@@ -194,6 +207,8 @@ public class Webrev {
             var total = fileViews.stream().map(FileView::stats).mapToInt(WebrevStats::total).sum();
             var stats = new WebrevStats(diff.added(), diff.removed(), diff.modified(), total);
 
+            var issueForWebrev = issue == null ? null : issueLinker.apply(issue);
+            var tailEndURL = commitLinker == null ? null : commitLinker.apply(tailEnd.hex());
             try (var w = Files.newBufferedWriter(output.resolve("index.html"))) {
                 var index = new IndexView(fileViews,
                                           title,
@@ -201,9 +216,10 @@ public class Webrev {
                                           upstream,
                                           branch,
                                           pullRequest,
-                                          issue,
+                                          issueForWebrev,
                                           version,
                                           tailEnd,
+                                          tailEndURL,
                                           output.relativize(patchFile),
                                           stats);
                 index.render(w);
