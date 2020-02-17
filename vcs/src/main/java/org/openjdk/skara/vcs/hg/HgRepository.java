@@ -257,16 +257,34 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public List<CommitMetadata> commitMetadata(String range) throws IOException {
-        throw new RuntimeException("not implemented yet");
+    public List<CommitMetadata> commitMetadata(String range, List<Path> paths) throws IOException {
+        return commitMetadata(range, paths, false);
     }
 
     @Override
-    public List<CommitMetadata> commitMetadata() throws IOException {
+    public List<CommitMetadata> commitMetadata(Hash from, Hash to, List<Path> paths) throws IOException {
+        return commitMetadata(from.hex() + ":" + to.hex() + "-" + from.hex(), paths, false);
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata(Hash from, Hash to, List<Path> paths, boolean reverse) throws IOException {
+        return commitMetadata(from.hex() + ":" + to.hex() + "-" + from.hex(), paths, reverse);
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata(String range, List<Path> paths, boolean reverse) throws IOException {
         var ext = Files.createTempFile("ext", ".py");
         copyResource(EXT_PY, ext);
 
-        var p = start("hg", "--config", "extensions.dump=" + ext.toAbsolutePath().toString(), "metadata");
+        var args = new ArrayList<String>();
+        args.addAll(List.of("hg", "--config", "extensions.dump=" + ext.toAbsolutePath().toString(), "metadata"));
+        range = range == null ? "tip:0" : range;
+        var revset = reverse ? "reverse(" + range + ")" : range;
+        args.add(revset);
+        if (paths != null && !paths.isEmpty()) {
+            args.add(paths.stream().map(Path::toString).collect(Collectors.joining("\t")));
+        }
+        var p = start(args);
         var reader = new UnixStreamReader(p.getInputStream());
         var result = new ArrayList<CommitMetadata>();
 
@@ -278,6 +296,46 @@ public class HgRepository implements Repository {
 
         await(p);
         return result;
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata(String range) throws IOException {
+        return commitMetadata(range, List.of(), false);
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata(boolean reverse) throws IOException {
+        return commitMetadata(null, List.of(), reverse);
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata(Hash from, Hash to) throws IOException {
+        return commitMetadata(from.hex() + ":" + to.hex() + "-" + from.hex(), List.of(), false);
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata(String range, boolean reverse) throws IOException {
+        return commitMetadata(range, List.of(), reverse);
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata(Hash from, Hash to, boolean reverse) throws IOException {
+        return commitMetadata(from.hex() + ":" + to.hex() + "-" + from.hex(), reverse);
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata(List<Path> paths) throws IOException {
+        return commitMetadata(null, paths, false);
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata(List<Path> paths, boolean reverse) throws IOException {
+        return commitMetadata(null, paths, reverse);
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata() throws IOException {
+        return commitMetadata(null, List.of(), false);
     }
 
     @Override

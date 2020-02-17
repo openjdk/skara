@@ -200,8 +200,23 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public List<CommitMetadata> commitMetadata(String range) throws IOException {
-        var p = start("git", "rev-list", "--format=" + GitCommitMetadata.FORMAT, "--no-abbrev", "--reverse", "--no-color", range);
+    public List<CommitMetadata> commitMetadata(String range, List<Path> paths, boolean reverse) throws IOException {
+        var args = new ArrayList<String>();
+        args.addAll(List.of("git", "rev-list",
+                                   "--format=" + GitCommitMetadata.FORMAT,
+                                   "--no-abbrev",
+                                   "--no-color",
+                                   range));
+        if (reverse) {
+            args.add("--reverse");
+        }
+        if (paths != null && !paths.isEmpty()) {
+            args.add("--");
+            for (var path : paths) {
+                args.add(path.toString());
+            }
+        }
+        var p = start(args);
         var reader = new UnixStreamReader(p.getInputStream());
         var result = new ArrayList<CommitMetadata>();
 
@@ -217,6 +232,56 @@ public class GitRepository implements Repository {
 
         await(p);
         return result;
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata(Hash from, Hash to, List<Path> paths, boolean reverse) throws IOException {
+        return commitMetadata(from.hex() + ".." + to.hex(), paths, reverse);
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata(String range, List<Path> paths) throws IOException {
+        return commitMetadata(range, paths, false);
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata(Hash from, Hash to, List<Path> paths) throws IOException {
+        return commitMetadata(from.hex() + ".." + to.hex(), paths, false);
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata(boolean reverse) throws IOException {
+        return commitMetadata("--all", List.of(), reverse);
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata(String range) throws IOException {
+        return commitMetadata(range, List.of(), false);
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata(Hash from, Hash to) throws IOException {
+        return commitMetadata(from.hex() + ".." + to.hex(), List.of(), false);
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata(String range, boolean reverse) throws IOException {
+        return commitMetadata(range, List.of(), reverse);
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata(Hash from, Hash to, boolean reverse) throws IOException {
+        return commitMetadata(from.hex() + ".." + to.hex(), List.of(), reverse);
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata(List<Path> paths) throws IOException {
+        return commitMetadata("--all", paths, false);
+    }
+
+    @Override
+    public List<CommitMetadata> commitMetadata(List<Path> paths, boolean reverse) throws IOException {
+        return commitMetadata("--all", paths, reverse);
     }
 
     @Override

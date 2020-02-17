@@ -49,7 +49,17 @@ public interface ReadOnlyRepository {
     Optional<Commit> lookup(Branch b) throws IOException;
     Optional<Commit> lookup(Tag t) throws IOException;
     List<CommitMetadata> commitMetadata() throws IOException;
+    List<CommitMetadata> commitMetadata(boolean reverse) throws IOException;
     List<CommitMetadata> commitMetadata(String range) throws IOException;
+    List<CommitMetadata> commitMetadata(Hash from, Hash to) throws IOException;
+    List<CommitMetadata> commitMetadata(String range, boolean reverse) throws IOException;
+    List<CommitMetadata> commitMetadata(Hash from, Hash to, boolean reverse) throws IOException;
+    List<CommitMetadata> commitMetadata(List<Path> paths) throws IOException;
+    List<CommitMetadata> commitMetadata(List<Path> paths, boolean reverse) throws IOException;
+    List<CommitMetadata> commitMetadata(String range, List<Path> paths) throws IOException;
+    List<CommitMetadata> commitMetadata(Hash from, Hash to, List<Path> paths) throws IOException;
+    List<CommitMetadata> commitMetadata(String range, List<Path> paths, boolean reverse) throws IOException;
+    List<CommitMetadata> commitMetadata(Hash from, Hash to, List<Path> paths, boolean reverse) throws IOException;
     Path root() throws IOException;
     boolean exists() throws IOException;
     boolean isHealthy() throws IOException;

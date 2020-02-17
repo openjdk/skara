@@ -172,16 +172,22 @@ public class Webrev {
                 navigations.addLast(new Navigation(prev, next));
             }
 
+            var headHash = head == null ? repository.head() : head;
             var fileViews = new ArrayList<FileView>();
+            var formatter = new MetadataFormatter();
             for (var patch : patches) {
                 var status = patch.status();
+                var path = status.isDeleted() ?
+                    patch.source().path().get() :
+                    patch.target().path().get();
+                var commits = repository.commitMetadata(tailEnd, headHash, List.of(path));
                 if (status.isModified() || status.isRenamed() || status.isCopied()) {
                     var nav = navigations.removeFirst();
-                    fileViews.add(new ModifiedFileView(repository, tailEnd, head, patch, output, nav));
+                    fileViews.add(new ModifiedFileView(repository, tailEnd, head, commits, formatter, patch, output, nav));
                 } else if (status.isAdded()) {
-                    fileViews.add(new AddedFileView(repository, head, patch, output));
+                    fileViews.add(new AddedFileView(repository, tailEnd, head, commits, formatter, patch, output));
                 } else if (status.isDeleted()) {
-                    fileViews.add(new RemovedFileView(repository, tailEnd, patch, output));
+                    fileViews.add(new RemovedFileView(repository, tailEnd, head, commits, formatter, patch, output));
                 }
             }
 
