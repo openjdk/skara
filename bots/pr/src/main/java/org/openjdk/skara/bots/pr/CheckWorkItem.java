@@ -153,7 +153,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                                                          new HostedRepositoryPool(seedPath),
                                                          pr,
                                                          bot.ignoreStaleReviews());
-                CheckRun.execute(this, pr, prInstance, comments, allReviews, activeReviews, labels, census);
+                CheckRun.execute(this, pr, prInstance, comments, allReviews, activeReviews, labels, census, bot.ignoreStaleReviews());
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

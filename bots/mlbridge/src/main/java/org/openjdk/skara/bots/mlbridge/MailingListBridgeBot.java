@@ -53,7 +53,7 @@ public class MailingListBridgeBot implements Bot {
     private final PullRequestUpdateCache updateCache;
     private final Duration sendInterval;
     private final Duration cooldown;
-    private final Pattern repoInSubject;
+    private final boolean repoInSubject;
     private final Pattern branchInSubject;
     private final Path seedStorage;
     private final CooldownQuarantine cooldownQuarantine;
@@ -69,7 +69,7 @@ public class MailingListBridgeBot implements Bot {
                          HostedRepository webrevStorageRepository, String webrevStorageRef,
                          Path webrevStorageBase, URI webrevStorageBaseUri, Set<String> readyLabels,
                          Map<String, Pattern> readyComments, URI issueTracker, Map<String, String> headers,
-                         Duration sendInterval, Duration cooldown, Pattern repoInSubject, Pattern branchInSubject,
+                         Duration sendInterval, Duration cooldown, boolean repoInSubject, Pattern branchInSubject,
                          Path seedStorage) {
         emailAddress = from;
         codeRepo = repo;
@@ -174,7 +174,7 @@ public class MailingListBridgeBot implements Bot {
         return issueTracker;
     }
 
-    Pattern repoInSubject() {
+    boolean repoInSubject() {
         return repoInSubject;
     }
 

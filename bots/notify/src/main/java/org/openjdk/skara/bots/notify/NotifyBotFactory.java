@@ -104,8 +104,18 @@ public class NotifyBotFactory implements BotFactory {
                     var recipient = mailinglist.get("recipient").asString();
                     var recipientAddress = EmailAddress.parse(recipient);
 
-                    var mode = MailingListUpdater.Mode.ALL;
+                    var author = mailinglist.contains("author") ? EmailAddress.parse(mailinglist.get("author").asString()) : null;
+                    var allowedDomains = author == null ? Pattern.compile(mailinglist.get("domains").asString()) : null;
+
+                    var mailingListUpdaterBuilder = MailingListUpdater.newBuilder()
+                                                                      .list(listServer.getList(recipient))
+                                                                      .recipient(recipientAddress)
+                                                                      .sender(sender)
+                                                                      .author(author)
+                                                                      .allowedAuthorDomains(allowedDomains);
+
                     if (mailinglist.contains("mode")) {
+                        var mode = MailingListUpdater.Mode.ALL;
                         switch (mailinglist.get("mode").asString()) {
                             case "pr":
                                 mode = MailingListUpdater.Mode.PR;
@@ -116,57 +126,51 @@ public class NotifyBotFactory implements BotFactory {
                             default:
                                 throw new RuntimeException("Unknown mode");
                         }
+                        mailingListUpdaterBuilder.mode(mode);
                     }
-
-                    Map<String, String> headers = mailinglist.contains("headers") ?
-                            mailinglist.get("headers").fields().stream()
-                                       .collect(Collectors.toMap(JSONObject.Field::name, field -> field.value().asString())) :
-                            Map.of();
-                    var author = mailinglist.contains("author") ? EmailAddress.parse(mailinglist.get("author").asString()) : null;
-                    var allowedDomains = author == null ? Pattern.compile(mailinglist.get("domains").asString()) : null;
-
-                    var includeBranchNames = false;
+                    if (mailinglist.contains("headers")) {
+                        mailingListUpdaterBuilder.headers(mailinglist.get("headers").fields().stream()
+                                                                     .collect(Collectors.toMap(JSONObject.Field::name,
+                                                                                               field -> field.value().asString())));
+                    }
                     if (mailinglist.contains("branchnames")) {
-                        includeBranchNames = mailinglist.get("branchnames").asBoolean();
+                        mailingListUpdaterBuilder.includeBranch(mailinglist.get("branchnames").asBoolean());
                     }
-                    var reportNewTags = true;
                     if (mailinglist.contains("tags")) {
-                        reportNewTags = mailinglist.get("tags").asBoolean();
+                        mailingListUpdaterBuilder.reportNewTags(mailinglist.get("tags").asBoolean());
                     }
-                    var reportNewBranches = true;
                     if (mailinglist.contains("branches")) {
-                        reportNewBranches = mailinglist.get("branches").asBoolean();
+                        mailingListUpdaterBuilder.reportNewBranches(mailinglist.get("branches").asBoolean());
                     }
-                    var reportNewBuilds = true;
                     if (mailinglist.contains("builds")) {
-                        reportNewBuilds = mailinglist.get("builds").asBoolean();
+                        mailingListUpdaterBuilder.reportNewBuilds(mailinglist.get("builds").asBoolean());
                     }
-                    updaters.add(new MailingListUpdater(listServer.getList(recipient), recipientAddress, sender, author,
-                                                        includeBranchNames, reportNewTags, reportNewBranches, reportNewBuilds,
-                                                        mode, headers, allowedDomains));
+                    updaters.add(mailingListUpdaterBuilder.build());
                 }
             }
             if (repo.value().contains("issues")) {
                 var issuesConf = repo.value().get("issues");
                 var issueProject = configuration.issueProject(issuesConf.get("project").asString());
-                var reviewLink = true;
+                var issueUpdaterBuilder = IssueUpdater.newBuilder()
+                                                      .issueProject(issueProject);
+
                 if (issuesConf.contains("reviewlink")) {
-                    reviewLink = issuesConf.get("reviewlink").asBoolean();
+                    issueUpdaterBuilder.reviewLink(issuesConf.get("reviewlink").asBoolean());
                 }
-                var commitLink = true;
                 if (issuesConf.contains("commitlink")) {
-                    commitLink = issuesConf.get("commitlink").asBoolean();
+                    issueUpdaterBuilder.commitLink(issuesConf.get("commitlink").asBoolean());
                 }
-                var setFixVersion = false;
-                Map<String, String> fixVersions = null;
                 if (issuesConf.contains("fixversions")) {
-                    setFixVersion = true;
-                    fixVersions = issuesConf.get("fixversions").fields().stream()
-                                            .collect(Collectors.toMap(JSONObject.Field::name, f -> f.value().asString()));
+                    issueUpdaterBuilder.setFixVersion(true);
+                    issueUpdaterBuilder.fixVersions(issuesConf.get("fixversions").fields().stream()
+                                                              .collect(Collectors.toMap(JSONObject.Field::name,
+                                                                                        f -> f.value().asString())));
                 }
-                var updater = new IssueUpdater(issueProject, reviewLink, reviewIcon, commitLink, commitIcon, setFixVersion, fixVersions);
-                updaters.add(updater);
-                prUpdaters.add(updater);
+                if (issuesConf.contains("pronly")) {
+                    issueUpdaterBuilder.prOnly(issuesConf.get("pronly").asBoolean());
+                }
+                updaters.add(issueUpdaterBuilder.build());
+                prUpdaters.add(issueUpdaterBuilder.build());
             }
 
             if (updaters.isEmpty()) {
@@ -182,8 +186,18 @@ public class NotifyBotFactory implements BotFactory {
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added branch hash for " + repoName);
             var issueStorageBuilder = new StorageBuilder<PullRequestIssues>(baseName + ".prissues.txt")
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added pull request issue info for " + repoName);
-            var bot = new NotifyBot(configuration.repository(repoName), configuration.storageFolder(), branchPattern,
-                                    tagStorageBuilder, branchStorageBuilder, issueStorageBuilder, updaters, prUpdaters, readyLabels, readyComments);
+            var bot = NotifyBot.newBuilder()
+                               .repository(configuration.repository(repoName))
+                               .storagePath(configuration.storageFolder())
+                               .branches(branchPattern)
+                               .tagStorageBuilder(tagStorageBuilder)
+                               .branchStorageBuilder(branchStorageBuilder)
+                               .prIssuesStorageBuilder(issueStorageBuilder)
+                               .updaters(updaters)
+                               .prUpdaters(prUpdaters)
+                               .readyLabels(readyLabels)
+                               .readyComments(readyComments)
+                               .build();
             ret.add(bot);
         }
 

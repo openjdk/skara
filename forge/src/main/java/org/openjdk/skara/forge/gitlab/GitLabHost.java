@@ -114,17 +114,27 @@ public class GitLabHost implements Forge {
         var id = details.get("id").asInt();
         var username = details.get("username").asString();
         var name = details.get("name").asString();
-        return new HostUser(id, username, name);
+        var email = details.get("email").asString();
+        return new HostUser(id, username, name, email);
     }
 
     @Override
-    public HostUser user(String username) {
-        var details = request.get("users").param("username", username).execute().asArray();
-        if (details.size() != 1) {
-            throw new RuntimeException("Couldn't find user: " + username);
+    public Optional<HostUser> user(String username) {
+        var details = request.get("users")
+                             .param("username", username)
+                             .onError(r -> JSON.of())
+                             .execute();
+
+        if (details.isNull()) {
+            return Optional.empty();
         }
 
-        return parseUserDetails(details.get(0).asObject());
+        var users = details.asArray();
+        if (users.size() != 1) {
+            return Optional.empty();
+        }
+
+        return Optional.of(parseUserDetails(users.get(0).asObject()));
     }
 
     @Override

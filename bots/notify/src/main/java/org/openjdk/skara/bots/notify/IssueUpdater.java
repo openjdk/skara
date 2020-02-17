@@ -47,9 +47,11 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
     private final URI commitIcon;
     private final boolean setFixVersion;
     private final Map<String, String> fixVersions;
+    private final boolean prOnly;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
-    IssueUpdater(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,boolean setFixVersion, Map<String, String> fixVersions) {
+    IssueUpdater(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,
+                 boolean setFixVersion, Map<String, String> fixVersions, boolean prOnly) {
         this.issueProject = issueProject;
         this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
@@ -57,6 +59,11 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
         this.commitIcon = commitIcon;
         this.setFixVersion = setFixVersion;
         this.fixVersions = fixVersions;
+        this.prOnly = prOnly;
+    }
+
+    static IssueUpdaterBuilder newBuilder() {
+        return new IssueUpdaterBuilder();
     }
 
     private final static Set<String> primaryTypes = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
@@ -252,25 +259,40 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
                     continue;
                 }
 
-                // The actual issue to be updated can change depending on the fix version
                 String requestedVersion = null;
-                if (setFixVersion) {
-                    requestedVersion = fixVersions != null ? fixVersions.getOrDefault(branch.name(), null) : null;
-                    if (requestedVersion == null) {
-                        try {
-                            var conf = localRepository.lines(Path.of(".jcheck/conf"), commit.hash());
-                            if (conf.isPresent()) {
-                                var parsed = JCheckConfiguration.parse(conf.get());
-                                var version = parsed.general().version();
-                                requestedVersion = version.orElse(null);
-                            }
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
+                if (prOnly) {
+                    var pullRequestCount = issue.links().stream()
+                                            .filter(link -> link.title().orElse("notitle").equals("Review"))
+                                            .filter(link -> link.summary().orElse("nosummary").startsWith(repository.name() + "/"))
+                                            .map(link -> link.summary().orElseThrow().substring(repository.name().length() + 1))
+                                            .map(repository::pullRequest)
+                                            .filter(pr -> pr.targetRef().equals(branch.name()))
+                                            .count();
+                    if (pullRequestCount == 0) {
+                        log.info("Skipping commit " + commit.hash().abbreviate() + " for repository " + repository.name() +
+                                         " on branch " + branch.name() + " - no matching PR found");
+                        continue;
                     }
+                } else {
+                    // The actual issue to be updated can change depending on the fix version
+                    if (setFixVersion) {
+                        requestedVersion = fixVersions != null ? fixVersions.getOrDefault(branch.name(), null) : null;
+                        if (requestedVersion == null) {
+                            try {
+                                var conf = localRepository.lines(Path.of(".jcheck/conf"), commit.hash());
+                                if (conf.isPresent()) {
+                                    var parsed = JCheckConfiguration.parse(conf.get());
+                                    var version = parsed.general().version();
+                                    requestedVersion = version.orElse(null);
+                                }
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
 
-                    if (requestedVersion != null) {
-                        issue = findIssue(issue, requestedVersion);
+                        if (requestedVersion != null) {
+                            issue = findIssue(issue, requestedVersion);
+                        }
                     }
                 }
 
@@ -288,7 +310,9 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
                         var username = findIssueUsername(commit);
                         if (username.isPresent()) {
                             var assignee = issueProject.issueTracker().user(username.get());
-                            issue.setAssignees(List.of(assignee));
+                            if (assignee.isPresent()) {
+                                issue.setAssignees(List.of(assignee.get()));
+                            }
                         }
                     }
                 }

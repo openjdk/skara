@@ -191,16 +191,16 @@ class CheckTests {
 
             // Let the status bot inspect the PR
             TestBotRunner.runPeriodicItems(checkBot);
-            assertFalse(authorPr.body().contains("Approvers"));
+            assertFalse(authorPr.body().contains("Reviewers"));
 
             // Approve it
             var reviewerPr = reviewer.pullRequest(authorPr.id());
-            reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
+            reviewerPr.addReview(Review.Verdict.APPROVED, "Reviewers");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // Refresh the PR and check that it has been approved
             authorPr = author.pullRequest(authorPr.id());
-            assertTrue(authorPr.body().contains("Approvers"));
+            assertTrue(authorPr.body().contains("Reviewers"));
 
             // Update the file after approval
             editHash = CheckableRepository.appendAndCommit(localRepo, "Now I've gone and changed it");
@@ -219,7 +219,7 @@ class CheckTests {
             // Check that the review is flagged as stale
             TestBotRunner.runPeriodicItems(checkBot);
             authorPr = author.pullRequest(authorPr.id());
-            assertTrue(authorPr.body().contains("Note"));
+            assertTrue(authorPr.body().contains("Review applies to"));
 
             // Now we can approve it again
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
@@ -227,7 +227,7 @@ class CheckTests {
 
             // Refresh the PR and check that it has been approved (once) and is no longer stale
             authorPr = author.pullRequest(authorPr.id());
-            assertTrue(authorPr.body().contains("Approvers"));
+            assertTrue(authorPr.body().contains("Reviewers"));
             assertEquals(1, authorPr.body().split("Generated Reviewer", -1).length - 1);
             assertTrue(authorPr.reviews().size() >= 1);
             assertFalse(authorPr.body().contains("Note"));
@@ -239,7 +239,7 @@ class CheckTests {
 
             // Refresh the PR and check that it still only approved once (but two reviews) and is no longer stale
             authorPr = author.pullRequest(authorPr.id());
-            assertTrue(authorPr.body().contains("Approvers"));
+            assertTrue(authorPr.body().contains("Reviewers"));
             assertEquals(1, authorPr.body().split("Generated Reviewer", -1).length - 1);
             assertTrue(authorPr.reviews().size() >= 2);
             assertFalse(authorPr.body().contains("Note"));
@@ -270,7 +270,7 @@ class CheckTests {
 
             // Let the status bot inspect the PR
             TestBotRunner.runPeriodicItems(checkBot);
-            assertFalse(authorPr.body().contains("Approvers"));
+            assertFalse(authorPr.body().contains("Reviewers"));
 
             // Approve it
             authorPr.addReview(Review.Verdict.APPROVED, "Approved");
@@ -278,7 +278,7 @@ class CheckTests {
 
             // Refresh the PR and check that it has been approved
             authorPr = author.pullRequest(authorPr.id());
-            assertTrue(authorPr.body().contains("Approvers"));
+            assertTrue(authorPr.body().contains("Reviewers"));
 
             // Verify that the check failed
             var checks = authorPr.checks(editHash);
@@ -1161,6 +1161,7 @@ class CheckTests {
 
             // The PR should be flagged as ready
             assertTrue(pr.labels().contains("ready"));
+            assertFalse(pr.body().contains("Re-review required"));
 
             // Add another commit
             editHash = CheckableRepository.replaceAndCommit(localRepo, "Another line");
@@ -1182,6 +1183,7 @@ class CheckTests {
             // The PR should no longer be ready, as the review is stale
             assertFalse(pr.labels().contains("ready"));
             assertTrue(pr.labels().contains("rfr"));
+            assertTrue(pr.body().contains("Re-review required"));
         }
     }
 

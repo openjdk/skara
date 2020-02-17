@@ -30,7 +30,7 @@ import difflib
 import sys
 
 # space separated version list
-testedwith = '4.9.2 5.0.2 5.2.1'
+testedwith = '4.9.2 5.0.2 5.2.1 5.3.0'
 
 def mode(fctx):
     flags = fctx.flags()
@@ -172,16 +172,22 @@ else:
     revsingle = mercurial.cmdutil.revsingle
     revrange = mercurial.cmdutil.revrange
 
+def _status(repo, ctx1, ctx2=None):
+    if ctx2 == None:
+        return tuple(repo.status(ctx1))
+    else:
+        return tuple(repo.status(ctx1, ctx2))
+
 @command(b'diff-git-raw', [(b'', b'patch', False, b''), (b'', b'files', b'', b'')], b'hg diff-git-raw rev1 [rev2]')
 def diff_git_raw(ui, repo, rev1, rev2=None, *files, **opts):
     ctx1 = revsingle(repo, rev1)
 
     if rev2 != None:
         ctx2 = revsingle(repo, rev2)
-        status = repo.status(ctx1, ctx2)
+        status = _status(repo, ctx1, ctx2)
     else:
         ctx2 = mercurial.context.workingctx(repo)
-        status = repo.status(ctx1)
+        status = _status(repo, ctx1)
 
     modified, added, removed = [set(l) for l in status[:3]]
 
@@ -214,14 +220,14 @@ def log_git(ui, repo, revs=None, **opts):
         parents = ctx.parents()
 
         if len(parents) == 1:
-            modified, added, removed = [set(l) for l in repo.status(parents[0], ctx)[:3]]
+            modified, added, removed = [set(l) for l in _status(repo, parents[0], ctx)[:3]]
             _diff_git_raw(repo, parents[0], ctx, modified, added, removed, True)
         else:
             p1 = parents[0]
             p2 = parents[1]
 
-            modified_p1, added_p1, removed_p1 = [set(l) for l in repo.status(p1, ctx)[:3]]
-            modified_p2, added_p2, removed_p2 = [set(l) for l in repo.status(p2, ctx)[:3]]
+            modified_p1, added_p1, removed_p1 = [set(l) for l in _status(repo, p1, ctx)[:3]]
+            modified_p2, added_p2, removed_p2 = [set(l) for l in _status(repo, p2, ctx)[:3]]
 
             added_both = added_p1 & added_p2
             modified_both = modified_p1 & modified_p2
@@ -270,7 +276,7 @@ def __dump(repo, start, end):
         __dump_metadata(ctx)
         parents = ctx.parents()
 
-        modified, added, removed = repo.status(parents[0], ctx)[:3]
+        modified, added, removed = _status(repo, parents[0], ctx)[:3]
         writeln(int_to_str(len(modified)))
         writeln(int_to_str(len(added)))
         writeln(int_to_str(len(removed)))
