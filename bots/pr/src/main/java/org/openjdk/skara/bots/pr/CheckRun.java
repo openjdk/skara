@@ -302,7 +302,7 @@ class CheckRun {
 
     private String getStatusMessage(List<Comment> comments, List<Review> reviews, PullRequestCheckIssueVisitor visitor) {
         var progressBody = new StringBuilder();
-        progressBody.append("</hr>");
+        progressBody.append("---------");
         progressBody.append("### Progress\n");
         progressBody.append(getChecksList(visitor));
 
