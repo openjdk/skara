@@ -190,8 +190,18 @@ public class NotifyBotFactory implements BotFactory {
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added branch hash for " + repoName);
             var issueStorageBuilder = new StorageBuilder<PullRequestIssues>(baseName + ".prissues.txt")
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added pull request issue info for " + repoName);
-            var bot = new NotifyBot(configuration.repository(repoName), configuration.storageFolder(), branchPattern,
-                                    tagStorageBuilder, branchStorageBuilder, issueStorageBuilder, updaters, prUpdaters, readyLabels, readyComments);
+            var bot = NotifyBot.newBuilder()
+                               .repository(configuration.repository(repoName))
+                               .storagePath(configuration.storageFolder())
+                               .branches(branchPattern)
+                               .tagStorageBuilder(tagStorageBuilder)
+                               .branchStorageBuilder(branchStorageBuilder)
+                               .prIssuesStorageBuilder(issueStorageBuilder)
+                               .updaters(updaters)
+                               .prUpdaters(prUpdaters)
+                               .readyLabels(readyLabels)
+                               .readyComments(readyComments)
+                               .build();
             ret.add(bot);
         }
 
