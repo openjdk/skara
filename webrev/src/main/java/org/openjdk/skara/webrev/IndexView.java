@@ -57,7 +57,7 @@ class IndexView implements View {
 
     private static final Template UPSTREAM_TEMPLATE = new Template(new String[]{
         "        <tr>",
-        "          <th>Repository:</th>",
+        "          <th>Compare against:</th>",
         "          <td><a href=\"${UPSTREAM}\">${UPSTREAM}</a></td>",
         "        </tr>"
     });
@@ -83,15 +83,28 @@ class IndexView implements View {
         "        </tr>"
     });
 
-    private static final Template HEADER_MIDDLE_TEMPLATE = new Template(new String[]{
+    private static final Template REVISION_TEMPLATE = new Template(new String[]{
         "        <tr>",
-        "          <th>Compare against revision:</th>",
+        "          <th>Compare against version:</th>",
         "          <td>${REVISION}</td>",
-        "        </tr>",
+        "        </tr>"
+    });
+
+    private static final Template REVISION_WITH_LINK_TEMPLATE = new Template(new String[]{
+        "        <tr>",
+        "          <th>Compare against version:</th>",
+        "          <td><a href=\"${REVISION_HREF}\">${REVISION}</a></td>",
+        "        </tr>"
+    });
+
+    private static final Template SUMMARY_TEMPLATE = new Template(new String[]{
         "        <tr>",
         "          <th>Summary of changes:</th>",
         "          <td>${STATS}</td>",
-        "        </tr>",
+        "        </tr>"
+    });
+
+    private static final Template PATCH_TEMPLATE = new Template(new String[]{
         "        <tr>",
         "          <th>Patch of changes:</th>",
         "          <td><a href=\"${PATCH_URL}\">${PATCH}</a></td>",
@@ -139,6 +152,7 @@ class IndexView implements View {
                      String issue,
                      String version,
                      Hash revision,
+                     String revisionURL,
                      Path patchFile,
                      WebrevStats stats) {
         this.files = files;
@@ -158,7 +172,14 @@ class IndexView implements View {
 
         if (pullRequest != null) {
             map.put("${PR_HREF}", pullRequest);
-            map.put("${PR}", pullRequest);
+
+            try {
+                var uri = URI.create(pullRequest);
+                var id = Path.of(uri.getPath()).getFileName().toString();
+                map.put("${PR}", id);
+            } catch (IllegalArgumentException e) {
+                map.put("${PR}", pullRequest);
+            }
         }
 
 
@@ -187,6 +208,9 @@ class IndexView implements View {
 
         map.put("${TITLE}", title);
         map.put("${REVISION}", revision.abbreviate());
+        if (revisionURL != null) {
+            map.put("${REVISION_HREF}", revisionURL);
+        }
         map.put("${PATCH}", patchFile.toString());
         map.put("${PATCH_URL}", patchFile.toString());
         map.put("${STATS}", stats.toString());
@@ -203,17 +227,24 @@ class IndexView implements View {
             UPSTREAM_TEMPLATE.render(w, map);
         }
 
+        if (map.containsKey("${REVISION_HREF}")) {
+            REVISION_WITH_LINK_TEMPLATE.render(w, map);
+        } else {
+            REVISION_TEMPLATE.render(w, map);
+        }
+
         if (map.containsKey("${BRANCH}")) {
             BRANCH_TEMPLATE.render(w, map);
         }
 
-        HEADER_MIDDLE_TEMPLATE.render(w, map);
+        SUMMARY_TEMPLATE.render(w, map);
+        PATCH_TEMPLATE.render(w, map);
 
         if (map.containsKey("${AUTHOR_COMMENT}")) {
             AUTHOR_COMMENT_TEMPLATE.render(w, map);
         }
 
-        if (map.containsKey("${PR}")) {
+        if (map.containsKey("${PR}") && map.containsKey("${PR_HREF}")) {
             PR_TEMPLATE.render(w, map);
         }
 

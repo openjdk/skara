@@ -23,9 +23,27 @@
 package org.openjdk.skara.webrev;
 
 import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.vcs.openjdk.Issue;
+
+import java.util.function.Function;
 
 class MetadataFormatter {
+    private final Function<String, String> issueLinker;
+
+    MetadataFormatter(Function<String, String> issueLinker) {
+        this.issueLinker = issueLinker;
+    }
+
     String format(CommitMetadata metadata) {
-        return "<u>" + metadata.hash().abbreviate() +"</u>: " + metadata.message().get(0);
+        var prefix = metadata.hash().abbreviate() + ": ";
+        var subject = metadata.message().get(0);
+        var issue = Issue.fromString(subject);
+        if (issueLinker != null && issue.isPresent()) {
+            var id = issue.get().id();
+            var desc = issue.get().description();
+            var url = issueLinker.apply(id);
+            return prefix + "<a href=\"" + url + "\">" + id + "</a>: " + desc;
+        }
+        return prefix + subject;
     }
 }

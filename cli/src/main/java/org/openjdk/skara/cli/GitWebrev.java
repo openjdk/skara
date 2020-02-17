@@ -83,6 +83,10 @@ public class GitWebrev {
         }
     }
 
+    private static boolean isDigit(char c) {
+        return Character.isDigit(c);
+    }
+
     private static void generate(String[] args) throws IOException {
         var flags = List.of(
             Option.shortcut("r")
@@ -188,6 +192,7 @@ public class GitWebrev {
                 }
             }
         }
+        var upstreamURL = upstream;
 
         var noOutgoing = arguments.contains("no-outgoing");
         if (!noOutgoing) {
@@ -205,12 +210,13 @@ public class GitWebrev {
                 resolve(repo, isMercurial ? "min(outgoing())^" : "origin" + "/" + "master");
 
         var issue = arguments.contains("cr") ? arguments.get("cr").asString() : null;
-        if (issue != null && !issue.startsWith("http")) {
-            var digits = Set.of('0', '1', '2', '3', '4', '5', '6', '7', '8', '9');
-            if (digits.contains(issue.charAt(0))) {
+        if (issue != null) {
+            if (issue.startsWith("http")) {
+                var uri = URI.create(issue);
+                issue = Path.of(uri.getPath()).getFileName().toString();
+            } else if (isDigit(issue.charAt(0))) {
                 issue = "JDK-" + issue;
             }
-            issue = "https://bugs.openjdk.java.net/browse/" + issue;
         }
         if (issue == null) {
             var pattern = Pattern.compile("(?:(JDK|CODETOOLS|JMC|SKARA)-)?([0-9]+).*");
@@ -224,7 +230,7 @@ public class GitWebrev {
                         project = "JDK";
                     }
                     var id = m.group(2);
-                    issue = "https://bugs.openjdk.java.net/browse/" + project + "-" + id;
+                    issue = project + "-" + id;
                 }
             }
         }
@@ -259,6 +265,7 @@ public class GitWebrev {
         if (username == null) {
             username = repo.username().orElse(System.getProperty("user.name"));
         }
+        var author = Author.fromString(username);
 
         if (Files.exists(output)) {
             clearDirectory(output);
@@ -275,11 +282,14 @@ public class GitWebrev {
             }
         }
 
+        var jbs = "https://bugs.openjdk.java.net/browse/";
         Webrev.repository(repo)
               .output(output)
               .title(title)
               .upstream(upstream)
-              .username(username)
+              .username(author.name())
+              .commitLinker(hash -> upstreamURL == null ? null : upstreamURL + "/commit/" + hash)
+              .issueLinker(id -> jbs + (isDigit(id.charAt(0)) ? "JDK-" : "") + id)
               .issue(issue)
               .version(version)
               .files(files)
