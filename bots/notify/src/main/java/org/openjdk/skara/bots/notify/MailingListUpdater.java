@@ -24,11 +24,12 @@ package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.forge.HostedRepository;
-import org.openjdk.skara.mailinglist.*;
+import org.openjdk.skara.mailinglist.MailingList;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.OpenJDKTag;
 
 import java.io.*;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -48,6 +49,8 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
     private final Mode mode;
     private final Map<String, String> headers;
     private final Pattern allowedAuthorDomains;
+    private final boolean repoInSubject;
+    private final Pattern branchInSubject;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
     enum Mode {
@@ -58,7 +61,8 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
 
     MailingListUpdater(MailingList list, EmailAddress recipient, EmailAddress sender, EmailAddress author,
                        boolean includeBranch, boolean reportNewTags, boolean reportNewBranches, boolean reportNewBuilds,
-                       Mode mode, Map<String, String> headers, Pattern allowedAuthorDomains) {
+                       Mode mode, Map<String, String> headers, Pattern allowedAuthorDomains, boolean repoInSubject,
+                       Pattern branchInSubject) {
         this.list = list;
         this.recipient = recipient;
         this.sender = sender;
@@ -70,6 +74,8 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
         this.mode = mode;
         this.headers = headers;
         this.allowedAuthorDomains = allowedAuthorDomains;
+        this.repoInSubject = repoInSubject;
+        this.branchInSubject = branchInSubject;
     }
 
     static MailingListUpdaterBuilder newBuilder() {
@@ -137,7 +143,29 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
                 hash.abbreviate();
     }
 
-    private List<Commit> filterAndSendPrCommits(HostedRepository repository, List<Commit> commits) {
+    private String subjectPrefix(HostedRepository repository, Branch branch) {
+        var ret = new StringBuilder();
+        var branchName = branch.name();
+        var repoName = Path.of(repository.name()).getFileName().toString();
+        var useBranchInSubject = branchInSubject.matcher(branchName).matches();
+
+        if (useBranchInSubject || repoInSubject) {
+            ret.append("[");
+            if (repoInSubject) {
+                ret.append(repoName);
+                if (useBranchInSubject) {
+                    ret.append(":");
+                }
+            }
+            if (useBranchInSubject) {
+                ret.append(branchName);
+            }
+            ret.append("] ");
+        }
+        return ret.toString();
+    }
+
+    private List<Commit> filterAndSendPrCommits(HostedRepository repository, List<Commit> commits, Branch branch) {
         var ret = new ArrayList<Commit>();
 
         var rfrsConvos = list.conversations(Duration.ofDays(365)).stream()
@@ -175,7 +203,8 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
             }
 
             var body = CommitFormatters.toText(repository, commit);
-            var email = Email.reply(rfrConv.first(), "Re: [Integrated] " + rfrConv.first().subject(), body)
+            var email = Email.reply(rfrConv.first(), "Re: " + subjectPrefix(repository, branch) +
+                    "[Integrated] " + rfrConv.first().subject(), body)
                              .sender(sender)
                              .author(commitToAuthor(commit))
                              .recipient(recipient)
@@ -216,10 +245,10 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
     public void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) {
         switch (mode) {
             case PR_ONLY:
-                filterAndSendPrCommits(repository, commits);
+                filterAndSendPrCommits(repository, commits, branch);
                 break;
             case PR:
-                commits = filterAndSendPrCommits(repository, commits);
+                commits = filterAndSendPrCommits(repository, commits, branch);
                 // fall-through
             case ALL:
                 sendCombinedCommits(repository, commits, branch);
