@@ -655,6 +655,56 @@ class CheckTests {
     }
 
     @Test
+    void emptyPRBody(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var checkBot = PullRequestBot.newBuilder()
+                                         .repo(author)
+                                         .censusRepo(censusBuilder.build())
+                                         .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Another PR");
+            pr.setBody("    ");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that the check failed
+            var checks = pr.checks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            assertEquals(CheckStatus.FAILURE, check.status());
+            assertTrue(check.summary().orElseThrow().contains("PR body must not be empty"));
+
+            // The PR should not yet be ready for review
+            assertFalse(pr.labels().contains("rfr"));
+            assertFalse(pr.labels().contains("ready"));
+
+            // Check the status again
+            pr.setBody("Here's that body");
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The PR should now be ready for review
+            assertTrue(pr.labels().contains("rfr"));
+            assertFalse(pr.labels().contains("ready"));
+        }
+    }
+
+    @Test
     void missingReadyLabel(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
