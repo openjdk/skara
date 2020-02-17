@@ -313,7 +313,7 @@ def metadata(ui, repo, revs, filenames=None, **opts):
         if filenames == None:
             __dump_metadata(ctx)
         else:
-            modified, added, removed = ctx.status(ctx.p1(), _match_exact(repo.root, repo.getcwd(), fnames))[:3]
+            modified, added, removed = tuple(ctx.status(ctx.p1(), _match_exact(repo.root, repo.getcwd(), fnames)))[:3]
             if modified or added or removed:
                 __dump_metadata(ctx)
 
