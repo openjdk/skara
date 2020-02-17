@@ -62,6 +62,10 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
         this.prOnly = prOnly;
     }
 
+    static IssueUpdaterBuilder newBuilder() {
+        return new IssueUpdaterBuilder();
+    }
+
     private final static Set<String> primaryTypes = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
 
     private boolean isPrimaryIssue(Issue issue) {

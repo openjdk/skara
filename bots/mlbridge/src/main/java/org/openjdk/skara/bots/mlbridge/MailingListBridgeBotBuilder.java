@@ -53,8 +53,8 @@ public class MailingListBridgeBotBuilder {
     private Map<String, String> headers = Map.of();
     private Duration sendInterval = Duration.ZERO;
     private Duration cooldown = Duration.ZERO;
-    private Pattern repoInSubject = Pattern.compile("a^"); // Does not match anything
-    private Pattern branchInSubject = Pattern.compile("a^");
+    private boolean repoInSubject = false;
+    private Pattern branchInSubject = Pattern.compile("a^"); // Does not match anything
     private Path seedStorage = null;
 
     MailingListBridgeBotBuilder() {
@@ -165,7 +165,7 @@ public class MailingListBridgeBotBuilder {
         return this;
     }
 
-    public MailingListBridgeBotBuilder repoInSubject(Pattern repoInSubject) {
+    public MailingListBridgeBotBuilder repoInSubject(boolean repoInSubject) {
         this.repoInSubject = repoInSubject;
         return this;
     }

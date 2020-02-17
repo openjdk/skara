@@ -202,7 +202,7 @@ class ArchiveWorkItem implements WorkItem {
         var branchName = pr.targetRef();
         var repoName = Path.of(pr.repository().name()).getFileName().toString();
         var useBranchInSubject = bot.branchInSubject().matcher(branchName).matches();
-        var useRepoInSubject = bot.repoInSubject().matcher(repoName).matches();
+        var useRepoInSubject = bot.repoInSubject();
 
         if (useBranchInSubject || useRepoInSubject) {
             ret.append("[");

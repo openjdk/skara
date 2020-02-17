@@ -95,8 +95,15 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var updater = new JsonUpdater(jsonFolder, "12", "team");
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
 
             TestBotRunner.runPeriodicItems(notifyBot);
             assertEquals(List.of(), findJsonFiles(jsonFolder, ""));
@@ -136,8 +143,15 @@ class UpdaterTests {
             var storageFolder =tempFolder.path().resolve("storage");
 
             var updater = new JsonUpdater(jsonFolder, "12", "team");
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
 
             TestBotRunner.runPeriodicItems(notifyBot);
             assertEquals(List.of(), findJsonFiles(jsonFolder, ""));
@@ -207,11 +221,25 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null, false, false, false, false,
-                                                 MailingListUpdater.Mode.ALL,
-                                                 Map.of("extra1", "value1", "extra2", "value2"), Pattern.compile("none"));
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+            var updater = MailingListUpdater.newBuilder()
+                                            .list(mailmanList)
+                                            .recipient(listAddress)
+                                            .sender(sender)
+                                            .reportNewTags(false)
+                                            .reportNewBranches(false)
+                                            .reportNewBuilds(false)
+                                            .headers(Map.of("extra1", "value1", "extra2", "value2"))
+                                            .allowedAuthorDomains(Pattern.compile("none"))
+                                            .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -261,11 +289,23 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null,
-                                                 false, false, false, false,
-                                                 MailingListUpdater.Mode.ALL, Map.of(), Pattern.compile(".*"));
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+            var updater = MailingListUpdater.newBuilder()
+                                            .list(mailmanList)
+                                            .recipient(listAddress)
+                                            .sender(sender)
+                                            .reportNewTags(false)
+                                            .reportNewBranches(false)
+                                            .reportNewBuilds(false)
+                                            .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -317,11 +357,23 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null,
-                                                 false, false, false, false,
-                                                 MailingListUpdater.Mode.ALL, Map.of(), Pattern.compile(".*"));
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+            var updater = MailingListUpdater.newBuilder()
+                                            .list(mailmanList)
+                                            .recipient(listAddress)
+                                            .sender(sender)
+                                            .reportNewTags(false)
+                                            .reportNewBranches(false)
+                                            .reportNewBuilds(false)
+                                            .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -370,11 +422,25 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var author = EmailAddress.from("author", "author@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, author,
-                                                 true, false, false, false,
-                                                 MailingListUpdater.Mode.ALL, Map.of(), Pattern.compile(".*"));
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master|another"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+            var updater = MailingListUpdater.newBuilder()
+                                            .list(mailmanList)
+                                            .recipient(listAddress)
+                                            .sender(sender)
+                                            .author(author)
+                                            .includeBranch(true)
+                                            .reportNewTags(false)
+                                            .reportNewBranches(false)
+                                            .reportNewBuilds(false)
+                                            .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master|another"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -446,12 +512,26 @@ class UpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var author = EmailAddress.from("author", "author@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, author,
-                                                 false, false, false, false,
-                                                 MailingListUpdater.Mode.PR_ONLY, Map.of("extra1", "value1"),
-                                                 Pattern.compile(".*"));
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+            var updater = MailingListUpdater.newBuilder()
+                                            .list(mailmanList)
+                                            .recipient(listAddress)
+                                            .sender(sender)
+                                            .author(author)
+                                            .reportNewTags(false)
+                                            .reportNewBranches(false)
+                                            .reportNewBuilds(false)
+                                            .mode(MailingListUpdater.Mode.PR_ONLY)
+                                            .headers(Map.of("extra1", "value1"))
+                                            .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -527,11 +607,24 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null,
-                                                 false, false, false, false,
-                                                 MailingListUpdater.Mode.PR, Map.of(), Pattern.compile(".*"));
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+            var updater = MailingListUpdater.newBuilder()
+                                            .list(mailmanList)
+                                            .recipient(listAddress)
+                                            .sender(sender)
+                                            .reportNewTags(false)
+                                            .reportNewBranches(false)
+                                            .reportNewBuilds(false)
+                                            .mode(MailingListUpdater.Mode.PR)
+                                            .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -617,11 +710,25 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null,
-                                                 false, false, false, false,
-                                                 MailingListUpdater.Mode.PR, Map.of(), Pattern.compile(".*"));
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master|other"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+            var updater = MailingListUpdater.newBuilder()
+                                            .list(mailmanList)
+                                            .recipient(listAddress)
+                                            .sender(sender)
+                                            .author(null)
+                                            .reportNewTags(false)
+                                            .reportNewBranches(false)
+                                            .reportNewBuilds(false)
+                                            .mode(MailingListUpdater.Mode.PR)
+                                            .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master|other"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -707,16 +814,31 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null,
-                                                 false, true, false, true,
-                                                 MailingListUpdater.Mode.ALL,
-                                                 Map.of("extra1", "value1", "extra2", "value2"),
-                                                 Pattern.compile(".*"));
-            var prOnlyUpdater = new MailingListUpdater(mailmanList, listAddress, sender, null,
-                                                       false, false, false, false,
-                                                       MailingListUpdater.Mode.PR_ONLY, Map.of(), Pattern.compile(".*"));
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater, prOnlyUpdater), List.of(), Set.of(), Map.of());
+            var updater = MailingListUpdater.newBuilder()
+                                            .list(mailmanList)
+                                            .recipient(listAddress)
+                                            .sender(sender)
+                                            .reportNewBranches(false)
+                                            .headers(Map.of("extra1", "value1", "extra2", "value2"))
+                                            .build();
+            var prOnlyUpdater = MailingListUpdater.newBuilder()
+                                                  .list(mailmanList)
+                                                  .recipient(listAddress)
+                                                  .sender(sender)
+                                                  .reportNewTags(false)
+                                                  .reportNewBranches(false)
+                                                  .reportNewBuilds(false)
+                                                  .mode(MailingListUpdater.Mode.PR_ONLY)
+                                                  .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater, prOnlyUpdater))
+                                     .build();
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -810,16 +932,32 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null,
-                                                 false, true, false, false,
-                                                 MailingListUpdater.Mode.ALL,
-                                                 Map.of("extra1", "value1", "extra2", "value2"),
-                                                 Pattern.compile(".*"));
-            var prOnlyUpdater = new MailingListUpdater(mailmanList, listAddress, sender, null,
-                                                       false, false, false, false,
-                                                       MailingListUpdater.Mode.PR_ONLY, Map.of(), Pattern.compile(".*"));
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater, prOnlyUpdater), List.of(), Set.of(), Map.of());
+            var updater = MailingListUpdater.newBuilder()
+                                            .list(mailmanList)
+                                            .recipient(listAddress)
+                                            .sender(sender)
+                                            .reportNewBranches(false)
+                                            .reportNewBuilds(false)
+                                            .headers(Map.of("extra1", "value1", "extra2", "value2"))
+                                            .build();
+            var prOnlyUpdater = MailingListUpdater.newBuilder()
+                                                  .list(mailmanList)
+                                                  .recipient(listAddress)
+                                                  .sender(sender)
+                                                  .reportNewTags(false)
+                                                  .reportNewBranches(false)
+                                                  .reportNewBuilds(false)
+                                                  .mode(MailingListUpdater.Mode.PR_ONLY)
+                                                  .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater, prOnlyUpdater))
+                                     .build();
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -888,13 +1026,23 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null,
-                                                 false, false, true, false,
-                                                 MailingListUpdater.Mode.ALL,
-                                                 Map.of("extra1", "value1", "extra2", "value2"),
-                                                 Pattern.compile(".*"));
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master|newbranch."), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+            var updater = MailingListUpdater.newBuilder()
+                                            .list(mailmanList)
+                                            .recipient(listAddress)
+                                            .sender(sender)
+                                            .reportNewTags(false)
+                                            .reportNewBuilds(false)
+                                            .headers(Map.of("extra1", "value1", "extra2", "value2"))
+                                            .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master|newbranch."))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -958,12 +1106,25 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = new MailingListUpdater(mailmanList, listAddress, sender, null,
-                                                 false, false, false, false,
-                                                 MailingListUpdater.Mode.ALL,
-                                                 Map.of("extra1", "value1", "extra2", "value2"), Pattern.compile("none"));
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+            var updater = MailingListUpdater.newBuilder()
+                                            .list(mailmanList)
+                                            .recipient(listAddress)
+                                            .sender(sender)
+                                            .reportNewTags(false)
+                                            .reportNewBranches(false)
+                                            .reportNewBuilds(false)
+                                            .headers(Map.of("extra1", "value1", "extra2", "value2"))
+                                            .allowedAuthorDomains(Pattern.compile("none"))
+                                            .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -1008,9 +1169,21 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var commitIcon = URI.create("http://www.example.com/commit.png");
-            var updater = new IssueUpdater(issueProject, false, null, true, commitIcon, true, null, false);
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewLink(false)
+                                      .commitIcon(commitIcon)
+                                      .setFixVersion(true)
+                                      .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
 
             // Initialize history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -1064,9 +1237,21 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var commitIcon = URI.create("http://www.example.com/commit.png");
-            var updater = new IssueUpdater(issueProject, false, null, true, commitIcon, true, null, false);
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewLink(false)
+                                      .commitIcon(commitIcon)
+                                      .setFixVersion(true)
+                                      .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
 
             // Initialize history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -1105,9 +1290,23 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var commitIcon = URI.create("http://www.example.com/commit.png");
-            var updater = new IssueUpdater(issueProject, false, null, false, commitIcon, true, Map.of("master", "2.0"), false);
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewLink(false)
+                                      .commitLink(false)
+                                      .commitIcon(commitIcon)
+                                      .setFixVersion(true)
+                                      .fixVersions(Map.of("master", "2.0"))
+                                      .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
 
             // Initialize history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -1150,9 +1349,21 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var commitIcon = URI.create("http://www.example.com/commit.png");
-            var updater = new IssueUpdater(issueProject, false, null, true, commitIcon, true, null, false);
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewLink(false)
+                                      .commitIcon(commitIcon)
+                                      .setFixVersion(true)
+                                      .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
 
             // Initialize history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -1213,9 +1424,22 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var issueProject = credentials.getIssueProject();
-            var updater = new IssueUpdater(issueProject, false, null, false, null, true, Map.of("master", "12u14"), false);
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewLink(false)
+                                      .commitLink(false)
+                                      .setFixVersion(true)
+                                      .fixVersions(Map.of("master", "12u14"))
+                                      .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
 
             // Initialize history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -1249,9 +1473,22 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var issueProject = credentials.getIssueProject();
-            var updater = new IssueUpdater(issueProject, false, null, false, null, true, Map.of("master", "12u14"), false);
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewLink(false)
+                                      .commitLink(false)
+                                      .setFixVersion(true)
+                                      .fixVersions(Map.of("master", "12u14"))
+                                      .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
 
             // Initialize history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -1285,9 +1522,22 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var issueProject = credentials.getIssueProject();
-            var updater = new IssueUpdater(issueProject, false, null, false, null, true, Map.of("master", "12.0.2"), false);
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater), List.of(), Set.of(), Map.of());
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewLink(false)
+                                      .commitLink(false)
+                                      .setFixVersion(true)
+                                      .fixVersions(Map.of("master", "12.0.2"))
+                                      .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
 
             // Initialize history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -1357,10 +1607,22 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var reviewIcon = URI.create("http://www.example.com/review.png");
-            var updater = new IssueUpdater(issueProject, true, reviewIcon, false, null, false, null, false);
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(), List.of(updater), Set.of("rfr"),
-                                          Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("This is now ready")));
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewIcon(reviewIcon)
+                                      .commitLink(false)
+                                      .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .prUpdaters(List.of(updater))
+                                     .readyLabels(Set.of("rfr"))
+                                     .readyComments(Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("This is now ready")))
+                                     .build();
 
             // Initialize history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -1446,10 +1708,22 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var reviewIcon = URI.create("http://www.example.com/review.png");
-            var updater = new IssueUpdater(issueProject, false, reviewIcon, false, null, false,null, false);
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile("master"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(), List.of(updater), Set.of("rfr"),
-                                          Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("This is now ready")));
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewLink(false)
+                                      .reviewIcon(reviewIcon)
+                                      .commitLink(false)
+                                      .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .prUpdaters(List.of(updater)).readyLabels(Set.of("rfr"))
+                                     .readyComments(Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("This is now ready")))
+                                     .build();
             // Initialize history
             TestBotRunner.runPeriodicItems(notifyBot);
 
@@ -1493,9 +1767,22 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var reviewIcon = URI.create("http://www.example.com/review.png");
-            var updater = new IssueUpdater(issueProject, true, reviewIcon, false, null, false, null, true);
-            var notifyBot = new NotifyBot(repo, storageFolder, Pattern.compile(".*"), tagStorage, branchStorage,
-                                          prIssuesStorage, List.of(updater), List.of(updater), Set.of(), Map.of());
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewIcon(reviewIcon)
+                                      .commitLink(false)
+                                      .prOnly(true)
+                                      .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile(".*"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .prUpdaters(List.of(updater))
+                                     .build();
 
             // Initialize history
             localRepo.push(localRepo.resolve("master").orElseThrow(), repo.url(), "other");

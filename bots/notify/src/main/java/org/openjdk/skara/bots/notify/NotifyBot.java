@@ -63,6 +63,10 @@ class NotifyBot implements Bot {
         this.readyComments = readyComments;
     }
 
+    static NotifyBotBuilder newBuilder() {
+        return new NotifyBotBuilder();
+    }
+
     private boolean isReady(PullRequest pr) {
         var labels = new HashSet<>(pr.labels());
         for (var readyLabel : readyLabels) {
