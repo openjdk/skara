@@ -304,13 +304,18 @@ def dump(ui, repo, **opts):
     __dump(repo, 0, len(repo))
 
 @command(b'metadata', [], b'hg metadata')
-def dump(ui, repo, revs=None, **opts):
-    if revs == None:
-        revs = b"0:tip"
+def metadata(ui, repo, revs, filenames=None, **opts):
+    if filenames != None:
+        fnames = filenames.split(b"\t")
 
     for r in revrange(repo, [revs]):
         ctx = repo[r]
-        __dump_metadata(ctx)
+        if filenames == None:
+            __dump_metadata(ctx)
+        else:
+            modified, added, removed = tuple(ctx.status(ctx.p1(), _match_exact(repo.root, repo.getcwd(), fnames)))[:3]
+            if modified or added or removed:
+                __dump_metadata(ctx)
 
 @command(b'ls-tree', [], b'hg ls-tree')
 def ls_tree(ui, repo, rev, **opts):

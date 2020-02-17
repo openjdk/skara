@@ -1197,11 +1197,75 @@ public class RepositoryTests {
             var metadata = r.commitMetadata();
             assertEquals(2, metadata.size());
 
-            assertEquals(first, metadata.get(0).hash());
-            assertEquals(List.of("Added README"), metadata.get(0).message());
+            assertEquals(second, metadata.get(0).hash());
+            assertEquals(List.of("Modified README"), metadata.get(0).message());
 
+            assertEquals(first, metadata.get(1).hash());
+            assertEquals(List.of("Added README"), metadata.get(1).message());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testCommitMetadataWithFiles(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme1 = dir.path().resolve("README_1");
+            Files.write(readme1, List.of("1"));
+            r.add(readme1);
+            var first = r.commit("Added README_1", "duke", "duke@openjdk.java.net");
+
+            var readme2 = dir.path().resolve("README_2");
+            Files.write(readme2, List.of("2"));
+            r.add(readme2);
+            var second = r.commit("Added README_2", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme2, List.of("3"), WRITE, APPEND);
+            r.add(readme2);
+            var third = r.commit("Modified README_2", "duke", "duke@openjdk.java.net");
+
+            var metadata = r.commitMetadata(List.of(Path.of("README_1")));
+            assertEquals(1, metadata.size());
+            assertEquals(first, metadata.get(0).hash());
+
+            metadata = r.commitMetadata(List.of(Path.of("README_2")));
+            assertEquals(2, metadata.size());
+            assertEquals(third, metadata.get(0).hash());
             assertEquals(second, metadata.get(1).hash());
-            assertEquals(List.of("Modified README"), metadata.get(1).message());
+
+            metadata = r.commitMetadata(List.of(Path.of("README_1"), Path.of("README_2")));
+            assertEquals(3, metadata.size());
+            assertEquals(third, metadata.get(0).hash());
+            assertEquals(second, metadata.get(1).hash());
+            assertEquals(first, metadata.get(2).hash());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testCommitMetadataWithReverse(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, world!"));
+            r.add(readme);
+            var first = r.commit("Added README", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme, List.of("One more line"), WRITE, APPEND);
+            r.add(readme);
+            var second = r.commit("Modified README", "duke", "duke@openjdk.java.net");
+
+            var metadata = r.commitMetadata();
+            assertEquals(2, metadata.size());
+            assertEquals(second, metadata.get(0).hash());
+            assertEquals(first, metadata.get(1).hash());
+
+            metadata = r.commitMetadata(true);
+            assertEquals(2, metadata.size());
+            assertEquals(first, metadata.get(0).hash());
+            assertEquals(second, metadata.get(1).hash());
         }
     }
 
