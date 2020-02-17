@@ -72,6 +72,10 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
         this.allowedAuthorDomains = allowedAuthorDomains;
     }
 
+    static MailingListUpdaterBuilder newBuilder() {
+        return new MailingListUpdaterBuilder();
+    }
+
     private String tagAnnotationToText(HostedRepository repository, Tag.Annotated annotation) {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);

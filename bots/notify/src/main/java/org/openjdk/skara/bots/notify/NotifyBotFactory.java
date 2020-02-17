@@ -104,8 +104,18 @@ public class NotifyBotFactory implements BotFactory {
                     var recipient = mailinglist.get("recipient").asString();
                     var recipientAddress = EmailAddress.parse(recipient);
 
-                    var mode = MailingListUpdater.Mode.ALL;
+                    var author = mailinglist.contains("author") ? EmailAddress.parse(mailinglist.get("author").asString()) : null;
+                    var allowedDomains = author == null ? Pattern.compile(mailinglist.get("domains").asString()) : null;
+
+                    var mailingListUpdaterBuilder = MailingListUpdater.newBuilder()
+                                                                      .list(listServer.getList(recipient))
+                                                                      .recipient(recipientAddress)
+                                                                      .sender(sender)
+                                                                      .author(author)
+                                                                      .allowedAuthorDomains(allowedDomains);
+
                     if (mailinglist.contains("mode")) {
+                        var mode = MailingListUpdater.Mode.ALL;
                         switch (mailinglist.get("mode").asString()) {
                             case "pr":
                                 mode = MailingListUpdater.Mode.PR;
@@ -116,34 +126,26 @@ public class NotifyBotFactory implements BotFactory {
                             default:
                                 throw new RuntimeException("Unknown mode");
                         }
+                        mailingListUpdaterBuilder.mode(mode);
                     }
-
-                    Map<String, String> headers = mailinglist.contains("headers") ?
-                            mailinglist.get("headers").fields().stream()
-                                       .collect(Collectors.toMap(JSONObject.Field::name, field -> field.value().asString())) :
-                            Map.of();
-                    var author = mailinglist.contains("author") ? EmailAddress.parse(mailinglist.get("author").asString()) : null;
-                    var allowedDomains = author == null ? Pattern.compile(mailinglist.get("domains").asString()) : null;
-
-                    var includeBranchNames = false;
+                    if (mailinglist.contains("headers")) {
+                        mailingListUpdaterBuilder.headers(mailinglist.get("headers").fields().stream()
+                                                                     .collect(Collectors.toMap(JSONObject.Field::name,
+                                                                                               field -> field.value().asString())));
+                    }
                     if (mailinglist.contains("branchnames")) {
-                        includeBranchNames = mailinglist.get("branchnames").asBoolean();
+                        mailingListUpdaterBuilder.includeBranch(mailinglist.get("branchnames").asBoolean());
                     }
-                    var reportNewTags = true;
                     if (mailinglist.contains("tags")) {
-                        reportNewTags = mailinglist.get("tags").asBoolean();
+                        mailingListUpdaterBuilder.reportNewTags(mailinglist.get("tags").asBoolean());
                     }
-                    var reportNewBranches = true;
                     if (mailinglist.contains("branches")) {
-                        reportNewBranches = mailinglist.get("branches").asBoolean();
+                        mailingListUpdaterBuilder.reportNewBranches(mailinglist.get("branches").asBoolean());
                     }
-                    var reportNewBuilds = true;
                     if (mailinglist.contains("builds")) {
-                        reportNewBuilds = mailinglist.get("builds").asBoolean();
+                        mailingListUpdaterBuilder.reportNewBuilds(mailinglist.get("builds").asBoolean());
                     }
-                    updaters.add(new MailingListUpdater(listServer.getList(recipient), recipientAddress, sender, author,
-                                                        includeBranchNames, reportNewTags, reportNewBranches, reportNewBuilds,
-                                                        mode, headers, allowedDomains));
+                    updaters.add(mailingListUpdaterBuilder.build());
                 }
             }
             if (repo.value().contains("issues")) {
