@@ -1086,6 +1086,93 @@ class UpdaterTests {
     }
 
     @Test
+    void testMailingListBranchPrefix(TestInfo testInfo) throws IOException {
+        try (var listServer = new TestMailmanServer();
+             var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanList = mailmanServer.getList(listAddress.address());
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var updater = MailingListUpdater.newBuilder()
+                                            .list(mailmanList)
+                                            .recipient(listAddress)
+                                            .sender(sender)
+                                            .reportNewTags(false)
+                                            .reportNewBranches(false)
+                                            .reportNewBuilds(false)
+                                            .mode(MailingListUpdater.Mode.PR)
+                                            .repoInSubject(true)
+                                            .branchInSubject(Pattern.compile(".*"))
+                                            .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
+
+            // No mail should be sent on the first run as there is no history
+            TestBotRunner.runPeriodicItems(notifyBot);
+            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
+            localRepo.push(editHash, repo.url(), "edit");
+            var pr = credentials.createPullRequest(repo, "master", "edit", "RFR: My PR");
+
+            // PR hasn't been integrated yet, so there should be no mail
+            TestBotRunner.runPeriodicItems(notifyBot);
+            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+
+            // Simulate an RFR email
+            var rfr = Email.create("RFR: My PR", "PR:\n" + pr.webUrl().toString())
+                           .author(EmailAddress.from("duke", "duke@duke.duke"))
+                           .recipient(listAddress)
+                           .build();
+            mailmanList.post(rfr);
+            listServer.processIncoming();
+
+            // And an integration
+            pr.addComment("Pushed as commit " + editHash.hex() + ".");
+            localRepo.push(editHash, repo.url(), "master");
+
+            TestBotRunner.runPeriodicItems(notifyBot);
+            listServer.processIncoming();
+
+            var conversations = mailmanList.conversations(Duration.ofDays(1));
+            conversations.sort(Comparator.comparing(conversation -> conversation.first().subject()));
+            assertEquals(1, conversations.size());
+
+            var prConversation = conversations.get(0);
+
+            var prEmail = prConversation.replies(prConversation.first()).get(0);
+            assertEquals(listAddress, prEmail.sender());
+            assertEquals(EmailAddress.from("testauthor", "ta@none.none"), prEmail.author());
+            assertEquals(prEmail.recipients(), List.of(listAddress));
+            assertEquals("[" + repo.name() + ":master] [Integrated] RFR: My PR", prEmail.subject());
+            assertTrue(prEmail.body().contains("Changeset: " + editHash.abbreviate()));
+            assertTrue(prEmail.body().contains("23456789: More fixes"));
+            assertFalse(prEmail.body().contains("Committer"));
+            assertFalse(prEmail.body().contains(masterHash.abbreviate()));
+        }
+    }
+
+    @Test
     void testMailingListNoIdempotence(TestInfo testInfo) throws IOException {
         try (var listServer = new TestMailmanServer();
              var credentials = new HostCredentials(testInfo);
