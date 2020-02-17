@@ -114,7 +114,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
                                                  .seedStorage(configuration.storageFolder().resolve("seeds"));
 
             if (repoConfig.contains("reponame")) {
-                botBuilder.repoInSubject(Pattern.compile(repoConfig.get("reponame").asString()));
+                botBuilder.repoInSubject(repoConfig.get("reponame").asBoolean());
             }
             if (repoConfig.contains("branchname")) {
                 botBuilder.branchInSubject(Pattern.compile(repoConfig.get("branchname").asString()));

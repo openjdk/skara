@@ -1767,7 +1767,7 @@ class MailingListBridgeBotTests {
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
                                             .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
-                                            .repoInSubject(Pattern.compile(".*"))
+                                            .repoInSubject(true)
                                             .build();
 
             // Populate the projects repository
@@ -1824,7 +1824,7 @@ class MailingListBridgeBotTests {
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
                                             .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
-                                            .repoInSubject(Pattern.compile(".*"))
+                                            .repoInSubject(true)
                                             .branchInSubject(Pattern.compile(".*"))
                                             .build();
 
