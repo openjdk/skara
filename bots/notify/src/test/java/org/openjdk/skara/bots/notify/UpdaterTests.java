@@ -1169,7 +1169,12 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var commitIcon = URI.create("http://www.example.com/commit.png");
-            var updater = new IssueUpdater(issueProject, false, null, true, commitIcon, true, null, false);
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewLink(false)
+                                      .commitIcon(commitIcon)
+                                      .setFixVersion(true)
+                                      .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -1232,7 +1237,12 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var commitIcon = URI.create("http://www.example.com/commit.png");
-            var updater = new IssueUpdater(issueProject, false, null, true, commitIcon, true, null, false);
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewLink(false)
+                                      .commitIcon(commitIcon)
+                                      .setFixVersion(true)
+                                      .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -1280,7 +1290,14 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var commitIcon = URI.create("http://www.example.com/commit.png");
-            var updater = new IssueUpdater(issueProject, false, null, false, commitIcon, true, Map.of("master", "2.0"), false);
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewLink(false)
+                                      .commitLink(false)
+                                      .commitIcon(commitIcon)
+                                      .setFixVersion(true)
+                                      .fixVersions(Map.of("master", "2.0"))
+                                      .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -1332,7 +1349,12 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var commitIcon = URI.create("http://www.example.com/commit.png");
-            var updater = new IssueUpdater(issueProject, false, null, true, commitIcon, true, null, false);
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewLink(false)
+                                      .commitIcon(commitIcon)
+                                      .setFixVersion(true)
+                                      .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -1402,7 +1424,13 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var issueProject = credentials.getIssueProject();
-            var updater = new IssueUpdater(issueProject, false, null, false, null, true, Map.of("master", "12u14"), false);
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewLink(false)
+                                      .commitLink(false)
+                                      .setFixVersion(true)
+                                      .fixVersions(Map.of("master", "12u14"))
+                                      .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -1445,7 +1473,13 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var issueProject = credentials.getIssueProject();
-            var updater = new IssueUpdater(issueProject, false, null, false, null, true, Map.of("master", "12u14"), false);
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewLink(false)
+                                      .commitLink(false)
+                                      .setFixVersion(true)
+                                      .fixVersions(Map.of("master", "12u14"))
+                                      .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -1488,7 +1522,13 @@ class UpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var issueProject = credentials.getIssueProject();
-            var updater = new IssueUpdater(issueProject, false, null, false, null, true, Map.of("master", "12.0.2"), false);
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewLink(false)
+                                      .commitLink(false)
+                                      .setFixVersion(true)
+                                      .fixVersions(Map.of("master", "12.0.2"))
+                                      .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -1567,7 +1607,11 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var reviewIcon = URI.create("http://www.example.com/review.png");
-            var updater = new IssueUpdater(issueProject, true, reviewIcon, false, null, false, null, false);
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewIcon(reviewIcon)
+                                      .commitLink(false)
+                                      .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -1664,7 +1708,12 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var reviewIcon = URI.create("http://www.example.com/review.png");
-            var updater = new IssueUpdater(issueProject, false, reviewIcon, false, null, false,null, false);
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewLink(false)
+                                      .reviewIcon(reviewIcon)
+                                      .commitLink(false)
+                                      .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -1718,7 +1767,12 @@ class UpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var reviewIcon = URI.create("http://www.example.com/review.png");
-            var updater = new IssueUpdater(issueProject, true, reviewIcon, false, null, false, null, true);
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewIcon(reviewIcon)
+                                      .commitLink(false)
+                                      .prOnly(true)
+                                      .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)

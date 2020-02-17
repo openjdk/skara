@@ -151,32 +151,26 @@ public class NotifyBotFactory implements BotFactory {
             if (repo.value().contains("issues")) {
                 var issuesConf = repo.value().get("issues");
                 var issueProject = configuration.issueProject(issuesConf.get("project").asString());
-                var reviewLink = true;
+                var issueUpdaterBuilder = IssueUpdater.newBuilder()
+                                                      .issueProject(issueProject);
+
                 if (issuesConf.contains("reviewlink")) {
-                    reviewLink = issuesConf.get("reviewlink").asBoolean();
+                    issueUpdaterBuilder.reviewLink(issuesConf.get("reviewlink").asBoolean());
                 }
-                var commitLink = true;
                 if (issuesConf.contains("commitlink")) {
-                    commitLink = issuesConf.get("commitlink").asBoolean();
+                    issueUpdaterBuilder.commitLink(issuesConf.get("commitlink").asBoolean());
                 }
-                var setFixVersion = false;
-                Map<String, String> fixVersions = null;
                 if (issuesConf.contains("fixversions")) {
-                    setFixVersion = true;
-                    fixVersions = issuesConf.get("fixversions").fields().stream()
-                                            .collect(Collectors.toMap(JSONObject.Field::name, f -> f.value().asString()));
+                    issueUpdaterBuilder.setFixVersion(true);
+                    issueUpdaterBuilder.fixVersions(issuesConf.get("fixversions").fields().stream()
+                                                              .collect(Collectors.toMap(JSONObject.Field::name,
+                                                                                        f -> f.value().asString())));
                 }
-                var prOnly = false;
                 if (issuesConf.contains("pronly")) {
-                    prOnly = issuesConf.get("pronly").asBoolean();
-                    if (setFixVersion) {
-                        throw new RuntimeException("cannot combine pronly with fixversions");
-                    }
+                    issueUpdaterBuilder.prOnly(issuesConf.get("pronly").asBoolean());
                 }
-                var updater = new IssueUpdater(issueProject, reviewLink, reviewIcon, commitLink, commitIcon,
-                                               setFixVersion, fixVersions, prOnly);
-                updaters.add(updater);
-                prUpdaters.add(updater);
+                updaters.add(issueUpdaterBuilder.build());
+                prUpdaters.add(issueUpdaterBuilder.build());
             }
 
             if (updaters.isEmpty()) {
