@@ -332,7 +332,7 @@ class ContributorTests {
             var contributorsHeaderIndex = -1;
             for (var i = 0; i < body.length; i++) {
                 var line = body[i];
-                if (line.equals("## Contributors")) {
+                if (line.equals("### Contributors")) {
                     contributorsHeaderIndex = i;
                     break;
                 }
@@ -352,7 +352,7 @@ class ContributorTests {
 
             // Verify that body does not contain "Contributors" section
             for (var line : pr.body().split("\n")) {
-                assertNotEquals("## Contributors", line);
+                assertNotEquals("### Contributors", line);
             }
         }
     }
