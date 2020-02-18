@@ -136,7 +136,7 @@ class CheckRun {
         var ret = new ArrayList<String>();
 
         if (bodyWithoutStatus().isBlank()) {
-            var error = "The PR body must not be empty - the content will be used for a notification email.";
+            var error = "The pull request body must not be empty.";
             ret.add(error);
         }
 
