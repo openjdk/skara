@@ -519,6 +519,10 @@ public class GitPr {
                   .helptext("Publish the local branch before creating the pull request")
                   .optional(),
             Switch.shortcut("")
+                  .fullname("atomic")
+                  .helptext("Integrate the pull request atomically")
+                  .optional(),
+            Switch.shortcut("")
                   .fullname("jcheck")
                   .helptext("Run jcheck before creating the pull request")
                   .optional(),
@@ -1074,7 +1078,20 @@ public class GitPr {
         } else if (action.equals("integrate")) {
             var id = pullRequestIdArgument(arguments, repo);
             var pr = getPullRequest(uri, repo, host, id);
-            var integrateComment = pr.addComment("/integrate");
+            var isAtomic = getSwitch("atomic", "integrate", arguments);
+
+            var message = "/integrate";
+            if (isAtomic) {
+                var targetHash = repo.resolve(pr.targetRef());
+                if (!targetHash.isPresent()) {
+                    exit("error: cannot resolve target branch " + pr.targetRef());
+                }
+                var sourceHash = repo.fetch(pr.repository().webUrl(), pr.fetchRef());
+                var mergeBase = repo.mergeBase(sourceHash, targetHash.get());
+                message += " " + mergeBase.hex();
+            }
+
+            var integrateComment = pr.addComment(message);
 
             var seenIntegrateComment = false;
             var expected = "<!-- Jmerge command reply message (" + integrateComment.id() + ") -->";
