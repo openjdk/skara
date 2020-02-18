@@ -552,7 +552,7 @@ public class GitPr {
                   .optional());
 
         var actions = List.of("list", "fetch", "show", "checkout", "apply", "integrate",
-                              "approve", "create", "close", "update", "test", "status");
+                              "approve", "create", "close", "set", "test", "status");
         var inputs = List.of(
             Input.position(0)
                  .describe(String.join("|", actions))
@@ -1383,7 +1383,7 @@ public class GitPr {
             var remoteRepo = getHostedRepositoryFor(uri, repo, host);
             var pr = remoteRepo.pullRequest(prId.asString());
             pr.setState(PullRequest.State.CLOSED);
-        } else if (action.equals("update")) {
+        } else if (action.equals("set")) {
             var prId = arguments.at(1);
             if (!prId.isPresent()) {
                 exit("error: missing pull request identifier");
@@ -1391,7 +1391,7 @@ public class GitPr {
 
             var remoteRepo = getHostedRepositoryFor(uri, repo, host);
             var pr = remoteRepo.pullRequest(prId.asString());
-            var assigneesOption = getOption("assignees", "update", arguments);
+            var assigneesOption = getOption("assignees", "set", arguments);
             if (assigneesOption != null) {
                 var usernames = Arrays.asList(assigneesOption.split(","));
                 var assignees = usernames.stream()
