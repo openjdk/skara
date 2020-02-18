@@ -75,13 +75,25 @@ class ArchiveWorkItem implements WorkItem {
     }
 
     private void pushMbox(Repository localRepo, String message) {
-        try {
-            localRepo.add(localRepo.root().resolve("."));
-            var hash = localRepo.commit(message, bot.emailAddress().fullName().orElseThrow(), bot.emailAddress().address());
-            localRepo.push(hash, bot.archiveRepo().url(), bot.archiveRef());
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+        IOException lastException = null;
+        for (int counter = 0; counter < 3; ++counter) {
+            try {
+                var localHead = localRepo.head();
+                localRepo.add(localRepo.root().resolve("."));
+                var hash = localRepo.commit(message, bot.emailAddress().fullName().orElseThrow(), bot.emailAddress().address());
+                var remoteHead = localRepo.fetch(bot.archiveRepo().url(), bot.archiveRef());
+                if (!localHead.equals(remoteHead)) {
+                    log.info("Remote head has changed - attempting a rebase");
+                    localRepo.rebase(remoteHead, bot.emailAddress().fullName().orElseThrow(), bot.emailAddress().address());
+                    hash = localRepo.head();
+                }
+                localRepo.push(hash, bot.archiveRepo().url(), bot.archiveRef());
+                return;
+            } catch (IOException e) {
+                lastException = e;
+            }
         }
+        throw new UncheckedIOException(lastException);
     }
 
     private Repository materializeArchive(Path scratchPath) {
