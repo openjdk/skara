@@ -207,8 +207,8 @@ public class Webrev {
             var total = fileViews.stream().map(FileView::stats).mapToInt(WebrevStats::total).sum();
             var stats = new WebrevStats(diff.added(), diff.removed(), diff.modified(), total);
 
-            var issueForWebrev = issue == null ? null : issueLinker.apply(issue);
-            var tailEndURL = commitLinker == null ? null : commitLinker.apply(tailEnd.hex());
+            var issueForWebrev = issue != null && issueLinker != null ? issueLinker.apply(issue) : null;
+            var tailEndURL = commitLinker != null ? commitLinker.apply(tailEnd.hex()) : null;
             try (var w = Files.newBufferedWriter(output.resolve("index.html"))) {
                 var index = new IndexView(fileViews,
                                           title,
