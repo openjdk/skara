@@ -519,6 +519,10 @@ public class GitPr {
                   .helptext("Publish the local branch before creating the pull request")
                   .optional(),
             Switch.shortcut("")
+                  .fullname("atomic")
+                  .helptext("Integrate the pull request atomically")
+                  .optional(),
+            Switch.shortcut("")
                   .fullname("jcheck")
                   .helptext("Run jcheck before creating the pull request")
                   .optional(),
@@ -548,7 +552,7 @@ public class GitPr {
                   .optional());
 
         var actions = List.of("list", "fetch", "show", "checkout", "apply", "integrate",
-                              "approve", "create", "close", "update", "test", "status");
+                              "approve", "create", "close", "set", "test", "status");
         var inputs = List.of(
             Input.position(0)
                  .describe(String.join("|", actions))
@@ -1074,7 +1078,20 @@ public class GitPr {
         } else if (action.equals("integrate")) {
             var id = pullRequestIdArgument(arguments, repo);
             var pr = getPullRequest(uri, repo, host, id);
-            var integrateComment = pr.addComment("/integrate");
+            var isAtomic = getSwitch("atomic", "integrate", arguments);
+
+            var message = "/integrate";
+            if (isAtomic) {
+                var targetHash = repo.resolve(pr.targetRef());
+                if (!targetHash.isPresent()) {
+                    exit("error: cannot resolve target branch " + pr.targetRef());
+                }
+                var sourceHash = repo.fetch(pr.repository().webUrl(), pr.fetchRef());
+                var mergeBase = repo.mergeBase(sourceHash, targetHash.get());
+                message += " " + mergeBase.hex();
+            }
+
+            var integrateComment = pr.addComment(message);
 
             var seenIntegrateComment = false;
             var expected = "<!-- Jmerge command reply message (" + integrateComment.id() + ") -->";
@@ -1089,10 +1106,12 @@ public class GitPr {
                     }
                     var lines = comment.body().split("\n");
                     if (lines.length > 0 && lines[0].equals(expected)) {
-                        if (lines.length == 3 && lines[2].startsWith("Pushed as commit")) {
-                            var output = removeTrailing(lines[2], ".");
-                            System.out.println(output);
-                            System.exit(0);
+                        for (var line : lines) {
+                            if (line.startsWith("Pushed as commit")) {
+                                var output = removeTrailing(line, ".");
+                                System.out.println(output);
+                                System.exit(0);
+                            }
                         }
                     }
                 }
@@ -1364,7 +1383,7 @@ public class GitPr {
             var remoteRepo = getHostedRepositoryFor(uri, repo, host);
             var pr = remoteRepo.pullRequest(prId.asString());
             pr.setState(PullRequest.State.CLOSED);
-        } else if (action.equals("update")) {
+        } else if (action.equals("set")) {
             var prId = arguments.at(1);
             if (!prId.isPresent()) {
                 exit("error: missing pull request identifier");
@@ -1372,7 +1391,7 @@ public class GitPr {
 
             var remoteRepo = getHostedRepositoryFor(uri, repo, host);
             var pr = remoteRepo.pullRequest(prId.asString());
-            var assigneesOption = getOption("assignees", "update", arguments);
+            var assigneesOption = getOption("assignees", "set", arguments);
             if (assigneesOption != null) {
                 var usernames = Arrays.asList(assigneesOption.split(","));
                 var assignees = usernames.stream()

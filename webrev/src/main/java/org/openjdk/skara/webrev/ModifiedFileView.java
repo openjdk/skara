@@ -27,20 +27,25 @@ import org.openjdk.skara.vcs.*;
 import java.io.*;
 import java.nio.file.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 class ModifiedFileView implements FileView {
     private final Patch patch;
     private final Path out;
     private final Navigation navigation;
+    private final List<CommitMetadata> commits;
+    private final MetadataFormatter formatter;
     private final List<String> oldContent;
     private final List<String> newContent;
     private final byte[] binaryContent;
     private final WebrevStats stats;
 
-    public ModifiedFileView(ReadOnlyRepository repo, Hash base, Hash head, Patch patch, Path out, Navigation navigation) throws IOException {
+    public ModifiedFileView(ReadOnlyRepository repo, Hash base, Hash head, List<CommitMetadata> commits, MetadataFormatter formatter, Patch patch, Path out, Navigation navigation) throws IOException {
         this.patch = patch;
         this.out = out;
         this.navigation = navigation;
+        this.commits = commits;
+        this.formatter = formatter;
         if (patch.isTextual()) {
             binaryContent = null;
             oldContent = repo.lines(patch.source().path().get(), base).orElseThrow(() -> {
@@ -168,6 +173,11 @@ class ModifiedFileView implements FileView {
 
         if (patch.isTextual()) {
             w.write("<blockquote>\n");
+            w.write("  <pre>\n");
+            w.write(commits.stream()
+                           .map(formatter::format)
+                           .collect(Collectors.joining("\n")));
+            w.write("  </pre>\n");
             w.write("  <span class=\"stat\">\n");
             w.write(stats.toString());
             w.write("  </span>");

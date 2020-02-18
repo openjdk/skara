@@ -40,6 +40,8 @@ public class MailingListUpdaterBuilder {
     private MailingListUpdater.Mode mode = MailingListUpdater.Mode.ALL;
     private Map<String, String> headers = Map.of();
     private Pattern allowedAuthorDomains = Pattern.compile(".*");
+    private boolean repoInSubject = false;
+    private Pattern branchInSubject = Pattern.compile("a^"); // Does not match anything
 
     public MailingListUpdaterBuilder list(MailingList list) {
         this.list = list;
@@ -96,8 +98,18 @@ public class MailingListUpdaterBuilder {
         return this;
     }
 
+    public MailingListUpdaterBuilder repoInSubject(boolean repoInSubject) {
+        this.repoInSubject = repoInSubject;
+        return this;
+    }
+
+    public MailingListUpdaterBuilder branchInSubject(Pattern branchInSubject) {
+        this.branchInSubject = branchInSubject;
+        return this;
+    }
+
     public MailingListUpdater build() {
         return new MailingListUpdater(list, recipient, sender, author, includeBranch, reportNewTags, reportNewBranches,
-                                      reportNewBuilds, mode, headers, allowedAuthorDomains);
+                                      reportNewBuilds, mode, headers, allowedAuthorDomains, repoInSubject, branchInSubject);
     }
 }

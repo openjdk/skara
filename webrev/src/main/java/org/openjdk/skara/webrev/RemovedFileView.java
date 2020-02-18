@@ -27,17 +27,22 @@ import org.openjdk.skara.vcs.*;
 import java.io.*;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Collectors;
 
 class RemovedFileView implements FileView {
     private final Patch patch;
     private final Path out;
+    private final List<CommitMetadata> commits;
+    private final MetadataFormatter formatter;
     private final List<String> oldContent;
     private final byte[] binaryContent;
     private final WebrevStats stats;
 
-    public RemovedFileView(ReadOnlyRepository repo, Hash base, Patch patch, Path out) throws IOException {
+    public RemovedFileView(ReadOnlyRepository repo, Hash base, Hash head, List<CommitMetadata> commits, MetadataFormatter formatter, Patch patch, Path out) throws IOException {
         this.patch = patch;
         this.out = out;
+        this.commits = commits;
+        this.formatter = formatter;
         if (patch.isTextual()) {
             binaryContent = null;
             oldContent = repo.lines(patch.source().path().get(), base).orElseThrow(IllegalArgumentException::new);
@@ -97,6 +102,11 @@ class RemovedFileView implements FileView {
 
         if (patch.isTextual()) {
             w.write("<blockquote>\n");
+            w.write("  <pre>\n");
+            w.write(commits.stream()
+                           .map(formatter::format)
+                           .collect(Collectors.joining("\n")));
+            w.write("  </pre>\n");
             w.write("  <span class=\"stat\">\n");
             w.write(stats.toString());
             w.write("  </span>");

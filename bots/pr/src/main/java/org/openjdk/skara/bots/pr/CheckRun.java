@@ -49,7 +49,8 @@ class CheckRun {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     private final String progressMarker = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
     private final String mergeReadyMarker = "<!-- PullRequestBot merge is ready comment -->";
-    private final Pattern mergeSourcePattern = Pattern.compile("^Merge ([-/\\w]+):([-\\w]+$)");
+    private final Pattern mergeSourceFullPattern = Pattern.compile("^Merge ([-/\\w]+):([-\\w]+)$");
+    private final Pattern mergeSourceBranchOnlyPattern = Pattern.compile("^Merge ([-\\w]+)$");
     private final Set<String> newLabels;
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, PullRequestInstance prInstance, List<Comment> comments,
@@ -107,21 +108,27 @@ class CheckRun {
         return ((names.size() == 1) && emails.size() == 1);
     }
 
-    private Optional<String> mergeSourceRepository() {
-        var repoMatcher = mergeSourcePattern.matcher(pr.title());
-        if (!repoMatcher.matches()) {
-            return Optional.empty();
+    private static class MergeSource {
+        private final String repositoryName;
+        private final String branchName;
+
+        private MergeSource(String repositoryName, String branchName) {
+            this.repositoryName = repositoryName;
+            this.branchName = branchName;
         }
-        return Optional.of(repoMatcher.group(1));
     }
 
-    private Optional<String> mergeSourceBranch() {
-        var branchMatcher = mergeSourcePattern.matcher(pr.title());
-        if (!branchMatcher.matches()) {
-            return Optional.empty();
+    private Optional<MergeSource> mergeSource() {
+        var repoMatcher = mergeSourceFullPattern.matcher(pr.title());
+        if (!repoMatcher.matches()) {
+            var branchMatcher = mergeSourceBranchOnlyPattern.matcher(pr.title());
+            if (!branchMatcher.matches()) {
+                return Optional.empty();
+            }
+            return Optional.of(new MergeSource(pr.repository().name(), branchMatcher.group(1)));
         }
-        var mergeSourceBranch = branchMatcher.group(2);
-        return Optional.of(mergeSourceBranch);
+
+        return Optional.of(new MergeSource(repoMatcher.group(1), repoMatcher.group(2)));
     }
 
     // Additional bot-specific checks that are not handled by JCheck
@@ -160,25 +167,24 @@ class CheckRun {
                     ret.add("The top commit must be a merge commit.");
                 }
 
-                var sourceRepo = mergeSourceRepository();
-                var sourceBranch = mergeSourceBranch();
-                if (sourceBranch.isPresent() && sourceRepo.isPresent()) {
+                var source = mergeSource();
+                if (source.isPresent()) {
                     try {
-                        var mergeSourceRepo = pr.repository().forge().repository(sourceRepo.get()).orElseThrow(() ->
-                                new RuntimeException("Could not find repository " + sourceRepo.get())
+                        var mergeSourceRepo = pr.repository().forge().repository(source.get().repositoryName).orElseThrow(() ->
+                                new RuntimeException("Could not find repository " + source.get().repositoryName)
                         );
                         try {
-                            var sourceHash = prInstance.localRepo().fetch(mergeSourceRepo.url(), sourceBranch.get());
+                            var sourceHash = prInstance.localRepo().fetch(mergeSourceRepo.url(), source.get().branchName);
                             if (!prInstance.localRepo().isAncestor(commits.get(1).hash(), sourceHash)) {
                                 ret.add("The merge contains commits that are not ancestors of the source");
                             }
                         } catch (IOException e) {
-                            ret.add("Could not fetch branch `" + sourceBranch.get() + "` from project `" +
-                                            sourceRepo.get() + "` - check that they are correct.");
+                            ret.add("Could not fetch branch `" + source.get().branchName + "` from project `" +
+                                            source.get().repositoryName + "` - check that they are correct.");
                         }
                     } catch (RuntimeException e) {
                         ret.add("Could not find project `" +
-                                        sourceRepo.get() + "` - check that it is correct.");
+                                        source.get().repositoryName + "` - check that it is correct.");
                     }
                 } else {
                     ret.add("Could not determine the source for this merge. A Merge PR title must be specified on the format: " +
@@ -307,7 +313,8 @@ class CheckRun {
 
     private String getStatusMessage(List<Comment> comments, List<Review> reviews, PullRequestCheckIssueVisitor visitor) {
         var progressBody = new StringBuilder();
-        progressBody.append("## Progress\n");
+        progressBody.append("---------");
+        progressBody.append("### Progress\n");
         progressBody.append(getChecksList(visitor));
 
         var issue = Issue.fromString(pr.title());
@@ -316,13 +323,14 @@ class CheckRun {
             var allIssues = new ArrayList<Issue>();
             allIssues.add(issue.get());
             allIssues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments));
-            progressBody.append("\n\n## Issue");
+            progressBody.append("\n\n### Issue");
             if (allIssues.size() > 1) {
                 progressBody.append("s");
             }
             progressBody.append("\n");
             for (var currentIssue : allIssues) {
                 var iss = issueProject.issue(currentIssue.id());
+                progressBody.append(" * ");
                 if (iss.isPresent()) {
                     progressBody.append("[");
                     progressBody.append(iss.get().id());
@@ -340,16 +348,26 @@ class CheckRun {
         }
 
         getReviewersList(reviews).ifPresent(reviewers -> {
-            progressBody.append("\n\n## Reviewers\n");
+            progressBody.append("\n\n### Reviewers\n");
             progressBody.append(reviewers);
         });
 
         getContributorsList(comments).ifPresent(contributors -> {
-            progressBody.append("\n\n## Contributors\n");
+            progressBody.append("\n\n### Contributors\n");
             progressBody.append(contributors);
         });
 
+        progressBody.append("\n\n### Download\n");
+        progressBody.append(checkoutCommands());
+
         return progressBody.toString();
+    }
+
+    private String checkoutCommands() {
+        var repoUrl = pr.repository().webUrl();
+        return
+           "`$ git fetch " + repoUrl + " " + pr.fetchRef() + ":pull/" + pr.id() + "`\n" +
+           "`$ git checkout pull/" + pr.id() + "`\n";
     }
 
     private String bodyWithoutStatus() {

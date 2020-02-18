@@ -137,6 +137,46 @@ class TestRepository implements ReadOnlyRepository {
         return Optional.empty();
     }
 
+    public List<CommitMetadata> commitMetadata(Hash from, Hash to) throws IOException {
+        return List.of();
+    }
+
+    public List<CommitMetadata> commitMetadata(String range, boolean reverse) throws IOException {
+        return List.of();
+    }
+
+    public List<CommitMetadata> commitMetadata(Hash from, Hash to, boolean reverse) throws IOException {
+        return List.of();
+    }
+
+    public List<CommitMetadata> commitMetadata(List<Path> paths) throws IOException {
+        return List.of();
+    }
+
+    public List<CommitMetadata> commitMetadata(List<Path> paths, boolean reverse) throws IOException {
+        return List.of();
+    }
+
+    public List<CommitMetadata> commitMetadata(String range, List<Path> paths) throws IOException {
+        return List.of();
+    }
+
+    public List<CommitMetadata> commitMetadata(Hash from, Hash to, List<Path> paths) throws IOException {
+        return List.of();
+    }
+
+    public List<CommitMetadata> commitMetadata(String range, List<Path> paths, boolean reverse) throws IOException {
+        return List.of();
+    }
+
+    public List<CommitMetadata> commitMetadata(Hash from, Hash to, List<Path> paths, boolean reverse) throws IOException {
+        return List.of();
+    }
+
+    public List<CommitMetadata> commitMetadata(boolean reverse) throws IOException {
+        return List.of();
+    }
+
     public List<CommitMetadata> commitMetadata(String range) throws IOException {
         return List.of();
     }
