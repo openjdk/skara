@@ -40,30 +40,10 @@ public class HostedRepositoryPool {
     private class HostedRepositoryInstance {
         private final HostedRepository hostedRepository;
         private final Path seed;
-        private final String ref;
 
-        private HostedRepositoryInstance(HostedRepository hostedRepository, String ref) {
+        private HostedRepositoryInstance(HostedRepository hostedRepository) {
             this.hostedRepository = hostedRepository;
             this.seed = seedStorage.resolve(hostedRepository.name());
-            this.ref = ref;
-        }
-
-        private class NewClone {
-            private final Repository repository;
-            private final Hash fetchHead;
-
-            NewClone(Repository repository, Hash fetchHead) {
-                this.repository = repository;
-                this.fetchHead = fetchHead;
-            }
-
-            Repository repository() {
-                return repository;
-            }
-
-            Hash fetchHead() {
-                return fetchHead;
-            }
         }
 
         private void clearDirectory(Path directory) {
@@ -98,11 +78,6 @@ public class HostedRepositoryPool {
             return Repository.clone(hostedRepository.url(), path, false, seed);
         }
 
-        private NewClone fetchRef(Repository repository) throws IOException {
-            var fetchHead = repository.fetch(hostedRepository.url(), "+" + ref + ":hostedrepositorypool");
-            return new NewClone(repository, fetchHead);
-        }
-
         private void removeOldClone(Path path, String reason) {
             if (!Files.exists(seed)) {
                 try {
@@ -128,42 +103,60 @@ public class HostedRepositoryPool {
             }
         }
 
-        private NewClone materializeClone(Path path) throws IOException {
+        private Repository materializeClone(Path path) throws IOException {
             var localRepo = Repository.get(path);
             if (localRepo.isEmpty()) {
                 removeOldClone(path, "norepo");
-                return fetchRef(cloneSeeded(path));
+                return cloneSeeded(path);
             } else {
                 var localRepoInstance = localRepo.get();
                 if (!localRepoInstance.isHealthy()) {
                     removeOldClone(path, "unhealthy");
-                    return fetchRef(cloneSeeded(path));
+                    return cloneSeeded(path);
                 } else {
                     try {
                         localRepoInstance.clean();
-                        return fetchRef(localRepoInstance);
+                        return localRepoInstance;
                     } catch (IOException e) {
                         removeOldClone(path, "uncleanable");
-                        return fetchRef(cloneSeeded(path));
+                        return cloneSeeded(path);
                     }
                 }
             }
         }
     }
 
-    public Repository materialize(HostedRepository hostedRepository, String ref, Path path) throws IOException {
-        var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository, ref);
-        var clone = hostedRepositoryInstance.materializeClone(path);
-        return clone.repository();
+    public Repository materialize(HostedRepository hostedRepository, Path path) throws IOException {
+        var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository);
+        return hostedRepositoryInstance.materializeClone(path);
     }
 
-    public Repository materialize(PullRequest pr, Path path) throws IOException {
-        return materialize(pr.repository(), pr.sourceRef(), path);
+    private static class NewClone {
+        private final Repository repository;
+        private final Hash fetchHead;
+
+        NewClone(Repository repository, Hash fetchHead) {
+            this.repository = repository;
+            this.fetchHead = fetchHead;
+        }
+
+        Repository repository() {
+            return repository;
+        }
+
+        Hash fetchHead() {
+            return fetchHead;
+        }
+    }
+
+    private NewClone fetchRef(HostedRepository hostedRepository, Repository repository, String ref) throws IOException {
+        var fetchHead = repository.fetch(hostedRepository.url(), "+" + ref + ":hostedrepositorypool");
+        return new NewClone(repository, fetchHead);
     }
 
     public Repository checkout(HostedRepository hostedRepository, String ref, Path path) throws IOException {
-        var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository, ref);
-        var clone = hostedRepositoryInstance.materializeClone(path);
+        var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository);
+        var clone = fetchRef(hostedRepository, hostedRepositoryInstance.materializeClone(path), ref);
         var localRepo = clone.repository();
         try {
             localRepo.checkout(clone.fetchHead(), true);
@@ -172,7 +165,7 @@ public class HostedRepositoryPool {
                     hostedRepositoryInstance.seed.getFileName().toString() + "-unchecked-" + UUID.randomUUID());
             log.severe("Uncheckoutable local repository detected - preserved in: " + preserveUnchecked);
             Files.move(localRepo.root(), preserveUnchecked);
-            clone = hostedRepositoryInstance.fetchRef(hostedRepositoryInstance.cloneSeeded(path));
+            clone = fetchRef(hostedRepository, hostedRepositoryInstance.cloneSeeded(path), ref);
             localRepo = clone.repository();
             localRepo.checkout(clone.fetchHead(), true);
         }

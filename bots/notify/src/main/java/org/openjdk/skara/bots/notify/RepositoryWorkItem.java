@@ -23,14 +23,13 @@
 package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.bot.WorkItem;
-import org.openjdk.skara.forge.HostedRepository;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.storage.StorageBuilder;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.OpenJDKTag;
 
 import java.io.*;
-import java.net.*;
-import java.nio.charset.StandardCharsets;
+import java.net.URI;
 import java.nio.file.*;
 import java.util.*;
 import java.util.logging.Logger;
@@ -263,19 +262,20 @@ public class RepositoryWorkItem implements WorkItem {
 
     @Override
     public void run(Path scratchPath) {
-        var sanitizedUrl = URLEncoder.encode(repository.webUrl().toString() + "v2", StandardCharsets.UTF_8);
-        var path = storagePath.resolve(sanitizedUrl);
         var historyPath = scratchPath.resolve("notify").resolve("history");
+        var repositoryPool = new HostedRepositoryPool(storagePath.resolve("seeds"));
 
         try {
-            var localRepo = fetchAll(path, repository.url());
-            var history = UpdateHistory.create(tagStorageBuilder, historyPath.resolve("tags"), branchStorageBuilder, historyPath.resolve("branches"));
-            handleTags(localRepo, history);
-
-            var knownRefs = localRepo.remoteBranches("origin")
+            var localRepo = repositoryPool.materialize(repository, scratchPath.resolve("notify").resolve("repowi"));
+            var knownRefs = localRepo.remoteBranches(repository.url().toString())
                                      .stream()
                                      .filter(ref -> branches.matcher(ref.name()).matches())
                                      .collect(Collectors.toList());
+            localRepo.fetchAll();
+
+            var history = UpdateHistory.create(tagStorageBuilder, historyPath.resolve("tags"), branchStorageBuilder, historyPath.resolve("branches"));
+            handleTags(localRepo, history);
+
             boolean hasBranchHistory = knownRefs.stream()
                                                 .map(ref -> history.branchHash(new Branch(ref.name())))
                                                 .anyMatch(Optional::isPresent);
