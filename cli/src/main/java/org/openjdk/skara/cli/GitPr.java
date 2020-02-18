@@ -1106,10 +1106,12 @@ public class GitPr {
                     }
                     var lines = comment.body().split("\n");
                     if (lines.length > 0 && lines[0].equals(expected)) {
-                        if (lines.length == 3 && lines[2].startsWith("Pushed as commit")) {
-                            var output = removeTrailing(lines[2], ".");
-                            System.out.println(output);
-                            System.exit(0);
+                        for (var line : lines) {
+                            if (line.startsWith("Pushed as commit")) {
+                                var output = removeTrailing(line, ".");
+                                System.out.println(output);
+                                System.exit(0);
+                            }
                         }
                     }
                 }
