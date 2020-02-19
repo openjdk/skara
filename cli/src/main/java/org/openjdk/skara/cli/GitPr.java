@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
 public class GitPr {
     private static final Pattern ISSUE_ID_PATTERN = Pattern.compile("([A-Za-z][A-Za-z0-9]+)?-([0-9]+)");
     private static final Pattern ISSUE_MARKDOWN_PATTERN =
-        Pattern.compile("^\\[([A-Z]+-[0-9]+)\\]\\(https:\\/\\/bugs.openjdk.java.net\\/browse\\/[A-Z]+-[0-9]+\\): .*$");
+        Pattern.compile("^(?: \\* )?\\[([A-Z]+-[0-9]+)\\]\\(https:\\/\\/bugs.openjdk.java.net\\/browse\\/[A-Z]+-[0-9]+\\): .*$");
 
     private static void exit(String fmt, Object...args) {
         System.err.println(String.format(fmt, args));
@@ -202,7 +202,7 @@ public class GitPr {
         var issueTitleIndex = -1;
         var lines = pr.body().split("\n");
         for (var i = 0; i < lines.length; i++) {
-            if (lines[i].startsWith("## Issue")) {
+            if (lines[i].startsWith("### Issue")) {
                 issueTitleIndex = i;
                 break;
             }
