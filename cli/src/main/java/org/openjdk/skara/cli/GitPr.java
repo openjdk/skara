@@ -1396,6 +1396,12 @@ public class GitPr {
 
             var remoteRepo = getHostedRepositoryFor(uri, repo, host);
             var pr = remoteRepo.pullRequest(prId.asString());
+
+            var setDraft = getSwitch("draft", "set", arguments);
+            if (!pr.isDraft() && setDraft) {
+                exit("error: cannot transition non-draft pull request to draft");
+            }
+
             var assigneesOption = getOption("assignees", "set", arguments);
             if (assigneesOption != null) {
                 var usernames = Arrays.asList(assigneesOption.split(","));
@@ -1405,6 +1411,11 @@ public class GitPr {
                     .map(Optional::get)
                     .collect(Collectors.toList());
                 pr.setAssignees(assignees);
+            }
+
+            var setNoDraft = getSwitch("no-draft", "set", arguments);
+            if (setNoDraft) {
+                pr.makeNotDraft();
             }
         } else if (action.equals("status")) {
             String id = pullRequestIdArgument(arguments, repo);

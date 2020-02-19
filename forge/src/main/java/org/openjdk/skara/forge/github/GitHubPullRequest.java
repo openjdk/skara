@@ -547,4 +547,51 @@ public class GitHubPullRequest implements PullRequest {
     public void removeProperty(String name) {
         throw new RuntimeException("not implemented yet");
     }
+
+    @Override
+    public void makeNotDraft() {
+        if (!isDraft()) {
+            return;
+        }
+
+        var parts = repository.name().split("/");
+        var owner = parts[0];
+        var name = parts[1];
+        var number = id();
+
+        var query = String.join("\n", List.of(
+            "query {",
+            "    repository(owner: \"" + owner + "\", name: \"" + name + "\") {",
+            "        pullRequest(number: " + number + ") {",
+            "            id",
+            "        }",
+            "    }",
+            "}"
+        ));
+        var data = host.graphQL()
+                       .post()
+                       .body(JSON.object().put("query", query))
+                       .execute()
+                       .get("data");
+        var prId = data.get("repository")
+                            .get("pullRequest")
+                            .get("id").asString();
+
+        var input = "{pullRequestId:\"" + prId + "\"}";
+        // Do not care about the returned PR id, but the markPullRequestReadyForReview
+        // mutation requires non-nullable selection.
+        var mutation = String.join("\n", List.of(
+            "mutation {",
+            "    markPullRequestReadyForReview(input: " + input + ") {",
+            "        pullRequest {",
+            "            id",
+            "        }",
+            "    }",
+            "}"
+        ));
+        host.graphQL()
+            .post()
+            .body(JSON.object().put("query", mutation))
+            .execute();
+    }
 }

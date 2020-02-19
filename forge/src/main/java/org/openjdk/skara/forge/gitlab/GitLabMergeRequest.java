@@ -674,4 +674,13 @@ public class GitLabMergeRequest implements PullRequest {
     public void removeProperty(String name) {
         throw new RuntimeException("not implemented yet");
     }
+
+    @Override
+    public void makeNotDraft() {
+        var title = title();
+        var draftPrefix = "WIP:";
+        if (title.startsWith(draftPrefix)) {
+            setTitle(title.substring(draftPrefix.length()).stripLeading());
+        }
+    }
 }
