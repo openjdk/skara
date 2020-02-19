@@ -80,8 +80,8 @@ public class PullRequestWorkItem implements WorkItem {
         return "[\n" + String.join(",\n", entries) + "\n]";
     }
 
-    private final Pattern issuesBlockPattern = Pattern.compile("\\n\\n## Issues?((?:\\n\\[.*)+)", Pattern.MULTILINE);
-    private final Pattern issuePattern = Pattern.compile("^\\[(\\S+)]\\(.*\\): .*$", Pattern.MULTILINE);
+    private final Pattern issuesBlockPattern = Pattern.compile("\\n\\n###? Issues?((?:\\n(?: \\* )?\\[.*)+)", Pattern.MULTILINE);
+    private final Pattern issuePattern = Pattern.compile("^(?: \\* )?\\[(\\S+)]\\(.*\\): .*$", Pattern.MULTILINE);
 
     private Set<String> parseIssues() {
         var issuesBlockMatcher = issuesBlockPattern.matcher(pr.body());
