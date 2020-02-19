@@ -28,6 +28,7 @@ import org.junit.jupiter.api.*;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -37,7 +38,7 @@ class PullRequestPrunerBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
-            var bot = new PullRequestPrunerBot(author, Duration.ofMillis(1));
+            var bot = new PullRequestPrunerBot(Map.of(author, Duration.ofMillis(1)));
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -86,7 +87,7 @@ class PullRequestPrunerBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
-            var bot = new PullRequestPrunerBot(author, Duration.ofDays(3));
+            var bot = new PullRequestPrunerBot(Map.of(author, Duration.ofDays(3)));
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
