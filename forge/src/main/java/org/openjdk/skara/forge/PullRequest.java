@@ -108,6 +108,11 @@ public interface PullRequest extends Issue {
      */
     Map<String, Check> checks(Hash hash);
 
+    /** Returns a link to the patch/diff file
+     * @return
+     */
+    URI diffUrl();
+
     /**
      * Creates a new check.
      * @param check
