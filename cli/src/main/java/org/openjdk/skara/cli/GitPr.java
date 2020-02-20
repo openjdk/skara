@@ -1537,13 +1537,13 @@ public class GitPr {
         var pr = getPullRequest(uri, repo, host, id);
 
         var fetchHead = repo.fetch(pr.repository().webUrl(), pr.fetchRef());
-	var branchName = getOption("branch", "checkout", arguments);
-	if (branchName != null) {
-	    var branch = repo.branch(fetchHead, branchName);
-	    repo.checkout(branch, false);
-	} else {
-	    repo.checkout(fetchHead, false);
-	}
+        var branchName = getOption("branch", "checkout", arguments);
+        if (branchName != null) {
+            var branch = repo.branch(fetchHead, branchName);
+            repo.checkout(branch, false);
+        } else {
+            repo.checkout(fetchHead, false);
+        }
     }
 
     private static void apply(String[] args) throws IOException, InterruptedException {
