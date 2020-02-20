@@ -66,7 +66,7 @@ public class GitPrSet {
                   .optional(),
             Switch.shortcut("")
                   .fullname("no-draft")
-                  .helptext("Hide all pull requests in draft state")
+                  .helptext("Mark the pull request as not draft")
                   .optional(),
             Switch.shortcut("")
                   .fullname("verbose")
