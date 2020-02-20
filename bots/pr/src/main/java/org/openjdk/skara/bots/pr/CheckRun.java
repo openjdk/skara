@@ -135,6 +135,11 @@ class CheckRun {
     private List<String> botSpecificChecks() throws IOException {
         var ret = new ArrayList<String>();
 
+        if (bodyWithoutStatus().isBlank()) {
+            var error = "The pull request body must not be empty.";
+            ret.add(error);
+        }
+
         if (!isTargetBranchAllowed()) {
             var error = "The branch `" + pr.targetRef() + "` is not allowed as target branch. The allowed target branches are:\n" +
                     allowedTargetBranches().stream()
@@ -308,7 +313,7 @@ class CheckRun {
 
     private String getStatusMessage(List<Comment> comments, List<Review> reviews, PullRequestCheckIssueVisitor visitor) {
         var progressBody = new StringBuilder();
-        progressBody.append("---------");
+        progressBody.append("---------\n");
         progressBody.append("### Progress\n");
         progressBody.append(getChecksList(visitor));
 
@@ -365,6 +370,14 @@ class CheckRun {
            "`$ git checkout pull/" + pr.id() + "`\n";
     }
 
+    private String bodyWithoutStatus() {
+        var description = pr.body();
+        var markerIndex = description.lastIndexOf(progressMarker);
+        return (markerIndex < 0 ?
+                description :
+                description.substring(0, markerIndex)).trim();
+    }
+
     private String updateStatusMessage(String message) {
         var description = pr.body();
         var markerIndex = description.lastIndexOf(progressMarker);
@@ -373,9 +386,7 @@ class CheckRun {
             log.info("Progress already up to date");
             return description;
         }
-        var newBody = (markerIndex < 0 ?
-                description :
-                description.substring(0, markerIndex)).trim() + "\n" + progressMarker + "\n" + message;
+        var newBody = bodyWithoutStatus() + "\n" + progressMarker + "\n" + message;
 
         // TODO? Retrieve the body again here to lower the chance of concurrent updates
         pr.setBody(newBody);

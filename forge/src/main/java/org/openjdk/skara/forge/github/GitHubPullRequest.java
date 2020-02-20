@@ -594,4 +594,9 @@ public class GitHubPullRequest implements PullRequest {
             .body(JSON.object().put("query", mutation))
             .execute();
     }
+
+    @Override
+    public URI diffUrl() {
+        return URI.create(webUrl() + ".diff");
+    }
 }

@@ -40,10 +40,9 @@ import java.util.stream.Collectors;
 import java.util.logging.Level;
 
 public class GitJCheck {
-
     private static final Pattern urlPattern = Pattern.compile("^https?://.*", Pattern.CASE_INSENSITIVE);
 
-    static int run(String[] args) throws IOException {
+    public static int run(String[] args) throws IOException {
         var flags = List.of(
             Option.shortcut("r")
                   .fullname("rev")

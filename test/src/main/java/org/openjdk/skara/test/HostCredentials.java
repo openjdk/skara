@@ -355,7 +355,7 @@ public class HostCredentials implements AutoCloseable {
     }
 
     public PullRequest createPullRequest(HostedRepository hostedRepository, String targetRef, String sourceRef, String title, boolean draft) {
-        var pr = hostedRepository.createPullRequest(hostedRepository, targetRef, sourceRef, title, List.of(), draft);
+        var pr = hostedRepository.createPullRequest(hostedRepository, targetRef, sourceRef, title, List.of("PR body"), draft);
         pullRequestsToBeClosed.add(pr);
         return pr;
     }

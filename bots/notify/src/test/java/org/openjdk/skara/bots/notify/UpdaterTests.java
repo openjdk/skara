@@ -1719,7 +1719,7 @@ class UpdaterTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "Fix that issue");
             localRepo.push(editHash, repo.url(), "edit", true);
             var pr = credentials.createPullRequest(repo, "edit", "master", issue.id() + ": Fix that issue");
-            pr.setBody("\n\n## Issue\n[" + issue.id() + "](http://www.test.test/): The issue");
+            pr.setBody("\n\n### Issue\n * [" + issue.id() + "](http://www.test.test/): The issue");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The issue should not yet contain a link to the PR
@@ -1752,7 +1752,7 @@ class UpdaterTests {
 
             // Add another issue
             var issue2 = issueProject.createIssue("This is another issue", List.of("Yes indeed"), Map.of("issuetype", JSON.of("Enhancement")));
-            pr.setBody("\n\n## Issues\n[" + issue.id() + "](http://www.test.test/): The issue\n[" + issue2.id() +
+            pr.setBody("\n\n### Issues\n * [" + issue.id() + "](http://www.test.test/): The issue\n * [" + issue2.id() +
                                "](http://www.test2.test/): The second issue");
             TestBotRunner.runPeriodicItems(notifyBot);
 
@@ -1765,7 +1765,7 @@ class UpdaterTests {
             assertEquals(pr.webUrl(), links2.get(0).uri().orElseThrow());
 
             // Drop the first one
-            pr.setBody("\n\n## Issue\n[" + issue2.id() + "](http://www.test2.test/): That other issue");
+            pr.setBody("\n\n### Issues\n * [" + issue2.id() + "](http://www.test2.test/): That other issue");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Only the second issue should now contain a link to the PR
@@ -1819,7 +1819,7 @@ class UpdaterTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "Fix that issue");
             localRepo.push(editHash, repo.url(), "edit", true);
             var pr = credentials.createPullRequest(repo, "edit", "master", issue.id() + ": Fix that issue");
-            pr.setBody("\n\n## Issue\n[" + issue.id() + "](http://www.test.test/): The issue");
+            pr.setBody("\n\n### Issue\n * [" + issue.id() + "](http://www.test.test/): The issue");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Add required label
@@ -1880,7 +1880,7 @@ class UpdaterTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
             localRepo.push(editHash, repo.url(), "edit", true);
             var pr = credentials.createPullRequest(repo, "other", "edit", issue.id() + ": Fix that issue");
-            pr.setBody("\n\n## Issue\n[" + issue.id() + "](http://www.test.test/): The issue");
+            pr.setBody("\n\n### Issue\n * [" + issue.id() + "](http://www.test.test/): The issue");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The issue should now contain a link to the PR

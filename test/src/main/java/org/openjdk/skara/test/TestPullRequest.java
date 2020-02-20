@@ -212,4 +212,14 @@ public class TestPullRequest extends TestIssue implements PullRequest {
             throw new RuntimeException(e);
         }
     }
+
+    @Override
+    public void makeNotDraft() {
+        data.draft = false;
+    }
+
+    @Override
+    public URI diffUrl() {
+        return URI.create(webUrl().toString() + ".diff");
+    }
 }

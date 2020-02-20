@@ -24,21 +24,22 @@ package org.openjdk.skara.bots.bridgekeeper;
 
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.forge.*;
+import org.openjdk.skara.issuetracker.Comment;
 
 import java.nio.file.Path;
 import java.time.*;
 import java.util.*;
+import java.util.function.Function;
 import java.util.logging.Logger;
+import java.util.stream.*;
 
 class PullRequestPrunerBotWorkItem implements WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
-    private final HostedRepository repository;
     private final PullRequest pr;
     private final Duration maxAge;
 
-    PullRequestPrunerBotWorkItem(HostedRepository repository, PullRequest pr, Duration maxAge) {
+    PullRequestPrunerBotWorkItem(PullRequest pr, Duration maxAge) {
         this.pr = pr;
-        this.repository = repository;
         this.maxAge = maxAge;
     }
 
@@ -51,7 +52,7 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
         if (!pr.id().equals(otherItem.pr.id())) {
             return true;
         }
-        if (!repository.name().equals(otherItem.repository.name())) {
+        if (!pr.repository().name().equals(otherItem.pr.repository().name())) {
             return true;
         }
         return false;
@@ -79,7 +80,7 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
         var comments = pr.comments();
         if (comments.size() > 0) {
             var lastComment = comments.get(comments.size() - 1);
-            if (lastComment.author().equals(repository.forge().currentUser()) && lastComment.body().contains(noticeMarker)) {
+            if (lastComment.author().equals(pr.repository().forge().currentUser()) && lastComment.body().contains(noticeMarker)) {
                 var message = "@" + pr.author().userName() + " This pull request has been inactive for more than " +
                         formatDuration(maxAge.multipliedBy(2)) + " and will now be automatically closed. If you would " +
                         "like to continue working on this pull request in the future, feel free to reopen it!";
@@ -101,29 +102,61 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
 
     @Override
     public String toString() {
-        return "PullRequestPrunerBotWorkItem@" + repository.name() + "#" + pr.id();
+        return "PullRequestPrunerBotWorkItem@" + pr.repository().name() + "#" + pr.id();
     }
 }
 
 public class PullRequestPrunerBot implements Bot {
-    private final HostedRepository repository;
-    private final Duration maxAge;
+    private final Map<HostedRepository, Duration> maxAges;
+    private final Deque<HostedRepository> repositoriesToCheck = new LinkedList<>();
+    private final Deque<PullRequest> pullRequestToCheck = new LinkedList<>();
 
-    PullRequestPrunerBot(HostedRepository repository, Duration maxAge) {
-        this.repository = repository;
-        this.maxAge = maxAge;
+    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.bridgekeeper");
+
+    private Duration currentMaxAge;
+
+    PullRequestPrunerBot(Map<HostedRepository, Duration> maxAges) {
+        this.maxAges = maxAges;
     }
 
     @Override
     public List<WorkItem> getPeriodicItems() {
         List<WorkItem> ret = new LinkedList<>();
-        var oldestAllowed = ZonedDateTime.now().minus(maxAge);
 
-        for (var pr : repository.pullRequests()) {
-            if (pr.updatedAt().isBefore(oldestAllowed)) {
-                var item = new PullRequestPrunerBotWorkItem(repository, pr, maxAge);
-                ret.add(item);
+        if (repositoriesToCheck.isEmpty()) {
+            repositoriesToCheck.addAll(maxAges.keySet());
+        }
+        if (pullRequestToCheck.isEmpty()) {
+            var nextRepository = repositoriesToCheck.pollFirst();
+            if (nextRepository == null) {
+                log.warning("No repositories configured for pruning");
+                return ret;
             }
+            currentMaxAge = maxAges.get(nextRepository);
+            pullRequestToCheck.addAll(nextRepository.pullRequests());
+        }
+
+        var pr = pullRequestToCheck.pollFirst();
+        if (pr == null) {
+            log.info("No prune candidates found - skipping");
+            return ret;
+        }
+
+        // Latest prune-delaying action (deliberately excluding pr.updatedAt, as it can be updated spuriously)
+        var latestAction = List.of(Stream.of(pr.createdAt()),
+                                   pr.comments().stream()
+                                     .map(Comment::updatedAt),
+                                   pr.reviews().stream()
+                                     .map(Review::createdAt),
+                                   pr.reviewComments().stream()
+                                     .map(Comment::updatedAt)).stream()
+                               .flatMap(Function.identity())
+                               .max(ZonedDateTime::compareTo).orElseThrow();
+
+        var oldestAllowed = ZonedDateTime.now().minus(currentMaxAge);
+        if (latestAction.isBefore(oldestAllowed)) {
+            var item = new PullRequestPrunerBotWorkItem(pr, currentMaxAge);
+            ret.add(item);
         }
 
         return ret;

@@ -683,4 +683,9 @@ public class GitLabMergeRequest implements PullRequest {
             setTitle(title.substring(draftPrefix.length()).stripLeading());
         }
     }
+
+    @Override
+    public URI diffUrl() {
+        return URI.create(webUrl() + ".diff");
+    }
 }
