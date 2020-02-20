@@ -26,14 +26,14 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
-class GitCredentials {
+public class GitCredentials {
     private final String host;
     private final String path;
     private final String username;
     private final String password;
     private final String protocol;
 
-    GitCredentials(String host, String path, String username, String password, String protocol) {
+    public GitCredentials(String host, String path, String username, String password, String protocol) {
         this.host = host;
         this.path = path;
         this.username = username;
@@ -41,27 +41,27 @@ class GitCredentials {
         this.protocol = protocol;
     }
 
-    String host() {
+    public String host() {
         return host;
     }
 
-    String path() {
+    public String path() {
         return path;
     }
 
-    String username() {
+    public String username() {
         return username;
     }
 
-    String password() {
+    public String password() {
         return password;
     }
 
-    String protocol() {
+    public String protocol() {
         return protocol;
     }
 
-    static GitCredentials fill(String host, String path, String username, String password, String protocol) throws IOException {
+    public static GitCredentials fill(String host, String path, String username, String password, String protocol) throws IOException {
         try {
             var pb = new ProcessBuilder("git", "credential", "fill");
             pb.redirectInput(ProcessBuilder.Redirect.PIPE);
@@ -124,7 +124,7 @@ class GitCredentials {
         }
     }
 
-    static void approve(GitCredentials credentials) throws IOException {
+    public static void approve(GitCredentials credentials) throws IOException {
         try {
             var pb = new ProcessBuilder("git", "credential", "approve");
             pb.redirectInput(ProcessBuilder.Redirect.PIPE);
@@ -149,7 +149,7 @@ class GitCredentials {
         }
     }
 
-    static void reject(GitCredentials credentials) throws IOException {
+    public static void reject(GitCredentials credentials) throws IOException {
         try {
             var pb = new ProcessBuilder("git", "credential", "reject");
             pb.redirectInput(ProcessBuilder.Redirect.PIPE);

@@ -24,14 +24,14 @@ package org.openjdk.skara.cli;
 
 import java.util.logging.*;
 
-class Logging {
+public class Logging {
     private static Logger log;
 
-    static void setup(Level level) {
+    public static void setup(Level level) {
         setup(level, "");
     }
 
-    static void setup(Level level, String component) {
+    public static void setup(Level level, String component) {
         LogManager.getLogManager().reset();
         log = level == Level.FINE ?
             Logger.getLogger("org.openjdk.skara" + "." + component) :
