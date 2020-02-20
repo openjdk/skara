@@ -29,7 +29,7 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Files;
 
-class Remote {
+public class Remote {
     public static URI toWebURI(String remotePath) throws IOException {
         if (remotePath.startsWith("git+")) {
             remotePath = remotePath.substring("git+".length());
