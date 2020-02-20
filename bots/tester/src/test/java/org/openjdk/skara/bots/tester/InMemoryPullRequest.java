@@ -272,4 +272,9 @@ class InMemoryPullRequest implements PullRequest {
     public IssueProject project() {
         return null;
     }
+
+    @Override
+    public URI diffUrl() {
+        return null;
+    }
 }

@@ -86,10 +86,6 @@ class ArchiveMessages {
         }
     }
 
-    private static String diffUrl(PullRequest pr) {
-        return pr.webUrl() + ".diff";
-    }
-
     private static String fetchCommand(PullRequest pr) {
         var repoUrl = pr.repository().webUrl();
         return "git fetch " + repoUrl + " " + pr.fetchRef() + ":pull/" + pr.id();
@@ -151,7 +147,7 @@ class ArchiveMessages {
                 " Webrev: " + webrev + "\n" +
                 issueString +
                 "  Stats: " + stats(localRepo, base, head) + "\n" +
-                "  Patch: " + diffUrl(pr) + "\n" +
+                "  Patch: " + pr.diffUrl().toString() + "\n" +
                 "  Fetch: " + fetchCommand(pr) + "\n\n" +
                 composeReplyFooter(pr);
     }
@@ -163,7 +159,7 @@ class ArchiveMessages {
                 "Changes: " + pr.changeUrl() + "\n" +
                 " Webrev: " + fullWebrev.toString() + "\n" +
                 "  Stats: " + stats(localRepo, base, head) + "\n" +
-                "  Patch: " + diffUrl(pr) + "\n" +
+                "  Patch: " + pr.diffUrl().toString() + "\n" +
                 "  Fetch: " + fetchCommand(pr) + "\n\n" +
                 composeReplyFooter(pr);
     }
@@ -179,7 +175,7 @@ class ArchiveMessages {
                 " - full: " + fullWebrev.toString() + "\n" +
                 " - incr: " + incrementalWebrev.toString() + "\n\n" +
                 "  Stats: " + stats(localRepo, lastHead, head) + "\n" +
-                "  Patch: " + diffUrl(pr) + "\n" +
+                "  Patch: " + pr.diffUrl().toString() + "\n" +
                 "  Fetch: " + fetchCommand(pr) + "\n\n" +
                 composeReplyFooter(pr);
     }

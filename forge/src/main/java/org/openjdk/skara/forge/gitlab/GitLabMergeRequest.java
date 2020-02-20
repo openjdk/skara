@@ -674,4 +674,9 @@ public class GitLabMergeRequest implements PullRequest {
     public void removeProperty(String name) {
         throw new RuntimeException("not implemented yet");
     }
+
+    @Override
+    public URI diffUrl() {
+        return URI.create(webUrl() + ".diff");
+    }
 }
