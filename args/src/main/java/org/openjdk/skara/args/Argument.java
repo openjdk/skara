@@ -65,7 +65,7 @@ public class Argument {
     }
 
     public String asString() {
-        return via(Function.identity());
+        return value == null ? null : via(Function.identity());
     }
 
     public Argument or(int value) {
