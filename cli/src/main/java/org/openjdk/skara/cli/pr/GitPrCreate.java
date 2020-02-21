@@ -109,13 +109,25 @@ public class GitPrCreate {
                 System.exit(1);
                 return null;
         });
-        if (currentBranch.equals(repo.defaultBranch())) {
-            System.err.println("error: you should not create pull requests from the 'master' branch");
+
+        var remoteRepo = host.repository(projectName(uri)).orElseThrow(() ->
+                new IOException("Could not find repository at " + uri.toString())
+        );
+        var parentRepo = remoteRepo.parent().orElseThrow(() ->
+                new IOException("error: remote repository " + uri + " is not a fork of any repository")
+        );
+
+        var upstreamBranchNames = repo.remoteBranches(parentRepo.webUrl().toString())
+                                      .stream()
+                                      .map(r -> r.name())
+                                      .collect(Collectors.toSet());
+        if (upstreamBranchNames.contains(currentBranch.name())) {
+            System.err.println("error: you should not create pull requests from a branch present in the upstream repository.");
             System.err.println("");
-            System.err.println("To create a local branch for your changes and restore the 'master' branch, run:");
+            System.err.println("To create a local branch for your changes and restore the '" + currentBranch.name() + "' branch, run:");
             System.err.println("");
             System.err.println("    git checkout -b NAME-FOR-YOUR-LOCAL-BRANCH");
-            System.err.println("    git branch --force master origin/master");
+            System.err.println("    git branch --force " + currentBranch.name() + " origin/" + currentBranch.name());
             System.err.println("");
             System.exit(1);
         }
@@ -141,39 +153,43 @@ public class GitPrCreate {
                 System.err.println("    git stash");
                 System.err.println("");
                 System.err.println("(You can later restore the changes by running: git stash pop)");
+                System.err.println("");
+                System.err.println("If you want to ignore this error, run:");
+                System.err.println("");
+                System.err.println("     git config --global pr.create.ignore-workspace true");
+                System.err.println("");
                 System.exit(1);
             }
         }
 
         var upstream = repo.upstreamFor(currentBranch);
-        if (upstream.isEmpty()) {
-            var shouldPublish = getSwitch("publish", "create", arguments);
-            if (shouldPublish) {
-                GitPublish.main(new String[] { "--quiet", remote });
-                upstream = repo.upstreamFor(currentBranch);
-            } else {
-                System.err.println("error: there is no remote branch for the local branch '" + currentBranch.name() + "'");
-                System.err.println("");
-                System.err.println("A remote branch must be present at " + uri + " to create a pull request");
-                System.err.println("To create a remote branch and push the commits for your local branch, run:");
-                System.err.println("");
-                System.err.println("    git publish");
-                System.err.println("");
-                System.err.println("If you created the remote branch from another client, you must update this repository.");
-                System.err.println("To update remote information for this repository, run:");
-                System.err.println("");
-                System.err.println("    git fetch " + remote);
-                System.err.println("    git branch --set-upstream " + currentBranch + " " + remote + "/" + currentBranch);
-                System.err.println("");
-                System.exit(1);
-            }
+        var shouldPublish = getSwitch("publish", "create", arguments);
+        if (upstream.isEmpty() && !shouldPublish) {
+            System.err.println("error: there is no remote branch for the local branch '" + currentBranch.name() + "'");
+            System.err.println("");
+            System.err.println("A remote branch must be present at " + uri + " to create a pull request");
+            System.err.println("To create a remote branch and push the commits for your local branch, run:");
+            System.err.println("");
+            System.err.println("    git publish");
+            System.err.println("");
+            System.err.println("If you created the remote branch from another client, you must update this repository.");
+            System.err.println("To update remote information for this repository, run:");
+            System.err.println("");
+            System.err.println("    git fetch " + remote);
+            System.err.println("    git branch --set-upstream " + currentBranch + " " + remote + "/" + currentBranch);
+            System.err.println("");
+            System.err.println("If you want 'git pr create' to automatically publish branches, run:");
+            System.err.println("");
+            System.err.println("    git config --global pr.create.publish true");
+            System.err.println("");
+            System.exit(1);
         }
 
-        var upstreamRefName = upstream.get().substring(remote.length() + 1);
-        repo.fetch(uri, upstreamRefName);
-
         var shouldIgnoreLocalCommits = getSwitch("ignore-local-commits", "create", arguments);
-        if (!shouldIgnoreLocalCommits) {
+        if (!shouldIgnoreLocalCommits && !shouldPublish) {
+            var upstreamRefName = upstream.get().substring(remote.length() + 1);
+            repo.fetch(uri, upstreamRefName);
+
             var branchCommits = repo.commits(upstream.get() + ".." + currentBranch.name()).asList();
             if (!branchCommits.isEmpty()) {
                 System.err.println("error: there are local commits on branch '" + currentBranch.name() + "' not present in the remote repository " + uri);
@@ -189,23 +205,16 @@ public class GitPrCreate {
                 System.err.println("");
                 System.err.println("    git push " + remote + " " + currentBranch.name());
                 System.err.println("");
+                System.err.println("If you want to ignore this error, run:");
+                System.err.println("");
+                System.err.println("     git config --global pr.create.ignore-local-commits true");
+                System.err.println("");
                 System.exit(1);
             }
         }
 
-        var remoteRepo = host.repository(projectName(uri)).orElseThrow(() ->
-                new IOException("Could not find repository at " + uri.toString())
-        );
-        var parentRepo = remoteRepo.parent().orElseThrow(() ->
-                new IOException("error: remote repository " + uri + " is not a fork of any repository")
-        );
-
         var targetBranch = getOption("branch", "create", arguments);
         if (targetBranch == null) {
-            var upstreamBranchNames = repo.remoteBranches(parentRepo.webUrl().toString())
-                                          .stream()
-                                          .map(r -> r.name())
-                                          .collect(Collectors.toSet());
             var remoteBranches = repo.branches(remote);
             var candidates = new ArrayList<Branch>();
             for (var b : remoteBranches) {
@@ -242,16 +251,18 @@ public class GitPrCreate {
                 System.exit(1);
             }
         }
-        var commits = repo.commits(targetBranch + ".." + upstream.get()).asList();
+
+        var headRef = upstream.isEmpty() ? currentBranch.name() : upstream.get();
+        var commits = repo.commits(targetBranch + ".." + headRef).asList();
         if (commits.isEmpty()) {
-            System.err.println("error: no difference between branches " + targetBranch + " and " + currentBranch.name());
+            System.err.println("error: no difference between branches " + targetBranch + " and " + headRef);
             System.err.println("       Cannot create an empty pull request, have you committed?");
             System.exit(1);
         }
 
         var shouldRunJCheck = getSwitch("jcheck", "create", arguments);
         if (shouldRunJCheck) {
-            var jcheckArgs = new String[]{ "--pull-request", "--rev", targetBranch + ".." + upstream.get() };
+            var jcheckArgs = new String[]{ "--pull-request", "--rev", targetBranch + ".." + headRef };
             var err = GitJCheck.run(jcheckArgs);
             if (err != 0) {
                 System.exit(err);
@@ -345,6 +356,9 @@ public class GitPrCreate {
         }
 
         var isDraft = getSwitch("draft", "create", arguments);
+        if (upstream.isEmpty() && shouldPublish) {
+            GitPublish.main(new String[] { "--quiet", remote });
+        }
         var pr = remoteRepo.createPullRequest(parentRepo, targetBranch, currentBranch.name(), title, body, isDraft);
         var assigneesOption = getOption("assignees", "create", arguments);
         if (assigneesOption != null) {
