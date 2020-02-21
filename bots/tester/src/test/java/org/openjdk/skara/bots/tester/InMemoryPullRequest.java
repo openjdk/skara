@@ -274,6 +274,11 @@ class InMemoryPullRequest implements PullRequest {
     }
 
     @Override
+    public void makeNotDraft() {
+
+    }
+
+    @Override
     public URI diffUrl() {
         return null;
     }

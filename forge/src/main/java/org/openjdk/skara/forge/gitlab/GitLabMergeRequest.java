@@ -676,6 +676,15 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
+    public void makeNotDraft() {
+        var title = title();
+        var draftPrefix = "WIP:";
+        if (title.startsWith(draftPrefix)) {
+            setTitle(title.substring(draftPrefix.length()).stripLeading());
+        }
+    }
+
+    @Override
     public URI diffUrl() {
         return URI.create(webUrl() + ".diff");
     }

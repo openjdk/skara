@@ -41,6 +41,7 @@ public class GitHubHost implements Forge {
     private final GitHubApplication application;
     private final Credential pat;
     private final RestRequest request;
+    private final RestRequest graphQL;
     private HostUser currentUser;
     private final Logger log = Logger.getLogger("org.openjdk.skara.forge.github");
 
@@ -60,6 +61,25 @@ public class GitHubHost implements Forge {
                 "Authorization", "token " + getInstallationToken().orElseThrow(),
                 "Accept", "application/vnd.github.machine-man-preview+json",
                 "Accept", "application/vnd.github.antiope-preview+json"));
+
+        var graphQLAPI = URIBuilder.base(uri)
+                .appendSubDomain("api")
+                .setPath("/graphql")
+                .build();
+        graphQL = new RestRequest(graphQLAPI, () -> Arrays.asList(
+                "Authorization", "bearer " + getInstallationToken().orElseThrow(),
+                "Accept", "application/vnd.github.machine-man-preview+json",
+                "Accept", "application/vnd.github.antiope-preview+json",
+                "Accept", "application/vnd.github.shadow-cat-preview+json",
+                "Accept", "application/vnd.github.comfort-fade-preview+json"
+        ));
+    }
+
+    RestRequest graphQL() {
+        if (graphQL == null) {
+            throw new IllegalStateException("Cannot use GraphQL API without authorization");
+        }
+        return graphQL;
     }
 
     public GitHubHost(URI uri, Credential pat, Pattern webUriPattern, String webUriReplacement) {
@@ -76,6 +96,18 @@ public class GitHubHost implements Forge {
 
         request = new RestRequest(baseApi, () -> Arrays.asList(
                 "Authorization", "token " + getInstallationToken().orElseThrow()));
+
+        var graphQLAPI = URIBuilder.base(uri)
+                .appendSubDomain("api")
+                .setPath("/graphql")
+                .build();
+        graphQL = new RestRequest(graphQLAPI, () -> Arrays.asList(
+                "Authorization", "bearer " + getInstallationToken().orElseThrow(),
+                "Accept", "application/vnd.github.machine-man-preview+json",
+                "Accept", "application/vnd.github.antiope-preview+json",
+                "Accept", "application/vnd.github.shadow-cat-preview+json",
+                "Accept", "application/vnd.github.comfort-fade-preview+json"
+        ));
     }
 
     GitHubHost(URI uri, Pattern webUriPattern, String webUriReplacement) {
@@ -91,6 +123,7 @@ public class GitHubHost implements Forge {
                                 .build();
 
         request = new RestRequest(baseApi);
+        graphQL = null;
     }
 
     public URI getURI() {

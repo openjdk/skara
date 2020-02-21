@@ -140,4 +140,5 @@ public interface PullRequest extends Issue {
      * @return
      */
     boolean isDraft();
+    void makeNotDraft();
 }

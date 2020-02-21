@@ -65,6 +65,10 @@ public class GitPrSet {
                   .helptext("Comma separated list of assignees")
                   .optional(),
             Switch.shortcut("")
+                  .fullname("no-draft")
+                  .helptext("Mark the pull request as not draft")
+                  .optional(),
+            Switch.shortcut("")
                   .fullname("verbose")
                   .helptext("Turn on verbose output")
                   .optional(),
@@ -102,6 +106,11 @@ public class GitPrSet {
                 .map(Optional::get)
                 .collect(Collectors.toList());
             pr.setAssignees(assignees);
+        }
+
+        var setNoDraft = getSwitch("no-draft", "set", arguments);
+        if (setNoDraft) {
+            pr.makeNotDraft();
         }
     }
 }

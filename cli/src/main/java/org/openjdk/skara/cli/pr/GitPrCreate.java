@@ -74,6 +74,10 @@ public class GitPrCreate {
                   .helptext("Run jcheck before creating the pull request")
                   .optional(),
             Switch.shortcut("")
+                  .fullname("draft")
+                  .helptext("Create a pull request in draft state")
+                  .optional(),
+            Switch.shortcut("")
                   .fullname("verbose")
                   .helptext("Turn on verbose output")
                   .optional(),
@@ -340,7 +344,8 @@ public class GitPrCreate {
             body = List.of();
         }
 
-        var pr = remoteRepo.createPullRequest(parentRepo, targetBranch, currentBranch.name(), title, body);
+        var isDraft = getSwitch("draft", "create", arguments);
+        var pr = remoteRepo.createPullRequest(parentRepo, targetBranch, currentBranch.name(), title, body, isDraft);
         var assigneesOption = getOption("assignees", "create", arguments);
         if (assigneesOption != null) {
             var usernames = Arrays.asList(assigneesOption.split(","));
