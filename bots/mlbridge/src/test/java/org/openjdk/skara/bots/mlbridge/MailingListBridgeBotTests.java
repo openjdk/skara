@@ -197,7 +197,7 @@ class MailingListBridgeBotTests {
             assertTrue(archiveContains(archiveFolder.path(), "Issue:"));
             assertTrue(archiveContains(archiveFolder.path(), "http://issues.test/browse/TSTPRJ-1234"));
             assertTrue(archiveContains(archiveFolder.path(), "Fetch:"));
-            assertTrue(archiveContains(archiveFolder.path(), "^ - " + editHash.abbreviate() + ": Change msg"));
+            assertTrue(archiveContains(archiveFolder.path(), "^ - Change msg"));
             assertFalse(archiveContains(archiveFolder.path(), "With several lines"));
 
             // The mailing list as well
@@ -914,7 +914,7 @@ class MailingListBridgeBotTests {
 
             // The archive should reference the updated push
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertTrue(archiveContains(archiveFolder.path(), "1 additional commit"));
+            assertTrue(archiveContains(archiveFolder.path(), "content has been added"));
             assertTrue(archiveContains(archiveFolder.path(), "full.*/" + pr.id() + "/webrev.01"));
             assertTrue(archiveContains(archiveFolder.path(), "inc.*/" + pr.id() + "/webrev.00-01"));
             assertTrue(archiveContains(archiveFolder.path(), "Patch"));
