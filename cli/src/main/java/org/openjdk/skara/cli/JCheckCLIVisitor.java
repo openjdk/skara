@@ -51,7 +51,6 @@ class JCheckCLIVisitor implements IssueVisitor {
         System.out.print(i.severity());
         System.out.print(": ");
         System.out.println(message);
-        hasDisplayedErrors = true;
     }
 
     private void println(CommitIssue i, String message) {
@@ -63,7 +62,6 @@ class JCheckCLIVisitor implements IssueVisitor {
         System.out.print(i.commit().hash().abbreviate());
         System.out.print(": ");
         System.out.println(message);
-        hasDisplayedErrors = true;
     }
 
     public void visit(DuplicateIssuesIssue i) {
@@ -76,20 +74,24 @@ class JCheckCLIVisitor implements IssueVisitor {
                      .collect(Collectors.toList());
         println(i, "issue id '" + id + "' in commit " + hash + " is already used in commits:");
         other.forEach(System.out::println);
+        hasDisplayedErrors = true;
     }
 
     public void visit(TagIssue i) {
         println(i, "illegal tag name: " + i.tag().name());
+        hasDisplayedErrors = true;
     }
 
     public void visit(BranchIssue i) {
         if (!isLocal && !isPullRequest) {
             println(i, "illegal branch name: " + i.branch().name());
+            hasDisplayedErrors = true;
         }
     }
 
     public void visit(SelfReviewIssue i) {
         println(i, "self-reviews are not allowed");
+        hasDisplayedErrors = true;
     }
 
     public void visit(TooFewReviewersIssue i) {
@@ -98,6 +100,7 @@ class JCheckCLIVisitor implements IssueVisitor {
             var actual = i.numActual();
             var reviewers = required == 1 ? " reviewer" : " reviewers";
             println(i, required + reviewers + " required, found " + actual);
+            hasDisplayedErrors = true;
         }
     }
 
@@ -106,14 +109,17 @@ class JCheckCLIVisitor implements IssueVisitor {
             var invalid = String.join(", ", i.invalid());
             var wording = i.invalid().size() == 1 ? " is" : " are";
             println(i, invalid + wording + " not part of OpenJDK");
+            hasDisplayedErrors = true;
         }
     }
 
     public void visit(MergeMessageIssue i) {
         println(i, "merge commits should only use the commit message '" + i.expected() + "'");
+        hasDisplayedErrors = true;
     }
 
     public void visit(HgTagCommitIssue i) {
+        hasDisplayedErrors = true;
         switch (i.error()) {
             case TOO_MANY_LINES:
                 println(i, "message should only be one line");
@@ -134,6 +140,7 @@ class JCheckCLIVisitor implements IssueVisitor {
         var committer = i.commit().committer().name();
         var project = i.project().name();
         println(i, committer + " is not committer in project " + project);
+        hasDisplayedErrors = true;
     }
 
     private static class WhitespaceRange {
@@ -192,6 +199,7 @@ class JCheckCLIVisitor implements IssueVisitor {
         System.out.println(prefix + i.describe() + " in " + pos);
         System.out.println(indent + i.escapeLine());
         System.out.println(indent + i.hints());
+        hasDisplayedErrors = true;
     }
 
     public void visit(MessageIssue i) {
@@ -200,6 +208,7 @@ class JCheckCLIVisitor implements IssueVisitor {
             for (var line : i.message().additional()) {
                 System.out.println("> " + line);
             }
+            hasDisplayedErrors = true;
         }
     }
 
@@ -209,38 +218,46 @@ class JCheckCLIVisitor implements IssueVisitor {
             for (var line : i.commit().message()) {
                 System.out.println("> " + line);
             }
+            hasDisplayedErrors = true;
         }
     }
 
     public void visit(ExecutableIssue i) {
         println(i, "file " + i.path() + " is executable");
+        hasDisplayedErrors = true;
     }
 
     public void visit(AuthorNameIssue i) {
         println(i, "missing author name");
+        hasDisplayedErrors = true;
     }
 
     public void visit(AuthorEmailIssue i) {
         println(i, "missing author email");
+        hasDisplayedErrors = true;
     }
 
     public void visit(CommitterNameIssue i) {
         println(i, "missing committer name");
+        hasDisplayedErrors = true;
     }
 
     public void visit(CommitterEmailIssue i) {
         if (!isLocal && !isPullRequest) {
             var domain = i.expectedDomain();
             println(i, "missing committer email from domain " + domain);
+            hasDisplayedErrors = true;
         }
     }
 
     public void visit(BlacklistIssue i) {
         println(i, "commit is blacklisted");
+        hasDisplayedErrors = true;
     }
 
     public void visit(BinaryIssue i) {
         println(i, "adds binary file: " + i.path().toString());
+        hasDisplayedErrors = true;
     }
 
     public boolean hasDisplayedErrors() {
