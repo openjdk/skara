@@ -161,7 +161,7 @@ public class ArgumentParser {
                 if (arg.contains("=")) {
                     var parts = arg.split("=");
                     var name = parts[0].substring(2); // remove leading '--'
-                    var value = parts[1];
+                    var value = parts.length == 2 ? parts[1] : null;
                     var flag = lookupFullname(name);
                     values.add(new FlagValue(flag, value));
                     seen.add(flag);

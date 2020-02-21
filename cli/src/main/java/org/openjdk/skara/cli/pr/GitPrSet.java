@@ -115,7 +115,9 @@ public class GitPrSet {
         var pr = getPullRequest(uri, repo, host, id);
 
         var assigneesOption = getOption("assignees", "set", arguments);
-        if (assigneesOption != null) {
+        if (assigneesOption == null) {
+            pr.setAssignees(List.of());
+        } else {
             var usernames = Arrays.asList(assigneesOption.split(","));
             var assignees = usernames.stream()
                 .map(u -> host.user(u))
