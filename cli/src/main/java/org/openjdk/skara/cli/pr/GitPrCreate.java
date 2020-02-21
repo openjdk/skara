@@ -262,7 +262,7 @@ public class GitPrCreate {
 
         var shouldRunJCheck = getSwitch("jcheck", "create", arguments);
         if (shouldRunJCheck) {
-            var jcheckArgs = new String[]{ "--pull-request", "--rev", targetBranch + ".." + headRef };
+            var jcheckArgs = new String[]{ "--ignore=branches,committer,reviewers,issues", "--rev", targetBranch + ".." + headRef };
             var err = GitJCheck.run(jcheckArgs);
             if (err != 0) {
                 System.exit(err);
