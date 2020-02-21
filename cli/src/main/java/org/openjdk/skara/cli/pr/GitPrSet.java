@@ -64,6 +64,23 @@ public class GitPrSet {
                   .describe("LIST")
                   .helptext("Comma separated list of assignees")
                   .optional(),
+            Option.shortcut("")
+                  .fullname("title")
+                  .describe("MESSAGE")
+                  .helptext("The title of the pull request")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("open")
+                  .helptext("Set the pull request's state to open")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("closed")
+                  .helptext("Set the pull request's state to closed")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("body")
+                  .helptext("Set the body of the pull request")
+                  .optional(),
             Switch.shortcut("")
                   .fullname("no-draft")
                   .helptext("Mark the pull request as not draft")
@@ -106,6 +123,38 @@ public class GitPrSet {
                 .map(Optional::get)
                 .collect(Collectors.toList());
             pr.setAssignees(assignees);
+        }
+
+        var title = getOption("title", "set", arguments);
+        if (title != null) {
+            pr.setTitle(title);
+        }
+
+        var setOpen = getSwitch("open", "set", arguments);
+        if (setOpen) {
+            pr.setState(PullRequest.State.OPEN);
+        }
+
+        var setClosed = getSwitch("closed", "set", arguments);
+        if (setClosed) {
+            pr.setState(PullRequest.State.CLOSED);
+        }
+
+        var setBody = getSwitch("body", "set", arguments);
+        if (setBody) {
+            var file = Files.createTempFile("PULL_REQUEST_", ".md");
+            Files.writeString(file, pr.body());
+            var success = spawnEditor(repo, file);
+            if (!success) {
+                System.err.println("error: editor exited with non-zero status code, aborting");
+                System.exit(1);
+            }
+            var content = Files.readString(file);
+            if (content.isEmpty()) {
+                System.err.println("error: no message present, aborting");
+                System.exit(1);
+            }
+            pr.setBody(content);
         }
 
         var setNoDraft = getSwitch("no-draft", "set", arguments);
