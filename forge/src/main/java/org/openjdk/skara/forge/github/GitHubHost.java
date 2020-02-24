@@ -217,7 +217,7 @@ public class GitHubHost implements Forge {
     @Override
     public Optional<HostUser> user(String username) {
         var details = request.get("users/" + URLEncoder.encode(username, StandardCharsets.UTF_8))
-                             .onError(r -> JSON.of())
+                             .onError(r -> Optional.of(JSON.of()))
                              .execute();
         if (details.isNull()) {
             return Optional.empty();

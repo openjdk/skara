@@ -469,7 +469,7 @@ public class GitHubPullRequest implements PullRequest {
                .onError(r -> {
                    // The GitHub API explicitly states that 404 is the response for deleting labels currently not set
                    if (r.statusCode() == 404) {
-                       return JSONValue.fromNull();
+                       return Optional.of(JSONValue.fromNull());
                    }
                    throw new RuntimeException("Invalid response");
                })

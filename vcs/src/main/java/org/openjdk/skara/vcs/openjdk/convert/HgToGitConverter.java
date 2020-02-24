@@ -352,7 +352,7 @@ public class HgToGitConverter implements Converter {
                                      .stream()
                                      .map(Hash::new)
                                      .collect(Collectors.toList());
-            if (parentHashes.size() == 1 && parentHashes.get(0).equals(new Hash("0".repeat(40)))) {
+            if (parentHashes.size() == 1 && parentHashes.get(0).equals(Hash.zero())) {
                 parentHashes = new ArrayList<Hash>();
             }
             pipe.readln(); // skip parent revisions
@@ -481,7 +481,7 @@ public class HgToGitConverter implements Converter {
                             var parts = line.split(" ");
                             var hash = parts[0];
                             var tag = parts[1];
-                            if (hash.equals("0".repeat(40))) {
+                            if (hash.equals(Hash.zero().hex())) {
                                 tags.remove(tag);
                             } else {
                                 tags.put(tag, commit);
