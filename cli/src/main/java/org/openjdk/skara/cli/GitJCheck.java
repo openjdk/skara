@@ -34,13 +34,49 @@ import org.openjdk.skara.version.Version;
 import java.io.IOException;
 import java.net.*;
 import java.nio.file.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.logging.Level;
 
 public class GitJCheck {
-    private static final Pattern urlPattern = Pattern.compile("^https?://.*", Pattern.CASE_INSENSITIVE);
+    static String gitConfig(String key) {
+        try {
+            var pb = new ProcessBuilder("git", "config", key);
+            pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
+            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
+            var p = pb.start();
+
+            var output = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            var res = p.waitFor();
+            if (res != 0) {
+                return null;
+            }
+
+            return output == null ? null : output.replace("\n", "");
+        } catch (InterruptedException e) {
+            return null;
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    static String getOption(String name, Arguments arguments) {
+        if (arguments.contains(name)) {
+            return arguments.get(name).asString();
+        }
+
+        return gitConfig("jcheck." + name);
+    }
+
+    static boolean getSwitch(String name, Arguments arguments) {
+        if (arguments.contains(name)) {
+            return true;
+        }
+        var value = gitConfig("jcheck." + name);
+        return value != null && value.toLowerCase().equals("true");
+    }
 
     public static int run(String[] args) throws IOException {
         var flags = List.of(
@@ -64,17 +100,14 @@ public class GitJCheck {
                   .describe("FILE")
                   .helptext("Use the specified census (default: https://openjdk.java.net/census.xml)")
                   .optional(),
+            Option.shortcut("")
+                  .fullname("ignore")
+                  .describe("CHECKS")
+                  .helptext("Ignore errors from checks with the given name")
+                  .optional(),
             Switch.shortcut("m")
                   .fullname("mercurial")
                   .helptext("Deprecated: force use of mercurial")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("local")
-                  .helptext("Run jcheck in \"local\" mode")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("pull-request")
-                  .helptext("Run jcheck in \"pull request\" mode")
                   .optional(),
             Switch.shortcut("v")
                   .fullname("verbose")
@@ -121,7 +154,7 @@ public class GitJCheck {
             return 1;
         }
 
-        var isMercurial = arguments.contains("mercurial");
+        var isMercurial = getSwitch("mercurial", arguments);
         var defaultRange = isMercurial ? "tip" : "HEAD^..HEAD";
         var range = arguments.get("rev").orString(defaultRange);
         if (!repo.isValidRevisionRange(range)) {
@@ -134,7 +167,11 @@ public class GitJCheck {
             return 1;
         }
 
-        var whitelistFile = arguments.get("whitelist").or(".jcheck/whitelist.json").via(Path::of);
+        var whitelistOption = getOption("whitelist", arguments);
+        if (whitelistOption == null) {
+            whitelistOption = ".jcheck/whitelist.json";
+        }
+        var whitelistFile = Path.of(whitelistOption);
         var whitelist = new HashMap<String, Set<Hash>>();
         if (Files.exists(whitelistFile)) {
             var json = JSON.parse(Files.readString(whitelistFile));
@@ -145,7 +182,11 @@ public class GitJCheck {
             }
         }
 
-        var blacklistFile = arguments.get("blacklist").or(".jcheck/blacklist.json").via(Path::of);
+        var blacklistOption = getOption("blacklist", arguments);
+        if (blacklistOption == null) {
+            blacklistOption = ".jcheck/blacklist.json";
+        }
+        var blacklistFile = Path.of(blacklistOption);
         var blacklist = new HashSet<Hash>();
         if (Files.exists(blacklistFile)) {
             var json = JSON.parse(Files.readString(blacklistFile));
@@ -155,35 +196,23 @@ public class GitJCheck {
                                .forEach(blacklist::add);
         }
 
-        var endpoint = arguments.get("census").orString(() -> {
-            var fallback = "https://openjdk.java.net/census.xml";
-            try {
-                var config = repo.config("jcheck.census");
-                return config.isEmpty() ? fallback : config.get(0);
-            } catch (IOException e) {
-                return fallback;
-            }
-        });
-        var census = !isURL(endpoint)
-                ? Census.parse(Path.of(endpoint))
-                : Census.from(URI.create(endpoint));
-        var isLocal = arguments.contains("local");
-        if (!isLocal) {
-            var lines = repo.config("jcheck.local");
-            if (lines.size() == 1) {
-                var value = lines.get(0).toUpperCase();
-                isLocal = value.equals("TRUE") || value.equals("1") || value.equals("ON");
+        var endpoint = getOption("census", arguments);
+        if (endpoint == null) {
+            endpoint = "https://openjdk.java.net/census.xml";
+        }
+        var census = endpoint.startsWith("http://") || endpoint.startsWith("https://") ?
+            Census.from(URI.create(endpoint)) :
+            Census.parse(Path.of(endpoint));
+
+        var ignore = new HashSet<String>();
+        var ignoreOption = getOption("ignore", arguments);
+        if (ignoreOption != null) {
+            for (var check : ignoreOption.split(",")) {
+                ignore.add(check.trim());
             }
         }
-        var isPullRequest = arguments.contains("pull-request");
-        if (!isPullRequest) {
-            var lines = repo.config("jcheck.pull-request");
-            if (lines.size() == 1) {
-                var value = lines.get(0).toUpperCase();
-                isLocal = value.equals("TRUE") || value.equals("1") || value.equals("ON");
-            }
-        }
-        var visitor = new JCheckCLIVisitor(isLocal, isPullRequest);
+
+        var visitor = new JCheckCLIVisitor(ignore);
         try (var errors = JCheck.check(repo, census, CommitMessageParsers.v1, range, whitelist, blacklist)) {
             for (var error : errors) {
                 error.accept(visitor);
@@ -194,9 +223,5 @@ public class GitJCheck {
 
     public static void main(String[] args) throws IOException {
         System.exit(run(args));
-    }
-
-    private static boolean isURL(String s) {
-        return urlPattern.matcher(s).matches();
     }
 }
