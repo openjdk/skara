@@ -34,7 +34,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class CheckBuilderTests {
     @Test
     void testFrom() {
-        var hash = new Hash("0".repeat(40));
         var name = "test";
         var title = "title";
         var summary = "summary";
@@ -45,7 +44,7 @@ class CheckBuilderTests {
         var completedAt = ZonedDateTime.now();
         var success = true;
 
-        var existing = CheckBuilder.create(name, hash)
+        var existing = CheckBuilder.create(name, Hash.zero())
                                    .title(title)
                                    .summary(summary)
                                    .metadata(metadata)

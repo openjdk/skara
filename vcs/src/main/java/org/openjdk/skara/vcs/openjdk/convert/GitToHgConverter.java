@@ -79,7 +79,7 @@ public class GitToHgConverter implements Converter {
         for (var line : lines) {
             var parts = line.split(" ");
             var hash = parts[0];
-            if (hash.equals("0".repeat(40))) {
+            if (hash.equals(Hash.zero().hex())) {
                 result.append(line);
             } else {
                 var tag = parts[1];

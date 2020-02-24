@@ -276,9 +276,8 @@ public class RepositoryTests {
             assertEquals(1, commit.numParents());
             assertEquals(1, commit.parents().size());
 
-            var nullHash = "0".repeat(40);
             var parent = commit.parents().get(0);
-            assertEquals(nullHash, parent.hex());
+            assertEquals(Hash.zero(), parent);
 
             assertTrue(commit.isInitialCommit());
             assertFalse(commit.isMerge());
@@ -288,7 +287,7 @@ public class RepositoryTests {
             assertEquals(1, diffs.size());
 
             var diff = diffs.get(0);
-            assertEquals(nullHash, diff.from().hex());
+            assertEquals(Hash.zero(), diff.from());
             assertEquals(hash, diff.to());
 
             assertEquals(0, diff.removed());
@@ -2174,7 +2173,7 @@ public class RepositoryTests {
             assertTrue(statusEntry.status().isUnmerged());
             assertEquals(Path.of("README"), statusEntry.source().path().get());
             assertEquals(Optional.empty(), statusEntry.source().type());
-            assertEquals("0".repeat(40), statusEntry.source().hash().hex());
+            assertEquals(Hash.zero(), statusEntry.source().hash());
         }
     }
 }
