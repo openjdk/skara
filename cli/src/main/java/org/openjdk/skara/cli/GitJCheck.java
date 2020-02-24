@@ -31,9 +31,10 @@ import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 import org.openjdk.skara.version.Version;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.*;
 import java.nio.file.*;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -109,6 +110,14 @@ public class GitJCheck {
                   .fullname("mercurial")
                   .helptext("Deprecated: force use of mercurial")
                   .optional(),
+            Switch.shortcut("")
+                  .fullname("pre-push")
+                  .helptext("Execute as a pre-push hook")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("setup-pre-push-hook")
+                  .helptext("Set up a pre-push hook that runs jcheck")
+                  .optional(),
             Switch.shortcut("v")
                   .fullname("verbose")
                   .helptext("Turn on verbose output")
@@ -150,21 +159,59 @@ public class GitJCheck {
             return 1;
         }
         var repo = repository.get();
-        if (repo.isEmpty()) {
-            return 1;
+
+        var setupPrePushHook = getSwitch("setup-pre-push-hook", arguments);
+        if (setupPrePushHook) {
+            var hookFile = repo.root().resolve(".git").resolve("hooks").resolve("pre-push");
+            Files.createDirectories(hookFile.getParent());
+            var lines = List.of(
+                "#!/usr/bin/sh",
+                "git jcheck --pre-push"
+            );
+            Files.write(hookFile, lines);
+            if (hookFile.getFileSystem().supportedFileAttributeViews().contains("posix")) {
+                var permissions = PosixFilePermissions.fromString("rwxr-xr-x");
+                Files.setPosixFilePermissions(hookFile, permissions);
+            }
+            return 0;
         }
 
         var isMercurial = getSwitch("mercurial", arguments);
-        var defaultRange = isMercurial ? "tip" : "HEAD^..HEAD";
-        var range = arguments.get("rev").orString(defaultRange);
-        if (!repo.isValidRevisionRange(range)) {
-            System.err.println(String.format("error: %s is not a valid range of revisions,", range));
-            if (isMercurial) {
-                System.err.println("       see 'hg help revisions' for how to specify revisions");
-            } else {
-                System.err.println("       see 'man 7 gitrevisions' for how to specify revisions");
+        var isPrePush = getSwitch("pre-push", arguments);
+        var ranges = new ArrayList<String>();
+        if (isPrePush) {
+            var reader = new BufferedReader(new InputStreamReader(System.in));
+            var lines = reader.lines().collect(Collectors.toList());
+            for (var line : lines) {
+                var parts = line.split(" ");
+                var localHash = new Hash(parts[1]);
+                var remoteHash = new Hash(parts[3]);
+
+                if (localHash.equals(Hash.zero())) {
+                    continue;
+                }
+
+                if (remoteHash.equals(Hash.zero())) {
+                    ranges.add("origin.." + localHash.hex());
+                } else {
+                    ranges.add(remoteHash.hex() + ".." + localHash.hex());
+                }
             }
-            return 1;
+        } else {
+            var defaultRange = isMercurial ? "tip" : "HEAD^..HEAD";
+            ranges.add(arguments.get("rev").orString(defaultRange));
+        }
+
+        for (var range : ranges) {
+            if (!repo.isValidRevisionRange(range)) {
+                System.err.println(String.format("error: %s is not a valid range of revisions,", range));
+                if (isMercurial) {
+                    System.err.println("       see 'hg help revisions' for how to specify revisions");
+                } else {
+                    System.err.println("       see 'man 7 gitrevisions' for how to specify revisions");
+                }
+                return 1;
+            }
         }
 
         var whitelistOption = getOption("whitelist", arguments);
@@ -213,9 +260,11 @@ public class GitJCheck {
         }
 
         var visitor = new JCheckCLIVisitor(ignore);
-        try (var errors = JCheck.check(repo, census, CommitMessageParsers.v1, range, whitelist, blacklist)) {
-            for (var error : errors) {
-                error.accept(visitor);
+        for (var range : ranges) {
+            try (var errors = JCheck.check(repo, census, CommitMessageParsers.v1, range, whitelist, blacklist)) {
+                for (var error : errors) {
+                    error.accept(visitor);
+                }
             }
         }
         return visitor.hasDisplayedErrors() ? 1 : 0;
