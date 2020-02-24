@@ -24,10 +24,12 @@ package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
 import org.openjdk.skara.census.Census;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.jcheck.*;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 import org.openjdk.skara.version.Version;
 
@@ -79,7 +81,7 @@ public class GitJCheck {
         return value != null && value.toLowerCase().equals("true");
     }
 
-    public static int run(String[] args) throws IOException {
+    public static int run(Repository repo, String[] args) throws IOException {
         var flags = List.of(
             Option.shortcut("r")
                   .fullname("rev")
@@ -106,6 +108,16 @@ public class GitJCheck {
                   .describe("CHECKS")
                   .helptext("Ignore errors from checks with the given name")
                   .optional(),
+            Option.shortcut("")
+                  .fullname("push-url")
+                  .describe("URL")
+                  .helptext("URL that is being pushed to")
+                  .optional(),
+            Option.shortcut("")
+                  .fullname("setup-pre-push-hooks")
+                  .describe("CHECKS")
+                  .helptext("Set up a pre-push hook for the given checks")
+                  .optional(),
             Switch.shortcut("m")
                   .fullname("mercurial")
                   .helptext("Deprecated: force use of mercurial")
@@ -113,10 +125,6 @@ public class GitJCheck {
             Switch.shortcut("")
                   .fullname("pre-push")
                   .helptext("Execute as a pre-push hook")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("setup-pre-push-hook")
-                  .helptext("Set up a pre-push hook that runs jcheck")
                   .optional(),
             Switch.shortcut("v")
                   .fullname("verbose")
@@ -137,7 +145,8 @@ public class GitJCheck {
             Switch.shortcut("v")
                   .fullname("version")
                   .helptext("Print the version of this tool")
-                  .optional());
+                  .optional()
+        );
 
         var parser = new ArgumentParser("git jcheck", flags, List.of());
         var arguments = parser.parse(args);
@@ -152,26 +161,34 @@ public class GitJCheck {
             Logging.setup(level, "jcheck");
         }
 
-        var cwd = Paths.get("").toAbsolutePath();
-        var repository = ReadOnlyRepository.get(cwd);
-        if (!repository.isPresent()) {
-            System.err.println(String.format("error: %s is not a repository", cwd.toString()));
-            return 1;
-        }
-        var repo = repository.get();
+        HttpProxy.setup();
 
-        var setupPrePushHook = getSwitch("setup-pre-push-hook", arguments);
-        if (setupPrePushHook) {
+        var setupPrePushHooksOption = getOption("setup-pre-push-hooks", arguments);
+        if (setupPrePushHooksOption != null) {
             var hookFile = repo.root().resolve(".git").resolve("hooks").resolve("pre-push");
             Files.createDirectories(hookFile.getParent());
             var lines = List.of(
                 "#!/usr/bin/sh",
-                "git jcheck --pre-push"
+                "git jcheck --pre-push --push-url=\"$2\""
             );
             Files.write(hookFile, lines);
             if (hookFile.getFileSystem().supportedFileAttributeViews().contains("posix")) {
                 var permissions = PosixFilePermissions.fromString("rwxr-xr-x");
                 Files.setPosixFilePermissions(hookFile, permissions);
+            }
+
+            for (var check : setupPrePushHooksOption.split(",")) {
+                switch (check.trim()) {
+                    case "branches":
+                        repo.config("jcheck.pre-push", "branches", "true", false);
+                        break;
+                    case "commits":
+                        repo.config("jcheck.pre-push", "commits", "true", false);
+                        break;
+                    default:
+                        System.err.println("error: unexpected pre-push check: " + check.trim());
+                        return 1;
+                }
             }
             return 0;
         }
@@ -179,12 +196,14 @@ public class GitJCheck {
         var isMercurial = getSwitch("mercurial", arguments);
         var isPrePush = getSwitch("pre-push", arguments);
         var ranges = new ArrayList<String>();
+        var targetBranches = new HashSet<String>();
         if (isPrePush) {
             var reader = new BufferedReader(new InputStreamReader(System.in));
             var lines = reader.lines().collect(Collectors.toList());
             for (var line : lines) {
                 var parts = line.split(" ");
                 var localHash = new Hash(parts[1]);
+                var remoteRef = parts[2];
                 var remoteHash = new Hash(parts[3]);
 
                 if (localHash.equals(Hash.zero())) {
@@ -194,6 +213,7 @@ public class GitJCheck {
                 if (remoteHash.equals(Hash.zero())) {
                     ranges.add("origin.." + localHash.hex());
                 } else {
+                    targetBranches.add(Path.of(remoteRef).getFileName().toString());
                     ranges.add(remoteHash.hex() + ".." + localHash.hex());
                 }
             }
@@ -259,11 +279,57 @@ public class GitJCheck {
             }
         }
 
+        var lines = repo.config("jcheck.pre-push.branches");
+        var shouldCheckRemoteBranches = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
+        if (isPrePush && shouldCheckRemoteBranches) {
+            var url = arguments.get("push-url").asString();
+            if (url == null) {
+                System.err.println("error: url for push not provided via --url option");
+                return 1;
+            }
+            var webUrl = Remote.toWebURI(url);
+            var forge = Forge.from(webUrl);
+            if (!forge.isPresent()) {
+                System.err.println("error: cannot find forge for " + webUrl);
+                return 1;
+            }
+            var remoteRepo = forge.get().repository(webUrl.getPath().substring(1));
+            if (!remoteRepo.isPresent()) {
+                System.err.println("error: could not find remote repository at " + webUrl);
+                return 1;
+            }
+            var parentRepo = remoteRepo.get().parent();
+            if (!parentRepo.isPresent()) {
+                System.err.println("error: could not find upstream repository for " + webUrl);
+                return 1;
+            }
+
+            var upstreamBranchNames = repo.remoteBranches(parentRepo.get().webUrl().toString())
+                                          .stream()
+                                          .map(r -> r.name())
+                                          .collect(Collectors.toSet());
+
+            var displayedError = false;
+            for (var branch : targetBranches) {
+                if (upstreamBranchNames.contains(branch)) {
+                    System.err.println("error: should not push to branch in personal fork also present in upstream repository: " + branch);
+                    displayedError = true;
+                }
+            }
+            if (displayedError) {
+                return 1;
+            }
+        }
+
         var visitor = new JCheckCLIVisitor(ignore);
-        for (var range : ranges) {
-            try (var errors = JCheck.check(repo, census, CommitMessageParsers.v1, range, whitelist, blacklist)) {
-                for (var error : errors) {
-                    error.accept(visitor);
+        lines = repo.config("jcheck.pre-push.commits");
+        var shouldCheckCommits = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
+        if (!isPrePush || shouldCheckCommits) {
+            for (var range : ranges) {
+                try (var errors = JCheck.check(repo, census, CommitMessageParsers.v1, range, whitelist, blacklist)) {
+                    for (var error : errors) {
+                        error.accept(visitor);
+                    }
                 }
             }
         }
@@ -271,6 +337,13 @@ public class GitJCheck {
     }
 
     public static void main(String[] args) throws IOException {
-        System.exit(run(args));
+        var cwd = Paths.get("").toAbsolutePath();
+        var repository = Repository.get(cwd);
+        if (!repository.isPresent()) {
+            System.err.println(String.format("error: %s is not a repository", cwd.toString()));
+            System.exit(1);
+        }
+
+        System.exit(run(repository.get(), args));
     }
 }

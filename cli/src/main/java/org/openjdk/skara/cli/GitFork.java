@@ -154,6 +154,11 @@ public class GitFork {
                   .helptext("Same as git clones flag 'shallow-since'")
                   .optional(),
             Option.shortcut("")
+                  .fullname("setup-pre-push-hooks")
+                  .describe("CHECKS")
+                  .helptext("Setups pre-push hooks for [branches,commits]")
+                  .optional(),
+            Option.shortcut("")
                   .fullname("host")
                   .describe("HOSTNAME")
                   .helptext("Hostname for the forge")
@@ -368,6 +373,14 @@ public class GitFork {
 
                 if (shouldSync) {
                     GitSync.sync(repo, new String[]{"--from", "upstream", "--to", "origin", "--pull"});
+                }
+
+                var setupPrePushHooksOption = getOption("setup-pre-push-hooks", subsection, arguments);
+                if (setupPrePushHooksOption != null) {
+                    var res = GitJCheck.run(repo, new String[]{"--setup-pre-push-hooks", setupPrePushHooksOption });
+                    if (res != 0) {
+                        System.exit(res);
+                    }
                 }
             }
         }
