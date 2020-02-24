@@ -89,14 +89,12 @@ public class GitLabHost implements Forge {
         var encodedName = URLEncoder.encode(name, StandardCharsets.US_ASCII);
 
         var project = request.get("projects/" + encodedName)
-                                     .onError(r -> r.statusCode() == 404 ? JSON.object().put("retry", true) : null)
-                                     .execute();
+                             .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.object().put("retry", true)) : Optional.empty())
+                             .execute();
         if (project.contains("retry")) {
             // Depending on web server configuration, GitLab may need double escaping of project names
             encodedName = URLEncoder.encode(encodedName, StandardCharsets.US_ASCII);
-            project = request.get("projects/" + encodedName)
-                                     .onError(r -> r.statusCode() == 404 ? JSON.object().put("retry", true) : null)
-                                     .execute();
+            project = request.get("projects/" + encodedName).execute();
         }
         return project.asObject();
     }
@@ -122,7 +120,7 @@ public class GitLabHost implements Forge {
     public Optional<HostUser> user(String username) {
         var details = request.get("users")
                              .param("username", username)
-                             .onError(r -> JSON.of())
+                             .onError(r -> Optional.of(JSON.of()))
                              .execute();
 
         if (details.isNull()) {
@@ -175,7 +173,7 @@ public class GitLabHost implements Forge {
             throw new IllegalArgumentException("Group id is not a number: " + groupId);
         }
         var details = request.get("groups/" + gid + "/members/" + user.id())
-                             .onError(r -> JSON.of())
+                             .onError(r -> Optional.of(JSON.of()))
                              .execute();
         return !details.isNull();
     }
