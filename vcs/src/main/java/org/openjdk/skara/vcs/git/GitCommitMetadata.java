@@ -62,7 +62,7 @@ class GitCommitMetadata {
 
         var parentHashes = reader.readLine();
         if (parentHashes.equals("")) {
-            parentHashes = "0".repeat(40);
+            parentHashes = Hash.zero().hex();
         }
         var parents = new ArrayList<Hash>();
         for (var parentHash : parentHashes.split(" ")) {

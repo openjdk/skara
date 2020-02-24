@@ -23,10 +23,15 @@
 package org.openjdk.skara.vcs;
 
 public class Hash {
+    private static final Hash ZERO = new Hash("0".repeat(40));
     private final String hex;
 
     public Hash(String hex) {
         this.hex = hex;
+    }
+
+    public static Hash zero() {
+        return ZERO;
     }
 
     @Override
