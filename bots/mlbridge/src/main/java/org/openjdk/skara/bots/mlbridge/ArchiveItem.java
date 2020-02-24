@@ -37,9 +37,10 @@ class ArchiveItem {
         this.footer = footer;
     }
 
-    static ArchiveItem from(PullRequest pr, Repository localRepo, URI issueTracker, String issuePrefix,
-                            WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification,
-                            ZonedDateTime created, ZonedDateTime updated, Hash base, Hash head, String subjectPrefix) {
+    static ArchiveItem from(PullRequest pr, Repository localRepo, HostUserToEmailAuthor hostUserToEmailAuthor,
+                            URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator,
+                            WebrevNotification webrevNotification, ZonedDateTime created, ZonedDateTime updated,
+                            Hash base, Hash head, String subjectPrefix) {
         return new ArchiveItem(null, "fc", created, updated, pr.author(), Map.of("PR-Head-Hash", head.hex(), "PR-Base-Hash", base.hex()),
                                () -> subjectPrefix + "RFR: " + pr.title(),
                                () -> "",
@@ -62,21 +63,31 @@ class ArchiveItem {
         }
     }
 
-    static ArchiveItem from(PullRequest pr, Repository localRepo, WebrevStorage.WebrevGenerator webrevGenerator,
-                            WebrevNotification webrevNotification, ZonedDateTime created, ZonedDateTime updated,
-                            Hash lastBase, Hash lastHead, Hash base, Hash head, int index, ArchiveItem parent, String subjectPrefix) {
+    private static String hostUserToCommitterName(HostUserToEmailAuthor hostUserToEmailAuthor, HostUser hostUser) {
+        var email = hostUserToEmailAuthor.author(hostUser);
+        if (email.fullName().isPresent()) {
+            return email.fullName().get();
+        } else {
+            return hostUser.fullName();
+        }
+    }
+
+    static ArchiveItem from(PullRequest pr, Repository localRepo, HostUserToEmailAuthor hostUserToEmailAuthor,
+                            WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification,
+                            ZonedDateTime created, ZonedDateTime updated, Hash lastBase, Hash lastHead, Hash base,
+                            Hash head, int index, ArchiveItem parent, String subjectPrefix) {
         return new ArchiveItem(parent,"ha" + head.hex(), created, updated, pr.author(), Map.of("PR-Head-Hash", head.hex(), "PR-Base-Hash", base.hex()),
                                () -> String.format("Re: %s[Rev %02d] RFR: %s", subjectPrefix, index, pr.title()),
                                () -> "",
                                () -> {
                                    if (lastBase.equals(base)) {
-                                       return ArchiveMessages.composeIncrementalRevision(localRepo, head, lastHead);
+                                       return ArchiveMessages.composeIncrementalRevision(localRepo, hostUserToCommitterName(hostUserToEmailAuthor, pr.author()), head, lastHead);
                                    } else {
                                        var rebasedLastHead = rebasedLastHead(localRepo, base, lastHead);
                                        if (rebasedLastHead.isPresent()) {
-                                           return ArchiveMessages.composeRebasedIncrementalRevision(localRepo, head, rebasedLastHead.get());
+                                           return ArchiveMessages.composeRebasedIncrementalRevision(localRepo, hostUserToCommitterName(hostUserToEmailAuthor, pr.author()), head, rebasedLastHead.get());
                                        } else {
-                                           return ArchiveMessages.composeFullRevision(localRepo, base, head);
+                                           return ArchiveMessages.composeFullRevision(localRepo, hostUserToCommitterName(hostUserToEmailAuthor, pr.author()), base, head);
                                        }
                                    }
                                },
