@@ -24,7 +24,6 @@ package org.openjdk.skara.network;
 
 import com.sun.net.httpserver.*;
 import org.openjdk.skara.json.*;
-import org.openjdk.skara.network.*;
 
 import org.junit.jupiter.api.Test;
 
@@ -132,7 +131,7 @@ class RestRequestTests {
         try (var receiver = new RestReceiver("{}", 400)) {
             var request = new RestRequest(receiver.getEndpoint());
             var response = request.post("/test")
-                   .onError(r -> JSON.object().put("transformed", true))
+                   .onError(r -> Optional.of(JSON.object().put("transformed", true)))
                    .execute();
             assertTrue(response.contains("transformed"));
         }

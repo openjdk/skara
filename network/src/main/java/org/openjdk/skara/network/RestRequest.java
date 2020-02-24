@@ -49,7 +49,7 @@ public class RestRequest {
 
     @FunctionalInterface
     public interface ErrorTransform {
-        JSONValue onError(HttpResponse<String> response);
+        Optional<JSONValue> onError(HttpResponse<String> response);
     }
 
     public class QueryBuilder {
@@ -261,13 +261,15 @@ public class RestRequest {
 
     private Optional<JSONValue> transformBadResponse(HttpResponse<String> response, QueryBuilder queryBuilder) {
         if (response.statusCode() >= 400) {
-            if (queryBuilder.onError == null) {
-                log.warning(queryBuilder.toString());
-                log.warning(response.body());
-                throw new RuntimeException("Request returned bad status: " + response.statusCode());
-            } else {
-                return Optional.of(queryBuilder.onError.onError(response));
+            if (queryBuilder.onError != null) {
+                var transformed = queryBuilder.onError.onError(response);
+                if (transformed.isPresent()) {
+                    return transformed;
+                }
             }
+            log.warning(queryBuilder.toString());
+            log.warning(response.body());
+            throw new RuntimeException("Request returned bad status: " + response.statusCode());
         } else {
             return Optional.empty();
         }
