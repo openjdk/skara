@@ -116,7 +116,7 @@ public class GitJCheck {
                   .optional(),
             Switch.shortcut("")
                   .fullname("setup-pre-push-hook")
-                  .helptext("Set up a pre push hook that runs jcheck")
+                  .helptext("Set up a pre-push hook that runs jcheck")
                   .optional(),
             Switch.shortcut("v")
                   .fullname("verbose")
