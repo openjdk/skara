@@ -436,6 +436,7 @@ public class JiraIssue implements Issue {
     private void removeWebLink(Link link) {
         request.delete("/remotelink")
                .param("globalId", "skaralink=" + link.uri().orElseThrow().toString())
+               .onError(e -> e.statusCode() == 404 ? Optional.of(JSON.object().put("already_deleted", true)) : Optional.empty())
                .execute();
     }
 
