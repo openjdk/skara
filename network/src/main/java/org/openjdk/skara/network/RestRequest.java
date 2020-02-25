@@ -27,9 +27,9 @@ import org.openjdk.skara.json.*;
 import java.io.*;
 import java.net.URI;
 import java.net.http.*;
-import java.time.Duration;
+import java.time.*;
 import java.util.*;
-import java.util.logging.Logger;
+import java.util.logging.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -206,17 +206,28 @@ public class RestRequest {
     }
 
     private void logRateLimit(HttpHeaders headers) {
-        if ((!headers.firstValue("x-ratelimit-limit").isPresent()) ||
-                (!headers.firstValue("x-ratelimit-remaining").isPresent()) ||
-                (!headers.firstValue("x-ratelimit-reset").isPresent())) {
+        if ((headers.firstValue("x-ratelimit-limit").isEmpty()) ||
+                (headers.firstValue("x-ratelimit-remaining").isEmpty()) ||
+                (headers.firstValue("x-ratelimit-reset").isEmpty())) {
             return;
         }
 
-        var limit = Integer.valueOf(headers.firstValue("x-ratelimit-limit").get());
-        var remaining = Integer.valueOf(headers.firstValue("x-ratelimit-remaining").get());
-        var reset = Integer.valueOf(headers.firstValue("x-ratelimit-reset").get());
+        var limit = Integer.parseInt(headers.firstValue("x-ratelimit-limit").get());
+        var remaining = Integer.parseInt(headers.firstValue("x-ratelimit-remaining").get());
+        var reset = Integer.parseInt(headers.firstValue("x-ratelimit-reset").get());
+        var timeToReset = Duration.between(Instant.now(), Instant.ofEpochSecond(reset));
 
-        log.fine("Rate limit: " + limit + " - remaining: " + remaining);
+        var level = Level.FINE;
+        var remainingPercentage = (remaining * 100) / limit;
+        if (remainingPercentage < 10) {
+            level = Level.SEVERE;
+        } else if (remainingPercentage < 20) {
+            level = Level.WARNING;
+        } else if (remainingPercentage < 50) {
+            level = Level.INFO;
+        }
+        log.log(level,"Rate limit: " + limit + " Remaining: " + remaining + " (" + remainingPercentage + "%) " +
+                "Resets in: " + timeToReset.toMinutes() + " minutes");
     }
 
     private Duration retryBackoffStep = Duration.ofSeconds(1);
