@@ -51,7 +51,7 @@ public class GitHubRepository implements HostedRepository {
                 .appendSubDomain("api")
                 .setPath("/repos/" + repository + "/")
                 .build();
-        request = new RestRequest(apiBase, () -> {
+        request = new RestRequest(apiBase, gitHubHost.authId().orElse(null), () -> {
             var headers = new ArrayList<>(List.of(
                 "Accept", "application/vnd.github.machine-man-preview+json",
                 "Accept", "application/vnd.github.antiope-preview+json",

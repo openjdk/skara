@@ -57,7 +57,7 @@ public class GitHubHost implements Forge {
                 .setPath("/")
                 .build();
 
-        request = new RestRequest(baseApi, () -> Arrays.asList(
+        request = new RestRequest(baseApi, application.authId(), () -> Arrays.asList(
                 "Authorization", "token " + getInstallationToken().orElseThrow(),
                 "Accept", "application/vnd.github.machine-man-preview+json",
                 "Accept", "application/vnd.github.antiope-preview+json"));
@@ -66,7 +66,7 @@ public class GitHubHost implements Forge {
                 .appendSubDomain("api")
                 .setPath("/graphql")
                 .build();
-        graphQL = new RestRequest(graphQLAPI, () -> Arrays.asList(
+        graphQL = new RestRequest(graphQLAPI, application.authId(), () -> Arrays.asList(
                 "Authorization", "bearer " + getInstallationToken().orElseThrow(),
                 "Accept", "application/vnd.github.machine-man-preview+json",
                 "Accept", "application/vnd.github.antiope-preview+json",
@@ -94,14 +94,14 @@ public class GitHubHost implements Forge {
                                 .setPath("/")
                                 .build();
 
-        request = new RestRequest(baseApi, () -> Arrays.asList(
+        request = new RestRequest(baseApi, pat.username(), () -> Arrays.asList(
                 "Authorization", "token " + getInstallationToken().orElseThrow()));
 
         var graphQLAPI = URIBuilder.base(uri)
                 .appendSubDomain("api")
                 .setPath("/graphql")
                 .build();
-        graphQL = new RestRequest(graphQLAPI, () -> Arrays.asList(
+        graphQL = new RestRequest(graphQLAPI, pat.username(), () -> Arrays.asList(
                 "Authorization", "bearer " + getInstallationToken().orElseThrow(),
                 "Accept", "application/vnd.github.machine-man-preview+json",
                 "Accept", "application/vnd.github.antiope-preview+json",
@@ -154,6 +154,18 @@ public class GitHubHost implements Forge {
 
         if (pat != null) {
             return Optional.of(pat.password());
+        }
+
+        return Optional.empty();
+    }
+
+    Optional<String> authId() {
+        if (application != null) {
+            return Optional.of(application.authId());
+        }
+
+        if (pat != null) {
+            return Optional.of(pat.username());
         }
 
         return Optional.empty();

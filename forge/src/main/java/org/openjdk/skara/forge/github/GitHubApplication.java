@@ -232,4 +232,8 @@ public class GitHubApplication {
             throw new RuntimeException(e);
         }
     }
+
+    String authId() {
+        return id;
+    }
 }
