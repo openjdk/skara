@@ -914,7 +914,7 @@ class MailingListBridgeBotTests {
 
             // The archive should reference the updated push
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertTrue(archiveContains(archiveFolder.path(), "content has been added"));
+            assertTrue(archiveContains(archiveFolder.path(), "has updated the pull request incrementally"));
             assertTrue(archiveContains(archiveFolder.path(), "full.*/" + pr.id() + "/webrev.01"));
             assertTrue(archiveContains(archiveFolder.path(), "inc.*/" + pr.id() + "/webrev.00-01"));
             assertTrue(archiveContains(archiveFolder.path(), "Patch"));
@@ -1043,7 +1043,7 @@ class MailingListBridgeBotTests {
 
             // The archive should reference the rebased push
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertTrue(archiveContains(archiveFolder.path(), "updated with a new target base"));
+            assertTrue(archiveContains(archiveFolder.path(), "has updated the pull request with a new target base"));
             assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/webrev.01"));
             assertFalse(archiveContains(archiveFolder.path(), "Incremental"));
             assertTrue(archiveContains(archiveFolder.path(), "Patch"));
@@ -1154,7 +1154,7 @@ class MailingListBridgeBotTests {
 
             // The archive should reference the rebased push
             Repository.materialize(archiveFolder.path(), archive.url(), "archive");
-            assertTrue(archiveContains(archiveFolder.path(), "updated with a new target base"));
+            assertTrue(archiveContains(archiveFolder.path(), "has updated the pull request with a new target base"));
             assertTrue(archiveContains(archiveFolder.path(), "excludes the unrelated changes"));
             assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/webrev.01"));
             assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/webrev.00-01"));
