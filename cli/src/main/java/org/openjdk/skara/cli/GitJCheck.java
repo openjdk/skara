@@ -281,7 +281,8 @@ public class GitJCheck {
 
         var lines = repo.config("jcheck.pre-push.branches");
         var shouldCheckRemoteBranches = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
-        if (isPrePush && shouldCheckRemoteBranches) {
+        if (isPrePush && shouldCheckRemoteBranches &&
+            !Files.exists(repo.root().resolve(".git").resolve("GIT_SYNC_RUNNING"))) {
             var url = arguments.get("push-url").asString();
             if (url == null) {
                 System.err.println("error: url for push not provided via --url option");
