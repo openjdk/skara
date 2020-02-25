@@ -53,7 +53,7 @@ public class GitLabRepository implements HostedRepository {
                 .build();
 
         request = gitLabHost.getPat()
-                            .map(pat -> new RestRequest(baseApi, () -> Arrays.asList("Private-Token", pat.password())))
+                            .map(pat -> new RestRequest(baseApi, pat.username(), () -> Arrays.asList("Private-Token", pat.password())))
                             .orElseGet(() -> new RestRequest(baseApi));
 
         var urlPattern = URIBuilder.base(gitLabHost.getUri())

@@ -25,19 +25,33 @@ package org.openjdk.skara.issuetracker.jira;
 import org.openjdk.skara.network.RestRequest;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.security.*;
 import java.time.*;
-import java.util.Arrays;
+import java.util.*;
 import java.util.logging.Logger;
 
 class JiraVault {
     private final RestRequest request;
+    private final String authId;
     private final Logger log = Logger.getLogger("org.openjdk.skara.issuetracker.jira");
 
     private String cookie;
     private Instant expires;
 
+    private String checksum(String body) {
+        try {
+            var digest = MessageDigest.getInstance("SHA-256");
+            digest.update(body.getBytes(StandardCharsets.UTF_8));
+            return Base64.getUrlEncoder().encodeToString(digest.digest());
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Cannot find SHA-256");
+        }
+    }
+
     JiraVault(URI vaultUri, String vaultToken) {
-        request = new RestRequest(vaultUri, () -> Arrays.asList(
+        authId = checksum(vaultToken);
+        request = new RestRequest(vaultUri, authId, () -> Arrays.asList(
                 "X-Vault-Token", vaultToken
         ));
     }
@@ -50,5 +64,9 @@ class JiraVault {
             log.info("Renewed Jira token (" + cookie + ") - expires " + expires);
         }
         return cookie;
+    }
+
+    String authId() {
+        return authId;
     }
 }
