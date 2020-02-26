@@ -124,10 +124,21 @@ class ReviewArchive {
                      .collect(Collectors.toSet());
     }
 
+    private String parentAuthorPath(ArchiveItem item) {
+        var ret = new StringBuilder();
+        ret.append(item.author().id());
+        while (item.parent().isPresent()) {
+            item = item.parent().get();
+            ret.append(".");
+            ret.append(item.author().id());
+        }
+        return ret.toString();
+    }
+
     // Group items that has the same author and the same parent
     private List<List<ArchiveItem>> collapsableItems(List<ArchiveItem> items) {
         var grouped = items.stream()
-                           .collect(Collectors.groupingBy(item -> item.author().id() + "." + (item.parent().isPresent() ? item.parent().get() : "xxx"),
+                           .collect(Collectors.groupingBy(this::parentAuthorPath,
                                                           LinkedHashMap::new, Collectors.toList()));
         return new ArrayList<>(grouped.values());
     }
@@ -138,16 +149,28 @@ class ReviewArchive {
                      .collect(Collectors.joining("\n"));
     }
 
-    private String quotedParent(ArchiveItem item, int quoteLevel) {
-        if (item.parent().isPresent() && quoteLevel > 0) {
-            var quotedParentBody = quotedParent(item.parent().get(), quoteLevel - 1);
-            if (!quotedParentBody.isBlank()) {
-                return quoteBody(quotedParentBody) + "\n> \n" + quoteBody(item.parent().get().body());
+    private List<ArchiveItem> parentsToQuote(ArchiveItem item, int quoteLevel, Set<ArchiveItem> alreadyQuoted) {
+        var ret = new ArrayList<ArchiveItem>();
+
+        if (item.parent().isPresent() && quoteLevel > 0 && !alreadyQuoted.contains(item.parent().get())) {
+            ret.add(item.parent().get());
+            ret.addAll(parentsToQuote(item.parent().get(), quoteLevel - 1, alreadyQuoted));
+        }
+
+        return ret;
+    }
+
+    private String quoteSelectedParents(List<ArchiveItem> parentsToQuote) {
+        Collections.reverse(parentsToQuote);
+        var ret = "";
+        for (var parent : parentsToQuote) {
+            if (!ret.isBlank()) {
+                ret = quoteBody(ret) + "\n>\n" + quoteBody(parent.body());
             } else {
-                return quoteBody(item.parent().get().body());
+                ret = quoteBody(parent.body());
             }
         }
-        return "";
+        return ret;
     }
 
     private Email findArchiveItemEmail(ArchiveItem item, List<Email> sentEmails, List<Email> newEmails) {
@@ -201,12 +224,21 @@ class ReviewArchive {
 
         var combinedItems = collapsableItems(unsentItems);
         for (var itemList : combinedItems) {
-            // Simply combine all message bodies
+            var quotedParents = new HashSet<ArchiveItem>();
+
+            // Simply combine all message bodies together with unique quotes
             var body = new StringBuilder();
             for (var item : itemList) {
                 if (body.length() > 0) {
                     body.append("\n\n");
                 }
+                var newQuotes = parentsToQuote(item, 2, quotedParents);
+                var quote = quoteSelectedParents(newQuotes);
+                if (!quote.isBlank()) {
+                    body.append(quote);
+                    body.append("\n\n");
+                }
+                quotedParents.addAll(newQuotes);
                 body.append(item.body());
             }
 
@@ -221,15 +253,11 @@ class ReviewArchive {
                 includedFooterFragments.addAll(newFooterFragments);
             }
 
-            // All items have the same parent and author after collapsing -> should have the same header
+            // All items have parents from the same author after collapsing -> should have the same header
             var firstItem = itemList.get(0);
             var header = firstItem.header();
-            var quote = quotedParent(firstItem, 2);
-            if (!quote.isBlank()) {
-                quote = quote + "\n\n";
-            }
 
-            var combined = (header.isBlank() ? "" : header +  "\n\n") + quote + body.toString() + (footer.length() == 0 ? "" : "\n\n-------------\n\n" + footer.toString());
+            var combined = (header.isBlank() ? "" : header +  "\n\n") + body.toString() + (footer.length() == 0 ? "" : "\n\n-------------\n\n" + footer.toString());
 
             var emailBuilder = Email.create(firstItem.subject(), combined);
             if (firstItem.parent().isPresent()) {
