@@ -1156,7 +1156,7 @@ class MailingListBridgeBotTests {
             // The archive should reference the rebased push
             Repository.materialize(archiveFolder.path(), archive.url(), "archive");
             assertTrue(archiveContains(archiveFolder.path(), "updated with a new target base"));
-            assertTrue(archiveContains(archiveFolder.path(), "excludes the unrelated changes"));
+            assertTrue(archiveContains(archiveFolder.path(), "excludes"));
             assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/webrev.01"));
             assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/webrev.00-01"));
             assertTrue(archiveContains(archiveFolder.path(), "Original msg"));
