@@ -257,7 +257,9 @@ class ReviewArchive {
             var firstItem = itemList.get(0);
             var header = firstItem.header();
 
-            var combined = (header.isBlank() ? "" : header +  "\n\n") + body.toString() + (footer.length() == 0 ? "" : "\n\n-------------\n\n" + footer.toString());
+            var combined = (header.isBlank() ? "" : header +  "\n\n") +
+                    WordWrap.wrapBody(body.toString(), 120) +
+                    (footer.length() == 0 ? "" : "\n\n-------------\n\n" + footer.toString());
 
             var emailBuilder = Email.create(firstItem.subject(), combined);
             if (firstItem.parent().isPresent()) {
