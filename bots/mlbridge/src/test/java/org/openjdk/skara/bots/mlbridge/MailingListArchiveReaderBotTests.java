@@ -156,6 +156,7 @@ class MailingListArchiveReaderBotTests {
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
                                             .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .repoInSubject(true)
                                             .build();
 
             // The mailing list as well

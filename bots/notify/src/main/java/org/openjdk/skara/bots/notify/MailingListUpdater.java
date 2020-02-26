@@ -169,7 +169,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
         var ret = new ArrayList<Commit>();
 
         var rfrsConvos = list.conversations(Duration.ofDays(365)).stream()
-                       .filter(conv -> conv.first().subject().startsWith("RFR: "))
+                       .filter(conv -> conv.first().subject().contains("RFR: "))
                        .collect(Collectors.toList());
 
         for (var commit : commits) {
