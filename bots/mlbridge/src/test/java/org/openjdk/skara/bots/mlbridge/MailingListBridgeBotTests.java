@@ -413,7 +413,7 @@ class MailingListBridgeBotTests {
 
             // Make several file specific comments
             var first = pr.addReviewComment(masterHash, editHash, reviewFile.toString(), 2, "Review comment");
-            pr.addReviewComment(masterHash, editHash, reviewFile.toString(), 2, "Another review comment");
+            var second = pr.addReviewComment(masterHash, editHash, reviewFile.toString(), 2, "Another review comment");
             pr.addReviewComment(masterHash, editHash, reviewFile.toString(), 2, "Further review comment");
             pr.addReviewComment(masterHash, editHash, reviewFile.toString(), 2, "Final review comment");
             TestBotRunner.runPeriodicItems(mlBot);
@@ -443,8 +443,9 @@ class MailingListBridgeBotTests {
             assertTrue(reviewReply.body().contains("Review comment\n\n"), reviewReply.body());
             assertTrue(reviewReply.body().contains("Another review comment"), reviewReply.body());
 
-            // Now reply to the first (collapsed) comment
+            // Now reply to the first and second (collapsed) comment
             pr.addReviewCommentReply(first, "I agree");
+            pr.addReviewCommentReply(second, "Not with this one though");
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
 
@@ -645,7 +646,7 @@ class MailingListBridgeBotTests {
 
             // Sanity check the archive
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertEquals(3, archiveContainsCount(archiveFolder.path(), "^On.*wrote:"));
+            assertEquals(2, archiveContainsCount(archiveFolder.path(), "^On.*wrote:"));
         }
     }
 
