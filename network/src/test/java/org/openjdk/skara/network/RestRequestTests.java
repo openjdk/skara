@@ -43,7 +43,7 @@ class RestReceiver implements AutoCloseable {
     private int responseCode;
 
     private int truncatedResponseCount = 0;
-    private volatile boolean usedCache = false;
+    private boolean usedCache = false;
 
     class Handler implements HttpHandler {
         private String checksum(String body) {
@@ -68,8 +68,8 @@ class RestReceiver implements AutoCloseable {
                 if (exchange.getRequestHeaders().containsKey("If-None-Match")) {
                     var requestedEtag = exchange.getRequestHeaders().getFirst("If-None-Match");
                     if (requestedEtag.equals(etag)) {
-                        exchange.sendResponseHeaders(304, -1);
                         usedCache = true;
+                        exchange.sendResponseHeaders(304, -1);
                         return;
                     }
                 }
