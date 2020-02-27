@@ -12,6 +12,7 @@ repository:
 - git-webrev - a backwards compatible Git port of [webrev](https://openjdk.java.net/projects/code-tools/webrev/)
 - git-defpath - a backwards compatible Git port of [defpath](https://openjdk.java.net/projects/code-tools/defpath/)
 - git-fork - fork a project on an external Git source code hosting provider to your personal space and optionally clone it
+- git-sync - sync the personal fork of the project with the current state of the upstream repository
 - git-pr - interact with pull requests for a project on an external Git source code hosting provider
 - git-info - show OpenJDK information about commits, e.g. issue links, authors, contributors, etc.
 - git-token - interact with a Git credential manager for handling personal access tokens
