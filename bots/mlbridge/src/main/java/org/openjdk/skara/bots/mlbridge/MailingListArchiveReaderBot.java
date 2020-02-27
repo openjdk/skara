@@ -66,7 +66,7 @@ public class MailingListArchiveReaderBot implements Bot {
             parsedEmailIds.add(first.id());
 
             // Not an RFR - cannot match a PR
-            if (!conversation.first().subject().startsWith("RFR")) {
+            if (!conversation.first().subject().contains("RFR: ")) {
                 return;
             }
 

@@ -644,7 +644,7 @@ class UpdaterTests {
             assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
 
             // Simulate an RFR email
-            var rfr = Email.create("RFR: My PR", "PR:\n" + pr.webUrl().toString())
+            var rfr = Email.create("[repo/branch] RFR: My PR", "PR:\n" + pr.webUrl().toString())
                            .author(EmailAddress.from("duke", "duke@duke.duke"))
                            .recipient(listAddress)
                            .build();
@@ -673,7 +673,7 @@ class UpdaterTests {
             assertEquals(listAddress, prEmail.sender());
             assertEquals(EmailAddress.from("testauthor", "ta@none.none"), prEmail.author());
             assertEquals(prEmail.recipients(), List.of(listAddress));
-            assertEquals("[Integrated] RFR: My PR", prEmail.subject());
+            assertEquals("[Integrated] [repo/branch] RFR: My PR", prEmail.subject());
             assertFalse(prEmail.subject().contains("master"));
             assertTrue(prEmail.body().contains("Changeset: " + editHash.abbreviate()));
             assertTrue(prEmail.body().contains("23456789: More fixes"));
