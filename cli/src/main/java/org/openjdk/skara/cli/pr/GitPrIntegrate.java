@@ -107,6 +107,11 @@ public class GitPrIntegrate {
                             var output = removeTrailing(line, ".");
                             System.out.println(output);
                             System.exit(0);
+                        } else if (line.startsWith("Your change (at version ") &&
+                                   line.endsWith(") is now ready to be sponsored by a Committer.")) {
+                            var output = removeTrailing(line, ".");
+                            System.out.println(output);
+                            System.exit(0);
                         }
                     }
                 }
