@@ -27,13 +27,15 @@ import org.openjdk.skara.json.*;
 import java.io.*;
 import java.net.URI;
 import java.net.http.*;
-import java.time.Duration;
+import java.time.*;
 import java.util.*;
-import java.util.logging.Logger;
+import java.util.logging.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class RestRequest {
+    private RestRequestCache cache = RestRequestCache.INSTANCE;
+
     private enum RequestType {
         GET,
         POST,
@@ -49,7 +51,7 @@ public class RestRequest {
 
     @FunctionalInterface
     public interface ErrorTransform {
-        JSONValue onError(HttpResponse<String> response);
+        Optional<JSONValue> onError(HttpResponse<String> response);
     }
 
     public class QueryBuilder {
@@ -163,16 +165,19 @@ public class RestRequest {
     }
 
     private final URI apiBase;
+    private final String authId;
     private final AuthenticationGenerator authGen;
     private final Logger log = Logger.getLogger("org.openjdk.skara.host.network");
 
-    public RestRequest(URI apiBase, AuthenticationGenerator authGen) {
+    public RestRequest(URI apiBase, String authId, AuthenticationGenerator authGen) {
         this.apiBase = apiBase;
+        this.authId = authId;
         this.authGen = authGen;
     }
 
     public RestRequest(URI apiBase) {
         this.apiBase = apiBase;
+        this.authId = null;
         this.authGen = null;
     }
 
@@ -182,7 +187,7 @@ public class RestRequest {
      * @return
      */
     public RestRequest restrict(String endpoint) {
-        return new RestRequest(URIBuilder.base(apiBase).appendPath(endpoint).build(), authGen);
+        return new RestRequest(URIBuilder.base(apiBase).appendPath(endpoint).build(), authId, authGen);
     }
 
     private URIBuilder getEndpointURI(String endpoint) {
@@ -194,24 +199,32 @@ public class RestRequest {
         var builder = HttpRequest.newBuilder()
                                  .uri(uri)
                                  .timeout(Duration.ofSeconds(30));
-        if (authGen != null) {
-            builder.headers(authGen.getAuthHeaders().toArray(new String[0]));
-        }
         return builder;
     }
 
     private void logRateLimit(HttpHeaders headers) {
-        if ((!headers.firstValue("x-ratelimit-limit").isPresent()) ||
-                (!headers.firstValue("x-ratelimit-remaining").isPresent()) ||
-                (!headers.firstValue("x-ratelimit-reset").isPresent())) {
+        if ((headers.firstValue("x-ratelimit-limit").isEmpty()) ||
+                (headers.firstValue("x-ratelimit-remaining").isEmpty()) ||
+                (headers.firstValue("x-ratelimit-reset").isEmpty())) {
             return;
         }
 
-        var limit = Integer.valueOf(headers.firstValue("x-ratelimit-limit").get());
-        var remaining = Integer.valueOf(headers.firstValue("x-ratelimit-remaining").get());
-        var reset = Integer.valueOf(headers.firstValue("x-ratelimit-reset").get());
+        var limit = Integer.parseInt(headers.firstValue("x-ratelimit-limit").get());
+        var remaining = Integer.parseInt(headers.firstValue("x-ratelimit-remaining").get());
+        var reset = Integer.parseInt(headers.firstValue("x-ratelimit-reset").get());
+        var timeToReset = Duration.between(Instant.now(), Instant.ofEpochSecond(reset));
 
-        log.fine("Rate limit: " + limit + " - remaining: " + remaining);
+        var level = Level.FINE;
+        var remainingPercentage = (remaining * 100) / limit;
+        if (remainingPercentage < 10) {
+            level = Level.SEVERE;
+        } else if (remainingPercentage < 20) {
+            level = Level.WARNING;
+        } else if (remainingPercentage < 50) {
+            level = Level.INFO;
+        }
+        log.log(level,"Rate limit: " + limit + " Remaining: " + remaining + " (" + remainingPercentage + "%) " +
+                "Resets in: " + timeToReset.toMinutes() + " minutes");
     }
 
     private Duration retryBackoffStep = Duration.ofSeconds(1);
@@ -220,16 +233,16 @@ public class RestRequest {
         retryBackoffStep = duration;
     }
 
-    private HttpResponse<String> sendRequest(HttpRequest request) throws IOException {
+    private HttpResponse<String> sendRequest(HttpRequest.Builder request) throws IOException {
         HttpResponse<String> response;
 
         var retryCount = 0;
         while (true) {
             try {
-                var client = HttpClient.newBuilder()
-                                       .connectTimeout(Duration.ofSeconds(10))
-                                       .build();
-                response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                if (authGen != null) {
+                    request.headers(authGen.getAuthHeaders().toArray(new String[0]));
+                }
+                response = cache.send(authId, request);
                 break;
             } catch (InterruptedException | IOException e) {
                 if (retryCount < 5) {
@@ -261,19 +274,21 @@ public class RestRequest {
 
     private Optional<JSONValue> transformBadResponse(HttpResponse<String> response, QueryBuilder queryBuilder) {
         if (response.statusCode() >= 400) {
-            if (queryBuilder.onError == null) {
-                log.warning(queryBuilder.toString());
-                log.warning(response.body());
-                throw new RuntimeException("Request returned bad status: " + response.statusCode());
-            } else {
-                return Optional.of(queryBuilder.onError.onError(response));
+            if (queryBuilder.onError != null) {
+                var transformed = queryBuilder.onError.onError(response);
+                if (transformed.isPresent()) {
+                    return transformed;
+                }
             }
+            log.warning(queryBuilder.toString());
+            log.warning(response.body());
+            throw new RuntimeException("Request returned bad status: " + response.statusCode());
         } else {
             return Optional.empty();
         }
     }
 
-    private HttpRequest createRequest(RequestType requestType, String endpoint, JSONValue body,
+    private HttpRequest.Builder createRequest(RequestType requestType, String endpoint, JSONValue body,
                                       List<QueryBuilder.Param> params, Map<String, String> headers) {
         var uriBuilder = URIBuilder.base(apiBase);
         if (endpoint != null && !endpoint.isEmpty()) {
@@ -288,14 +303,12 @@ public class RestRequest {
                                         .uri(uri)
                                         .timeout(Duration.ofSeconds(30))
                                         .header("Content-type", "application/json");
-        if (authGen != null) {
-            requestBuilder.headers(authGen.getAuthHeaders().toArray(new String[0]));
-        }
+
         if (body != null) {
             requestBuilder.method(requestType.name(), HttpRequest.BodyPublishers.ofString(body.toString()));
         }
         headers.forEach(requestBuilder::header);
-        return requestBuilder.build();
+        return requestBuilder;
     }
 
     private final Pattern linkPattern = Pattern.compile("<(.*?)>; rel=\"(.*?)\"");
@@ -327,7 +340,7 @@ public class RestRequest {
         var links = parseLink(link.get());
         while (links.containsKey("next") && ret.size() < queryBuilder.maxPages) {
             var uri = URI.create(links.get("next"));
-            request = getHttpRequestBuilder(uri).GET().build();
+            request = getHttpRequestBuilder(uri).GET();
             response = sendRequest(request);
 
             // If an error occurs during paginated parsing, we have to discard all previous data

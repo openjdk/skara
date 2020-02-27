@@ -139,7 +139,7 @@ public abstract class Patch {
             w.write("\n");
 
             w.append("index ");
-            w.append("0".repeat(40));
+            w.append(Hash.zero().hex());
             w.append("..");
             w.append(target.hash().hex());
             w.write("\n");
@@ -151,7 +151,7 @@ public abstract class Patch {
             w.append("index ");
             w.append(source.hash().hex());
             w.append("..");
-            w.append("0".repeat(40));
+            w.append(Hash.zero().hex());
             w.write("\n");
         } else if (status.isCopied()) {
             w.append("similarity index ");

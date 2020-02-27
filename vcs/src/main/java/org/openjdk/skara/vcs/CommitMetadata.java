@@ -27,8 +27,6 @@ import java.time.*;
 import java.time.format.*;
 
 public class CommitMetadata {
-    private static final Hash NULL_HASH = new Hash("0".repeat(40));
-
     private final Hash hash;
     private final List<Hash> parents;
     private final Author author;
@@ -72,7 +70,7 @@ public class CommitMetadata {
     }
 
     public boolean isInitialCommit() {
-        return numParents() == 1 && parents.get(0).equals(NULL_HASH);
+        return numParents() == 1 && parents.get(0).equals(Hash.zero());
     }
 
     public boolean isMerge() {

@@ -38,14 +38,13 @@ import java.time.ZonedDateTime;
 import java.io.IOException;
 
 class WhitespaceCheckTests {
-    private static final Hash NULL_HASH = new Hash("0".repeat(40));
     private static List<Diff> parentDiffs(String filename, String line) {
         var hunk = new Hunk(new Range(1, 0), List.of(),
                             new Range(1, 1), List.of(line));
-        var patch = new TextualPatch(Path.of(filename), FileType.fromOctal("100644"), NULL_HASH,
-                                     Path.of(filename), FileType.fromOctal("100644"), NULL_HASH,
+        var patch = new TextualPatch(Path.of(filename), FileType.fromOctal("100644"), Hash.zero(),
+                                     Path.of(filename), FileType.fromOctal("100644"), Hash.zero(),
                                      Status.from('M'), List.of(hunk));
-        var diff = new Diff(NULL_HASH, NULL_HASH, List.of(patch));
+        var diff = new Diff(Hash.zero(), Hash.zero(), List.of(patch));
         return List.of(diff);
     }
 

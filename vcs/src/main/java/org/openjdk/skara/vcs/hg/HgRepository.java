@@ -348,7 +348,7 @@ public class HgRepository implements Repository {
         }
 
         var tip = resolve("tip");
-        return tip.isEmpty() || tip.get().hex().equals("0".repeat(40));
+        return tip.isEmpty() || tip.get().equals(Hash.zero());
     }
 
     @Override

@@ -64,9 +64,9 @@ public class GitPr {
                     Command.name("test")
                            .helptext("test a pull request")
                            .main(GitPrTest::main),
-                    Command.name("status")
+                    Command.name("info")
                            .helptext("show status of a pull request")
-                           .main(GitPrStatus::main)
+                           .main(GitPrInfo::main)
         );
 
         HttpProxy.setup();

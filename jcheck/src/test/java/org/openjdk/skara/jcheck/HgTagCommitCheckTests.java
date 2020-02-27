@@ -38,14 +38,13 @@ import java.time.ZonedDateTime;
 import java.io.IOException;
 
 class HgTagCommitCheckTests {
-    private static final Hash NULL_HASH = new Hash("0".repeat(40));
     private static List<Diff> parentDiffs(String line) {
         var hunk = new Hunk(new Range(1, 0), List.of(),
                             new Range(1, 1), List.of(line));
-        var patch = new TextualPatch(Path.of(".hgtags"), FileType.fromOctal("100644"), NULL_HASH,
-                                     Path.of(".hgtags"), FileType.fromOctal("100644"), NULL_HASH,
+        var patch = new TextualPatch(Path.of(".hgtags"), FileType.fromOctal("100644"), Hash.zero(),
+                                     Path.of(".hgtags"), FileType.fromOctal("100644"), Hash.zero(),
                                      Status.from('M'), List.of(hunk));
-        var diff = new Diff(NULL_HASH, NULL_HASH, List.of(patch));
+        var diff = new Diff(Hash.zero(), Hash.zero(), List.of(patch));
         return List.of(diff);
     }
 
@@ -67,13 +66,12 @@ class HgTagCommitCheckTests {
     }
 
     private static Commit mergeCommit() {
-        var hash = new Hash("0".repeat(40));
         var author = new Author("Foo Bar", "foo@bar.org");
         var parents = List.of(new Hash("12345789012345789012345678901234567890"),
                               new Hash("12345789012345789012345678901234567890"));
         var message = List.of("Merge");
         var date = ZonedDateTime.now();
-        var metadata = new CommitMetadata(hash, parents, author, author, date, message);
+        var metadata = new CommitMetadata(Hash.zero(), parents, author, author, date, message);
         return new Commit(metadata, List.of());
     }
 
@@ -104,7 +102,7 @@ class HgTagCommitCheckTests {
 
     @Test
     void commitThatDoesNotAddTagShouldPass() {
-        var commit = commit(new Hash("0".repeat(40)), List.of(), List.of());
+        var commit = commit(Hash.zero(), List.of(), List.of());
         var check = new HgTagCommitCheck(new Utilities());
         var issues = toList(check.check(commit, message(commit), conf));
         assertEquals(0, issues.size());
@@ -165,15 +163,15 @@ class HgTagCommitCheckTests {
 
         var hunk1 = new Hunk(new Range(1, 0), List.of(),
                             new Range(1, 1), List.of(targetHash + " " + tag));
-        var patch1 = new TextualPatch(Path.of(".hgtags"), FileType.fromOctal("100644"), NULL_HASH,
-                               Path.of(".hgtags"), FileType.fromOctal("100644"), NULL_HASH,
+        var patch1 = new TextualPatch(Path.of(".hgtags"), FileType.fromOctal("100644"), Hash.zero(),
+                               Path.of(".hgtags"), FileType.fromOctal("100644"), Hash.zero(),
                                Status.from('M'), List.of(hunk1));
         var hunk2 = new Hunk(new Range(1, 0), List.of(),
                             new Range(1, 1), List.of("An additional line"));
-        var patch2 = new TextualPatch(Path.of("README"), FileType.fromOctal("100644"), NULL_HASH,
-                                      Path.of("README"), FileType.fromOctal("100644"), NULL_HASH,
+        var patch2 = new TextualPatch(Path.of("README"), FileType.fromOctal("100644"), Hash.zero(),
+                                      Path.of("README"), FileType.fromOctal("100644"), Hash.zero(),
                                       Status.from('M'), List.of(hunk2));
-        var diff = new Diff(NULL_HASH, NULL_HASH, List.of(patch1, patch2));
+        var diff = new Diff(Hash.zero(), Hash.zero(), List.of(patch1, patch2));
         var diffs = List.of(diff);
 
         var commitHash = "1111222233334444555566667777888899990000";
@@ -201,10 +199,10 @@ class HgTagCommitCheckTests {
                             new Range(1, 1), List.of(targetHash + " " + tag));
         var hunk2 = new Hunk(new Range(1, 0), List.of(),
                             new Range(2, 1), List.of(targetHash + " " + "skara-11+23"));
-        var patch = new TextualPatch(Path.of(".hgtags"), FileType.fromOctal("100644"), NULL_HASH,
-                                     Path.of(".hgtags"), FileType.fromOctal("100644"), NULL_HASH,
+        var patch = new TextualPatch(Path.of(".hgtags"), FileType.fromOctal("100644"), Hash.zero(),
+                                     Path.of(".hgtags"), FileType.fromOctal("100644"), Hash.zero(),
                                      Status.from('M'), List.of(hunk1, hunk2));
-        var diff = new Diff(NULL_HASH, NULL_HASH, List.of(patch));
+        var diff = new Diff(Hash.zero(), Hash.zero(), List.of(patch));
         var diffs = List.of(diff);
 
         var commitHash = "1111222233334444555566667777888899990000";

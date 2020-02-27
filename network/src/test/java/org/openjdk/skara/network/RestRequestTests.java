@@ -24,13 +24,13 @@ package org.openjdk.skara.network;
 
 import com.sun.net.httpserver.*;
 import org.openjdk.skara.json.*;
-import org.openjdk.skara.network.*;
 
 import org.junit.jupiter.api.Test;
 
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.security.*;
 import java.time.Duration;
 import java.util.*;
 
@@ -43,13 +43,38 @@ class RestReceiver implements AutoCloseable {
     private int responseCode;
 
     private int truncatedResponseCount = 0;
+    private boolean usedCache = false;
 
     class Handler implements HttpHandler {
+        private String checksum(String body) {
+            try {
+                var digest = MessageDigest.getInstance("SHA-256");
+                digest.update(body.getBytes(StandardCharsets.UTF_8));
+                return Base64.getUrlEncoder().encodeToString(digest.digest());
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException("Cannot find SHA-256");
+            }
+        }
 
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             var input = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
             requests.add(JSON.parse(input).asObject());
+
+            usedCache = false;
+            if (truncatedResponseCount == 0) {
+                var responseHeaders = exchange.getResponseHeaders();
+                var etag = checksum(response);
+                if (exchange.getRequestHeaders().containsKey("If-None-Match")) {
+                    var requestedEtag = exchange.getRequestHeaders().getFirst("If-None-Match");
+                    if (requestedEtag.equals(etag)) {
+                        usedCache = true;
+                        exchange.sendResponseHeaders(304, -1);
+                        return;
+                    }
+                }
+                responseHeaders.add("ETag", etag);
+            }
 
             exchange.sendResponseHeaders(responseCode, response.length());
             OutputStream outputStream = exchange.getResponseBody();
@@ -88,6 +113,10 @@ class RestReceiver implements AutoCloseable {
 
     void setTruncatedResponseCount(int count) {
         truncatedResponseCount = count;
+    }
+
+    boolean usedCached() {
+        return usedCache;
     }
 
     @Override
@@ -132,7 +161,7 @@ class RestRequestTests {
         try (var receiver = new RestReceiver("{}", 400)) {
             var request = new RestRequest(receiver.getEndpoint());
             var response = request.post("/test")
-                   .onError(r -> JSON.object().put("transformed", true))
+                   .onError(r -> Optional.of(JSON.object().put("transformed", true)))
                    .execute();
             assertTrue(response.contains("transformed"));
         }
@@ -152,6 +181,42 @@ class RestRequestTests {
             var request = new RestRequest(receiver.getEndpoint());
             var response = request.post("/test").executeUnparsed();
             assertEquals("{{bad", response);
+        }
+    }
+
+    @Test
+    void cached() throws IOException {
+        try (var receiver = new RestReceiver()) {
+            var request = new RestRequest(receiver.getEndpoint());
+            request.get("/test").execute();
+            assertFalse(receiver.usedCached());
+            request.get("/test").execute();
+            assertTrue(receiver.usedCached());
+            var anotherRequest = new RestRequest(receiver.getEndpoint());
+            anotherRequest.get("/test").execute();
+            assertTrue(receiver.usedCached());
+        }
+    }
+
+    @Test
+    void cachedSeparateAuth() throws IOException {
+        try (var receiver = new RestReceiver()) {
+            var plainRequest = new RestRequest(receiver.getEndpoint());
+            var authRequest1 = new RestRequest(receiver.getEndpoint(), "id1", () -> List.of("user", "1"));
+            var authRequest2 = new RestRequest(receiver.getEndpoint(), "id2", () -> List.of("user", "2"));
+
+            plainRequest.get("/test").execute();
+            assertFalse(receiver.usedCached());
+            authRequest1.get("/test").execute();
+            assertFalse(receiver.usedCached());
+
+            plainRequest.get("/test").execute();
+            assertTrue(receiver.usedCached());
+
+            authRequest2.get("/test").execute();
+            assertFalse(receiver.usedCached());
+            authRequest2.get("/test").execute();
+            assertTrue(receiver.usedCached());
         }
     }
 }

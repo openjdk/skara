@@ -37,7 +37,6 @@ import java.time.ZonedDateTime;
 import java.io.IOException;
 
 class BinaryCheckTests {
-    private static final Hash NULL_HASH = new Hash("0".repeat(40));
     private static final JCheckConfiguration conf = JCheckConfiguration.parse(List.of(
         "[general]",
         "project = test",
@@ -48,10 +47,10 @@ class BinaryCheckTests {
     private static List<Diff> textualParentDiffs(String filename, String mode) {
         var hunk = new Hunk(new Range(1, 0), List.of(),
                             new Range(1, 1), List.of("An additional line"));
-        var patch = new TextualPatch(Path.of(filename), FileType.fromOctal("100644"), NULL_HASH,
-                                     Path.of(filename), FileType.fromOctal(mode), NULL_HASH,
+        var patch = new TextualPatch(Path.of(filename), FileType.fromOctal("100644"), Hash.zero(),
+                                     Path.of(filename), FileType.fromOctal(mode), Hash.zero(),
                                      Status.from('M'), List.of(hunk));
-        var diff = new Diff(NULL_HASH, NULL_HASH, List.of(patch));
+        var diff = new Diff(Hash.zero(), Hash.zero(), List.of(patch));
         return List.of(diff);
     }
 
@@ -90,9 +89,9 @@ class BinaryCheckTests {
     void binaryFileShouldFail() throws IOException {
         var hunk = BinaryHunk.ofLiteral(8, List.of("asdfasdf8"));
         var patch = new BinaryPatch(null, null, null,
-                                    Path.of("file.bin"), FileType.fromOctal("100644"), NULL_HASH,
+                                    Path.of("file.bin"), FileType.fromOctal("100644"), Hash.zero(),
                                     Status.from('A'), List.of(hunk));
-        var diff = new Diff(NULL_HASH, NULL_HASH, List.of(patch));
+        var diff = new Diff(Hash.zero(), Hash.zero(), List.of(patch));
         var commit = commit(List.of(diff));
         var message = message(commit);
         var check = new BinaryCheck();

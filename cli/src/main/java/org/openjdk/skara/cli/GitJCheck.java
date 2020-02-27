@@ -24,25 +24,64 @@ package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
 import org.openjdk.skara.census.Census;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.jcheck.*;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 import org.openjdk.skara.version.Version;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.*;
 import java.nio.file.*;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.logging.Level;
 
 public class GitJCheck {
-    private static final Pattern urlPattern = Pattern.compile("^https?://.*", Pattern.CASE_INSENSITIVE);
+    static String gitConfig(String key) {
+        try {
+            var pb = new ProcessBuilder("git", "config", key);
+            pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
+            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
+            var p = pb.start();
 
-    public static int run(String[] args) throws IOException {
+            var output = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            var res = p.waitFor();
+            if (res != 0) {
+                return null;
+            }
+
+            return output == null ? null : output.replace("\n", "");
+        } catch (InterruptedException e) {
+            return null;
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    static String getOption(String name, Arguments arguments) {
+        if (arguments.contains(name)) {
+            return arguments.get(name).asString();
+        }
+
+        return gitConfig("jcheck." + name);
+    }
+
+    static boolean getSwitch(String name, Arguments arguments) {
+        if (arguments.contains(name)) {
+            return true;
+        }
+        var value = gitConfig("jcheck." + name);
+        return value != null && value.toLowerCase().equals("true");
+    }
+
+    public static int run(Repository repo, String[] args) throws IOException {
         var flags = List.of(
             Option.shortcut("r")
                   .fullname("rev")
@@ -64,17 +103,28 @@ public class GitJCheck {
                   .describe("FILE")
                   .helptext("Use the specified census (default: https://openjdk.java.net/census.xml)")
                   .optional(),
+            Option.shortcut("")
+                  .fullname("ignore")
+                  .describe("CHECKS")
+                  .helptext("Ignore errors from checks with the given name")
+                  .optional(),
+            Option.shortcut("")
+                  .fullname("push-url")
+                  .describe("URL")
+                  .helptext("URL that is being pushed to")
+                  .optional(),
+            Option.shortcut("")
+                  .fullname("setup-pre-push-hooks")
+                  .describe("CHECKS")
+                  .helptext("Set up a pre-push hook for the given checks")
+                  .optional(),
             Switch.shortcut("m")
                   .fullname("mercurial")
                   .helptext("Deprecated: force use of mercurial")
                   .optional(),
             Switch.shortcut("")
-                  .fullname("local")
-                  .helptext("Run jcheck in \"local\" mode")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("pull-request")
-                  .helptext("Run jcheck in \"pull request\" mode")
+                  .fullname("pre-push")
+                  .helptext("Execute as a pre-push hook")
                   .optional(),
             Switch.shortcut("v")
                   .fullname("verbose")
@@ -95,7 +145,8 @@ public class GitJCheck {
             Switch.shortcut("v")
                   .fullname("version")
                   .helptext("Print the version of this tool")
-                  .optional());
+                  .optional()
+        );
 
         var parser = new ArgumentParser("git jcheck", flags, List.of());
         var arguments = parser.parse(args);
@@ -110,31 +161,84 @@ public class GitJCheck {
             Logging.setup(level, "jcheck");
         }
 
-        var cwd = Paths.get("").toAbsolutePath();
-        var repository = ReadOnlyRepository.get(cwd);
-        if (!repository.isPresent()) {
-            System.err.println(String.format("error: %s is not a repository", cwd.toString()));
-            return 1;
-        }
-        var repo = repository.get();
-        if (repo.isEmpty()) {
-            return 1;
-        }
+        HttpProxy.setup();
 
-        var isMercurial = arguments.contains("mercurial");
-        var defaultRange = isMercurial ? "tip" : "HEAD^..HEAD";
-        var range = arguments.get("rev").orString(defaultRange);
-        if (!repo.isValidRevisionRange(range)) {
-            System.err.println(String.format("error: %s is not a valid range of revisions,", range));
-            if (isMercurial) {
-                System.err.println("       see 'hg help revisions' for how to specify revisions");
-            } else {
-                System.err.println("       see 'man 7 gitrevisions' for how to specify revisions");
+        var setupPrePushHooksOption = getOption("setup-pre-push-hooks", arguments);
+        if (setupPrePushHooksOption != null) {
+            var hookFile = repo.root().resolve(".git").resolve("hooks").resolve("pre-push");
+            Files.createDirectories(hookFile.getParent());
+            var lines = List.of(
+                "#!/usr/bin/sh",
+                "git jcheck --pre-push --push-url=\"$2\""
+            );
+            Files.write(hookFile, lines);
+            if (hookFile.getFileSystem().supportedFileAttributeViews().contains("posix")) {
+                var permissions = PosixFilePermissions.fromString("rwxr-xr-x");
+                Files.setPosixFilePermissions(hookFile, permissions);
             }
-            return 1;
+
+            for (var check : setupPrePushHooksOption.split(",")) {
+                switch (check.trim()) {
+                    case "branches":
+                        repo.config("jcheck.pre-push", "branches", "true", false);
+                        break;
+                    case "commits":
+                        repo.config("jcheck.pre-push", "commits", "true", false);
+                        break;
+                    default:
+                        System.err.println("error: unexpected pre-push check: " + check.trim());
+                        return 1;
+                }
+            }
+            return 0;
         }
 
-        var whitelistFile = arguments.get("whitelist").or(".jcheck/whitelist.json").via(Path::of);
+        var isMercurial = getSwitch("mercurial", arguments);
+        var isPrePush = getSwitch("pre-push", arguments);
+        var ranges = new ArrayList<String>();
+        var targetBranches = new HashSet<String>();
+        if (isPrePush) {
+            var reader = new BufferedReader(new InputStreamReader(System.in));
+            var lines = reader.lines().collect(Collectors.toList());
+            for (var line : lines) {
+                var parts = line.split(" ");
+                var localHash = new Hash(parts[1]);
+                var remoteRef = parts[2];
+                var remoteHash = new Hash(parts[3]);
+
+                if (localHash.equals(Hash.zero())) {
+                    continue;
+                }
+
+                if (remoteHash.equals(Hash.zero())) {
+                    ranges.add("origin.." + localHash.hex());
+                } else {
+                    targetBranches.add(Path.of(remoteRef).getFileName().toString());
+                    ranges.add(remoteHash.hex() + ".." + localHash.hex());
+                }
+            }
+        } else {
+            var defaultRange = isMercurial ? "tip" : "HEAD^..HEAD";
+            ranges.add(arguments.get("rev").orString(defaultRange));
+        }
+
+        for (var range : ranges) {
+            if (!repo.isValidRevisionRange(range)) {
+                System.err.println(String.format("error: %s is not a valid range of revisions,", range));
+                if (isMercurial) {
+                    System.err.println("       see 'hg help revisions' for how to specify revisions");
+                } else {
+                    System.err.println("       see 'man 7 gitrevisions' for how to specify revisions");
+                }
+                return 1;
+            }
+        }
+
+        var whitelistOption = getOption("whitelist", arguments);
+        if (whitelistOption == null) {
+            whitelistOption = ".jcheck/whitelist.json";
+        }
+        var whitelistFile = Path.of(whitelistOption);
         var whitelist = new HashMap<String, Set<Hash>>();
         if (Files.exists(whitelistFile)) {
             var json = JSON.parse(Files.readString(whitelistFile));
@@ -145,7 +249,11 @@ public class GitJCheck {
             }
         }
 
-        var blacklistFile = arguments.get("blacklist").or(".jcheck/blacklist.json").via(Path::of);
+        var blacklistOption = getOption("blacklist", arguments);
+        if (blacklistOption == null) {
+            blacklistOption = ".jcheck/blacklist.json";
+        }
+        var blacklistFile = Path.of(blacklistOption);
         var blacklist = new HashSet<Hash>();
         if (Files.exists(blacklistFile)) {
             var json = JSON.parse(Files.readString(blacklistFile));
@@ -155,48 +263,88 @@ public class GitJCheck {
                                .forEach(blacklist::add);
         }
 
-        var endpoint = arguments.get("census").orString(() -> {
-            var fallback = "https://openjdk.java.net/census.xml";
-            try {
-                var config = repo.config("jcheck.census");
-                return config.isEmpty() ? fallback : config.get(0);
-            } catch (IOException e) {
-                return fallback;
-            }
-        });
-        var census = !isURL(endpoint)
-                ? Census.parse(Path.of(endpoint))
-                : Census.from(URI.create(endpoint));
-        var isLocal = arguments.contains("local");
-        if (!isLocal) {
-            var lines = repo.config("jcheck.local");
-            if (lines.size() == 1) {
-                var value = lines.get(0).toUpperCase();
-                isLocal = value.equals("TRUE") || value.equals("1") || value.equals("ON");
+        var endpoint = getOption("census", arguments);
+        if (endpoint == null) {
+            endpoint = "https://openjdk.java.net/census.xml";
+        }
+        var census = endpoint.startsWith("http://") || endpoint.startsWith("https://") ?
+            Census.from(URI.create(endpoint)) :
+            Census.parse(Path.of(endpoint));
+
+        var ignore = new HashSet<String>();
+        var ignoreOption = getOption("ignore", arguments);
+        if (ignoreOption != null) {
+            for (var check : ignoreOption.split(",")) {
+                ignore.add(check.trim());
             }
         }
-        var isPullRequest = arguments.contains("pull-request");
-        if (!isPullRequest) {
-            var lines = repo.config("jcheck.pull-request");
-            if (lines.size() == 1) {
-                var value = lines.get(0).toUpperCase();
-                isLocal = value.equals("TRUE") || value.equals("1") || value.equals("ON");
+
+        var lines = repo.config("jcheck.pre-push.branches");
+        var shouldCheckRemoteBranches = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
+        if (isPrePush && shouldCheckRemoteBranches &&
+            !Files.exists(repo.root().resolve(".git").resolve("GIT_SYNC_RUNNING"))) {
+            var url = arguments.get("push-url").asString();
+            if (url == null) {
+                System.err.println("error: url for push not provided via --url option");
+                return 1;
+            }
+            var webUrl = Remote.toWebURI(url);
+            var forge = Forge.from(webUrl);
+            if (!forge.isPresent()) {
+                System.err.println("error: cannot find forge for " + webUrl);
+                return 1;
+            }
+            var remoteRepo = forge.get().repository(webUrl.getPath().substring(1));
+            if (!remoteRepo.isPresent()) {
+                System.err.println("error: could not find remote repository at " + webUrl);
+                return 1;
+            }
+            var parentRepo = remoteRepo.get().parent();
+            if (!parentRepo.isPresent()) {
+                System.err.println("error: could not find upstream repository for " + webUrl);
+                return 1;
+            }
+
+            var upstreamBranchNames = repo.remoteBranches(parentRepo.get().webUrl().toString())
+                                          .stream()
+                                          .map(r -> r.name())
+                                          .collect(Collectors.toSet());
+
+            var displayedError = false;
+            for (var branch : targetBranches) {
+                if (upstreamBranchNames.contains(branch)) {
+                    System.err.println("error: should not push to branch in personal fork also present in upstream repository: " + branch);
+                    displayedError = true;
+                }
+            }
+            if (displayedError) {
+                return 1;
             }
         }
-        var visitor = new JCheckCLIVisitor(isLocal, isPullRequest);
-        try (var errors = JCheck.check(repo, census, CommitMessageParsers.v1, range, whitelist, blacklist)) {
-            for (var error : errors) {
-                error.accept(visitor);
+
+        var visitor = new JCheckCLIVisitor(ignore);
+        lines = repo.config("jcheck.pre-push.commits");
+        var shouldCheckCommits = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
+        if (!isPrePush || shouldCheckCommits) {
+            for (var range : ranges) {
+                try (var errors = JCheck.check(repo, census, CommitMessageParsers.v1, range, whitelist, blacklist)) {
+                    for (var error : errors) {
+                        error.accept(visitor);
+                    }
+                }
             }
         }
         return visitor.hasDisplayedErrors() ? 1 : 0;
     }
 
     public static void main(String[] args) throws IOException {
-        System.exit(run(args));
-    }
+        var cwd = Paths.get("").toAbsolutePath();
+        var repository = Repository.get(cwd);
+        if (!repository.isPresent()) {
+            System.err.println(String.format("error: %s is not a repository", cwd.toString()));
+            System.exit(1);
+        }
 
-    private static boolean isURL(String s) {
-        return urlPattern.matcher(s).matches();
+        System.exit(run(repository.get(), args));
     }
 }

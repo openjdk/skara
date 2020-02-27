@@ -30,6 +30,7 @@ import org.openjdk.skara.network.*;
 import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.time.*;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -42,7 +43,9 @@ public class GitHubHost implements Forge {
     private final Credential pat;
     private final RestRequest request;
     private final RestRequest graphQL;
+    private final Duration searchInterval;
     private HostUser currentUser;
+    private volatile Instant lastSearch = Instant.now();
     private final Logger log = Logger.getLogger("org.openjdk.skara.forge.github");
 
     public GitHubHost(URI uri, GitHubApplication application, Pattern webUriPattern, String webUriReplacement) {
@@ -51,13 +54,14 @@ public class GitHubHost implements Forge {
         this.webUriReplacement = webUriReplacement;
         this.application = application;
         this.pat = null;
+        searchInterval = Duration.ofSeconds(3);
 
         var baseApi = URIBuilder.base(uri)
                 .appendSubDomain("api")
                 .setPath("/")
                 .build();
 
-        request = new RestRequest(baseApi, () -> Arrays.asList(
+        request = new RestRequest(baseApi, application.authId(), () -> Arrays.asList(
                 "Authorization", "token " + getInstallationToken().orElseThrow(),
                 "Accept", "application/vnd.github.machine-man-preview+json",
                 "Accept", "application/vnd.github.antiope-preview+json"));
@@ -66,7 +70,7 @@ public class GitHubHost implements Forge {
                 .appendSubDomain("api")
                 .setPath("/graphql")
                 .build();
-        graphQL = new RestRequest(graphQLAPI, () -> Arrays.asList(
+        graphQL = new RestRequest(graphQLAPI, application.authId(), () -> Arrays.asList(
                 "Authorization", "bearer " + getInstallationToken().orElseThrow(),
                 "Accept", "application/vnd.github.machine-man-preview+json",
                 "Accept", "application/vnd.github.antiope-preview+json",
@@ -88,20 +92,21 @@ public class GitHubHost implements Forge {
         this.webUriReplacement = webUriReplacement;
         this.pat = pat;
         this.application = null;
+        searchInterval = Duration.ofSeconds(3);
 
         var baseApi = URIBuilder.base(uri)
                                 .appendSubDomain("api")
                                 .setPath("/")
                                 .build();
 
-        request = new RestRequest(baseApi, () -> Arrays.asList(
+        request = new RestRequest(baseApi, pat.username(), () -> Arrays.asList(
                 "Authorization", "token " + getInstallationToken().orElseThrow()));
 
         var graphQLAPI = URIBuilder.base(uri)
                 .appendSubDomain("api")
                 .setPath("/graphql")
                 .build();
-        graphQL = new RestRequest(graphQLAPI, () -> Arrays.asList(
+        graphQL = new RestRequest(graphQLAPI, pat.username(), () -> Arrays.asList(
                 "Authorization", "bearer " + getInstallationToken().orElseThrow(),
                 "Accept", "application/vnd.github.machine-man-preview+json",
                 "Accept", "application/vnd.github.antiope-preview+json",
@@ -116,6 +121,7 @@ public class GitHubHost implements Forge {
         this.webUriReplacement = webUriReplacement;
         this.pat = null;
         this.application = null;
+        searchInterval = Duration.ofSeconds(10);
 
         var baseApi = URIBuilder.base(uri)
                                 .appendSubDomain("api")
@@ -154,6 +160,18 @@ public class GitHubHost implements Forge {
 
         if (pat != null) {
             return Optional.of(pat.password());
+        }
+
+        return Optional.empty();
+    }
+
+    Optional<String> authId() {
+        if (application != null) {
+            return Optional.of(application.authId());
+        }
+
+        if (pat != null) {
+            return Optional.of(pat.username());
         }
 
         return Optional.empty();
@@ -199,6 +217,20 @@ public class GitHubHost implements Forge {
     }
 
     JSONObject runSearch(String query) {
+        // Searches on GitHub uses a special rate limit, so make sure to wait between consecutive searches
+        while (true) {
+            synchronized (this) {
+                if (lastSearch.isBefore(Instant.now().minus(searchInterval))) {
+                    lastSearch = Instant.now();
+                    break;
+                }
+            }
+            log.fine("Searching too fast - waiting");
+            try {
+                Thread.sleep(Duration.ofMillis(500).toMillis());
+            } catch (InterruptedException ignored) {
+            }
+        }
         var result = request.get("search/issues")
                             .param("q", query)
                             .execute();
@@ -217,7 +249,7 @@ public class GitHubHost implements Forge {
     @Override
     public Optional<HostUser> user(String username) {
         var details = request.get("users/" + URLEncoder.encode(username, StandardCharsets.UTF_8))
-                             .onError(r -> JSON.of())
+                             .onError(r -> Optional.of(JSON.of()))
                              .execute();
         if (details.isNull()) {
             return Optional.empty();

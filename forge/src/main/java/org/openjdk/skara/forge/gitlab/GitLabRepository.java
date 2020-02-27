@@ -53,7 +53,7 @@ public class GitLabRepository implements HostedRepository {
                 .build();
 
         request = gitLabHost.getPat()
-                            .map(pat -> new RestRequest(baseApi, () -> Arrays.asList("Private-Token", pat.password())))
+                            .map(pat -> new RestRequest(baseApi, pat.username(), () -> Arrays.asList("Private-Token", pat.password())))
                             .orElseGet(() -> new RestRequest(baseApi));
 
         var urlPattern = URIBuilder.base(gitLabHost.getUri())
@@ -179,8 +179,8 @@ public class GitLabRepository implements HostedRepository {
                           .onError(response -> {
                               // Retry once with additional escaping of the path fragment
                               var escapedConfName = URLEncoder.encode(confName, StandardCharsets.UTF_8);
-                              return request.get("repository/files/" + escapedConfName)
-                                            .param("ref", ref).execute();
+                              return Optional.of(request.get("repository/files/" + escapedConfName)
+                                            .param("ref", ref).execute());
                           })
                           .execute();
         var content = Base64.getDecoder().decode(conf.get("content").asString());
@@ -234,7 +234,7 @@ public class GitLabRepository implements HostedRepository {
         var namespace = gitLabHost.currentUser().userName();
         request.post("fork")
                .body("namespace", namespace)
-               .onError(r -> r.statusCode() == 409 ? JSON.object().put("exists", true) : null)
+               .onError(r -> r.statusCode() == 409 ? Optional.of(JSON.object().put("exists", true)) : Optional.empty())
                .execute();
         var nameOnlyStart = projectName.lastIndexOf('/');
         var nameOnly = nameOnlyStart >= 0 ? projectName.substring(nameOnlyStart + 1) : projectName;
