@@ -199,9 +199,6 @@ public class RestRequest {
         var builder = HttpRequest.newBuilder()
                                  .uri(uri)
                                  .timeout(Duration.ofSeconds(30));
-        if (authGen != null) {
-            builder.headers(authGen.getAuthHeaders().toArray(new String[0]));
-        }
         return builder;
     }
 
