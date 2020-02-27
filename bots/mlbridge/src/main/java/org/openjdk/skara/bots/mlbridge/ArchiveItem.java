@@ -178,17 +178,24 @@ class ArchiveItem {
                                          .filter(comment -> comment.threadId().equals(threadId))
                                          .collect(Collectors.toList());
         ReviewComment previousComment = null;
+        var eligible = new ArrayList<ArchiveItem>();
         for (var threadComment : reviewThread) {
             if (threadComment.equals(reviewComment)) {
                 break;
             }
             previousComment = threadComment;
+            eligible.add(findReviewCommentItem(generated, previousComment));
         }
 
         if (previousComment == null) {
             return findRevisionItem(generated, reviewComment.hash());
         } else {
-            return findReviewCommentItem(generated, previousComment);
+            var mentionedParent = findLastMention(reviewComment.body(), eligible);
+            if (mentionedParent.isPresent()) {
+                return mentionedParent.get();
+            } else {
+                return eligible.get(eligible.size() - 1);
+            }
         }
     }
 
