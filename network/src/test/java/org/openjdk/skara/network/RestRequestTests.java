@@ -43,7 +43,7 @@ class RestReceiver implements AutoCloseable {
     private int responseCode;
 
     private int truncatedResponseCount = 0;
-    private boolean usedCache = false;
+    private volatile boolean usedCache = false;
 
     class Handler implements HttpHandler {
         private String checksum(String body) {
