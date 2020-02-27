@@ -372,7 +372,7 @@ public class GitFork {
                 System.out.println("done");
 
                 if (shouldSync) {
-                    GitSync.sync(repo, new String[]{"--from", "upstream", "--to", "origin", "--pull"});
+                    GitSync.sync(repo, new String[]{"--from", "upstream", "--to", "origin", "--fast-forward"});
                 }
 
                 var setupPrePushHooksOption = getOption("setup-pre-push-hooks", subsection, arguments);
