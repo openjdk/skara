@@ -126,6 +126,7 @@ public class GitPrList {
         var issues = new ArrayList<String>();
         var branches = new ArrayList<String>();
         var statuses = new ArrayList<String>();
+        var urls = new ArrayList<String>();
         var noDraft = getSwitch("no-draft", "list", arguments);
 
         var authorsOption = getOption("authors", "list", arguments);
@@ -148,7 +149,7 @@ public class GitPrList {
             Set.of() :
             Arrays.asList(issuesOption.split(","));
 
-        var columnTitles = List.of("id", "title", "authors", "assignees", "labels", "issues", "branch", "status");
+        var columnTitles = List.of("id", "title", "authors", "assignees", "labels", "issues", "branch", "status", "url");
         var columnValues = Map.of(columnTitles.get(0), ids,
                                   columnTitles.get(1), titles,
                                   columnTitles.get(2), authors,
@@ -156,7 +157,8 @@ public class GitPrList {
                                   columnTitles.get(4), labels,
                                   columnTitles.get(5), issues,
                                   columnTitles.get(6), branches,
-                                  columnTitles.get(7), statuses);
+                                  columnTitles.get(7), statuses,
+                                  columnTitles.get(8), urls);
         var columnsOption = getOption("columns", "list", arguments);
         var columns = columnsOption == null ?
             List.of("id", "title", "authors", "status") :
@@ -204,6 +206,7 @@ public class GitPrList {
             assignees.add(String.join(",", prAssignees));
             labels.add(String.join(",", prLabels));
             issues.add(String.join(",", prIssues));
+            urls.add(pr.webUrl().toString());
 
             if (pr.sourceRepository().webUrl().equals(uri)) {
                 branches.add(pr.sourceRef());
