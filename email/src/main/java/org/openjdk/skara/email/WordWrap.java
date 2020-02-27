@@ -25,34 +25,50 @@ package org.openjdk.skara.email;
 import java.util.*;
 
 public class WordWrap {
-    private static AbstractMap.Entry<String, String> splitAtLength(String line, int lineLength) {
+    private static boolean isIndentCharacter(char ch) {
+        switch (ch) {
+            case ' ':
+            case '>':
+            case '-':
+            case '*':
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static Map.Entry<String, String> split(String line, int lineLength) {
         if (line.length() <= lineLength) {
             return new AbstractMap.SimpleEntry<>(line, "");
         }
-        var splitAt = line.indexOf(' ');
+        var splitAt = -1;
+        for (int i = 0; i < line.length() - 1; ++i) {
+            var cur = line.charAt(i);
+            var next = line.charAt(i + 1);
+            if (cur == ' ') {
+                if (!isIndentCharacter(next)) {
+                    if (i < lineLength) {
+                        splitAt = i;
+                    } else {
+                        // We'll never find a better match - if we don't have any candidate we have to split here even if lineLength is exceeded
+                        if (splitAt == -1) {
+                            splitAt = i;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
         if (splitAt == -1) {
             return new AbstractMap.SimpleEntry<>(line, "");
-        }
-        while (splitAt < lineLength) {
-            var nextSplitCandidate = line.indexOf(' ', splitAt + 1);
-            if (nextSplitCandidate > lineLength || nextSplitCandidate == -1) {
-                break;
-            }
-            splitAt = nextSplitCandidate;
         }
         return new AbstractMap.SimpleEntry<>(line.substring(0, splitAt), line.substring(splitAt + 1));
     }
 
-    private static String indentString(String line) {
+    private static String indentation(String line) {
         for (int i = 0; i < line.length(); ++i) {
-            switch (line.charAt(i)) {
-                case ' ':
-                case '>':
-                case '-':
-                case '*':
-                    break;
-                default:
-                    return line.substring(0, i);
+            if (!isIndentCharacter(line.charAt(i))) {
+                return line.substring(0, i);
             }
         }
         return line;
@@ -70,26 +86,26 @@ public class WordWrap {
 
         while (!lines.isEmpty()) {
             var line = lines.pollFirst();
-            var indent = indentString(line);
-            var split = splitAtLength(line.substring(indent.length()), lineLength);
+            var indentation = indentation(line);
+            var split = split(line.substring(indentation.length()), lineLength);
             if (!split.getValue().isBlank()) {
                 var nextLine = lines.peekFirst();
                 if (nextLine != null) {
-                    var nextIndent = indentString(nextLine);
-                    if (!indent.equals(filterIndent(nextIndent))) {
-                        lines.addFirst(filterIndent(indent) + split.getValue());
+                    var nextIndent = indentation(nextLine);
+                    if (!indentation.equals(filterIndent(nextIndent))) {
+                        lines.addFirst(filterIndent(indentation) + split.getValue());
                     } else {
                         lines.removeFirst();
-                        lines.addFirst(filterIndent(indent) + split.getValue() + " " + nextLine.substring(indent.length()));
+                        lines.addFirst(filterIndent(indentation) + split.getValue() + " " + nextLine.substring(indentation.length()));
                     }
                 } else {
-                    lines.addFirst(filterIndent(indent) + split.getValue());
+                    lines.addFirst(filterIndent(indentation) + split.getValue());
                 }
             }
             if (ret.length() > 0) {
                 ret.append("\n");
             }
-            ret.append(indent).append(split.getKey().stripTrailing());
+            ret.append(indentation).append(split.getKey().stripTrailing());
         }
 
         return ret.toString();
