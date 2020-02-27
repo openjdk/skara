@@ -68,8 +68,8 @@ class RestReceiver implements AutoCloseable {
                 if (exchange.getRequestHeaders().containsKey("If-None-Match")) {
                     var requestedEtag = exchange.getRequestHeaders().getFirst("If-None-Match");
                     if (requestedEtag.equals(etag)) {
-                        exchange.sendResponseHeaders(304, -1);
                         usedCache = true;
+                        exchange.sendResponseHeaders(304, -1);
                         return;
                     }
                 }
