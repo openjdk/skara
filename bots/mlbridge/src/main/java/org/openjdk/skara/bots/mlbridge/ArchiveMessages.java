@@ -11,23 +11,11 @@ import java.io.*;
 import java.net.URI;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Optional;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 class ArchiveMessages {
-    private static String formatCommit(Commit commit) {
-        var ret = new StringBuilder();
-        var message = commit.message();
-        if (message.size() == 0) {
-            ret.append("<no commit message found>");
-        } else {
-            var abbrev = commit.hash().abbreviate();
-            ret.append(" - ").append(abbrev).append(": ").append(message.get(0).strip());
-        }
-        return ret.toString();
-    }
-
     private static final Pattern commentPattern = Pattern.compile("<!--.*?-->",
                                                                   Pattern.DOTALL | Pattern.MULTILINE);
     private static final Pattern cutoffPattern = Pattern.compile("(.*?)<!-- Anything below this marker will be .*? -->",
@@ -45,18 +33,90 @@ class ArchiveMessages {
         return body.strip();
     }
 
-    @FunctionalInterface
-    interface CommitFormatter {
-        String format(Commit commit);
+    private static String formatCommitBrief(CommitMetadata commit) {
+        var ret = new StringBuilder();
+        var message = commit.message();
+        var abbrev = commit.hash().abbreviate();
+        if (message.size() == 0) {
+            ret.append(" - ").append(abbrev).append(": <no commit message found>");
+        } else {
+            ret.append(" - ").append(message.get(0));
+        }
+        return ret.toString();
     }
 
-    private static String formatCommitMessages(Repository localRepo, Hash first, Hash last, CommitFormatter formatter) {
-        try (var commits = localRepo.commits(first.hex() + ".." + last.hex())) {
-            return commits.stream()
-                          .map(formatter::format)
-                          .collect(Collectors.joining("\n"));
+    private static String formatSingleCommit(CommitMetadata commit) {
+        var ret = new StringBuilder();
+        var message = commit.message();
+        if (message.size() == 0) {
+            var abbrev = commit.hash().abbreviate();
+            ret.append("  ").append(abbrev).append(": <no commit message found>");
+        } else {
+            ret.append("  ").append(String.join("\n  ", message));
+        }
+        return ret.toString();
+    }
+
+    private static String formatCommitInList(CommitMetadata commit) {
+        var ret = new StringBuilder();
+        var message = commit.message();
+        if (message.size() == 0) {
+            var abbrev = commit.hash().abbreviate();
+            ret.append(" - ").append(abbrev).append(": <no commit message found>");
+        } else {
+            ret.append(" - ").append(String.join("\n   ", message));
+        }
+        return ret.toString();
+    }
+
+    private static List<CommitMetadata> commits(Repository localRepo, Hash first, Hash last) {
+        try {
+            return localRepo.commitMetadata(first, last);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            return List.of();
+        }
+    }
+
+    private static String formatNumber(int number) {
+        switch (number) {
+            case 0: return "no";
+            case 1: return "one";
+            case 2: return "two";
+            case 3: return "three";
+            case 4: return "four";
+            case 5: return "five";
+            case 6: return "six";
+            case 7: return "seven";
+            case 8: return "eight";
+            case 9: return "ten";
+            default: return Integer.toString(number);
+        }
+    }
+
+    private static String describeCommits(List<CommitMetadata> commits, String adjective) {
+        return formatNumber(commits.size()) + (adjective.isBlank() ? "" : " " + adjective) +
+                " commit" + (commits.size() != 1 ? "s" : "");
+    }
+
+    private static Optional<String> formatCommitMessagesFull(List<CommitMetadata> commits) {
+        if (commits.size() == 0) {
+            return Optional.empty();
+        } else if (commits.size() == 1) {
+            return Optional.of(formatSingleCommit(commits.get(0)));
+        } else {
+            return Optional.of(commits.stream()
+                                      .map(ArchiveMessages::formatCommitInList)
+                                      .collect(Collectors.joining("\n")));
+        }
+    }
+
+    private static Optional<String> formatCommitMessagesBrief(List<CommitMetadata> commits) {
+        if (commits.size() == 0) {
+            return Optional.empty();
+        } else {
+            return Optional.of(commits.stream()
+                                      .map(ArchiveMessages::formatCommitBrief)
+                                      .collect(Collectors.joining("\n")));
         }
     }
 
@@ -91,38 +151,78 @@ class ArchiveMessages {
         return "git fetch " + repoUrl + " " + pr.fetchRef() + ":pull/" + pr.id();
     }
 
-    static String composeConversation(PullRequest pr, Hash base, Hash head) {
+    static String composeConversation(PullRequest pr, Repository localRepo, Hash base, Hash head) {
         var filteredBody = filterComments(pr.body());
         if (filteredBody.isEmpty()) {
             filteredBody = pr.title().strip();
         }
+
         return filteredBody;
     }
 
-    static String composeRevision(PullRequest pr, Repository localRepository, Hash base, Hash head, Hash lastBase, Hash lastHead) {
+    static String composeIncrementalRevision(Repository localRepository, String author, Hash head, Hash lastHead) {
+        var ret = new StringBuilder();
+
+        var incrementalUpdate = false;
         try {
-            if (base.equals(lastBase)) {
-                if (localRepository.isAncestor(lastHead, head)) {
-                    var updateCount = localRepository.commitMetadata(lastHead.hex() + ".." + head.hex()).size();
-                    return "The pull request has been updated with " + updateCount + " additional commit" + (updateCount != 1 ? "s" : "") + ".";
-                } else {
-                    return "Previous commits in this pull request have been removed, probably due to a force push. " +
-                            "The incremental views will show differences compared to the previous content of the PR.";
-                }
-            } else {
-                try {
-                    localRepository.checkout(lastHead, true);
-                    localRepository.rebase(base, "duke", "duke@openjdk.org");
-                    var rebasedLastHead = localRepository.head();
-                    return "The pull request has been updated with a new target base due to a merge or a rebase. " +
-                            "The incremental webrev excludes the unrelated changes brought in by the merge/rebase.";
-                } catch (IOException e) {
-                    return "The pull request has been updated with a new target base due to a merge or a rebase.";
-                }
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            incrementalUpdate = localRepository.isAncestor(lastHead, head);
+        } catch (IOException ignored) {
         }
+        var commits = commits(localRepository, lastHead, head);
+        var newCommitMessages = formatCommitMessagesFull(commits);
+        if (incrementalUpdate) {
+            ret.append(author);
+            ret.append(" has updated the pull request incrementally");
+            var commitsDescription = describeCommits(commits, "additional");
+            newCommitMessages.ifPresentOrElse(m -> ret.append(" with ")
+                                                      .append(commitsDescription)
+                                                      .append(" since the last revision:\n\n")
+                                                      .append(m),
+                                              () -> ret.append("."));
+        } else {
+            ret.append(author);
+            ret.append(" has refreshed the contents of this pull request, and previous commits have been removed. ");
+            ret.append("The incremental views will show differences compared to the previous content of the PR.");
+            var commitsDescription = describeCommits(commits, "new");
+            newCommitMessages.ifPresent(m -> ret.append(" The pull request contains ")
+                                                .append(commitsDescription)
+                                                .append(" since the last revision:\n\n")
+                                                .append(m));
+        }
+        return ret.toString();
+    }
+
+    static String composeRebasedIncrementalRevision(Repository localRepository, String author, Hash head, Hash lastHead) {
+        var ret = new StringBuilder();
+
+        ret.append(author);
+        ret.append(" has updated the pull request with a new target base due to a merge or a rebase. ");
+        ret.append("The incremental webrev excludes the unrelated changes brought in by the merge/rebase.");
+
+        var commits = commits(localRepository, lastHead, head);
+        var newCommitMessages = formatCommitMessagesFull(commits);
+        var commitsDescription = describeCommits(commits, "additional");
+        newCommitMessages.ifPresent(m -> ret.append(" The pull request contains ")
+                                            .append(commitsDescription)
+                                            .append(" since the last revision:\n\n")
+                                            .append(m));
+        return ret.toString();
+    }
+
+    static String composeFullRevision(Repository localRepository, String author, Hash base, Hash head) {
+        var ret = new StringBuilder();
+
+        ret.append(author);
+        ret.append(" has updated the pull request with a new target base due to a merge or a rebase.");
+
+        var commits = commits(localRepository, base, head);
+        var newCommitMessages = formatCommitMessagesFull(commits);
+        var commitsDescription = describeCommits(commits, "");
+        newCommitMessages.ifPresent(m -> ret.append(" The pull request now contains ")
+                                            .append(commitsDescription)
+                                            .append(":\n\n")
+                                            .append(m));
+        return ret.toString();
     }
 
     static String composeReplySubject(String parentSubject) {
@@ -139,10 +239,10 @@ class ArchiveMessages {
 
     // When changing this, ensure that the PR pattern in the notifier still matches
     static String composeConversationFooter(PullRequest pr, URI issueProject, String projectPrefix, Repository localRepo, URI webrev, Hash base, Hash head) {
-        var commitMessages = formatCommitMessages(localRepo, base, head, ArchiveMessages::formatCommit);
+        var commits = commits(localRepo, base, head);
         var issueString = issueUrl(pr, issueProject, projectPrefix).map(url -> "  Issue: " + url + "\n").orElse("");
-        return "Commits:\n" +
-                commitMessages + "\n\n" +
+        return "Commit messages:\n" +
+                formatCommitMessagesBrief(commits).orElse("") + "\n\n" +
                 "Changes: " + pr.changeUrl() + "\n" +
                 " Webrev: " + webrev + "\n" +
                 issueString +
@@ -152,11 +252,8 @@ class ArchiveMessages {
                 composeReplyFooter(pr);
     }
 
-    static String composeRebaseFooter(PullRequest pr, Repository localRepo, URI fullWebrev, Hash base, Hash head) {
-        var commitMessages = formatCommitMessages(localRepo, base, head, ArchiveMessages::formatCommit);
-        return "Commits:\n" +
-                commitMessages + "\n\n" +
-                "Changes: " + pr.changeUrl() + "\n" +
+    static String composeRebasedFooter(PullRequest pr, Repository localRepo, URI fullWebrev, Hash base, Hash head) {
+        return "Changes: " + pr.changeUrl() + "\n" +
                 " Webrev: " + fullWebrev.toString() + "\n" +
                 "  Stats: " + stats(localRepo, base, head) + "\n" +
                 "  Patch: " + pr.diffUrl().toString() + "\n" +
@@ -165,10 +262,7 @@ class ArchiveMessages {
     }
 
     static String composeIncrementalFooter(PullRequest pr, Repository localRepo, URI fullWebrev, URI incrementalWebrev, Hash head, Hash lastHead) {
-        var newCommitMessages = formatCommitMessages(localRepo, lastHead, head, ArchiveMessages::formatCommit);
-        return "Added commits:\n" +
-                newCommitMessages + "\n\n" +
-                "Changes:\n" +
+        return "Changes:\n" +
                 "  - all: " + pr.changeUrl() + "\n" +
                 "  - new: " + pr.changeUrl(lastHead) + "\n\n" +
                 "Webrevs:\n" +

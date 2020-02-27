@@ -37,13 +37,14 @@ class ArchiveItem {
         this.footer = footer;
     }
 
-    static ArchiveItem from(PullRequest pr, Repository localRepo, URI issueTracker, String issuePrefix,
-                            WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification,
-                            ZonedDateTime created, ZonedDateTime updated, Hash base, Hash head, String subjectPrefix) {
+    static ArchiveItem from(PullRequest pr, Repository localRepo, HostUserToEmailAuthor hostUserToEmailAuthor,
+                            URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator,
+                            WebrevNotification webrevNotification, ZonedDateTime created, ZonedDateTime updated,
+                            Hash base, Hash head, String subjectPrefix) {
         return new ArchiveItem(null, "fc", created, updated, pr.author(), Map.of("PR-Head-Hash", head.hex(), "PR-Base-Hash", base.hex()),
                                () -> subjectPrefix + "RFR: " + pr.title(),
                                () -> "",
-                               () -> ArchiveMessages.composeConversation(pr, base, head),
+                               () -> ArchiveMessages.composeConversation(pr, localRepo, base, head),
                                () -> {
                                     var fullWebrev = webrevGenerator.generate(base, head, "00");
                                     webrevNotification.notify(0, fullWebrev, null);
@@ -51,34 +52,62 @@ class ArchiveItem {
                                });
     }
 
-    static ArchiveItem from(PullRequest pr, Repository localRepo, WebrevStorage.WebrevGenerator webrevGenerator,
-                            WebrevNotification webrevNotification, ZonedDateTime created, ZonedDateTime updated,
-                            Hash lastBase, Hash lastHead, Hash base, Hash head, int index, ArchiveItem parent, String subjectPrefix) {
+    private static Optional<Hash> rebasedLastHead(Repository localRepo, Hash newBase, Hash lastHead) {
+        try {
+            localRepo.checkout(lastHead, true);
+            localRepo.rebase(newBase, "duke", "duke@openjdk.org");
+            var rebasedLastHead = localRepo.head();
+            return Optional.of(rebasedLastHead);
+        } catch (IOException e) {
+            return Optional.empty();
+        }
+    }
+
+    private static String hostUserToCommitterName(HostUserToEmailAuthor hostUserToEmailAuthor, HostUser hostUser) {
+        var email = hostUserToEmailAuthor.author(hostUser);
+        if (email.fullName().isPresent()) {
+            return email.fullName().get();
+        } else {
+            return hostUser.fullName();
+        }
+    }
+
+    static ArchiveItem from(PullRequest pr, Repository localRepo, HostUserToEmailAuthor hostUserToEmailAuthor,
+                            WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification,
+                            ZonedDateTime created, ZonedDateTime updated, Hash lastBase, Hash lastHead, Hash base,
+                            Hash head, int index, ArchiveItem parent, String subjectPrefix) {
         return new ArchiveItem(parent,"ha" + head.hex(), created, updated, pr.author(), Map.of("PR-Head-Hash", head.hex(), "PR-Base-Hash", base.hex()),
                                () -> String.format("Re: %s[Rev %02d] RFR: %s", subjectPrefix, index, pr.title()),
                                () -> "",
-                               () -> ArchiveMessages.composeRevision(pr, localRepo, base, head, lastBase, lastHead),
                                () -> {
-                                    var fullWebrev = webrevGenerator.generate(base, head, String.format("%02d", index));
-                                    if (lastBase.equals(base)) {
-                                        var incrementalWebrev = webrevGenerator.generate(lastHead, head, String.format("%02d-%02d", index - 1, index));
-                                        webrevNotification.notify(index, fullWebrev, incrementalWebrev);
-                                        return ArchiveMessages.composeIncrementalFooter(pr, localRepo, fullWebrev, incrementalWebrev, head, lastHead);
-                                    } else {
-                                        // It may be possible to auto-rebase the last head onto the new base to get an incremental webrev
-                                        try {
-                                            localRepo.checkout(lastHead, true);
-                                            localRepo.rebase(base, "duke", "duke@openjdk.org");
-                                            var rebasedLastHead = localRepo.head();
-                                            var incrementalWebrev = webrevGenerator.generate(rebasedLastHead, head, String.format("%02d-%02d", index - 1, index));
-                                            webrevNotification.notify(index, fullWebrev, incrementalWebrev);
-                                            return ArchiveMessages.composeIncrementalFooter(pr, localRepo, fullWebrev, incrementalWebrev, head, lastHead);
-                                        } catch (IOException e) {
-                                            // If it doesn't work out we just post a full webrev
-                                            webrevNotification.notify(index, fullWebrev, null);
-                                            return ArchiveMessages.composeRebaseFooter(pr, localRepo, fullWebrev, base, head);
-                                        }
-                                    }
+                                   if (lastBase.equals(base)) {
+                                       return ArchiveMessages.composeIncrementalRevision(localRepo, hostUserToCommitterName(hostUserToEmailAuthor, pr.author()), head, lastHead);
+                                   } else {
+                                       var rebasedLastHead = rebasedLastHead(localRepo, base, lastHead);
+                                       if (rebasedLastHead.isPresent()) {
+                                           return ArchiveMessages.composeRebasedIncrementalRevision(localRepo, hostUserToCommitterName(hostUserToEmailAuthor, pr.author()), head, rebasedLastHead.get());
+                                       } else {
+                                           return ArchiveMessages.composeFullRevision(localRepo, hostUserToCommitterName(hostUserToEmailAuthor, pr.author()), base, head);
+                                       }
+                                   }
+                               },
+                               () -> {
+                                   var fullWebrev = webrevGenerator.generate(base, head, String.format("%02d", index));
+                                   if (lastBase.equals(base)) {
+                                       var incrementalWebrev = webrevGenerator.generate(lastHead, head, String.format("%02d-%02d", index - 1, index));
+                                       webrevNotification.notify(index, fullWebrev, incrementalWebrev);
+                                       return ArchiveMessages.composeIncrementalFooter(pr, localRepo, fullWebrev, incrementalWebrev, head, lastHead);
+                                   } else {
+                                       var rebasedLastHead = rebasedLastHead(localRepo, base, lastHead);
+                                       if (rebasedLastHead.isPresent()) {
+                                           var incrementalWebrev = webrevGenerator.generate(rebasedLastHead.get(), head, String.format("%02d-%02d", index - 1, index));
+                                           webrevNotification.notify(index, fullWebrev, incrementalWebrev);
+                                           return ArchiveMessages.composeIncrementalFooter(pr, localRepo, fullWebrev, incrementalWebrev, head, lastHead);
+                                       } else {
+                                           webrevNotification.notify(index, fullWebrev, null);
+                                           return ArchiveMessages.composeRebasedFooter(pr, localRepo, fullWebrev, base, head);
+                                       }
+                                   }
                                });
     }
 

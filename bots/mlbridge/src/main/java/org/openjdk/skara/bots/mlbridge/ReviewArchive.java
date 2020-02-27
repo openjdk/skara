@@ -69,10 +69,10 @@ class ReviewArchive {
                 var created = email.date();
 
                 if (generated.isEmpty()) {
-                    var first = ArchiveItem.from(pr, localRepo, issueTracker, issuePrefix, webrevGenerator, webrevNotification, pr.createdAt(), pr.updatedAt(), curBase, curHead, subjectPrefix);
+                    var first = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, issueTracker, issuePrefix, webrevGenerator, webrevNotification, pr.createdAt(), pr.updatedAt(), curBase, curHead, subjectPrefix);
                     generated.add(first);
                 } else {
-                    var revision = ArchiveItem.from(pr, localRepo, webrevGenerator, webrevNotification, created, created, lastBase, lastHead, curBase, curHead, ++revisionIndex, generated.get(0), subjectPrefix);
+                    var revision = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, webrevGenerator, webrevNotification, created, created, lastBase, lastHead, curBase, curHead, ++revisionIndex, generated.get(0), subjectPrefix);
                     generated.add(revision);
                 }
 
@@ -84,10 +84,10 @@ class ReviewArchive {
         // Check if we're at a revision not previously reported
         if (!base.equals(lastBase) || !head.equals(lastHead)) {
             if (generated.isEmpty()) {
-                var first = ArchiveItem.from(pr, localRepo, issueTracker, issuePrefix, webrevGenerator, webrevNotification, pr.createdAt(), pr.updatedAt(), base, head, subjectPrefix);
+                var first = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, issueTracker, issuePrefix, webrevGenerator, webrevNotification, pr.createdAt(), pr.updatedAt(), base, head, subjectPrefix);
                 generated.add(first);
             } else {
-                var revision = ArchiveItem.from(pr, localRepo, webrevGenerator, webrevNotification, pr.updatedAt(), pr.updatedAt(), lastBase, lastHead, base, head, ++revisionIndex, generated.get(0), subjectPrefix);
+                var revision = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, webrevGenerator, webrevNotification, pr.updatedAt(), pr.updatedAt(), lastBase, lastHead, base, head, ++revisionIndex, generated.get(0), subjectPrefix);
                 generated.add(revision);
             }
         }
