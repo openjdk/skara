@@ -10,6 +10,7 @@ import java.net.URI;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 class ArchiveItem {
@@ -135,14 +136,37 @@ class ArchiveItem {
                                () -> ArchiveMessages.composeReplyFooter(pr));
     }
 
+    private static Pattern mentionPattern = Pattern.compile("^@([\\w-]+).*");
+
+    private static Optional<ArchiveItem> findLastMention(String commentText, List<ArchiveItem> eligibleParents) {
+        var mentionMatcher = mentionPattern.matcher(commentText);
+        if (mentionMatcher.matches()) {
+            var username = mentionMatcher.group(1);
+            for (int i = eligibleParents.size() - 1; i != 0; --i) {
+                if (eligibleParents.get(i).author.userName().equals(username)) {
+                    return Optional.of(eligibleParents.get(i));
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
     static ArchiveItem findParent(List<ArchiveItem> generated, Comment comment) {
         ArchiveItem lastCommentOrReview = generated.get(0);
+        var eligible = new ArrayList<ArchiveItem>();
+        eligible.add(lastCommentOrReview);
         for (var item : generated) {
             if (item.id().startsWith("pc") || item.id().startsWith("rv")) {
                 if (item.createdAt().isBefore(comment.createdAt()) && item.createdAt().isAfter(lastCommentOrReview.createdAt())) {
                     lastCommentOrReview = item;
+                    eligible.add(lastCommentOrReview);
                 }
             }
+        }
+
+        var lastMention = findLastMention(comment.body(), eligible);
+        if (lastMention.isPresent()) {
+            return lastMention.get();
         }
 
         return lastCommentOrReview;
@@ -183,17 +207,24 @@ class ArchiveItem {
                                          .filter(comment -> comment.threadId().equals(threadId))
                                          .collect(Collectors.toList());
         ReviewComment previousComment = null;
+        var eligible = new ArrayList<ArchiveItem>();
         for (var threadComment : reviewThread) {
             if (threadComment.equals(reviewComment)) {
                 break;
             }
             previousComment = threadComment;
+            eligible.add(findReviewCommentItem(generated, previousComment));
         }
 
         if (previousComment == null) {
             return findRevisionItem(generated, reviewComment.hash());
         } else {
-            return findReviewCommentItem(generated, previousComment);
+            var mentionedParent = findLastMention(reviewComment.body(), eligible);
+            if (mentionedParent.isPresent()) {
+                return mentionedParent.get();
+            } else {
+                return eligible.get(eligible.size() - 1);
+            }
         }
     }
 
