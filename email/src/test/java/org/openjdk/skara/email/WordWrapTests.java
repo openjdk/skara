@@ -57,4 +57,9 @@ public class WordWrapTests {
                                                                   "Ok, I will fix that in a new commit!",
                                                           10));
     }
+
+    @Test
+    void emptyLines() {
+        assertEquals("hello\nthere\n\nyou", WordWrap.wrapBody("hello there\n\nyou", 3));
+    }
 }
