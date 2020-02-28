@@ -43,6 +43,7 @@ public class LinkTask extends DefaultTask {
     private final Property<String> os;
     private final Property<String> cpu;
     private final Property<String> url;
+    private final Property<String> jlink;
     private final Property<Path> toDir;
     private final MapProperty<String, String> launchers;
     private final ListProperty<String> modules;
@@ -54,6 +55,7 @@ public class LinkTask extends DefaultTask {
         os = factory.property(String.class);
         cpu = factory.property(String.class);
         url = factory.property(String.class);
+        jlink = factory.property(String.class);
         toDir = factory.property(Path.class);
         launchers = factory.mapProperty(String.class, String.class);
         modules = factory.listProperty(String.class);
@@ -79,6 +81,11 @@ public class LinkTask extends DefaultTask {
     @Input
     Property<String> getUrl() {
         return url;
+    }
+
+    @Input
+    Property<String> getJLink() {
+        return jlink;
     }
 
     @Input
@@ -163,9 +170,8 @@ public class LinkTask extends DefaultTask {
         Collections.sort(modulePath);
         Collections.sort(allModules);
 
-        var jlink = Path.of(System.getProperty("java.home"), "bin", "jlink").toAbsolutePath().toString();
         project.exec((spec) -> {
-            spec.setCommandLine(jlink, "--module-path", String.join(File.pathSeparator, modulePath),
+            spec.setCommandLine(jlink.get(), "--module-path", String.join(File.pathSeparator, modulePath),
                                        "--add-modules", String.join(",", allModules),
                                        "--no-man-pages",
                                        "--no-header-files",

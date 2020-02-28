@@ -24,7 +24,12 @@
 .jdk
 .jib
 .classpath
-.idea
+.idea/workspace.xml
+.idea/modules.xml
+.idea/libraries
+.idea/shelf/
+.idea/tasks.xml
+.idea/usage.statistics.xml
 .project
 .settings
 *.iml

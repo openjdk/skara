@@ -27,6 +27,12 @@ plugins {
     id 'org.openjdk.skara.gradle.reproduce'
 }
 
+def JAVA_HOMES = [
+    "LinuxX64": ".jdk/openjdk-13.0.1_linux-x64_bin/jdk-13.0.1",
+    "MacOSX64": ".jdk/openjdk-13.0.1_osx-x64_bin/jdk-13.0.1.jdk/Contents/Home/",
+    "WindowsX64": ".jdk/openjdk-13.0.1_windows-x64_bin/jdk-13.0.1/"
+]
+
 configure(subprojects.findAll() { it.name != 'bots' }) {
     apply plugin: 'java-library'
     apply plugin: 'maven-publish'
@@ -34,6 +40,8 @@ configure(subprojects.findAll() { it.name != 'bots' }) {
     apply plugin: 'org.openjdk.skara.gradle.version'
 
     group = 'org.openjdk.skara'
+    sourceCompatibility = 13
+    targetCompatibility = 13
 
     repositories {
         mavenLocal()
@@ -51,8 +59,30 @@ configure(subprojects.findAll() { it.name != 'bots' }) {
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.5.2'
     }
 
-    compileJava.options.encoding = 'UTF-8'
-    compileTestJava.options.encoding = 'UTF-8'
+    compileJava {
+        gradle.taskGraph.whenReady { graph ->
+            if (!graph.hasTask(":offline")) {
+                dependsOn project(":").getTasksByName("download" + getOSAndCPU() + "JDK", false)
+                options.forkOptions.javaHome = file(project.rootDir.toString() + "/" + JAVA_HOMES[getOSAndCPU()])
+                options.compilerArgs += ['--release', '13']
+                options.fork = true
+                options.sourcepath = files(sourceSets.main.java.srcDirs)
+            }
+        }
+        options.encoding = 'UTF-8'
+    }
+
+    compileTestJava {
+        gradle.taskGraph.whenReady { graph ->
+            if (!graph.hasTask(":offline")) {
+                dependsOn project(":").getTasksByName("download" + getOSAndCPU() + "JDK", false)
+                options.forkOptions.javaHome = file(project.rootDir.toString() + "/" + JAVA_HOMES[getOSAndCPU()])
+                options.compilerArgs += ['--release', '13']
+                options.fork = true
+            }
+        }
+        options.encoding = 'UTF-8'
+    }
 
     test {
         useJUnitPlatform()
@@ -64,6 +94,13 @@ configure(subprojects.findAll() { it.name != 'bots' }) {
         testLogging {
             events "passed", "skipped", "failed"
             exceptionFormat "full"
+        }
+
+        gradle.taskGraph.whenReady { graph ->
+            if (!graph.hasTask(":offline")) {
+                dependsOn project(":").getTasksByName("download" + getOSAndCPU() + "JDK", false)
+                executable = file(project.rootDir.toString() + "/" + JAVA_HOMES[getOSAndCPU()] + "/bin/java" + (getOS() == "windows" ? ".exe" : ""))
+            }
         }
     }
 
@@ -144,6 +181,15 @@ def getCPU() {
     throw new GradleException("Unexpected CPU: " + cpu)
 }
 
+def getOSAndCPU() {
+    return combineOSAndCPU(getOS(), getCPU())
+}
+
+def combineOSAndCPU(os, cpu) {
+    return os.substring(0, 1).toUpperCase() + os.substring(1) +
+           cpu.substring(0, 1).toUpperCase() + cpu.substring(1)
+}
+
 task local(type: Copy) {
     doFirst {
         delete project.buildDir
@@ -153,9 +199,7 @@ task local(type: Copy) {
     def cpu = getCPU()
 
     if (os in ['linux', 'macos', 'windows'] && cpu == 'x64') {
-        def target = os.substring(0, 1).toUpperCase() + os.substring(1) +
-                     cpu.substring(0, 1).toUpperCase() + cpu.substring(1)
-        dependsOn ':cli:image' + target
+        dependsOn ':cli:image' + combineOSAndCPU(os, cpu)
     } else {
         dependsOn ':cli:imageLocal'
     }

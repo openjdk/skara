@@ -30,7 +30,9 @@ import org.gradle.api.artifacts.UnknownConfigurationException;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Map;
 import java.io.File;
+import java.nio.file.Path;
 
 public class ImagesPlugin implements Plugin<Project> {
     private static String getOS() {
@@ -88,6 +90,7 @@ public class ImagesPlugin implements Plugin<Project> {
         var projectPath = project.getPath();
         var taskNames = new ArrayList<String>();
         var rootDir = project.getRootDir().toPath().toAbsolutePath();
+        var rootProject = project.getRootProject();
         var buildDir = project.getBuildDir().toPath().toAbsolutePath();
 
         imageEnvironmentContainer.all(new Action<ImageEnvironment>() {
@@ -102,8 +105,8 @@ public class ImagesPlugin implements Plugin<Project> {
                 var subName = isLocal ? "Local" : osAndCpuPascalCased;
 
                 var downloadTaskName = "download" + subName + "JDK";
-                if (!isLocal) {
-                    project.getTasks().register(downloadTaskName, DownloadJDKTask.class, (task) -> {
+                if (!isLocal && rootProject.getTasksByName(downloadTaskName, false).isEmpty()) {
+                    project.getRootProject().getTasks().register(downloadTaskName, DownloadJDKTask.class, (task) -> {
                         task.getUrl().set(env.getUrl());
                         task.getSha256().set(env.getSha256());
                         task.getToDir().set(rootDir.resolve(".jdk"));
@@ -127,7 +130,7 @@ public class ImagesPlugin implements Plugin<Project> {
                     }
 
                     if (!isLocal) {
-                        task.dependsOn(projectPath + ":" + downloadTaskName);
+                        task.dependsOn(project.getRootProject().getTasksByName(downloadTaskName, false));
                         task.getUrl().set(env.getUrl());
                     } else {
                         task.getUrl().set("local");
@@ -137,6 +140,23 @@ public class ImagesPlugin implements Plugin<Project> {
                     task.getCPU().set(cpu);
                     task.getLaunchers().set(env.getLaunchers());
                     task.getModules().set(env.getModules());
+                    if (isLocal) {
+                        task.getJLink().set(Path.of(System.getProperty("java.home"), "bin", "jlink").toAbsolutePath().toString());
+                    } else {
+                        var javaHomes = Map.of(
+                            "linux_x64", ".jdk/openjdk-13.0.1_linux-x64_bin/jdk-13.0.1",
+                            "macos_x64", ".jdk/openjdk-13.0.1_osx-x64_bin/jdk-13.0.1.jdk/Contents/Home/",
+                            "windows_x64", ".jdk/openjdk-13.0.1_windows-x64_bin/jdk-13.0.1/"
+                        );
+                        var currentOS = getOS();
+                        var currentCPU = getCPU();
+                        var javaHome = javaHomes.get(currentOS + "_" + currentCPU);
+                        if (javaHome == null) {
+                            throw new RuntimeException("No JDK found for " + currentOS + " " + currentCPU);
+                        }
+                        task.getJLink().set(rootDir.toString() + "/" + javaHome + "/bin/jlink" +
+                                            (currentOS.equals("windows") ? ".exe." : ""));
+                    }
                 });
 
                 var launchersTaskName = "launchers" + subName;
@@ -214,7 +234,9 @@ public class ImagesPlugin implements Plugin<Project> {
                     }
                 });
 
-                taskNames.add(imageTaskName);
+                if (!isLocal) {
+                    taskNames.add(imageTaskName);
+                }
             }
         });
 

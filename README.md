@@ -142,6 +142,34 @@ source tree root:
 $ sh gradlew reproduce
 ```
 
+## Developing
+
+There are no additional dependencies required for developing Skara if you
+already have managed to build and test it. The following sections describes how
+you can set up various text editors and/or IDEs for working on Skara.
+
+### IntelliJ IDEA
+
+Skara has support for [IntellJ IDEA](https://www.jetbrains.com/idea/) out of the
+box, both the "Community" edition and the "Ultimate" edition. To work on Skara
+with IntelliJ IDEA you only have to "Open" the Skara directory.
+
+If you do not have a JDK 13 SDK set up in IntelliJ IDEA, then you need to set
+one up. IntelliJ IDEA will prompt you to set up a "Project SDK" when you open
+any Skara Java source code file. Press the "Setup SDK" button in the blue bar at
+the top of the Java source code file, then press "Configure" in the new dialog,
+then press the little "+" button in top-left corner in the next dialog and
+select a path containing a [JDK 13](https://jdk.java.net/13) home directory.
+
+There are currently three run configurations provided:
+
+- `Images` - create all jlinked images
+- `Test` - run all tests
+- `Clean` - remove all build and test artifacts
+
+To run any of the above configurations, click the "Run" top-level menu and then
+the "Run..." action (by default bound to the Alt+Shift+F10 key combination).
+
 ## Wiki
 
 Project Skara's wiki is available at <https://wiki.openjdk.java.net/display/skara>.

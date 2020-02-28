@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="GradleMigrationSettings" migrationVersion="1" />
+  <component name="GradleSettings">
+    <option name="linkedExternalProjectsSettings">
+      <GradleProjectSettings>
+        <option name="delegatedBuild" value="true" />
+        <option name="testRunner" value="GRADLE" />
+        <option name="distributionType" value="DEFAULT_WRAPPED" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="gradleJvm" value="#JAVA_INTERNAL" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/args" />
+            <option value="$PROJECT_DIR$/bot" />
+            <option value="$PROJECT_DIR$/bots" />
+            <option value="$PROJECT_DIR$/bots/bridgekeeper" />
+            <option value="$PROJECT_DIR$/bots/cli" />
+            <option value="$PROJECT_DIR$/bots/csr" />
+            <option value="$PROJECT_DIR$/bots/forward" />
+            <option value="$PROJECT_DIR$/bots/hgbridge" />
+            <option value="$PROJECT_DIR$/bots/merge" />
+            <option value="$PROJECT_DIR$/bots/mirror" />
+            <option value="$PROJECT_DIR$/bots/mlbridge" />
+            <option value="$PROJECT_DIR$/bots/notify" />
+            <option value="$PROJECT_DIR$/bots/pr" />
+            <option value="$PROJECT_DIR$/bots/submit" />
+            <option value="$PROJECT_DIR$/bots/tester" />
+            <option value="$PROJECT_DIR$/bots/topological" />
+            <option value="$PROJECT_DIR$/buildSrc" />
+            <option value="$PROJECT_DIR$/buildSrc/images" />
+            <option value="$PROJECT_DIR$/buildSrc/module" />
+            <option value="$PROJECT_DIR$/buildSrc/proxy" />
+            <option value="$PROJECT_DIR$/buildSrc/reproduce" />
+            <option value="$PROJECT_DIR$/buildSrc/version" />
+            <option value="$PROJECT_DIR$/census" />
+            <option value="$PROJECT_DIR$/ci" />
+            <option value="$PROJECT_DIR$/cli" />
+            <option value="$PROJECT_DIR$/email" />
+            <option value="$PROJECT_DIR$/encoding" />
+            <option value="$PROJECT_DIR$/forge" />
+            <option value="$PROJECT_DIR$/host" />
+            <option value="$PROJECT_DIR$/ini" />
+            <option value="$PROJECT_DIR$/issuetracker" />
+            <option value="$PROJECT_DIR$/jcheck" />
+            <option value="$PROJECT_DIR$/json" />
+            <option value="$PROJECT_DIR$/mailinglist" />
+            <option value="$PROJECT_DIR$/network" />
+            <option value="$PROJECT_DIR$/process" />
+            <option value="$PROJECT_DIR$/proxy" />
+            <option value="$PROJECT_DIR$/ssh" />
+            <option value="$PROJECT_DIR$/storage" />
+            <option value="$PROJECT_DIR$/test" />
+            <option value="$PROJECT_DIR$/vcs" />
+            <option value="$PROJECT_DIR$/version" />
+            <option value="$PROJECT_DIR$/webrev" />
+          </set>
+        </option>
+        <option name="useAutoImport" value="true" />
+        <option name="useQualifiedModuleNames" value="true" />
+      </GradleProjectSettings>
+    </option>
+  </component>
+</project>
