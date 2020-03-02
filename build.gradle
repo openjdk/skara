@@ -29,8 +29,8 @@ plugins {
 
 def JAVA_HOMES = [
     "LinuxX64": ".jdk/openjdk-13.0.1_linux-x64_bin/jdk-13.0.1",
-    "MacosX64": ".jdk/openjdk-13.0.1_osx-x64_bin/jdk-13.0.1.jdk/Contents/Home/",
-    "WindowsX64": ".jdk/openjdk-13.0.1_windows-x64_bin/jdk-13.0.1/"
+    "MacosX64": ".jdk/openjdk-13.0.1_osx-x64_bin/jdk-13.0.1.jdk/Contents/Home",
+    "WindowsX64": ".jdk/openjdk-13.0.1_windows-x64_bin"
 ]
 
 configure(subprojects.findAll() { it.name != 'bots' }) {

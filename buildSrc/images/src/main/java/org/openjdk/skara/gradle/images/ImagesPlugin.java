@@ -145,8 +145,8 @@ public class ImagesPlugin implements Plugin<Project> {
                     } else {
                         var javaHomes = Map.of(
                             "linux_x64", ".jdk/openjdk-13.0.1_linux-x64_bin/jdk-13.0.1",
-                            "macos_x64", ".jdk/openjdk-13.0.1_osx-x64_bin/jdk-13.0.1.jdk/Contents/Home/",
-                            "windows_x64", ".jdk/openjdk-13.0.1_windows-x64_bin/jdk-13.0.1/"
+                            "macos_x64", ".jdk/openjdk-13.0.1_osx-x64_bin/jdk-13.0.1.jdk/Contents/Home",
+                            "windows_x64", ".jdk\\openjdk-13.0.1_windows-x64_bin"
                         );
                         var currentOS = getOS();
                         var currentCPU = getCPU();
@@ -154,8 +154,11 @@ public class ImagesPlugin implements Plugin<Project> {
                         if (javaHome == null) {
                             throw new RuntimeException("No JDK found for " + currentOS + " " + currentCPU);
                         }
-                        task.getJLink().set(rootDir.toString() + "/" + javaHome + "/bin/jlink" +
-                                            (currentOS.equals("windows") ? ".exe." : ""));
+                        if (currentOS.equals("windows")) {
+                            task.getJLink().set(rootDir.toString() + "\\" + javaHome + "\\bin\\jlink.exe");
+                        } else {
+                            task.getJLink().set(rootDir.toString() + "/" + javaHome + "/bin/jlink");
+                        }
                     }
                 });
 
