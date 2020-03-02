@@ -46,6 +46,12 @@ images:
 bots:
 	@sh gradlew :bots:cli:images
 
+offline:
+	@sh gradlew :offline
+
+reproduce:
+	@sh gradlew :reproduce
+
 install: all $(LAUNCHERS) $(MANPAGES) $(sharedir)/skara
 	@echo "Successfully installed to $(prefix)"
 
