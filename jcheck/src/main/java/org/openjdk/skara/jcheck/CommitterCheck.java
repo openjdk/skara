@@ -27,6 +27,7 @@ import org.openjdk.skara.census.Project;
 import org.openjdk.skara.vcs.Commit;
 import org.openjdk.skara.vcs.openjdk.CommitMessage;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.logging.Logger;
 
@@ -58,6 +59,7 @@ public class CommitterCheck extends CommitCheck {
 
     @Override
     Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf) {
+        var issues = new ArrayList<Issue>();
         var project = census.project(conf.general().project());
         var version = conf.census().version();
         var domain = conf.census().domain();
@@ -67,23 +69,26 @@ public class CommitterCheck extends CommitCheck {
         var committer = commit.committer();
         if (committer.name() == null || committer.name().isEmpty()) {
             log.finer("issue: committer.name is null or empty");
-            return iterator(new CommitterNameIssue(metadata));
+            issues.add(new CommitterNameIssue(metadata));
         }
         if (committer.email() == null || !committer.email().endsWith("@" + domain)) {
             log.finer("issue: committer.email is null or does not end with @" + domain);
-            return iterator(new CommitterEmailIssue(domain, metadata));
+            issues.add(new CommitterEmailIssue(domain, metadata));
         }
 
-        var username = committer.email().split("@")[0];
-        var allowedToMerge = conf.checks().committer().allowedToMerge();
-        if (!commit.isMerge() || !allowedToMerge.contains(username)) {
-            if (!hasRole(project, role, username, version)) {
-                log.finer("issue: committer does not have role " + role);
-                return iterator(new CommitterIssue(project, metadata));
+        if (committer.name() != null || committer.email() != null) {
+            var username = committer.email() == null ?
+                committer.name() : committer.email().split("@")[0];
+            var allowedToMerge = conf.checks().committer().allowedToMerge();
+            if (!commit.isMerge() || !allowedToMerge.contains(username)) {
+                if (!hasRole(project, role, username, version)) {
+                    log.finer("issue: committer does not have role " + role);
+                    issues.add(new CommitterIssue(project, metadata));
+                }
             }
         }
 
-        return iterator();
+        return issues.iterator();
     }
 
     @Override

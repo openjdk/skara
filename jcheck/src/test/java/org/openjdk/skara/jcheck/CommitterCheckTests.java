@@ -210,7 +210,7 @@ class CommitterCheckTests {
         var check = new CommitterCheck(census());
         var issues = toList(check.check(commit, message, conf()));
 
-        assertEquals(1, issues.size());
+        assertEquals(2, issues.size());
         assertTrue(issues.get(0) instanceof CommitterNameIssue);
         var issue = (CommitterNameIssue) issues.get(0);
         assertEquals(commit, issue.commit());
@@ -228,7 +228,7 @@ class CommitterCheckTests {
         var check = new CommitterCheck(census());
         var issues = toList(check.check(commit, message, conf()));
 
-        assertEquals(1, issues.size());
+        assertEquals(2, issues.size());
         assertTrue(issues.get(0) instanceof CommitterEmailIssue);
         var issue = (CommitterEmailIssue) issues.get(0);
         assertEquals(commit, issue.commit());
