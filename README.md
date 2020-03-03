@@ -37,11 +37,15 @@ external Git source code hosting providers are available:
 - notify - send email notifications when repositories are updated
 - pr - add OpenJDK workflow support for pull requests
 - submit - example pull request test runner
+- forward - forward commits to various repositories
+- mirror - mirror repositories
+- merge - merge commits between different repositories and/or branches
+- test - test runner
 
 ## Building
 
-[JDK 12](http://jdk.java.net/12/) or later and [Gradle](https://gradle.org/)
-5.6.2 or later is required for building. To build the project on macOS or
+[JDK 13](http://jdk.java.net/13/) or later and [Gradle](https://gradle.org/)
+6.0 or later is required for building. To build the project on macOS or
 GNU/Linux x64, just run the following command from the source tree root:
 
 ```bash
@@ -55,13 +59,15 @@ To build the project on Windows x64, run the following command from the source t
 ```
 
 The extracted jlinked image will end up in the `build` directory in the source
-tree root.
+tree root. _Note_ that the above commands will build the CLI tools, if you
+also want to build the bot images run `sh gradlew images` on GNU/Linux or
+`gradlew images` on Windows.
 
 ### Other operating systems and CPU architectures
 
 If you want to build on an operating system other than GNU/Linux, macOS or
 Windows _or_ if you want to build on a CPU architecture other than x64, then
-ensure that you have JDK 12 or later installed locally. You can then run the
+ensure that you have JDK 13 or later installed locally. You can then run the
 following command from the source tree root:
 
 ```bash
@@ -76,8 +82,8 @@ tree root.
 If you don't want the build to automatically download any dependencies, then
 you must ensure that you have installed the following software locally:
 
-- JDK 12 or later
-- Gradle 5.6.2 or later
+- JDK 13 or later
+- Gradle 6.0 or later
 
 To create a build then run the command:
 
@@ -102,7 +108,22 @@ source tree root:
 sh gradlew images
 ```
 
+### Makefile wrapper
+
+Skara also has a very thin Makefile wrapper for contributors who prefer to build
+using `make`. To build the jlinked image for the CLI tools using `make`, run:
+
+```bash
+make
+```
+
 ## Installing
+
+There are multiple way to install the Skara CLI tools. The easiest way is to
+just include `skara.gitconfig` in your global Git configuration file. You can also
+install the Skara tools on your `$PATH`.
+
+### Including skara.gitconfig
 
 To install the Skara tools, include the `skara.gitconfig` Git configuration
 file in your user-level Git configuration file. On macOS or
@@ -120,17 +141,44 @@ On Windows:
 
 To check that everything works as expected, run the command `git skara help`.
 
+### Adding to PATH
+
+The Skara tools can also be added to `$PATH` on GNU/Linux and macOS and Git
+will pick them up. You can either just extend `$PATH` with the `build/bin`
+directory or you can copy the tools to a location already on `$PATH`. To extend
+`$PATH` with the `build/bin` directory, run:
+
+```bash
+$ sh gradlew
+$ export PATH="$PWD/build/bin:$PATH"
+```
+
+To copy the tools to a location already on `$PATH`, run:
+
+```bash
+$ make
+$ make install prefix=/path/to/install/location
+```
+
+When running `make install` the default value of `prefix` is `$HOME/.local`.
+
 ## Testing
 
-[JUnit](https://junit.org/junit5/) 5.5.1 or later is required to run the unit
+[JUnit](https://junit.org/junit5/) 5.5.2 or later is required to run the unit
 tests. To run the tests, execute following command from the source tree root:
 
 ```bash
 $ sh gradlew test
 ```
 
-The tests expect [Git](https://git-scm.com/) version 2.19.1 or later and
-[Mercurial](https://mercurial-scm.org/) 4.7.1 or later to be installed on
+If you prefer to use the Makefile wrapper you can also run:
+
+```bash
+$ make test
+```
+
+The tests expect [Git](https://git-scm.com/) version 2.19.3 or later and
+[Mercurial](https://mercurial-scm.org/) 4.7.2 or later to be installed on
 your system.
 
 This repository also contains a Dockerfile, `test.dockerfile`, that allows
@@ -142,11 +190,29 @@ source tree root:
 $ sh gradlew reproduce
 ```
 
+If you prefer to use the Makefile wrapper you can also run:
+
+```bash
+$ make reproduce
+```
+
 ## Developing
 
-There are no additional dependencies required for developing Skara if you
-already have managed to build and test it. The following sections describes how
-you can set up various text editors and/or IDEs for working on Skara.
+There are no additional dependencies required for developing Skara if you can
+already build and test it (see above for instructions). The command-line tools
+and libraries supports all of GNU/Linux, macOS and Windows and can therefore be
+developed on any of those operating systems. The bots primarily support macOS
+and GNU/Linux and may require [Windows Subsystem for
+Linux](https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux) on Windows.
+
+Please see the sections below for instructions on setting up a particular editor
+or IDE.
+
+### Vim
+
+If you choose to use [Vim](https://vim.org) as your editor when working on Skara then you
+probably also want to utilize the Makefile wrapper. The Makefile wrapper enables
+to you to run `:make` and `:make tests` in Vim.
 
 ### IntelliJ IDEA
 
