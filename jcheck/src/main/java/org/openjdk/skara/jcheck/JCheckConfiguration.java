@@ -73,12 +73,18 @@ public class JCheckConfiguration {
         config.add("jbs=JDK");
 
         config.add("[checks]");
-        var error = "error=blacklist,author,committer,reviewers,merge,hg-tag,message,issues,executable,symlink";
+        var error = "error=blacklist,author,committer,reviewers,merge,issues,executable,symlink";
         var shouldCheckWhitespace = false;
         var checkWhitespace = old.get("whitespace");
         if (checkWhitespace == null || !checkWhitespace.asString().equals("lax")) {
             error += ",whitespace";
             shouldCheckWhitespace = true;
+        }
+        var shouldCheckMessage = false;
+        var checkMessage = old.get("comments");
+        if (checkMessage == null || !checkMessage.asString().equals("lax")) {
+            error += ",message,hg-tag";
+            shouldCheckMessage = true;
         }
         config.add(error);
 
@@ -118,7 +124,11 @@ public class JCheckConfiguration {
         config.add("message=Merge");
 
         config.add("[checks \"reviewers\"]");
-        config.add("contributors=1");
+        if (shouldCheckMessage) {
+            config.add("contributors=1");
+        } else {
+            config.add("contributors=0");
+        }
         config.add("ignore=duke");
 
         config.add("[checks \"committer\"]");
@@ -126,6 +136,9 @@ public class JCheckConfiguration {
 
         config.add("[checks \"issues\"]");
         config.add("pattern=^([124-8][0-9]{6}): (\\S.*)$");
+        if (!shouldCheckMessage) {
+            config.add("required = false");
+        }
 
         return INI.parse(config);
     }

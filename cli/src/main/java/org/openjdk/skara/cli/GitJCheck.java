@@ -322,7 +322,8 @@ public class GitJCheck {
             }
         }
 
-        var visitor = new JCheckCLIVisitor(ignore, isMercurial);
+        var isLax = getSwitch("lax", arguments);
+        var visitor = new JCheckCLIVisitor(ignore, isMercurial, isLax);
         lines = repo.config("jcheck.pre-push.commits");
         var shouldCheckCommits = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
         var commitMessageParser = isMercurial ? CommitMessageParsers.v0 : CommitMessageParsers.v1;
