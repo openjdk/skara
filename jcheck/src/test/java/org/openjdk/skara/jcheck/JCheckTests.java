@@ -183,6 +183,11 @@ class JCheckTests {
         }
 
         @Override
+        public void visit(MessageWhitespaceIssue e) {
+            issues.add(e);
+        }
+
+        @Override
         public void visit(IssuesIssue e) {
             issues.add(e);
         }

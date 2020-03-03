@@ -217,6 +217,22 @@ class JCheckCLIVisitor implements IssueVisitor {
         }
     }
 
+    public void visit(MessageWhitespaceIssue i) {
+        if (!ignore.contains(i.check().name())) {
+            String desc = null;
+            if (i.kind().isTab()) {
+                desc = "tab";
+            } else if (i.kind().isCR()) {
+                desc = "carriage-return";
+            } else {
+                desc = "trailing whitespace";
+            }
+            println(i, "contains " + desc + " on line " + i.line() + " in commit message:");
+            System.out.println("> " + i.commit().message().get(i.line() - 1));
+            hasDisplayedErrors = true;
+        }
+    }
+
     public void visit(IssuesIssue i) {
         if (!ignore.contains(i.check().name())) {
             println(i, "missing reference to JBS issue in commit message");
