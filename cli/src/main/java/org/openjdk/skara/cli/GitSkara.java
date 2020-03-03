@@ -28,41 +28,63 @@ import org.openjdk.skara.version.Version;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class GitSkara {
-
     private static final Map<String, Main> commands = new TreeMap<>();
+    private static final Set<String> mercurialCommands = Set.of("webrev", "defpath", "jcheck");
 
     private static void usage(String[] args) {
-        var names = new ArrayList<String>();
-        names.addAll(commands.keySet());
+        var isMercurial = args.length > 0 && args[0].equals("--mercurial");
         var skaraCommands = Set.of("help", "version", "update");
 
-        System.out.println("usage: git skara <" + String.join("|", names) + ">");
+        var names = new ArrayList<String>();
+        if (isMercurial) {
+            names.addAll(mercurialCommands);
+            names.addAll(skaraCommands);
+        } else {
+            names.addAll(commands.keySet());
+        }
+
+        var vcs = isMercurial ? "hg" : "git";
+        System.out.println("usage: " + vcs + " skara <" + String.join("|", names) + ">");
         System.out.println("");
-        System.out.println("Additional available git commands:");
+        System.out.println("Additional available " + vcs + " commands:");
         for (var name : names) {
             if (!skaraCommands.contains(name)) {
-                System.out.println("- git " + name);
+                if (isMercurial) {
+                    if (mercurialCommands.contains(name)) {
+                        System.out.println("- hg " + name);
+                    }
+                } else {
+                    System.out.println("- git " + name);
+                }
             }
         }
         System.out.println("");
         System.out.println("For more information, please see the Skara wiki:");
         System.out.println("");
-        System.out.println("    https://wiki.openjdk.java.net/display/skara");
+        if (isMercurial) {
+            System.out.println("    https://wiki.openjdk.java.net/display/SKARA/Mercurial");
+        } else {
+            System.out.println("    https://wiki.openjdk.java.net/display/skara");
+        }
         System.out.println("");
         System.exit(0);
     }
 
     private static void version(String[] args) {
-        System.out.println("git skara version: " + Version.fromManifest().orElse("unknown"));
+        var isMercurial = args.length > 0 && args[0].equals("--mercurial");
+        var vcs = isMercurial ? "hg" : "git";
+        System.out.println(vcs + " skara version: " + Version.fromManifest().orElse("unknown"));
         System.exit(0);
     }
 
-    private static List<String> config(String key) throws IOException, InterruptedException {
-        var pb = new ProcessBuilder("git", "config", key);
+    private static List<String> config(String key, boolean isMercurial) throws IOException, InterruptedException {
+        var vcs = isMercurial ? "hg" : "git";
+        var pb = new ProcessBuilder(vcs, "config", key);
         pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
         pb.redirectError(ProcessBuilder.Redirect.INHERIT);
         var p = pb.start();
@@ -72,14 +94,35 @@ public class GitSkara {
     }
 
     private static void update(String[] args) throws IOException, InterruptedException {
-        var lines = config("include.path");
-        var path = lines.stream().filter(l -> l.endsWith("skara.gitconfig")).map(Path::of).findFirst();
-        if (path.isEmpty()) {
-            System.err.println("error: could not find skara repository");
-            System.exit(1);
+        var isMercurial = args.length > 0 && args[0].equals("--mercurial");
+
+        String line = null;
+        if (isMercurial) {
+            var lines = config("extensions.skara", true);
+            if (lines.size() == 1) {
+                line = lines.get(0);
+            } else {
+                System.err.println("error: could not find skara repository");
+                System.exit(1);
+            }
+        } else {
+            var lines = config("include.path", false);
+            var entry = lines.stream().filter(l -> l.endsWith("skara.gitconfig")).findFirst();
+            if (entry.isEmpty()) {
+                System.err.println("error: could not find skara repository");
+                System.exit(1);
+            }
+            line = entry.get();
         }
 
-        var parent = path.get().getParent();
+        var expanded = line.startsWith("~") ?
+            System.getProperty("user.home") + line.substring(1) : line;
+        var path = Path.of(expanded);
+        if (Files.exists(path)) {
+            System.err.println("error: " + path + " does not exist");
+            System.exit(1);
+        }
+        var parent = path.getParent();
         var repo = Repository.get(parent);
         if (repo.isEmpty()) {
             System.err.println("error: could not find skara repository");
