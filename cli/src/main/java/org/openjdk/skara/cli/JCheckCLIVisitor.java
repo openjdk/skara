@@ -234,6 +234,13 @@ class JCheckCLIVisitor implements IssueVisitor {
         }
     }
 
+    public void visit(SymlinkIssue i) {
+        if (!ignore.contains(i.check().name())) {
+            println(i, "file " + i.path() + " is symbolic link");
+            hasDisplayedErrors = true;
+        }
+    }
+
     public void visit(AuthorNameIssue i) {
         if (!ignore.contains(i.check().name())) {
             println(i, "missing author name");
