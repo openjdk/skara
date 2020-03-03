@@ -2224,4 +2224,79 @@ public class RepositoryTests {
             }
         }
     }
+
+    @Test
+    void testHgRepoNestedInGitRepo() throws IOException {
+        try (var gitDir = new TemporaryDirectory()) {
+            var gitRepo = Repository.init(gitDir.path(), VCS.GIT);
+            var gitFile = gitRepo.root().resolve("git-file.txt");
+            Files.write(gitFile, List.of("Hello, Git!"));
+            gitRepo.add(gitFile);
+            var gitHash = gitRepo.commit("Added git-file.txt", "duke", "duke@openjdk.java.net");
+
+            var hgDir = gitRepo.root().resolve("hg");
+            var hgRepo = Repository.init(hgDir, VCS.HG);
+            var hgFile = hgRepo.root().resolve("hg-file.txt");
+            Files.write(hgFile, List.of("Hello, Mercurial!"));
+            hgRepo.add(hgFile);
+            var hgHash = hgRepo.commit("Added hg-file.txt", "duke", "duke@openjdk.java.net");
+
+            var resolvedHgRepo = Repository.get(hgDir).orElseThrow();
+            var resolvedHgCommits = resolvedHgRepo.commits().asList();
+            assertEquals(1, resolvedHgCommits.size());
+            assertEquals(hgHash, resolvedHgCommits.get(0).hash());
+
+            var resolvedGitRepo = Repository.get(gitDir.path()).orElseThrow();
+            var resolvedGitCommits = resolvedGitRepo.commits().asList();
+            assertEquals(1, resolvedGitCommits.size());
+            assertEquals(gitHash, resolvedGitCommits.get(0).hash());
+        }
+    }
+
+    @Test
+    void testGitRepoNestedInHgRepo() throws IOException {
+        try (var hgDir = new TemporaryDirectory()) {
+            var hgRepo = Repository.init(hgDir.path(), VCS.HG);
+            var hgFile = hgRepo.root().resolve("hg-file.txt");
+            Files.write(hgFile, List.of("Hello, Mercurial!"));
+            hgRepo.add(hgFile);
+            var hgHash = hgRepo.commit("Added hg-file.txt", "duke", "duke@openjdk.java.net");
+
+            var gitDir = hgRepo.root().resolve("git");
+            var gitRepo = Repository.init(gitDir, VCS.GIT);
+            var gitFile = gitRepo.root().resolve("git-file.txt");
+            Files.write(gitFile, List.of("Hello, Git!"));
+            gitRepo.add(gitFile);
+            var gitHash = gitRepo.commit("Added git-file.txt", "duke", "duke@openjdk.java.net");
+
+            var resolvedHgRepo = Repository.get(hgDir.path()).orElseThrow();
+            var resolvedHgCommits = resolvedHgRepo.commits().asList();
+            assertEquals(1, resolvedHgCommits.size());
+            assertEquals(hgHash, resolvedHgCommits.get(0).hash());
+
+            var resolvedGitRepo = Repository.get(gitDir).orElseThrow();
+            var resolvedGitCommits = resolvedGitRepo.commits().asList();
+            assertEquals(1, resolvedGitCommits.size());
+            assertEquals(gitHash, resolvedGitCommits.get(0).hash());
+        }
+    }
+
+    @Test
+    void testGitAndHgRepoInSameDirectory() throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var hgRepo = Repository.init(dir.path(), VCS.HG);
+            var hgFile = hgRepo.root().resolve("hg-file.txt");
+            Files.write(hgFile, List.of("Hello, Mercurial!"));
+            hgRepo.add(hgFile);
+            var hgHash = hgRepo.commit("Added hg-file.txt", "duke", "duke@openjdk.java.net");
+
+            var gitRepo = Repository.init(dir.path(), VCS.GIT);
+            var gitFile = gitRepo.root().resolve("git-file.txt");
+            Files.write(gitFile, List.of("Hello, Git!"));
+            gitRepo.add(gitFile);
+            var gitHash = gitRepo.commit("Added git-file.txt", "duke", "duke@openjdk.java.net");
+
+            assertThrows(IOException.class, () -> Repository.get(dir.path()));
+        }
+    }
 }
