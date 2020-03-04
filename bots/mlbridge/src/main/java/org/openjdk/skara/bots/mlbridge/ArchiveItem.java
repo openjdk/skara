@@ -151,6 +151,28 @@ class ArchiveItem {
         return Optional.empty();
     }
 
+    static boolean containsQuote(String quote, String body) {
+        var compactQuote = quote.lines()
+                                .takeWhile(line -> line.startsWith(">"))
+                                .map(line -> line.replaceAll("\\W", ""))
+                                .collect(Collectors.joining());
+        if (!compactQuote.isBlank()) {
+            var compactBody = body.replaceAll("\\W", "");
+            return compactBody.contains(compactQuote);
+        } else {
+            return false;
+        }
+    }
+
+    private static Optional<ArchiveItem> findLastQuoted(String commentText, List<ArchiveItem> eligibleParents) {
+        for (int i = eligibleParents.size() - 1; i != 0; --i) {
+            if (containsQuote(commentText, eligibleParents.get(i).body())) {
+                return Optional.of(eligibleParents.get(i));
+            }
+        }
+        return Optional.empty();
+    }
+
     static ArchiveItem findParent(List<ArchiveItem> generated, Comment comment) {
         ArchiveItem lastCommentOrReview = generated.get(0);
         var eligible = new ArrayList<ArchiveItem>();
@@ -167,6 +189,10 @@ class ArchiveItem {
         var lastMention = findLastMention(comment.body(), eligible);
         if (lastMention.isPresent()) {
             return lastMention.get();
+        }
+        var lastQuoted = findLastQuoted(comment.body(), eligible);
+        if (lastQuoted.isPresent()) {
+            return lastQuoted.get();
         }
 
         return lastCommentOrReview;
