@@ -75,9 +75,12 @@ public class CommitterCheck extends CommitCheck {
         }
 
         var username = committer.email().split("@")[0];
-        if (!hasRole(project, role, username, version)) {
-            log.finer("issue: committer does not have role " + role);
-            return iterator(new CommitterIssue(project, metadata));
+        var allowedToMerge = conf.checks().committer().allowedToMerge();
+        if (!commit.isMerge() || !allowedToMerge.contains(username)) {
+            if (!hasRole(project, role, username, version)) {
+                log.finer("issue: committer does not have role " + role);
+                return iterator(new CommitterIssue(project, metadata));
+            }
         }
 
         return iterator();
