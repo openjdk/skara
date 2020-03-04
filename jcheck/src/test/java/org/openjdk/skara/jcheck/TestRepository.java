@@ -304,4 +304,16 @@ class TestRepository implements ReadOnlyRepository {
     public Optional<Tag.Annotated> annotate(Tag tag) throws IOException {
         return null;
     }
+
+    public String range(Hash h) {
+        return null;
+    }
+
+    public String rangeInclusive(Hash from, Hash to) {
+        return null;
+    }
+
+    public String rangeExclusive(Hash from, Hash to) {
+        return null;
+    }
 }

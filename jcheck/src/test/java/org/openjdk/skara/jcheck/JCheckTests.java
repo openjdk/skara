@@ -35,7 +35,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 class JCheckTests {
     static class CheckableRepository {
@@ -63,7 +63,7 @@ class JCheckTests {
             }
             repo.add(checkConf);
 
-            repo.commit("Initial commit", "duke", "duke@openjdk.java.net");
+            repo.commit("Initial commit\n\nReviewed-by: user2", "user3", "user3@openjdk.java.net");
 
             return repo;
         }
@@ -75,10 +75,10 @@ class JCheckTests {
             var contributorsContent = List.of(
                     "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>",
                     "<contributors>",
-                    "    <contributor username=\"user_1\" full-name=\"User Number 1\" />",
-                    "    <contributor username=\"user_2\" full-name=\"User Number 2\" />",
-                    "    <contributor username=\"user_3\" full-name=\"User Number 3\" />",
-                    "    <contributor username=\"user_4\" full-name=\"User Number 4\" />",
+                    "    <contributor username=\"user1\" full-name=\"User Number 1\" />",
+                    "    <contributor username=\"user2\" full-name=\"User Number 2\" />",
+                    "    <contributor username=\"user3\" full-name=\"User Number 3\" />",
+                    "    <contributor username=\"user4\" full-name=\"User Number 4\" />",
                     "</contributors>");
             Files.write(contributorsFile, contributorsContent);
 
@@ -90,8 +90,8 @@ class JCheckTests {
                     "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>",
                     "<group name=\"test\" full-name=\"TEST\">",
                     "    <lead username=\"user_4\" />",
-                    "    <member username=\"user_1\" since=\"1\" />",
-                    "    <member username=\"user_2\" since=\"1\" />",
+                    "    <member username=\"user1\" since=\"0\" />",
+                    "    <member username=\"user2\" since=\"0\" />",
                     "</group>");
             Files.write(testGroupFile, testGroupContent);
 
@@ -102,10 +102,10 @@ class JCheckTests {
             var testProjectContent = List.of(
                     "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>",
                     "<project name=\"test\" full-name=\"TEST\" sponsor=\"test\">",
-                    "    <lead username=\"user_1\" since=\"1\" />",
-                    "    <reviewer username=\"user_2\" since=\"1\" />",
-                    "    <committer username=\"user_3\" since=\"1\" />",
-                    "    <author username=\"user_4\" since=\"1\" />",
+                    "    <lead username=\"user1\" since=\"0\" />",
+                    "    <reviewer username=\"user2\" since=\"0\" />",
+                    "    <committer username=\"user3\" since=\"0\" />",
+                    "    <author username=\"user4\" since=\"0\" />",
                     "</project>");
             Files.write(testProjectFile, testProjectContent);
 
@@ -116,8 +116,8 @@ class JCheckTests {
             var namespaceContent = List.of(
                     "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>",
                     "<namespace name=\"github.com\">",
-                    "    <user id=\"1234567\" census=\"user_1\" />",
-                    "    <user id=\"2345678\" census=\"user_2\" />",
+                    "    <user id=\"1234567\" census=\"user1\" />",
+                    "    <user id=\"2345678\" census=\"user2\" />",
                     "</namespace>");
             Files.write(namespaceFile, namespaceContent);
 
@@ -285,7 +285,49 @@ class JCheckTests {
             var census = Census.parse(censusPath);
 
             var visitor = new TestVisitor();
-            try (var issues = JCheck.check(repo, census, CommitMessageParsers.v1, first.hex() + ".." + second.hex())) {
+            try (var issues = JCheck.check(repo, census, CommitMessageParsers.v1, first.hex() + ".." + second.hex(), Map.of(), Set.of())) {
+                for (var issue : issues) {
+                    issue.accept(visitor);
+                }
+            }
+            assertEquals(Set.of("org.openjdk.skara.jcheck.TooFewReviewersIssue"), visitor.issueNames());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void checkOverridingConfiguration(VCS vcs) throws Exception {
+        try (var dir = new TemporaryDirectory()) {
+            var repoPath = dir.path().resolve("repo");
+            var repo = CheckableRepository.create(repoPath, vcs);
+
+            var initialCommit = repo.commits().asList().get(0);
+
+            var jcheckConf = repoPath.resolve(".jcheck").resolve("conf");
+            assertTrue(Files.exists(jcheckConf));
+            Files.writeString(jcheckConf, "[checks \"reviewers\"]\nminimum = 0\n",
+                              StandardOpenOption.WRITE, StandardOpenOption.APPEND);
+            repo.add(jcheckConf);
+            var secondCommit = repo.commit("Do not require reviews", "user3", "user3@openjdk.java.net");
+
+            var censusPath = dir.path().resolve("census");
+            Files.createDirectories(censusPath);
+            CensusCreator.populateCensusDirectory(censusPath);
+            var census = Census.parse(censusPath);
+
+            // Check the last commit without reviewers, should pass since .jcheck/conf was updated
+            var range = initialCommit.hash().hex() + ".." + secondCommit.hex();
+            var visitor = new TestVisitor();
+            try (var issues = JCheck.check(repo, census, CommitMessageParsers.v1, range, Map.of(), Set.of())) {
+                for (var issue : issues) {
+                    issue.accept(visitor);
+                }
+            }
+            assertEquals(Set.of(), visitor.issues());
+
+            // Check the last commit without reviewers with the initial .jcheck/conf. Should fail
+            // due to missing reviewers.
+            try (var issues = JCheck.check(repo, census, CommitMessageParsers.v1, secondCommit, initialCommit.hash(), List.of())) {
                 for (var issue : issues) {
                     issue.accept(visitor);
                 }
