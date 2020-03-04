@@ -1318,4 +1318,19 @@ public class GitRepository implements Repository {
             await(p);
         }
     }
+
+    @Override
+    public String range(Hash h) {
+        return h.hex() + "^!";
+    }
+
+    @Override
+    public String rangeInclusive(Hash from, Hash to) {
+        return from.hex() + "^.." + to.hex();
+    }
+
+    @Override
+    public String rangeExclusive(Hash from, Hash to) {
+        return from.hex() + ".." + to.hex();
+    }
 }

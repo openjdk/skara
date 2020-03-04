@@ -2176,4 +2176,52 @@ public class RepositoryTests {
             assertEquals(Hash.zero(), statusEntry.source().hash());
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testRangeSingle(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var repo = Repository.init(dir.path(), vcs);
+            var range = repo.range(new Hash("0123456789"));
+            if (vcs == VCS.GIT) {
+                assertEquals("0123456789^!", range);
+            } else if (vcs == VCS.HG) {
+                assertEquals("0123456789", range);
+            } else {
+                fail("Unexpected vcs: " + vcs);
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testRangeInclusive(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var repo = Repository.init(dir.path(), vcs);
+            var range = repo.rangeInclusive(new Hash("01234"), new Hash("56789"));
+            if (vcs == VCS.GIT) {
+                assertEquals("01234^..56789", range);
+            } else if (vcs == VCS.HG) {
+                assertEquals("01234:56789", range);
+            } else {
+                fail("Unexpected vcs: " + vcs);
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testRangeExclusive(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var repo = Repository.init(dir.path(), vcs);
+            var range = repo.rangeExclusive(new Hash("01234"), new Hash("56789"));
+            if (vcs == VCS.GIT) {
+                assertEquals("01234..56789", range);
+            } else if (vcs == VCS.HG) {
+                assertEquals("01234:56789-01234", range);
+            } else {
+                fail("Unexpected vcs: " + vcs);
+            }
+        }
+    }
 }

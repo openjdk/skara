@@ -1331,4 +1331,19 @@ public class HgRepository implements Repository {
         }
         Files.write(hgrc, lines, StandardOpenOption.WRITE, StandardOpenOption.APPEND);
     }
+
+    @Override
+    public String range(Hash h) {
+        return h.hex();
+    }
+
+    @Override
+    public String rangeInclusive(Hash from, Hash to) {
+        return from.hex() + ":" + to.hex();
+    }
+
+    @Override
+    public String rangeExclusive(Hash from, Hash to) {
+        return from.hex() + ":" + to.hex() + "-" + from.hex();
+    }
 }

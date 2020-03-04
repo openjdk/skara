@@ -60,6 +60,9 @@ public interface ReadOnlyRepository {
     List<CommitMetadata> commitMetadata(Hash from, Hash to, List<Path> paths) throws IOException;
     List<CommitMetadata> commitMetadata(String range, List<Path> paths, boolean reverse) throws IOException;
     List<CommitMetadata> commitMetadata(Hash from, Hash to, List<Path> paths, boolean reverse) throws IOException;
+    String range(Hash h);
+    String rangeInclusive(Hash from, Hash to);
+    String rangeExclusive(Hash from, Hash to);
     Path root() throws IOException;
     boolean exists() throws IOException;
     boolean isHealthy() throws IOException;
