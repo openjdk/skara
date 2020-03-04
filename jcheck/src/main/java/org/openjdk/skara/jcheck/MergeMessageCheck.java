@@ -27,6 +27,7 @@ import org.openjdk.skara.vcs.openjdk.CommitMessage;
 
 import java.util.Iterator;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 public class MergeMessageCheck extends CommitCheck {
     private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck.merge");
@@ -36,11 +37,11 @@ public class MergeMessageCheck extends CommitCheck {
             return iterator();
         }
 
-        var expected = conf.checks().merge().message();
-        if (commit.message().size() != 1 || !commit.message().get(0).equals(expected)) {
+        var pattern = Pattern.compile(conf.checks().merge().message());
+        if (commit.message().size() != 1 || !pattern.matcher(commit.message().get(0)).matches()) {
             var metadata = CommitIssue.metadata(commit, message, conf, this);
             log.finer("issue: wrong merge message");
-            return iterator(new MergeMessageIssue(expected, metadata));
+            return iterator(new MergeMessageIssue(pattern.toString(), metadata));
         }
 
         return iterator();

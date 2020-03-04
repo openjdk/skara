@@ -103,4 +103,16 @@ class MergeMessageCheckTests {
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof MergeMessageIssue);
     }
+
+    @Test
+    void usingRegexShouldWork() throws IOException {
+        var commit = commit(List.of("Merge 'feature' into 'master'"));
+        var message = message(commit);
+        var check = new MergeMessageCheck();
+        var conf = new ArrayList<>(CONFIGURATION);
+        conf.set(conf.size() - 1, "message = Merge \\'[a-z]+\\' into \\'[a-z]+\\'");
+        var issues = toList(check.check(commit, message, JCheckConfiguration.parse(conf)));
+
+        assertEquals(List.of(), issues);
+    }
 }
