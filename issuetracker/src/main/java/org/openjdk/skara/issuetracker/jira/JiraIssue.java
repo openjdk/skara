@@ -32,19 +32,14 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import java.util.stream.*;
 
 public class JiraIssue implements Issue {
     private final JiraProject jiraProject;
     private final RestRequest request;
     private final JSONValue json;
-
-    // If true, the issue has the requested security level as set by the host. This means that fields that do
-    // not explicitly support a security level (such as labels and links) implicitly get the correct security
-    // level. If false, such items may not be added or updated.
-    // Comments are special in that they do explicitly support a visibility level, and can thus be posted and
-    // updated even if the issue has a different security level than the requested one.
-    private final boolean secure;
+    private final boolean needSecurity;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.issuetracker.jira");
 
@@ -55,17 +50,7 @@ public class JiraIssue implements Issue {
         this.request = request;
         this.json = json;
 
-        if (json.get("fields").contains("security")) {
-            // Issue has the requested security level -> fine to post fields without role
-            secure = jiraProject.jiraHost().securityLevel().orElse("").equals(json.get("fields").get("security").get("id").asString());
-        } else {
-            if (jiraProject.jiraHost().securityLevel().isEmpty()) {
-                // No security level on issue, and none requested -> fine to post fields without role
-                secure = true;
-            } else {
-                secure = false;
-            }
-        }
+        needSecurity = jiraProject.jiraHost().securityLevel().isPresent();
     }
 
     @Override
@@ -92,8 +77,8 @@ public class JiraIssue implements Issue {
 
     @Override
     public void setTitle(String title) {
-        if (!secure) {
-            log.warning("Ignoring attempt to set title on issue with wrong security level");
+        if (needSecurity) {
+            log.warning("Issue title does not support setting a security level - ignoring");
             return;
         }
         var query = JSON.object()
@@ -113,8 +98,8 @@ public class JiraIssue implements Issue {
 
     @Override
     public void setBody(String body) {
-        if (!secure) {
-            log.warning("Ignoring attempt to set body on issue with wrong security level");
+        if (needSecurity) {
+            log.warning("Issue body does not support setting a security level - ignoring");
             return;
         }
         var query = JSON.object()
@@ -249,8 +234,8 @@ public class JiraIssue implements Issue {
 
     @Override
     public void addLabel(String label) {
-        if (!secure) {
-            log.warning("Ignoring attempt to add label on issue with wrong security level");
+        if (needSecurity) {
+            log.warning("Issue label does not support setting a security level - ignoring");
             return;
         }
         var query = JSON.object()
@@ -350,6 +335,13 @@ public class JiraIssue implements Issue {
                           .filter(obj -> obj.contains("globalId"))
                           .filter(obj -> obj.get("globalId").asString().startsWith("skaralink="))
                           .map(this::parseLink);
+
+        var commentLinks = comments().stream()
+                                     .map(this::parseWebLinkComment)
+                                     .filter(Optional::isPresent)
+                                     .map(Optional::get);
+        links = Stream.concat(commentLinks, links);
+
         if (json.get("fields").contains("issuelinks")) {
             var issueLinks = json.get("fields").get("issuelinks").stream()
                                  .map(JSONValue::asObject)
@@ -361,12 +353,53 @@ public class JiraIssue implements Issue {
 
             links = Stream.concat(issueLinks, links);
         }
+
         return links.collect(Collectors.toList());
     }
 
+    private static final Pattern titlePattern = Pattern.compile("^Remote link: (.*)");
+    private static final Pattern urlPattern = Pattern.compile("^URL: (.*)");
+    private static final Pattern summaryPattern = Pattern.compile("^Summary: (.*)");
+    private static final Pattern relationshipPattern = Pattern.compile("^Relationship: (.*)");
+
+    private Optional<Link> parseWebLinkComment(Comment comment) {
+        var lines = comment.body().lines().collect(Collectors.toList());
+        if ((lines.size() < 2 ) || (lines.size() > 4)) {
+            return Optional.empty();
+        }
+        var titleMatcher = titlePattern.matcher(lines.get(0));
+        var urlMatcher = urlPattern.matcher(lines.get(1));
+        if (!titleMatcher.matches() || !urlMatcher.matches()) {
+            return Optional.empty();
+        }
+        var linkBuilder = Link.create(URI.create(urlMatcher.group(1)), titleMatcher.group(1));
+        for (int i = 2; i < lines.size(); ++i) {
+            var line = lines.get(i);
+            var summaryMatcher = summaryPattern.matcher(line);
+            if (summaryMatcher.matches()) {
+                linkBuilder.summary(summaryMatcher.group(1));
+            }
+            var relationshipMatcher = relationshipPattern.matcher(line);
+            if (relationshipMatcher.matches()) {
+                linkBuilder.relationship(relationshipMatcher.group(1));
+            }
+        }
+        return Optional.of(linkBuilder.build());
+    }
+
+    private void addWebLinkAsComment(Link link) {
+        var body = new StringBuilder();
+        body.append("Remote link: ").append(link.title().orElseThrow()).append("\n");
+        body.append("URL: ").append(link.uri().orElseThrow().toString()).append("\n");
+        link.summary().ifPresent(summary -> body.append("Summary: ").append(summary).append("\n"));
+        link.relationship().ifPresent(relationship -> body.append("Relationship: ").append(relationship).append("\n"));
+
+        addComment(body.toString());
+    }
+
     private void addWebLink(Link link) {
-        if (!secure) {
-            log.warning("Ignoring attempt to add link on issue with wrong security level");
+        if (needSecurity) {
+            addWebLinkAsComment(link);
             return;
         }
 
@@ -438,6 +471,17 @@ public class JiraIssue implements Issue {
                .param("globalId", "skaralink=" + link.uri().orElseThrow().toString())
                .onError(e -> e.statusCode() == 404 ? Optional.of(JSON.object().put("already_deleted", true)) : Optional.empty())
                .execute();
+
+        for (var comment : comments()) {
+            var commentLink = parseWebLinkComment(comment);
+            if (commentLink.isEmpty()) {
+                continue;
+            }
+            if (!commentLink.get().uri().equals(link.uri())) {
+                continue;
+            }
+            request.delete("/comment/" + comment.id()).execute();
+        }
     }
 
     private void removeIssueLink(Link link) {
