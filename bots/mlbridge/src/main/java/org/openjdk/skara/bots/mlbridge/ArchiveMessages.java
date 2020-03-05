@@ -326,8 +326,11 @@ class ArchiveMessages {
     static String composeReviewFooter(PullRequest pr, Review review, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole) {
         var result = new StringBuilder();
         if (review.body().isPresent() && !review.body().get().isBlank()) {
-            result.append(composeReviewVerdict(review, hostUserToUserName, hostUserToRole));
-            result.append("\n\n");
+            var verdict = composeReviewVerdict(review, hostUserToUserName, hostUserToRole);
+            if (!verdict.isBlank()) {
+                result.append(verdict);
+                result.append("\n\n");
+            }
         }
         result.append(composeReplyFooter(pr));
         return result.toString();
