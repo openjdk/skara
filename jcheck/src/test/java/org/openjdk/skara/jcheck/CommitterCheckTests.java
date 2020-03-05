@@ -75,6 +75,15 @@ class CommitterCheckTests {
         "error = committer"
     );
 
+    private static Commit mergeCommit(Author author, Author committer) {
+        var hash = new Hash("0123456789012345678901234567890123456789");
+        var parents = List.of(hash, hash);
+        var date = ZonedDateTime.now();
+        var message = List.of("Merge");
+        var metadata = new CommitMetadata(hash, parents, author, committer, date, message);
+        return new Commit(metadata, List.of());
+    }
+
     private static Commit commit(Author author, Author committer) {
         var hash = new Hash("0123456789012345678901234567890123456789");
         var parents = List.of(new Hash("12345789012345789012345678901234567890"));
@@ -226,5 +235,41 @@ class CommitterCheckTests {
         assertEquals(check, issue.check());
         assertEquals(message, issue.message());
         assertEquals(Severity.ERROR, issue.severity());
+    }
+
+    @Test
+    void allowedToMerge() throws IOException {
+        var author = new Author("baz", "baz@localhost");
+        var committer = new Author("baz", "baz@localhost");
+        var commit = mergeCommit(author, committer);
+        var message = message(commit);
+        var check = new CommitterCheck(census());
+        var issues = toList(check.check(commit, message, conf()));
+
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0) instanceof CommitterIssue);
+
+        check = new CommitterCheck(census());
+        var text = new ArrayList<>(CONFIGURATION);
+        text.addAll(List.of("[checks \"committer\"]", "allowed-to-merge=baz"));
+        var conf = JCheckConfiguration.parse(text);
+        issues = toList(check.check(commit, message, conf));
+        assertEquals(List.of(), issues);
+    }
+
+    @Test
+    void allowedToMergeShouldOnlyWorkForMergeCommits() throws IOException {
+        var author = new Author("baz", "baz@localhost");
+        var committer = new Author("baz", "baz@localhost");
+        var commit = commit(author, committer);
+        var message = message(commit);
+        var check = new CommitterCheck(census());
+        var text = new ArrayList<>(CONFIGURATION);
+        text.addAll(List.of("[checks \"committer\"]", "allowed-to-merge=baz"));
+        var conf = JCheckConfiguration.parse(text);
+        var issues = toList(check.check(commit, message, conf));
+
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0) instanceof CommitterIssue);
     }
 }

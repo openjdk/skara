@@ -24,20 +24,28 @@ package org.openjdk.skara.jcheck;
 
 import org.openjdk.skara.ini.Section;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class CommitterConfiguration {
-    static final CommitterConfiguration DEFAULT = new CommitterConfiguration("committer");
+    static final CommitterConfiguration DEFAULT = new CommitterConfiguration("committer", Set.of());
 
     private final String role;
+    private final Set<String> allowedToMerge;
 
-    CommitterConfiguration(String role) {
+    CommitterConfiguration(String role, Set<String> allowedToMerge) {
         this.role = role;
+        this.allowedToMerge = allowedToMerge;
     }
 
     public String role() {
         return role;
+    }
+
+    public Set<String> allowedToMerge() {
+        return allowedToMerge;
     }
 
     static String name() {
@@ -50,7 +58,12 @@ public class CommitterConfiguration {
         }
 
         var role = s.get("role", DEFAULT.role());
-        return new CommitterConfiguration(role);
+        var usernames = s.get("allowed-to-merge", "");
+        var allowedToMerge = new HashSet<String>();
+        for (var username : usernames.split(",")) {
+            allowedToMerge.add(username.trim());
+        }
+        return new CommitterConfiguration(role, allowedToMerge);
     }
 }
 
