@@ -47,8 +47,6 @@ public class JCheck {
     private final JCheckConfiguration overridingConfiguration;
     private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck");
 
-    private JCheckConfiguration cachedConfiguration = null;
-
     JCheck(ReadOnlyRepository repository,
            Census census,
            CommitMessageParser parser,
@@ -104,22 +102,7 @@ public class JCheck {
         if (overridingConfiguration != null) {
             return Optional.of(overridingConfiguration);
         }
-        var confPath = Paths.get(".jcheck/conf");
-        var changesConfiguration = c.parentDiffs()
-                                    .stream()
-                                    .map(Diff::patches)
-                                    .flatMap(List::stream)
-                                    .anyMatch(p -> p.source().path().isPresent() && p.source().path().get().equals(confPath) ||
-                                                   p.target().path().isPresent() && p.target().path().get().equals(confPath));
-
-
-        if (changesConfiguration || cachedConfiguration == null) {
-            var confAtCommit = parseConfiguration(repository, c.hash(), additionalConfiguration);
-            confAtCommit.ifPresent(jCheckConfiguration -> cachedConfiguration = jCheckConfiguration);
-            return confAtCommit;
-        } else {
-            return Optional.of(cachedConfiguration);
-        }
+        return parseConfiguration(repository, c.hash(), additionalConfiguration);
     }
 
     private Iterator<Issue> checkCommit(Commit commit) {
