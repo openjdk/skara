@@ -160,7 +160,15 @@ class ReviewArchive {
         return ret;
     }
 
-    private String quoteSelectedParents(List<ArchiveItem> parentsToQuote) {
+    // Parents to quote are provided with the newest item first. If the item already has quoted
+    // a parent, use that as the quote and return an empty string.
+    private String quoteSelectedParents(List<ArchiveItem> parentsToQuote, ArchiveItem first) {
+        if (parentsToQuote.isEmpty()) {
+            return "";
+        }
+        if (ArchiveItem.containsQuote(first.body(), parentsToQuote.get(0).body())) {
+            return "";
+        }
         Collections.reverse(parentsToQuote);
         var ret = "";
         for (var parent : parentsToQuote) {
@@ -233,7 +241,7 @@ class ReviewArchive {
                     body.append("\n\n");
                 }
                 var newQuotes = parentsToQuote(item, 2, quotedParents);
-                var quote = quoteSelectedParents(newQuotes);
+                var quote = quoteSelectedParents(newQuotes, item);
                 if (!quote.isBlank()) {
                     body.append(quote);
                     body.append("\n\n");

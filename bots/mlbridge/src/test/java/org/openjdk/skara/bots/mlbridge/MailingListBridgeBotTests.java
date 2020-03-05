@@ -780,6 +780,71 @@ class MailingListBridgeBotTests {
     }
 
     @Test
+    void commentWithQuote(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var archiveFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(reviewer.forge().currentUser().id())
+                                           .addAuthor(author.forge().currentUser().id());
+            var from = EmailAddress.from("test", "test@test.mail");
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
+
+            // Populate the projects repository
+            var reviewFile = Path.of("reviewfile.txt");
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
+            pr.setBody("This is now ready");
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // Make two comments from different authors
+            var reviewPr = reviewer.pullRequest(pr.id());
+            reviewPr.addComment("First comment\nsecond line");
+            pr.addComment("Second comment\nfourth line");
+
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            pr.addComment(">First comm\n\nreply to first");
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // The first comment should be quoted more often than the second
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertEquals(2, archiveContainsCount(archiveFolder.path(), "First comment"));
+            assertEquals(3, archiveContainsCount(archiveFolder.path(), "First comm"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Second comment"));
+        }
+    }
+
+    @Test
     void reviewContext(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
