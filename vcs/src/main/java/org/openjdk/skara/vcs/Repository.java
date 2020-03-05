@@ -135,11 +135,26 @@ public interface Repository extends ReadOnlyRepository {
     }
 
     static Optional<Repository> get(Path p) throws IOException {
-        var r = GitRepository.get(p);
-        if (r.isPresent()) {
-            return r;
+        var gitRepo = GitRepository.get(p);
+        var hgRepo = HgRepository.get(p);
+        if (gitRepo.isPresent() && hgRepo.isEmpty()) {
+            return gitRepo;
+        } else if (gitRepo.isEmpty() && hgRepo.isPresent()) {
+            return hgRepo;
+        } else if (gitRepo.isPresent() && hgRepo.isPresent()) {
+            // Nested repositories
+            var gitRoot = gitRepo.get().root();
+            var hgRoot = hgRepo.get().root();
+            if (gitRoot.equals(hgRoot)) {
+                throw new IOException(p.toString() + " contains both a hg and git repository");
+            }
+            if (hgRoot.startsWith(gitRoot)) {
+                return hgRepo;
+            } else {
+                return gitRepo;
+            }
         }
-        return HgRepository.get(p);
+        return Optional.empty();
     }
 
     static boolean exists(Path p) throws IOException {
