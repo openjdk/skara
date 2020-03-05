@@ -57,7 +57,7 @@ public class ArchiveReaderWorkItem implements WorkItem {
     @Override
     public void run(Path scratchPath) {
         // Give the bot a chance to act on all found messages
-        var conversations = list.conversations(Duration.ofDays(60));
+        var conversations = list.conversations(Duration.ofDays(365));
         for (var conversation : conversations) {
             bot.inspect(conversation);
         }
