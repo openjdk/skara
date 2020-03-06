@@ -27,6 +27,7 @@ import org.openjdk.skara.email.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.mailinglist.*;
 
+import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
@@ -92,8 +93,10 @@ public class MailingListArchiveReaderBot implements Bot {
             parsedEmailIds.remove(first.id());
         }
 
-        // Are there any new messages?
+        // Are there any new messages? We avoid looking further back than 14 days. If the bridge has been down
+        // for more than 14 days, this may have to be temporarily increased.
         var newMessages = conversation.allMessages().stream()
+                                      .filter(email -> email.date().isAfter(ZonedDateTime.now().minus(Duration.ofDays(14))))
                                       .filter(email -> !parsedEmailIds.contains(email.id()))
                                       .collect(Collectors.toList());
         if (newMessages.isEmpty()) {
