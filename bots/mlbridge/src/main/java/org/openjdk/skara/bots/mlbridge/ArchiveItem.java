@@ -38,6 +38,28 @@ class ArchiveItem {
         this.footer = footer;
     }
 
+    // If the head commit is a merge commit with base as one parent, return the other one (the new content)
+    private static Optional<Hash> mergeParent(Repository localRepo, Hash base, Hash head) {
+        try {
+            var mergeCommit = localRepo.lookup(head);
+            if (mergeCommit.isEmpty()) {
+                return Optional.empty();
+            }
+            if (!mergeCommit.get().isMerge()) {
+                return Optional.empty();
+            }
+            for (var parent : mergeCommit.get().parents()) {
+                if (parent.equals(base) || localRepo.isAncestor(parent, base)) {
+                    continue;
+                }
+                return Optional.of(parent);
+            }
+            return Optional.empty();
+        } catch (IOException e) {
+            return Optional.empty();
+        }
+    }
+
     static ArchiveItem from(PullRequest pr, Repository localRepo, HostUserToEmailAuthor hostUserToEmailAuthor,
                             URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator,
                             WebrevNotification webrevNotification, ZonedDateTime created, ZonedDateTime updated,
@@ -47,9 +69,17 @@ class ArchiveItem {
                                () -> "",
                                () -> ArchiveMessages.composeConversation(pr, localRepo, base, head),
                                () -> {
-                                    var fullWebrev = webrevGenerator.generate(base, head, "00");
-                                    webrevNotification.notify(0, fullWebrev, null);
-                                    return ArchiveMessages.composeConversationFooter(pr, issueTracker, issuePrefix, localRepo, fullWebrev, base, head);
+                                   if (pr.title().startsWith("Merge")) {
+                                       var mergeCommitParent = mergeParent(localRepo, base, head);
+                                        if (mergeCommitParent.isPresent()) {
+                                            var mergeWebrev = webrevGenerator.generate(mergeCommitParent.get(), head, "00");
+                                            webrevNotification.notify(0, mergeWebrev, null);
+                                            return ArchiveMessages.composeMergeConversationFooter(pr, localRepo, mergeWebrev, base, mergeCommitParent.get(), head);
+                                        }
+                                   }
+                                   var fullWebrev = webrevGenerator.generate(base, head, "00");
+                                   webrevNotification.notify(0, fullWebrev, null);
+                                   return ArchiveMessages.composeConversationFooter(pr, issueTracker, issuePrefix, localRepo, fullWebrev, base, head);
                                });
     }
 

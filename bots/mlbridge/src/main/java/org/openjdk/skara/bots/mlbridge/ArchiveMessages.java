@@ -252,6 +252,19 @@ class ArchiveMessages {
                 composeReplyFooter(pr);
     }
 
+    static String composeMergeConversationFooter(PullRequest pr, Repository localRepo, URI webrev, Hash base, Hash mergeParent, Hash head) {
+        var commits = commits(localRepo, base, head);
+        return "Note! To aid reviewing, the webrev only contains the adjustments done while merging, such as conflict resolution (if any).\n\nAll commit messages:\n" +
+                formatCommitMessagesBrief(commits).orElse("") + "\n\n" +
+                "Changes: " + pr.changeUrl() + "\n" +
+                " Webrev: " + webrev + "\n" +
+                "  Stats: " + stats(localRepo, mergeParent, head) + "\n" +
+                "   Full: " + stats(localRepo, base, head) + "\n" +
+                "  Patch: " + pr.diffUrl().toString() + "\n" +
+                "  Fetch: " + fetchCommand(pr) + "\n\n" +
+                composeReplyFooter(pr);
+    }
+
     static String composeRebasedFooter(PullRequest pr, Repository localRepo, URI fullWebrev, Hash base, Hash head) {
         return "Changes: " + pr.changeUrl() + "\n" +
                 " Webrev: " + fullWebrev.toString() + "\n" +
