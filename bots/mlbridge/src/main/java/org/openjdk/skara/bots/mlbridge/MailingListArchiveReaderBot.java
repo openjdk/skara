@@ -38,7 +38,8 @@ public class MailingListArchiveReaderBot implements Bot {
     private final EmailAddress archivePoster;
     private final Set<MailingList> lists;
     private final Set<HostedRepository> repositories;
-    private final Map<EmailAddress, PullRequest> parsedConversations = new HashMap<>();
+    private final Map<EmailAddress, String> parsedConversations = new HashMap<>();
+    private final Map<EmailAddress, PullRequest> resolvedPullRequests = new HashMap<>();
     private final Set<EmailAddress> parsedEmailIds = new HashSet<>();
     private final Queue<CommentPosterWorkItem> commentQueue = new ConcurrentLinkedQueue<>();
     private final Pattern pullRequestLinkPattern = Pattern.compile("^(?:PR: |Pull request:\\R)(.*?)$", Pattern.MULTILINE);
@@ -56,9 +57,8 @@ public class MailingListArchiveReaderBot implements Bot {
 
     synchronized void inspect(Conversation conversation) {
         // Is this a new conversation?
-        if (!parsedConversations.containsKey(conversation.first().id())) {
-            var first = conversation.first();
-
+        var first = conversation.first();
+        if (!parsedConversations.containsKey(first.id())) {
             // This conversation has already been parsed without finding any matching PR
             if (parsedEmailIds.contains(first.id())) {
                 return;
@@ -67,7 +67,7 @@ public class MailingListArchiveReaderBot implements Bot {
             parsedEmailIds.add(first.id());
 
             // Not an RFR - cannot match a PR
-            if (!conversation.first().subject().contains("RFR: ")) {
+            if (!first.subject().contains("RFR: ")) {
                 return;
             }
 
@@ -78,18 +78,8 @@ public class MailingListArchiveReaderBot implements Bot {
                 return;
             }
 
-            var pr = repositories.stream()
-                    .map(repository -> repository.parsePullRequestUrl(matcher.group(1)))
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .findAny();
-            if (pr.isEmpty()) {
-                log.info("PR link that can't be matched to an actual PR: " + matcher.group(1));
-                return;
-            }
-
-            // Matching pull request found!
-            parsedConversations.put(conversation.first().id(), pr.get());
+            // Valid looking pull request link found!
+            parsedConversations.put(first.id(), matcher.group(1));
             parsedEmailIds.remove(first.id());
         }
 
@@ -107,13 +97,30 @@ public class MailingListArchiveReaderBot implements Bot {
             parsedEmailIds.add(newMessage.id());
         }
 
-        var pr = parsedConversations.get(conversation.first().id());
+        var pr = resolvedPullRequests.get(first.id());
+        if (pr == null) {
+            var prLink = parsedConversations.get(first.id());
+            if (prLink.equals("invalid")) {
+                return;
+            }
+            var foundPr = repositories.stream()
+                                      .map(repository -> repository.parsePullRequestUrl(prLink))
+                                      .filter(Optional::isPresent)
+                                      .map(Optional::get).findAny();
+            if (foundPr.isEmpty()) {
+                log.info("PR link that can't be matched to an actual PR: " + prLink);
+                parsedConversations.put(first.id(), "invalid");
+                return;
+            }
+            pr = foundPr.get();
+            resolvedPullRequests.put(first.id(), pr);
+        }
         var bridgeIdPattern = Pattern.compile("^[^.]+\\.[^.]+@" + pr.repository().url().getHost() + "$");
 
         // Filter out already bridged comments
         var bridgeCandidates = newMessages.stream()
-                .filter(email -> !bridgeIdPattern.matcher(email.id().address()).matches())
-                .collect(Collectors.toList());
+                                          .filter(email -> !bridgeIdPattern.matcher(email.id().address()).matches())
+                                          .collect(Collectors.toList());
         if (bridgeCandidates.isEmpty()) {
             return;
         }
