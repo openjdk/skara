@@ -172,4 +172,73 @@ class CSRBotTests {
             assertTrue(pr.labels().contains("csr"));
         }
     }
+
+    @Test
+    void handleCSRWithNullResolution(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var issue = issues.createIssue("This is an issue", List.of(), Map.of());
+
+            var csr = issues.createIssue("This is an CSR with null resolution", List.of(), Map.of("resolution", JSON.of()));
+            csr.setState(Issue.State.OPEN);
+            issue.addLink(Link.create(csr, "csr for").build());
+
+            var bot = new CSRBot(repo, issues);
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, repo.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, repo.url(), "edit", true);
+            var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
+
+            // Add CSR label
+            pr.addLabel("csr");
+
+            // Run bot, should *not* throw NPE
+            TestBotRunner.runPeriodicItems(bot);
+        }
+    }
+
+    @Test
+    void handleCSRWithNullName(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var issue = issues.createIssue("This is an issue", List.of(), Map.of());
+
+            var csr = issues.createIssue("This is an CSR with null resolution", List.of(),
+                                         Map.of("resolution", JSON.object().put("name", JSON.of())));
+            csr.setState(Issue.State.OPEN);
+            issue.addLink(Link.create(csr, "csr for").build());
+
+            var bot = new CSRBot(repo, issues);
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, repo.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, repo.url(), "edit", true);
+            var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
+
+            // Add CSR label
+            pr.addLabel("csr");
+
+            // Run bot, should *not* throw NPE
+            TestBotRunner.runPeriodicItems(bot);
+        }
+    }
 }
