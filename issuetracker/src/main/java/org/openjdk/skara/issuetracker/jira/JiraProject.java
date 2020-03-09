@@ -120,16 +120,20 @@ public class JiraProject implements IssueProject {
     }
 
     private static final Set<String> knownProperties = Set.of("issuetype", "fixVersions", "versions", "priority", "components");
+    private static final Set<String> readOnlyProperties = Set.of("resolution");
 
-    boolean isAllowedProperty(String name) {
+    boolean isAllowedProperty(String name, boolean forWrite) {
         if (knownProperties.contains(name)) {
+            return true;
+        }
+        if (!forWrite && readOnlyProperties.contains(name)) {
             return true;
         }
         return name.startsWith("customfield_");
     }
 
     Optional<JSONValue> decodeProperty(String name, JSONValue value) {
-        if (!isAllowedProperty(name)) {
+        if (!isAllowedProperty(name, false)) {
             return Optional.empty();
         }
         if (value.isNull()) {
@@ -154,7 +158,7 @@ public class JiraProject implements IssueProject {
     }
 
     Optional<JSONValue> encodeProperty(String name, JSONValue value) {
-        if (!isAllowedProperty(name)) {
+        if (!isAllowedProperty(name, true)) {
             return Optional.empty();
         }
 
