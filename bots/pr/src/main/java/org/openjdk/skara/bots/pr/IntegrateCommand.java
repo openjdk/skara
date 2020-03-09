@@ -68,9 +68,12 @@ public class IntegrateCommand implements CommandHandler {
             return;
         }
 
-        if (pr.labels().contains("rejected")) {
-            reply.println("The change is currently blocked from integration by a rejection.");
-            return;
+        var labels = new HashSet<>(pr.labels());
+        for (var blocker : bot.blockingIntegrationLabels().entrySet()) {
+            if (labels.contains(blocker.getKey())) {
+                reply.println(blocker.getValue());
+                return;
+            }
         }
 
         // Run a final jcheck to ensure the change has been properly reviewed

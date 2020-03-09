@@ -30,7 +30,7 @@ import java.io.*;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class SponsorCommand implements CommandHandler {
@@ -60,9 +60,12 @@ public class SponsorCommand implements CommandHandler {
             return;
         }
 
-        if (pr.labels().contains("rejected")) {
-            reply.println("The change is currently blocked from integration by a rejection.");
-            return;
+        var labels = new HashSet<>(pr.labels());
+        for (var blocker : bot.blockingIntegrationLabels().entrySet()) {
+            if (labels.contains(blocker.getKey())) {
+                reply.println(blocker.getValue());
+                return;
+            }
         }
 
         // Notify the author as well
