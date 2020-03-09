@@ -97,12 +97,21 @@ class CSRBot implements Bot, WorkItem {
             for (var link : jbsIssue.get().links()) {
                 var relationship = link.relationship();
                 if (relationship.isPresent() && relationship.get().equals("csr for")) {
+                    log.info("Found CSR for " + describe(pr));
+
                     var csr = link.issue().orElseThrow(
                             () -> new IllegalStateException("Link with title 'csr for' does not contain issue")
                     );
-                    var resolution = csr.properties().get("resolution").get("name").asString();
-                    log.info("Found CSR for " + describe(pr));
-                    if (csr.state() == Issue.State.CLOSED && resolution.equals("Approved")) {
+                    var resolution = csr.properties().get("resolution");
+                    if (resolution == null || resolution.isNull()) {
+                        continue;
+                    }
+                    var name = resolution.get("name");
+                    if (name == null || name.isNull()) {
+                        continue;
+                    }
+
+                    if (csr.state() == Issue.State.CLOSED && name.asString().equals("Approved")) {
                         log.info("CSR closed and approved for " + repo.name() + "#" + pr.id() + ", removing csr label");
                         pr.removeLabel(CSR_LABEL);
                         hasCSRLabel.remove(pr.id());
