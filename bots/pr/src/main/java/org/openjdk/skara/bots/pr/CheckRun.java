@@ -193,7 +193,7 @@ class CheckRun {
             }
         }
 
-        for (var blocker : workItem.bot.blockingLabels().entrySet()) {
+        for (var blocker : workItem.bot.blockingCheckLabels().entrySet()) {
             if (labels.contains(blocker.getKey())) {
                 ret.add(blocker.getValue());
             }

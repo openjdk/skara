@@ -70,7 +70,7 @@ public class PullRequestBotFactory implements BotFactory {
                                            .repo(configuration.repository(repo.name()))
                                            .censusRepo(censusRepo)
                                            .censusRef(censusRef)
-                                           .blockingLabels(blockers)
+                                           .blockingCheckLabels(blockers)
                                            .readyLabels(readyLabels)
                                            .readyComments(readyComments)
                                            .externalCommands(external)

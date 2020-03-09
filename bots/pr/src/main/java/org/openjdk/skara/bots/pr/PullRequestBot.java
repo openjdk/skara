@@ -40,7 +40,7 @@ class PullRequestBot implements Bot {
     private final String censusRef;
     private final Map<String, List<Pattern>> labelPatterns;
     private final Map<String, String> externalCommands;
-    private final Map<String, String> blockingLabels;
+    private final Map<String, String> blockingCheckLabels;
     private final Set<String> readyLabels;
     private final Map<String, Pattern> readyComments;
     private final IssueProject issueProject;
@@ -53,7 +53,7 @@ class PullRequestBot implements Bot {
 
     PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef,
                    Map<String, List<Pattern>> labelPatterns, Map<String, String> externalCommands,
-                   Map<String, String> blockingLabels, Set<String> readyLabels,
+                   Map<String, String> blockingCheckLabels, Set<String> readyLabels,
                    Map<String, Pattern> readyComments, IssueProject issueProject, boolean ignoreStaleReviews,
                    Pattern allowedTargetBranches, Path seedStorage) {
         remoteRepo = repo;
@@ -61,7 +61,7 @@ class PullRequestBot implements Bot {
         this.censusRef = censusRef;
         this.labelPatterns = labelPatterns;
         this.externalCommands = externalCommands;
-        this.blockingLabels = blockingLabels;
+        this.blockingCheckLabels = blockingCheckLabels;
         this.readyLabels = readyLabels;
         this.issueProject = issueProject;
         this.readyComments = readyComments;
@@ -157,8 +157,13 @@ class PullRequestBot implements Bot {
         return externalCommands;
     }
 
-    Map<String, String> blockingLabels() {
-        return blockingLabels;
+    Map<String, String> blockingCheckLabels() {
+        return blockingCheckLabels;
+    }
+
+    Map<String, String> blockingIntegrationLabels() {
+        return Map.of("rejected", "The change is currently blocked from integration by a rejection.",
+                      "csr", "The change is currently blocked from integration by a pending CSR.");
     }
 
     Set<String> readyLabels() {

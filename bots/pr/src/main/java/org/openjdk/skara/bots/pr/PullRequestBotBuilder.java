@@ -35,7 +35,7 @@ public class PullRequestBotBuilder {
     private String censusRef = "master";
     private Map<String, List<Pattern>> labelPatterns = Map.of();
     private Map<String, String> externalCommands = Map.of();
-    private Map<String, String> blockingLabels = Map.of();
+    private Map<String, String> blockingCheckLabels = Map.of();
     private Set<String> readyLabels = Set.of();
     private Map<String, Pattern> readyComments = Map.of();
     private IssueProject issueProject = null;
@@ -71,8 +71,8 @@ public class PullRequestBotBuilder {
         return this;
     }
 
-    public PullRequestBotBuilder blockingLabels(Map<String, String> blockingLabels) {
-        this.blockingLabels = blockingLabels;
+    public PullRequestBotBuilder blockingCheckLabels(Map<String, String> blockingCheckLabels) {
+        this.blockingCheckLabels = blockingCheckLabels;
         return this;
     }
 
@@ -107,7 +107,7 @@ public class PullRequestBotBuilder {
     }
 
     public PullRequestBot build() {
-        return new PullRequestBot(repo, censusRepo, censusRef, labelPatterns, externalCommands, blockingLabels,
+        return new PullRequestBot(repo, censusRepo, censusRef, labelPatterns, externalCommands, blockingCheckLabels,
                                   readyLabels, readyComments, issueProject, ignoreStaleReviews, allowedTargetBranches,
                                   seedStorage);
     }
