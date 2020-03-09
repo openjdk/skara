@@ -102,20 +102,33 @@ class CSRBot implements Bot, WorkItem {
                     var csr = link.issue().orElseThrow(
                             () -> new IllegalStateException("Link with title 'csr for' does not contain issue")
                     );
+
+                    log.info("CSR for " + describe(pr) + " has id " + csr.id());
+
                     var resolution = csr.properties().get("resolution");
                     if (resolution == null || resolution.isNull()) {
+                        log.info("CSR issue resolution is null for " + describe(pr) + ", not removing CSR label");
                         continue;
                     }
                     var name = resolution.get("name");
                     if (name == null || name.isNull()) {
+                        log.info("CSR issue resolution name is null for " + describe(pr) + ", not removing CSR label");
                         continue;
                     }
 
-                    if (csr.state() == Issue.State.CLOSED && name.asString().equals("Approved")) {
-                        log.info("CSR closed and approved for " + repo.name() + "#" + pr.id() + ", removing csr label");
-                        pr.removeLabel(CSR_LABEL);
-                        hasCSRLabel.remove(pr.id());
+                    if (csr.state() != Issue.State.CLOSED) {
+                        log.info("CSR issue state is not closed for " + describe(pr) + ", not removing CSR label");
+                        continue;
                     }
+
+                    if (!name.asString().equals("Approved")) {
+                        log.info("CSR issue resolution is not 'Approved' for " + describe(pr) + ", not removing CSR label");
+                        continue;
+                    }
+
+                    log.info("CSR closed and approved for " + describe(pr) + ", removing CSR label");
+                    pr.removeLabel(CSR_LABEL);
+                    hasCSRLabel.remove(pr.id());
                 }
             }
         }
