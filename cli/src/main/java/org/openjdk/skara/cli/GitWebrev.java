@@ -203,11 +203,19 @@ public class GitWebrev {
             }
         }
 
-        var rev = arguments.contains("rev") ?
-            resolve(repo, arguments.get("rev").asString()) :
-            noOutgoing ?
-                resolve(repo, isMercurial ? "tip" : "HEAD") :
-                resolve(repo, isMercurial ? "min(outgoing())^" : "origin" + "/" + "master");
+        var rev = arguments.contains("rev") ? resolve(repo, arguments.get("rev").asString()) : null;
+        if (rev == null) {
+            if (isMercurial) {
+                resolve(repo, noOutgoing ? "tip" : "min(outgoing())^");
+            } else {
+                if (noOutgoing) {
+                    rev = resolve(repo, "HEAD");
+                } else {
+                    var commits = repo.commitMetadata("origin..HEAD", true);
+                    rev = resolve(repo, commits.get(0).hash().hex() + "^");
+                }
+            }
+        }
 
         var issue = arguments.contains("cr") ? arguments.get("cr").asString() : null;
         if (issue != null) {
