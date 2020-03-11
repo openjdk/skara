@@ -219,7 +219,7 @@ class PullRequestInstance {
     }
 
     PullRequestCheckIssueVisitor createVisitor(Hash localHash, CensusInstance censusInstance) throws IOException {
-        var checks = JCheck.checks(localRepo(), censusInstance.census(), localHash);
+        var checks = JCheck.checksFor(localRepo(), censusInstance.census(), targetHash);
         return new PullRequestCheckIssueVisitor(checks);
     }
 
