@@ -212,7 +212,11 @@ public class GitWebrev {
                     rev = resolve(repo, "HEAD");
                 } else {
                     var commits = repo.commitMetadata("origin..HEAD", true);
-                    rev = resolve(repo, commits.get(0).hash().hex() + "^");
+                    if (commits.isEmpty()) {
+                        rev = resolve(repo, "HEAD");
+                    } else {
+                        rev = resolve(repo, commits.get(0).hash().hex() + "^");
+                    }
                 }
             }
         }
