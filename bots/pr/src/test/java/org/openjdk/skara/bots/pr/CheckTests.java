@@ -1090,7 +1090,7 @@ class CheckTests {
     }
 
     @Test
-    void retryOnException(TestInfo testInfo) throws IOException {
+    void useJCheckConfFromTargetBranch(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
@@ -1106,7 +1106,7 @@ class CheckTests {
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.push(masterHash, author.url(), "master", true);
 
-            // Break the jcheck configuration
+            // Break the jcheck configuration on the "edit" branch
             var confPath = tempFolder.path().resolve(".jcheck/conf");
             var oldConf = Files.readString(confPath, StandardCharsets.UTF_8);
             Files.writeString(confPath, "Hello there!", StandardCharsets.UTF_8);
@@ -1116,28 +1116,16 @@ class CheckTests {
             var pr = credentials.createPullRequest(author, "master", "edit",
                                                    "This is a pull request", true);
 
-            // Check the status - should throw every time
-            assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(checkBot));
-            assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(checkBot));
-            assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(checkBot));
+            // Check the status - should *not* throw because valid .jcheck/conf from
+            // "master" branch should be used
+            TestBotRunner.runPeriodicItems(checkBot);
+            TestBotRunner.runPeriodicItems(checkBot);
+            TestBotRunner.runPeriodicItems(checkBot);
 
-            // Verify that the check failed
+            // Verify that the check succeeded
             var checks = pr.checks(editHash);
             assertEquals(1, checks.size());
             var check = checks.get("jcheck");
-            assertEquals(CheckStatus.FAILURE, check.status());
-
-            Files.writeString(confPath, oldConf, StandardCharsets.UTF_8);
-            localRepo.add(confPath);
-            editHash = CheckableRepository.appendAndCommit(localRepo, "Another change");
-            localRepo.push(editHash, author.url(), "edit");
-
-            TestBotRunner.runPeriodicItems(checkBot);
-
-            // Verify that the check now passes
-            checks = pr.checks(editHash);
-            assertEquals(1, checks.size());
-            check = checks.get("jcheck");
             assertEquals(CheckStatus.SUCCESS, check.status());
         }
     }

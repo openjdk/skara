@@ -138,11 +138,11 @@ public class JCheck {
         return new HashSet<>(conf.checks().enabled(commitChecks));
     }
 
-    private Set<Check> checksForCommits() throws IOException {
+    private Set<Check> checksForRange() throws IOException {
         try (var commits = repository.commits(revisionRange)) {
             return commits.stream()
-                    .flatMap(commit -> checksForCommit(commit).stream())
-                    .collect(Collectors.toSet());
+                          .flatMap(commit -> checksForCommit(commit).stream())
+                          .collect(Collectors.toSet());
         }
     }
 
@@ -266,17 +266,17 @@ public class JCheck {
         return check(repository, census, parser, branchRegex, tagRegex, revisionRange, whitelist, blacklist, List.of(), null);
     }
 
-    public static Set<Check> checks(ReadOnlyRepository repository, Census census, Hash hash) throws IOException {
+    public static Set<Check> checksFor(ReadOnlyRepository repository, Census census, Hash hash) throws IOException {
         var jcheck = new JCheck(repository,
                                 census,
                                 CommitMessageParsers.v1,
-                                hash.hex() + "^.." + hash.hex(),
+                                repository.range(hash),
                                 Pattern.compile(".*"),
                                 Pattern.compile(".*"),
                                 new HashMap<String, Set<Hash>>(),
                                 new HashSet<Hash>(),
                                 List.of(),
                                 null);
-        return jcheck.checksForCommits();
+        return jcheck.checksForRange();
     }
 }

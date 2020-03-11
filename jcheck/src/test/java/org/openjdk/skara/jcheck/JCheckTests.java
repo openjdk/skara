@@ -255,7 +255,7 @@ class JCheckTests {
             CensusCreator.populateCensusDirectory(censusPath);
             var census = Census.parse(censusPath);
 
-            var checks = JCheck.checks(repo, census, first);
+            var checks = JCheck.checksFor(repo, census, first);
             var checkNames = checks.stream()
                                    .map(Check::name)
                                    .collect(Collectors.toSet());
