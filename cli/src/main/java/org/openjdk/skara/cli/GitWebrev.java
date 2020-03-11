@@ -40,6 +40,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class GitWebrev {
+    private static final List<String> KNOWN_JBS_PROJECTS =
+        List.of("JDK", "CODETOOLS", "SKARA", "JMC");
     private static void clearDirectory(Path directory) {
         try {
             Files.walk(directory)
@@ -227,7 +229,7 @@ public class GitWebrev {
             }
         }
         if (issue == null) {
-            var pattern = Pattern.compile("(?:(JDK|CODETOOLS|JMC|SKARA)-)?([0-9]+).*");
+            var pattern = Pattern.compile("(?:(" + String.join("|", KNOWN_JBS_PROJECTS) + ")-)?([0-9]+).*");
             var currentBranch = repo.currentBranch();
             if (currentBranch.isPresent()) {
                 var branchName = currentBranch.get().name().toUpperCase();
@@ -291,13 +293,16 @@ public class GitWebrev {
         }
 
         var jbs = "https://bugs.openjdk.java.net/browse/";
+        var issueParts = issue != null ? issue.split("-") : new String[0];
+        var jbsProject = issueParts.length == 2 && KNOWN_JBS_PROJECTS.contains(issueParts[0])?
+            issueParts[0] : "JDK";
         Webrev.repository(repo)
               .output(output)
               .title(title)
               .upstream(upstream)
               .username(author.name())
               .commitLinker(hash -> upstreamURL == null ? null : upstreamURL + "/commit/" + hash)
-              .issueLinker(id -> jbs + (isDigit(id.charAt(0)) ? "JDK-" : "") + id)
+              .issueLinker(id -> jbs + (isDigit(id.charAt(0)) ? jbsProject + "-" : "") + id)
               .issue(issue)
               .version(version)
               .files(files)
