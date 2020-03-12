@@ -34,4 +34,5 @@ public interface RepositoryUpdateConsumer {
     void handleTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag, Tag.Annotated annotation);
     void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch);
     boolean isIdempotent();
+    String name();
 }

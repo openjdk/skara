@@ -111,4 +111,9 @@ public class JsonUpdater implements RepositoryUpdateConsumer {
     public boolean isIdempotent() {
         return false;
     }
+
+    @Override
+    public String name() {
+        return "json";
+    }
 }

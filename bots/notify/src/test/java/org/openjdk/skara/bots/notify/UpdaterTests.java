@@ -29,7 +29,9 @@ import org.openjdk.skara.json.*;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
 import org.openjdk.skara.storage.StorageBuilder;
 import org.openjdk.skara.test.*;
+import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.Tag;
+import org.openjdk.skara.vcs.openjdk.OpenJDKTag;
 
 import org.junit.jupiter.api.*;
 
@@ -1909,6 +1911,113 @@ class UpdaterTests {
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
             comments = updatedIssue.comments();
             assertEquals(1, comments.size());
+        }
+    }
+
+    private static class TestRepositoryUpdateConsumer implements RepositoryUpdateConsumer {
+        private final String name;
+        private final boolean idempotent;
+        private int updateCount = 0;
+        private boolean shouldFail = false;
+
+        TestRepositoryUpdateConsumer(String name, boolean idempotent) {
+            this.name = name;
+            this.idempotent = idempotent;
+        }
+
+        @Override
+        public void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits,
+                                  Branch branch) {
+            updateCount++;
+            if (shouldFail) {
+                throw new RuntimeException("induced failure");
+            }
+        }
+
+        @Override
+        public void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository,
+         List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) {
+            throw new RuntimeException("unexpected");
+        }
+
+        @Override
+        public void handleTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag,
+         Tag.Annotated annotation) {
+            throw new RuntimeException("unexpected");
+        }
+
+        @Override
+        public void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits,
+         Branch parent, Branch branch) {
+            throw new RuntimeException("unexpected");
+        }
+
+        @Override
+        public boolean isIdempotent() {
+            return idempotent;
+        }
+
+        @Override
+        public String name() {
+            return name;
+        }
+    }
+
+    @Test
+    void testIdempotenceMix(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var idempotent = new TestRepositoryUpdateConsumer("i", true);
+            var nonIdempotent = new TestRepositoryUpdateConsumer("ni", false);
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(idempotent, nonIdempotent))
+                                     .build();
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and commit a fix
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "Fix stuff");
+            localRepo.push(editHash, repo.url(), "master");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Both updaters should have run
+            assertEquals(1, idempotent.updateCount);
+            assertEquals(1, nonIdempotent.updateCount);
+
+            var nextEditHash = CheckableRepository.appendAndCommit(localRepo, "Yet another line", "Fix more stuff");
+            localRepo.push(nextEditHash, repo.url(), "master");
+
+            idempotent.shouldFail = true;
+            nonIdempotent.shouldFail = true;
+            assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(notifyBot));
+
+            // Both updaters should have run again
+            assertEquals(2, idempotent.updateCount);
+            assertEquals(2, nonIdempotent.updateCount);
+
+            assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(notifyBot));
+
+            // But now only the idempotent one should have been retried
+            assertEquals(3, idempotent.updateCount);
+            assertEquals(2, nonIdempotent.updateCount);
         }
     }
 }

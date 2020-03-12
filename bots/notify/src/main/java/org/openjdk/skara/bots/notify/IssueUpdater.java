@@ -357,6 +357,11 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
     }
 
     @Override
+    public String name() {
+        return "issue";
+    }
+
+    @Override
     public void handleNewIssue(PullRequest pr, org.openjdk.skara.vcs.openjdk.Issue issue) {
         var realIssue = issueProject.issue(issue.id());
         if (realIssue.isEmpty()) {

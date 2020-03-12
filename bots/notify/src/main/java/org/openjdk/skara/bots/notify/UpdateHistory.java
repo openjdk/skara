@@ -27,30 +27,44 @@ import org.openjdk.skara.vcs.*;
 
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.*;
 
 class UpdateHistory {
-
     private final Storage<Tag> tagStorage;
     private final Storage<ResolvedBranch> branchStorage;
 
-    private Map<Branch, Hash> branches;
+    private Map<String, Hash> branchHashes;
     private Set<Tag> tags;
+
+    private List<ResolvedBranch> parseSerializedEntry(String entry) {
+        var parts = entry.split(" ");
+        if (parts.length == 2) {
+            // Transform legacy entry
+            var issueEntry = new ResolvedBranch(new Branch(parts[0]), "issue", new Hash(parts[1]));
+            var mlEntry = new ResolvedBranch(new Branch(parts[0]), "ml", new Hash(parts[1]));
+            return List.of(issueEntry, mlEntry);
+        }
+        return List.of(new ResolvedBranch(new Branch(parts[0]), parts[1], new Hash(parts[2])));
+    }
 
     private Set<ResolvedBranch> loadBranches(String current) {
         return current.lines()
-                      .map(line -> line.split(" "))
-                      .map(entry -> new ResolvedBranch(new Branch(entry[0]), new Hash(entry[1])))
+                      .flatMap(line -> parseSerializedEntry(line).stream())
                       .collect(Collectors.toSet());
+    }
+
+    private String serializeEntry(ResolvedBranch entry) {
+        return entry.branch().toString() + " " + entry.updater() + " " + entry.hash().toString();
     }
 
     private String serializeBranches(Collection<ResolvedBranch> added, Set<ResolvedBranch> existing) {
         var updatedBranches = existing.stream()
-                                      .collect(Collectors.toMap(ResolvedBranch::branch,
-                                                                ResolvedBranch::hash));
-        added.forEach(a -> updatedBranches.put(a.branch(), a.hash()));
-        return updatedBranches.entrySet().stream()
-                              .map(entry -> entry.getKey().toString() + " " + entry.getValue().toString())
+                                      .collect(Collectors.toMap(entry -> entry.branch().toString() + ":" + entry.updater(),
+                                                                Function.identity()));
+        added.forEach(a -> updatedBranches.put(a.branch().toString() + ":" + a.updater(), a));
+        return updatedBranches.values().stream()
+                              .map(this::serializeEntry)
                               .sorted()
                               .collect(Collectors.joining("\n"));
     }
@@ -73,9 +87,9 @@ class UpdateHistory {
         return tagStorage.current();
     }
 
-    private Map<Branch, Hash> currentBranchHashes() {
+    private Map<String, Hash> currentBranchHashes() {
         return branchStorage.current().stream()
-                .collect(Collectors.toMap(ResolvedBranch::branch, ResolvedBranch::hash));
+                .collect(Collectors.toMap(rb -> rb.branch().toString() + " " + rb.updater(), ResolvedBranch::hash));
     }
 
     private UpdateHistory(StorageBuilder<Tag> tagStorageBuilder, Path tagLocation, StorageBuilder<ResolvedBranch> branchStorageBuilder, Path branchLocation) {
@@ -90,7 +104,7 @@ class UpdateHistory {
                 .materialize(branchLocation);
 
         tags = currentTags();
-        branches = currentBranchHashes();
+        branchHashes = currentBranchHashes();
     }
 
     static UpdateHistory create(StorageBuilder<Tag> tagStorageBuilder, Path tagLocation, StorageBuilder<ResolvedBranch> branchStorageBuilder, Path branchLocation) {
@@ -116,25 +130,29 @@ class UpdateHistory {
         return tags.contains(tag);
     }
 
-    void setBranchHash(Branch branch, Hash hash) {
-        var entry = new ResolvedBranch(branch, hash);
+    void setBranchHash(Branch branch, String updater, Hash hash) {
+        var entry = new ResolvedBranch(branch, updater, hash);
 
         branchStorage.put(entry);
         var newBranchHashes = currentBranchHashes();
 
         // Sanity check
-        if (branches != null) {
-            for (var existingBranch : branches.keySet()) {
+        if (branchHashes != null) {
+            for (var existingBranch : branchHashes.keySet()) {
                 if (!newBranchHashes.containsKey(existingBranch)) {
                     throw new RuntimeException("Hash information for branch '" + existingBranch + "' is missing");
                 }
             }
         }
-        branches = newBranchHashes;
+        branchHashes = newBranchHashes;
     }
 
-    Optional<Hash> branchHash(Branch branch) {
-        var hash = branches.get(branch);
-        return Optional.ofNullable(hash);
+    Optional<Hash> branchHash(Branch branch, String updater) {
+        var entry = branchHashes.get(branch.toString() + " " + updater);
+        return Optional.ofNullable(entry);
+    }
+
+    boolean isEmpty() {
+        return branchHashes.isEmpty();
     }
 }

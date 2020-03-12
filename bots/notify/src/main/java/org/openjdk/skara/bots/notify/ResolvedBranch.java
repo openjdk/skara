@@ -28,10 +28,12 @@ import java.util.Objects;
 
 class ResolvedBranch {
     private final Branch branch;
+    private final String updater;
     private final Hash hash;
 
-    ResolvedBranch(Branch branch, Hash hash) {
+    ResolvedBranch(Branch branch, String updater, Hash hash) {
         this.branch = branch;
+        this.updater = updater;
         this.hash = hash;
     }
 
@@ -39,13 +41,12 @@ class ResolvedBranch {
         return branch;
     }
 
-    public Hash hash() {
-        return hash;
+    public String updater() {
+        return updater;
     }
 
-    @Override
-    public String toString() {
-        return branch.name() + ":" + hash().hex();
+    public Hash hash() {
+        return hash;
     }
 
     @Override
@@ -57,12 +58,11 @@ class ResolvedBranch {
             return false;
         }
         ResolvedBranch that = (ResolvedBranch) o;
-        return Objects.equals(branch, that.branch) &&
-                Objects.equals(hash, that.hash);
+        return branch.equals(that.branch) && updater.equals(that.updater) && hash.equals(that.hash);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(branch, hash);
+        return Objects.hash(branch, updater, hash);
     }
 }
