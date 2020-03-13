@@ -384,4 +384,9 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
     public boolean isIdempotent() {
         return false;
     }
+
+    @Override
+    public String name() {
+        return "ml";
+    }
 }

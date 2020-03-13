@@ -84,17 +84,42 @@ class UpdateHistoryTests {
 
             var history = createHistory(repository, ref);
 
-            history.setBranchHash(new Branch("1"), new Hash("a"));
-            history.setBranchHash(new Branch("2"), new Hash("b"));
-            history.setBranchHash(new Branch("1"), new Hash("c"));
+            history.setBranchHash(new Branch("1"), "a", new Hash("a"));
+            history.setBranchHash(new Branch("2"), "a", new Hash("b"));
+            history.setBranchHash(new Branch("1"), "a", new Hash("c"));
 
-            assertEquals(new Hash("c"), history.branchHash(new Branch("1")).orElseThrow());
-            assertEquals(new Hash("b"), history.branchHash(new Branch("2")).orElseThrow());
+            assertEquals(new Hash("c"), history.branchHash(new Branch("1"), "a").orElseThrow());
+            assertEquals(new Hash("b"), history.branchHash(new Branch("2"), "a").orElseThrow());
 
             var newHistory = createHistory(repository, ref);
 
-            assertEquals(new Hash("c"), newHistory.branchHash(new Branch("1")).orElseThrow());
-            assertEquals(new Hash("b"), newHistory.branchHash(new Branch("2")).orElseThrow());
+            assertEquals(new Hash("c"), newHistory.branchHash(new Branch("1"), "a").orElseThrow());
+            assertEquals(new Hash("b"), newHistory.branchHash(new Branch("2"), "a").orElseThrow());
+        }
+    }
+
+    @Test
+    void branchesSeparateUpdaters(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var repository = credentials.getHostedRepository();
+            var ref = resetHostedRepository(repository);
+
+            var history = createHistory(repository, ref);
+
+            history.setBranchHash(new Branch("1"), "a", new Hash("a"));
+            history.setBranchHash(new Branch("2"), "a", new Hash("b"));
+            history.setBranchHash(new Branch("1"), "b", new Hash("c"));
+            history.setBranchHash(new Branch("2"), "a", new Hash("d"));
+
+            assertEquals(new Hash("a"), history.branchHash(new Branch("1"), "a").orElseThrow());
+            assertEquals(new Hash("d"), history.branchHash(new Branch("2"), "a").orElseThrow());
+            assertEquals(new Hash("c"), history.branchHash(new Branch("1"), "b").orElseThrow());
+
+            var newHistory = createHistory(repository, ref);
+
+            assertEquals(new Hash("a"), newHistory.branchHash(new Branch("1"), "a").orElseThrow());
+            assertEquals(new Hash("d"), newHistory.branchHash(new Branch("2"), "a").orElseThrow());
+            assertEquals(new Hash("c"), newHistory.branchHash(new Branch("1"), "b").orElseThrow());
         }
     }
 

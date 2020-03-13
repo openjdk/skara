@@ -54,7 +54,7 @@ public class RepositoryWorkItem implements WorkItem {
         this.updaters = updaters;
     }
 
-    private void handleNewRef(Repository localRepo, Reference ref, Collection<Reference> allRefs, boolean runOnlyIdempotent) {
+    private void handleNewRef(Repository localRepo, Reference ref, Collection<Reference> allRefs, RepositoryUpdateConsumer updater) {
         // Figure out the best parent ref
         var candidates = new HashSet<>(allRefs);
         candidates.remove(ref);
@@ -77,55 +77,68 @@ public class RepositoryWorkItem implements WorkItem {
             throw new RuntimeException("Excessive amount of unique commits on new branch " + ref.name() +
                                                " detected (" + bestParent.getValue().size() + ") - skipping notifications");
         }
+        List<Commit> bestParentCommits;
         try {
-            var bestParentCommits = localRepo.commits(bestParent.getKey().hash().hex() + ".." + ref.hash(), true);
-            for (var updater : updaters) {
-                if (updater.isIdempotent() != runOnlyIdempotent) {
+            bestParentCommits = localRepo.commits(bestParent.getKey().hash().hex() + ".." + ref.hash(), true).asList();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        var branch = new Branch(ref.name());
+        var parent = new Branch(bestParent.getKey().name());
+        updater.handleNewBranch(repository, localRepo, bestParentCommits, parent, branch);
+    }
+
+    private void handleUpdatedRef(Repository localRepo, Reference ref, List<Commit> commits, RepositoryUpdateConsumer updater) {
+        var branch = new Branch(ref.name());
+        updater.handleCommits(repository, localRepo, commits, branch);
+    }
+
+    private List<RuntimeException> handleRef(Repository localRepo, UpdateHistory history, Reference ref, Collection<Reference> allRefs) throws IOException {
+        var errors = new ArrayList<RuntimeException>();
+        var branch = new Branch(ref.name());
+        for (var updater : updaters) {
+            var lastHash = history.branchHash(branch, updater.name());
+            if (lastHash.isEmpty()) {
+                log.warning("No previous history found for branch '" + branch + "' and updater '" + updater.name() + " - resetting mark");
+                if (!updater.isIdempotent()) {
+                    history.setBranchHash(branch, updater.name(), ref.hash());
+                }
+                try {
+                    handleNewRef(localRepo, ref, allRefs, updater);
+                    if (updater.isIdempotent()) {
+                        history.setBranchHash(branch, updater.name(), ref.hash());
+                    }
+                } catch (RuntimeException e) {
+                    errors.add(e);
+                }
+            } else {
+                var commitMetadata = localRepo.commitMetadata(lastHash.get() + ".." + ref.hash());
+                if (commitMetadata.size() == 0) {
                     continue;
                 }
-                var branch = new Branch(ref.name());
-                var parent = new Branch(bestParent.getKey().name());
-                updater.handleNewBranch(repository, localRepo, bestParentCommits.asList(), parent, branch);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+                if (commitMetadata.size() > 1000) {
+                    history.setBranchHash(branch, updater.name(), ref.hash());
+                    errors.add(new RuntimeException("Excessive amount of new commits on branch " + branch.name() +
+                                                       " detected (" + commitMetadata.size() + ") for updater '" +
+                                                       updater.name() + "' - skipping notifications"));
+                    continue;
+                }
 
-    private void handleUpdatedRef(Repository localRepo, Reference ref, List<Commit> commits, boolean runOnlyIdempotent) {
-        for (var updater : updaters) {
-            if (updater.isIdempotent() != runOnlyIdempotent) {
-                continue;
+                var commits = localRepo.commits(lastHash.get() + ".." + ref.hash(), true).asList();
+                if (!updater.isIdempotent()) {
+                    history.setBranchHash(branch, updater.name(), ref.hash());
+                }
+                try {
+                    handleUpdatedRef(localRepo, ref, commits, updater);
+                    if (updater.isIdempotent()) {
+                        history.setBranchHash(branch, updater.name(), ref.hash());
+                    }
+                } catch (RuntimeException e) {
+                    errors.add(e);
+                }
             }
-            var branch = new Branch(ref.name());
-            updater.handleCommits(repository, localRepo, commits, branch);
         }
-    }
-
-    private void handleRef(Repository localRepo, UpdateHistory history, Reference ref, Collection<Reference> allRefs) throws IOException {
-        var branch = new Branch(ref.name());
-        var lastHash = history.branchHash(branch);
-        if (lastHash.isEmpty()) {
-            log.warning("No previous history found for branch '" + branch + "' - resetting mark");
-            handleNewRef(localRepo, ref, allRefs, true);
-            history.setBranchHash(branch, ref.hash());
-            handleNewRef(localRepo, ref, allRefs, false);
-        } else {
-            var commitMetadata = localRepo.commitMetadata(lastHash.get() + ".." + ref.hash());
-            if (commitMetadata.size() == 0) {
-                return;
-            }
-            if (commitMetadata.size() > 1000) {
-                history.setBranchHash(branch, ref.hash());
-                throw new RuntimeException("Excessive amount of new commits on branch " + branch.name() +
-                                                   " detected (" + commitMetadata.size() + ") - skipping notifications");
-            }
-
-            var commits = localRepo.commits(lastHash.get() + ".." + ref.hash(), true).asList();
-            handleUpdatedRef(localRepo, ref, commits, true);
-            history.setBranchHash(branch, ref.hash());
-            handleUpdatedRef(localRepo, ref, commits, false);
-        }
+        return errors;
     }
 
     private Optional<OpenJDKTag> existingPrevious(OpenJDKTag tag, Set<OpenJDKTag> allJdkTags) {
@@ -276,16 +289,22 @@ public class RepositoryWorkItem implements WorkItem {
             var history = UpdateHistory.create(tagStorageBuilder, historyPath.resolve("tags"), branchStorageBuilder, historyPath.resolve("branches"));
             handleTags(localRepo, history);
 
-            boolean hasBranchHistory = knownRefs.stream()
-                                                .map(ref -> history.branchHash(new Branch(ref.name())))
-                                                .anyMatch(Optional::isPresent);
+            boolean hasBranchHistory = !history.isEmpty();
+            var errors = new ArrayList<RuntimeException>();
             for (var ref : knownRefs) {
                 if (!hasBranchHistory) {
-                    log.warning("No previous history found for any branch - resetting mark for '" + ref.name() + "'");
-                    history.setBranchHash(new Branch(ref.name()), ref.hash());
+                    log.warning("No previous history found for any branch - resetting mark for '" + ref.name());
+                    for (var updater : updaters) {
+                        log.info("Resetting mark for branch '" + ref.name() + "' for updater '" + updater.name() + "'");
+                        history.setBranchHash(new Branch(ref.name()), updater.name(), ref.hash());
+                    }
                 } else {
-                    handleRef(localRepo, history, ref, knownRefs);
+                    errors.addAll(handleRef(localRepo, history, ref, knownRefs));
                 }
+            }
+            if (!errors.isEmpty()) {
+                errors.forEach(error -> log.throwing("RepositoryWorkItem", "run", error));
+                throw new RuntimeException("Errors detected during ref updating");
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
