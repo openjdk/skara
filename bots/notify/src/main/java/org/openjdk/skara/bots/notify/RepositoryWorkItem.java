@@ -54,7 +54,7 @@ public class RepositoryWorkItem implements WorkItem {
         this.updaters = updaters;
     }
 
-    private void handleNewRef(Repository localRepo, Reference ref, Collection<Reference> allRefs, boolean runOnlyIdempotent) {
+    private void handleNewRef(Repository localRepo, Reference ref, Collection<Reference> allRefs, RepositoryUpdateConsumer updater) {
         // Figure out the best parent ref
         var candidates = new HashSet<>(allRefs);
         candidates.remove(ref);
@@ -77,19 +77,15 @@ public class RepositoryWorkItem implements WorkItem {
             throw new RuntimeException("Excessive amount of unique commits on new branch " + ref.name() +
                                                " detected (" + bestParent.getValue().size() + ") - skipping notifications");
         }
+        List<Commit> bestParentCommits;
         try {
-            var bestParentCommits = localRepo.commits(bestParent.getKey().hash().hex() + ".." + ref.hash(), true);
-            for (var updater : updaters) {
-                if (updater.isIdempotent() != runOnlyIdempotent) {
-                    continue;
-                }
-                var branch = new Branch(ref.name());
-                var parent = new Branch(bestParent.getKey().name());
-                updater.handleNewBranch(repository, localRepo, bestParentCommits.asList(), parent, branch);
-            }
+            bestParentCommits = localRepo.commits(bestParent.getKey().hash().hex() + ".." + ref.hash(), true).asList();
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new UncheckedIOException(e);
         }
+        var branch = new Branch(ref.name());
+        var parent = new Branch(bestParent.getKey().name());
+        updater.handleNewBranch(repository, localRepo, bestParentCommits, parent, branch);
     }
 
     private void handleUpdatedRef(Repository localRepo, Reference ref, List<Commit> commits, RepositoryUpdateConsumer updater) {
@@ -108,7 +104,7 @@ public class RepositoryWorkItem implements WorkItem {
                     history.setBranchHash(branch, updater.name(), ref.hash());
                 }
                 try {
-                    handleNewRef(localRepo, ref, allRefs, true);
+                    handleNewRef(localRepo, ref, allRefs, updater);
                     if (updater.isIdempotent()) {
                         history.setBranchHash(branch, updater.name(), ref.hash());
                     }
@@ -297,8 +293,9 @@ public class RepositoryWorkItem implements WorkItem {
             var errors = new ArrayList<RuntimeException>();
             for (var ref : knownRefs) {
                 if (!hasBranchHistory) {
-                    log.warning("No previous history found for any branch - resetting mark for '" + ref.name() + "'");
+                    log.warning("No previous history found for any branch - resetting mark for '" + ref.name());
                     for (var updater : updaters) {
+                        log.info("Resetting mark for branch '" + ref.name() + "' for updater '" + updater.name() + "'");
                         history.setBranchHash(new Branch(ref.name()), updater.name(), ref.hash());
                     }
                 } else {
