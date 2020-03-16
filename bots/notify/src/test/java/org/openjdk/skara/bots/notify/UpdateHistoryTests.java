@@ -50,9 +50,9 @@ class UpdateHistoryTests {
 
     private UpdateHistory createHistory(HostedRepository repository, String ref) throws IOException {
         var folder = Files.createTempDirectory("updatehistory");
-        var tagStorage = new StorageBuilder<Tag>("tags.txt")
+        var tagStorage = new StorageBuilder<UpdatedTag>("tags.txt")
                                        .remoteRepository(repository, ref, "Duke", "duke@openjdk.java.net", "Updated tags");
-        var branchStorage = new StorageBuilder<ResolvedBranch>("branches.txt")
+        var branchStorage = new StorageBuilder<UpdatedBranch>("branches.txt")
                 .remoteRepository(repository, ref, "Duke", "duke@openjdk.java.net", "Updated branches");
         return UpdateHistory.create(tagStorage,folder.resolve("tags"), branchStorage, folder.resolve("branches"));
     }
@@ -64,15 +64,15 @@ class UpdateHistoryTests {
             var ref = resetHostedRepository(repository);
             var history = createHistory(repository, ref);
 
-            history.addTags(List.of(new Tag("1"), new Tag("2")));
+            history.addTags(List.of(new Tag("1"), new Tag("2")), "a");
 
-            assertTrue(history.hasTag(new Tag("1")));
-            assertTrue(history.hasTag(new Tag("2")));
+            assertTrue(history.hasTag(new Tag("1"), "a"));
+            assertTrue(history.hasTag(new Tag("2"), "a"));
 
             var newHistory = createHistory(repository, ref);
 
-            assertTrue(newHistory.hasTag(new Tag("1")));
-            assertTrue(newHistory.hasTag(new Tag("2")));
+            assertTrue(newHistory.hasTag(new Tag("1"), "a"));
+            assertTrue(newHistory.hasTag(new Tag("2"), "a"));
         }
     }
 
@@ -124,36 +124,91 @@ class UpdateHistoryTests {
     }
 
     @Test
+    void tagsSeparateUpdaters(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var repository = credentials.getHostedRepository();
+            var ref = resetHostedRepository(repository);
+            var history = createHistory(repository, ref);
+
+            history.addTags(List.of(new Tag("1"), new Tag("2")), "a");
+            history.addTags(List.of(new Tag("2"), new Tag("3")), "b");
+
+            assertTrue(history.hasTag(new Tag("1"), "a"));
+            assertTrue(history.hasTag(new Tag("2"), "a"));
+            assertFalse(history.hasTag(new Tag("3"), "a"));
+            assertFalse(history.hasTag(new Tag("1"), "b"));
+            assertTrue(history.hasTag(new Tag("2"), "b"));
+            assertTrue(history.hasTag(new Tag("3"), "b"));
+
+            var newHistory = createHistory(repository, ref);
+
+            assertTrue(newHistory.hasTag(new Tag("1"), "a"));
+            assertTrue(newHistory.hasTag(new Tag("2"), "a"));
+            assertFalse(newHistory.hasTag(new Tag("3"), "a"));
+            assertFalse(newHistory.hasTag(new Tag("1"), "b"));
+            assertTrue(newHistory.hasTag(new Tag("2"), "b"));
+            assertTrue(newHistory.hasTag(new Tag("3"), "b"));
+        }
+    }
+
+    @Test
+    void tagsMarkRetry(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var repository = credentials.getHostedRepository();
+            var ref = resetHostedRepository(repository);
+            var history = createHistory(repository, ref);
+
+            history.addTags(List.of(new Tag("1"), new Tag("2")), "a");
+            history.addTags(List.of(new Tag("2"), new Tag("3")), "b");
+
+            history.retryTagUpdate(new Tag("1"), "a");
+            history.retryTagUpdate(new Tag("2"), "b");
+
+            assertTrue(history.shouldRetryTagUpdate(new Tag("1"), "a"));
+            assertFalse(history.shouldRetryTagUpdate(new Tag("2"), "a"));
+            assertTrue(history.shouldRetryTagUpdate(new Tag("2"), "b"));
+            assertFalse(history.shouldRetryTagUpdate(new Tag("3"), "b"));
+
+            var newHistory = createHistory(repository, ref);
+
+            assertTrue(newHistory.shouldRetryTagUpdate(new Tag("1"), "a"));
+            assertFalse(newHistory.shouldRetryTagUpdate(new Tag("2"), "a"));
+            assertTrue(newHistory.shouldRetryTagUpdate(new Tag("2"), "b"));
+            assertFalse(newHistory.shouldRetryTagUpdate(new Tag("3"), "b"));
+        }
+    }
+
+    @Test
     void tagsConcurrentModification(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {
             var repository = credentials.getHostedRepository();
             var ref = resetHostedRepository(repository);
             var history = createHistory(repository, ref);
 
-            history.addTags(List.of(new Tag("1"), new Tag("2")));
+            history.addTags(List.of(new Tag("1"), new Tag("2")), "a");
 
-            assertTrue(history.hasTag(new Tag("1")));
-            assertTrue(history.hasTag(new Tag("2")));
+            assertTrue(history.hasTag(new Tag("1"), "a"));
+            assertTrue(history.hasTag(new Tag("2"), "a"));
 
             var history1 = createHistory(repository, ref);
-            assertTrue(history1.hasTag(new Tag("1")));
-            assertTrue(history1.hasTag(new Tag("2")));
-            assertFalse(history1.hasTag(new Tag("3")));
-            assertFalse(history1.hasTag(new Tag("4")));
+            assertTrue(history1.hasTag(new Tag("1"), "a"));
+            assertTrue(history1.hasTag(new Tag("2"), "a"));
+            assertFalse(history1.hasTag(new Tag("3"), "a"));
+            assertFalse(history1.hasTag(new Tag("4"), "a"));
 
             var history2 = createHistory(repository, ref);
-            assertTrue(history2.hasTag(new Tag("1")));
-            assertTrue(history2.hasTag(new Tag("2")));
-            assertFalse(history2.hasTag(new Tag("3")));
-            assertFalse(history2.hasTag(new Tag("4")));
+            assertTrue(history2.hasTag(new Tag("1"), "a"));
+            assertTrue(history2.hasTag(new Tag("2"), "a"));
+            assertFalse(history2.hasTag(new Tag("3"), "a"));
+            assertFalse(history2.hasTag(new Tag("4"), "a"));
 
-            history1.addTags(Set.of(new Tag("3")));
-            history2.addTags(Set.of(new Tag("4")));
+            history1.addTags(Set.of(new Tag("3")), "a");
+            history2.addTags(Set.of(new Tag("4")), "a");
 
-            assertTrue(history1.hasTag(new Tag("3")));
-            assertFalse(history1.hasTag(new Tag("4")));
-            assertTrue(history2.hasTag(new Tag("3")));
-            assertTrue(history2.hasTag(new Tag("4")));
+            assertTrue(history1.hasTag(new Tag("3"), "a"));
+            assertFalse(history1.hasTag(new Tag("4"), "a"));
+            assertTrue(history2.hasTag(new Tag("3"), "a"));
+            assertTrue(history2.hasTag(new Tag("4"), "a"));
         }
     }
 }

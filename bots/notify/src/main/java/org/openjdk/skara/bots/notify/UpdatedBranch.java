@@ -22,16 +22,47 @@
  */
 package org.openjdk.skara.bots.notify;
 
-import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.vcs.openjdk.OpenJDKTag;
 
-import java.util.List;
+import java.util.Objects;
 
-public interface RepositoryUpdateConsumer {
-    void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) throws NonRetriableException;
-    void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) throws NonRetriableException;
-    void handleTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag, Tag.Annotated annotation) throws NonRetriableException;
-    void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) throws NonRetriableException;
-    String name();
+class UpdatedBranch {
+    private final Branch branch;
+    private final String updater;
+    private final Hash hash;
+
+    UpdatedBranch(Branch branch, String updater, Hash hash) {
+        this.branch = branch;
+        this.updater = updater;
+        this.hash = hash;
+    }
+
+    public Branch branch() {
+        return branch;
+    }
+
+    public String updater() {
+        return updater;
+    }
+
+    public Hash hash() {
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        UpdatedBranch that = (UpdatedBranch) o;
+        return branch.equals(that.branch) && updater.equals(that.updater) && hash.equals(that.hash);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(branch, updater, hash);
+    }
 }

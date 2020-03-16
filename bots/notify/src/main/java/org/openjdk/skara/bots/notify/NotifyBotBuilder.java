@@ -24,7 +24,6 @@ package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.storage.StorageBuilder;
-import org.openjdk.skara.vcs.Tag;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -34,8 +33,8 @@ public class NotifyBotBuilder {
     private HostedRepository repository;
     private Path storagePath;
     private Pattern branches;
-    private StorageBuilder<Tag> tagStorageBuilder;
-    private StorageBuilder<ResolvedBranch> branchStorageBuilder;
+    private StorageBuilder<UpdatedTag> tagStorageBuilder;
+    private StorageBuilder<UpdatedBranch> branchStorageBuilder;
     private StorageBuilder<PullRequestIssues> prIssuesStorageBuilder;
     private List<RepositoryUpdateConsumer> updaters = List.of();
     private List<PullRequestUpdateConsumer> prUpdaters = List.of();
@@ -57,12 +56,12 @@ public class NotifyBotBuilder {
         return this;
     }
 
-    public NotifyBotBuilder tagStorageBuilder(StorageBuilder<Tag> tagStorageBuilder) {
+    public NotifyBotBuilder tagStorageBuilder(StorageBuilder<UpdatedTag> tagStorageBuilder) {
         this.tagStorageBuilder = tagStorageBuilder;
         return this;
     }
 
-    public NotifyBotBuilder branchStorageBuilder(StorageBuilder<ResolvedBranch> branchStorageBuilder) {
+    public NotifyBotBuilder branchStorageBuilder(StorageBuilder<UpdatedBranch> branchStorageBuilder) {
         this.branchStorageBuilder = branchStorageBuilder;
         return this;
     }

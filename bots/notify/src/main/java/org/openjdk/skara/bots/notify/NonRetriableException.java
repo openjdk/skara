@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,47 +22,14 @@
  */
 package org.openjdk.skara.bots.notify;
 
-import org.openjdk.skara.vcs.*;
+public class NonRetriableException extends Exception {
+    private final Throwable cause;
 
-import java.util.Objects;
-
-class ResolvedBranch {
-    private final Branch branch;
-    private final String updater;
-    private final Hash hash;
-
-    ResolvedBranch(Branch branch, String updater, Hash hash) {
-        this.branch = branch;
-        this.updater = updater;
-        this.hash = hash;
+    public NonRetriableException(Throwable cause) {
+        this.cause = cause;
     }
 
-    public Branch branch() {
-        return branch;
-    }
-
-    public String updater() {
-        return updater;
-    }
-
-    public Hash hash() {
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        ResolvedBranch that = (ResolvedBranch) o;
-        return branch.equals(that.branch) && updater.equals(that.updater) && hash.equals(that.hash);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(branch, updater, hash);
+    public Throwable cause() {
+        return cause;
     }
 }

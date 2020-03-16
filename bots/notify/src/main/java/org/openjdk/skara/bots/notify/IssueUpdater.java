@@ -163,7 +163,7 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
     /**
      * Create a backport of issue.
      */
-    private Issue createBackportIssue(Issue primary) {
+    private Issue createBackportIssue(Issue primary) throws NonRetriableException {
         var filteredProperties = primary.properties().entrySet().stream()
                 .filter(entry -> !entry.getKey().startsWith("customfield_") || propagatedCustomProperties.contains(entry.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -171,11 +171,15 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
         var finalProperties = new HashMap<>(filteredProperties);
         finalProperties.put("issuetype", JSON.of("Backport"));
 
-        var backport = primary.project().createIssue(primary.title(), primary.body().lines().collect(Collectors.toList()), finalProperties);
+        try {
+            var backport = primary.project().createIssue(primary.title(), primary.body().lines().collect(Collectors.toList()), finalProperties);
 
-        var backportLink = Link.create(backport, "backported by").build();
-        primary.addLink(backportLink);;
-        return backport;
+            var backportLink = Link.create(backport, "backported by").build();
+            primary.addLink(backportLink);
+            return backport;
+        } catch (RuntimeException e) {
+            throw new NonRetriableException(e);
+        }
     }
 
     /**
@@ -192,7 +196,7 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
      *
      * A "scratch" fixVersion is empty, "tbd.*", or "unknown".
      */
-    private Issue findIssue(Issue primary, String fixVersion) {
+    private Issue findIssue(Issue primary, String fixVersion) throws NonRetriableException {
         log.info("Searching for properly versioned issue for primary issue " + primary.id());
         var candidates = Stream.concat(Stream.of(primary), findBackports(primary).stream()).collect(Collectors.toList());
         candidates.forEach(c -> log.fine("Candidate: " + c.id() + " with versions: " + String.join(",", fixVersions(c))));
@@ -239,7 +243,7 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
     }
 
     @Override
-    public void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) {
+    public void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) throws NonRetriableException {
         for (var commit : commits) {
             var commitNotification = CommitFormatters.toTextBrief(repository, commit);
             var commitMessage = CommitMessageParsers.v1.parse(commit);
@@ -349,11 +353,6 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
     @Override
     public void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) {
 
-    }
-
-    @Override
-    public boolean isIdempotent() {
-        return true;
     }
 
     @Override

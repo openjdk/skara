@@ -187,9 +187,9 @@ public class NotifyBotFactory implements BotFactory {
 
             var baseName = repo.value().contains("basename") ? repo.value().get("basename").asString() : configuration.repositoryName(repoName);
 
-            var tagStorageBuilder = new StorageBuilder<Tag>(baseName + ".tags.txt")
+            var tagStorageBuilder = new StorageBuilder<UpdatedTag>(baseName + ".tags.txt")
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added tag for " + repoName);
-            var branchStorageBuilder = new StorageBuilder<ResolvedBranch>(baseName + ".branches.txt")
+            var branchStorageBuilder = new StorageBuilder<UpdatedBranch>(baseName + ".branches.txt")
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added branch hash for " + repoName);
             var issueStorageBuilder = new StorageBuilder<PullRequestIssues>(baseName + ".prissues.txt")
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added pull request issue info for " + repoName);
