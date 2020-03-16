@@ -589,6 +589,92 @@ class UpdaterTests {
     }
 
     @Test
+    void testMailingListPROnlyMultipleBranches(TestInfo testInfo) throws IOException {
+        try (var listServer = new TestMailmanServer();
+             var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanList = mailmanServer.getList(listAddress.address());
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var author = EmailAddress.from("author", "author@duke.duke");
+            var updater = MailingListUpdater.newBuilder()
+                                            .list(mailmanList)
+                                            .recipient(listAddress)
+                                            .sender(sender)
+                                            .author(author)
+                                            .reportNewTags(false)
+                                            .reportNewBranches(false)
+                                            .reportNewBuilds(false)
+                                            .includeBranch(true)
+                                            .mode(MailingListUpdater.Mode.PR)
+                                            .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master|other"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
+
+            // Populate our known branches
+            localRepo.push(masterHash, repo.url(), "master", true);
+            localRepo.push(masterHash, repo.url(), "other", true);
+
+            // No mail should be sent on the first run as there is no history
+            TestBotRunner.runPeriodicItems(notifyBot);
+            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+
+            localRepo.checkout(masterHash, true);
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
+            localRepo.push(editHash, repo.url(), "edit");
+            var pr = credentials.createPullRequest(repo, "master", "edit", "RFR: My PR");
+
+            // PR hasn't been integrated yet, so there should be no mail
+            TestBotRunner.runPeriodicItems(notifyBot);
+            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
+
+            // Simulate an RFR email
+            var rfr = Email.create(sender, "RFR: My PR", "PR: " + pr.webUrl().toString())
+                           .recipient(listAddress)
+                           .build();
+            mailmanList.post(rfr);
+            listServer.processIncoming();
+
+            // And an integration (but it hasn't reached master just yet)
+            pr.addComment("Pushed as commit " + editHash.hex() + ".");
+
+            // Now push the same commit to another branch
+            localRepo.push(editHash, repo.url(), "other");
+            TestBotRunner.runPeriodicItems(notifyBot);
+            listServer.processIncoming();
+
+            // This one should generate a plain integration mail
+            var conversations = mailmanList.conversations(Duration.ofDays(1));
+            assertEquals(2, conversations.size());
+            var secondEmail = conversations.get(0).first();
+            if (secondEmail.subject().contains("RFR")) {
+                secondEmail = conversations.get(1).first();
+            }
+            assertEquals("git: test: other: 23456789: More fixes", secondEmail.subject());
+        }
+    }
+
+    @Test
     void testMailingListPR(TestInfo testInfo) throws IOException {
         try (var listServer = new TestMailmanServer();
              var credentials = new HostCredentials(testInfo);
