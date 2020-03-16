@@ -24,8 +24,7 @@ package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.storage.*;
-import org.openjdk.skara.vcs.Tag;
+import org.openjdk.skara.storage.StorageBuilder;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -37,8 +36,8 @@ class NotifyBot implements Bot {
     private final HostedRepository repository;
     private final Path storagePath;
     private final Pattern branches;
-    private final StorageBuilder<Tag> tagStorageBuilder;
-    private final StorageBuilder<ResolvedBranch> branchStorageBuilder;
+    private final StorageBuilder<UpdatedTag> tagStorageBuilder;
+    private final StorageBuilder<UpdatedBranch> branchStorageBuilder;
     private final StorageBuilder<PullRequestIssues> prIssuesStorageBuilder;
     private final List<RepositoryUpdateConsumer> updaters;
     private final List<PullRequestUpdateConsumer> prUpdaters;
@@ -46,8 +45,8 @@ class NotifyBot implements Bot {
     private final Set<String> readyLabels;
     private final Map<String, Pattern> readyComments;
 
-    NotifyBot(HostedRepository repository, Path storagePath, Pattern branches, StorageBuilder<Tag> tagStorageBuilder,
-              StorageBuilder<ResolvedBranch> branchStorageBuilder, StorageBuilder<PullRequestIssues> prIssuesStorageBuilder,
+    NotifyBot(HostedRepository repository, Path storagePath, Pattern branches, StorageBuilder<UpdatedTag> tagStorageBuilder,
+              StorageBuilder<UpdatedBranch> branchStorageBuilder, StorageBuilder<PullRequestIssues> prIssuesStorageBuilder,
               List<RepositoryUpdateConsumer> updaters, List<PullRequestUpdateConsumer> prUpdaters,
               Set<String> readyLabels, Map<String, Pattern> readyComments) {
         this.repository = repository;

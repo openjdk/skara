@@ -55,13 +55,13 @@ class UpdaterTests {
                     .collect(Collectors.toList());
     }
 
-    private StorageBuilder<Tag> createTagStorage(HostedRepository repository) {
-        return new StorageBuilder<Tag>("tags.txt")
+    private StorageBuilder<UpdatedTag> createTagStorage(HostedRepository repository) {
+        return new StorageBuilder<UpdatedTag>("tags.txt")
                 .remoteRepository(repository, "history", "Duke", "duke@openjdk.java.net", "Updated tags");
     }
 
-    private StorageBuilder<ResolvedBranch> createBranchStorage(HostedRepository repository) {
-        return new StorageBuilder<ResolvedBranch>("branches.txt")
+    private StorageBuilder<UpdatedBranch> createBranchStorage(HostedRepository repository) {
+        return new StorageBuilder<UpdatedBranch>("branches.txt")
                 .remoteRepository(repository, "history", "Duke", "duke@openjdk.java.net", "Updated branches");
     }
 
@@ -1927,10 +1927,14 @@ class UpdaterTests {
 
         @Override
         public void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits,
-                                  Branch branch) {
+                                  Branch branch) throws NonRetriableException {
             updateCount++;
             if (shouldFail) {
-                throw new RuntimeException("induced failure");
+                if (idempotent) {
+                    throw new RuntimeException("induced failure");
+                } else {
+                    throw new NonRetriableException(new RuntimeException("unretriable failure"));
+                }
             }
         }
 
@@ -1950,11 +1954,6 @@ class UpdaterTests {
         public void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits,
          Branch parent, Branch branch) {
             throw new RuntimeException("unexpected");
-        }
-
-        @Override
-        public boolean isIdempotent() {
-            return idempotent;
         }
 
         @Override

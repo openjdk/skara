@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,16 +22,14 @@
  */
 package org.openjdk.skara.bots.notify;
 
-import org.openjdk.skara.forge.HostedRepository;
-import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.vcs.openjdk.OpenJDKTag;
+public class NonRetriableException extends Exception {
+    private final RuntimeException cause;
 
-import java.util.List;
+    public NonRetriableException(RuntimeException cause) {
+        this.cause = cause;
+    }
 
-public interface RepositoryUpdateConsumer {
-    void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) throws NonRetriableException;
-    void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) throws NonRetriableException;
-    void handleTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag, Tag.Annotated annotation) throws NonRetriableException;
-    void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) throws NonRetriableException;
-    String name();
+    public RuntimeException cause() {
+        return cause;
+    }
 }

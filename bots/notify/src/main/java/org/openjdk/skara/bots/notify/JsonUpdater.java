@@ -76,17 +76,19 @@ public class JsonUpdater implements RepositoryUpdateConsumer {
     }
 
     @Override
-    public void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) {
+    public void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) throws NonRetriableException {
         try (var writer = new JsonUpdateWriter(path, repository.name())) {
             for (var commit : commits) {
                 var json = commitToChanges(repository, localRepository, commit, defaultBuild);
                 writer.write(json);
             }
+        } catch (RuntimeException e) {
+            throw new NonRetriableException(e);
         }
     }
 
     @Override
-    public void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotation) {
+    public void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotation) throws NonRetriableException {
         var build = String.format("b%02d", tag.buildNum());
         try (var writer = new JsonUpdateWriter(path, repository.name())) {
             var issues = new ArrayList<Issue>();
@@ -96,6 +98,8 @@ public class JsonUpdater implements RepositoryUpdateConsumer {
             }
             var json = issuesToChanges(repository, localRepository, issues, build);
             writer.write(json);
+        } catch (RuntimeException e) {
+            throw new NonRetriableException(e);
         }
     }
 
@@ -105,11 +109,6 @@ public class JsonUpdater implements RepositoryUpdateConsumer {
 
     @Override
     public void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) {
-    }
-
-    @Override
-    public boolean isIdempotent() {
-        return false;
     }
 
     @Override

@@ -26,12 +26,12 @@ import org.openjdk.skara.vcs.*;
 
 import java.util.Objects;
 
-class ResolvedBranch {
+class UpdatedBranch {
     private final Branch branch;
     private final String updater;
     private final Hash hash;
 
-    ResolvedBranch(Branch branch, String updater, Hash hash) {
+    UpdatedBranch(Branch branch, String updater, Hash hash) {
         this.branch = branch;
         this.updater = updater;
         this.hash = hash;
@@ -57,7 +57,7 @@ class ResolvedBranch {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        ResolvedBranch that = (ResolvedBranch) o;
+        UpdatedBranch that = (UpdatedBranch) o;
         return branch.equals(that.branch) && updater.equals(that.updater) && hash.equals(that.hash);
     }
 

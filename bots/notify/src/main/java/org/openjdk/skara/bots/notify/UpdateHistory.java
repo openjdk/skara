@@ -31,68 +31,87 @@ import java.util.function.Function;
 import java.util.stream.*;
 
 class UpdateHistory {
-    private final Storage<Tag> tagStorage;
-    private final Storage<ResolvedBranch> branchStorage;
+    private final Storage<UpdatedTag> tagStorage;
+    private final Storage<UpdatedBranch> branchStorage;
 
     private Map<String, Hash> branchHashes;
-    private Set<Tag> tags;
+    private Map<String, Boolean> tagRetries;
 
-    private List<ResolvedBranch> parseSerializedEntry(String entry) {
+    private List<UpdatedBranch> parseSerializedBranch(String entry) {
         var parts = entry.split(" ");
         if (parts.length == 2) {
             // Transform legacy entry
-            var issueEntry = new ResolvedBranch(new Branch(parts[0]), "issue", new Hash(parts[1]));
-            var mlEntry = new ResolvedBranch(new Branch(parts[0]), "ml", new Hash(parts[1]));
+            var issueEntry = new UpdatedBranch(new Branch(parts[0]), "issue", new Hash(parts[1]));
+            var mlEntry = new UpdatedBranch(new Branch(parts[0]), "ml", new Hash(parts[1]));
             return List.of(issueEntry, mlEntry);
         }
-        return List.of(new ResolvedBranch(new Branch(parts[0]), parts[1], new Hash(parts[2])));
+        return List.of(new UpdatedBranch(new Branch(parts[0]), parts[1], new Hash(parts[2])));
     }
 
-    private Set<ResolvedBranch> loadBranches(String current) {
+    private Set<UpdatedBranch> loadBranches(String current) {
         return current.lines()
-                      .flatMap(line -> parseSerializedEntry(line).stream())
+                      .flatMap(line -> parseSerializedBranch(line).stream())
                       .collect(Collectors.toSet());
     }
 
-    private String serializeEntry(ResolvedBranch entry) {
+    private String serializeBranch(UpdatedBranch entry) {
         return entry.branch().toString() + " " + entry.updater() + " " + entry.hash().toString();
     }
 
-    private String serializeBranches(Collection<ResolvedBranch> added, Set<ResolvedBranch> existing) {
+    private String serializeBranches(Collection<UpdatedBranch> added, Set<UpdatedBranch> existing) {
         var updatedBranches = existing.stream()
                                       .collect(Collectors.toMap(entry -> entry.branch().toString() + ":" + entry.updater(),
                                                                 Function.identity()));
         added.forEach(a -> updatedBranches.put(a.branch().toString() + ":" + a.updater(), a));
         return updatedBranches.values().stream()
-                              .map(this::serializeEntry)
+                              .map(this::serializeBranch)
                               .sorted()
                               .collect(Collectors.joining("\n"));
     }
 
-    private Set<Tag> loadTags(String current) {
+    private List<UpdatedTag> parseSerializedTag(String entry) {
+        var parts = entry.split(" ");
+        if (parts.length == 1) {
+            // Transform legacy entry
+            var issueEntry = new UpdatedTag(new Tag(entry), "issue", false);
+            var mlEntry = new UpdatedTag(new Tag(entry), "ml", false);
+            return List.of(issueEntry, mlEntry);
+        }
+        return List.of(new UpdatedTag(new Tag(parts[0]), parts[1], parts[2].equals("retry")));
+    }
+
+    private Set<UpdatedTag> loadTags(String current) {
         return current.lines()
-                      .map(Tag::new)
+                      .flatMap(line -> parseSerializedTag(line).stream())
                       .collect(Collectors.toSet());
     }
 
-    private String serializeTags(Collection<Tag> added, Set<Tag> existing) {
-        return Stream.concat(existing.stream(),
-                             added.stream())
-                     .map(Tag::toString)
-                     .sorted()
-                     .collect(Collectors.joining("\n"));
+    private String serializeTag(UpdatedTag entry) {
+        return entry.tag().toString() + " " + entry.updater() + " " + (entry.shouldRetry() ? "retry" : "done");
     }
 
-    private Set<Tag> currentTags() {
-        return tagStorage.current();
+    private String serializeTags(Collection<UpdatedTag> added, Set<UpdatedTag> existing) {
+        var updatedTags = existing.stream()
+                                  .collect(Collectors.toMap(entry -> entry.tag().toString() + ":" + entry.updater(),
+                                                            Function.identity()));
+        added.forEach(a -> updatedTags.put(a.tag().toString() + ":" + a.updater(), a));
+        return updatedTags.values().stream()
+                          .map(this::serializeTag)
+                          .sorted()
+                          .collect(Collectors.joining("\n"));
     }
 
     private Map<String, Hash> currentBranchHashes() {
         return branchStorage.current().stream()
-                .collect(Collectors.toMap(rb -> rb.branch().toString() + " " + rb.updater(), ResolvedBranch::hash));
+                            .collect(Collectors.toMap(rb -> rb.branch().toString() + " " + rb.updater(), UpdatedBranch::hash));
     }
 
-    private UpdateHistory(StorageBuilder<Tag> tagStorageBuilder, Path tagLocation, StorageBuilder<ResolvedBranch> branchStorageBuilder, Path branchLocation) {
+    private Map<String, Boolean> currentTags() {
+        return tagStorage.current().stream()
+                         .collect(Collectors.toMap(u -> u.tag().toString() + " " + u.updater(), UpdatedTag::shouldRetry));
+    }
+
+    private UpdateHistory(StorageBuilder<UpdatedTag> tagStorageBuilder, Path tagLocation, StorageBuilder<UpdatedBranch> branchStorageBuilder, Path branchLocation) {
         this.tagStorage = tagStorageBuilder
                 .serializer(this::serializeTags)
                 .deserializer(this::loadTags)
@@ -103,48 +122,41 @@ class UpdateHistory {
                 .deserializer(this::loadBranches)
                 .materialize(branchLocation);
 
-        tags = currentTags();
+        tagRetries = currentTags();
         branchHashes = currentBranchHashes();
     }
 
-    static UpdateHistory create(StorageBuilder<Tag> tagStorageBuilder, Path tagLocation, StorageBuilder<ResolvedBranch> branchStorageBuilder, Path branchLocation) {
+    static UpdateHistory create(StorageBuilder<UpdatedTag> tagStorageBuilder, Path tagLocation, StorageBuilder<UpdatedBranch> branchStorageBuilder, Path branchLocation) {
         return new UpdateHistory(tagStorageBuilder, tagLocation, branchStorageBuilder, branchLocation);
     }
 
-    void addTags(Collection<Tag> addedTags) {
-        tagStorage.put(addedTags);
-        var newTags = currentTags();
-
-        if (addedTags != null) {
-            for (var existingTag : addedTags) {
-                if (!newTags.contains(existingTag)) {
-                    throw new RuntimeException("Tag '" + existingTag + "' has been removed");
-                }
-            }
-        }
-
-        tags = currentTags();
+    void addTags(Collection<Tag> addedTags, String updater) {
+        var newEntries = addedTags.stream()
+                                  .map(t -> new UpdatedTag(t, updater, false))
+                                  .collect(Collectors.toSet());
+        tagStorage.put(newEntries);
+        tagRetries = currentTags();
     }
 
-    boolean hasTag(Tag tag) {
-        return tags.contains(tag);
+    void retryTagUpdate(Tag tagToRetry, String updater) {
+        var entry = new UpdatedTag(tagToRetry, updater, true);
+        tagStorage.put(List.of(entry));
+        tagRetries = currentTags();
+    }
+
+    boolean hasTag(Tag tag, String updater) {
+        return tagRetries.containsKey(tag.toString() + " " + updater);
+    }
+
+    boolean shouldRetryTagUpdate(Tag tag, String updater) {
+        return tagRetries.getOrDefault(tag.toString() + " " + updater, false);
     }
 
     void setBranchHash(Branch branch, String updater, Hash hash) {
-        var entry = new ResolvedBranch(branch, updater, hash);
+        var entry = new UpdatedBranch(branch, updater, hash);
 
         branchStorage.put(entry);
-        var newBranchHashes = currentBranchHashes();
-
-        // Sanity check
-        if (branchHashes != null) {
-            for (var existingBranch : branchHashes.keySet()) {
-                if (!newBranchHashes.containsKey(existingBranch)) {
-                    throw new RuntimeException("Hash information for branch '" + existingBranch + "' is missing");
-                }
-            }
-        }
-        branchHashes = newBranchHashes;
+        branchHashes = currentBranchHashes();
     }
 
     Optional<Hash> branchHash(Branch branch, String updater) {

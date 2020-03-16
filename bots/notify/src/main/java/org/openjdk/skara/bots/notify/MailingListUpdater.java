@@ -165,7 +165,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
         return ret.toString();
     }
 
-    private List<Commit> filterAndSendPrCommits(HostedRepository repository, List<Commit> commits, Branch branch) {
+    private List<Commit> filterAndSendPrCommits(HostedRepository repository, List<Commit> commits, Branch branch) throws NonRetriableException {
         var ret = new ArrayList<Commit>();
 
         var rfrsConvos = list.conversations(Duration.ofDays(365)).stream()
@@ -210,13 +210,18 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
                              .recipient(recipient)
                              .headers(headers)
                              .build();
-            list.post(email);
+
+            try {
+                list.post(email);
+            } catch (RuntimeException e) {
+                throw new NonRetriableException(e);
+            }
         }
 
         return ret;
     }
 
-    private void sendCombinedCommits(HostedRepository repository, List<Commit> commits, Branch branch) {
+    private void sendCombinedCommits(HostedRepository repository, List<Commit> commits, Branch branch) throws NonRetriableException {
         if (commits.size() == 0) {
             return;
         }
@@ -238,11 +243,15 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
                          .headers(headers)
                          .build();
 
-        list.post(email);
+        try {
+            list.post(email);
+        } catch (RuntimeException e) {
+            throw new NonRetriableException(e);
+        }
     }
 
     @Override
-    public void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) {
+    public void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) throws NonRetriableException {
         switch (mode) {
             case PR_ONLY:
                 filterAndSendPrCommits(repository, commits, branch);
@@ -257,7 +266,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
     }
 
     @Override
-    public void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotation) {
+    public void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotation) throws NonRetriableException {
         if ((mode == Mode.PR_ONLY) || (!reportNewTags)) {
             return;
         }
@@ -296,11 +305,15 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
             email.author(commitToAuthor(taggedCommit));
         }
 
-        list.post(email.build());
+        try {
+            list.post(email.build());
+        } catch (RuntimeException e) {
+            throw new NonRetriableException(e);
+        }
     }
 
     @Override
-    public void handleTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag, Tag.Annotated annotation) {
+    public void handleTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag, Tag.Annotated annotation) throws NonRetriableException {
         if ((mode == Mode.PR_ONLY) || (!reportNewTags)) {
             return;
         }
@@ -324,7 +337,11 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
             email.author(commitToAuthor(commit));
         }
 
-        list.post(email.build());
+        try {
+            list.post(email.build());
+        } catch (RuntimeException e) {
+            throw new NonRetriableException(e);
+        }
     }
 
     private String newBranchSubject(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) {
@@ -347,7 +364,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
     }
 
     @Override
-    public void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) {
+    public void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) throws NonRetriableException {
         if ((mode == Mode.PR_ONLY) || (!reportNewBranches)) {
             return;
         }
@@ -377,12 +394,11 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
                          .recipient(recipient)
                          .headers(headers)
                          .build();
-        list.post(email);
-    }
-
-    @Override
-    public boolean isIdempotent() {
-        return false;
+        try {
+            list.post(email);
+        } catch (RuntimeException e) {
+            throw new NonRetriableException(e);
+        }
     }
 
     @Override
