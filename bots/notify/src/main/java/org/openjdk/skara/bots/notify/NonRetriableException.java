@@ -23,13 +23,13 @@
 package org.openjdk.skara.bots.notify;
 
 public class NonRetriableException extends Exception {
-    private final RuntimeException cause;
+    private final Throwable cause;
 
-    public NonRetriableException(RuntimeException cause) {
+    public NonRetriableException(Throwable cause) {
         this.cause = cause;
     }
 
-    public RuntimeException cause() {
+    public Throwable cause() {
         return cause;
     }
 }
