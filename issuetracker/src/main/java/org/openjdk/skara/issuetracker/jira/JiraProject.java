@@ -220,14 +220,8 @@ public class JiraProject implements IssueProject {
     public Issue createIssue(String title, List<String> body, Map<String, JSONValue> properties) {
         var query = JSON.object();
 
-        var finalProperties = new HashMap<String, JSONValue>(properties);
-
-        // Always override certain fields
-        finalProperties.put("project", JSON.object().put("id", projectId()));
-        finalProperties.put("summary", JSON.of(title));
-        finalProperties.put("description", JSON.of(String.join("\n", body)));
-
         // Encode optional properties as fields
+        var finalProperties = new HashMap<String, JSONValue>();
         for (var property : properties.entrySet()) {
             var encoded = encodeProperty(property.getKey(), property.getValue());
             if (encoded.isEmpty()) {
@@ -235,6 +229,11 @@ public class JiraProject implements IssueProject {
             }
             finalProperties.put(property.getKey(), encoded.get());
         }
+
+        // Always override certain fields
+        finalProperties.put("project", JSON.object().put("id", projectId()));
+        finalProperties.put("summary", JSON.of(title));
+        finalProperties.put("description", JSON.of(String.join("\n", body)));
 
         // Provide default values for required fields if not present
         finalProperties.putIfAbsent("components", JSON.array().add(JSON.object().put("id", defaultComponent())));

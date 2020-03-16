@@ -33,7 +33,7 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import java.util.stream.*;
 
 public class RepositoryWorkItem implements WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
@@ -288,7 +288,7 @@ public class RepositoryWorkItem implements WorkItem {
             }
             if (!errors.isEmpty()) {
                 errors.forEach(error -> log.throwing("RepositoryWorkItem", "run", error));
-                throw new RuntimeException("Errors detected when processing repository notifications");
+                throw new RuntimeException("Errors detected when processing repository notifications", errors.get(0));
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
