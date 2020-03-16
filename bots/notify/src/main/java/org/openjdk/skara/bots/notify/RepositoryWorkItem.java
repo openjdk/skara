@@ -92,8 +92,8 @@ public class RepositoryWorkItem implements WorkItem {
         updater.handleCommits(repository, localRepo, commits, branch);
     }
 
-    private List<RuntimeException> handleRef(Repository localRepo, UpdateHistory history, Reference ref, Collection<Reference> allRefs) throws IOException {
-        var errors = new ArrayList<RuntimeException>();
+    private List<Throwable> handleRef(Repository localRepo, UpdateHistory history, Reference ref, Collection<Reference> allRefs) throws IOException {
+        var errors = new ArrayList<Throwable>();
         var branch = new Branch(ref.name());
         for (var updater : updaters) {
             var lastHash = history.branchHash(branch, updater.name());
@@ -151,8 +151,8 @@ public class RepositoryWorkItem implements WorkItem {
         }
     }
 
-    private List<RuntimeException> handleTags(Repository localRepo, UpdateHistory history, RepositoryUpdateConsumer updater) throws IOException {
-        var errors = new ArrayList<RuntimeException>();
+    private List<Throwable> handleTags(Repository localRepo, UpdateHistory history, RepositoryUpdateConsumer updater) throws IOException {
+        var errors = new ArrayList<Throwable>();
         var tags = localRepo.tags();
         var newTags = tags.stream()
                           .filter(tag -> !history.hasTag(tag, updater.name()))
@@ -268,7 +268,7 @@ public class RepositoryWorkItem implements WorkItem {
             localRepo.fetchAll();
 
             var history = UpdateHistory.create(tagStorageBuilder, historyPath.resolve("tags"), branchStorageBuilder, historyPath.resolve("branches"));
-            var errors = new ArrayList<RuntimeException>();
+            var errors = new ArrayList<Throwable>();
 
             for (var updater : updaters) {
                 errors.addAll(handleTags(localRepo, history, updater));
