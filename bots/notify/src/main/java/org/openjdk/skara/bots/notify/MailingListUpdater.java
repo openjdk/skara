@@ -182,6 +182,11 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
 
             var candidate = candidates.get(0);
             var prLink = candidate.webUrl();
+            if (!candidate.targetRef().equals(branch.name())) {
+                log.warning("Pull request " + prLink + " targets " + candidate.targetRef() + " - commit is on " + branch.toString() + " - skipping");
+                ret.add(commit);
+                continue;
+            }
             var prLinkPattern = Pattern.compile("^(?:PR: )?" + Pattern.quote(prLink.toString()), Pattern.MULTILINE);
 
             var rfrCandidates = rfrsConvos.stream()
