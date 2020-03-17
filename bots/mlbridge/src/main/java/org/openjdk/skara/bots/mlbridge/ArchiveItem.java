@@ -38,8 +38,7 @@ class ArchiveItem {
         this.footer = footer;
     }
 
-    // If the head commit is a merge commit with base as one parent, return the other one (the new content)
-    private static Optional<Hash> mergeParent(Repository localRepo, Hash base, Hash head) {
+    private static Optional<Commit> mergeCommit(Repository localRepo, Hash head) {
         try {
             var mergeCommit = localRepo.lookup(head);
             if (mergeCommit.isEmpty()) {
@@ -48,13 +47,7 @@ class ArchiveItem {
             if (!mergeCommit.get().isMerge()) {
                 return Optional.empty();
             }
-            for (var parent : mergeCommit.get().parents()) {
-                if (parent.equals(base) || localRepo.isAncestor(parent, base)) {
-                    continue;
-                }
-                return Optional.of(parent);
-            }
-            return Optional.empty();
+            return mergeCommit;
         } catch (IOException e) {
             return Optional.empty();
         }
@@ -69,16 +62,32 @@ class ArchiveItem {
                                () -> "",
                                () -> ArchiveMessages.composeConversation(pr, localRepo, base, head),
                                () -> {
+                                   var fullWebrev = webrevGenerator.generate(base, head, "00", WebrevDescription.Type.FULL);
                                    if (pr.title().startsWith("Merge")) {
-                                       var mergeCommitParent = mergeParent(localRepo, base, head);
-                                        if (mergeCommitParent.isPresent()) {
-                                            var mergeWebrev = webrevGenerator.generate(mergeCommitParent.get(), head, "00");
-                                            webrevNotification.notify(0, mergeWebrev, null);
-                                            return ArchiveMessages.composeMergeConversationFooter(pr, localRepo, mergeWebrev, base, mergeCommitParent.get(), head);
+                                       var mergeCommit = mergeCommit(localRepo, head);
+                                        if (mergeCommit.isPresent()) {
+                                            var mergeWebrevs = new ArrayList<WebrevDescription>();
+                                            mergeWebrevs.add(fullWebrev);
+                                            for (int i = 0; i < mergeCommit.get().parentDiffs().size(); ++i) {
+                                                var diff = mergeCommit.get().parentDiffs().get(i);
+                                                switch (i) {
+                                                    case 0:
+                                                        mergeWebrevs.add(webrevGenerator.generate(diff, String.format("00.%d", i), WebrevDescription.Type.MERGE_TARGET, pr.targetRef()));
+                                                        break;
+                                                    case 1:
+                                                        var mergeSource = pr.title().length() > 6 ? pr.title().substring(6) : null;
+                                                        mergeWebrevs.add(webrevGenerator.generate(diff, String.format("00.%d", i), WebrevDescription.Type.MERGE_SOURCE, mergeSource));
+                                                        break;
+                                                    default:
+                                                        mergeWebrevs.add(webrevGenerator.generate(diff, String.format("00.%d", i), WebrevDescription.Type.MERGE_SOURCE, null));
+                                                        break;
+                                                }
+                                            }
+                                            webrevNotification.notify(0, mergeWebrevs);
+                                            return ArchiveMessages.composeMergeConversationFooter(pr, localRepo, mergeWebrevs, base, head);
                                         }
                                    }
-                                   var fullWebrev = webrevGenerator.generate(base, head, "00");
-                                   webrevNotification.notify(0, fullWebrev, null);
+                                   webrevNotification.notify(0, List.of(fullWebrev));
                                    return ArchiveMessages.composeConversationFooter(pr, issueTracker, issuePrefix, localRepo, fullWebrev, base, head);
                                });
     }
@@ -123,19 +132,19 @@ class ArchiveItem {
                                    }
                                },
                                () -> {
-                                   var fullWebrev = webrevGenerator.generate(base, head, String.format("%02d", index));
+                                   var fullWebrev = webrevGenerator.generate(base, head, String.format("%02d", index), WebrevDescription.Type.FULL);
                                    if (lastBase.equals(base)) {
-                                       var incrementalWebrev = webrevGenerator.generate(lastHead, head, String.format("%02d-%02d", index - 1, index));
-                                       webrevNotification.notify(index, fullWebrev, incrementalWebrev);
+                                       var incrementalWebrev = webrevGenerator.generate(lastHead, head, String.format("%02d-%02d", index - 1, index), WebrevDescription.Type.INCREMENTAL);
+                                       webrevNotification.notify(index, List.of(fullWebrev, incrementalWebrev));
                                        return ArchiveMessages.composeIncrementalFooter(pr, localRepo, fullWebrev, incrementalWebrev, head, lastHead);
                                    } else {
                                        var rebasedLastHead = rebasedLastHead(localRepo, base, lastHead);
                                        if (rebasedLastHead.isPresent()) {
-                                           var incrementalWebrev = webrevGenerator.generate(rebasedLastHead.get(), head, String.format("%02d-%02d", index - 1, index));
-                                           webrevNotification.notify(index, fullWebrev, incrementalWebrev);
+                                           var incrementalWebrev = webrevGenerator.generate(rebasedLastHead.get(), head, String.format("%02d-%02d", index - 1, index), WebrevDescription.Type.INCREMENTAL);
+                                           webrevNotification.notify(index, List.of(fullWebrev, incrementalWebrev));
                                            return ArchiveMessages.composeIncrementalFooter(pr, localRepo, fullWebrev, incrementalWebrev, head, lastHead);
                                        } else {
-                                           webrevNotification.notify(index, fullWebrev, null);
+                                           webrevNotification.notify(index, List.of(fullWebrev));
                                            return ArchiveMessages.composeRebasedFooter(pr, localRepo, fullWebrev, base, head);
                                        }
                                    }

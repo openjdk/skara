@@ -23,16 +23,14 @@
 package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.email.EmailAddress;
-import org.openjdk.skara.forge.HostedRepository;
-import org.openjdk.skara.forge.PullRequest;
-import org.openjdk.skara.network.URIBuilder;
-import org.openjdk.skara.vcs.Repository;
-import org.openjdk.skara.vcs.Hash;
-import org.openjdk.skara.webrev.Webrev;
-import org.openjdk.skara.version.Version;
-import org.openjdk.skara.vcs.openjdk.Issue;
-import org.openjdk.skara.jcheck.JCheckConfiguration;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.IssueTracker;
+import org.openjdk.skara.jcheck.JCheckConfiguration;
+import org.openjdk.skara.network.URIBuilder;
+import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.vcs.openjdk.Issue;
+import org.openjdk.skara.version.Version;
+import org.openjdk.skara.webrev.Webrev;
 
 import java.io.*;
 import java.net.URI;
@@ -60,7 +58,7 @@ class WebrevStorage {
         this.author = author;
     }
 
-    private void generate(PullRequest pr, Repository localRepository, Path folder, Hash base, Hash head) throws IOException {
+    private void generate(PullRequest pr, Repository localRepository, Path folder, Diff diff, Hash base, Hash head) throws IOException {
         Files.createDirectories(folder);
         var fullName = pr.author().fullName();
         var builder = Webrev.repository(localRepository)
@@ -85,7 +83,11 @@ class WebrevStorage {
             }
         }
 
-        builder.generate(base, head);
+        if (diff != null) {
+            builder.generate(diff);
+        } else {
+            builder.generate(base, head);
+        }
     }
 
     private String generatePlaceholder(PullRequest pr, Hash base, Hash head) {
@@ -209,7 +211,7 @@ class WebrevStorage {
         throw new RuntimeException("No success response from " + uri + " within " + timeout);
     }
 
-    private URI createAndArchive(PullRequest pr, Repository localRepository, Path scratchPath, Hash base, Hash head, String identifier) {
+    private URI createAndArchive(PullRequest pr, Repository localRepository, Path scratchPath, Diff diff, Hash base, Hash head, String identifier) {
         try {
             var localStorage = Repository.materialize(scratchPath, storage.url(),
                                                       "+" + storageRef + ":mlbridge_webrevs");
@@ -219,7 +221,7 @@ class WebrevStorage {
             if (Files.exists(outputFolder)) {
                 clearDirectory(outputFolder);
             }
-            generate(pr, localRepository, outputFolder, base, head);
+            generate(pr, localRepository, outputFolder, diff, base, head);
             var placeholder = generatePlaceholder(pr, base, head);
             if (!localStorage.isClean()) {
                 push(localStorage, outputFolder, baseFolder.resolve(pr.id()).toString(), placeholder);
@@ -232,12 +234,24 @@ class WebrevStorage {
         }
     }
 
-    @FunctionalInterface
     interface WebrevGenerator {
-        URI generate(Hash base, Hash head, String identifier);
+        WebrevDescription generate(Hash base, Hash head, String identifier, WebrevDescription.Type type);
+        WebrevDescription generate(Diff diff, String identifier, WebrevDescription.Type type, String description);
     }
 
     WebrevGenerator generator(PullRequest pr, Repository localRepository, Path scratchPath) {
-        return (base, head, identifier) -> createAndArchive(pr, localRepository, scratchPath, base, head, identifier);
+        return new WebrevGenerator() {
+            @Override
+            public WebrevDescription generate(Hash base, Hash head, String identifier, WebrevDescription.Type type) {
+                var uri = createAndArchive(pr, localRepository, scratchPath, null, base, head, identifier);
+                return new WebrevDescription(uri, type);
+            }
+
+            @Override
+            public WebrevDescription generate(Diff diff, String identifier, WebrevDescription.Type type, String description) {
+                var uri = createAndArchive(pr, localRepository, scratchPath, diff, diff.from(), diff.to(), identifier);
+                return new WebrevDescription(uri, type, description);
+            }
+        };
     }
 }

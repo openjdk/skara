@@ -31,14 +31,13 @@ import org.openjdk.skara.mailinglist.*;
 import org.openjdk.skara.vcs.Repository;
 
 import java.io.*;
-import java.net.URI;
 import java.nio.file.Path;
 import java.time.*;
 import java.util.*;
 import java.util.function.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import java.util.stream.*;
+import java.util.stream.Collectors;
 
 class ArchiveWorkItem implements WorkItem {
     private final PullRequest pr;
@@ -131,24 +130,24 @@ class ArchiveWorkItem implements WorkItem {
     private static final String webrevHeaderMarker = "<!-- mlbridge webrev header -->";
     private static final String webrevListMarker = "<!-- mlbridge webrev list -->";
 
-    private void updateWebrevComment(List<Comment> comments, int index, URI fullWebrev, URI incWebrev) {
+    private void updateWebrevComment(List<Comment> comments, int index, List<WebrevDescription> webrevs) {
         var existing = comments.stream()
                                .filter(comment -> comment.author().equals(pr.repository().forge().currentUser()))
                                .filter(comment -> comment.body().contains(webrevCommentMarker))
                                .findAny();
+        var webrevDescriptions = webrevs.stream()
+                                        .map(d -> String.format("[%s](%s)", d.label(), d.uri()))
+                                        .collect(Collectors.joining(" - "));
         var comment = webrevCommentMarker + "\n";
         comment += webrevHeaderMarker + "\n";
         comment += "### Webrevs" + "\n";
         comment += webrevListMarker + "\n";
-        comment += " * " + String.format("%02d", index) + ": [Full](" + fullWebrev.toString() + ")";
-        if (incWebrev != null) {
-            comment += " - [Incremental](" + incWebrev.toString() + ")";
-        }
+        comment += " * " + String.format("%02d", index) + ": " + webrevDescriptions;
         comment += " (" + pr.headHash() + ")\n";
 
         if (existing.isPresent()) {
-            if (existing.get().body().contains(fullWebrev.toString())) {
-                log.fine("Webrev link already posted - skipping update");
+            if (existing.get().body().contains(webrevDescriptions)) {
+                log.fine("Webrev links already posted - skipping update");
                 return;
             }
             var previousListStart = existing.get().body().indexOf(webrevListMarker) + webrevListMarker.length() + 1;
@@ -328,7 +327,7 @@ class ArchiveWorkItem implements WorkItem {
 
             var webrevGenerator = bot.webrevStorage().generator(pr, localRepo, webrevPath);
             var newMails = archiver.generateNewEmails(sentMails, bot.cooldown(), localRepo, bot.issueTracker(), jbs.toUpperCase(), webrevGenerator,
-                                                      (index, full, inc) -> updateWebrevComment(comments, index, full, inc),
+                                                      (index, webrevs) -> updateWebrevComment(comments, index, webrevs),
                                                       user -> getAuthorAddress(census, user),
                                                       user -> getAuthorUserName(census, user),
                                                       user -> getAuthorRole(census, user),
