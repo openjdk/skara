@@ -542,7 +542,7 @@ class CheckRun {
         }
         var message = "@" + pr.author().userName() + " this pull request can no longer be integrated into " +
                 "`" + pr.targetRef() + "` due to one or more merge conflicts. To resolve these merge conflicts " +
-                "and update this pull request you can run the following commands:\n" +
+                "and update this pull request you can run the following commands in the local repository for your personal fork:\n" +
                 "```bash\n" +
                 "git checkout " + pr.sourceRef() + "\n" +
                 "git fetch " + pr.repository().webUrl() + " " + pr.targetRef() + "\n" +
