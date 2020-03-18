@@ -62,8 +62,8 @@ public class GitInfo {
         return lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
     }
 
-    private static String jbsProject(ReadOnlyRepository repo) throws IOException {
-        var conf = JCheckConfiguration.from(repo);
+    private static String jbsProject(ReadOnlyRepository repo, Hash hash) throws IOException {
+        var conf = JCheckConfiguration.from(repo, hash);
         return conf.general().jbs().toUpperCase();
     }
 
@@ -228,7 +228,7 @@ public class GitInfo {
 
         if (showReview) {
             var decoration = useDecoration? "Review: " : "";
-            var project = jbsProject(repo);
+            var project = jbsProject(repo, hash);
             if (message.issues().size() == 1) {
                 var issueId = message.issues().get(0).id();
                 var issueTracker = IssueTracker.from("jira", JBS);
@@ -245,7 +245,7 @@ public class GitInfo {
             }
         }
         if (showIssues) {
-            var project = jbsProject(repo);
+            var project = jbsProject(repo, hash);
             var uri = JBS + "/browse/" + project + "-";
             var issues = message.issues();
             if (issues.size() > 1) {
