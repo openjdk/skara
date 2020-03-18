@@ -68,7 +68,7 @@ class WebrevStorageTests {
             var prRepo = Repository.materialize(prFolder, pr.repository().url(), "edit");
             var scratchFolder = tempFolder.path().resolve("scratch");
             var generator = storage.generator(pr, prRepo, scratchFolder);
-            generator.generate(masterHash, editHash, "00");
+            generator.generate(masterHash, editHash, "00", WebrevDescription.Type.FULL);
 
             // Check that the web link has been verified now and followed the redirect
             assertTrue(webrevServer.isChecked());
@@ -79,7 +79,7 @@ class WebrevStorageTests {
             assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/webrev.00/index.html")));
 
             // Create it again - it will overwrite the previous one
-            generator.generate(masterHash, editHash, "00");
+            generator.generate(masterHash, editHash, "00", WebrevDescription.Type.FULL);
             Repository.materialize(repoFolder, archive.url(), "webrev");
             assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/webrev.00/index.html")));
         }
@@ -121,7 +121,7 @@ class WebrevStorageTests {
             var prRepo = Repository.materialize(prFolder, pr.repository().url(), "edit");
             var scratchFolder = tempFolder.path().resolve("scratch");
             var generator = storage.generator(pr, prRepo, scratchFolder);
-            generator.generate(masterHash, editHash, "00");
+            generator.generate(masterHash, editHash, "00", WebrevDescription.Type.FULL);
 
             // Update the local repository and check that the webrev has been generated
             Repository.materialize(repoFolder, archive.url(), "webrev");

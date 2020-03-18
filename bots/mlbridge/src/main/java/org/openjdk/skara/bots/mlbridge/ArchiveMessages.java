@@ -238,13 +238,13 @@ class ArchiveMessages {
     }
 
     // When changing this, ensure that the PR pattern in the notifier still matches
-    static String composeConversationFooter(PullRequest pr, URI issueProject, String projectPrefix, Repository localRepo, URI webrev, Hash base, Hash head) {
+    static String composeConversationFooter(PullRequest pr, URI issueProject, String projectPrefix, Repository localRepo, WebrevDescription webrev, Hash base, Hash head) {
         var commits = commits(localRepo, base, head);
         var issueString = issueUrl(pr, issueProject, projectPrefix).map(url -> "  Issue: " + url + "\n").orElse("");
         return "Commit messages:\n" +
                 formatCommitMessagesBrief(commits).orElse("") + "\n\n" +
                 "Changes: " + pr.changeUrl() + "\n" +
-                " Webrev: " + webrev + "\n" +
+                " Webrev: " + webrev.uri().toString() + "\n" +
                 issueString +
                 "  Stats: " + stats(localRepo, base, head) + "\n" +
                 "  Patch: " + pr.diffUrl().toString() + "\n" +
@@ -252,22 +252,46 @@ class ArchiveMessages {
                 composeReplyFooter(pr);
     }
 
-    static String composeRebasedFooter(PullRequest pr, Repository localRepo, URI fullWebrev, Hash base, Hash head) {
-        return "Changes: " + pr.changeUrl() + "\n" +
-                " Webrev: " + fullWebrev.toString() + "\n" +
+    static String composeMergeConversationFooter(PullRequest pr, Repository localRepo, List<WebrevDescription> webrevs, Hash base, Hash head) {
+        var commits = commits(localRepo, base, head);
+        var webrevLinks = "";
+        if (webrevs.size() > 1) {
+            webrevLinks = " Webrev: " + webrevs.get(0).uri() + "\n\n" +
+                    "The following webrevs contain only the adjustments done while merging with regards to each parent branch:\n" +
+                    webrevs.stream()
+                           .skip(1)
+                           .map(d -> String.format(" - %s: %s", d.shortLabel(), d.uri()))
+                           .collect(Collectors.joining("\n")) + "\n\n";
+        } else {
+            webrevLinks = " Webrev: " + webrevs.get(0).uri() + "\n\n" +
+                    "The merge commit only contains trivial merges, so no merge-specific webrevs have been generated.\n\n";
+        }
+        return "Commit messages:\n" +
+                formatCommitMessagesBrief(commits).orElse("") + "\n\n" +
+                "Changes: " + pr.changeUrl() + "\n" +
+                webrevLinks +
                 "  Stats: " + stats(localRepo, base, head) + "\n" +
                 "  Patch: " + pr.diffUrl().toString() + "\n" +
                 "  Fetch: " + fetchCommand(pr) + "\n\n" +
                 composeReplyFooter(pr);
     }
 
-    static String composeIncrementalFooter(PullRequest pr, Repository localRepo, URI fullWebrev, URI incrementalWebrev, Hash head, Hash lastHead) {
+    static String composeRebasedFooter(PullRequest pr, Repository localRepo, WebrevDescription fullWebrev, Hash base, Hash head) {
+        return "Changes: " + pr.changeUrl() + "\n" +
+                " Webrev: " + fullWebrev.uri().toString() + "\n" +
+                "  Stats: " + stats(localRepo, base, head) + "\n" +
+                "  Patch: " + pr.diffUrl().toString() + "\n" +
+                "  Fetch: " + fetchCommand(pr) + "\n\n" +
+                composeReplyFooter(pr);
+    }
+
+    static String composeIncrementalFooter(PullRequest pr, Repository localRepo, WebrevDescription fullWebrev, WebrevDescription incrementalWebrev, Hash head, Hash lastHead) {
         return "Changes:\n" +
                 "  - all: " + pr.changeUrl() + "\n" +
                 "  - new: " + pr.changeUrl(lastHead) + "\n\n" +
                 "Webrevs:\n" +
-                " - full: " + fullWebrev.toString() + "\n" +
-                " - incr: " + incrementalWebrev.toString() + "\n\n" +
+                " - full: " + fullWebrev.uri().toString() + "\n" +
+                " - incr: " + incrementalWebrev.uri().toString() + "\n\n" +
                 "  Stats: " + stats(localRepo, lastHead, head) + "\n" +
                 "  Patch: " + pr.diffUrl().toString() + "\n" +
                 "  Fetch: " + fetchCommand(pr) + "\n\n" +

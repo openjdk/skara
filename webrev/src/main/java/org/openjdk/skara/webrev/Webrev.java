@@ -126,6 +126,17 @@ public class Webrev {
         }
 
         public void generate(Hash tailEnd, Hash head) throws IOException {
+            var diff = head == null ?
+                    repository.diff(tailEnd, files) :
+                    repository.diff(tailEnd, head, files);
+            generate(diff, tailEnd, head);
+        }
+
+        public void generate(Diff diff) throws IOException {
+            generate(diff, diff.from(), diff.to());
+        }
+
+        private void generate(Diff diff, Hash tailEnd, Hash head) throws IOException {
             Files.createDirectories(output);
 
             copyResource(ANCNAV_HTML);
@@ -133,12 +144,8 @@ public class Webrev {
             copyResource(CSS);
             copyResource(ICON);
 
-            var diff = head == null ?
-                repository.diff(tailEnd, files) :
-                repository.diff(tailEnd, head, files);
-            var patchFile = output.resolve(Path.of(title).getFileName().toString() + ".patch");
-
             var patches = diff.patches();
+            var patchFile = output.resolve(Path.of(title).getFileName().toString() + ".patch");
             if (files != null && !files.isEmpty()) {
                 // Sort the patches according to how they are listed in the `files` list.
                 var byTargetPath = new HashMap<Path, Patch>();

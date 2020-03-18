@@ -22,9 +22,9 @@
  */
 package org.openjdk.skara.bots.mlbridge;
 
-import java.net.URI;
+import java.util.List;
 
 @FunctionalInterface
 interface WebrevNotification {
-    void notify(int index, URI full, URI incremental);
+    void notify(int index, List<WebrevDescription> webrevDescriptions);
 }
