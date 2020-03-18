@@ -40,14 +40,7 @@ class ArchiveItem {
 
     private static Optional<Commit> mergeCommit(Repository localRepo, Hash head) {
         try {
-            var mergeCommit = localRepo.lookup(head);
-            if (mergeCommit.isEmpty()) {
-                return Optional.empty();
-            }
-            if (!mergeCommit.get().isMerge()) {
-                return Optional.empty();
-            }
-            return mergeCommit;
+            return localRepo.lookup(head).filter(Commit::isMerge);
         } catch (IOException e) {
             return Optional.empty();
         }
