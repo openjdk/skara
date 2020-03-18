@@ -583,6 +583,12 @@ class CheckTests {
             // The PR should be flagged as outdated
             assertTrue(pr.labels().contains("outdated"));
 
+            // An instructional message should have been bosted
+            var help = pr.comments().stream()
+                         .filter(comment -> comment.body().contains("To resolve these merge conflicts"))
+                         .count();
+            assertEquals(1, help);
+
             // But it should still pass jcheck
             var checks = pr.checks(editHash);
             assertEquals(1, checks.size());

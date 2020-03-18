@@ -49,6 +49,7 @@ class CheckRun {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     private final String progressMarker = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
     private final String mergeReadyMarker = "<!-- PullRequestBot merge is ready comment -->";
+    private final String outdatedHelpMarker = "<!-- PullRequestBot outdated help comment -->";
     private final Pattern mergeSourceFullPattern = Pattern.compile("^Merge ([-/\\w]+):([-\\w]+)$");
     private final Pattern mergeSourceBranchOnlyPattern = Pattern.compile("^Merge ([-\\w]+)$");
     private final Set<String> newLabels;
@@ -533,6 +534,27 @@ class CheckRun {
         }
     }
 
+    private void addOutdatedComment(List<Comment> comments) {
+        var existing = findComment(comments, outdatedHelpMarker);
+        if (existing.isPresent()) {
+            // Only add the comment once per PR
+            return;
+        }
+        var message = "@" + pr.author().userName() + " this pull request can no longer be integrated into " +
+                "`" + pr.targetRef() + "` due to one or more merge conflicts. To resolve these merge conflicts " +
+                "and update this pull request you can run the following commands in the local repository for your personal fork:\n" +
+                "```bash\n" +
+                "git checkout " + pr.sourceRef() + "\n" +
+                "git fetch " + pr.repository().webUrl() + " " + pr.targetRef() + "\n" +
+                "git merge FETCH_HEAD\n" +
+                "# resolve conflicts and follow the instructions given by git merge\n" +
+                "git commit -m \"Merge " + pr.targetRef() + "\"\n" +
+                "git push\n" +
+                "```\n" +
+                outdatedHelpMarker;
+        pr.addComment(message);
+    }
+
     private void checkStatus() {
         var checkBuilder = CheckBuilder.create("jcheck", pr.headHash());
         var censusDomain = censusInstance.configuration().census().domain();
@@ -586,6 +608,7 @@ class CheckRun {
                 newLabels.remove("ready");
             }
             if (!rebasePossible) {
+                addOutdatedComment(comments);
                 newLabels.add("outdated");
             } else {
                 newLabels.remove("outdated");
