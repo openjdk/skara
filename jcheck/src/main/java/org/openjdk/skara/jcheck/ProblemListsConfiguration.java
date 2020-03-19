@@ -29,7 +29,7 @@ import java.util.List;
 
 public class ProblemListsConfiguration {
     static final ProblemListsConfiguration DEFAULT =
-            new ProblemListsConfiguration("test", "ProblemList.*.txt");
+            new ProblemListsConfiguration("test", "^ProblemList.*.txt$");
 
     private final String dirs;
     private final String pattern;
