@@ -24,15 +24,12 @@ package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.Main;
 import org.openjdk.skara.vcs.Repository;
+import org.openjdk.skara.version.Version;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 public class GitSkara {
 
@@ -41,13 +38,26 @@ public class GitSkara {
     private static void usage(String[] args) {
         var names = new ArrayList<String>();
         names.addAll(commands.keySet());
+        var skaraCommands = Set.of("help", "version", "update");
 
-        System.out.println("usage: git-skara <" + String.join("|", names) + ">");
+        System.out.println("usage: git skara <" + String.join("|", names) + ">");
         System.out.println("");
-        System.out.println("Additional available git commands");
+        System.out.println("Additional available git commands:");
         for (var name : names) {
-            System.out.println("- git-" + name);
+            if (!skaraCommands.contains(name)) {
+                System.out.println("- git " + name);
+            }
         }
+        System.out.println("");
+        System.out.println("For more information, please see the Skara wiki:");
+        System.out.println("");
+        System.out.println("    https://wiki.openjdk.java.net/display/skara");
+        System.out.println("");
+        System.exit(0);
+    }
+
+    private static void version(String[] args) {
+        System.out.println("git skara version: " + Version.fromManifest().orElse("unknown"));
         System.exit(0);
     }
 
@@ -118,8 +128,10 @@ public class GitSkara {
         commands.put("translate", GitTranslate::main);
         commands.put("sync", GitSync::main);
         commands.put("publish", GitPublish::main);
+
         commands.put("update", GitSkara::update);
         commands.put("help", GitSkara::usage);
+        commands.put("version", GitSkara::version);
 
         var isEmpty = args.length == 0;
         var command = isEmpty ? "help" : args[0];
