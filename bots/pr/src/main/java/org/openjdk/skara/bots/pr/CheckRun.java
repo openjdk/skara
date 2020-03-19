@@ -172,7 +172,7 @@ class CheckRun {
                     }
                 }
                 if (mergeCommitIndex >= commits.size() - 1) {
-                    ret.add("A Merge PR must contain a merge commit.");
+                    ret.add("A Merge PR must contain a merge commit as well as at least one other commit from the merge source.");
                 }
 
                 var source = mergeSource();
@@ -184,7 +184,7 @@ class CheckRun {
                         try {
                             var sourceHash = prInstance.localRepo().fetch(mergeSourceRepo.url(), source.get().branchName);
                             if (!prInstance.localRepo().isAncestor(commits.get(mergeCommitIndex + 1).hash(), sourceHash)) {
-                                ret.add("The merge contains commits that are not ancestors of the source");
+                                ret.add("The merge contains commits that are not ancestors of the source.");
                             }
                         } catch (IOException e) {
                             ret.add("Could not fetch branch `" + source.get().branchName + "` from project `" +
