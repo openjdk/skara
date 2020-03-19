@@ -45,19 +45,19 @@ public class Flag {
         return isSwitch;
     }
 
-    String fullname() {
+    public String fullname() {
         return fullname;
     }
 
-    String shortcut() {
+    public String shortcut() {
         return shortcut;
     }
 
-    String description() {
+    public String description() {
         return description;
     }
 
-    String helptext() {
+    public String helptext() {
         return helptext;
     }
 

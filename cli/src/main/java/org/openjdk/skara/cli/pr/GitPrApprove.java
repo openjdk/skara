@@ -31,38 +31,39 @@ import java.io.IOException;
 import java.util.List;
 
 public class GitPrApprove {
-    public static void main(String[] args) throws IOException {
-        var flags = List.of(
-            Option.shortcut("u")
-                  .fullname("username")
-                  .describe("NAME")
-                  .helptext("Username on host")
-                  .optional(),
-            Option.shortcut("r")
-                  .fullname("remote")
-                  .describe("NAME")
-                  .helptext("Name of remote, defaults to 'origin'")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("verbose")
-                  .helptext("Turn on verbose output")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("debug")
-                  .helptext("Turn on debugging output")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("version")
-                  .helptext("Print the version of this tool")
-                  .optional()
-        );
+    static final List<Flag> flags = List.of(
+        Option.shortcut("u")
+              .fullname("username")
+              .describe("NAME")
+              .helptext("Username on host")
+              .optional(),
+        Option.shortcut("r")
+              .fullname("remote")
+              .describe("NAME")
+              .helptext("Name of remote, defaults to 'origin'")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("verbose")
+              .helptext("Turn on verbose output")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("debug")
+              .helptext("Turn on debugging output")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("version")
+              .helptext("Print the version of this tool")
+              .optional()
+    );
 
-        var inputs = List.of(
-            Input.position(0)
-                 .describe("ID")
-                 .singular()
-                 .optional()
-        );
+    static final List<Input> inputs = List.of(
+        Input.position(0)
+             .describe("ID")
+             .singular()
+             .optional()
+    );
+
+    public static void main(String[] args) throws IOException {
         var parser = new ArgumentParser("git-pr", flags, inputs);
         var arguments = parse(parser, args);
         var repo = getRepo();

@@ -31,6 +31,7 @@ public class ArgumentParser {
     private final List<Flag> flags;
     private final List<Input> inputs;
     private final Map<String, Flag> names = new HashMap<String, Flag>();
+    private final boolean shouldShowHelp;
 
     public ArgumentParser(String programName, List<Flag> flags) {
         this(programName, flags, List.of());
@@ -41,11 +42,16 @@ public class ArgumentParser {
         this.flags = new ArrayList<Flag>(flags);
         this.inputs = inputs;
 
-        var help = Switch.shortcut("h")
-                         .fullname("help")
-                         .helptext("Show this help text")
-                         .optional();
-        this.flags.add(help);
+        if (!flags.stream().anyMatch(f -> f.shortcut().equals("h") && f.fullname().equals("help"))) {
+            var help = Switch.shortcut("h")
+                             .fullname("help")
+                             .helptext("Show this help text")
+                             .optional();
+            this.flags.add(help);
+            shouldShowHelp = true;
+        } else {
+            shouldShowHelp = false;
+        }
 
         for (var flag : this.flags) {
             if (!flag.fullname().equals("")) {
@@ -77,7 +83,7 @@ public class ArgumentParser {
         return lookupFlag(name, true);
     }
 
-    private int longest(Function<Flag, String> getName) {
+    private static int longest(List<Flag> flags, Function<Flag, String> getName) {
         return flags.stream()
                     .map(getName)
                     .filter(Objects::nonNull)
@@ -85,16 +91,39 @@ public class ArgumentParser {
                     .reduce(0, Integer::max);
     }
 
-    private int longestShortcut() {
-        return longest(Flag::shortcut);
+    private static int longestShortcut(List<Flag> flags) {
+        return longest(flags, Flag::shortcut);
     }
 
-    private int longestFullname() {
-        return longest(f -> f.fullname() + " " + f.description());
+    private static int longestFullname(List<Flag> flags) {
+        return longest(flags, f -> f.fullname() + " " + f.description());
     }
 
     public void showUsage() {
         showUsage(System.out);
+    }
+
+    public static void showFlags(PrintStream ps, List<Flag> flags, String prefix) {
+        var shortcutPad = longestShortcut(flags) + 1 + 2; // +1 for '-' and +2 for ', '
+        var fullnamePad = longestFullname(flags) + 2 + 2; // +2 for '--' and +2 for '  '
+
+        for (var flag : flags) {
+            ps.print(prefix);
+            var fmt = "%-" + shortcutPad + "s";
+            var s = flag.shortcut().equals("") ? " " : "-" + flag.shortcut() + ", ";
+            ps.print(String.format(fmt, s));
+
+            fmt = "%-" + fullnamePad + "s";
+            var desc = flag.description().equals("") ? "" : " " + flag.description();
+            s = flag.fullname().equals("") ? " " : "--" + flag.fullname() + desc + "  ";
+            ps.print(String.format(fmt, s));
+
+            if (!flag.helptext().equals("")) {
+                ps.print(flag.helptext());
+            }
+
+            ps.println("");
+        }
     }
 
     public void showUsage(PrintStream ps) {
@@ -126,26 +155,7 @@ public class ArgumentParser {
         }
         ps.println("");
 
-        var shortcutPad = longestShortcut() + 1 + 2; // +1 for '-' and +2 for ', '
-        var fullnamePad = longestFullname() + 2 + 2; // +2 for '--' and +2 for '  '
-
-        for (var flag : flags) {
-            ps.print("\t");
-            var fmt = "%-" + shortcutPad + "s";
-            var s = flag.shortcut().equals("") ? " " : "-" + flag.shortcut() + ", ";
-            ps.print(String.format(fmt, s));
-
-            fmt = "%-" + fullnamePad + "s";
-            var desc = flag.description().equals("") ? "" : " " + flag.description();
-            s = flag.fullname().equals("") ? " " : "--" + flag.fullname() + desc + "  ";
-            ps.print(String.format(fmt, s));
-
-            if (!flag.helptext().equals("")) {
-                ps.print(flag.helptext());
-            }
-
-            ps.println("");
-        }
+        showFlags(ps, flags, "\t");
     }
 
     public Arguments parse(String[] args) {
@@ -220,7 +230,7 @@ public class ArgumentParser {
         }
 
         var arguments = new Arguments(values, positional);
-        if (arguments.contains("help")) {
+        if (arguments.contains("help") && shouldShowHelp) {
             showUsage();
             System.exit(0);
         }
