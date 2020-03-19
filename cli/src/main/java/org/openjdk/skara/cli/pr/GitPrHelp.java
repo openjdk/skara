@@ -80,14 +80,13 @@ public class GitPrHelp {
         return new TreeSet<T>(s);
     }
 
-    private static void showHelpFor(String command) {
+    private static void showHelpFor(String command, int indentation) {
         var inputs = commands.get(command).first();
         var flags = commands.get(command).second();
 
-        System.out.println("- " + command);
-        System.out.println("  Usage: git pr " + command + " " + describe(inputs));
-        System.out.println("  Flags:");
-        ArgumentParser.showFlags(System.out, flags, " ".repeat(4));
+        System.out.println(" ".repeat(indentation) + "Usage: git pr " + command + " " + describe(inputs));
+        System.out.println(" ".repeat(indentation) + "Flags:");
+        ArgumentParser.showFlags(System.out, flags, " ".repeat(indentation + 2));
     }
 
     public static void main(String[] args) {
@@ -131,7 +130,7 @@ public class GitPrHelp {
         if (arguments.at(0).isPresent()) {
             var command = arguments.at(0).asString();
             if (commands.keySet().contains(command)) {
-               showHelpFor(command);
+               showHelpFor(command, 0);
                System.exit(0);
             } else {
                 System.err.println("error: unknown sub-command: " + command);
@@ -147,7 +146,8 @@ public class GitPrHelp {
         System.out.println("git-pr is used for interacting with pull requeqsts from a command line.");
         System.out.println("The following commands are available:");
         for (var command : sorted(commands.keySet())) {
-            showHelpFor(command);
+            System.out.println("- " + command);
+            showHelpFor(command, 2);
         }
     }
 }
