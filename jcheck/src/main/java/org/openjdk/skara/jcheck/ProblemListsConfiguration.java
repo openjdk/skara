@@ -24,9 +24,6 @@ package org.openjdk.skara.jcheck;
 
 import org.openjdk.skara.ini.Section;
 
-import java.util.Arrays;
-import java.util.List;
-
 public class ProblemListsConfiguration {
     static final ProblemListsConfiguration DEFAULT =
             new ProblemListsConfiguration("test", "^ProblemList.*.txt$");

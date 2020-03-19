@@ -23,7 +23,6 @@
 package org.openjdk.skara.jcheck;
 
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Set;
 
 public class ProblemListsIssue extends CommitIssue {
