@@ -23,13 +23,13 @@
 package org.openjdk.skara.jcheck;
 
 import org.openjdk.skara.vcs.Commit;
+import org.openjdk.skara.vcs.FileEntry;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.ReadOnlyRepository;
 import org.openjdk.skara.vcs.openjdk.CommitMessage;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Logger;
@@ -72,14 +72,14 @@ public class ProblemListsCheck extends CommitCheck {
         var dirs = checkConf.dirs();
         var pattern = Pattern.compile(checkConf.pattern()).asMatchPredicate();
         try {
-            var root = repo.root();
+            var hash = commit.hash();
             for (var dir : dirs.split("\\|")) {
-                Files.list(root.resolve(dir))
-                     .filter(p -> pattern.test(p.getFileName().toString()))
-                     .map(root::relativize)
-                     .forEach(p -> getProblemListedIssues(p, commit.hash()).forEach(t -> problemListed.compute(t,
-                             (k, v) -> {if (v == null) v = new ArrayList<>(); v.add(p); return v;}))
-                     );
+                repo.files(hash, Path.of(dir))
+                    .stream()
+                    .map(FileEntry::path)
+                    .filter(p -> pattern.test(p.getFileName().toString()))
+                    .forEach(p -> getProblemListedIssues(p, commit.hash()).forEach(t -> problemListed.compute(t,
+                             (k, v) -> {if (v == null) v = new ArrayList<>(); v.add(p); return v;})));
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
