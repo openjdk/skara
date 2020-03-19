@@ -23,6 +23,8 @@
 package org.openjdk.skara.jcheck;
 
 import org.openjdk.skara.vcs.Commit;
+import org.openjdk.skara.vcs.Hash;
+import org.openjdk.skara.vcs.ReadOnlyRepository;
 import org.openjdk.skara.vcs.openjdk.CommitMessage;
 
 import java.io.IOException;
@@ -38,15 +40,20 @@ public class ProblemListsCheck extends CommitCheck {
     private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck.problemlists");
     private static final Pattern WHITESPACES = Pattern.compile("\\s+");
 
-    private final Path root;
+    private final ReadOnlyRepository repo;
 
-    ProblemListsCheck(Path root) {
-        this.root = root;
+    ProblemListsCheck(ReadOnlyRepository repo) {
+        this.repo = repo;
     }
 
-    private Stream<String> getProblemListedIssues(Path path){
+    private Stream<String> getProblemListedIssues(Path path, Hash hash){
         try {
-            return Files.lines(path)
+            var lines = repo.lines(path, hash);
+            if (lines.isEmpty()) {
+                return Stream.empty();
+            }
+            return lines.get()
+                        .stream()
                         .map(String::trim)
                         .filter(s -> !s.startsWith("#"))
                         .map(WHITESPACES::split)
@@ -64,17 +71,18 @@ public class ProblemListsCheck extends CommitCheck {
         var checkConf = conf.checks().problemlists();
         var dirs = checkConf.dirs();
         var pattern = Pattern.compile(checkConf.pattern()).asMatchPredicate();
-        for (var dir : dirs.split("\\|")) {
-            try {
+        try {
+            var root = repo.root();
+            for (var dir : dirs.split("\\|")) {
                 Files.list(root.resolve(dir))
                      .filter(p -> pattern.test(p.getFileName().toString()))
                      .map(root::relativize)
-                     .forEach(p -> getProblemListedIssues(p).forEach(t -> problemListed.compute(t,
+                     .forEach(p -> getProblemListedIssues(p, commit.hash()).forEach(t -> problemListed.compute(t,
                              (k, v) -> {if (v == null) v = new ArrayList<>(); v.add(p); return v;}))
                      );
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
             }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
 
         var metadata = CommitIssue.metadata(commit, message, conf, this);
