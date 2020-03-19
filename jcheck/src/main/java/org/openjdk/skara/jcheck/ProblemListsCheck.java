@@ -86,12 +86,12 @@ public class ProblemListsCheck extends CommitCheck {
         }
 
         var metadata = CommitIssue.metadata(commit, message, conf, this);
-        ArrayList<Issue> issues = new ArrayList<>();
+        var issues = new ArrayList<Issue>();
         for (var issue : message.issues()) {
-            List<Path> problemLists = problemListed.get(issue.id());
+            var problemLists = problemListed.get(issue.id());
             if (problemLists != null) {
                 log.finer(String.format("issue: %s is found in problem lists: %s", issue.id(), problemLists));
-                issues.add(new ProblemListsIssue(metadata, issue.id(), problemLists));
+                issues.add(new ProblemListsIssue(metadata, issue.id(), new HashSet<>(problemLists)));
             }
         }
 

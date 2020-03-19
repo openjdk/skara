@@ -24,12 +24,13 @@ package org.openjdk.skara.jcheck;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 
 public class ProblemListsIssue extends CommitIssue {
     private final String issue;
-    private final List<Path> files;
+    private final Set<Path> files;
 
-    ProblemListsIssue(CommitIssue.Metadata metadata, String issue, List<Path> files) {
+    ProblemListsIssue(CommitIssue.Metadata metadata, String issue, Set<Path> files) {
         super(metadata);
         this.issue = issue;
         this.files = files;
@@ -44,7 +45,7 @@ public class ProblemListsIssue extends CommitIssue {
         return issue;
     }
 
-    public List<Path> files() {
+    public Set<Path> files() {
         return files;
     }
 }
