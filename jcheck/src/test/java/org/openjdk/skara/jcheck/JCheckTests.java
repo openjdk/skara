@@ -227,6 +227,11 @@ class JCheckTests {
             issues.add(e);
         }
 
+        @Override
+        public void visit(ProblemListsIssue e) {
+            issues.add(e);
+        }
+
         Set<Issue> issues() {
             return issues;
         }

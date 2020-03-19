@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,25 +22,42 @@
  */
 package org.openjdk.skara.jcheck;
 
-public interface IssueVisitor {
-    void visit(TagIssue issue);
-    void visit(BranchIssue issue);
-    void visit(DuplicateIssuesIssue issue);
-    void visit(SelfReviewIssue issue);
-    void visit(TooFewReviewersIssue issue);
-    void visit(InvalidReviewersIssue issue);
-    void visit(MergeMessageIssue issue);
-    void visit(HgTagCommitIssue issue);
-    void visit(CommitterIssue issue);
-    void visit(CommitterNameIssue issue);
-    void visit(CommitterEmailIssue issue);
-    void visit(AuthorNameIssue issue);
-    void visit(AuthorEmailIssue issue);
-    void visit(WhitespaceIssue issue);
-    void visit(MessageIssue issue);
-    void visit(IssuesIssue issue);
-    void visit(ExecutableIssue issue);
-    void visit(BlacklistIssue issue);
-    void visit(BinaryIssue issue);
-    void visit(ProblemListsIssue problemListIssue);
+import org.openjdk.skara.ini.Section;
+
+import java.util.Arrays;
+import java.util.List;
+
+public class ProblemListsConfiguration {
+    static final ProblemListsConfiguration DEFAULT =
+            new ProblemListsConfiguration("test", "ProblemList.*.txt");
+
+    private final String dirs;
+    private final String pattern;
+
+    ProblemListsConfiguration(String dirs, String patterns) {
+        this.dirs = dirs;
+        this.pattern = patterns;
+    }
+
+    public String dirs() {
+        return dirs;
+    }
+
+    public String pattern() {
+        return pattern;
+    }
+
+    static String name() {
+        return "problemlists";
+    }
+
+    static ProblemListsConfiguration parse(Section s) {
+        if (s == null) {
+            return DEFAULT;
+        }
+
+        var dirs = s.get("dirs", DEFAULT.dirs());
+        var pattern = s.get("pattern", DEFAULT.pattern());
+        return new ProblemListsConfiguration(dirs, pattern);
+    }
 }

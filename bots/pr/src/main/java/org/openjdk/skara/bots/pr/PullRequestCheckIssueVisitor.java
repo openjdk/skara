@@ -215,4 +215,11 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     public void visit(BinaryIssue issue) {
         log.fine("ignored: binary file");
     }
+
+    @Override
+    public void visit(ProblemListsIssue issue) {
+        failedChecks.add(issue.check().getClass());
+        messages.add(issue.issue() + " is used in problem lists: " + issue.files());
+        readyForReview = false;
+    }
 }

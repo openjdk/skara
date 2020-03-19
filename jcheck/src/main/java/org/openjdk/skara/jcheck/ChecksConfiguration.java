@@ -25,7 +25,6 @@ package org.openjdk.skara.jcheck;
 import org.openjdk.skara.ini.Section;
 
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ChecksConfiguration {
@@ -36,7 +35,8 @@ public class ChecksConfiguration {
                                 ReviewersConfiguration.DEFAULT,
                                 MergeConfiguration.DEFAULT,
                                 CommitterConfiguration.DEFAULT,
-                                IssuesConfiguration.DEFAULT);
+                                IssuesConfiguration.DEFAULT,
+                                ProblemListsConfiguration.DEFAULT);
 
     private final List<String> error;
     private final List<String> warning;
@@ -45,6 +45,7 @@ public class ChecksConfiguration {
     private final MergeConfiguration merge;
     private final CommitterConfiguration committer;
     private final IssuesConfiguration issues;
+    private final ProblemListsConfiguration problemlists;
 
     ChecksConfiguration(List<String> error,
                         List<String> warning,
@@ -52,7 +53,8 @@ public class ChecksConfiguration {
                         ReviewersConfiguration reviewers,
                         MergeConfiguration merge,
                         CommitterConfiguration committer,
-                        IssuesConfiguration issues) {
+                        IssuesConfiguration issues,
+                        ProblemListsConfiguration problemlists) {
         this.error = error;
         this.warning = warning;
         this.whitespace = whitespace;
@@ -60,6 +62,7 @@ public class ChecksConfiguration {
         this.merge = merge;
         this.committer = committer;
         this.issues = issues;
+        this.problemlists = problemlists;
     }
 
     public List<String> error() {
@@ -108,6 +111,10 @@ public class ChecksConfiguration {
         return issues;
     }
 
+    public ProblemListsConfiguration problemlists() {
+        return problemlists;
+    }
+
     static String name() {
         return "checks";
     }
@@ -125,7 +132,7 @@ public class ChecksConfiguration {
         var merge = MergeConfiguration.parse(s.subsection(MergeConfiguration.name()));
         var committer = CommitterConfiguration.parse(s.subsection(CommitterConfiguration.name()));
         var issues = IssuesConfiguration.parse(s.subsection(IssuesConfiguration.name()));
-
-        return new ChecksConfiguration(error, warning, whitespace, reviewers, merge, committer, issues);
+        var problemlists = ProblemListsConfiguration.parse(s.subsection(ProblemListsConfiguration.name()));
+        return new ChecksConfiguration(error, warning, whitespace, reviewers, merge, committer, issues, problemlists);
     }
 }

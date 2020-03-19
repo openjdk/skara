@@ -277,6 +277,14 @@ class JCheckCLIVisitor implements IssueVisitor {
         }
     }
 
+    @Override
+    public void visit(ProblemListsIssue i) {
+        if (!ignore.contains(i.check().name())) {
+            println(i,  i.issue() + " is used in problem lists " + i.files());
+            hasDisplayedErrors = true;
+        }
+    }
+
     public boolean hasDisplayedErrors() {
         return hasDisplayedErrors;
     }

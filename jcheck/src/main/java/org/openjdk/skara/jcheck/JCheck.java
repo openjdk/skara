@@ -77,7 +77,8 @@ public class JCheck {
             new MessageCheck(utils),
             new IssuesCheck(utils),
             new ExecutableCheck(),
-            new BlacklistCheck(blacklist)
+            new BlacklistCheck(blacklist),
+            new ProblemListsCheck(repository.root())
         );
         repositoryChecks = List.of(
             new BranchesCheck(allowedBranches),
