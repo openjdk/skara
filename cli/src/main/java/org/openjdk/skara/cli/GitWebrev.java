@@ -121,6 +121,11 @@ public class GitWebrev {
                   .describe("CR#")
                   .helptext("Include link to CR (aka bugid) in the main page")
                   .optional(),
+            Option.shortcut("")
+                  .fullname("remote")
+                  .describe("NAME")
+                  .helptext("Use remote to calculate outgoing changes")
+                  .optional(),
             Switch.shortcut("b")
                   .fullname("")
                   .helptext("Do not ignore changes in whitespace (always true)")
@@ -158,7 +163,7 @@ public class GitWebrev {
         }
 
         var cwd = Paths.get("").toAbsolutePath();
-        var repository = ReadOnlyRepository.get(cwd);
+        var repository = Repository.get(cwd);
         if (!repository.isPresent()) {
             System.err.println(String.format("error: %s is not a repository", cwd.toString()));
             System.exit(1);
@@ -213,11 +218,49 @@ public class GitWebrev {
                 if (noOutgoing) {
                     rev = resolve(repo, "HEAD");
                 } else {
-                    var commits = repo.commitMetadata("origin..HEAD", true);
-                    if (commits.isEmpty()) {
-                        rev = resolve(repo, "HEAD");
+                    var currentUpstreamBranch = repo.currentBranch().flatMap(b -> {
+                        try {
+                            return repo.upstreamFor(b);
+                        } catch (IOException e) {
+                            throw new UncheckedIOException(e);
+                        }
+                    });
+                    if (currentUpstreamBranch.isPresent()) {
+                        rev = resolve(repo, currentUpstreamBranch.get());
                     } else {
-                        rev = resolve(repo, commits.get(0).hash().hex() + "^");
+                        String remote = arg("remote", arguments, repo);
+                        if (remote == null) {
+                            var remotes = repo.remotes();
+                            if (remotes.size() == 0) {
+                                System.err.println("error: no remotes present, cannot figure out outgoing changes");
+                                System.err.println("       Use --rev to specify revision to compare against");
+                                System.exit(1);
+                            } else if (remotes.size() == 1) {
+                                remote = remotes.get(0);
+                            } else {
+                                if (remotes.contains("origin")) {
+                                    remote = "origin";
+                                } else {
+                                    System.err.println("error: multiple remotes without origin remote present, cannot figure out outgoing changes");
+                                    System.err.println("       Use --rev to specify revision to compare against");
+                                    System.exit(1);
+                                }
+                            }
+                        }
+
+                        var head = repo.head();
+                        var shortestDistance = -1;
+                        var pullPath = repo.pullPath(remote);
+                        var remoteBranches = repo.remoteBranches(remote);
+                        for (var remoteBranch : remoteBranches) {
+                            var fetchHead = repo.fetch(URI.create(pullPath), remoteBranch.name());
+                            var mergeBase = repo.mergeBase(fetchHead, head);
+                            var distance = repo.commitMetadata(mergeBase, head).size();
+                            if (shortestDistance == -1 || distance < shortestDistance) {
+                                rev = mergeBase;
+                                shortestDistance = distance;
+                            }
+                        }
                     }
                 }
             }
