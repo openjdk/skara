@@ -31,7 +31,10 @@ import java.util.List;
 public class GitPr {
     public static void main(String[] args) throws Exception {
         var commands = List.of(
-                    Default.name("list")
+                    Default.name("help")
+                           .helptext("show help text")
+                           .main(GitPrHelp::main),
+                    Command.name("list")
                            .helptext("list open pull requests")
                            .main(GitPrList::main),
                     Command.name("fetch")

@@ -40,64 +40,64 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class GitPrCreate {
+    static final List<Flag> flags = List.of(
+        Option.shortcut("u")
+              .fullname("username")
+              .describe("NAME")
+              .helptext("Username on host")
+              .optional(),
+        Option.shortcut("r")
+              .fullname("remote")
+              .describe("NAME")
+              .helptext("Name of remote, defaults to 'origin'")
+              .optional(),
+        Option.shortcut("b")
+              .fullname("branch")
+              .describe("NAME")
+              .helptext("Name of target branch, defaults to 'master'")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("ignore-workspace")
+              .helptext("Ignore local changes in worktree and staging area when creating pull request")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("ignore-local-commits")
+              .helptext("Ignore local commits not pushed when creating pull request")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("publish")
+              .helptext("Publish the local branch before creating the pull request")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("jcheck")
+              .helptext("Run jcheck before creating the pull request")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("draft")
+              .helptext("Create a pull request in draft state")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("verbose")
+              .helptext("Turn on verbose output")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("debug")
+              .helptext("Turn on debugging output")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("version")
+              .helptext("Print the version of this tool")
+              .optional()
+    );
+
+    static final List<Input> inputs = List.of(
+        Input.position(0)
+             .describe("ID")
+             .singular()
+             .optional()
+    );
+
     public static void main(String[] args) throws IOException, InterruptedException {
-        var flags = List.of(
-            Option.shortcut("u")
-                  .fullname("username")
-                  .describe("NAME")
-                  .helptext("Username on host")
-                  .optional(),
-            Option.shortcut("r")
-                  .fullname("remote")
-                  .describe("NAME")
-                  .helptext("Name of remote, defaults to 'origin'")
-                  .optional(),
-            Option.shortcut("b")
-                  .fullname("branch")
-                  .describe("NAME")
-                  .helptext("Name of target branch, defaults to 'master'")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("ignore-workspace")
-                  .helptext("Ignore local changes in worktree and staging area when creating pull request")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("ignore-local-commits")
-                  .helptext("Ignore local commits not pushed when creating pull request")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("publish")
-                  .helptext("Publish the local branch before creating the pull request")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("jcheck")
-                  .helptext("Run jcheck before creating the pull request")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("draft")
-                  .helptext("Create a pull request in draft state")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("verbose")
-                  .helptext("Turn on verbose output")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("debug")
-                  .helptext("Turn on debugging output")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("version")
-                  .helptext("Print the version of this tool")
-                  .optional()
-        );
-
-        var inputs = List.of(
-            Input.position(0)
-                 .describe("ID")
-                 .singular()
-                 .optional()
-        );
-
         var parser = new ArgumentParser("git-pr", flags, inputs);
         var arguments = parse(parser, args);
         var repo = getRepo();

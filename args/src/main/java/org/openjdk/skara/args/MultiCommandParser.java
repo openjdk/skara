@@ -46,7 +46,9 @@ public class MultiCommandParser {
                                    .collect(Collectors.toMap(
                                            Command::name,
                                            Function.identity()));
-        this.subCommands.put("help", helpCommand());
+        if (!commands.stream().anyMatch(c -> c.name().equals("help"))) {
+            this.subCommands.put("help", helpCommand());
+        }
     }
 
     private Command helpCommand() {
