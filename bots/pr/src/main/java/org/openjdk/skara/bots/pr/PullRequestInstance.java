@@ -153,11 +153,6 @@ class PullRequestInstance {
         localRepo.checkout(commits.get(mergeCommitIndex).hash(), true);
         localRepo.squash(headHash);
 
-        if (localRepo.isClean()) {
-            // There are no changes remaining after squashing
-            return baseHash;
-        }
-
         return localRepo.amend(commitMessage, author.name(), author.email(), author.name(), author.email());
     }
 
