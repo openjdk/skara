@@ -26,6 +26,7 @@ module {
     test {
         requires 'org.junit.jupiter.api'
         requires 'org.junit.jupiter.params'
+        requires 'org.openjdk.skara.test'
         opens 'org.openjdk.skara.storage' to 'org.junit.platform.commons'
     }
 }
@@ -36,6 +37,8 @@ dependencies {
     implementation project(':forge')
     implementation project(':issuetracker')
     implementation project(':vcs')
+
+    testImplementation project(':test')
 }
 
 publishing {
