@@ -571,7 +571,7 @@ class MergeTests {
             assertEquals(1, error, () -> pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
 
             var check = pr.checks(mergeHash).get("jcheck");
-            assertEquals("- The merge contains commits that are not ancestors of the source", check.summary().orElseThrow());
+            assertEquals("- The merge contains commits that are not ancestors of the source.", check.summary().orElseThrow());
         }
     }
 
