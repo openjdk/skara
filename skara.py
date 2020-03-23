@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -20,12 +20,13 @@
 # questions.
 
 import mercurial
+import os
 import os.path
 import subprocess
 import sys
 import shutil
 
-testedwith = '4.9.2'
+testedwith = '4.9.2 5.3'
 
 cmdtable = {}
 if hasattr(mercurial, 'registrar') and hasattr(mercurial.registrar, 'command'):
@@ -40,20 +41,15 @@ else:
         return decorator
 
 def _skara(ui, args, **opts):
-    for k in opts:
-        if opts[k] == True:
-            args.append('--' + k.replace('_', '-'))
-        elif opts[k] != '' and opts[k] != False:
-            args.append('--' + k)
-            args.append(opts[k])
     skara = os.path.dirname(os.path.realpath(__file__))
     git_skara = os.path.join(skara, 'bin', 'bin', 'git-skara')
     if not os.path.isfile(git_skara):
-        ui.status("Bootstrapping Skara itself...\n")
-        p = subprocess.Popen(['/bin/sh', 'gradlew'], cwd=skara)
+        ui.status('Compiling ...\n')
+        cmd = ['gradlew.bat'] if os.name == 'nt' else ['/bin/sh', 'gradlew']
+        p = subprocess.Popen(cmd, cwd=skara)
         ret = p.wait()
         if ret != 0:
-            ui.error("Error: could not bootstrap Skara\n")
+            ui.error("Error: could not compile Skara\n")
             sys.exit(1)
 
     skara_bin = os.path.join(skara, 'bin')
@@ -63,63 +59,24 @@ def _skara(ui, args, **opts):
             shutil.rmtree(skara_bin)
         shutil.move(skara_build, skara_bin)
 
-    sys.exit(subprocess.call([git_skara] + args))
+    for k in opts:
+        if opts[k] == True:
+            args.append('--' + k.replace('_', '-'))
+        elif opts[k] != '' and opts[k] != False:
+            args.append('--' + k)
+            args.append(opts[k])
+    return subprocess.call([git_skara] + args)
 
-def _web_url(url):
-    if url.startswith('git+'):
-        url = url[len('git+'):]
-
-    if url.startswith('http'):
-        return url
-
-    if not url.startswith('ssh://'):
-        raise ValueError('Unexpected url: ' + url)
-
-    without_protocol = url[len('ssh://'):]
-    first_slash = without_protocol.index('/')
-    host = without_protocol[:first_slash]
-
-    ssh_config = os.path.join(os.path.expanduser('~'), '.ssh', 'config')
-    if os.path.exists(ssh_config):
-        with open(ssh_config) as f:
-            lines = f.readlines()
-            current = None
-            for line in lines:
-                if line.startswith('Host '):
-                    current = line.split(' ')[1].strip()
-                if line.strip().lower().startswith('hostname') and host == current:
-                    host = line.strip().split(' ')[1]
-                    break
-
-    return 'https://' + host + without_protocol[first_slash:]
-
-def _username(ui, opts, url):
-    web_url = _web_url(url)
-    username = None
-    if opts.get('username') == '':
-        username = ui.config('credential "' + web_url + '"', 'username')
-        if username == None:
-            protocol, rest = web_url.split('://')
-            hostname = rest[:rest.index('/')]
-            username = ui.config('credential "' + protocol + '://' + hostname + '"', 'username')
-            if username == None:
-                username = ui.config('credential', 'username')
-    return username
-
-fork_opts = [
-    ('u', 'username', '', 'Username on host'),
+skara_opts = [
 ]
-@command('fork', fork_opts, 'hg fork URL [DEST]', norepo=True)
-def fork(ui, url, dest=None, **opts):
-    username = _username(ui, opts, url)
-    args = ['fork', '--mercurial']
-    if username != None:
-        args.append("--username")
-        args.append(username)
-    args.append(url)
-    if dest != None:
-        args.append(dest)
-    _skara(ui, args)
+@command('skara', skara_opts, 'hg skara <defpath|help|jcheck|version|webrev|update>')
+def skara(ui, repo, action=None, **opts):
+    """
+    Invoke, list or update Mercurial commands from project Skara
+    """
+    if action == None:
+        action = 'help'
+    sys.exit(_skara(ui, [action, '--mercurial'], **opts))
 
 webrev_opts = [
     ('r', 'rev', '', 'Compare against specified revision'),
@@ -131,11 +88,14 @@ webrev_opts = [
     ('b', 'b', False, 'Do not ignore changes in whitespace'),
     ('C', 'no-comments', False, "Don't show comments"),
     ('N', 'no-outgoing', False, "Do not compare against remote, use only 'status'"),
-
 ]
 @command('webrev', webrev_opts, 'hg webrev')
 def webrev(ui, repo, **opts):
-    _skara(ui, ['webrev', '--mercurial'], **opts)
+    """
+    Builds a set of HTML files suitable for doing a
+    code review of source changes via a web page
+    """
+    sys.exit(_skara(ui, ['webrev', '--mercurial'], **opts))
 
 jcheck_opts = [
     ('r', 'rev', '', 'Check the specified revision or range (default: tip)'),
@@ -148,11 +108,13 @@ jcheck_opts = [
 ]
 @command('jcheck', jcheck_opts, 'hg jcheck')
 def jcheck(ui, repo, **opts):
-    _skara(ui, ['jcheck', '--mercurial'], **opts)
+    """
+    OpenJDK changeset checker
+    """
+    sys.exit(_skara(ui, ['jcheck', '--mercurial'], **opts))
 
 defpath_opts = [
     ('u', 'username', '', 'Username for push URL'),
-    ('r', 'remote', '', 'Remote for which to set paths'),
     ('s', 'secondary', '', 'Secondary peer repostiory base URL'),
     ('d', 'default', False, 'Use current default path to compute push path'),
     ('g', 'gated', False, 'Created gated push URL'),
@@ -160,47 +122,7 @@ defpath_opts = [
 ]
 @command('defpath', defpath_opts, 'hg defpath')
 def defpath(ui, repo, **opts):
-    _skara(ui, ['defpath', '--mercurial'], **opts)
-
-info_opts = [
-    ('', 'no-decoration', False, 'Do not prefix lines with any decoration'),
-    ('', 'issues', False, 'Show issues'),
-    ('', 'reviewers', False, 'Show reviewers'),
-    ('', 'summary', False, 'Show summary (if present)'),
-    ('', 'sponsor', False, 'Show sponsor (if present)'),
-    ('', 'author', False, 'Show author'),
-    ('', 'contributors', False, 'Show contributors')
-]
-@command('info', info_opts, 'hg info')
-def info(ui, repo, rev, **opts):
-    _skara(ui, ['info', '--mercurial', rev], **opts)
-
-pr_opts = [
-    ('u', 'username', '', 'Username on host'),
-    ('r', 'remote', '', 'Name of path, defaults to "default"'),
-    ('b', 'branch', '', 'Name of target branch, defaults to "default"'),
-    ('',  'authors', '', 'Comma separated list of authors'),
-    ('',  'assignees', '', 'Comma separated list of assignees'),
-    ('',  'labels', '', 'Comma separated list of labels'),
-    ('',  'columns', '', 'Comma separated list of columns to show'),
-    ('', 'no-decoration', False, 'Do not prefix lines with any decoration')
-]
-@command('pr', pr_opts, 'hg pr <list|fetch|show|checkout|apply|integrate|approve|create|close|update>')
-def pr(ui, repo, action, n=None, **opts):
-    path = opts.get('remote')
-    if path == '':
-        path = 'default'
-    url = ui.config('paths', path)
-    username = _username(ui, opts, url)
-    args = ['pr', '--mercurial']
-    if username != None:
-        args.append('--username')
-        args.append(username)
-    args.append(action)
-    if n != None:
-        args.append(n)
-    _skara(ui, args, **opts)
-
-@command('skara', [], 'hg skara')
-def skara(ui, repo, action, **opts):
-    _skara(ui, [action, '--mercurial'], **opts)
+    """
+    Examine and manipulate default path settings
+    """
+    sys.exit(_skara(ui, ['defpath', '--mercurial'], **opts))
