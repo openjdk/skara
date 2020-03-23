@@ -109,7 +109,7 @@ jcheck_opts = [
 @command('jcheck', jcheck_opts, 'hg jcheck')
 def jcheck(ui, repo, **opts):
     """
-    JDK changeset checker
+    OpenJDK changeset checker
     """
     sys.exit(_skara(ui, ['jcheck', '--mercurial'], **opts))
 
