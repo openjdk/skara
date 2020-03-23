@@ -198,6 +198,11 @@ class JCheckTests {
         }
 
         @Override
+        public void visit(SymlinkIssue e) {
+            issues.add(e);
+        }
+
+        @Override
         public void visit(AuthorNameIssue e) {
             issues.add(e);
         }

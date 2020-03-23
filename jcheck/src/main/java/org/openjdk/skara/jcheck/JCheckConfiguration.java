@@ -73,7 +73,7 @@ public class JCheckConfiguration {
         config.add("jbs=JDK");
 
         config.add("[checks]");
-        var error = "error=blacklist,author,committer,reviewers,merge,hg-tag,message,issues,executable";
+        var error = "error=blacklist,author,committer,reviewers,merge,hg-tag,message,issues,executable,symlink";
         var shouldCheckWhitespace = false;
         var checkWhitespace = old.get("whitespace");
         if (checkWhitespace == null || !checkWhitespace.asString().equals("lax")) {

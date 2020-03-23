@@ -207,6 +207,13 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     }
 
     @Override
+    public void visit(SymlinkIssue issue) {
+        messages.add(String.format("Symbolic links are not allowed (file: %s)", issue.path()));
+        failedChecks.add(issue.check().getClass());
+        readyForReview = false;
+    }
+
+    @Override
     public void visit(BlacklistIssue issue) {
         log.fine("ignored: blacklisted commit");
     }
