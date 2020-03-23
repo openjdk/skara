@@ -40,6 +40,9 @@ public class MailmanList implements MailingList {
     private final Logger log = Logger.getLogger("org.openjdk.skara.mailinglist");
     private final ConcurrentMap<URI, HttpResponse<String>> pageCache = new ConcurrentHashMap<>();
     private List<Conversation> cachedConversations = new ArrayList<>();
+    private static final HttpClient client = HttpClient.newBuilder()
+                                                       .connectTimeout(Duration.ofSeconds(10))
+                                                       .build();
 
     MailmanList(MailmanServer server, EmailAddress name) {
         this.server = server;
@@ -106,8 +109,6 @@ public class MailmanList implements MailingList {
 
     @Override
     public List<Conversation> conversations(Duration maxAge) {
-        var client = HttpClient.newHttpClient();
-
         // Order pages by most recent first
         var potentialPages = getMonthRange(maxAge).stream()
                                                   .sorted(Comparator.reverseOrder())
