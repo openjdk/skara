@@ -609,16 +609,16 @@ class CheckRun {
             var commitMessage = String.join("\n", commit.message());
             var readyForIntegration = visitor.getMessages().isEmpty() && additionalErrors.isEmpty();
             updateMergeReadyComment(readyForIntegration, commitMessage, comments, activeReviews, rebasePossible);
-            if (readyForIntegration) {
+            if (readyForIntegration && rebasePossible) {
                 newLabels.add("ready");
             } else {
                 newLabels.remove("ready");
             }
             if (!rebasePossible) {
                 addOutdatedComment(comments);
-                newLabels.add("outdated");
+                newLabels.add("merge-conflict");
             } else {
-                newLabels.remove("outdated");
+                newLabels.remove("merge-conflict");
             }
 
             // Ensure that the ready for sponsor label is up to date

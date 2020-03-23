@@ -160,8 +160,8 @@ class Utils {
             return "READY";
         } else if (labels.contains("rfr")) {
             return "RFR";
-        } else if (labels.contains("outdated")) {
-            return "OUTDATED";
+        } else if (labels.contains("merge-conflict")) {
+            return "CONFLICT";
         } else if (labels.contains("oca")) {
             return "OCA";
         } else {
