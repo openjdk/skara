@@ -32,14 +32,16 @@ import java.util.stream.Collectors;
 
 class JCheckCLIVisitor implements IssueVisitor {
     private final Set<String> ignore;
+    private final boolean isMercurial;
     private boolean hasDisplayedErrors;
 
     public JCheckCLIVisitor() {
-        this(Set.of());
+        this(Set.of(), false);
     }
 
-    public JCheckCLIVisitor(Set<String> ignore) {
+    public JCheckCLIVisitor(Set<String> ignore, boolean isMercurial) {
         this.ignore = ignore;
+        this.isMercurial = isMercurial;
         this.hasDisplayedErrors = false;
     }
 
@@ -265,7 +267,7 @@ class JCheckCLIVisitor implements IssueVisitor {
     }
 
     public void visit(AuthorEmailIssue i) {
-        if (!ignore.contains(i.check().name())) {
+        if (!ignore.contains(i.check().name()) && !isMercurial) {
             println(i, "missing author email");
             hasDisplayedErrors = true;
         }
@@ -279,7 +281,7 @@ class JCheckCLIVisitor implements IssueVisitor {
     }
 
     public void visit(CommitterEmailIssue i) {
-        if (!ignore.contains(i.check().name())) {
+        if (!ignore.contains(i.check().name()) && !isMercurial) {
             var domain = i.expectedDomain();
             println(i, "missing committer email from domain " + domain);
             hasDisplayedErrors = true;
