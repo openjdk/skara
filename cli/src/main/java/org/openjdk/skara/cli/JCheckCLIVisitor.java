@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -300,6 +300,14 @@ class JCheckCLIVisitor implements IssueVisitor {
     public void visit(BinaryIssue i) {
         if (!ignore.contains(i.check().name())) {
             println(i, "adds binary file: " + i.path().toString());
+            hasDisplayedErrors = true;
+        }
+    }
+
+    @Override
+    public void visit(ProblemListsIssue i) {
+        if (!ignore.contains(i.check().name())) {
+            println(i,  i.issue() + " is used in problem lists " + i.files());
             hasDisplayedErrors = true;
         }
     }
