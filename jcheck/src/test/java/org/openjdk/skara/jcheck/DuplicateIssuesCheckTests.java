@@ -137,7 +137,9 @@ class DuplicateIssuesCheckTests {
             assertTrue(issues.get(0) instanceof DuplicateIssuesIssue);
             var issue = (DuplicateIssuesIssue) issues.get(0);
             assertEquals("2", issue.issue().id());
-            assertEquals(List.of(second, third), issue.hashes());
+            assertEquals(2, issue.hashes().size());
+            assertTrue(issue.hashes().contains(second));
+            assertTrue(issue.hashes().contains(third));
         }
     }
 }
