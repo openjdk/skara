@@ -208,7 +208,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     @Override
     public void visit(SymlinkIssue issue) {
-        messages.add(String.format("Symbolic linkes are not allowed (file: %s)", issue.path()));
+        messages.add(String.format("Symbolic links are not allowed (file: %s)", issue.path()));
         failedChecks.add(issue.check().getClass());
         readyForReview = false;
     }
