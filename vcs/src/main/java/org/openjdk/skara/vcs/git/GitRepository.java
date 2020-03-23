@@ -413,7 +413,9 @@ public class GitRepository implements Repository {
 
     @Override
     public void fetchRemote(String remote) throws IOException {
-        try (var p = capture("git", "fetch", "--recurse-submodules=on-demand", "--prune", remote, "+refs/tags/*:refs/tags/*")) {
+        var lines = config("remote." + remote + ".fetch");
+        var refspec = lines.size() == 1 ? lines.get(0) : "+refs/heads/*:refs/remotes/" + remote + "/*";
+        try (var p = capture("git", "fetch", "--recurse-submodules=on-demand", "--prune", remote, refspec, "+refs/tags/*:refs/tags/*")) {
             await(p);
         }
     }
