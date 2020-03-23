@@ -86,6 +86,10 @@ public class JCheckConfiguration {
             error += ",message,hg-tag";
             shouldCheckMessage = true;
         }
+        var checkDuplicateIssues = old.get("bugids");
+        if (checkDuplicateIssues == null || !checkDuplicateIssues.equals("dup")) {
+            error += ",duplicate-issues";
+        }
         config.add(error);
 
         if (project.startsWith("jdk")) {

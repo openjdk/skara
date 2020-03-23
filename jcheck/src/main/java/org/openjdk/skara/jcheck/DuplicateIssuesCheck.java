@@ -36,23 +36,24 @@ import java.util.logging.Logger;
 public class DuplicateIssuesCheck extends CommitCheck {
     private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck.duplicate-issues");
     private final ReadOnlyRepository repo;
-    private Map<Issue, List<Hash>> issuesToHashes = null;
+    private Map<String, List<Hash>> issuesToHashes = null;
 
     DuplicateIssuesCheck(ReadOnlyRepository repo) {
         this.repo = repo;
     }
 
     private void populateIssuesToHashesMap() throws IOException {
-        issuesToHashes = new HashMap<Issue, List<Hash>>();
+        issuesToHashes = new HashMap<String, List<Hash>>();
 
         for (var metadata : repo.commitMetadata()) {
             for (var line : metadata.message()) {
                 var issue = Issue.fromString(line);
                 if (issue.isPresent()) {
-                    if (!issuesToHashes.containsKey(issue.get())) {
-                        issuesToHashes.put(issue.get(), new ArrayList<Hash>());
+                    var id = issue.get().id();
+                    if (!issuesToHashes.containsKey(id)) {
+                        issuesToHashes.put(id, new ArrayList<Hash>());
                     }
-                    issuesToHashes.get(issue.get()).add(metadata.hash());
+                    issuesToHashes.get(id).add(metadata.hash());
                 }
             }
         }
@@ -71,10 +72,11 @@ public class DuplicateIssuesCheck extends CommitCheck {
         var metadata = CommitIssue.metadata(commit, message, conf, this);
         var issues = new ArrayList<org.openjdk.skara.jcheck.Issue>();
         for (var issue : message.issues()) {
-            var hashes = issuesToHashes.get(issue);
+            var hashes = issuesToHashes.get(issue.id());
             if (hashes != null && hashes.size() > 1) {
                 log.finer("issue: the JBS issue " + issue.toString() + " has been used in multiple commits");
-                issues.add(new DuplicateIssuesIssue(issue, hashes, metadata));
+                var uniqueHashes = new ArrayList<>(new HashSet<>(hashes));
+                issues.add(new DuplicateIssuesIssue(issue, uniqueHashes, metadata));
             }
         }
         return issues.iterator();
