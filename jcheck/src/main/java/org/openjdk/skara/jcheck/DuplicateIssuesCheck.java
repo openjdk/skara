@@ -75,7 +75,8 @@ public class DuplicateIssuesCheck extends CommitCheck {
             var hashes = issuesToHashes.get(issue.id());
             if (hashes != null && hashes.size() > 1) {
                 log.finer("issue: the JBS issue " + issue.toString() + " has been used in multiple commits");
-                issues.add(new DuplicateIssuesIssue(issue, hashes, metadata));
+                var uniqueHashes = new ArrayList<>(new HashSet<>(hashes));
+                issues.add(new DuplicateIssuesIssue(issue, uniqueHashes, metadata));
             }
         }
         return issues.iterator();
