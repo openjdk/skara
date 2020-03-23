@@ -44,7 +44,8 @@ public class IssuesCheck extends CommitCheck {
         }
 
         var metadata = CommitIssue.metadata(commit, message, conf, this);
-        if (commit.message().isEmpty() || message.issues().isEmpty()) {
+        if (conf.checks().issues().required() &&
+            (commit.message().isEmpty() || message.issues().isEmpty())) {
             log.finer("issue: no reference to a JBS issue");
             return iterator(new IssuesIssue(metadata));
         }

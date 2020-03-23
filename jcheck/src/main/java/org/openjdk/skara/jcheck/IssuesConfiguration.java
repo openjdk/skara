@@ -30,16 +30,22 @@ import java.util.stream.Collectors;
 
 public class IssuesConfiguration {
     static final IssuesConfiguration DEFAULT =
-        new IssuesConfiguration("^(([A-Z][A-Z0-9]+-)?[0-9]+): (\\S.*)$");
+        new IssuesConfiguration("^(([A-Z][A-Z0-9]+-)?[0-9]+): (\\S.*)$", true);
 
     private final String pattern;
+    private final boolean required;
 
-    IssuesConfiguration(String pattern) {
+    IssuesConfiguration(String pattern, boolean required) {
         this.pattern = pattern;
+        this.required = required;
     }
 
     public String pattern() {
         return pattern;
+    }
+
+    public boolean required() {
+        return required;
     }
 
     static String name() {
@@ -52,6 +58,7 @@ public class IssuesConfiguration {
         }
 
         var pattern = s.get("pattern", DEFAULT.pattern());
-        return new IssuesConfiguration(pattern);
+        var required = s.get("required", DEFAULT.required());
+        return new IssuesConfiguration(pattern, required);
     }
 }
