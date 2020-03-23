@@ -112,4 +112,46 @@ class MessageCheckTests {
         assertEquals(Severity.ERROR, issue.severity());
         assertEquals(MessageCheck.class, issue.check().getClass());
     }
+
+    @Test
+    void tabInCommitMessageShouldFail() {
+        var commit = commit(List.of("\tBugfix"));
+        var message = message(commit);
+        var check = new MessageCheck(utils);
+        var issues = toList(check.check(commit, message, conf()));
+
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0) instanceof MessageWhitespaceIssue);
+        var issue = (MessageWhitespaceIssue) issues.get(0);
+        assertEquals(MessageWhitespaceIssue.Whitespace.TAB, issue.kind());
+        assertEquals(1, issue.line());
+    }
+
+    @Test
+    void crInCommitMessageShouldFail() {
+        var commit = commit(List.of("Bugfix\r"));
+        var message = message(commit);
+        var check = new MessageCheck(utils);
+        var issues = toList(check.check(commit, message, conf()));
+
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0) instanceof MessageWhitespaceIssue);
+        var issue = (MessageWhitespaceIssue) issues.get(0);
+        assertEquals(MessageWhitespaceIssue.Whitespace.CR, issue.kind());
+        assertEquals(1, issue.line());
+    }
+
+    @Test
+    void trailingWhitespaceInMessageShouldFail() {
+        var commit = commit(List.of("Bugfix "));
+        var message = message(commit);
+        var check = new MessageCheck(utils);
+        var issues = toList(check.check(commit, message, conf()));
+
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0) instanceof MessageWhitespaceIssue);
+        var issue = (MessageWhitespaceIssue) issues.get(0);
+        assertEquals(MessageWhitespaceIssue.Whitespace.TRAILING, issue.kind());
+        assertEquals(1, issue.line());
+    }
 }

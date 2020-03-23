@@ -32,14 +32,18 @@ import java.util.stream.Collectors;
 
 class JCheckCLIVisitor implements IssueVisitor {
     private final Set<String> ignore;
+    private final boolean isMercurial;
+    private final boolean isLax;
     private boolean hasDisplayedErrors;
 
     public JCheckCLIVisitor() {
-        this(Set.of());
+        this(Set.of(), false, false);
     }
 
-    public JCheckCLIVisitor(Set<String> ignore) {
+    public JCheckCLIVisitor(Set<String> ignore, boolean isMercurial, boolean isLax) {
         this.ignore = ignore;
+        this.isMercurial = isMercurial;
+        this.isLax = isLax;
         this.hasDisplayedErrors = false;
     }
 
@@ -74,7 +78,7 @@ class JCheckCLIVisitor implements IssueVisitor {
     }
 
     public void visit(TagIssue i) {
-        if (!ignore.contains(i.check().name())) {
+        if (!ignore.contains(i.check().name()) && !isLax) {
             println(i, "illegal tag name: " + i.tag().name());
             hasDisplayedErrors = true;
         }
@@ -88,14 +92,14 @@ class JCheckCLIVisitor implements IssueVisitor {
     }
 
     public void visit(SelfReviewIssue i) {
-        if (!ignore.contains(i.check().name())) {
+        if (!ignore.contains(i.check().name()) && !isLax) {
             println(i, "self-reviews are not allowed");
             hasDisplayedErrors = true;
         }
     }
 
     public void visit(TooFewReviewersIssue i) {
-        if (!ignore.contains(i.check().name())) {
+        if (!ignore.contains(i.check().name()) && !isLax) {
             var required = i.numRequired();
             var actual = i.numActual();
             var reviewers = required == 1 ? " reviewer" : " reviewers";
@@ -114,14 +118,14 @@ class JCheckCLIVisitor implements IssueVisitor {
     }
 
     public void visit(MergeMessageIssue i) {
-        if (!ignore.contains(i.check().name())) {
+        if (!ignore.contains(i.check().name()) && !isLax) {
             println(i, "merge commits should only use the commit message '" + i.expected() + "'");
             hasDisplayedErrors = true;
         }
     }
 
     public void visit(HgTagCommitIssue i) {
-        if (!ignore.contains(i.check().name())) {
+        if (!ignore.contains(i.check().name()) && !isLax) {
             hasDisplayedErrors = true;
             switch (i.error()) {
                 case TOO_MANY_LINES:
@@ -197,7 +201,7 @@ class JCheckCLIVisitor implements IssueVisitor {
     }
 
     public void visit(WhitespaceIssue i) {
-        if (!ignore.contains(i.check().name())) {
+        if (!ignore.contains(i.check().name()) && !isLax) {
             var pos = i.path() + ":" + i.row();
             var prefix = println(i, i.describe() + " in " + pos);
             var indent = prefix.replaceAll(".", " ");
@@ -208,7 +212,7 @@ class JCheckCLIVisitor implements IssueVisitor {
     }
 
     public void visit(MessageIssue i) {
-        if (!ignore.contains(i.check().name())) {
+        if (!ignore.contains(i.check().name()) && !isLax) {
             println(i, "contains additional lines in commit message");
             for (var line : i.message().additional()) {
                 System.out.println("> " + line);
@@ -217,8 +221,24 @@ class JCheckCLIVisitor implements IssueVisitor {
         }
     }
 
+    public void visit(MessageWhitespaceIssue i) {
+        if (!ignore.contains(i.check().name()) && !isLax) {
+            String desc = null;
+            if (i.kind().isTab()) {
+                desc = "tab";
+            } else if (i.kind().isCR()) {
+                desc = "carriage-return";
+            } else {
+                desc = "trailing whitespace";
+            }
+            println(i, "contains " + desc + " on line " + i.line() + " in commit message:");
+            System.out.println("> " + i.commit().message().get(i.line() - 1));
+            hasDisplayedErrors = true;
+        }
+    }
+
     public void visit(IssuesIssue i) {
-        if (!ignore.contains(i.check().name())) {
+        if (!ignore.contains(i.check().name()) && !isLax) {
             println(i, "missing reference to JBS issue in commit message");
             for (var line : i.commit().message()) {
                 System.out.println("> " + line);
@@ -234,6 +254,13 @@ class JCheckCLIVisitor implements IssueVisitor {
         }
     }
 
+    public void visit(SymlinkIssue i) {
+        if (!ignore.contains(i.check().name())) {
+            println(i, "file " + i.path() + " is symbolic link");
+            hasDisplayedErrors = true;
+        }
+    }
+
     public void visit(AuthorNameIssue i) {
         if (!ignore.contains(i.check().name())) {
             println(i, "missing author name");
@@ -242,7 +269,7 @@ class JCheckCLIVisitor implements IssueVisitor {
     }
 
     public void visit(AuthorEmailIssue i) {
-        if (!ignore.contains(i.check().name())) {
+        if (!ignore.contains(i.check().name()) && !isMercurial) {
             println(i, "missing author email");
             hasDisplayedErrors = true;
         }
@@ -256,7 +283,7 @@ class JCheckCLIVisitor implements IssueVisitor {
     }
 
     public void visit(CommitterEmailIssue i) {
-        if (!ignore.contains(i.check().name())) {
+        if (!ignore.contains(i.check().name()) && !isMercurial) {
             var domain = i.expectedDomain();
             println(i, "missing committer email from domain " + domain);
             hasDisplayedErrors = true;

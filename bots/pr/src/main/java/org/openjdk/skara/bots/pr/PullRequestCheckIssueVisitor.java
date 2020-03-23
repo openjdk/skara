@@ -192,6 +192,12 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     }
 
     @Override
+    public void visit(MessageWhitespaceIssue issue) {
+        var message = String.join("\n", issue.commit().message());
+        throw new IllegalStateException("Commit message contains bad whitespace: " + message);
+    }
+
+    @Override
     public void visit(IssuesIssue issue) {
         messages.add("The commit message does not reference any issue. To add an issue reference to this PR, " +
                 "edit the title to be of the format `issue number`: `message`.");
@@ -202,6 +208,13 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     @Override
     public void visit(ExecutableIssue issue) {
         messages.add(String.format("Executable files are not allowed (file: %s)", issue.path()));
+        failedChecks.add(issue.check().getClass());
+        readyForReview = false;
+    }
+
+    @Override
+    public void visit(SymlinkIssue issue) {
+        messages.add(String.format("Symbolic links are not allowed (file: %s)", issue.path()));
         failedChecks.add(issue.check().getClass());
         readyForReview = false;
     }

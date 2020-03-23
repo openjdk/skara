@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,47 +26,41 @@ import org.openjdk.skara.vcs.Commit;
 import org.openjdk.skara.vcs.openjdk.CommitMessage;
 
 import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
-public class IssuesCheck extends CommitCheck {
-    private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck.issues");
-    private final Utilities utils;
-
-    IssuesCheck(Utilities utils) {
-        this.utils = utils;
-    }
+public class SymlinkCheck extends CommitCheck {
+    private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck.symlink");
 
     @Override
     Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf) {
-        if (commit.isMerge() || utils.addsHgTag(commit)) {
-            return iterator();
-        }
-
         var metadata = CommitIssue.metadata(commit, message, conf, this);
-        if (conf.checks().issues().required() &&
-            (commit.message().isEmpty() || message.issues().isEmpty())) {
-            log.finer("issue: no reference to a JBS issue");
-            return iterator(new IssuesIssue(metadata));
-        }
 
-        var pattern = Pattern.compile(conf.checks().issues().pattern());
-        for (var issue : message.issues()) {
-            if (!pattern.matcher(issue.toString()).matches()) {
-                return iterator(new IssuesIssue(metadata));
+        var issues = new ArrayList<Issue>();
+        for (var diff : commit.parentDiffs()) {
+            for (var patch : diff.patches()) {
+                if (patch.target().type().isPresent()) {
+                    var type = patch.target().type().get();
+                    if (type.isSymbolicLink()) {
+                        var path = patch.target().path().get();
+                        log.finer("issue: " + path + " is symbolic link");
+                        issues.add(new SymlinkIssue(path, metadata));
+                    }
+                }
             }
         }
 
-        return iterator();
+        return issues.iterator();
     }
 
     @Override
     public String name() {
-        return "issues";
+        return "symlink";
     }
 
     @Override
     public String description() {
-        return "Commit message must refer to an issue";
+        return "Files should not be symbolic links";
     }
 }
+

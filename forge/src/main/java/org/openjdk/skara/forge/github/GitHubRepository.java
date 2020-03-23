@@ -151,8 +151,9 @@ public class GitHubRepository implements HostedRepository {
         }
         var result = gitHubHost.runSearch(query);
         return result.get("items").stream()
-                .map(jsonValue -> new GitHubPullRequest(this, jsonValue, request))
-                .collect(Collectors.toList());
+                     .map(jsonValue -> jsonValue.get("number").asInt())
+                     .map(id -> pullRequest(id.toString()))
+                     .collect(Collectors.toList());
     }
 
     @Override

@@ -63,7 +63,10 @@ class HostedRepositoryStorage<T> implements Storage<T> {
                 localRepository = Repository.init(localStorage, repository.repositoryType());
                 var storage = Files.writeString(localStorage.resolve(fileName), "");
                 localRepository.add(storage);
-                localRepository.commit(message, authorName, authorEmail);
+                var firstCommit = localRepository.commit(message, authorName, authorEmail);
+
+                // If the materialization failed for any other reason than the remote ref not existing, this will fail
+                localRepository.push(firstCommit, repository.url(), ref);
             }
             this.localRepository = localRepository;
             hash = localRepository.head();

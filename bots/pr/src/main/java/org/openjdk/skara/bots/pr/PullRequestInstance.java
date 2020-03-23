@@ -133,7 +133,14 @@ class PullRequestInstance {
     }
 
     private Hash commitMerge(List<Review> activeReviews, Namespace namespace, String censusDomain) throws IOException {
-        localRepo.checkout(headHash, true);
+        // Find the last merge commit - the very last commit is not eligible (as the merge needs a parent)
+        var commits = localRepo.commits(baseHash + ".." + headHash).asList();
+        int mergeCommitIndex = commits.size();
+        for (int i = 0; i < commits.size() - 1; ++i) {
+            if (commits.get(i).isMerge()) {
+                mergeCommitIndex = i;
+            }
+        }
 
         var contributor = namespace.get(pr.author().id());
         if (contributor == null) {
@@ -141,8 +148,11 @@ class PullRequestInstance {
         }
 
         var author = new Author(contributor.fullName().orElseThrow(), contributor.username() + "@" + censusDomain);
-
         var commitMessage = commitMessage(activeReviews, namespace, true);
+
+        localRepo.checkout(commits.get(mergeCommitIndex).hash(), true);
+        localRepo.squash(headHash);
+
         return localRepo.amend(commitMessage, author.name(), author.email(), author.name(), author.email());
     }
 

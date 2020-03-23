@@ -49,6 +49,9 @@ class WebrevStorage {
     private final URI baseUri;
     private final EmailAddress author;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
+    private static final HttpClient client = HttpClient.newBuilder()
+                                                       .connectTimeout(Duration.ofSeconds(10))
+                                                       .build();
 
     WebrevStorage(HostedRepository storage, String ref, Path baseFolder, URI baseUri, EmailAddress author) {
         this.baseFolder = baseFolder;
@@ -178,9 +181,7 @@ class WebrevStorage {
     private void awaitPublication(URI uri, Duration timeout) throws IOException {
         var end = Instant.now().plus(timeout);
         var uriBuilder = URIBuilder.base(uri);
-        var client = HttpClient.newBuilder()
-                               .connectTimeout(Duration.ofSeconds(30))
-                               .build();
+
         while (Instant.now().isBefore(end)) {
             var uncachedUri = uriBuilder.setQuery(Map.of("nocache", UUID.randomUUID().toString())).build();
             log.fine("Validating webrev URL: " + uncachedUri);

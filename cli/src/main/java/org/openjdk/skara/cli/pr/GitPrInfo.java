@@ -34,95 +34,95 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class GitPrInfo {
+    static final List<Flag> flags = List.of(
+        Option.shortcut("u")
+              .fullname("username")
+              .describe("NAME")
+              .helptext("Username on host")
+              .optional(),
+        Option.shortcut("r")
+              .fullname("remote")
+              .describe("NAME")
+              .helptext("Name of remote, defaults to 'origin'")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("no-decoration")
+              .helptext("Hide any decorations when listing PRs")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("no-token")
+              .helptext("Do not use a personal access token (PAT)")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("checks")
+              .helptext("Show information about checks")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("author")
+              .helptext("Show the author of the pull request")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("title")
+              .helptext("Show the title of the pull request")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("assignees")
+              .helptext("Show the assignees of the pull request")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("reviewers")
+              .helptext("Show the reviewers of the pull request")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("contributors")
+              .helptext("Show the additional contributors to the pull request")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("issues")
+              .helptext("Show the issues associated with the pull request")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("commits")
+              .helptext("Show the commits in pull request")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("branch")
+              .helptext("Show the target branch for the pull request")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("url")
+              .helptext("Show the url for the pull request")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("status")
+              .helptext("Show the status for the pull request")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("labels")
+              .helptext("Show the labels for the pull request")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("verbose")
+              .helptext("Turn on verbose output")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("debug")
+              .helptext("Turn on debugging output")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("version")
+              .helptext("Print the version of this tool")
+              .optional()
+    );
+
+    static final List<Input> inputs = List.of(
+        Input.position(0)
+             .describe("ID")
+             .singular()
+             .optional()
+    );
+
     public static void main(String[] args) throws IOException {
-        var flags = List.of(
-            Option.shortcut("u")
-                  .fullname("username")
-                  .describe("NAME")
-                  .helptext("Username on host")
-                  .optional(),
-            Option.shortcut("r")
-                  .fullname("remote")
-                  .describe("NAME")
-                  .helptext("Name of remote, defaults to 'origin'")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("no-decoration")
-                  .helptext("Hide any decorations when listing PRs")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("no-token")
-                  .helptext("Do not use a personal access token (PAT)")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("checks")
-                  .helptext("Show information about checks")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("author")
-                  .helptext("Show the author of the pull request")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("title")
-                  .helptext("Show the title of the pull request")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("assignees")
-                  .helptext("Show the assignees of the pull request")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("reviewers")
-                  .helptext("Show the reviewers of the pull request")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("contributors")
-                  .helptext("Show the additional contributors to the pull request")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("issues")
-                  .helptext("Show the issues associated with the pull request")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("commits")
-                  .helptext("Show the commits in pull request")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("branch")
-                  .helptext("Show the target branch for the pull request")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("url")
-                  .helptext("Show the url for the pull request")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("status")
-                  .helptext("Show the status for the pull request")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("labels")
-                  .helptext("Show the labels for the pull request")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("verbose")
-                  .helptext("Turn on verbose output")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("debug")
-                  .helptext("Turn on debugging output")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("version")
-                  .helptext("Print the version of this tool")
-                  .optional()
-        );
-
-        var inputs = List.of(
-            Input.position(0)
-                 .describe("ID")
-                 .singular()
-                 .optional()
-        );
-
         var parser = new ArgumentParser("git-pr", flags, inputs);
         var arguments = parse(parser, args);
         var repo = getRepo();

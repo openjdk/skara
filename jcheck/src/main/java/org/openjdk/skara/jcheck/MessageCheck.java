@@ -25,6 +25,7 @@ package org.openjdk.skara.jcheck;
 import org.openjdk.skara.vcs.Commit;
 import org.openjdk.skara.vcs.openjdk.CommitMessage;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.logging.Logger;
 
@@ -38,17 +39,31 @@ public class MessageCheck extends CommitCheck {
 
     @Override
     Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf) {
+        var issues = new ArrayList<Issue>();
         if (commit.isMerge() || utils.addsHgTag(commit)) {
-            return iterator();
+            return issues.iterator();
         }
 
+        var metadata = CommitIssue.metadata(commit, message, conf, this);
         if (commit.message().isEmpty() || !message.additional().isEmpty()) {
-            var metadata = CommitIssue.metadata(commit, message, conf, this);
             log.finer("issue: additional lines found in commit message for " + commit.hash().hex());
-            return iterator(new MessageIssue(metadata));
+            issues.add(new MessageIssue(metadata));
         }
 
-        return iterator();
+        for (var i = 0; i < commit.message().size(); i++) {
+            var line = commit.message().get(i);
+            if (line.contains("\t")) {
+                issues.add(MessageWhitespaceIssue.tab(i+1, metadata));
+            }
+            if (line.contains("\r")) {
+                issues.add(MessageWhitespaceIssue.cr(i+1, metadata));
+            }
+            if (line.endsWith(" ")) {
+                issues.add(MessageWhitespaceIssue.trailing(i+1, metadata));
+            }
+        }
+
+        return issues.iterator();
     }
 
     @Override

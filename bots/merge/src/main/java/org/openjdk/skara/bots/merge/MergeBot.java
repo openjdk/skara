@@ -272,9 +272,13 @@ class MergeBot implements Bot, WorkItem {
                 ));
                 repo.merge(remoteBranch); // should always be a fast-forward merge
 
+                var targetName = Path.of(target.name()).getFileName();
+                var fromName = Path.of(fromRepo.name()).getFileName();
+                var fromDesc = targetName.equals(fromName) ? fromBranch : fromName + ":" + fromBranch;
+
                 // Check if merge conflict pull request is present
                 var shouldMerge = true;
-                var title = "Cannot automatically merge " + fromRepo.name() + ":" + fromBranch.name() + " to " + toBranch.name();
+                var title = "Cannot automatically merge " + fromDesc + " to " + toBranch.name();
                 var marker = "<!-- MERGE CONFLICTS -->";
                 for (var pr : prs) {
                     if (pr.title().equals(title) &&
@@ -392,9 +396,6 @@ class MergeBot implements Bot, WorkItem {
                     error = e;
                 }
 
-                var targetName = Path.of(target.name()).getFileName();
-                var fromName = Path.of(fromRepo.name()).getFileName();
-                var fromDesc = targetName.equals(fromName) ? fromBranch : fromName + ":" + fromBranch;
                 if (error == null) {
                     log.info("Pushing successful merge");
                     if (!isAncestor) {

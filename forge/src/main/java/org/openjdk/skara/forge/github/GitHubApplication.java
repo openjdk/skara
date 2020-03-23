@@ -96,6 +96,9 @@ public class GitHubApplication {
     private final Token installationToken;
 
     private final Logger log;
+    private static final HttpClient client = HttpClient.newBuilder()
+                                                       .connectTimeout(Duration.ofSeconds(10))
+                                                       .build();
 
     static class GitHubConfigurationError extends RuntimeException {
         public GitHubConfigurationError(String message) {
@@ -174,9 +177,6 @@ public class GitHubApplication {
 
     private String generateInstallationToken() throws Token.GeneratorError {
         var tokens = URIBuilder.base(apiBase).setPath("/installations/" + id + "/access_tokens").build();
-        var client = HttpClient.newBuilder()
-                               .connectTimeout(Duration.ofSeconds(10))
-                               .build();
 
         try {
             var response = client.send(
@@ -208,9 +208,6 @@ public class GitHubApplication {
 
     JSONObject getAppDetails() {
         var details = URIBuilder.base(apiBase).setPath("/app").build();
-        var client = HttpClient.newBuilder()
-                               .connectTimeout(Duration.ofSeconds(10))
-                               .build();
 
         try {
             var response = client.send(

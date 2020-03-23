@@ -564,6 +564,7 @@ class CheckTests {
 
             // Get all messages up to date
             TestBotRunner.runPeriodicItems(mergeBot);
+            assertTrue(pr.labels().contains("ready"));
 
             // Push something conflicting to master
             localRepo.checkout(masterHash, true);
@@ -581,7 +582,8 @@ class CheckTests {
             assertEquals(1, updated);
 
             // The PR should be flagged as outdated
-            assertTrue(pr.labels().contains("outdated"));
+            assertTrue(pr.labels().contains("merge-conflict"));
+            assertFalse(pr.labels().contains("ready"));
 
             // An instructional message should have been bosted
             var help = pr.comments().stream()
@@ -608,7 +610,8 @@ class CheckTests {
             assertEquals(1, updated);
 
             // The PR should not be flagged as outdated
-            assertFalse(pr.labels().contains("outdated"));
+            assertFalse(pr.labels().contains("merge-conflict"));
+            assertTrue(pr.labels().contains("ready"));
         }
     }
 

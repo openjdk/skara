@@ -37,79 +37,79 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class GitPrList {
+    static final List<Flag> flags = List.of(
+        Option.shortcut("u")
+              .fullname("username")
+              .describe("NAME")
+              .helptext("Username on host")
+              .optional(),
+        Option.shortcut("r")
+              .fullname("remote")
+              .describe("NAME")
+              .helptext("Name of remote, defaults to 'origin'")
+              .optional(),
+        Option.shortcut("")
+              .fullname("authors")
+              .describe("LIST")
+              .helptext("Comma separated list of authors")
+              .optional(),
+        Option.shortcut("")
+              .fullname("assignees")
+              .describe("LIST")
+              .helptext("Comma separated list of assignees")
+              .optional(),
+        Option.shortcut("")
+              .fullname("labels")
+              .describe("LIST")
+              .helptext("Comma separated list of labels")
+              .optional(),
+        Option.shortcut("")
+              .fullname("issues")
+              .describe("LIST")
+              .helptext("Comma separated list of issues")
+              .optional(),
+        Option.shortcut("")
+              .fullname("columns")
+              .describe("id,title,author,assignees,labels")
+              .helptext("Comma separated list of columns to show")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("no-decoration")
+              .helptext("Hide any decorations when listing PRs")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("no-draft")
+              .helptext("Hide all pull requests in draft state")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("no-token")
+              .helptext("Do not use a personal access token (PAT)")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("verbose")
+              .helptext("Turn on verbose output")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("debug")
+              .helptext("Turn on debugging output")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("version")
+              .helptext("Print the version of this tool")
+              .optional());
+
+    static final List<Input> inputs = List.of(
+        Input.position(0)
+             .describe("ID")
+             .singular()
+             .optional()
+    );
+
     private static int longest(List<String> strings) {
         return strings.stream().mapToInt(String::length).max().orElse(0);
     }
 
     public static void main(String[] args) throws IOException {
-        var flags = List.of(
-            Option.shortcut("u")
-                  .fullname("username")
-                  .describe("NAME")
-                  .helptext("Username on host")
-                  .optional(),
-            Option.shortcut("r")
-                  .fullname("remote")
-                  .describe("NAME")
-                  .helptext("Name of remote, defaults to 'origin'")
-                  .optional(),
-            Option.shortcut("")
-                  .fullname("authors")
-                  .describe("LIST")
-                  .helptext("Comma separated list of authors")
-                  .optional(),
-            Option.shortcut("")
-                  .fullname("assignees")
-                  .describe("LIST")
-                  .helptext("Comma separated list of assignees")
-                  .optional(),
-            Option.shortcut("")
-                  .fullname("labels")
-                  .describe("LIST")
-                  .helptext("Comma separated list of labels")
-                  .optional(),
-            Option.shortcut("")
-                  .fullname("issues")
-                  .describe("LIST")
-                  .helptext("Comma separated list of issues")
-                  .optional(),
-            Option.shortcut("")
-                  .fullname("columns")
-                  .describe("id,title,author,assignees,labels")
-                  .helptext("Comma separated list of columns to show")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("no-decoration")
-                  .helptext("Hide any decorations when listing PRs")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("no-draft")
-                  .helptext("Hide all pull requests in draft state")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("no-token")
-                  .helptext("Do not use a personal access token (PAT)")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("verbose")
-                  .helptext("Turn on verbose output")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("debug")
-                  .helptext("Turn on debugging output")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("version")
-                  .helptext("Print the version of this tool")
-                  .optional());
-
-        var inputs = List.of(
-            Input.position(0)
-                 .describe("ID")
-                 .singular()
-                 .optional()
-        );
-
         var parser = new ArgumentParser("git-pr", flags, inputs);
         var arguments = parse(parser, args);
         var repo = getRepo();

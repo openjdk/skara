@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,31 +20,25 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package org.openjdk.skara.jcheck;
 
-module {
-    name = 'org.openjdk.skara.storage'
-    test {
-        requires 'org.junit.jupiter.api'
-        requires 'org.junit.jupiter.params'
-        requires 'org.openjdk.skara.test'
-        opens 'org.openjdk.skara.storage' to 'org.junit.platform.commons'
+import java.nio.file.Path;
+
+public class SymlinkIssue extends CommitIssue {
+    private final Path path;
+
+    SymlinkIssue(Path path, CommitIssue.Metadata metadata) {
+        super(metadata);
+        this.path = path;
+    }
+
+    public Path path() {
+        return path;
+    }
+
+    @Override
+    public void accept(IssueVisitor v) {
+        v.visit(this);
     }
 }
 
-dependencies {
-    implementation project(':network')
-    implementation project(':host')
-    implementation project(':forge')
-    implementation project(':issuetracker')
-    implementation project(':vcs')
-
-    testImplementation project(':test')
-}
-
-publishing {
-    publications {
-        storage(MavenPublication) {
-            from components.java
-        }
-    }
-}

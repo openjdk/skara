@@ -163,8 +163,9 @@ public class GitJCheck {
 
         HttpProxy.setup();
 
+        var isMercurial = getSwitch("mercurial", arguments);
         var setupPrePushHooksOption = getOption("setup-pre-push-hooks", arguments);
-        if (setupPrePushHooksOption != null) {
+        if (!isMercurial && setupPrePushHooksOption != null) {
             var hookFile = repo.root().resolve(".git").resolve("hooks").resolve("pre-push");
             Files.createDirectories(hookFile.getParent());
             var lines = List.of(
@@ -193,11 +194,10 @@ public class GitJCheck {
             return 0;
         }
 
-        var isMercurial = getSwitch("mercurial", arguments);
         var isPrePush = getSwitch("pre-push", arguments);
         var ranges = new ArrayList<String>();
         var targetBranches = new HashSet<String>();
-        if (isPrePush) {
+        if (!isMercurial && isPrePush) {
             var reader = new BufferedReader(new InputStreamReader(System.in));
             var lines = reader.lines().collect(Collectors.toList());
             for (var line : lines) {
@@ -281,7 +281,7 @@ public class GitJCheck {
 
         var lines = repo.config("jcheck.pre-push.branches");
         var shouldCheckRemoteBranches = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
-        if (isPrePush && shouldCheckRemoteBranches &&
+        if (!isMercurial && isPrePush && shouldCheckRemoteBranches &&
             !Files.exists(repo.root().resolve(".git").resolve("GIT_SYNC_RUNNING"))) {
             var url = arguments.get("push-url").asString();
             if (url == null) {
@@ -322,12 +322,14 @@ public class GitJCheck {
             }
         }
 
-        var visitor = new JCheckCLIVisitor(ignore);
+        var isLax = getSwitch("lax", arguments);
+        var visitor = new JCheckCLIVisitor(ignore, isMercurial, isLax);
         lines = repo.config("jcheck.pre-push.commits");
         var shouldCheckCommits = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
+        var commitMessageParser = isMercurial ? CommitMessageParsers.v0 : CommitMessageParsers.v1;
         if (!isPrePush || shouldCheckCommits) {
             for (var range : ranges) {
-                try (var errors = JCheck.check(repo, census, CommitMessageParsers.v1, range, whitelist, blacklist)) {
+                try (var errors = JCheck.check(repo, census, commitMessageParser, range, whitelist, blacklist)) {
                     for (var error : errors) {
                         error.accept(visitor);
                     }
