@@ -274,7 +274,7 @@ public class GitPrCreate {
         var file = Files.createTempFile("PULL_REQUEST_", ".md");
         if (issue.isPresent()) {
             Files.writeString(file, format(issue.get()) + "\n\n");
-        } else if (commits.size() == 1) {
+        } else {
             var commit = commits.get(0);
             issue = getIssue(commit, project);
             if (issue.isPresent()) {
@@ -289,14 +289,13 @@ public class GitPrCreate {
                     Files.write(file, message.additional(), StandardOpenOption.APPEND);
                 }
             }
-        } else {
-            Files.write(file, List.of(""));
         }
 
         appendPaddedHTMLComment(file, "Please enter the pull request message for your changes.");
-        appendPaddedHTMLComment(file, "The first line will be considered the subject, use a blank line to");
-        appendPaddedHTMLComment(file, "separate the subject from the body. These HTML comment lines will");
-        appendPaddedHTMLComment(file, "be removed automatically. An empty message aborts the pull request.");
+        appendPaddedHTMLComment(file, "The first line will be considered the title, use a blank line to");
+        appendPaddedHTMLComment(file, "separate the title from the body. Pull requests are required to have");
+        appendPaddedHTMLComment(file, "a title and a body. An empty message aborts the pull request.");
+        appendPaddedHTMLComment(file, "These HTML comment lines will be removed automatically.");
         appendPaddedHTMLComment(file, "");
         appendPaddedHTMLComment(file, "Commits to be included from branch '" + currentBranch.name() + "':");
         for (var commit : commits) {
@@ -352,7 +351,8 @@ public class GitPrCreate {
                         .dropWhile(String::isEmpty)
                         .collect(Collectors.toList());
         } else {
-            body = List.of();
+            System.err.println("error: cannot create pull request with empty body, aborting");
+            System.exit(1);
         }
 
         var isDraft = getSwitch("draft", "create", arguments);
