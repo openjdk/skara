@@ -33,6 +33,7 @@ import java.nio.file.Path;
 import java.nio.file.Files;
 import java.net.URLEncoder;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.logging.Logger;
 
 class MirrorBot implements Bot, WorkItem {
@@ -40,11 +41,19 @@ class MirrorBot implements Bot, WorkItem {
     private final Path storage;
     private final HostedRepository from;
     private final HostedRepository to;
+    private final List<Branch> branches;
+    private final boolean shouldMirrorEverything;
 
     MirrorBot(Path storage, HostedRepository from, HostedRepository to) {
+        this(storage, from, to, List.of());
+    }
+
+    MirrorBot(Path storage, HostedRepository from, HostedRepository to, List<Branch> branches) {
         this.storage = storage;
         this.from = from;
         this.to = to;
+        this.branches = branches;
+        this.shouldMirrorEverything = branches.isEmpty();
     }
 
     @Override
@@ -63,10 +72,16 @@ class MirrorBot implements Bot, WorkItem {
                 URLEncoder.encode(from.webUrl().toString(), StandardCharsets.UTF_8);
             var dir = storage.resolve(sanitizedUrl);
             Repository repo = null;
+
+
             if (!Files.exists(dir)) {
                 log.info("Cloning " + from.name());
                 Files.createDirectories(dir);
-                repo = Repository.mirror(from.url(), dir);
+                if (shouldMirrorEverything) {
+                    repo = Repository.mirror(from.url(), dir);
+                } else {
+                    repo = Repository.clone(to.url(), dir);
+                }
             } else {
                 log.info("Found existing scratch directory for " + from.name());
                 repo = Repository.get(dir).orElseThrow(() -> {
@@ -74,10 +89,18 @@ class MirrorBot implements Bot, WorkItem {
                 });
             }
 
-            log.info("Pulling " + from.name());
-            repo.fetchAll();
-            log.info("Pushing to " + to.name());
-            repo.pushAll(to.url());
+            if (shouldMirrorEverything) {
+                log.info("Pulling " + from.name());
+                repo.fetchAll();
+                log.info("Pushing to " + to.name());
+                repo.pushAll(to.url());
+            } else {
+                for (var branch : branches) {
+                    var fetchHead = repo.fetch(from.url(), branch.name());
+                    repo.push(fetchHead, to.url(), branch.name());
+                }
+            }
+
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -85,7 +108,12 @@ class MirrorBot implements Bot, WorkItem {
 
     @Override
     public String toString() {
-        return "MirrorBot@" + from.name() + "->" + to.name();
+        var name = "MirrorBot@" + from.name() + "->" + to.name();
+        if (!branches.isEmpty()) {
+            var branchNames = branches.stream().map(Branch::name).collect(Collectors.toList());
+            name += " (" + String.join(",", branchNames) + ")";
+        }
+        return name;
     }
 
     @Override

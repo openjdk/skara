@@ -23,10 +23,12 @@
 package org.openjdk.skara.bots.mirror;
 
 import org.openjdk.skara.bot.*;
+import org.openjdk.skara.vcs.Branch;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.logging.Logger;
 
 public class MirrorBotFactory implements BotFactory {
@@ -55,8 +57,15 @@ public class MirrorBotFactory implements BotFactory {
             var toName = repo.get("to").asString();
             var toRepo = configuration.repository(toName);
 
+            var branchNames = repo.contains("branches")?
+                repo.get("branches").asString().split(",") : new String[0];
+            var branches = Arrays.stream(branchNames)
+                                 .map(Branch::new)
+                                 .collect(Collectors.toList());
+
+
             log.info("Setting up mirroring from " + fromRepo.name() + "to " + toRepo.name());
-            bots.add(new MirrorBot(storage, fromRepo, toRepo));
+            bots.add(new MirrorBot(storage, fromRepo, toRepo, branches));
         }
         return bots;
     }

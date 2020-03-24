@@ -219,4 +219,52 @@ class MirrorBotTests {
             assertTrue(toBranches.contains(new Branch("third")));
         }
     }
+
+    @Test
+    void mirrorSelectedBranches(TestInfo testInfo) throws IOException {
+        try (var temp = new TemporaryDirectory()) {
+            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+
+            var fromDir = temp.path().resolve("from.git");
+            var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
+            var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
+
+            var toDir = temp.path().resolve("to.git");
+            var toLocalRepo = Repository.init(toDir, VCS.GIT);
+            var gitConfig = toDir.resolve(".git").resolve("config");
+            Files.write(gitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
+                        StandardOpenOption.APPEND);
+            var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
+
+            var newFile = fromDir.resolve("this-file-cannot-exist.txt");
+            Files.writeString(newFile, "Hello world\n");
+            fromLocalRepo.add(newFile);
+            var first = fromLocalRepo.commit("An additional commit", "duke", "duke@openjdk.org");
+            var featureBranch = fromLocalRepo.branch(first, "feature");
+            fromLocalRepo.checkout(featureBranch, false);
+            assertEquals(Optional.of(featureBranch), fromLocalRepo.currentBranch());
+
+            Files.writeString(newFile, "Hello again\n", StandardOpenOption.APPEND);
+            fromLocalRepo.add(newFile);
+            var second = fromLocalRepo.commit("An additional commit", "duke", "duke@openjdk.org");
+
+            assertEquals(Optional.of(first), fromLocalRepo.resolve("master"));
+            assertEquals(Optional.of(second), fromLocalRepo.resolve("feature"));
+
+            var fromCommits = fromLocalRepo.commits().asList();
+            assertEquals(2, fromCommits.size());
+
+            var toCommits = toLocalRepo.commits().asList();
+            assertEquals(0, toCommits.size());
+
+            var storage = temp.path().resolve("storage");
+            var bot = new MirrorBot(storage, fromHostedRepo, toHostedRepo, List.of(new Branch("master")));
+            TestBotRunner.runPeriodicItems(bot);
+
+            toCommits = toLocalRepo.commits().asList();
+            assertEquals(1, toCommits.size());
+            assertEquals(first, toCommits.get(0).hash());
+            assertEquals(List.of(new Branch("master")), toLocalRepo.branches());
+        }
+    }
 }
