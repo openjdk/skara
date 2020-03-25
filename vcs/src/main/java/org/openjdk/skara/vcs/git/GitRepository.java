@@ -1178,6 +1178,7 @@ public class GitRepository implements Repository {
         var cmd = new ArrayList<String>();
         cmd.add("git");
         cmd.add("pull");
+        cmd.add("--recurse-submodules");
         if (remote != null) {
             cmd.add(remote);
         }
