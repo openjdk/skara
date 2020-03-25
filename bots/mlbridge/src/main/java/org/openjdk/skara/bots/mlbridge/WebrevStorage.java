@@ -78,10 +78,17 @@ class WebrevStorage {
                 var conf = JCheckConfiguration.from(localRepository, head);
                 var project = conf.general().jbs() != null ? conf.general().jbs() : conf.general().project();
                 var id = issue.get().id();
-                var issueTracker = IssueTracker.from("jira", URI.create("https://bugs.openjdk.java.net"));
-                var hostedIssue = issueTracker.project(project).issue(id);
-                if (hostedIssue.isPresent()) {
-                    builder = builder.issue(hostedIssue.get().webUrl().toString());
+                IssueTracker issueTracker = null;
+                try {
+                    issueTracker = IssueTracker.from("jira", URI.create("https://bugs.openjdk.java.net"));
+                } catch (RuntimeException e) {
+                    log.warning("Failed to create Jira issue tracker");
+                }
+                if (issueTracker != null) {
+                    var hostedIssue = issueTracker.project(project).issue(id);
+                    if (hostedIssue.isPresent()) {
+                        builder = builder.issue(hostedIssue.get().webUrl().toString());
+                    }
                 }
             }
         }

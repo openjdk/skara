@@ -161,7 +161,6 @@ public class TestHost implements Forge, IssueTracker {
         return data.pullRequests.entrySet().stream()
                                 .sorted(Comparator.comparing(Map.Entry::getKey))
                                 .map(pr -> getPullRequest(repository, pr.getKey()))
-                                .filter(pr -> pr.state().equals(Issue.State.OPEN))
                                 .collect(Collectors.toList());
     }
 

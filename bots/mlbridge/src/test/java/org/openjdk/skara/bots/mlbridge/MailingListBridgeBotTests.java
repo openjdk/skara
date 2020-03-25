@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
+import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
 import org.openjdk.skara.test.*;
@@ -266,6 +267,159 @@ class MailingListBridgeBotTests {
                 assertEquals(listAddress, newMail.sender());
             }
             assertTrue(conversations.get(0).allMessages().get(2).body().contains("This is a comment 😄"));
+        }
+    }
+
+    @Test
+    void archiveIntegrated(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var archiveFolder = new TemporaryDirectory();
+             var webrevFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
+            var author = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+            var ignored = credentials.getHostedRepository();
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var from = EmailAddress.from("test", "test@test.mail");
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
+                                                               "Change msg\n\nWith several lines");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "master", "edit", "1234: This is a pull request");
+            pr.setBody("This should not be ready");
+            pr.setState(Issue.State.CLOSED);
+
+            // Run an archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // A PR that isn't ready for review should not be archived
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertFalse(archiveContains(archiveFolder.path(), "This is a pull request"));
+
+            // Flag it as ready for review
+            pr.setBody("This has already been integrated");
+            pr.addLabel("integrated");
+
+            // Run another archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // The archive should now contain an entry
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertTrue(archiveContains(archiveFolder.path(), "Subject: FYI: 1234: This is a pull request"));
+
+            var updatedHash = CheckableRepository.appendAndCommit(localRepo, "Another change");
+            localRepo.push(updatedHash, author.url(), "edit");
+
+            // Run another archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // The archive should now contain another entry
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertTrue(archiveContains(archiveFolder.path(), "Subject: Re: \\[Rev 01\\] FYI: 1234: This is a pull request"));
+        }
+    }
+
+    @Test
+    void archiveIntegratedRetainPrefix(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var archiveFolder = new TemporaryDirectory();
+             var webrevFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
+            var author = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+            var ignored = credentials.getHostedRepository();
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var from = EmailAddress.from("test", "test@test.mail");
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .readyLabels(Set.of("rfr"))
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
+                                                               "Change msg\n\nWith several lines");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "master", "edit", "1234: This is a pull request");
+            pr.setBody("This should be ready");
+
+            // Run an archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // A PR that isn't ready for review should not be archived
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertFalse(archiveContains(archiveFolder.path(), "This is a pull request"));
+
+            // Flag it as ready for review
+            pr.addLabel("rfr");
+
+            // Run another archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // The archive should now contain an entry
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertTrue(archiveContains(archiveFolder.path(), "Subject: RFR: 1234: This is a pull request"));
+
+            // Close it and then push another change
+            pr.setState(Issue.State.CLOSED);
+            var updatedHash = CheckableRepository.appendAndCommit(localRepo, "Another change");
+            localRepo.push(updatedHash, author.url(), "edit");
+
+            // Run another archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // The archive should now contain another entry - should retain the RFR thread prefix
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertTrue(archiveContains(archiveFolder.path(), "Subject: Re: \\[Rev 01\\] RFR: 1234: This is a pull request"));
         }
     }
 

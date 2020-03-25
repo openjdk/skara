@@ -49,9 +49,11 @@ class ArchiveItem {
     static ArchiveItem from(PullRequest pr, Repository localRepo, HostUserToEmailAuthor hostUserToEmailAuthor,
                             URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator,
                             WebrevNotification webrevNotification, ZonedDateTime created, ZonedDateTime updated,
-                            Hash base, Hash head, String subjectPrefix) {
-        return new ArchiveItem(null, "fc", created, updated, pr.author(), Map.of("PR-Head-Hash", head.hex(), "PR-Base-Hash", base.hex()),
-                               () -> subjectPrefix + "RFR: " + pr.title(),
+                            Hash base, Hash head, String subjectPrefix, String threadPrefix) {
+        return new ArchiveItem(null, "fc", created, updated, pr.author(), Map.of("PR-Head-Hash", head.hex(),
+                                                                                 "PR-Base-Hash", base.hex(),
+                                                                                 "PR-Thread-Prefix", threadPrefix),
+                               () -> subjectPrefix + threadPrefix + ": " + pr.title(),
                                () -> "",
                                () -> ArchiveMessages.composeConversation(pr, localRepo, base, head),
                                () -> {
@@ -108,9 +110,9 @@ class ArchiveItem {
     static ArchiveItem from(PullRequest pr, Repository localRepo, HostUserToEmailAuthor hostUserToEmailAuthor,
                             WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification,
                             ZonedDateTime created, ZonedDateTime updated, Hash lastBase, Hash lastHead, Hash base,
-                            Hash head, int index, ArchiveItem parent, String subjectPrefix) {
+                            Hash head, int index, ArchiveItem parent, String subjectPrefix, String threadPrefix) {
         return new ArchiveItem(parent,"ha" + head.hex(), created, updated, pr.author(), Map.of("PR-Head-Hash", head.hex(), "PR-Base-Hash", base.hex()),
-                               () -> String.format("Re: %s[Rev %02d] RFR: %s", subjectPrefix, index, pr.title()),
+                               () -> String.format("Re: %s[Rev %02d] %s: %s", subjectPrefix, index, threadPrefix, pr.title()),
                                () -> "",
                                () -> {
                                    if (lastBase.equals(base)) {
