@@ -28,6 +28,7 @@ import org.openjdk.skara.version.Version;
 
 import java.io.*;
 import java.nio.file.*;
+import java.net.URI;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -64,6 +65,16 @@ public class GitPublish {
         }
         return err;
     }
+
+    private static String getOption(String name, Arguments arguments, ReadOnlyRepository repo) throws IOException {
+        if (arguments.contains(name)) {
+            return arguments.get(name).asString();
+        }
+
+        var lines = repo.config("sync." + name);
+        return lines.size() == 1 ? lines.get(0) : null;
+    }
+
 
     public static void main(String[] args) throws IOException, InterruptedException {
         var flags = List.of(
@@ -107,6 +118,27 @@ public class GitPublish {
         var cwd = Path.of("").toAbsolutePath();
         var repo = Repository.get(cwd).or(die("error: no repository found at " + cwd.toString())).get();
         var remote = arguments.at(0).orString("origin");
+
+        var pushPath = repo.pushPath(remote);
+        if (pushPath.startsWith("http://") || pushPath.startsWith("https://")) {
+            var uri = URI.create(pushPath);
+            var token = System.getenv("GIT_TOKEN");
+            var username = getOption("username", arguments, repo);
+            var credentials = GitCredentials.fill(uri.getHost(),
+                                                  uri.getPath(),
+                                                  username,
+                                                  token,
+                                                  uri.getScheme());
+            if (credentials.password() == null) {
+                die("error: no personal access token found, use git-credentials or the environment variable GIT_TOKEN");
+            }
+            if (credentials.username() == null) {
+                die("error: no username for " + uri.getHost() + " found, use git-credentials or the flag --username");
+            }
+            if (token != null) {
+                GitCredentials.approve(credentials);
+            }
+        }
 
         var currentBranch = repo.currentBranch();
         if (currentBranch.isEmpty()) {

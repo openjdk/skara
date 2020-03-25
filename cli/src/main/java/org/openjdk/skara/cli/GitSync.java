@@ -62,6 +62,15 @@ public class GitSync {
         return pb.start().waitFor();
     }
 
+    private static String getOption(String name, Arguments arguments, ReadOnlyRepository repo) throws IOException {
+        if (arguments.contains(name)) {
+            return arguments.get(name).asString();
+        }
+
+        var lines = repo.config("sync." + name);
+        return lines.size() == 1 ? lines.get(0) : null;
+    }
+
     static void sync(Repository repo, String[] args) throws IOException, InterruptedException {
         var flags = List.of(
             Option.shortcut("")
@@ -79,6 +88,11 @@ public class GitSync {
                   .describe("BRANCHES")
                   .helptext("Comma separated list of branches to sync")
                   .optional(),
+            Option.shortcut("u")
+                  .fullname("username")
+                  .describe("NAME")
+                  .helptext("Username on forge")
+                  .optional(),
             Switch.shortcut("")
                   .fullname("pull")
                   .helptext("Pull current branch from origin after successful sync")
@@ -86,10 +100,6 @@ public class GitSync {
             Switch.shortcut("ff")
                   .fullname("fast-forward")
                   .helptext("Fast forward all local branches where possible")
-                  .optional(),
-            Switch.shortcut("m")
-                  .fullname("mercurial")
-                  .helptext("Force use of mercurial")
                   .optional(),
             Switch.shortcut("")
                   .fullname("verbose")
@@ -182,6 +192,29 @@ public class GitSync {
 
         var toPushPath = remotes.contains(to) ?
             Remote.toURI(repo.pullPath(to)) : URI.create(to);
+
+        var toScheme = toPushPath.getScheme();
+        if (toScheme.equals("https") || toScheme.equals("http")) {
+            var token = System.getenv("GIT_TOKEN");
+            var username = getOption("username", arguments, repo);
+            var credentials = GitCredentials.fill(toPushPath.getHost(),
+                                                  toPushPath.getPath(),
+                                                  username,
+                                                  token,
+                                                  toScheme);
+            if (credentials.password() == null) {
+                die("error: no personal access token found, use git-credentials or the environment variable GIT_TOKEN");
+            }
+            if (credentials.username() == null) {
+                die("error: no username for " + toPushPath.getHost() + " found, use git-credentials or the flag --username");
+            }
+            if (token != null) {
+                toPushPath = URI.create(toScheme + "://" + credentials.username() + ":" + credentials.password() + "@" +
+                                        toPushPath.getHost() + toPushPath.getPath());
+            } else {
+                GitCredentials.approve(credentials);
+            }
+        }
 
         var branches = new HashSet<String>();
         if (arguments.contains("branches")) {
