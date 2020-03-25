@@ -374,6 +374,7 @@ class MailingListBridgeBotTests {
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
+                                            .readyLabels(Set.of("rfr"))
                                             .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
                                             .build();
 
