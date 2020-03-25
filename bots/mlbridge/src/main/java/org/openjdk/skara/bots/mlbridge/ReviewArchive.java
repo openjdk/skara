@@ -3,7 +3,7 @@ package org.openjdk.skara.bots.mlbridge;
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
-import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.vcs.*;
 
 import java.net.URI;
@@ -60,6 +60,18 @@ class ReviewArchive {
         Hash lastBase = null;
         Hash lastHead = null;
         int revisionIndex = 0;
+        var threadPrefix = "RFR";
+
+        if (!sentEmails.isEmpty()) {
+            var first = sentEmails.get(0);
+            if (first.hasHeader("PR-Thread-Prefix")) {
+                threadPrefix = first.headerValue("PR-Thread-Prefix");
+            }
+        } else {
+            if (pr.state() != Issue.State.OPEN) {
+                threadPrefix = "FYI";
+            }
+        }
 
         // Check existing generated mails to find which hashes have been previously reported
         for (var email : sentEmails) {
@@ -69,10 +81,10 @@ class ReviewArchive {
                 var created = email.date();
 
                 if (generated.isEmpty()) {
-                    var first = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, issueTracker, issuePrefix, webrevGenerator, webrevNotification, pr.createdAt(), pr.updatedAt(), curBase, curHead, subjectPrefix);
+                    var first = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, issueTracker, issuePrefix, webrevGenerator, webrevNotification, pr.createdAt(), pr.updatedAt(), curBase, curHead, subjectPrefix, threadPrefix);
                     generated.add(first);
                 } else {
-                    var revision = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, webrevGenerator, webrevNotification, created, created, lastBase, lastHead, curBase, curHead, ++revisionIndex, generated.get(0), subjectPrefix);
+                    var revision = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, webrevGenerator, webrevNotification, created, created, lastBase, lastHead, curBase, curHead, ++revisionIndex, generated.get(0), subjectPrefix, threadPrefix);
                     generated.add(revision);
                 }
 
@@ -84,10 +96,10 @@ class ReviewArchive {
         // Check if we're at a revision not previously reported
         if (!base.equals(lastBase) || !head.equals(lastHead)) {
             if (generated.isEmpty()) {
-                var first = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, issueTracker, issuePrefix, webrevGenerator, webrevNotification, pr.createdAt(), pr.updatedAt(), base, head, subjectPrefix);
+                var first = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, issueTracker, issuePrefix, webrevGenerator, webrevNotification, pr.createdAt(), pr.updatedAt(), base, head, subjectPrefix, threadPrefix);
                 generated.add(first);
             } else {
-                var revision = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, webrevGenerator, webrevNotification, pr.updatedAt(), pr.updatedAt(), lastBase, lastHead, base, head, ++revisionIndex, generated.get(0), subjectPrefix);
+                var revision = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, webrevGenerator, webrevNotification, pr.updatedAt(), pr.updatedAt(), lastBase, lastHead, base, head, ++revisionIndex, generated.get(0), subjectPrefix, threadPrefix);
                 generated.add(revision);
             }
         }

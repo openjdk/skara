@@ -23,6 +23,7 @@
 package org.openjdk.skara.test;
 
 import org.openjdk.skara.forge.*;
+import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 
@@ -70,7 +71,9 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
 
     @Override
     public List<PullRequest> pullRequests() {
-        return new ArrayList<>(host.getPullRequests(this));
+        return host.getPullRequests(this).stream()
+                   .filter(pr -> pr.state().equals(Issue.State.OPEN))
+                   .collect(Collectors.toList());
     }
 
     @Override

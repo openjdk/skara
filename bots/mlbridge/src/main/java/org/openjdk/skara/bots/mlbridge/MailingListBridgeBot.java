@@ -197,8 +197,8 @@ public class MailingListBridgeBot implements Bot {
             log.info("Fetching all open pull requests");
             prs = codeRepo.pullRequests();
         } else {
-            log.info("Fetching only pull requests updated after " + lastPartialUpdate.minus(cooldown));
-            prs = codeRepo.pullRequests(lastPartialUpdate.minus(cooldown));
+            log.info("Fetching recently updated pull requests (open and closed)");
+            prs = codeRepo.pullRequests(ZonedDateTime.now().minus(Duration.ofDays(14)));
             lastPartialUpdate = ZonedDateTime.now();
         }
 

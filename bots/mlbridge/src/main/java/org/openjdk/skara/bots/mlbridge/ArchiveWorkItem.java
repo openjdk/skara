@@ -26,7 +26,7 @@ import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
-import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.mailinglist.*;
 import org.openjdk.skara.vcs.Repository;
 
@@ -243,9 +243,17 @@ class ArchiveWorkItem implements WorkItem {
         // First determine if this PR should be inspected further or not
         if (sentMails.isEmpty()) {
             var labels = new HashSet<>(pr.labels());
-            for (var readyLabel : bot.readyLabels()) {
-                if (!labels.contains(readyLabel)) {
-                    log.fine("PR is not yet ready - missing label '" + readyLabel + "'");
+
+            if (pr.state() == Issue.State.OPEN) {
+                for (var readyLabel : bot.readyLabels()) {
+                    if (!labels.contains(readyLabel)) {
+                        log.fine("PR is not yet ready - missing label '" + readyLabel + "'");
+                        return;
+                    }
+                }
+            } else {
+                if (!labels.contains("integrated")) {
+                    log.fine("Closed PR was not integrated - will not initiate an RFR thread");
                     return;
                 }
             }
