@@ -421,22 +421,21 @@ class MergeBot implements Bot, WorkItem {
                     message.add("<!-- " + fetchHead.hex() + " -->");
 
                     var commits = repo.commits(mergeBase.hex() + ".." + fetchHead.hex(), true).asList();
-                    if (commits.size() <= 10) {
-                        message.add("The following commits from " + fromDesc + " could *not* be " +
-                                    "automatically merged into " + toBranch.name() + ":");
-                        message.add("");
-                        for (var commit : commits) {
-                            message.add("- " + commit.hash().abbreviate() + ": " + commit.message().get(0));
-                        }
-                        message.add("");
-                    } else {
-                        message.add("Could *not* automatically merge " + commits.size() + " commits from " +
-                                    fromDesc + " into " + toBranch.name() + ".");
-                    }
+                    var numCommits = commits.size();
+                    var are = numCommits > 1 ? "are" : "is";
+                    var s = numCommits > 1 ? "s" : "";
 
-                    var unmerged = status.stream().filter(s -> s.status().isUnmerged()).collect(Collectors.toList());
+                    message.add("Hi all,");
+                    message.add("");
+                    message.add("this is an _automatically_ generated merge request to notify you that there " +
+                                are + " " + numCommits + " commit" + s + " from the branch `" + fromDesc + "`" +
+                                "that can **not** be merged into the branch `" + toBranch.name() + "`:");
+
+                    message.add("");
+                    var unmerged = status.stream().filter(entry -> entry.status().isUnmerged()).collect(Collectors.toList());
                     if (unmerged.size() <= 10) {
-                        message.add("The following files contains merge conflicts:");
+                        var files = unmerged.size() > 1 ? "files" : "file";
+                        message.add("The following " + files + " contains merge conflicts:");
                         message.add("");
                         for (var fileStatus : unmerged) {
                             message.add("- " + fileStatus.source().path().orElseThrow());
@@ -446,39 +445,55 @@ class MergeBot implements Bot, WorkItem {
                     }
                     message.add("");
 
-                    message.add("To manually resolve these merge conflicts, please create a personal fork of " +
-                                target.webUrl() + " and execute the following commands:");
+                    message.add("The following paragraphs will give an example on how to solve these " +
+                                "merge conflicts and create a pull request to integrate them. If you are " +
+                                "using a workflow different from the one below, feel free to use that instead. " +
+                                "It is important that the title of the pull request you create is " +
+                                "`Merge " + fromDesc + "`, otherwise the bots will _not_ understand that the " +
+                                "pull request you create is a \"merge style\" pull request.");
+                    message.add("");
+                    var localBranchName = "merge-" + fromDesc + "-into-" + toBranch.name() + "-" + commits.get(0).hash().abbreviate();
+                    message.add("The below commands should be run in a local clone of your " +
+                                "[personal fork](https://wiki.openjdk.java.net/display/skara#Skara-Personalforks) " +
+                                "of the [" + target.name() + "](" + target.webUrl() + ") repository. " +
+                                "These commands will allow you to view and resolve the merge conflicts. Note that " +
+                                "the name of the local branch in the commands, " +
+                                "`" + localBranchName + "`" +
+                                ", is just an example, feel free to give the local branch any name you prefer.");
                     message.add("");
                     message.add("```bash");
                     message.add("$ git checkout " + toBranch.name());
                     message.add("$ git pull " + target.webUrl() + " " + toBranch.name());
-                    message.add("$ git checkout --branch merge-" + fromBranch.name() + "-into-" + toBranch.name());
+                    message.add("$ git checkout -b " + localBranchName);
                     message.add("$ git pull " + fromRepo.webUrl() + " " + fromBranch.name());
                     message.add("```");
                     message.add("");
-                    message.add("When you have resolved the conflicts resulting from the above commands, run:");
+                    message.add("When you have resolved the conflicts resulting from the `git pull` command " +
+                                "above, run the following commands to create a merge commit:");
                     message.add("");
                     message.add("```bash");
                     message.add("$ git add paths/to/files/with/conflicts");
                     message.add("$ git commit -m 'Merge " + fromDesc + "'");
                     message.add("```");
                     message.add("");
-                    message.add("Push the merge commit to your personal fork:");
+                    message.add("The commit message does not have to be `Merge " + fromDesc + "`, " +
+                                "but it is convenient for when you will create a pull request. Many tools " +
+                                "will by default use the commit message of the most recent commit on a branch " +
+                                "as the title for a pull request from that branch. This means that if you use " +
+                                "the commit message `Merge " + fromDesc + "` as the commit message then the " +
+                                "title of the pull request will (depending to tools used to create the " +
+                                "pull request) be of a format that the bots expect.");
                     message.add("");
-                    message.add("```bash");
-                    message.add("$ git push -u origin merge-" + fromBranch.name() + "-into-" + toBranch.name());
-                    message.add("```");
+                    message.add("Proceed to [publish the local branch](https://wiki.openjdk.java.net/display/SKARA/FAQ#FAQ-HowdoIpushalocalbranchtoaremoterepository?) " +
+                                "and [create a pull request](https://wiki.openjdk.java.net/display/SKARA/FAQ#FAQ-HowdoIcreateapullrequest?) " +
+                                "towards the `" + toBranch.name() + "` branch in the " +
+                                "[" + target.name() + "](" + target.webUrl() + ") repository. The resulting pull " +
+                                "request can then integrated as usual once it has passed all required " +
+                                "pre-integration checks.");
                     message.add("");
-                    message.add("Now proceed to create a pull request towards this repository.");
-                    message.add("If you are using the [Skara](https://wiki.openjdk.java.net/display/skara#Skara-Skara)" +
-                                "CLI tooling then you can run the following command to create the pull request:");
-                    message.add("");
-                    message.add("```bash");
-                    message.add("$ git pr create");
-                    message.add("```");
-                    message.add("");
-                    message.add("This pull request will be closed automatically by a bot once " +
-                                "the merge conflicts have been resolved.");
+                    message.add("Thanks,");
+                    message.add("J. Duke");
+
                     fork.createPullRequest(prTarget,
                                            toBranch.name(),
                                            branchDesc,
