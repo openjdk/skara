@@ -464,6 +464,9 @@ class Utils {
             }
             exit("error: failed to connect to host: " + forgeURI);
         }
+        if (credentials != null) {
+            GitCredentials.approve(credentials);
+        }
         return forge.get();
     }
 }
