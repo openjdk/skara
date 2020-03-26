@@ -337,18 +337,24 @@ class CheckRun {
             }
             progressBody.append("\n");
             for (var currentIssue : allIssues) {
-                var iss = issueProject.issue(currentIssue.id());
                 progressBody.append(" * ");
-                if (iss.isPresent()) {
-                    progressBody.append("[");
-                    progressBody.append(iss.get().id());
-                    progressBody.append("](");
-                    progressBody.append(iss.get().webUrl());
-                    progressBody.append("): ");
-                    progressBody.append(iss.get().title());
-                    progressBody.append("\n");
-                } else {
-                    progressBody.append("⚠️ Failed to retrieve information on issue `");
+                try {
+                    var iss = issueProject.issue(currentIssue.id());
+                    if (iss.isPresent()) {
+                        progressBody.append("[");
+                        progressBody.append(iss.get().id());
+                        progressBody.append("](");
+                        progressBody.append(iss.get().webUrl());
+                        progressBody.append("): ");
+                        progressBody.append(iss.get().title());
+                        progressBody.append("\n");
+                    } else {
+                        progressBody.append("⚠️ Failed to retrieve information on issue `");
+                        progressBody.append(currentIssue.id());
+                        progressBody.append("`.\n");
+                    }
+                } catch (RuntimeException e) {
+                    progressBody.append("⚠️ Temporary failure when trying to retrieve information on issue `");
                     progressBody.append(currentIssue.id());
                     progressBody.append("`.\n");
                 }
