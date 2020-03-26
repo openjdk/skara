@@ -494,11 +494,13 @@ class MergeBot implements Bot, WorkItem {
                     message.add("Thanks,");
                     message.add("J. Duke");
 
-                    fork.createPullRequest(prTarget,
-                                           toBranch.name(),
-                                           branchDesc,
-                                           title,
-                                           message);
+                    var prFromFork = fork.createPullRequest(prTarget,
+                                                            toBranch.name(),
+                                                            branchDesc,
+                                                            title,
+                                                            message);
+                    var prFromTarget = prTarget.pullRequest(prFromFork.id());
+                    prFromTarget.addLabel("failed-auto-merge");
                 }
             }
         } catch (IOException e) {

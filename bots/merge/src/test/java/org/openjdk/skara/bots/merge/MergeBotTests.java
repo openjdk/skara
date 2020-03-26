@@ -184,6 +184,7 @@ class MergeBotTests {
             assertEquals(1, pullRequests.size());
             var pr = pullRequests.get(0);
             assertEquals("Cannot automatically merge test:master to master", pr.title());
+            assertTrue(pr.labels().contains("failed-auto-merge"));
         }
     }
 

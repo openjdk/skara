@@ -70,6 +70,8 @@ class ReviewArchive {
         } else {
             if (pr.state() != Issue.State.OPEN) {
                 threadPrefix = "FYI";
+            } else if (pr.labels().contains("failed-auto-merge")) {
+                threadPrefix = "";
             }
         }
 
