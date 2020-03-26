@@ -52,7 +52,7 @@ class CSRBot implements Bot, WorkItem {
     @Override
     public boolean concurrentWith(WorkItem other) {
         if (!(other instanceof CSRBot)) {
-            return false;
+            return true;
         }
 
         return !repo.webUrl().equals(((CSRBot) other).repo.webUrl());
