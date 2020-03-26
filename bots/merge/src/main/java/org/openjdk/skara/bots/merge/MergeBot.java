@@ -499,7 +499,7 @@ class MergeBot implements Bot, WorkItem {
                                                             branchDesc,
                                                             title,
                                                             message);
-                    var prFromTarget = prTarget.pullRequest(prFromFork.id());
+                    var prFromTarget = target.pullRequest(prFromFork.id());
                     prFromTarget.addLabel("failed-auto-merge");
                 }
             }
