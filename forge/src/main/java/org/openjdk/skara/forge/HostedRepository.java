@@ -56,6 +56,7 @@ public interface HostedRepository {
     Optional<HostedRepository> parent();
     URI url();
     URI webUrl();
+    URI nonTransformedWebUrl();
     URI webUrl(Hash hash);
     VCS repositoryType();
     String fileContents(String filename, String ref);

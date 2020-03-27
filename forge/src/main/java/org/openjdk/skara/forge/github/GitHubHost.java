@@ -137,11 +137,15 @@ public class GitHubHost implements Forge {
     }
 
     URI getWebURI(String endpoint) {
+        return getWebURI(endpoint, true);
+    }
+
+    URI getWebURI(String endpoint, boolean transform) {
         var baseWebUri = URIBuilder.base(uri)
                                    .setPath(endpoint)
                                    .build();
 
-        if (webUriPattern == null) {
+        if (webUriPattern == null || !transform) {
             return baseWebUri;
         }
 
