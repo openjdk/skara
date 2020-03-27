@@ -41,4 +41,14 @@ class GitHubHostTests {
             assertEquals(new URI("http://www.example.com/another/hello"), host.getWebURI("/test/hello"));
         }
     }
+
+    @Test
+    void nonTransformedWebUrl() throws IOException, URISyntaxException {
+        try (var tempFolder = new TemporaryDirectory()) {
+            var host = new GitHubHost(URIBuilder.base("http://www.example.com").build(),
+                                      Pattern.compile("^(http://www.example.com)/test/(.*)$"), "$1/another/$2");
+            assertEquals(new URI("http://www.example.com/another/hello"), host.getWebURI("/test/hello"));
+            assertEquals(new URI("http://www.example.com/test/hello"), host.getWebURI("/test/hello", false));
+        }
+    }
 }

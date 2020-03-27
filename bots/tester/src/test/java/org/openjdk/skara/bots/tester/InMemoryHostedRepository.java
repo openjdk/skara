@@ -92,6 +92,11 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
+    public URI nonTransformedWebUrl() {
+        return webUrl();
+    }
+
+    @Override
     public URI webUrl(Hash hash) {
         return null;
     }

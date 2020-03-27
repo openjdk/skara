@@ -127,6 +127,11 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
+    public URI nonTransformedWebUrl() {
+        return url();
+    }
+
+    @Override
     public URI webUrl(Hash hash) {
         try {
             return new URI(url().toString() + "/" + hash.hex());
