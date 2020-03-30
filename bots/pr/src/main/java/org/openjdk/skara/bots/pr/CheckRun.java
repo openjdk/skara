@@ -30,6 +30,7 @@ import org.openjdk.skara.vcs.openjdk.Issue;
 import org.openjdk.skara.email.EmailAddress;
 
 import java.io.*;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.*;
@@ -444,12 +445,24 @@ class CheckRun {
         var message = new StringBuilder();
         message.append("@");
         message.append(pr.author().userName());
-        message.append(" This change now passes all automated pre-integration checks. When the change also ");
-        message.append("fulfills all [project specific requirements](https://github.com/");
-        message.append(pr.repository().name());
-        message.append("/blob/");
-        message.append(pr.targetRef());
-        message.append("/CONTRIBUTING.md), type `/integrate` in a new comment to proceed. After integration, ");
+        message.append(" This change now passes all automated pre-integration checks");
+
+        try {
+            var hasContributingFile =
+                !prInstance.localRepo().files(prInstance.targetHash(), Path.of("CONTRIBUTING.md")).isEmpty();
+            if (hasContributingFile) {
+                message.append(". When the change also fulfills all ");
+                message.append("[project specific requirements](https://github.com/");
+                message.append(pr.repository().name());
+                message.append("/blob/");
+                message.append(pr.targetRef());
+                message.append("/CONTRIBUTING.md)");
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+
+        message.append(", type `/integrate` in a new comment to proceed. After integration, ");
         message.append("the commit message will be:\n");
         message.append("```\n");
         message.append(commitMessage);
