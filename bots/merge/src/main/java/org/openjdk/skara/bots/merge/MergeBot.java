@@ -274,7 +274,7 @@ class MergeBot implements Bot, WorkItem {
 
                 var targetName = Path.of(target.name()).getFileName();
                 var fromName = Path.of(fromRepo.name()).getFileName();
-                var fromDesc = targetName.equals(fromName) ? fromBranch : fromName + ":" + fromBranch;
+                var fromDesc = targetName.equals(fromName) ? fromBranch.name() : fromName + ":" + fromBranch.name();
 
                 // Check if merge conflict pull request is present
                 var shouldMerge = true;
@@ -452,10 +452,10 @@ class MergeBot implements Bot, WorkItem {
                                 "`Merge " + fromDesc + "`, otherwise the bots will _not_ understand that the " +
                                 "pull request you create is a \"merge style\" pull request.");
                     message.add("");
-                    var localBranchName = "merge-" + fromDesc + "-into-" + toBranch.name() + "-" + commits.get(0).hash().abbreviate();
+                    var localBranchName = "merge-" + fromDesc.replace(":", "-") + "-into-" + toBranch.name() + "-" + commits.get(0).hash().abbreviate();
                     message.add("The below commands should be run in a local clone of your " +
                                 "[personal fork](https://wiki.openjdk.java.net/display/skara#Skara-Personalforks) " +
-                                "of the [" + target.name() + "](" + target.webUrl() + ") repository. " +
+                                "of the [" + target.name() + "](" + target.nonTransformedWebUrl() + ") repository. " +
                                 "These commands will allow you to view and resolve the merge conflicts. Note that " +
                                 "the name of the local branch in the commands, " +
                                 "`" + localBranchName + "`" +
@@ -463,9 +463,9 @@ class MergeBot implements Bot, WorkItem {
                     message.add("");
                     message.add("```bash");
                     message.add("$ git checkout " + toBranch.name());
-                    message.add("$ git pull " + target.webUrl() + " " + toBranch.name());
+                    message.add("$ git pull " + target.nonTransformedWebUrl() + " " + toBranch.name());
                     message.add("$ git checkout -b " + localBranchName);
-                    message.add("$ git pull " + fromRepo.webUrl() + " " + fromBranch.name());
+                    message.add("$ git pull " + fromRepo.nonTransformedWebUrl() + " " + fromBranch.name());
                     message.add("```");
                     message.add("");
                     message.add("When you have resolved the conflicts resulting from the `git pull` command " +
