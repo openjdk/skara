@@ -577,10 +577,16 @@ class CheckRun {
             // Post check in-progress
             log.info("Starting to run jcheck on PR head");
             pr.createCheck(checkBuilder.build());
-            var localHash = prInstance.commit(censusInstance.namespace(), censusDomain, null);
+            List<String> additionalErrors = List.of();
+            Hash localHash;
+            try {
+                localHash = prInstance.commit(censusInstance.namespace(), censusDomain, null);
+            } catch (CommitFailure e) {
+                additionalErrors = List.of("It was not possible to create a commit for the changes in this PR: " + e.getMessage());
+                localHash = prInstance.baseHash();
+            }
             boolean rebasePossible = true;
             PullRequestCheckIssueVisitor visitor = prInstance.createVisitor(localHash, censusInstance);
-            List<String> additionalErrors;
             if (!localHash.equals(prInstance.baseHash())) {
                 // Try to rebase
                 var ignored = new PrintWriter(new StringWriter());
@@ -595,9 +601,10 @@ class CheckRun {
                 var additionalConfiguration = AdditionalConfiguration.get(prInstance.localRepo(), localHash, pr.repository().forge().currentUser(), comments);
                 prInstance.executeChecks(localHash, censusInstance, visitor, additionalConfiguration);
                 additionalErrors = botSpecificChecks();
-            }
-            else {
-                additionalErrors = List.of("This PR contains no changes");
+            } else {
+                if (additionalErrors.isEmpty()) {
+                    additionalErrors = List.of("This PR contains no changes");
+                }
             }
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
             updateReadyForReview(visitor, additionalErrors);
