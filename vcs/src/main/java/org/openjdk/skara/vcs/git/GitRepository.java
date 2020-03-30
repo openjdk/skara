@@ -1229,6 +1229,13 @@ public class GitRepository implements Repository {
     }
 
     @Override
+    public void updateSubmodule(Path path) throws IOException {
+        try (var p = capture("git", "submodule", "update", path.toString())) {
+            await(p);
+        }
+    }
+
+    @Override
     public void addSubmodule(String pullPath, Path path) throws IOException {
         try (var p = capture("git", "submodule", "add", pullPath, path.toString())) {
             await(p);
