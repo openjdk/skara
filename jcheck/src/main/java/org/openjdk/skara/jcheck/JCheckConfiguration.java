@@ -87,7 +87,7 @@ public class JCheckConfiguration {
             shouldCheckMessage = true;
         }
         var checkDuplicateIssues = old.get("bugids");
-        if (checkDuplicateIssues == null || !checkDuplicateIssues.equals("dup")) {
+        if (checkDuplicateIssues == null || !checkDuplicateIssues.asString().equals("dup")) {
             error += ",duplicate-issues";
         }
         config.add(error);
