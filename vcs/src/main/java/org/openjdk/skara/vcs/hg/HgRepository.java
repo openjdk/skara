@@ -1258,6 +1258,11 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public void updateSubmodule(Path path) throws IOException {
+        checkout(".", false);
+    }
+
+    @Override
     public List<Submodule> submodules() throws IOException {
         var hgSub = root().resolve(".hgsub");
         var hgSubState = root().resolve(".hgsubstate");

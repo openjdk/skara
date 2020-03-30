@@ -114,6 +114,10 @@ public interface Repository extends ReadOnlyRepository {
         setPaths(remote, pullPath, null);
     }
     void addSubmodule(String pullPath, Path path) throws IOException;
+    void updateSubmodule(Path path) throws IOException;
+    default void updateSubmodule(Submodule s) throws IOException {
+        updateSubmodule(s.path());
+    }
 
     default void push(Hash hash, URI uri, String ref) throws IOException {
         push(hash, uri, ref, false);

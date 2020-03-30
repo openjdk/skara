@@ -132,6 +132,9 @@ public class GitSkara {
         var head = repo.get().head();
         System.out.print("Checking for updates ...");
         repo.get().pull();
+        for (var s : repo.get().submodules()) {
+            repo.get().updateSubmodule(s);
+        }
         var newHead = repo.get().head();
 
         if (!head.equals(newHead)) {
