@@ -35,6 +35,12 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
+class CommitFailure extends Exception {
+    CommitFailure(String reason) {
+        super(reason);
+    }
+}
+
 class PullRequestInstance {
     private final PullRequest pr;
     private final Repository localRepo;
@@ -132,19 +138,33 @@ class PullRequestInstance {
         return localRepo.commit(commitMessage, author.name(), author.email(), committer.name(), committer.email());
     }
 
-    private Hash commitMerge(List<Review> activeReviews, Namespace namespace, String censusDomain) throws IOException {
-        // Find the last merge commit - the very last commit is not eligible (as the merge needs a parent)
-        var commits = localRepo.commits(baseHash + ".." + headHash).asList();
+    private Hash commitMerge(List<Review> activeReviews, Namespace namespace, String censusDomain) throws IOException, CommitFailure {
+        // Find the first merge commit with an incoming parent outside of the merge target
+        // The very last commit is not eligible (as the merge needs a parent)
+        var commits = localRepo.commitMetadata(baseHash, headHash);
         int mergeCommitIndex = commits.size();
         for (int i = 0; i < commits.size() - 1; ++i) {
             if (commits.get(i).isMerge()) {
-                mergeCommitIndex = i;
+                boolean isSourceMerge = false;
+                for (int j = 1; j < commits.get(i).parents().size(); ++j) {
+                    if (!localRepo.isAncestor(baseHash, commits.get(i).parents().get(j))) {
+                        isSourceMerge = true;
+                    }
+                }
+                if (isSourceMerge) {
+                    mergeCommitIndex = i;
+                    break;
+                }
             }
+        }
+
+        if (mergeCommitIndex == commits.size()) {
+            throw new CommitFailure("No merge commit containing commits from another branch than the target was found");
         }
 
         var contributor = namespace.get(pr.author().id());
         if (contributor == null) {
-            throw new RuntimeException("Merges can only be performed by Committers");
+            throw new CommitFailure("Merges can only be performed by Committers");
         }
 
         var author = new Author(contributor.fullName().orElseThrow(), contributor.username() + "@" + censusDomain);
@@ -156,7 +176,7 @@ class PullRequestInstance {
         return localRepo.amend(commitMessage, author.name(), author.email(), author.name(), author.email());
     }
 
-    Hash commit(Namespace namespace, String censusDomain, String sponsorId) throws IOException {
+    Hash commit(Namespace namespace, String censusDomain, String sponsorId) throws IOException, CommitFailure {
         var activeReviews = filterActiveReviews(pr.reviews());
         if (!pr.title().startsWith("Merge")) {
             return commitSquashed(activeReviews, namespace, censusDomain, sponsorId);
@@ -165,16 +185,21 @@ class PullRequestInstance {
         }
     }
 
-    List<Commit> divergingCommits() {
+    List<CommitMetadata> divergingCommits() {
+        return divergingCommits(headHash);
+    }
+
+    private List<CommitMetadata> divergingCommits(Hash commitHash) {
         try {
-            return localRepo.commits(baseHash + ".." + targetHash).asList();
+            var updatedBase = localRepo.mergeBase(targetHash, commitHash);
+            return localRepo.commitMetadata(updatedBase, targetHash);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     Optional<Hash> rebase(Hash commitHash, PrintWriter reply) {
-        var divergingCommits = divergingCommits();
+        var divergingCommits = divergingCommits(commitHash);
         if (divergingCommits.size() > 0) {
             reply.print("The following commits have been pushed to ");
             reply.print(pr.targetRef());
