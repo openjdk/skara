@@ -44,7 +44,31 @@ class GitCombinedDiffParser {
     }
 
     private List<List<Hunk>> parseSingleFileMultiParentDiff(UnixStreamReader reader, List<PatchHeader> headers) throws IOException {
-        assert line.startsWith("diff --combined");
+        if (!line.startsWith("diff --combined")) {
+            throw new IllegalStateException("Expected line to start with 'diff --line combined', got: " + line);
+        }
+
+        var filename = line.substring("diff --combined ".length());
+        var isRenamedWithRegardsToAllParents = headers.stream().allMatch(h -> h.status().isRenamed());
+        if (isRenamedWithRegardsToAllParents) {
+            // git diff -c does not give a "diff --combined" line, nor hunks, for a rename without modifications
+            if (headers.stream().noneMatch(h -> filename.equals(h.targetPath().toString()))) {
+                // This diff is for another file, this must have been a rename without modifications
+                var result = new ArrayList<List<Hunk>>();
+                for (int i = 0; i < numParents; i++) {
+                    result.add(List.of());
+                }
+                return result;
+            }
+        }
+
+        for (var header : headers) {
+            var targetPath = header.targetPath();
+            if (targetPath != null && !targetPath.toString().equals(filename)) {
+                throw new IllegalStateException("Got header for file " + targetPath.toString() +
+                                                " but hunks for file " + filename);
+            }
+        }
 
         while ((line = reader.readLine()) != null &&
                 !line.startsWith("@@@") &&
@@ -61,7 +85,9 @@ class GitCombinedDiffParser {
 
         while (line != null && line.startsWith("@@@")) {
             var words = line.split("\\s");
-            assert words[0].startsWith("@@@");
+            if (!words[0].startsWith("@@@")) {
+                throw new IllegalStateException("Expected word to starts with '@@@', got: " + words[0]);
+            }
             var sourceRangesPerParent = new ArrayList<Range>(numParents);
             for (int i = 1; i <= numParents; i++) {
                 var header = headers.get(i - 1);
@@ -151,7 +177,9 @@ class GitCombinedDiffParser {
 
         index++;
         var dstPath = Path.of(words[index]);
-        assert words.length == (index + 1);
+        if (words.length != (index + 1)) {
+            throw new IllegalStateException("Unexpected characters at end of raw line: " + line);
+        }
 
         for (int i = 0; i < numParents; i++) {
             var status = statuses.get(i);
@@ -185,7 +213,11 @@ class GitCombinedDiffParser {
         while (line != null && line.startsWith("::")) {
             var headersForFile = parseCombinedRawLine(line);
             headersForFiles.add(headersForFile);
-            assert headersForFile.size() == numParents;
+            if (headersForFile.size() != numParents) {
+                throw new IllegalStateException("Expected one raw diff line per parent, have " +
+                                                numParents + " parents and got " + headersForFile.size() +
+                                                " raw diff lines");
+            }
 
             for (int i = 0; i < numParents; i++) {
                 headersPerParent.get(i).add(headersForFile.get(i));
@@ -195,7 +227,9 @@ class GitCombinedDiffParser {
         }
 
         // skip empty newline added by git
-        assert line.equals("");
+        if (!line.equals("")) {
+            throw new IllegalStateException("Expected empty line, got: " + line);
+        }
         line = reader.readLine();
 
         var hunksPerFilePerParent = new ArrayList<List<List<Hunk>>>(numParents);
@@ -206,8 +240,14 @@ class GitCombinedDiffParser {
         int headerIndex = 0;
         while (line != null && !line.equals(delimiter)) {
             var headersForFile = headersForFiles.get(headerIndex);
+            var isRenamedWithRegardsToAllParents = headersForFile.stream().allMatch(h -> h.status().isRenamed());
             var hunksPerParentForFile = parseSingleFileMultiParentDiff(reader, headersForFile);
-            assert hunksPerParentForFile.size() == numParents;
+
+            if (hunksPerParentForFile.size() != numParents) {
+                throw new IllegalStateException("Expected at least one hunk per parent, have " +
+                                                numParents + " parents and got " + hunksPerParentForFile.size() +
+                                                " hunk lists");
+            }
 
             for (int i = 0; i < numParents; i++) {
                 hunksPerFilePerParent.get(i).add(hunksPerParentForFile.get(i));
@@ -220,12 +260,17 @@ class GitCombinedDiffParser {
         for (int i = 0; i < numParents; i++) {
             var headers = headersPerParent.get(i);
             var hunks = hunksPerFilePerParent.get(i);
+            if (headers.size() != hunks.size()) {
+                throw new IllegalStateException("Header lists and hunk lists differ: " + headers.size() +
+                                                " headers vs " + hunks.size() + " hunks");
+            }
             var patches = new ArrayList<Patch>();
             for (int j = 0; j < headers.size(); j++) {
                 var h = headers.get(j);
+                var hunksForParentPatch = hunks.get(j);
                 patches.add(new TextualPatch(h.sourcePath(), h.sourceFileType(), h.sourceHash(),
                                              h.targetPath(), h.targetFileType(), h.targetHash(),
-                                             h.status(), hunks.get(j)));
+                                             h.status(), hunksForParentPatch));
             }
             patchesPerParent.add(patches);
         }
