@@ -140,4 +140,9 @@ class InMemoryHostedRepository implements HostedRepository {
     public List<PullRequest> findPullRequestsWithComment(String author, String body) {
         return null;
     }
+
+    @Override
+    public List<HostedBranch> branches() {
+        return List.of();
+    }
 }

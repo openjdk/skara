@@ -185,6 +185,19 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
         }
     }
 
+    @Override
+    public List<HostedBranch> branches() {
+        try {
+            var result = new ArrayList<HostedBranch>();
+            for (var b : localRepository.branches()) {
+                result.add(new TestHostedBranch(b.name(), localRepository.resolve(b).orElseThrow()));
+            }
+            return result;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     Repository localRepository() {
         return localRepository;
     }

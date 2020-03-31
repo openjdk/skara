@@ -65,6 +65,7 @@ public interface HostedRepository {
     HostedRepository fork();
     long id();
     Hash branchHash(String ref);
+    List<HostedBranch> branches();
 
     default PullRequest createPullRequest(HostedRepository target,
                                           String targetRef,

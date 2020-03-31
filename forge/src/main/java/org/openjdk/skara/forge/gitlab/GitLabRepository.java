@@ -264,4 +264,13 @@ public class GitLabRepository implements HostedRepository {
         var branch = request.get("repository/branches/" + ref).execute();
         return new Hash(branch.get("commit").get("id").asString());
     }
+
+    @Override
+    public List<HostedBranch> branches() {
+        var branches = request.get("branches").execute();
+        return branches.stream()
+                       .map(b -> new GitLabBranch(b.get("name").asString(),
+                                                  new Hash(b.get("commit").get("id").asString())))
+                       .collect(Collectors.toList());
+    }
 }
