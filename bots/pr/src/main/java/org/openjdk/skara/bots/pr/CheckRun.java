@@ -195,8 +195,12 @@ class CheckRun {
                         );
                         try {
                             var sourceHash = prInstance.localRepo().fetch(mergeSourceRepo.url(), source.get().branchName);
-                            if (!prInstance.localRepo().isAncestor(commits.get(mergeCommitIndex + 1).hash(), sourceHash)) {
-                                ret.add("The merge contains commits that are not ancestors of the source.");
+                            var mergeCommit = commits.get(mergeCommitIndex);
+                            for (int i = 1; i < mergeCommit.parents().size(); ++i) {
+                                if (!prInstance.localRepo().isAncestor(mergeCommit.parents().get(i), sourceHash)) {
+                                    ret.add("The merge contains commits that are not ancestors of the source.");
+                                    break;
+                                }
                             }
                         } catch (IOException e) {
                             ret.add("Could not fetch branch `" + source.get().branchName + "` from project `" +
