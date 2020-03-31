@@ -51,6 +51,7 @@ class CheckRun {
     private final String progressMarker = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
     private final String mergeReadyMarker = "<!-- PullRequestBot merge is ready comment -->";
     private final String outdatedHelpMarker = "<!-- PullRequestBot outdated help comment -->";
+    private final String sourceBranchWarningMarker = "<!-- PullRequestBot source branch warning comment -->";
     private final Pattern mergeSourceFullPattern = Pattern.compile("^Merge ([-/\\w]+):([-\\w]+)$");
     private final Pattern mergeSourceBranchOnlyPattern = Pattern.compile("^Merge ([-\\w]+)$");
     private final Set<String> newLabels;
@@ -83,13 +84,14 @@ class CheckRun {
     }
 
     private List<String> allowedTargetBranches() {
-        var remoteBranches = prInstance.remoteBranches().stream()
-                                       .map(Reference::name)
-                                       .map(name -> workItem.bot.allowedTargetBranches().matcher(name))
-                                       .filter(Matcher::matches)
-                                       .map(Matcher::group)
-                                       .collect(Collectors.toList());
-        return remoteBranches;
+        return pr.repository()
+                 .branches()
+                 .stream()
+                 .map(HostedBranch::name)
+                 .map(name -> workItem.bot.allowedTargetBranches().matcher(name))
+                 .filter(Matcher::matches)
+                 .map(Matcher::group)
+                 .collect(Collectors.toList());
     }
 
     // For unknown contributors, check that all commits have the same name and email
@@ -575,6 +577,37 @@ class CheckRun {
         }
     }
 
+    private void addSourceBranchWarningComment(List<Comment> comments) {
+        var existing = findComment(comments, sourceBranchWarningMarker);
+        if (existing.isPresent()) {
+            // Only add the comment once per PR
+            return;
+        }
+        var branch = pr.sourceRef();
+        var message = ":warning: @" + pr.author().userName() + " " +
+            "a branch with the same name as the source branch for this pull request (`" + branch + "`) " +
+            "is present in the [target repository](" + pr.repository().nonTransformedWebUrl() + "). " +
+            "If you eventually integrate this pull request then the branch `" + branch + "` " +
+            "in your [personal fork](" + pr.sourceRepository().nonTransformedWebUrl() + ") will diverge once you sync " +
+            "your personal fork with the upstream repository.\n" +
+            "\n" +
+            "To avoid this situation, create a new branch for your changes and reset the `" + branch + "` branch. " +
+            "You can do this by running the following commands in a local repository for your personal fork. " +
+            "_Note_: you do *not* have to name the new branch `NEW-BRANCH-NAME`." +
+            "\n" +
+            "```" +
+            "$ git checkout " + branch + "\n" +
+            "$ git checkout -b NEW-BRANCH-NAME\n" +
+            "$ git branch -f " + branch + " " + prInstance.baseHash().hex() + "\n" +
+            "$ git push -f origin " + branch + "\n" +
+            "```\n" +
+            "\n" +
+            "Then proceed to create a new pull request with `NEW-BRANCH-NAME` as the source branch and " +
+            "close this one.\n" +
+            sourceBranchWarningMarker;
+        pr.addComment(message);
+    }
+
     private void addOutdatedComment(List<Comment> comments) {
         var existing = findComment(comments, outdatedHelpMarker);
         if (existing.isPresent()) {
@@ -660,6 +693,11 @@ class CheckRun {
                 newLabels.add("merge-conflict");
             } else {
                 newLabels.remove("merge-conflict");
+            }
+
+            var branchNames = pr.repository().branches().stream().map(HostedBranch::name).collect(Collectors.toSet());
+            if (!pr.repository().url().equals(pr.sourceRepository().url()) && branchNames.contains(pr.sourceRef())) {
+                addSourceBranchWarningComment(comments);
             }
 
             // Ensure that the ready for sponsor label is up to date
