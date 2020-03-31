@@ -121,7 +121,7 @@ class PullRequestInstance {
 
         if (contributor == null) {
             // Use the information contained in the head commit - jcheck has verified that it contains sane values
-            var headCommit = localRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
+            var headCommit = localRepo.commitMetadata(headHash.hex() + "^.." + headHash.hex()).get(0);
             author = headCommit.author();
         } else {
             author = new Author(contributor.fullName().orElseThrow(), contributor.username() + "@" + censusDomain);
