@@ -41,7 +41,6 @@ dependencies {
     implementation project(':forge')
     implementation project(':issuetracker')
     implementation project(':proxy')
-    implementation project(':ssh')
     implementation project(':version')
 }
 
