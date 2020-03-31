@@ -22,54 +22,66 @@
  */
 package org.openjdk.skara.cli;
 
-import org.openjdk.skara.ssh.SSHConfig;
-
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Files;
+import java.nio.charset.StandardCharsets;
 
 public class Remote {
-    public static URI toWebURI(String remotePath) throws IOException {
-        if (remotePath.startsWith("git+")) {
-            remotePath = remotePath.substring("git+".length());
-        }
-        if (remotePath.endsWith(".git")) {
-            remotePath = remotePath.substring(0, remotePath.length() - ".git".length());
-        }
-        if (remotePath.startsWith("http")) {
-            return URI.create(remotePath);
-        } else {
-            if (remotePath.startsWith("ssh://")) {
-                remotePath = remotePath.substring("ssh://".length()).replaceFirst("/", ":");
+    private static URI sshCanonicalize(URI uri) throws IOException {
+        var arg = uri.getUserInfo() == null ? uri.getHost() : uri.getUserInfo() + "@" + uri.getHost();
+        var pb = new ProcessBuilder("ssh", "-G", arg);
+        pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
+        pb.redirectError(ProcessBuilder.Redirect.DISCARD);
+        var p = pb.start();
+
+        var output = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        try {
+            var res = p.waitFor();
+            if (res != 0) {
+                throw new IOException("ssh -G " + arg + " exited with non-zero exit code: " + res);
             }
-            var indexOfColon = remotePath.indexOf(':');
-            var indexOfSlash = remotePath.indexOf('/');
-            if (indexOfColon != -1) {
-                if (indexOfSlash == -1 || indexOfColon < indexOfSlash) {
-                    var path = remotePath.contains("@") ? remotePath.split("@")[1] : remotePath;
-                    var name = path.split(":")[0];
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        }
 
-                    // Could be a Host in the ~/.ssh/config file
-                    var sshConfig = Path.of(System.getProperty("user.home"), ".ssh", "config");
-                    if (Files.exists(sshConfig)) {
-                        for (var host : SSHConfig.parse(sshConfig).hosts()) {
-                            if (host.name().equals(name)) {
-                                var hostName = host.hostName();
-                                if (hostName != null) {
-                                    return URI.create("https://" + hostName + "/" + path.split(":")[1]);
-                                }
-                            }
-                        }
-                    }
-
-                    // Otherwise is must be a domain
-                    return URI.create("https://" + path.replace(":", "/"));
+        String hostname = null;
+        String username = null;
+        for (var line : output.split("\n")) {
+            var parts = line.trim().split(" ");
+            if (parts.length == 2) {
+                var key = parts[0];
+                var value = parts[1];
+                if (key.equals("hostname")) {
+                    hostname = value;
+                } else if (key.equals("user")) {
+                    username = value;
                 }
             }
         }
 
-        throw new IOException("error: cannot find remote repository for " + remotePath);
+        if (hostname == null) {
+            throw new IOException("ssh -G " + arg + " did not output a hostname");
+        }
+
+        return username == null ?
+            URI.create("ssh://" + hostname + uri.getPath()) :
+            URI.create("ssh://" + username + "@" + hostname + uri.getPath());
+    }
+
+    public static URI toWebURI(String remotePath) throws IOException {
+        var uri = toURI(remotePath);
+        if (uri.getScheme().equals("file://")) {
+            throw new IOException("Cannot create web URI for file path: " + uri.toString());
+        }
+
+        // Use https://, drop eventual .git from path and drop authority
+        var path = uri.getPath();
+        if (path.endsWith(".git")) {
+            path = path.substring(0, path.length() - ".git".length());
+        }
+        return URI.create("https://" + uri.getHost() + path);
     }
 
     public static URI toURI(String remotePath) throws IOException {
@@ -88,33 +100,11 @@ public class Remote {
         var indexOfSlash = remotePath.indexOf('/');
         if (indexOfColon != -1) {
             if (indexOfSlash == -1 || indexOfColon < indexOfSlash) {
-                var path = remotePath.contains("@") ? remotePath.split("@")[1] : remotePath;
-                var name = path.split(":")[0];
-
-                // Could be a Host in the ~/.ssh/config file
-                var sshConfig = Path.of(System.getProperty("user.home"), ".ssh", "config");
-                if (Files.exists(sshConfig)) {
-                    for (var host : SSHConfig.parse(sshConfig).hosts()) {
-                        if (host.name().equals(name)) {
-                            var hostName = host.hostName();
-                            if (hostName != null) {
-                                var username = host.user();
-                                if (username == null) {
-                                    username = remotePath.contains("@") ? remotePath.split("@")[0] : null;
-                                }
-                                var userPrefix = username == null ? "" : username + "@";
-                                return URI.create("ssh://" + userPrefix + hostName + "/" + path.split(":")[1]);
-                            }
-                        }
-                    }
-                }
-
-                // Otherwise is must be a domain
-                var userPrefix = remotePath.contains("@") ? remotePath.split("@")[0] + "@" : "";
-                return URI.create("ssh://" + userPrefix + path.replace(":", "/"));
+                var uri = URI.create("ssh://" + remotePath.replace(":", "/"));
+                return sshCanonicalize(uri);
             }
         }
 
-        throw new IOException("error: cannot construct proper URI for " + remotePath);
+        throw new IOException("Cannot construct URI for " + remotePath);
     }
 }
