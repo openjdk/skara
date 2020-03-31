@@ -93,7 +93,7 @@ class CheckRun {
     }
 
     // For unknown contributors, check that all commits have the same name and email
-    private boolean checkCommitAuthor(List<Commit> commits) throws IOException {
+    private boolean checkCommitAuthor(List<CommitMetadata> commits) throws IOException {
         var author = censusInstance.namespace().get(pr.author().id());
         if (author != null) {
             return true;
@@ -127,6 +127,17 @@ class CheckRun {
             if (!branchMatcher.matches()) {
                 return Optional.empty();
             }
+
+            // Verify that the branch exists
+            var isValidBranch = prInstance.remoteBranches().stream()
+                                          .map(Reference::name)
+                                          .anyMatch(branch -> branch.equals(branchMatcher.group(1)));
+            if (!isValidBranch) {
+                // Assume the name refers to a sibling repository
+                var repoName = Path.of(pr.repository().name()).resolveSibling(branchMatcher.group(1)).toString();
+                return Optional.of(new MergeSource(repoName, "master"));
+            }
+
             return Optional.of(new MergeSource(pr.repository().name(), branchMatcher.group(1)));
         }
 
@@ -152,7 +163,7 @@ class CheckRun {
 
         var baseHash = prInstance.baseHash();
         var headHash = pr.headHash();
-        var commits = prInstance.localRepo().commits(baseHash + ".." + headHash).asList();
+        var commits = prInstance.localRepo().commitMetadata(baseHash, headHash);
 
         if (!checkCommitAuthor(commits)) {
             var error = "For contributors who are not existing OpenJDK Authors, commit attribution will be taken from " +
