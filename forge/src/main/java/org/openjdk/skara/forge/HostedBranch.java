@@ -24,7 +24,42 @@ package org.openjdk.skara.forge;
 
 import org.openjdk.skara.vcs.Hash;
 
-public interface HostedBranch {
-    String name();
-    Hash hash();
+import java.util.Objects;
+
+public class HostedBranch {
+    private final String name;
+    private final Hash hash;
+
+    public HostedBranch(String name, Hash hash) {
+        this.name = name;
+        this.hash = hash;
+    }
+
+    public String name() {
+        return name;
+    }
+
+    public Hash hash() {
+        return hash;
+    }
+
+    @Override
+    public String toString() {
+        return name + "@" + hash.hex();
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, hash);
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (!(other instanceof HostedBranch)) {
+            return false;
+        }
+
+        var o = (HostedBranch) other;
+        return Objects.equals(name, o.name) && Objects.equals(hash, o.hash);
+    }
 }

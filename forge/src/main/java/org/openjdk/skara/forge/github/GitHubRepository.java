@@ -247,7 +247,7 @@ public class GitHubRepository implements HostedRepository {
     public List<HostedBranch> branches() {
         var branches = request.get("branches").execute();
         return branches.stream()
-                       .map(b -> new GitHubBranch(b.get("name").asString(),
+                       .map(b -> new HostedBranch(b.get("name").asString(),
                                                   new Hash(b.get("commit").get("sha").asString())))
                        .collect(Collectors.toList());
     }
