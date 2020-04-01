@@ -231,7 +231,7 @@ class Utils {
             new IOException("Could not resolve '" + targetBranch + "' branch")
         ));
 
-        return conf.general().jbs();
+        return conf.get().general().jbs();
     }
 
     static Optional<Issue> getIssue(Commit commit, String project) throws IOException {

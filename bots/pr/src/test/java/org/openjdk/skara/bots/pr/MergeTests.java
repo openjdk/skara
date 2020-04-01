@@ -764,9 +764,9 @@ class MergeTests {
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(mergeBot);
 
-            // The bot should reply with a failure message
+            // The bot should reply with a need for sponsor
             var error = pr.comments().stream()
-                          .filter(comment -> comment.body().contains("Merges require Committer status"))
+                          .filter(comment -> comment.body().contains("Afterwards, your sponsor types `/sponsor`"))
                           .count();
             assertEquals(1, error, () -> pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
         }

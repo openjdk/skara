@@ -38,7 +38,7 @@ public class AdditionalConfiguration {
             return ret;
         }
 
-        var currentConfiguration = JCheckConfiguration.from(repository, hash);
+        var currentConfiguration = JCheckConfiguration.from(repository, hash).orElseThrow();
         var updatedLimits = ReviewersTracker.updatedRoleLimits(currentConfiguration, additionalReviewers.get().number(), additionalReviewers.get().role());
 
         ret.add("[checks \"reviewers\"]");

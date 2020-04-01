@@ -39,6 +39,7 @@ dependencies {
     implementation project(':census')
     implementation project(':json')
     implementation project(':vcs')
+    implementation project(':jcheck')
 
     testImplementation project(':test')
 }

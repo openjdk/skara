@@ -63,7 +63,7 @@ public class GitInfo {
     }
 
     private static String jbsProject(ReadOnlyRepository repo, Hash hash) throws IOException {
-        var conf = JCheckConfiguration.from(repo, hash);
+        var conf = JCheckConfiguration.from(repo, hash).orElseThrow();
         return conf.general().jbs().toUpperCase();
     }
 

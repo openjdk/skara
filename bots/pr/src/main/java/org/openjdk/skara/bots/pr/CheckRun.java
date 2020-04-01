@@ -689,7 +689,9 @@ class CheckRun {
                 newLabels.remove("ready");
             }
             if (!rebasePossible) {
-                addOutdatedComment(comments);
+                if (!labels.contains("failed-auto-merge")) {
+                    addOutdatedComment(comments);
+                }
                 newLabels.add("merge-conflict");
             } else {
                 newLabels.remove("merge-conflict");

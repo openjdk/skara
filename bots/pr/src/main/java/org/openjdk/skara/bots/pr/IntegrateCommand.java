@@ -134,21 +134,14 @@ public class IntegrateCommand implements CommandHandler {
             }
 
             // Finally check if the author is allowed to perform the actual push
-            if (!pr.title().startsWith("Merge")) {
-                if (!ProjectPermissions.mayCommit(censusInstance, pr.author())) {
-                    reply.println(ReadyForSponsorTracker.addIntegrationMarker(pr.headHash()));
-                    reply.println("Your change (at version " + pr.headHash() + ") is now ready to be sponsored by a Committer.");
-                    if (!args.isBlank()) {
-                        reply.println("Note that your sponsor will make the final decision onto which target hash to integrate.");
-                    }
-                    pr.addLabel("sponsor");
-                    return;
+            if (!ProjectPermissions.mayCommit(censusInstance, pr.author())) {
+                reply.println(ReadyForSponsorTracker.addIntegrationMarker(pr.headHash()));
+                reply.println("Your change (at version " + pr.headHash() + ") is now ready to be sponsored by a Committer.");
+                if (!args.isBlank()) {
+                    reply.println("Note that your sponsor will make the final decision onto which target hash to integrate.");
                 }
-            } else {
-                if (!ProjectPermissions.mayCommit(censusInstance, pr.author())) {
-                    reply.println("Merges require Committer status.");
-                    return;
-                }
+                pr.addLabel("sponsor");
+                return;
             }
 
             // Rebase and push it!

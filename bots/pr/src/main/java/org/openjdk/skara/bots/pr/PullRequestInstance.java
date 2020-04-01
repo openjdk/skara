@@ -223,6 +223,7 @@ class PullRequestInstance {
                 } catch (IOException e2) {
                     throw new UncheckedIOException(e2);
                 }
+                pr.addLabel("merge-conflict");
                 return Optional.empty();
             }
         } else {
