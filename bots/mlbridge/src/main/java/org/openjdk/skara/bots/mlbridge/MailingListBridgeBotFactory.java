@@ -66,7 +66,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
         var archiveRef = configuration.repositoryRef(specific.get("archive").asString());
         var issueTracker = URIBuilder.base(specific.get("issues").asString()).build();
 
-        var allListNames = new HashSet<EmailAddress>();
+        var listNamesForReading = new HashSet<EmailAddress>();
         var allRepositories = new HashSet<HostedRepository>();
 
         var readyLabels = specific.get("ready").get("labels").stream()
@@ -121,16 +121,18 @@ public class MailingListBridgeBotFactory implements BotFactory {
             }
             ret.add(botBuilder.build());
 
-            allListNames.add(list);
+            if (!repoConfig.contains("bidirectional") || !repoConfig.get("bidirectional").asBoolean()) {
+                listNamesForReading.add(list);
+            }
             allRepositories.add(configuration.repository(repo));
         }
 
         var mailmanServer = MailingListServerFactory.createMailmanServer(listArchive, listSmtp, Duration.ZERO);
-        var allLists = allListNames.stream()
+        var listsForReading = listNamesForReading.stream()
                                    .map(name -> mailmanServer.getList(name.toString()))
                                    .collect(Collectors.toSet());
 
-        var bot = new MailingListArchiveReaderBot(from, allLists, allRepositories);
+        var bot = new MailingListArchiveReaderBot(from, listsForReading, allRepositories);
         ret.add(bot);
 
         return ret;
