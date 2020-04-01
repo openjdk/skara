@@ -438,7 +438,7 @@ class MergeBot implements Bot, WorkItem {
                     repo.abortMerge();
 
                     var fromRepoName = Path.of(fromRepo.webUrl().getPath()).getFileName();
-                    var branchDesc = fromDesc.replace(":","-") + "->" + toBranch.name();
+                    var branchDesc = Integer.toString(prs.size() + 1);
                     repo.push(fetchHead, fork.url(), branchDesc, true);
 
                     log.info("Creating pull request to alert");
