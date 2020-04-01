@@ -45,7 +45,8 @@ public class CommandWorkItem extends PullRequestWorkItem {
             "sponsor", new SponsorCommand(),
             "contributor", new ContributorCommand(),
             "summary", new SummaryCommand(),
-            "solves", new SolvesCommand(),
+            "issue", new IssueCommand(),
+            "solves", new IssueCommand("solves"),
             "reviewers", new ReviewersCommand(),
             "csr", new CSRCommand()
     );

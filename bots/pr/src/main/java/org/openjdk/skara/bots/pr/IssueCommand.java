@@ -50,13 +50,15 @@ class InvalidIssue extends Exception {
     }
 }
 
-public class SolvesCommand implements CommandHandler {
+public class IssueCommand implements CommandHandler {
+    private final String name;
+
     private void showHelp(PrintWriter reply) {
-        reply.println("Command syntax: `/solves [remove] <id>[,<id>,...]` or `/solves <id>: <description>`. For example:");
+        reply.println("Command syntax: `/" + name + " [add|remove] <id>[,<id>,...]` or `/issue [add] <id>: <description>`. For example:");
         reply.println();
-        reply.println(" * `/solves JDK-1234567,4567890`");
-        reply.println(" * `/solves remove JDK-4567890`");
-        reply.println(" * `/solves 1234567: Use this exact title`");
+        reply.println(" * `/" + name + " add JDK-1234567,4567890`");
+        reply.println(" * `/" + name + " remove JDK-4567890`");
+        reply.println(" * `/" + name + " 1234567: Use this exact title`");
         reply.println();
         reply.print("If issues are specified only by their ID, the title will be automatically retrieved from JBS. ");
         reply.print("The project prefix (`JDK-` in the above examples) is optional. ");
@@ -90,6 +92,16 @@ public class SolvesCommand implements CommandHandler {
                   .collect(Collectors.toList());
     }
 
+    private final static Pattern subCommandPattern = Pattern.compile("^(add|remove|delete|(?:[A-Za-z]+-)?[0-9]+:?)[ ,]+.*$");
+
+    IssueCommand(String name) {
+        this.name = name;
+    }
+
+    IssueCommand() {
+        this("issue");
+    }
+
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
         if (!comment.author().equals(pr.author())) {
@@ -97,6 +109,11 @@ public class SolvesCommand implements CommandHandler {
             return;
         }
         if (args.isBlank()) {
+            showHelp(reply);
+            return;
+        }
+        var subCommandMatcher = subCommandPattern.matcher(args);
+        if (!subCommandMatcher.matches()) {
             showHelp(reply);
             return;
         }
@@ -130,6 +147,14 @@ public class SolvesCommand implements CommandHandler {
                     }
                 }
             } else {
+                if (args.startsWith("add")) {
+                    var issueListStart = args.indexOf(' ');
+                    if (issueListStart == -1) {
+                        showHelp(reply);
+                        return;
+                    }
+                    args = args.substring(issueListStart);
+                }
                 var issues = parseIssueList(bot.issueProject() == null ? "" : bot.issueProject().name(), args);
                 if (issues.size() == 0) {
                     showHelp(reply);
@@ -212,6 +237,6 @@ public class SolvesCommand implements CommandHandler {
 
     @Override
     public String description() {
-        return "add an additional issue that this PR solves";
+        return "edit the list of issues that this PR solves";
     }
 }
