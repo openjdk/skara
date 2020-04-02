@@ -121,7 +121,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
             }
             ret.add(botBuilder.build());
 
-            if (!repoConfig.contains("bidirectional") || !repoConfig.get("bidirectional").asBoolean()) {
+            if (!repoConfig.contains("bidirectional") || repoConfig.get("bidirectional").asBoolean()) {
                 listNamesForReading.add(list);
             }
             allRepositories.add(configuration.repository(repo));
