@@ -312,7 +312,7 @@ class MergeBot implements Bot, WorkItem {
                                         pr.addComment("/integrate");
                                     }
                                     // Other reply, potentially due to rebase issue, just
-                                    // wait for the labeler to add appropriate labes.
+                                    // wait for the labeler to add appropriate labels.
                                 }
                             }
                         }
