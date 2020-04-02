@@ -105,7 +105,7 @@ public class IssueCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
         if (!comment.author().equals(pr.author())) {
-            reply.println("Only the author (@" + pr.author().userName() + ") is allowed to issue the `solves` command.");
+            reply.println("Only the author (@" + pr.author().userName() + ") is allowed to issue the `/" + name + "` command.");
             return;
         }
         if (args.isBlank()) {
@@ -137,7 +137,7 @@ public class IssueCommand implements CommandHandler {
                 for (var issue : issuesToRemove) {
                     if (currentSolved.contains(issue.id())) {
                         reply.println(SolvesTracker.removeSolvesMarker(issue));
-                        reply.println("Removing additional issue from solves list: `" + issue.id() + "`.");
+                        reply.println("Removing additional issue from " + name + " list: `" + issue.id() + "`.");
                     } else {
                         reply.print("The issue `" + issue.id() + "` was not found in the list of additional solved issues. The list currently contains these issues: ");
                         var currentList = currentSolved.stream()
@@ -166,7 +166,7 @@ public class IssueCommand implements CommandHandler {
                         if (bot.issueProject() == null) {
                             if (issue.description() == null) {
                                 reply.print("This repository does not have an issue project configured - you will need to input the issue title manually ");
-                                reply.println("using the syntax `/solves " + issue.id() + ": title of the issue`.");
+                                reply.println("using the syntax `/" + name + " " + issue.id() + ": title of the issue`.");
                                 return;
                             } else {
                                 validatedIssues.add(issue);
@@ -191,7 +191,7 @@ public class IssueCommand implements CommandHandler {
                     } catch (RuntimeException e) {
                         if (issue.description() == null) {
                             reply.print("Temporary failure when trying to look up issue `" + issue.id() + "` - you will need to input the issue title manually ");
-                            reply.println("using the syntax `/solves " + issue.id() + ": title of the issue`.");
+                            reply.println("using the syntax `/" + name + " " + issue.id() + ": title of the issue`.");
                             return;
                         } else {
                             validatedIssues.add(issue);
@@ -225,7 +225,7 @@ public class IssueCommand implements CommandHandler {
                     if (currentSolved.contains(issue.id())) {
                         reply.println("Updating description of additional solved issue: `" + issue.toString() + "`.");
                     } else {
-                        reply.println("Adding additional issue to solves list: `" + issue.toString() + "`.");
+                        reply.println("Adding additional issue to " + name + " list: `" + issue.toString() + "`.");
                     }
                 }
             }
