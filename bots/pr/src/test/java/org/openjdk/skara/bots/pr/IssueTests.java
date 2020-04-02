@@ -196,7 +196,7 @@ class IssueTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should add both
-            assertLastCommentContains(pr, "Adding additional issue to solves list");
+            assertLastCommentContains(pr, "Adding additional issue to issue list");
             assertLastCommentContains(pr, ": First");
             assertLastCommentContains(pr, ": Second");
 
@@ -204,7 +204,7 @@ class IssueTests {
             pr.addComment("/issue remove " + issue1.id());
             TestBotRunner.runPeriodicItems(prBot);
 
-            assertLastCommentContains(pr, "Removing additional issue from solves list: `" + issue1Number + "`");
+            assertLastCommentContains(pr, "Removing additional issue from issue list: `" + issue1Number + "`");
 
             // Approve it as another user
             var approvalPr = integrator.pullRequest(pr.id());
