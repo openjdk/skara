@@ -77,7 +77,7 @@ class PullRequestInstance {
         return new ArrayList<>(reviewPerUser.values());
     }
 
-    private String commitMessage(List<Review> activeReviews, Namespace namespace, boolean isMerge) throws IOException {
+    private String commitMessage(List<Review> activeReviews, Namespace namespace) throws IOException {
         var reviewers = activeReviews.stream()
                                      .filter(review -> !ignoreStaleReviews || review.hash().equals(headHash))
                                      .filter(review -> review.verdict() == Review.Verdict.APPROVED)
@@ -96,7 +96,7 @@ class PullRequestInstance {
         var additionalIssues = SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments);
         var summary = Summary.summary(pr.repository().forge().currentUser(), comments);
         var issue = Issue.fromString(pr.title());
-        var commitMessageBuilder = issue.map(CommitMessage::title).orElseGet(() -> CommitMessage.title(isMerge ? "Merge" : pr.title()));
+        var commitMessageBuilder = issue.map(CommitMessage::title).orElseGet(() -> CommitMessage.title(pr.title()));
         if (issue.isPresent()) {
             commitMessageBuilder.issues(additionalIssues);
         }
@@ -134,11 +134,11 @@ class PullRequestInstance {
             committer = author;
         }
 
-        var commitMessage = commitMessage(activeReviews, namespace, false);
+        var commitMessage = commitMessage(activeReviews, namespace);
         return localRepo.commit(commitMessage, author.name(), author.email(), committer.name(), committer.email());
     }
 
-    private Hash commitMerge(List<Review> activeReviews, Namespace namespace, String censusDomain) throws IOException, CommitFailure {
+    private Hash commitMerge(List<Review> activeReviews, Namespace namespace, String censusDomain, String sponsorId) throws IOException, CommitFailure {
         // Find the first merge commit with an incoming parent outside of the merge target
         // The very last commit is not eligible (as the merge needs a parent)
         var commits = localRepo.commitMetadata(baseHash, headHash);
@@ -168,12 +168,19 @@ class PullRequestInstance {
         }
 
         var author = new Author(contributor.fullName().orElseThrow(), contributor.username() + "@" + censusDomain);
-        var commitMessage = commitMessage(activeReviews, namespace, true);
+        Author committer;
+        if (sponsorId != null) {
+            var sponsorContributor = namespace.get(sponsorId);
+            committer = new Author(sponsorContributor.fullName().orElseThrow(), sponsorContributor.username() + "@" + censusDomain);
+        } else {
+            committer = author;
+        }
+        var commitMessage = commitMessage(activeReviews, namespace);
 
         localRepo.checkout(commits.get(mergeCommitIndex).hash(), true);
         localRepo.squash(headHash);
 
-        return localRepo.amend(commitMessage, author.name(), author.email(), author.name(), author.email());
+        return localRepo.amend(commitMessage, author.name(), author.email(), committer.name(), committer.email());
     }
 
     Hash commit(Namespace namespace, String censusDomain, String sponsorId) throws IOException, CommitFailure {
@@ -181,7 +188,7 @@ class PullRequestInstance {
         if (!pr.title().startsWith("Merge")) {
             return commitSquashed(activeReviews, namespace, censusDomain, sponsorId);
         } else {
-            return commitMerge(activeReviews, namespace, censusDomain);
+            return commitMerge(activeReviews, namespace, censusDomain, sponsorId);
         }
     }
 
