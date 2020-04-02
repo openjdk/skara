@@ -46,10 +46,11 @@ public class SolvesTracker {
 
     static List<Issue> currentSolved(HostUser botUser, List<Comment> comments) {
         var solvesActions = comments.stream()
-                                     .filter(comment -> comment.author().equals(botUser))
-                                     .map(comment -> markerPattern.matcher(comment.body()))
-                                     .filter(Matcher::find)
-                                     .collect(Collectors.toList());
+                                    .filter(comment -> comment.author().equals(botUser))
+                                    .flatMap(comment -> comment.body().lines())
+                                    .map(markerPattern::matcher)
+                                    .filter(Matcher::find)
+                                    .collect(Collectors.toList());
         var current = new LinkedHashMap<String, Issue>();
         for (var action : solvesActions) {
             var key = action.group(1);

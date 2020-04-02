@@ -33,4 +33,5 @@ public interface IssueProject {
     Issue createIssue(String title, List<String> body, Map<String, JSONValue> properties);
     Optional<Issue> issue(String id);
     List<Issue> issues();
+    String name();
 }

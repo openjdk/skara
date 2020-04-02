@@ -70,4 +70,9 @@ public class TestIssueProject implements IssueProject {
     public List<Issue> issues() {
         return new ArrayList<>(host.getIssues(this));
     }
+
+    @Override
+    public String name() {
+        return projectName.toUpperCase();
+    }
 }

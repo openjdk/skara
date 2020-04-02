@@ -303,4 +303,9 @@ public class JiraProject implements IssueProject {
         }
         return ret;
     }
+
+    @Override
+    public String name() {
+        return projectName.toUpperCase();
+    }
 }
