@@ -267,6 +267,10 @@ class UpdaterTests {
             assertEquals("value1", email.headerValue("extra1"));
             assertTrue(email.hasHeader("extra2"));
             assertEquals("value2", email.headerValue("extra2"));
+            assertTrue(email.hasHeader("X-Git-URL"));
+            assertEquals(repo.webUrl().toString(), email.headerValue("X-Git-URL"));
+            assertTrue(email.hasHeader("X-Git-Changeset"));
+            assertEquals(editHash.hex(), email.headerValue("X-Git-Changeset"));
         }
     }
 
@@ -335,6 +339,10 @@ class UpdaterTests {
             assertTrue(email.body().contains("Changeset: " + editHash2.abbreviate()));
             assertTrue(email.body().contains("3456789A: Even more fixes"));
             assertFalse(email.body().contains(masterHash.abbreviate()));
+            assertTrue(email.hasHeader("X-Git-URL"));
+            assertEquals(repo.webUrl().toString(), email.headerValue("X-Git-URL"));
+            assertTrue(email.hasHeader("X-Git-Changeset"));
+            assertEquals(editHash1.hex(), email.headerValue("X-Git-Changeset"));
         }
     }
 
@@ -469,6 +477,10 @@ class UpdaterTests {
             assertTrue(email.body().contains("3456789A: Even more fixes"));
             assertFalse(email.body().contains(masterHash.abbreviate()));
             assertFalse(email.body().contains("456789AB: Yet more fixes"));
+            assertTrue(email.hasHeader("X-Git-URL"));
+            assertEquals(repo.webUrl().toString(), email.headerValue("X-Git-URL"));
+            assertTrue(email.hasHeader("X-Git-Changeset"));
+            assertEquals(editHash1.hex(), email.headerValue("X-Git-Changeset"));
 
             localRepo.checkout(branch, true);
             var editHash3 = CheckableRepository.appendAndCommit(localRepo, "Another branch", "456789AB: Yet more fixes");
@@ -489,6 +501,10 @@ class UpdaterTests {
             assertTrue(email.body().contains("456789AB: Yet more fixes"));
             assertFalse(email.body().contains("Changeset: " + editHash2.abbreviate()));
             assertFalse(email.body().contains("3456789A: Even more fixes"));
+            assertTrue(email.hasHeader("X-Git-URL"));
+            assertEquals(repo.webUrl().toString(), email.headerValue("X-Git-URL"));
+            assertTrue(email.hasHeader("X-Git-Changeset"));
+            assertEquals(editHash3.hex(), email.headerValue("X-Git-Changeset"));
         }
     }
 
@@ -580,6 +596,10 @@ class UpdaterTests {
             assertFalse(email.body().contains(masterHash.abbreviate()));
             assertTrue(email.hasHeader("extra1"));
             assertEquals("value1", email.headerValue("extra1"));
+            assertTrue(email.hasHeader("X-Git-URL"));
+            assertEquals(repo.webUrl().toString(), email.headerValue("X-Git-URL"));
+            assertTrue(email.hasHeader("X-Git-Changeset"));
+            assertEquals(editHash.hex(), email.headerValue("X-Git-Changeset"));
 
             // Now push the other one without a matching PR - PR_ONLY will not generate a mail
             localRepo.push(otherHash, repo.url(), "master");

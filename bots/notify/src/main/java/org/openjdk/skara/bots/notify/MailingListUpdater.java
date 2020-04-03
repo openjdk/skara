@@ -214,6 +214,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
                              .author(commitToAuthor(commit))
                              .recipient(recipient)
                              .headers(headers)
+                             .headers(commitHeaders(repository, commits))
                              .build();
 
             try {
@@ -246,6 +247,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
                          .author(commitAddress)
                          .recipient(recipient)
                          .headers(headers)
+                         .headers(commitHeaders(repository, commits))
                          .build();
 
         try {
@@ -253,6 +255,15 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
         } catch (RuntimeException e) {
             throw new NonRetriableException(e);
         }
+    }
+
+    private Map<String, String> commitHeaders(HostedRepository repository, List<Commit> commits) {
+        var ret = new HashMap<String, String>();
+        ret.put("X-Git-URL", repository.webUrl().toString());
+        if (!commits.isEmpty()) {
+            ret.put("X-Git-Changeset", commits.get(0).hash().hex());
+        }
+        return ret;
     }
 
     @Override
@@ -302,7 +313,8 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
         var email = Email.create(subject, writer.toString())
                          .sender(sender)
                          .recipient(recipient)
-                         .headers(headers);
+                         .headers(headers)
+                         .headers(commitHeaders(repository, commits));
 
         if (annotation != null) {
             email.author(annotationToAuthor(annotation));
@@ -334,7 +346,8 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
         var email = Email.create(subject, writer.toString())
                          .sender(sender)
                          .recipient(recipient)
-                         .headers(headers);
+                         .headers(headers)
+                         .headers(commitHeaders(repository, List.of(commit)));
 
         if (annotation != null) {
             email.author(annotationToAuthor(annotation));
@@ -398,6 +411,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
                          .author(finalAuthor)
                          .recipient(recipient)
                          .headers(headers)
+                         .headers(commitHeaders(repository, commits))
                          .build();
         try {
             list.post(email);
