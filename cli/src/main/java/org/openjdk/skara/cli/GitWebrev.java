@@ -177,7 +177,7 @@ public class GitWebrev {
         }
 
         var cwd = Paths.get("").toAbsolutePath();
-        var repository = Repository.get(cwd);
+        var repository = ReadOnlyRepository.get(cwd);
         if (!repository.isPresent()) {
             System.err.println(String.format("error: %s is not a repository", cwd.toString()));
             System.exit(1);
