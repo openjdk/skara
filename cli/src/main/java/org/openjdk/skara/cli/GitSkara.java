@@ -118,7 +118,7 @@ public class GitSkara {
         var expanded = line.startsWith("~") ?
             System.getProperty("user.home") + line.substring(1) : line;
         var path = Path.of(expanded);
-        if (Files.exists(path)) {
+        if (!Files.exists(path)) {
             System.err.println("error: " + path + " does not exist");
             System.exit(1);
         }
