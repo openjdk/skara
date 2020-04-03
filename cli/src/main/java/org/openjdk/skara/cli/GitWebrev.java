@@ -36,6 +36,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.*;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -142,6 +143,14 @@ public class GitWebrev {
                   .fullname("no-outgoing")
                   .helptext("Do not compare against remote, use only 'status'")
                   .optional(),
+            Switch.shortcut("")
+                  .fullname("verbose")
+                  .helptext("Turn on verbose output")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("debug")
+                  .helptext("Turn on debugging output")
+                  .optional(),
             Switch.shortcut("v")
                   .fullname("version")
                   .helptext("Print the version of this tool")
@@ -162,8 +171,13 @@ public class GitWebrev {
             System.exit(0);
         }
 
+        if (arguments.contains("verbose") || arguments.contains("debug")) {
+            var level = arguments.contains("debug") ? Level.FINER : Level.FINE;
+            Logging.setup(level);
+        }
+
         var cwd = Paths.get("").toAbsolutePath();
-        var repository = Repository.get(cwd);
+        var repository = ReadOnlyRepository.get(cwd);
         if (!repository.isPresent()) {
             System.err.println(String.format("error: %s is not a repository", cwd.toString()));
             System.exit(1);
@@ -251,10 +265,9 @@ public class GitWebrev {
                         var head = repo.head();
                         var shortestDistance = -1;
                         var pullPath = repo.pullPath(remote);
-                        var remoteBranches = repo.remoteBranches(remote);
-                        for (var remoteBranch : remoteBranches) {
-                            var fetchHead = repo.fetch(URI.create(pullPath), remoteBranch.name());
-                            var mergeBase = repo.mergeBase(fetchHead, head);
+                        for (var branch : repo.branches(remote)) {
+                            var branchHead = repo.resolve(branch).orElseThrow();
+                            var mergeBase = repo.mergeBase(branchHead, head);
                             var distance = repo.commitMetadata(mergeBase, head).size();
                             if (shortestDistance == -1 || distance < shortestDistance) {
                                 rev = mergeBase;
