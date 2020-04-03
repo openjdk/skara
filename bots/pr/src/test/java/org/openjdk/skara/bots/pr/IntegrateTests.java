@@ -69,6 +69,15 @@ class IntegrateTests {
             var approvalPr = integrator.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
+            // The bot should reply with integration message
+            TestBotRunner.runPeriodicItems(mergeBot);
+            var integrateComments =
+                pr.comments()
+                  .stream()
+                  .filter(c -> c.body().contains("To integrate this PR with the above commit message to the `master` branch"))
+                  .count();
+            assertEquals(1, integrateComments);
+
             // Attempt a merge (the bot should only process the first one)
             pr.addComment("/integrate");
             pr.addComment("/integrate");
