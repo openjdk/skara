@@ -25,6 +25,7 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.forge.Review;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Repository;
+import org.openjdk.skara.vcs.Branch;
 
 import org.junit.jupiter.api.*;
 
@@ -610,6 +611,93 @@ class SponsorTests {
                           .filter(comment -> comment.body().contains("Please merge `master`"))
                           .count();
             assertEquals(1, error);
+        }
+    }
+
+    @Test
+    void sponsorMergeCommit(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory(false)) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var reviewerId = reviewer.forge().currentUser().id();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(reviewerId)
+                                           .addAuthor(author.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path().resolve("local.git"), author.repositoryType());
+            var initialHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            var anotherFile = localRepo.root().resolve("ANOTHER_FILE.txt");
+            Files.writeString(anotherFile, "A string\n");
+            localRepo.add(anotherFile);
+            var masterHash = localRepo.commit("Another commit\n\nReviewed-by: " + reviewerId, "duke", "duke@openjdk.java.net");
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Create a new branch, new commit and publish it
+            var editBranch = localRepo.branch(initialHash, "edit");
+            localRepo.checkout(editBranch);
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+
+            // Prepare to merge edit into master
+            localRepo.checkout(new Branch("master"));
+            var editToMasterBranch = localRepo.branch(masterHash, "edit->master");
+            localRepo.checkout(editToMasterBranch);
+            localRepo.merge(editHash);
+            var mergeHash = localRepo.commit("Merge edit", "duke", "duke@openjdk.java.net");
+            localRepo.push(mergeHash, author.url(), "edit->master", true);
+
+
+            var pr = credentials.createPullRequest(author, "master", "edit->master", "Merge edit");
+
+            // Approve it as another user
+            var approvalPr = reviewer.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // Let the bot see it
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // Issue a merge command without being a Committer
+            pr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            //System.out.println(pr.comments());
+            //for (var entry : pr.checks(pr.headHash()).entrySet()) {
+            //    System.out.println(entry.getValue().summary().orElseThrow());
+            //}
+
+            // The bot should reply that a sponsor is required
+            var sponsor = pr.comments().stream()
+                            .filter(comment -> comment.body().contains("sponsor"))
+                            .filter(comment -> comment.body().contains("your change"))
+                            .count();
+            assertEquals(1, sponsor);
+
+            // The bot should not have pushed the commit
+            var notPushed = pr.comments().stream()
+                              .filter(comment -> comment.body().contains("Pushed as commit"))
+                              .count();
+            assertEquals(0, notPushed);
+
+            // Reviewer now agrees to sponsor
+            var reviewerPr = reviewer.pullRequest(pr.id());
+            reviewerPr.addComment("/sponsor");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should have pushed the commit
+            var pushed = pr.comments().stream()
+                           .filter(comment -> comment.body().contains("Pushed as commit"))
+                           .count();
+            assertEquals(1, pushed);
+
+            var targetRepo = Repository.clone(author.url(), tempFolder.path().resolve("target.git"));
+            var masterHead = targetRepo.lookup(new Branch("origin/master")).orElseThrow();
+            assertEquals("Merge edit", masterHead.message().get(0));
         }
     }
 }

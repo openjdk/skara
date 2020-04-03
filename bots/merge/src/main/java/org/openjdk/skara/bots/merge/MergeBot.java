@@ -25,6 +25,7 @@ package org.openjdk.skara.bots.merge;
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.jcheck.JCheckConfiguration;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -263,38 +264,58 @@ class MergeBot implements Bot, WorkItem {
                 var fromRepo = spec.fromRepo();
                 var fromBranch = spec.fromBranch();
 
-                log.info("Deciding whether to merge " + fromRepo.name() + ":" + fromBranch.name() + " to " + toBranch.name());
-
-                // Checkout the branch to merge into
-                repo.checkout(toBranch, false);
-                var remoteBranch = new Branch(repo.upstreamFor(toBranch).orElseThrow(() ->
-                    new IllegalStateException("Could not get remote branch name for " + toBranch.name())
-                ));
-                repo.merge(remoteBranch); // should always be a fast-forward merge
-
                 var targetName = Path.of(target.name()).getFileName();
                 var fromName = Path.of(fromRepo.name()).getFileName();
                 var fromDesc = targetName.equals(fromName) ? fromBranch.name() : fromName + ":" + fromBranch.name();
 
                 // Check if merge conflict pull request is present
                 var shouldMerge = true;
-                var title = "Cannot automatically merge " + fromDesc + " to " + toBranch.name();
-                var marker = "<!-- MERGE CONFLICTS -->";
+                var title = "Merge " + fromDesc;
+                var marker = "<!-- AUTOMATIC MERGE PR -->";
                 for (var pr : prs) {
                     if (pr.title().equals(title) &&
+                        pr.targetRef().equals(toBranch.name()) &&
                         pr.body().startsWith(marker) &&
                         currentUser.equals(pr.author())) {
-                        var lines = pr.body().split("\n");
-                        var head = new Hash(lines[1].substring(5, 45));
-                        if (repo.contains(toBranch, head)) {
-                            log.info("Closing resolved merge conflict PR " + pr.id() + ", will try merge");
-                            pr.addComment("Merge conflicts have been resolved, closing this PR");
-                            pr.setState(PullRequest.State.CLOSED);
-                        } else {
-                            log.info("Outstanding unresolved merge already present, will not merge");
-                            shouldMerge = false;
+                        // Yes, this could be optimized do a merge "this turn", but it is much simpler
+                        // to just wait until the next time the bot runs
+                        shouldMerge = false;
+
+                        if (pr.labels().contains("ready") && !pr.labels().contains("sponsor")) {
+                            var comments = pr.comments();
+                            var integrateComments =
+                                comments.stream()
+                                        .filter(c -> c.author().equals(currentUser))
+                                        .filter(c -> c.body().equals("/integrate"))
+                                        .collect(Collectors.toList());
+                            if (integrateComments.isEmpty()) {
+                                pr.addComment("/integrate");
+                            } else {
+                                var lastIntegrateComment = integrateComments.get(integrateComments.size() - 1);
+                                var id = lastIntegrateComment.id();
+                                var botUserId = "43336822";
+                                var replyMarker = "<!-- Jmerge command reply message (" + id + ") -->";
+                                var replies = comments.stream()
+                                                      .filter(c -> c.author().id().equals(botUserId))
+                                                      .filter(c -> c.body().startsWith(replyMarker))
+                                                      .collect(Collectors.toList());
+                                if (replies.isEmpty()) {
+                                    // No reply yet, just wait
+                                } else {
+                                    // Got a reply and the "sponsor" label is not present, check for error
+                                    // and if we should add the `/integrate` command again
+                                    var lastReply = replies.get(replies.size() - 1);
+                                    var lines = lastReply.body().split("\n");
+                                    var errorPrefix = "@openjdk-bot Your merge request cannot be fulfilled at this time";
+                                    if (lines.length > 1 && lines[1].startsWith(errorPrefix)) {
+                                        // Try again
+                                        pr.addComment("/integrate");
+                                    }
+                                    // Other reply, potentially due to rebase issue, just
+                                    // wait for the labeler to add appropriate labels.
+                                }
+                            }
                         }
-                        break;
                     }
                 }
 
@@ -375,7 +396,14 @@ class MergeBot implements Bot, WorkItem {
                     continue;
                 }
 
-                log.info("Merging " + fromRepo.name() + ":" + fromBranch.name() + " to " + toBranch.name());
+                // Checkout the branch to merge into
+                repo.checkout(toBranch, false);
+                var remoteBranch = new Branch(repo.upstreamFor(toBranch).orElseThrow(() ->
+                    new IllegalStateException("Could not get remote branch name for " + toBranch.name())
+                ));
+                repo.merge(remoteBranch); // should always be a fast-forward merge
+
+                log.info("Trying to merge " + fromRepo.name() + ":" + fromBranch.name() + " to " + toBranch.name());
                 log.info("Fetching " + fromRepo.name() + ":" + fromBranch.name());
                 var fetchHead = repo.fetch(fromRepo.url(), fromBranch.name());
                 var head = repo.resolve(toBranch.name()).orElseThrow(() ->
@@ -388,7 +416,7 @@ class MergeBot implements Bot, WorkItem {
 
                 var isAncestor = repo.isAncestor(head, fetchHead);
 
-                log.info("Trying to merge into " + toBranch.name());
+                log.info("Merging into " + toBranch.name());
                 IOException error = null;
                 try {
                     repo.merge(fetchHead);
@@ -410,7 +438,7 @@ class MergeBot implements Bot, WorkItem {
                     repo.abortMerge();
 
                     var fromRepoName = Path.of(fromRepo.webUrl().getPath()).getFileName();
-                    var branchDesc = fromRepoName + "/" + fromBranch.name() + "->" + toBranch.name();
+                    var branchDesc = Integer.toString(prs.size() + 1);
                     repo.push(fetchHead, fork.url(), branchDesc, true);
 
                     log.info("Creating pull request to alert");
@@ -427,7 +455,7 @@ class MergeBot implements Bot, WorkItem {
 
                     message.add("Hi all,");
                     message.add("");
-                    message.add("this is an _automatically_ generated merge request to notify you that there " +
+                    message.add("this is an _automatically_ generated pull request to notify you that there " +
                                 are + " " + numCommits + " commit" + s + " from the branch `" + fromDesc + "`" +
                                 "that can **not** be merged into the branch `" + toBranch.name() + "`:");
 
@@ -445,30 +473,38 @@ class MergeBot implements Bot, WorkItem {
                     }
                     message.add("");
 
+                    var project = JCheckConfiguration.from(repo, head).map(conf -> conf.general().project());
+                    if (project.isPresent()) {
+                        message.add("All Committers in this [project](https://openjdk.java.net/census#" + project + ") " +
+                                    "have access to my [personal fork](" + fork.nonTransformedWebUrl() + ") and can " +
+                                    "therefore help resolve these merge conflicts (you may want to coordinate " +
+                                    "who should do this).");
+                    } else {
+                        message.add("All users with access to my [personal fork](" + fork.nonTransformedWebUrl() + ") " +
+                                    "can help resolve these merge conflicts " +
+                                    "(you may want to coordinate who should do this).");
+                    }
                     message.add("The following paragraphs will give an example on how to solve these " +
-                                "merge conflicts and create a pull request to integrate them. If you are " +
-                                "using a workflow different from the one below, feel free to use that instead. " +
-                                "It is important that the title of the pull request you create is " +
-                                "`Merge " + fromDesc + "`, otherwise the bots will _not_ understand that the " +
-                                "pull request you create is a \"merge style\" pull request.");
-                    message.add("");
-                    var localBranchName = "merge-" + fromDesc.replace(":", "-") + "-into-" + toBranch.name() + "-" + commits.get(0).hash().abbreviate();
+                                "merge conflicts and push the resulting merge commit to this pull request.");
                     message.add("The below commands should be run in a local clone of your " +
                                 "[personal fork](https://wiki.openjdk.java.net/display/skara#Skara-Personalforks) " +
-                                "of the [" + target.name() + "](" + target.nonTransformedWebUrl() + ") repository. " +
-                                "These commands will allow you to view and resolve the merge conflicts. Note that " +
-                                "the name of the local branch in the commands, " +
-                                "`" + localBranchName + "`" +
-                                ", is just an example, feel free to give the local branch any name you prefer.");
+                                "of the [" + target.name() + "](" + target.nonTransformedWebUrl() + ") repository.");
                     message.add("");
+                    var localBranchName = "openjdk-bot-" + branchDesc;
                     message.add("```bash");
+                    message.add("# Ensure target branch is up to date");
                     message.add("$ git checkout " + toBranch.name());
                     message.add("$ git pull " + target.nonTransformedWebUrl() + " " + toBranch.name());
-                    message.add("$ git checkout -b " + localBranchName);
-                    message.add("$ git pull " + fromRepo.nonTransformedWebUrl() + " " + fromBranch.name());
+                    message.add("");
+                    message.add("# Fetch and checkout the branch for this pull request");
+                    message.add("$ git fetch " + fork.nonTransformedWebUrl() + " +" + branchDesc + ":" + localBranchName);
+                    message.add("$ git checkout " + localBranchName);
+                    message.add("");
+                    message.add("# Merge the target branch");
+                    message.add("$ git merge " + toBranch.name());
                     message.add("```");
                     message.add("");
-                    message.add("When you have resolved the conflicts resulting from the `git pull` command " +
+                    message.add("When you have resolved the conflicts resulting from the `git merge` command " +
                                 "above, run the following commands to create a merge commit:");
                     message.add("");
                     message.add("```bash");
@@ -476,20 +512,15 @@ class MergeBot implements Bot, WorkItem {
                     message.add("$ git commit -m 'Merge " + fromDesc + "'");
                     message.add("```");
                     message.add("");
-                    message.add("The commit message does not have to be `Merge " + fromDesc + "`, " +
-                                "but it is convenient for when you will create a pull request. Many tools " +
-                                "will by default use the commit message of the most recent commit on a branch " +
-                                "as the title for a pull request from that branch. This means that if you use " +
-                                "the commit message `Merge " + fromDesc + "` as the commit message then the " +
-                                "title of the pull request will (depending to tools used to create the " +
-                                "pull request) be of a format that the bots expect.");
                     message.add("");
-                    message.add("Proceed to [publish the local branch](https://wiki.openjdk.java.net/display/SKARA/FAQ#FAQ-HowdoIpushalocalbranchtoaremoterepository?) " +
-                                "and [create a pull request](https://wiki.openjdk.java.net/display/SKARA/FAQ#FAQ-HowdoIcreateapullrequest?) " +
-                                "towards the `" + toBranch.name() + "` branch in the " +
-                                "[" + target.name() + "](" + target.webUrl() + ") repository. The resulting pull " +
-                                "request can then integrated as usual once it has passed all required " +
-                                "pre-integration checks.");
+                    message.add("When you have created the merge commit, run the following command to push the merge commit " +
+                                "to this pull request:");
+                    message.add("");
+                    message.add("```bash");
+                    message.add("$ git push " + fork.nonTransformedWebUrl() + " " + localBranchName + ":" + branchDesc);
+                    message.add("```");
+                    message.add("");
+                    message.add("_Note_: if you are using SSH to push commits to GitHub, then change the URL in the above `git push` command accordingly.");
                     message.add("");
                     message.add("Thanks,");
                     message.add("J. Duke");

@@ -82,4 +82,9 @@ public class Comment {
     public int hashCode() {
         return Objects.hash(id, body, author, createdAt, updatedAt);
     }
+
+    @Override
+    public String toString() {
+        return body;
+    }
 }

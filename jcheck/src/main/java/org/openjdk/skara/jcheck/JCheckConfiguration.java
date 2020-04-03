@@ -157,15 +157,15 @@ public class JCheckConfiguration {
         return new JCheckConfiguration(ini);
     }
 
-    public static JCheckConfiguration from(ReadOnlyRepository r, Hash h, Path p) throws IOException {
-        return parse(r.lines(p, h).orElse(Collections.emptyList()));
+    public static Optional<JCheckConfiguration> from(ReadOnlyRepository r, Hash h, Path p) throws IOException {
+        return r.lines(p, h).map(lines -> parse(lines));
     }
 
-    public static JCheckConfiguration from(ReadOnlyRepository r, Hash h) throws IOException {
+    public static Optional<JCheckConfiguration> from(ReadOnlyRepository r, Hash h) throws IOException {
         return from(r, h, Path.of(".jcheck", "conf"));
     }
 
-    public static JCheckConfiguration from(ReadOnlyRepository r) throws IOException {
+    public static Optional<JCheckConfiguration> from(ReadOnlyRepository r) throws IOException {
         var master = r.resolve("master")
                       .orElseThrow(() -> new IOException("Cannot resolve 'master' branch"));
         return from(r, master, Path.of(".jcheck", "conf"));

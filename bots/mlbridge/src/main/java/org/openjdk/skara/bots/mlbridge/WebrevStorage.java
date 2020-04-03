@@ -73,10 +73,9 @@ class WebrevStorage {
 
         var issue = Issue.fromString(pr.title());
         if (issue.isPresent()) {
-            var files = localRepository.files(head, List.of(Path.of(".jcheck", "conf")));
-            if (!files.isEmpty()) {
-                var conf = JCheckConfiguration.from(localRepository, head);
-                var project = conf.general().jbs() != null ? conf.general().jbs() : conf.general().project();
+            var conf = JCheckConfiguration.from(localRepository, head);
+            if (!conf.isEmpty()) {
+                var project = conf.get().general().jbs() != null ? conf.get().general().jbs() : conf.get().general().project();
                 var id = issue.get().id();
                 IssueTracker issueTracker = null;
                 try {
