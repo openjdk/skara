@@ -547,7 +547,7 @@ class CheckRun {
             }
         } else if (rebasePossible) {
             message.append("\n");
-            message.append("➡️ To integrate this PR with the above commit message, type ");
+            message.append("➡️ To integrate this PR with the above commit message to the `" + pr.targetRef() + "` branch, type ");
             message.append("`/integrate` in a new comment.\n");
         }
         message.append(mergeReadyMarker);
