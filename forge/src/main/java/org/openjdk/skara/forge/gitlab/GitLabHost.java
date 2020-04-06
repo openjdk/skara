@@ -34,12 +34,14 @@ import java.util.*;
 import java.util.logging.Logger;
 
 public class GitLabHost implements Forge {
+    private final String name;
     private final URI uri;
     private final Credential pat;
     private final RestRequest request;
     private final Logger log = Logger.getLogger("org.openjdk.skara.forge.gitlab");
 
-    GitLabHost(URI uri, Credential pat) {
+    GitLabHost(String name, URI uri, Credential pat) {
+        this.name = name;
         this.uri = uri;
         this.pat = pat;
 
@@ -49,7 +51,8 @@ public class GitLabHost implements Forge {
         request = new RestRequest(baseApi, pat.username(), () -> Arrays.asList("Private-Token", pat.password()));
     }
 
-    GitLabHost(URI uri) {
+    GitLabHost(String name, URI uri) {
+        this.name = name;
         this.uri = uri;
         this.pat = null;
 
@@ -65,6 +68,11 @@ public class GitLabHost implements Forge {
 
     Optional<Credential> getPat() {
         return Optional.ofNullable(pat);
+    }
+
+    @Override
+    public String name() {
+        return name;
     }
 
     @Override
