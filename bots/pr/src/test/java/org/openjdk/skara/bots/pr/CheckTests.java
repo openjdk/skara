@@ -699,6 +699,11 @@ class CheckTests {
             assertEquals(CheckStatus.FAILURE, check.status());
             assertTrue(check.summary().orElseThrow().contains("The pull request body must not be empty."));
 
+            // Additional errors should be displayed in the body
+            var updatedPr = author.pullRequest(pr.id());
+            assertTrue(updatedPr.body().contains("## Problems"));
+            assertTrue(updatedPr.body().contains("The pull request body must not be empty."));
+
             // The PR should not yet be ready for review
             assertFalse(pr.labels().contains("rfr"));
             assertFalse(pr.labels().contains("ready"));
@@ -710,6 +715,11 @@ class CheckTests {
             // The PR should now be ready for review
             assertTrue(pr.labels().contains("rfr"));
             assertFalse(pr.labels().contains("ready"));
+
+            // The additional errors should be gone
+            updatedPr = author.pullRequest(pr.id());
+            assertFalse(updatedPr.body().contains("## Problems"));
+            assertFalse(updatedPr.body().contains("The pull request body must not be empty."));
         }
     }
 
