@@ -363,4 +363,8 @@ class ArchiveMessages {
     static String composeReplyHeader(ZonedDateTime parentDate, EmailAddress parentAuthor) {
         return "On " + parentDate.format(DateTimeFormatter.RFC_1123_DATE_TIME) + ", " + parentAuthor.toString() + " wrote:";
     }
+
+    static String composeClosedNotice(PullRequest pr) {
+        return "This pull request has been closed without being integrated.";
+    }
 }

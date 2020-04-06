@@ -343,6 +343,7 @@ class MailingListBridgeBotTests {
             // The archive should now contain another entry
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Subject: Re: \\[Rev 01\\] FYI: 1234: This is a pull request"));
+            assertFalse(archiveContains(archiveFolder.path(), "\\[Closed\\]"));
         }
     }
 
@@ -420,6 +421,88 @@ class MailingListBridgeBotTests {
             // The archive should now contain another entry - should retain the RFR thread prefix
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Subject: Re: \\[Rev 01\\] RFR: 1234: This is a pull request"));
+        }
+    }
+
+    @Test
+    void archiveClosed(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var archiveFolder = new TemporaryDirectory();
+             var webrevFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
+            var author = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+            var ignored = credentials.getHostedRepository();
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var from = EmailAddress.from("test", "test@test.mail");
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .list(listAddress)
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .readyLabels(Set.of("rfr"))
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
+                                                               "Change msg\n\nWith several lines");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "master", "edit", "1234: This is a pull request");
+            pr.setBody("This should be ready");
+
+            // Run an archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // A PR that isn't ready for review should not be archived
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertFalse(archiveContains(archiveFolder.path(), "This is a pull request"));
+
+            // Flag it as ready for review
+            pr.addLabel("rfr");
+
+            // Run another archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // The archive should now contain an entry
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertTrue(archiveContains(archiveFolder.path(), "Subject: RFR: 1234: This is a pull request"));
+
+            // Close it
+            pr.setState(Issue.State.CLOSED);
+
+            // Run another archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // The archive should now contain another entry - should say that it is closed
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Subject: Re: \\[Closed\\] RFR: 1234: This is a pull request"));
+
+            pr.addComment("Fair enough");
+
+            // Run another archive pass - only a single close notice should have been posted
+            TestBotRunner.runPeriodicItems(mlBot);
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Subject: Re: \\[Closed\\] RFR: 1234: This is a pull request"));
         }
     }
 

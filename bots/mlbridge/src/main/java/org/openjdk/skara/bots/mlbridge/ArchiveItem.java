@@ -170,6 +170,14 @@ class ArchiveItem {
                                () -> ArchiveMessages.composeReplyFooter(pr));
     }
 
+    static ArchiveItem closedNotice(PullRequest pr, HostUserToEmailAuthor hostUserToEmailAuthor, ArchiveItem parent, String subjectPrefix, String threadPrefix) {
+        return new ArchiveItem(parent, "cn", pr.updatedAt(), pr.updatedAt(), pr.author(), Map.of("PR-Closed-Notice", "0"),
+                               () -> String.format("Re: [Closed] %s%s%s", subjectPrefix, threadPrefix + (threadPrefix.isEmpty() ? "" : ": "), pr.title()),
+                               () -> ArchiveMessages.composeReplyHeader(parent.createdAt(), hostUserToEmailAuthor.author(parent.author())),
+                               () -> ArchiveMessages.composeClosedNotice(pr),
+                               () -> ArchiveMessages.composeReplyFooter(pr));
+    }
+
     private static Pattern mentionPattern = Pattern.compile("^@([\\w-]+).*");
 
     private static Optional<ArchiveItem> findLastMention(String commentText, List<ArchiveItem> eligibleParents) {

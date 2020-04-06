@@ -125,6 +125,13 @@ class ReviewArchive {
             generated.add(reply);
         }
 
+        // Post a closed notice for regular RFR threads that weren't integrated
+        if ((pr.state() != Issue.State.OPEN) && threadPrefix.equals("RFR") && !pr.labels().contains("integrated")) {
+            var parent = generated.get(0);
+            var reply = ArchiveItem.closedNotice(pr, hostUserToEmailAuthor, parent, subjectPrefix, threadPrefix);
+            generated.add(reply);
+        }
+
         return generated;
     }
 
