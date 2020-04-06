@@ -145,6 +145,13 @@ public interface Issue {
     URI webUrl();
 
     /**
+     * Returns a non-transformed link to the issue
+     */
+    default URI nonTransformedWebUrl() {
+        return webUrl();
+    }
+
+    /**
      * Returns all usernames assigned to the issue.
      */
     List<HostUser> assignees();

@@ -341,21 +341,6 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
     }
 
     @Override
-    public void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) {
-
-    }
-
-    @Override
-    public void handleTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag, Tag.Annotated annotation) {
-
-    }
-
-    @Override
-    public void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) {
-
-    }
-
-    @Override
     public String name() {
         return "issue";
     }

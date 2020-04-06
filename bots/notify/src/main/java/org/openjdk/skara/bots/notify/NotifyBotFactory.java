@@ -92,6 +92,23 @@ public class NotifyBotFactory implements BotFactory {
                 var version = repo.value().get("version").asString();
                 updaters.add(new JsonUpdater(Path.of(folder), version, build));
             }
+
+            if (repo.value().contains("slack")) {
+                var slackConf = repo.value().get("slack");
+                URI prWebhook = null;
+                if (slackConf.contains("pr")) {
+                    prWebhook = URIBuilder.base(slackConf.get("pr").asString()).build();
+                }
+                URI commitWebhook = null;
+                if (slackConf.contains("commit")) {
+                    commitWebhook = URIBuilder.base(slackConf.get("commit").asString()).build();
+                }
+                var username = slackConf.get("username").asString();
+                var updater = new SlackUpdater(prWebhook, commitWebhook, username);
+                updaters.add(updater);
+                prUpdaters.add(updater);
+            }
+
             if (repo.value().contains("mailinglists")) {
                 var email = specific.get("email").asObject();
                 var smtp = email.get("smtp").asString();

@@ -488,11 +488,20 @@ public class GitHubPullRequest implements PullRequest {
         return labels;
     }
 
-    @Override
-    public URI webUrl() {
+    private URI getWebUrl(boolean transform) {
         var host = (GitHubHost)repository.forge();
         var endpoint = "/" + repository.name() + "/pull/" + id();
-        return host.getWebURI(endpoint);
+        return host.getWebURI(endpoint, transform);
+    }
+
+    @Override
+    public URI webUrl() {
+        return getWebUrl(true);
+    }
+
+    @Override
+    public URI nonTransformedWebUrl() {
+        return getWebUrl(false);
     }
 
     @Override

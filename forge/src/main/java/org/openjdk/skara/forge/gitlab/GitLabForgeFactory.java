@@ -20,10 +20,14 @@ public class GitLabForgeFactory implements ForgeFactory {
 
     @Override
     public Forge create(URI uri, Credential credential, JSONObject configuration) {
+        var name = "GitLab";
+        if (configuration.contains("name")) {
+            name = configuration.get("name").asString();
+        }
         if (credential != null) {
-            return new GitLabHost(uri, credential);
+            return new GitLabHost(name, uri, credential);
         } else {
-            return new GitLabHost(uri);
+            return new GitLabHost(name, uri);
         }
     }
 }
