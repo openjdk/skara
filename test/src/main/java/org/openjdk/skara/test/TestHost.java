@@ -86,6 +86,11 @@ public class TestHost implements Forge, IssueTracker {
     }
 
     @Override
+    public String name() {
+        return "Test";
+    }
+
+    @Override
     public Optional<HostedRepository> repository(String name) {
         Repository localRepository;
         if (data.repositories.containsKey(name)) {
