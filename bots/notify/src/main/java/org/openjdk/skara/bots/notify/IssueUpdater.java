@@ -265,16 +265,16 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
 
                 String requestedVersion = null;
                 if (prOnly) {
-                    var pullRequestCount = issue.links().stream()
-                                            .filter(link -> link.title().orElse("notitle").equals("Review"))
-                                            .filter(link -> link.summary().orElse("nosummary").startsWith(repository.name() + "/"))
-                                            .map(link -> link.summary().orElseThrow().substring(repository.name().length() + 1))
-                                            .map(repository::pullRequest)
-                                            .filter(pr -> pr.targetRef().equals(branch.name()))
-                                            .count();
-                    if (pullRequestCount == 0) {
-                        log.info("Skipping commit " + commit.hash().abbreviate() + " for repository " + repository.name() +
-                                         " on branch " + branch.name() + " - no matching PR found");
+                    var candidates = repository.findPullRequestsWithComment(null, "Pushed as commit " + commit.hash() + ".");
+                    if (candidates.size() != 1) {
+                        log.info("IssueUpdater@" + issue.id() + ": Skipping commit " + commit.hash().abbreviate() + " for repository " + repository.name() +
+                                         " on branch " + branch.name() + " - " + candidates.size() + " matching PRs found (needed 1)");
+                        continue;
+                    }
+                    var candidate = candidates.get(0);
+                    var prLink = candidate.webUrl();
+                    if (!candidate.targetRef().equals(branch.name())) {
+                        log.info("IssueUpdater@" + issue.id() + ": Pull request " + prLink + " targets " + candidate.targetRef() + " - commit is on " + branch.toString() + " - skipping");
                         continue;
                     }
                 } else {
