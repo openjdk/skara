@@ -298,6 +298,13 @@ class CheckRun {
                       .collect(Collectors.joining("\n"));
     }
 
+    private String getAdditionalErrorsList(List<String> additionalErrors) {
+        return additionalErrors.stream()
+                               .sorted()
+                               .map(err -> " * " + err)
+                               .collect(Collectors.joining("\n"));
+    }
+
     private Optional<String> getReviewersList(List<Review> reviews) {
         var reviewers = reviews.stream()
                                .filter(review -> review.verdict() == Review.Verdict.APPROVED)
@@ -337,11 +344,16 @@ class CheckRun {
         }
     }
 
-    private String getStatusMessage(List<Comment> comments, List<Review> reviews, PullRequestCheckIssueVisitor visitor) {
+    private String getStatusMessage(List<Comment> comments, List<Review> reviews, PullRequestCheckIssueVisitor visitor, List<String> additionalErrors) {
         var progressBody = new StringBuilder();
         progressBody.append("---------\n");
         progressBody.append("### Progress\n");
         progressBody.append(getChecksList(visitor));
+
+        if (!additionalErrors.isEmpty()) {
+            progressBody.append("\n\n### Problems\n");
+            progressBody.append(getAdditionalErrorsList(additionalErrors));
+        }
 
         var issue = Issue.fromString(pr.title());
         var issueProject = workItem.bot.issueProject();
@@ -671,7 +683,7 @@ class CheckRun {
             updateReadyForReview(visitor, additionalErrors);
 
             // Calculate and update the status message if needed
-            var statusMessage = getStatusMessage(comments, activeReviews, visitor);
+            var statusMessage = getStatusMessage(comments, activeReviews, visitor, additionalErrors);
             var updatedBody = updateStatusMessage(statusMessage);
 
             // Post / update approval messages (only needed if the review itself can't contain a body)
