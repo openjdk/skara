@@ -301,7 +301,7 @@ class CheckRun {
     private String getAdditionalErrorsList(List<String> additionalErrors) {
         return additionalErrors.stream()
                                .sorted()
-                               .map(err -> " * " + err)
+                               .map(err -> "&nbsp;⚠️ " + err)
                                .collect(Collectors.joining("\n"));
     }
 
@@ -351,7 +351,11 @@ class CheckRun {
         progressBody.append(getChecksList(visitor));
 
         if (!additionalErrors.isEmpty()) {
-            progressBody.append("\n\n### Problems\n");
+            progressBody.append("\n\n### Error");
+            if (additionalErrors.size() > 1) {
+                progressBody.append("s");
+            }
+            progressBody.append("\n");
             progressBody.append(getAdditionalErrorsList(additionalErrors));
         }
 
