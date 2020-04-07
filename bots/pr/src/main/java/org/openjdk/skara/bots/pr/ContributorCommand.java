@@ -22,10 +22,10 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.census.Contributor;
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
-import org.openjdk.skara.vcs.openjdk.CommitMessageSyntax;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
@@ -33,9 +33,50 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 public class ContributorCommand implements CommandHandler {
-    private static final Pattern commandPattern = Pattern.compile("^(add|remove)\\s+(.*?\\s+<\\S+>)$");
-    private static final Pattern fullNamePattern = Pattern.compile(CommitMessageSyntax.REAL_NAME_REGEX);
-    private static final Pattern emailPattern = Pattern.compile(CommitMessageSyntax.EMAIL_ADDR_REGEX);
+    private static final Pattern commandPattern = Pattern.compile("^(add|remove)\\s+(.+)$");
+
+    private void showHelp(PullRequest pr, PrintWriter reply) {
+        reply.println("Syntax: `/contributor (add|remove) [@user | openjdk-user | Full Name <email@address>]`. For example:");
+        reply.println();
+        reply.println(" * `/contributor add @" + pr.repository().forge().name() + "-User`");
+        reply.println(" * `/contributor add duke`");
+        reply.println(" * `/contributor add J. Duke <duke@openjdk.org>`");
+    }
+
+    private Optional<EmailAddress> parseUser(String user, PullRequest pr, CensusInstance censusInstance) {
+        user = user.strip();
+        if (user.isEmpty()) {
+            return Optional.empty();
+        }
+        Contributor contributor;
+        if (user.charAt(0) == '@') {
+            var platformUser = pr.repository().forge().user(user.substring(1));
+            if (platformUser.isEmpty()) {
+                return Optional.empty();
+            }
+            contributor = censusInstance.namespace().get(platformUser.get().id());
+            if (contributor == null) {
+                return Optional.empty();
+            }
+        } else if (!user.contains("@")) {
+            contributor = censusInstance.census().contributor(user);
+            if (contributor == null) {
+                return Optional.empty();
+            }
+        } else {
+            try {
+                return Optional.of(EmailAddress.parse(user));
+            } catch (RuntimeException e) {
+                return Optional.empty();
+            }
+        }
+
+        if (contributor.fullName().isPresent()) {
+            return Optional.of(EmailAddress.from(contributor.fullName().get(), contributor.username() + "@openjdk.org"));
+        } else {
+            return Optional.of(EmailAddress.from(contributor.username() + "@openjdk.org"));
+        }
+    }
 
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
@@ -46,36 +87,33 @@ public class ContributorCommand implements CommandHandler {
 
         var matcher = commandPattern.matcher(args);
         if (!matcher.matches()) {
-            reply.println("Syntax: `/contributor (add|remove) Full Name <email@address>`");
+            showHelp(pr, reply);
             return;
         }
 
-        var contributor = EmailAddress.parse(matcher.group(2));
+        var contributor = parseUser(matcher.group(2), pr, censusInstance);
+        if (contributor.isEmpty()) {
+            reply.println("Could not parse `" + matcher.group(2) + "` as a valid contributor.");
+            showHelp(pr, reply);;
+            return;
+        }
+
         switch (matcher.group(1)) {
             case "add": {
-                var fullName = contributor.fullName().orElseThrow(IllegalStateException::new);
-                if (!fullNamePattern.matcher(fullName).matches()) {
-                    reply.println("The full name is *not* of the format `" + CommitMessageSyntax.REAL_NAME_REGEX + "`");
-                    break;
-                }
-                if (!emailPattern.matcher(contributor.address()).matches()) {
-                    reply.println("The email is *not* of the format `" + CommitMessageSyntax.EMAIL_ADDR_REGEX + "`");
-                    break;
-                }
-                reply.println(Contributors.addContributorMarker(contributor));
-                reply.println("Contributor `" + contributor.toString() + "` successfully added.");
+                reply.println(Contributors.addContributorMarker(contributor.get()));
+                reply.println("Contributor `" + contributor.get().toString() + "` successfully added.");
                 break;
             }
             case "remove": {
                 var existing = new HashSet<>(Contributors.contributors(pr.repository().forge().currentUser(), allComments));
-                if (existing.contains(contributor)) {
-                    reply.println(Contributors.removeContributorMarker(contributor));
-                    reply.println("Contributor `" + contributor.toString() + "` successfully removed.");
+                if (existing.contains(contributor.get())) {
+                    reply.println(Contributors.removeContributorMarker(contributor.get()));
+                    reply.println("Contributor `" + contributor.get().toString() + "` successfully removed.");
                 } else {
                     if (existing.isEmpty()) {
                         reply.println("There are no additional contributors associated with this pull request.");
                     } else {
-                        reply.println("Contributor `" + contributor.toString() + "` was not found.");
+                        reply.println("Contributor `" + contributor.get().toString() + "` was not found.");
                         reply.println("Current additional contributors are:");
                         for (var e : existing) {
                             reply.println("- `" + e.toString() + "`");

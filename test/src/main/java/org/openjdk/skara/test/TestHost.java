@@ -121,12 +121,9 @@ public class TestHost implements Forge, IssueTracker {
 
     @Override
     public Optional<HostUser> user(String username) {
-        return data.users
-                   .stream()
-                   .filter(user -> user.userName().equals(username))
-                   .map(user -> Optional.of(user))
-                   .findAny()
-                   .orElseThrow();
+        return data.users.stream()
+                         .filter(user -> user.userName().equals(username))
+                         .findAny();
     }
 
     @Override
