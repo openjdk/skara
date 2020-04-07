@@ -1998,6 +1998,7 @@ class UpdaterTests {
             assertEquals(reviewIcon, links.get(0).iconUrl().orElseThrow());
 
             // Simulate integration
+            pr.addComment("Pushed as commit " + editHash.hex() + ".");
             localRepo.push(editHash, repo.url(), "other");
             TestBotRunner.runPeriodicItems(notifyBot);
 
