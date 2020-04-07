@@ -701,7 +701,7 @@ class CheckTests {
 
             // Additional errors should be displayed in the body
             var updatedPr = author.pullRequest(pr.id());
-            assertTrue(updatedPr.body().contains("## Problems"));
+            assertTrue(updatedPr.body().contains("## Error"));
             assertTrue(updatedPr.body().contains("The pull request body must not be empty."));
 
             // The PR should not yet be ready for review
@@ -718,7 +718,7 @@ class CheckTests {
 
             // The additional errors should be gone
             updatedPr = author.pullRequest(pr.id());
-            assertFalse(updatedPr.body().contains("## Problems"));
+            assertFalse(updatedPr.body().contains("## Error"));
             assertFalse(updatedPr.body().contains("The pull request body must not be empty."));
         }
     }
