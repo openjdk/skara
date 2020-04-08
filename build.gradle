@@ -65,6 +65,8 @@ configure(subprojects.findAll() { it.name != 'bots' }) {
             events "passed", "skipped", "failed"
             exceptionFormat "full"
         }
+
+        reports.html.enabled = false
     }
 
     publishing {
@@ -94,6 +96,28 @@ configure(subprojects.findAll() { it.name != 'bots' }) {
 
 task test {
     subprojects.findAll() { !it.getTasksByName('test', false).isEmpty() }.each { dependsOn "${it.path}:test" }
+}
+
+task testReport(type: TestReport) {
+    destinationDir = file("$buildDir/reports/allTests")
+
+    def failureCount = 0
+    subprojects.findAll()*.getTasksByName('test', false).each { it.each {
+        it.ignoreFailures = true
+        it.afterSuite { td, tr ->
+            if (td.getParent() == null) {
+                failureCount += tr.getFailedTestCount()
+            }
+        }}
+    }
+
+    reportOn subprojects.findAll()*.getTasksByName('test', false)
+
+    doLast {
+        if (failureCount > 0) {
+            throw new GradleException("There were " + failureCount + " failing tests. See the report at: " + destinationDir);
+        }
+    }
 }
 
 task clean {
