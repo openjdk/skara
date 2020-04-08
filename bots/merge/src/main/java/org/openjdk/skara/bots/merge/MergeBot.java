@@ -28,6 +28,7 @@ import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
 
 import java.io.IOException;
+import java.io.File;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -45,6 +46,7 @@ class MergeBot implements Bot, WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final Path storage;
 
+    private final HostedRepositoryPool pool;
     private final HostedRepository target;
     private final HostedRepository fork;
     private final List<Spec> specs;
@@ -69,6 +71,7 @@ class MergeBot implements Bot, WorkItem {
     MergeBot(Path storage, HostedRepository target, HostedRepository fork,
              List<Spec> specs, Clock clock) {
         this.storage = storage;
+        this.pool = new HostedRepositoryPool(storage.resolve("seeds"));
         this.target = target;
         this.fork = fork;
         this.specs = specs;
@@ -215,6 +218,29 @@ class MergeBot implements Bot, WorkItem {
         }
     }
 
+    private static void deleteDirectory(Path dir) throws IOException {
+        Files.walk(dir)
+             .map(Path::toFile)
+             .sorted(Comparator.reverseOrder())
+             .forEach(File::delete);
+    }
+
+    private Repository cloneAndSyncFork(Path to) throws IOException {
+        var repo = pool.materialize(fork, to);
+
+        // Sync personal fork
+        var remoteBranches = repo.remoteBranches(target.url().toString());
+        for (var branch : remoteBranches) {
+            var fetchHead = repo.fetch(target.url(), branch.hash().hex());
+            repo.push(fetchHead, fork.url(), branch.name());
+        }
+
+        // Must fetch once to update refs/heads
+        repo.fetchAll();
+
+        return repo;
+    }
+
     @Override
     public boolean concurrentWith(WorkItem other) {
         if (!(other instanceof MergeBot)) {
@@ -231,27 +257,7 @@ class MergeBot implements Bot, WorkItem {
                 URLEncoder.encode(fork.webUrl().toString(), StandardCharsets.UTF_8);
             var dir = storage.resolve(sanitizedUrl);
 
-            Repository repo = null;
-            if (!Files.exists(dir)) {
-                log.info("Cloning " + fork.name());
-                Files.createDirectories(dir);
-                repo = Repository.clone(fork.url(), dir);
-            } else {
-                log.info("Found existing scratch directory for " + fork.name());
-                repo = Repository.get(dir).orElseThrow(() -> {
-                        return new RuntimeException("Repository in " + dir + " has vanished");
-                });
-            }
-
-            // Sync personal fork
-            var remoteBranches = repo.remoteBranches(target.url().toString());
-            for (var branch : remoteBranches) {
-                var fetchHead = repo.fetch(target.url(), branch.hash().hex());
-                repo.push(fetchHead, fork.url(), branch.name());
-            }
-
-            // Must fetch once to update refs/heads
-            repo.fetchAll();
+            var repo = cloneAndSyncFork(dir);
 
             var prTarget = fork.forge().repository(target.name()).orElseThrow(() ->
                     new IllegalStateException("Can't get well-known repository " + target.name())
@@ -430,7 +436,16 @@ class MergeBot implements Bot, WorkItem {
                         repo.commit("Automatic merge of " + fromDesc + " into " + toBranch,
                                 "duke", "duke@openjdk.org");
                     }
-                    repo.push(toBranch, target.url().toString(), false);
+                    try {
+                        repo.push(toBranch, target.url().toString(), false);
+                    } catch (IOException e) {
+                        // A failed push can result in the local and remote branch diverging,
+                        // re-create the repository from the remote.
+                        // No need to create a pull request, just retry the merge and the push
+                        // the next run.
+                        deleteDirectory(dir);
+                        repo = cloneAndSyncFork(dir);
+                    }
                 } else {
                     log.info("Got error: " + error.getMessage());
                     log.info("Aborting unsuccesful merge");
