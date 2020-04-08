@@ -185,7 +185,7 @@ class ContributorTests {
     }
 
     @Test
-    void invalidFullName(TestInfo testInfo) throws IOException {
+    void invalidContributor(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
@@ -209,16 +209,29 @@ class ContributorTests {
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Use an invalid full name
-            pr.addComment("/contributor add Foo! Bar <foo.bar@host.com>");
+            pr.addComment("/contributor add Moo <Foo.Bar (at) host.com>");
             TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "Could not parse `Moo <Foo.Bar (at) host.com>` as a valid contributor");
 
-            // The bot should reply with an error message
-            assertLastCommentContains(pr, "The full name is *not* of the format");
+            // Empty platform id
+            pr.addComment("/contributor add @");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "Could not parse `@` as a valid contributor");
+
+            // Unknown platform id
+            pr.addComment("/contributor add @someone");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "Could not parse `@someone` as a valid contributor");
+
+            // Unknown openjdk user
+            pr.addComment("/contributor add someone");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "Could not parse `someone` as a valid contributor");
         }
     }
 
     @Test
-    void invalidEmail(TestInfo testInfo) throws IOException {
+    void platformUser(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
@@ -241,12 +254,45 @@ class ContributorTests {
             localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
-            // Use an invalid full name
-            pr.addComment("/contributor add Foo Bar <Foo.Bar@host.com>");
+            // Use a platform name
+            pr.addComment("/contributor add @" + author.forge().currentUser().userName());
             TestBotRunner.runPeriodicItems(prBot);
 
-            // The bot should reply with an error message
-            assertLastCommentContains(pr, "The email is *not* of the format");
+            // The bot should reply
+            assertLastCommentContains(pr, "Contributor `Generated Committer 2 <integrationcommitter2@openjdk.org>` successfully added");
+        }
+    }
+
+    @Test
+    void openJdkUser(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(integrator.forge().currentUser().id())
+                                           .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Use a platform name
+            pr.addComment("/contributor add integrationreviewer1");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply
+            assertLastCommentContains(pr, "Contributor `Generated Reviewer 1 <integrationreviewer1@openjdk.org>` successfully added");
         }
     }
 
