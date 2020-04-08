@@ -38,7 +38,7 @@ public class ContributorCommand implements CommandHandler {
     private void showHelp(PullRequest pr, PrintWriter reply) {
         reply.println("Syntax: `/contributor (add|remove) [@user | openjdk-user | Full Name <email@address>]`. For example:");
         reply.println();
-        reply.println(" * `/contributor add @" + pr.repository().forge().name() + "-User`");
+        reply.println(" * `/contributor add @openjdk-bot`");
         reply.println(" * `/contributor add duke`");
         reply.println(" * `/contributor add J. Duke <duke@openjdk.org>`");
     }
