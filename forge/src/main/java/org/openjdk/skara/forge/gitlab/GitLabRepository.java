@@ -267,7 +267,7 @@ public class GitLabRepository implements HostedRepository {
 
     @Override
     public List<HostedBranch> branches() {
-        var branches = request.get("branches").execute();
+        var branches = request.get("repository/branches").execute();
         return branches.stream()
                        .map(b -> new HostedBranch(b.get("name").asString(),
                                                   new Hash(b.get("commit").get("id").asString())))
