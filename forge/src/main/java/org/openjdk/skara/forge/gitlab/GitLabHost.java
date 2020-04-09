@@ -95,7 +95,6 @@ public class GitLabHost implements Forge {
 
     JSONObject getProjectInfo(String name) {
         var encodedName = URLEncoder.encode(name, StandardCharsets.US_ASCII);
-
         var project = request.get("projects/" + encodedName)
                              .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.object().put("retry", true)) : Optional.empty())
                              .execute();
@@ -105,6 +104,12 @@ public class GitLabHost implements Forge {
             project = request.get("projects/" + encodedName).execute();
         }
         return project.asObject();
+    }
+
+    JSONObject getProjectInfo(int id) {
+        return request.get("projects/" + Integer.toString(id))
+                      .execute()
+                      .asObject();
     }
 
     @Override
