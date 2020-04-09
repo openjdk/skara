@@ -363,7 +363,7 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public State state() {
-        if (json.get("state").asString().equals("open")) {
+        if (json.get("state").asString().equals("opened")) {
             return State.OPEN;
         }
         return State.CLOSED;
