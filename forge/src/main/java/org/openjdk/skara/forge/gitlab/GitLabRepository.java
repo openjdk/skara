@@ -43,8 +43,16 @@ public class GitLabRepository implements HostedRepository {
     private final Pattern mergeRequestPattern;
 
     public GitLabRepository(GitLabHost gitLabHost, String projectName) {
+        this(gitLabHost, gitLabHost.getProjectInfo(projectName));
+    }
+
+    public GitLabRepository(GitLabHost gitLabHost, int id) {
+        this(gitLabHost, gitLabHost.getProjectInfo(id));
+    }
+
+    private GitLabRepository(GitLabHost gitLabHost, JSONValue json) {
         this.gitLabHost = gitLabHost;
-        json = gitLabHost.getProjectInfo(projectName);
+        this.json = json;
         this.projectName = json.get("path_with_namespace").asString();
 
         var id = json.get("id").asInt();
