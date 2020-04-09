@@ -271,7 +271,14 @@ public class GitFork {
             exit("error: could not connect to host " + webURI.getHost());
         }
 
-        var hostedRepo = host.get().repository(webURI.getPath().substring(1)).orElseThrow(() ->
+        var repositoryPath = webURI.getPath().substring(1);
+
+        if (repositoryPath.endsWith("/")) {
+            repositoryPath =
+                    repositoryPath.substring(0, repositoryPath.length() - 1);
+        }
+
+        var hostedRepo = host.get().repository(repositoryPath).orElseThrow(() ->
             new IOException("Could not find repository at " + webURI.toString())
         );
 
