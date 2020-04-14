@@ -62,4 +62,24 @@ public class WordWrapTests {
     void emptyLines() {
         assertEquals("hello\nthere\n\nyou", WordWrap.wrapBody("hello there\n\nyou", 3));
     }
+
+    @Test
+    void complexList() {
+        assertEquals("Problems:\n" +
+                             "- G1 pre- and post-barriers used when (un-)packing arguments for the calling convention can call into the runtime which\n" +
+                             "  screws up argument registers. Save all registers until JDK-8232094 is fixed in mainline (it's the slow path anyway).\n" +
+                             "- SignatureStream::as_value_klass triggers a SystemDictionary lookup which acquires the ProtectionDomainSet_lock. When\n" +
+                             "  used from fieldDescriptor::print_on_for when some debug printing flags are enabled, this conflicts with the tty_lock.\n" +
+                             "  We should simply use get_value_field_klass instead. Also, we should handle null as a vale for non-flattened fields.\n" +
+                             "- TraceDeoptimization needs to handle re-allocation of the inline type return value.\n" +
+                             "\n" +
+                             "I've also added a new StressCC option to the ValueTypeTest suite to randomly restrict some compilation to C1 and\n" +
+                             "thereby stress test the calling convention.",
+                     WordWrap.wrapBody("Problems:\n" +
+                                               "- G1 pre- and post-barriers used when (un-)packing arguments for the calling convention can call into the runtime which screws up argument registers. Save all registers until JDK-8232094 is fixed in mainline (it's the slow path anyway).\n" +
+                                               "- SignatureStream::as_value_klass triggers a SystemDictionary lookup which acquires the ProtectionDomainSet_lock. When used from fieldDescriptor::print_on_for when some debug printing flags are enabled, this conflicts with the tty_lock. We should simply use get_value_field_klass instead. Also, we should handle null as a vale for non-flattened fields.\n" +
+                                               "- TraceDeoptimization needs to handle re-allocation of the inline type return value.\n" +
+                                               "\n" +
+                                               "I've also added a new StressCC option to the ValueTypeTest suite to randomly restrict some compilation to C1 and thereby stress test the calling convention.", 120));
+    }
 }

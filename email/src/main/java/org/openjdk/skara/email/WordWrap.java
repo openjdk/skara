@@ -92,7 +92,7 @@ public class WordWrap {
                 var nextLine = lines.peekFirst();
                 if (nextLine != null) {
                     var nextIndent = indentation(nextLine);
-                    if (nextLine.isBlank() || !indentation.equals(filterIndent(nextIndent))) {
+                    if (nextLine.isBlank() || !indentation.equals(filterIndent(nextIndent)) || !indentation.equals(nextIndent)) {
                         lines.addFirst(filterIndent(indentation) + split.getValue());
                     } else {
                         lines.removeFirst();
