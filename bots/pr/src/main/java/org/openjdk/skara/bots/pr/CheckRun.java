@@ -520,7 +520,7 @@ class CheckRun {
             message.append(pr.targetRef());
             message.append("` branch. ");
             if (rebasePossible) {
-                message.append("Since there are no conflicts, your changes will automatically be rebased on top of ");
+                message.append("As there are no conflicts, your changes will automatically be rebased on top of ");
                 message.append("these commits when integrating. If you prefer to avoid automatic rebasing, please merge `");
                 message.append(pr.targetRef());
                 message.append("` into your branch, and then specify the current head hash when integrating, like this: ");
@@ -533,6 +533,16 @@ class CheckRun {
                 message.append(pr.targetRef());
                 message.append("` into your branch before integrating.\n");
             }
+        } else {
+            message.append("\n");
+            message.append("There are currently no new commits on the `");
+            message.append(pr.targetRef());
+            message.append("` branch since the last update of the source branch of this PR. If another commit should be pushed before ");
+            message.append("you perform the `/integrate` command, your PR will be automatically rebased. If you would like to avoid ");
+            message.append("potential automatic rebasing, specify the current head hash when integrating, like this: ");
+            message.append("`/integrate ");
+            message.append(prInstance.targetHash());
+            message.append("`.\n");
         }
 
         if (!ProjectPermissions.mayCommit(censusInstance, pr.author())) {

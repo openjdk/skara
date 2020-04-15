@@ -71,11 +71,12 @@ class IntegrateTests {
 
             // The bot should reply with integration message
             TestBotRunner.runPeriodicItems(mergeBot);
-            var integrateComments =
-                pr.comments()
-                  .stream()
-                  .filter(c -> c.body().contains("To integrate this PR with the above commit message to the `master` branch"))
-                  .count();
+            var integrateComments = pr.comments()
+                                      .stream()
+                                      .filter(c -> c.body().contains("To integrate this PR with the above commit message to the `master` branch"))
+                                      .filter(c -> c.body().contains("If you would like to avoid potential automatic rebasing"))
+                                      .filter(c -> c.body().contains("`/integrate " + masterHash.hex() + "`"))
+                                      .count();
             assertEquals(1, integrateComments);
 
             // Attempt a merge (the bot should only process the first one)
