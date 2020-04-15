@@ -463,7 +463,7 @@ class MergeBot implements Bot, WorkItem {
                     message.add(marker);
                     message.add("<!-- " + fetchHead.hex() + " -->");
 
-                    var commits = repo.commits(mergeBase.hex() + ".." + fetchHead.hex(), true).asList();
+                    var commits = repo.commitMetadata(mergeBase.hex() + ".." + fetchHead.hex(), true);
                     var numCommits = commits.size();
                     var are = numCommits > 1 ? "are" : "is";
                     var s = numCommits > 1 ? "s" : "";
