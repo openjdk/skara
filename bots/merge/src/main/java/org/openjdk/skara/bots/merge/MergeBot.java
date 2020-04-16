@@ -456,7 +456,7 @@ class MergeBot implements Bot, WorkItem {
 
                     var numBranchesInFork = repo.remoteBranches(fork.webUrl().toString()).size();
                     var branchDesc = Integer.toString(numBranchesInFork + 1);
-                    repo.push(fetchHead, fork.url(), branchDesc, true);
+                    repo.push(fetchHead, fork.url(), branchDesc);
 
                     log.info("Creating pull request to alert");
                     var mergeBase = repo.mergeBase(fetchHead, head);
