@@ -178,11 +178,12 @@ class CheckRun {
             if (commits.size() < 2) {
                 ret.add("A Merge PR must contain at least two commits that are not already present in the target.");
             } else {
-                // Find the last merge commit - the very last commit is not eligible (as the merge needs a parent)
+                // Find the first merge commit - the very last commit is not eligible (as the merge needs a parent)
                 int mergeCommitIndex = commits.size();
                 for (int i = 0; i < commits.size() - 1; ++i) {
                     if (commits.get(i).isMerge()) {
                         mergeCommitIndex = i;
+                        break;
                     }
                 }
                 if (mergeCommitIndex >= commits.size() - 1) {
@@ -198,10 +199,12 @@ class CheckRun {
                         try {
                             var sourceHash = prInstance.localRepo().fetch(mergeSourceRepo.url(), source.get().branchName, false);
                             var mergeCommit = commits.get(mergeCommitIndex);
-                            for (int i = 1; i < mergeCommit.parents().size(); ++i) {
+                            for (int i = 0; i < mergeCommit.parents().size(); ++i) {
                                 if (!prInstance.localRepo().isAncestor(mergeCommit.parents().get(i), sourceHash)) {
-                                    ret.add("The merge contains commits that are not ancestors of the source.");
-                                    break;
+                                    if (!mergeCommit.parents().get(i).equals(prInstance.targetHash())) {
+                                        ret.add("The merge contains commits that are neither ancestors of the source nor the target.");
+                                        break;
+                                    }
                                 }
                             }
                         } catch (IOException e) {

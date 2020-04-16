@@ -746,7 +746,7 @@ public class GitRepository implements Repository {
 
     @Override
     public void rebase(Hash hash, String committerName, String committerEmail) throws IOException {
-        try (var p = Process.capture("git", "rebase", "--onto", hash.hex(), "--root", "--rebase-merges")
+        try (var p = Process.capture("git", "rebase", "--onto", hash.hex(), "--root")
                             .environ("GIT_COMMITTER_NAME", committerName)
                             .environ("GIT_COMMITTER_EMAIL", committerEmail)
                             .workdir(dir)
