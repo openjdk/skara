@@ -209,6 +209,7 @@ class MergeTests {
     }
 
     @Test
+    @Disabled
     void branchMergeRebase(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
@@ -303,6 +304,7 @@ class MergeTests {
     }
 
     @Test
+    @Disabled
     void branchMergeAdditionalCommits(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
@@ -466,7 +468,7 @@ class MergeTests {
             assertEquals(1, error, () -> pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
 
             var check = pr.checks(mergeHash).get("jcheck");
-            assertEquals("- It was not possible to create a commit for the changes in this PR: No merge commit containing commits from another branch than the target was found", check.summary().orElseThrow());
+            assertEquals("- It was not possible to create a commit for the changes in this PR: A merge PR is only allowed to contain a single merge commit. You will need to amend your commits.", check.summary().orElseThrow());
         }
     }
 

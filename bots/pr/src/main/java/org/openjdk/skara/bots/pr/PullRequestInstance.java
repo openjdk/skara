@@ -139,27 +139,33 @@ class PullRequestInstance {
     }
 
     private Hash commitMerge(List<Review> activeReviews, Namespace namespace, String censusDomain, String sponsorId) throws IOException, CommitFailure {
-        // Find the first merge commit with an incoming parent outside of the merge target
+        // Find the single merge commit with an incoming parent outside of the merge target
         // The very last commit is not eligible (as the merge needs a parent)
         var commits = localRepo.commitMetadata(baseHash, headHash);
         int mergeCommitIndex = commits.size();
         for (int i = 0; i < commits.size() - 1; ++i) {
             if (commits.get(i).isMerge()) {
                 boolean isSourceMerge = false;
-                for (int j = 1; j < commits.get(i).parents().size(); ++j) {
+                for (int j = 0; j < commits.get(i).parents().size(); ++j) {
                     if (!localRepo.isAncestor(baseHash, commits.get(i).parents().get(j))) {
                         isSourceMerge = true;
                     }
                 }
                 if (isSourceMerge) {
+                    if (mergeCommitIndex != commits.size()) {
+                        // TODO: We could allow this
+                        throw new CommitFailure("A merge PR is only allowed to contain a single merge commit with incoming changes. Please amend!");
+                    }
                     mergeCommitIndex = i;
-                    break;
+                } else {
+                    // TODO: We can solve this with retroactive rerere
+                    throw new CommitFailure("A merge PR is only allowed to contain a single merge commit. You will need to amend your commits.");
                 }
             }
         }
 
         if (mergeCommitIndex == commits.size()) {
-            throw new CommitFailure("No merge commit containing commits from another branch than the target was found");
+            throw new CommitFailure("No merge commit containing incoming commits from another branch than the target was found");
         }
 
         var contributor = namespace.get(pr.author().id());
@@ -183,9 +189,13 @@ class PullRequestInstance {
         return localRepo.amend(commitMessage, author.name(), author.email(), committer.name(), committer.email());
     }
 
+    private boolean isMergeCommit() {
+        return pr.title().startsWith("Merge");
+    }
+
     Hash commit(Namespace namespace, String censusDomain, String sponsorId) throws IOException, CommitFailure {
         var activeReviews = filterActiveReviews(pr.reviews());
-        if (!pr.title().startsWith("Merge")) {
+        if (!isMergeCommit()) {
             return commitSquashed(activeReviews, namespace, censusDomain, sponsorId);
         } else {
             return commitMerge(activeReviews, namespace, censusDomain, sponsorId);
@@ -215,6 +225,12 @@ class PullRequestInstance {
 
             try {
                 var commit = localRepo.lookup(commitHash).orElseThrow();
+                if (isMergeCommit()) {
+                    // TODO: We can solve this with retroactive rerere
+                    reply.println("Merge PRs cannot currently be automatically rebased. You will need to rebase it manually.");
+                    return Optional.empty();
+                }
+
                 localRepo.rebase(targetHash, commit.committer().name(), commit.committer().email());
                 reply.println();
                 reply.println("Your commit was automatically rebased without conflicts.");
