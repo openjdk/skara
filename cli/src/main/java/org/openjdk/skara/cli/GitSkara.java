@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -174,6 +174,7 @@ public class GitSkara {
         commands.put("translate", GitTranslate::main);
         commands.put("sync", GitSync::main);
         commands.put("publish", GitPublish::main);
+        commands.put("proxy", GitProxy::main);
 
         commands.put("update", GitSkara::update);
         commands.put("help", GitSkara::usage);
