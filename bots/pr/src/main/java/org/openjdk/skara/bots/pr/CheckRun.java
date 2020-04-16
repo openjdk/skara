@@ -196,7 +196,7 @@ class CheckRun {
                                 new RuntimeException("Could not find repository " + source.get().repositoryName)
                         );
                         try {
-                            var sourceHash = prInstance.localRepo().fetch(mergeSourceRepo.url(), source.get().branchName);
+                            var sourceHash = prInstance.localRepo().fetch(mergeSourceRepo.url(), source.get().branchName, false);
                             var mergeCommit = commits.get(mergeCommitIndex);
                             for (int i = 1; i < mergeCommit.parents().size(); ++i) {
                                 if (!prInstance.localRepo().isAncestor(mergeCommit.parents().get(i), sourceHash)) {

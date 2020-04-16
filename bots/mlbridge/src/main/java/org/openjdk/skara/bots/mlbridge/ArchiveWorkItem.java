@@ -80,7 +80,7 @@ class ArchiveWorkItem implements WorkItem {
                 var localHead = localRepo.head();
                 localRepo.add(localRepo.root().resolve("."));
                 var hash = localRepo.commit(message, bot.emailAddress().fullName().orElseThrow(), bot.emailAddress().address());
-                var remoteHead = localRepo.fetch(bot.archiveRepo().url(), bot.archiveRef());
+                var remoteHead = localRepo.fetch(bot.archiveRepo().url(), bot.archiveRef(), false);
                 if (!localHead.equals(remoteHead)) {
                     log.info("Remote head has changed - attempting a rebase");
                     localRepo.rebase(remoteHead, bot.emailAddress().fullName().orElseThrow(), bot.emailAddress().address());
@@ -295,7 +295,7 @@ class ArchiveWorkItem implements WorkItem {
             var repository = pr.repository();
             var localRepoPath = scratchPath.resolve("mlbridge-mergebase");
             var localRepo = hostedRepositoryPool.checkout(pr, localRepoPath.resolve(repository.name()));
-            localRepo.fetch(repository.url(), "+" + pr.targetRef() + ":mlbridge_prinstance");
+            localRepo.fetch(repository.url(), "+" + pr.targetRef() + ":mlbridge_prinstance", false);
 
             var targetHash = pr.targetHash();
             var headHash = pr.headHash();

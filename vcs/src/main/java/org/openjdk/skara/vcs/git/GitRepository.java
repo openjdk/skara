@@ -397,16 +397,35 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public Hash fetch(URI uri, String refspec) throws IOException {
-        try (var p = capture("git", "fetch", "--recurse-submodules=on-demand", "--tags", uri.toString(), refspec)) {
+    public Hash fetch(URI uri, String refspec, boolean includeTags) throws IOException {
+        var cmd = new ArrayList<String>();
+        cmd.addAll(List.of("git", "fetch", "--recurse-submodules=on-demand"));
+        if (includeTags) {
+            cmd.add("--tags");
+        } else {
+            cmd.add("--no-tags");
+        }
+        cmd.add(uri.toString());
+        cmd.add(refspec);
+        try (var p = capture(cmd)) {
             await(p);
             return resolve("FETCH_HEAD").get();
         }
     }
 
     @Override
-    public void fetchAll() throws IOException {
-        try (var p = capture("git", "fetch", "--recurse-submodules=on-demand", "--tags", "--prune", "--prune-tags", "--all")) {
+    public void fetchAll(boolean includeTags) throws IOException {
+        var cmd = new ArrayList<String>();
+        cmd.addAll(List.of("git", "fetch", "--recurse-submodules=on-demand"));
+        cmd.add("--prune");
+        if (includeTags) {
+            cmd.add("--tags");
+            cmd.add("--prune-tags");
+        } else {
+            cmd.add("--no-tags");
+        }
+        cmd.add("--all");
+        try (var p = capture(cmd)) {
             await(p);
         }
     }

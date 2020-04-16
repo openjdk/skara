@@ -231,12 +231,12 @@ class MergeBot implements Bot, WorkItem {
         // Sync personal fork
         var remoteBranches = repo.remoteBranches(target.url().toString());
         for (var branch : remoteBranches) {
-            var fetchHead = repo.fetch(target.url(), branch.hash().hex());
+            var fetchHead = repo.fetch(target.url(), branch.hash().hex(), false);
             repo.push(fetchHead, fork.url(), branch.name());
         }
 
         // Must fetch once to update refs/heads
-        repo.fetchAll();
+        repo.fetchAll(false);
 
         return repo;
     }
@@ -411,7 +411,7 @@ class MergeBot implements Bot, WorkItem {
 
                 log.info("Trying to merge " + fromRepo.name() + ":" + fromBranch.name() + " to " + toBranch.name());
                 log.info("Fetching " + fromRepo.name() + ":" + fromBranch.name());
-                var fetchHead = repo.fetch(fromRepo.url(), fromBranch.name());
+                var fetchHead = repo.fetch(fromRepo.url(), fromBranch.name(), false);
                 var head = repo.resolve(toBranch.name()).orElseThrow(() ->
                         new IOException("Could not resolve branch " + toBranch.name())
                 );

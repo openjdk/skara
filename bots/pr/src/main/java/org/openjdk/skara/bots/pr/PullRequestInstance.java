@@ -56,7 +56,7 @@ class PullRequestInstance {
         // Materialize the PR's source and target ref
         var repository = pr.repository();
         localRepo = hostedRepositoryPool.checkout(pr, localRepoPath.resolve(repository.name()));
-        localRepo.fetch(repository.url(), "+" + pr.targetRef() + ":pr_prinstance");
+        localRepo.fetch(repository.url(), "+" + pr.targetRef() + ":pr_prinstance", false);
 
         targetHash = pr.targetHash();
         headHash = pr.headHash();

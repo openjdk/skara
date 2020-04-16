@@ -41,8 +41,14 @@ public interface Repository extends ReadOnlyRepository {
     default void checkout(Branch b) throws IOException {
         checkout(b, false);
     }
-    Hash fetch(URI uri, String refspec) throws IOException;
-    void fetchAll() throws IOException;
+    default Hash fetch(URI uri, String refspec) throws IOException {
+        return fetch(uri, refspec, true);
+    }
+    Hash fetch(URI uri, String refspec, boolean includeTags) throws IOException;
+    default void fetchAll() throws IOException {
+        fetchAll(false);
+    }
+    void fetchAll(boolean includeTags) throws IOException;
     void fetchRemote(String remote) throws IOException;
     void pushAll(URI uri) throws IOException;
     void push(Hash hash, URI uri, String ref, boolean force) throws IOException;
