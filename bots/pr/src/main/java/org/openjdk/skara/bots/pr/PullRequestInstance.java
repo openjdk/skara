@@ -139,7 +139,7 @@ class PullRequestInstance {
     }
 
     private Hash commitMerge(List<Review> activeReviews, Namespace namespace, String censusDomain, String sponsorId) throws IOException, CommitFailure {
-        // Find the single merge commit with an incoming parent outside of the merge target
+        // Find the first merge commit with an incoming parent outside of the merge target
         // The very last commit is not eligible (as the merge needs a parent)
         var commits = localRepo.commitMetadata(baseHash, headHash);
         int mergeCommitIndex = commits.size();
@@ -152,11 +152,8 @@ class PullRequestInstance {
                     }
                 }
                 if (isSourceMerge) {
-                    if (mergeCommitIndex != commits.size()) {
-                        // TODO: We could allow this
-                        throw new CommitFailure("A merge PR is only allowed to contain a single merge commit with incoming changes. Please amend!");
-                    }
                     mergeCommitIndex = i;
+                    break;
                 } else {
                     // TODO: We can solve this with retroactive rerere
                     throw new CommitFailure("A merge PR is only allowed to contain a single merge commit. You will need to amend your commits.");
