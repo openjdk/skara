@@ -403,7 +403,8 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public Hash fetch(URI uri, String refspec) throws IOException {
+    public Hash fetch(URI uri, String refspec, boolean includeTags) throws IOException {
+        // Ignore includeTags, Mercurial always fetches tags
         return fetch(uri != null ? uri.toString() : null, refspec);
     }
 
@@ -437,7 +438,8 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public void fetchAll() throws IOException {
+    public void fetchAll(boolean includeTags) throws IOException {
+        // Ignore includeTags, Mercurial always fetches tags
         var pullPaths = new ArrayList<URI>();
         try (var p = capture("hg", "paths")) {
             var res = await(p);

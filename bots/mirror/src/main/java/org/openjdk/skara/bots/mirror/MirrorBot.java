@@ -91,12 +91,12 @@ class MirrorBot implements Bot, WorkItem {
 
             if (shouldMirrorEverything) {
                 log.info("Pulling " + from.name());
-                repo.fetchAll();
+                repo.fetchAll(false);
                 log.info("Pushing to " + to.name());
                 repo.pushAll(to.url());
             } else {
                 for (var branch : branches) {
-                    var fetchHead = repo.fetch(from.url(), branch.name());
+                    var fetchHead = repo.fetch(from.url(), branch.name(), false);
                     repo.push(fetchHead, to.url(), branch.name());
                 }
             }

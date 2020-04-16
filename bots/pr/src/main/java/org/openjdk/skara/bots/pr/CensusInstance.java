@@ -87,7 +87,7 @@ class CensusInstance {
             var localRepo = Repository.get(repoFolder)
                                       .or(() -> Optional.of(initialize(censusRepo, censusRef, repoFolder)))
                                       .orElseThrow();
-            var hash = localRepo.fetch(censusRepo.url(), censusRef);
+            var hash = localRepo.fetch(censusRepo.url(), censusRef, false);
             localRepo.checkout(hash, true);
         } catch (IOException e) {
             initialize(censusRepo, censusRef, repoFolder);
