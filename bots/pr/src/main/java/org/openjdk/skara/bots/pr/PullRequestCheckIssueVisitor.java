@@ -119,7 +119,8 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     @Override
     public void visit(MergeMessageIssue e) {
         var message = String.join("\n", e.commit().message());
-        throw new IllegalStateException("Merge commit message is not " + e.expected() + ", but: " + message);
+        messages.add("Merge commit message is not " + e.expected() + ", but: " + message);
+        failedChecks.add(e.check().getClass());
     }
 
     @Override
