@@ -685,6 +685,7 @@ class MergeTests {
             localRepo.push(other2Hash, author.url(), "other2", true);
 
             // Make a change with a corresponding PR
+            localRepo.checkout(masterHash, true);
             var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
             localRepo.add(unrelated);
             var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
@@ -713,7 +714,7 @@ class MergeTests {
             assertEquals(1, error, () -> pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
 
             var check = pr.checks(mergeHash).get("jcheck");
-            assertEquals("- The merge contains commits that are not ancestors of the source.", check.summary().orElseThrow());
+            assertEquals("- The merge contains commits that are neither ancestors of the source nor the target.", check.summary().orElseThrow());
         }
     }
 
@@ -838,11 +839,14 @@ class MergeTests {
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(mergeBot);
 
-            // The bot should reply with an ok message as we currently allow this
-            var pushed = pr.comments().stream()
-                           .filter(comment -> comment.body().contains("Pushed as commit"))
-                           .count();
-            assertEquals(1, pushed);
+            // The bot should reply with a failure message
+            var error = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("did not complete successfully"))
+                    .count();
+            assertEquals(1, error, () -> pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
+
+            var check = pr.checks(mergeHash).get("jcheck");
+            assertEquals("- The merge contains commits that are neither ancestors of the source nor the target.", check.summary().orElseThrow());
         }
     }
 
