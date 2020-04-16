@@ -47,6 +47,28 @@ public class HttpProxy {
     }
 
     public static void setup() {
+        setup(null);
+    }
+
+    public static void setup(String argument) {
+        if (argument != null) {
+            if (!argument.startsWith("http://") &&
+                !argument.startsWith("https://")) {
+                // Try to parse it as a http url - we only care about the host and port
+                argument = "http://" + argument;
+            }
+
+            try {
+                var uri = new URI(argument);
+                for (var protocol : List.of("http", "https")) {
+                    setProxyHostAndPortBasedOn(protocol, uri);
+                }
+                return;
+            } catch (URISyntaxException e) {
+                // pass
+            }
+        }
+
         try {
             var pb = new ProcessBuilder("git", "config", "http.proxy");
             pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
