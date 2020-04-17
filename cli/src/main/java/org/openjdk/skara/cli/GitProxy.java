@@ -30,32 +30,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class GitProxy {
-    private static String gitConfig(String key) throws IOException, InterruptedException {
-        var pb = new ProcessBuilder("git", "config", key);
-        pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
-        pb.redirectError(ProcessBuilder.Redirect.INHERIT);
-        var p = pb.start();
-        var bytes = p.getInputStream().readAllBytes();
-        var res = p.waitFor();
-        if (res == 0) {
-            return new String(bytes, StandardCharsets.UTF_8).trim();
-        }
-        return "";
-    }
-
-    private static String proxyEnvironmentVariable() {
-        for (var key : List.of("http_proxy", "https_proxy")) {
-            var proxy = System.getenv(key);
-            if (proxy == null) {
-                proxy = System.getenv(key.toUpperCase());
-            }
-            if (proxy != null) {
-                return proxy;
-            }
-        }
-        return "";
-    }
-
     public static void main(String[] args) throws IOException, InterruptedException {
         String proxyArgument = null;
         for (var i = 0; i < args.length; i++) {
