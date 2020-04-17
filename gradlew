@@ -105,7 +105,7 @@ fi
 if [ -z "${HTTPS_PROXY}" -a -z "${https_proxy}" -a -z "${HTTP_PROXY}" -a -z "${http_proxy}" ]; then
     # No HTTP(S) proxy configured via environment, check if configured via Git
     if exists git; then
-        GIT_HTTP_PROXY="$(git config http.proxy)"
+        GIT_HTTP_PROXY="$(git config http.proxy || true)"
         if [ ! -z "${GIT_HTTP_PROXY}" ]; then
             export HTTPS_PROXY="${GIT_HTTP_PROXY}"
             export https_proxy="${GIT_HTTP_PROXY}"
