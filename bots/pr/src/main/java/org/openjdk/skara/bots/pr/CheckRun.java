@@ -147,7 +147,7 @@ class CheckRun {
     }
 
     // Additional bot-specific checks that are not handled by JCheck
-    private List<String> botSpecificChecks() throws IOException {
+    private List<String> botSpecificChecks(Hash finalHash) throws IOException {
         var ret = new ArrayList<String>();
 
         if (bodyWithoutStatus().isBlank()) {
@@ -165,9 +165,9 @@ class CheckRun {
 
         var baseHash = prInstance.baseHash();
         var headHash = pr.headHash();
-        var commits = prInstance.localRepo().commitMetadata(baseHash, headHash);
+        var originalCommits = prInstance.localRepo().commitMetadata(baseHash, headHash);
 
-        if (!checkCommitAuthor(commits)) {
+        if (!checkCommitAuthor(originalCommits)) {
             var error = "For contributors who are not existing OpenJDK Authors, commit attribution will be taken from " +
                     "the commits in the PR. However, the commits in this PR have inconsistent user names and/or " +
                     "email addresses. Please amend the commits.";
@@ -175,6 +175,7 @@ class CheckRun {
         }
 
         if (pr.title().startsWith("Merge")) {
+            var commits = prInstance.localRepo().commitMetadata(baseHash, finalHash);
             if (commits.size() < 2) {
                 ret.add("A Merge PR must contain at least two commits that are not already present in the target.");
             } else {
@@ -667,30 +668,31 @@ class CheckRun {
             // Post check in-progress
             log.info("Starting to run jcheck on PR head");
             pr.createCheck(checkBuilder.build());
+
+            var ignored = new PrintWriter(new StringWriter());
+            var rebasePossible = true;
+            var commitHash = pr.headHash();
+            var mergedHash = prInstance.mergeTarget(ignored);
+            if (mergedHash.isPresent()) {
+                commitHash = mergedHash.get();
+            } else {
+                rebasePossible = false;
+            }
+
             List<String> additionalErrors = List.of();
             Hash localHash;
             try {
-                localHash = prInstance.commit(censusInstance.namespace(), censusDomain, null);
+                localHash = prInstance.commit(commitHash, censusInstance.namespace(), censusDomain, null);
             } catch (CommitFailure e) {
                 additionalErrors = List.of("It was not possible to create a commit for the changes in this PR: " + e.getMessage());
                 localHash = prInstance.baseHash();
             }
-            boolean rebasePossible = true;
             PullRequestCheckIssueVisitor visitor = prInstance.createVisitor(localHash, censusInstance);
             if (!localHash.equals(prInstance.baseHash())) {
-                // Try to rebase
-                var ignored = new PrintWriter(new StringWriter());
-                var rebasedHash = prInstance.rebase(localHash, ignored);
-                if (rebasedHash.isEmpty()) {
-                    rebasePossible = false;
-                } else {
-                    localHash = rebasedHash.get();
-                }
-
                 // Determine current status
                 var additionalConfiguration = AdditionalConfiguration.get(prInstance.localRepo(), localHash, pr.repository().forge().currentUser(), comments);
                 prInstance.executeChecks(localHash, censusInstance, visitor, additionalConfiguration);
-                additionalErrors = botSpecificChecks();
+                additionalErrors = botSpecificChecks(localHash);
             } else {
                 if (additionalErrors.isEmpty()) {
                     additionalErrors = List.of("This PR contains no changes");

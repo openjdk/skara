@@ -93,6 +93,15 @@ public interface Repository extends ReadOnlyRepository {
                 String committerName,
                 String committerEmail,
                 ZonedDateTime committerDate) throws IOException;
+    Hash commit(Hash content,
+                List<Hash> parents,
+                String message,
+                String authorName,
+                String authorEmail,
+                ZonedDateTime authorDate,
+                String committerName,
+                String committerEmail,
+                ZonedDateTime committerDate) throws IOException;
     Hash amend(String message,
                String authorName,
                String authorEmail) throws IOException;

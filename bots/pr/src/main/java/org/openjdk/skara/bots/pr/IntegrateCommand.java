@@ -96,8 +96,6 @@ public class IntegrateCommand implements CommandHandler {
                                                      new HostedRepositoryPool(seedPath),
                                                      pr,
                                                      bot.ignoreStaleReviews());
-            var localHash = prInstance.commit(censusInstance.namespace(), censusInstance.configuration().census().domain(), null);
-
             // Validate the target hash if requested
             var rebaseMessage = new StringWriter();
             if (!args.isBlank()) {
@@ -109,17 +107,15 @@ public class IntegrateCommand implements CommandHandler {
                 }
             };
 
-            // Now rebase onto the target hash
+            // Now merge the latest changes from the target
             var rebaseWriter = new PrintWriter(rebaseMessage);
-            var rebasedHash = prInstance.rebase(localHash, rebaseWriter);
+            var rebasedHash = prInstance.mergeTarget(rebaseWriter);
             if (rebasedHash.isEmpty()) {
                 reply.println(rebaseMessage.toString());
                 return;
-            } else {
-                if (!rebasedHash.get().equals(localHash)) {
-                    localHash = rebasedHash.get();
-                }
             }
+
+            var localHash = prInstance.commit(rebasedHash.get(), censusInstance.namespace(), censusInstance.configuration().census().domain(), null);
 
             var issues = prInstance.createVisitor(localHash, censusInstance);
             var additionalConfiguration = AdditionalConfiguration.get(prInstance.localRepo(), localHash, pr.repository().forge().currentUser(), allComments);

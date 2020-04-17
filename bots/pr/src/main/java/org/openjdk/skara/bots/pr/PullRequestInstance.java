@@ -32,6 +32,7 @@ import org.openjdk.skara.vcs.openjdk.*;
 
 import java.io.*;
 import java.nio.file.Path;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -107,14 +108,7 @@ class PullRequestInstance {
         return String.join("\n", commitMessageBuilder.format(CommitMessageFormatters.v1));
     }
 
-    private Hash commitSquashed(List<Review> activeReviews, Namespace namespace, String censusDomain, String sponsorId) throws IOException {
-        localRepo.checkout(baseHash, true);
-        localRepo.squash(headHash);
-        if (localRepo.isClean()) {
-            // There are no changes remaining after squashing
-            return baseHash;
-        }
-
+    private Hash commitSquashed(Hash finalHead, List<Review> activeReviews, Namespace namespace, String censusDomain, String sponsorId) throws IOException {
         Author committer;
         Author author;
         var contributor = namespace.get(pr.author().id());
@@ -135,13 +129,14 @@ class PullRequestInstance {
         }
 
         var commitMessage = commitMessage(activeReviews, namespace);
-        return localRepo.commit(commitMessage, author.name(), author.email(), committer.name(), committer.email());
+        return localRepo.commit(finalHead, List.of(targetHash), commitMessage, author.name(), author.email(),
+                ZonedDateTime.now(), committer.name(), committer.email(), ZonedDateTime.now());
     }
 
-    private Hash commitMerge(List<Review> activeReviews, Namespace namespace, String censusDomain, String sponsorId) throws IOException, CommitFailure {
+    private Hash commitMerge(Hash finalHead, List<Review> activeReviews, Namespace namespace, String censusDomain, String sponsorId) throws IOException, CommitFailure {
         // Find the first merge commit with an incoming parent outside of the merge target
         // The very last commit is not eligible (as the merge needs a parent)
-        var commits = localRepo.commitMetadata(baseHash, headHash);
+        var commits = localRepo.commitMetadata(baseHash, finalHead);
         int mergeCommitIndex = commits.size();
         for (int i = 0; i < commits.size() - 1; ++i) {
             if (commits.get(i).isMerge()) {
@@ -154,9 +149,6 @@ class PullRequestInstance {
                 if (isSourceMerge) {
                     mergeCommitIndex = i;
                     break;
-                } else {
-                    // TODO: We can solve this with retroactive rerere
-                    throw new CommitFailure("A merge PR is only allowed to contain a single merge commit. You will need to amend your commits.");
                 }
             }
         }
@@ -164,6 +156,23 @@ class PullRequestInstance {
         if (mergeCommitIndex == commits.size()) {
             throw new CommitFailure("No merge commit containing incoming commits from another branch than the target was found");
         }
+
+        // Find the parent which is on the target branch - we will replace it with the target hash (if there were no merge conflicts)
+        Hash firstParent = null;
+        var finalParents = new ArrayList<Hash>();
+        for (int i = 0; i < commits.get(mergeCommitIndex).parents().size(); ++i) {
+            if (localRepo.isAncestor(baseHash, commits.get(mergeCommitIndex).parents().get(i))) {
+                if (firstParent == null) {
+                    firstParent = localRepo.mergeBase(targetHash, finalHead);
+                    continue;
+                }
+            }
+            finalParents.add(commits.get(mergeCommitIndex).parents().get(i));
+        }
+        if (firstParent == null) {
+            throw new CommitFailure("The merge commit did not have any common ancestor with the target branch");
+        }
+        finalParents.add(0, firstParent);
 
         var contributor = namespace.get(pr.author().id());
         if (contributor == null) {
@@ -180,23 +189,24 @@ class PullRequestInstance {
         }
         var commitMessage = commitMessage(activeReviews, namespace);
 
-        localRepo.checkout(commits.get(mergeCommitIndex).hash(), true);
-        localRepo.squash(headHash);
-
-        return localRepo.amend(commitMessage, author.name(), author.email(), committer.name(), committer.email());
+        return localRepo.commit(finalHead, finalParents, commitMessage, author.name(), author.email(), ZonedDateTime.now(),
+                committer.name(), committer.email(), ZonedDateTime.now());
     }
 
     private boolean isMergeCommit() {
         return pr.title().startsWith("Merge");
     }
 
-    Hash commit(Namespace namespace, String censusDomain, String sponsorId) throws IOException, CommitFailure {
+    Hash commit(Hash finalHead, Namespace namespace, String censusDomain, String sponsorId) throws IOException, CommitFailure {
         var activeReviews = filterActiveReviews(pr.reviews());
+        Hash commit;
         if (!isMergeCommit()) {
-            return commitSquashed(activeReviews, namespace, censusDomain, sponsorId);
+            commit = commitSquashed(finalHead, activeReviews, namespace, censusDomain, sponsorId);
         } else {
-            return commitMerge(activeReviews, namespace, censusDomain, sponsorId);
+            commit = commitMerge(finalHead, activeReviews, namespace, censusDomain, sponsorId);
         }
+        localRepo.checkout(commit, true);
+        return commit;
     }
 
     List<CommitMetadata> divergingCommits() {
@@ -212,8 +222,8 @@ class PullRequestInstance {
         }
     }
 
-    Optional<Hash> rebase(Hash commitHash, PrintWriter reply) {
-        var divergingCommits = divergingCommits(commitHash);
+    Optional<Hash> mergeTarget(PrintWriter reply) {
+        var divergingCommits = divergingCommits(headHash);
         if (divergingCommits.size() > 0) {
             reply.print("The following commits have been pushed to ");
             reply.print(pr.targetRef());
@@ -221,17 +231,11 @@ class PullRequestInstance {
             divergingCommits.forEach(c -> reply.println(" * " + c.hash().hex() + ": " + c.message().get(0)));
 
             try {
-                var commit = localRepo.lookup(commitHash).orElseThrow();
-                if (isMergeCommit()) {
-                    // TODO: We can solve this with retroactive rerere
-                    reply.println("Merge PRs cannot currently be automatically rebased. You will need to rebase it manually.");
-                    return Optional.empty();
-                }
-
-                localRepo.rebase(targetHash, commit.committer().name(), commit.committer().email());
+                localRepo.checkout(headHash, true);
+                localRepo.merge(targetHash);
+                var hash = localRepo.commit("Automatic merge with latest target", "duke", "duke@openjdk.org");
                 reply.println();
                 reply.println("Your commit was automatically rebased without conflicts.");
-                var hash = localRepo.head();
                 return Optional.of(hash);
             } catch (IOException e) {
                 reply.println();
@@ -239,16 +243,15 @@ class PullRequestInstance {
                 reply.print(pr.targetRef());
                 reply.println("` into your branch and try again.");
                 try {
-                    localRepo.checkout(commitHash, true);
+                    localRepo.checkout(headHash, true);
                 } catch (IOException e2) {
                     throw new UncheckedIOException(e2);
                 }
-                pr.addLabel("merge-conflict");
                 return Optional.empty();
             }
         } else {
-            // No rebase needed
-            return Optional.of(commitHash);
+            // No merge needed
+            return Optional.of(headHash);
         }
     }
 

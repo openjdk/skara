@@ -669,6 +669,58 @@ public class GitRepository implements Repository {
     }
 
     @Override
+    public Hash commit(Hash content, List<Hash> parents, String message, String authorName, String authorEmail, ZonedDateTime authorDate, String committerName, String committerEmail, ZonedDateTime committerDate) throws IOException {
+        String treeHash;
+        try (var p = capture("git", "cat-file", "-p", content.hex())) {
+            var res = p.await();
+            if (res.stdout().size() > 0) {
+                var line = res.stdout().get(0);
+                if (line.startsWith("tree ")) {
+                    treeHash = line.substring(5).trim();
+                    if (treeHash.length() != 40) {
+                        throw new IOException("Unexpected output: " + treeHash);
+                    }
+                } else {
+                    throw new IOException("Unexpected output: " + line);
+                }
+            } else {
+                throw new IOException("Unexpected output: " + res.stderr());
+            }
+        }
+
+        var cmdLine = new ArrayList<>(List.of("git", "commit-tree", treeHash, "-m", message));
+        for (var parent : parents) {
+            cmdLine.add("-p");
+            cmdLine.add(parent.hex());
+        }
+        var cmd = Process.capture(cmdLine.toArray(new String[0]))
+                .workdir(dir)
+                .environ("GIT_AUTHOR_NAME", authorName)
+                .environ("GIT_AUTHOR_EMAIL", authorEmail)
+                .environ("GIT_COMMITTER_NAME", committerName)
+                .environ("GIT_COMMITTER_EMAIL", committerEmail);
+        if (authorDate != null) {
+            cmd = cmd.environ("GIT_AUTHOR_DATE",
+                    authorDate.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+        }
+        if (committerDate != null) {
+            cmd = cmd.environ("GIT_COMMITTER_DATE",
+                    committerDate.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+        }
+        try (var p = cmd.execute()) {
+            var res = await(p);
+            if (res.stdout().size() != 1) {
+                throw new IOException("Unexpected output: " + res.stdout());
+            }
+            var commitHash = res.stdout().get(0).trim();
+            if (commitHash.length() != 40) {
+                throw new IOException("Unexpected output: " + commitHash);
+            }
+            return new Hash(commitHash);
+        }
+    }
+
+    @Override
     public Hash amend(String message, String authorName, String authorEmail) throws IOException {
         return amend(message, authorName, authorEmail, null, null);
     }
