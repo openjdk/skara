@@ -209,7 +209,6 @@ class MergeTests {
     }
 
     @Test
-    @Disabled
     void branchMergeRebase(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
@@ -304,7 +303,6 @@ class MergeTests {
     }
 
     @Test
-    @Disabled
     void branchMergeAdditionalCommits(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
@@ -411,6 +409,10 @@ class MergeTests {
             assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
             assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
+
+            // The latest content from the source and the updated master should be present
+            assertEquals("New on master", Files.readString(pushedRepoFolder.resolve("newmaster.txt")));
+            assertEquals("Unrelated", Files.readString(pushedRepoFolder.resolve("unrelated.txt")));
         }
     }
 
@@ -468,7 +470,7 @@ class MergeTests {
             assertEquals(1, error, () -> pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
 
             var check = pr.checks(mergeHash).get("jcheck");
-            assertEquals("- It was not possible to create a commit for the changes in this PR: A merge PR is only allowed to contain a single merge commit. You will need to amend your commits.", check.summary().orElseThrow());
+            assertEquals("- The merge commit must have a commit on the target branch as one of its parents.", check.summary().orElseThrow());
         }
     }
 
@@ -714,7 +716,7 @@ class MergeTests {
             assertEquals(1, error, () -> pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
 
             var check = pr.checks(mergeHash).get("jcheck");
-            assertEquals("- The merge contains commits that are neither ancestors of the source nor the target.", check.summary().orElseThrow());
+            assertEquals("- A merge PR must contain a merge commit as well as at least one other commit from the merge source.", check.summary().orElseThrow());
         }
     }
 
@@ -846,7 +848,7 @@ class MergeTests {
             assertEquals(1, error, () -> pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
 
             var check = pr.checks(mergeHash).get("jcheck");
-            assertEquals("- The merge contains commits that are neither ancestors of the source nor the target.", check.summary().orElseThrow());
+            assertEquals("- The merge commit must have a commit on the target branch as one of its parents.", check.summary().orElseThrow());
         }
     }
 
@@ -902,8 +904,7 @@ class MergeTests {
             assertEquals(1, error, () -> pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
 
             var check = pr.checks(mergeHash).get("jcheck");
-            assertEquals("- Could not determine the source for this merge. A Merge PR title must be specified on the format: Merge `project`:`branch` to allow verification of the merge contents.\n" +
-                                 "- Merge commit message is not Merge, but: Merge this or that", check.summary().orElseThrow());
+            assertEquals("- Could not determine the source for this merge. A Merge PR title must be specified on the format: Merge `project`:`branch` to allow verification of the merge contents.", check.summary().orElseThrow());
         }
     }
 }

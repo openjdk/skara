@@ -301,6 +301,11 @@ class TestRepository implements ReadOnlyRepository {
         return null;
     }
 
+    @Override
+    public Tree tree(Hash h) throws IOException {
+        return null;
+    }
+
     public Optional<Tag.Annotated> annotate(Tag tag) throws IOException {
         return null;
     }

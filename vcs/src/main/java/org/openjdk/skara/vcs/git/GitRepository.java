@@ -669,26 +669,16 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public Hash commit(Hash content, List<Hash> parents, String message, String authorName, String authorEmail, ZonedDateTime authorDate, String committerName, String committerEmail, ZonedDateTime committerDate) throws IOException {
-        String treeHash;
-        try (var p = capture("git", "cat-file", "-p", content.hex())) {
-            var res = p.await();
-            if (res.stdout().size() > 0) {
-                var line = res.stdout().get(0);
-                if (line.startsWith("tree ")) {
-                    treeHash = line.substring(5).trim();
-                    if (treeHash.length() != 40) {
-                        throw new IOException("Unexpected output: " + treeHash);
-                    }
-                } else {
-                    throw new IOException("Unexpected output: " + line);
-                }
-            } else {
-                throw new IOException("Unexpected output: " + res.stderr());
+    public Hash commit(String message, String authorName, String authorEmail, ZonedDateTime authorDate, String committerName, String committerEmail, ZonedDateTime committerDate, List<Hash> parents, Tree tree) throws IOException {
+        // Ensure we don't create identical commits
+        if (parents.size() == 1) {
+            var parentTree = tree(parents.get(0));
+            if (parentTree.equals(tree)) {
+                return parents.get(0);
             }
         }
 
-        var cmdLine = new ArrayList<>(List.of("git", "commit-tree", treeHash, "-m", message));
+        var cmdLine = new ArrayList<>(List.of("git", "commit-tree", tree.hash().hex(), "-m", message));
         for (var parent : parents) {
             cmdLine.add("-p");
             cmdLine.add(parent.hex());
@@ -1363,6 +1353,28 @@ public class GitRepository implements Repository {
         }
 
         return modules;
+    }
+
+    @Override
+    public Tree tree(Hash h) throws IOException {
+        String treeHash;
+        try (var p = capture("git", "cat-file", "-p", h.hex())) {
+            var res = p.await();
+            if (res.stdout().size() > 0) {
+                var line = res.stdout().get(0);
+                if (line.startsWith("tree ")) {
+                    treeHash = line.substring(5).trim();
+                    if (treeHash.length() != 40) {
+                        throw new IOException("Unexpected output: " + treeHash);
+                    }
+                } else {
+                    throw new IOException("Unexpected output: " + line);
+                }
+            } else {
+                throw new IOException("Unexpected output: " + res.stderr());
+            }
+        }
+        return new Tree(new Hash(treeHash));
     }
 
     @Override

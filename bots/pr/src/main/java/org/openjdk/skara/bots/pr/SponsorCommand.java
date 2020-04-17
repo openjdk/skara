@@ -130,8 +130,7 @@ public class SponsorCommand implements CommandHandler {
             }
         } catch (Exception e) {
             log.throwing("SponsorCommand", "handle", e);
-            reply.println("An error occurred during sponsored integration");
-            throw new RuntimeException(e);
+            reply.println("An error occurred during sponsored integration. No push attempt will be made.");
         }
     }
 

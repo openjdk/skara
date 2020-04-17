@@ -155,8 +155,7 @@ public class IntegrateCommand implements CommandHandler {
             }
         } catch (Exception e) {
             log.throwing("IntegrateCommand", "handle", e);
-            reply.println("An error occurred during final integration jcheck");
-            throw new RuntimeException(e);
+            reply.println("An error occurred during final integration jcheck. No push attempt will be made.");
         }
     }
 

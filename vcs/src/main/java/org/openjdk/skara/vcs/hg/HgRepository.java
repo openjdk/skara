@@ -617,7 +617,7 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public Hash commit(Hash content, List<Hash> parents, String message, String authorName, String authorEmail, ZonedDateTime authorDate, String committerName, String committerEmail, ZonedDateTime committerDate) throws IOException {
+    public Hash commit(String message, String authorName, String authorEmail, ZonedDateTime authorDate, String committerName, String committerEmail, ZonedDateTime committerDate, List<Hash> parents, Tree tree) throws IOException {
         throw new RuntimeException("not implemented yet");
     }
 
@@ -1301,6 +1301,11 @@ public class HgRepository implements Repository {
         }
 
         return modules;
+    }
+
+    @Override
+    public Tree tree(Hash h) throws IOException {
+        throw new RuntimeException("not implemented yet");
     }
 
     @Override

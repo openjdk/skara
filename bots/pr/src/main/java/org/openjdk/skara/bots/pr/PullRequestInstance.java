@@ -24,16 +24,16 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.census.*;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.host.*;
-import org.openjdk.skara.jcheck.*;
+import org.openjdk.skara.host.HostUser;
+import org.openjdk.skara.jcheck.JCheck;
 import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.vcs.openjdk.Issue;
 import org.openjdk.skara.vcs.openjdk.*;
 
 import java.io.*;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 class CommitFailure extends Exception {
@@ -129,20 +129,83 @@ class PullRequestInstance {
         }
 
         var commitMessage = commitMessage(activeReviews, namespace);
-        return localRepo.commit(finalHead, List.of(targetHash), commitMessage, author.name(), author.email(),
-                ZonedDateTime.now(), committer.name(), committer.email(), ZonedDateTime.now());
+        return localRepo.commit(commitMessage, author.name(), author.email(), ZonedDateTime.now(),
+                committer.name(), committer.email(), ZonedDateTime.now(), List.of(targetHash), localRepo.tree(finalHead));
     }
 
-    private Hash commitMerge(Hash finalHead, List<Review> activeReviews, Namespace namespace, String censusDomain, String sponsorId) throws IOException, CommitFailure {
-        // Find the first merge commit with an incoming parent outside of the merge target
-        // The very last commit is not eligible (as the merge needs a parent)
-        var commits = localRepo.commitMetadata(baseHash, finalHead);
+    private static class MergeSource {
+        private final String repositoryName;
+        private final String branchName;
+
+        private MergeSource(String repositoryName, String branchName) {
+            this.repositoryName = repositoryName;
+            this.branchName = branchName;
+        }
+    }
+
+    private final Pattern mergeSourceFullPattern = Pattern.compile("^Merge ([-/\\w]+):([-\\w]+)$");
+    private final Pattern mergeSourceBranchOnlyPattern = Pattern.compile("^Merge ([-\\w]+)$");
+
+    private Optional<MergeSource> mergeSource() {
+        var repoMatcher = mergeSourceFullPattern.matcher(pr.title());
+        if (!repoMatcher.matches()) {
+            var branchMatcher = mergeSourceBranchOnlyPattern.matcher(pr.title());
+            if (!branchMatcher.matches()) {
+                return Optional.empty();
+            }
+
+            // Verify that the branch exists
+            var isValidBranch = remoteBranches().stream()
+                    .map(Reference::name)
+                    .anyMatch(branch -> branch.equals(branchMatcher.group(1)));
+            if (!isValidBranch) {
+                // Assume the name refers to a sibling repository
+                var repoName = Path.of(pr.repository().name()).resolveSibling(branchMatcher.group(1)).toString();
+                return Optional.of(new MergeSource(repoName, "master"));
+            }
+
+            return Optional.of(new MergeSource(pr.repository().name(), branchMatcher.group(1)));
+        }
+
+        return Optional.of(new MergeSource(repoMatcher.group(1), repoMatcher.group(2)));
+    }
+
+    private CommitMetadata findSourceMergeCommit(List<CommitMetadata> commits) throws IOException, CommitFailure {
+        if (commits.size() < 2) {
+            throw new CommitFailure("A merge PR must contain at least two commits that are not already present in the target.");
+        }
+
+        var source = mergeSource();
+        if (source.isEmpty()) {
+            throw new CommitFailure("Could not determine the source for this merge. A Merge PR title must be specified on the format: " +
+                    "Merge `project`:`branch` to allow verification of the merge contents.");
+        }
+
+        // Fetch the source
+        Hash sourceHash;
+        try {
+            var mergeSourceRepo = pr.repository().forge().repository(source.get().repositoryName).orElseThrow(() ->
+                    new RuntimeException("Could not find repository " + source.get().repositoryName)
+            );
+            try {
+                sourceHash = localRepo.fetch(mergeSourceRepo.url(), source.get().branchName, false);
+            } catch (IOException e) {
+                throw new CommitFailure("Could not fetch branch `" + source.get().branchName + "` from project `" +
+                        source.get().repositoryName + "` - check that they are correct.");
+            }
+        } catch (RuntimeException e) {
+            throw new CommitFailure("Could not find project `" +
+                    source.get().repositoryName + "` - check that it is correct.");
+        }
+
+
+        // Find the first merge commit with a parent that is an ancestor of the source
         int mergeCommitIndex = commits.size();
         for (int i = 0; i < commits.size() - 1; ++i) {
             if (commits.get(i).isMerge()) {
                 boolean isSourceMerge = false;
                 for (int j = 0; j < commits.get(i).parents().size(); ++j) {
-                    if (!localRepo.isAncestor(baseHash, commits.get(i).parents().get(j))) {
+                    if (localRepo.isAncestor(commits.get(i).parents().get(j), sourceHash)) {
                         isSourceMerge = true;
                     }
                 }
@@ -152,31 +215,37 @@ class PullRequestInstance {
                 }
             }
         }
-
-        if (mergeCommitIndex == commits.size()) {
-            throw new CommitFailure("No merge commit containing incoming commits from another branch than the target was found");
+        if (mergeCommitIndex >= commits.size() - 1) {
+            throw new CommitFailure("A merge PR must contain a merge commit as well as at least one other commit from the merge source.");
         }
+
+        return commits.get(mergeCommitIndex);
+    }
+
+    private Hash commitMerge(Hash finalHead, List<Review> activeReviews, Namespace namespace, String censusDomain, String sponsorId) throws IOException, CommitFailure {
+        var commits = localRepo.commitMetadata(baseHash, finalHead);
+        var mergeCommit = findSourceMergeCommit(commits);
 
         // Find the parent which is on the target branch - we will replace it with the target hash (if there were no merge conflicts)
         Hash firstParent = null;
         var finalParents = new ArrayList<Hash>();
-        for (int i = 0; i < commits.get(mergeCommitIndex).parents().size(); ++i) {
-            if (localRepo.isAncestor(baseHash, commits.get(mergeCommitIndex).parents().get(i))) {
+        for (int i = 0; i < mergeCommit.parents().size(); ++i) {
+            if (localRepo.isAncestor(mergeCommit.parents().get(i), targetHash)) {
                 if (firstParent == null) {
                     firstParent = localRepo.mergeBase(targetHash, finalHead);
                     continue;
                 }
             }
-            finalParents.add(commits.get(mergeCommitIndex).parents().get(i));
+            finalParents.add(mergeCommit.parents().get(i));
         }
         if (firstParent == null) {
-            throw new CommitFailure("The merge commit did not have any common ancestor with the target branch");
+            throw new CommitFailure("The merge commit must have a commit on the target branch as one of its parents.");
         }
         finalParents.add(0, firstParent);
 
         var contributor = namespace.get(pr.author().id());
         if (contributor == null) {
-            throw new CommitFailure("Merges can only be performed by Committers");
+            throw new CommitFailure("Merges can only be performed by Committers.");
         }
 
         var author = new Author(contributor.fullName().orElseThrow(), contributor.username() + "@" + censusDomain);
@@ -189,8 +258,8 @@ class PullRequestInstance {
         }
         var commitMessage = commitMessage(activeReviews, namespace);
 
-        return localRepo.commit(finalHead, finalParents, commitMessage, author.name(), author.email(), ZonedDateTime.now(),
-                committer.name(), committer.email(), ZonedDateTime.now());
+        return localRepo.commit(commitMessage, author.name(), author.email(), ZonedDateTime.now(),
+                committer.name(), committer.email(), ZonedDateTime.now(), finalParents, localRepo.tree(finalHead));
     }
 
     private boolean isMergeCommit() {
