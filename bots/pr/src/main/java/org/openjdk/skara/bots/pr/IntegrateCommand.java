@@ -94,8 +94,8 @@ public class IntegrateCommand implements CommandHandler {
             var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
             var prInstance = new PullRequestInstance(path,
                                                      new HostedRepositoryPool(seedPath),
-                                                     pr,
-                                                     bot.ignoreStaleReviews());
+                                                     pr);
+            var checkablePr = new CheckablePullRequest(prInstance, bot.ignoreStaleReviews());
             // Validate the target hash if requested
             var rebaseMessage = new StringWriter();
             if (!args.isBlank()) {
@@ -109,17 +109,17 @@ public class IntegrateCommand implements CommandHandler {
 
             // Now merge the latest changes from the target
             var rebaseWriter = new PrintWriter(rebaseMessage);
-            var rebasedHash = prInstance.mergeTarget(rebaseWriter);
+            var rebasedHash = checkablePr.mergeTarget(rebaseWriter);
             if (rebasedHash.isEmpty()) {
                 reply.println(rebaseMessage.toString());
                 return;
             }
 
-            var localHash = prInstance.commit(rebasedHash.get(), censusInstance.namespace(), censusInstance.configuration().census().domain(), null);
+            var localHash = checkablePr.commit(rebasedHash.get(), censusInstance.namespace(), censusInstance.configuration().census().domain(), null);
 
-            var issues = prInstance.createVisitor(localHash, censusInstance);
+            var issues = checkablePr.createVisitor(localHash, censusInstance);
             var additionalConfiguration = AdditionalConfiguration.get(prInstance.localRepo(), localHash, pr.repository().forge().currentUser(), allComments);
-            prInstance.executeChecks(localHash, censusInstance, issues, additionalConfiguration);
+            checkablePr.executeChecks(localHash, censusInstance, issues, additionalConfiguration);
             if (!issues.getMessages().isEmpty()) {
                 reply.print("Your merge request cannot be fulfilled at this time, as ");
                 reply.println("your changes failed the final jcheck:");

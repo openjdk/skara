@@ -40,6 +40,7 @@ class CheckRun {
     private final CheckWorkItem workItem;
     private final PullRequest pr;
     private final PullRequestInstance prInstance;
+    private final CheckablePullRequest checkablePullRequest;
     private final List<Comment> comments;
     private final List<Review> allReviews;
     private final List<Review> activeReviews;
@@ -60,6 +61,7 @@ class CheckRun {
         this.workItem = workItem;
         this.pr = pr;
         this.prInstance = prInstance;
+        this.checkablePullRequest = new CheckablePullRequest(prInstance, ignoreStaleReviews);
         this.comments = comments;
         this.allReviews = allReviews;
         this.activeReviews = activeReviews;
@@ -424,7 +426,7 @@ class CheckRun {
         message.append("- To credit additional contributors, use the `/contributor` command.\n");
         message.append("- To add additional solved issues, use the `/solves` command.\n");
 
-        var divergingCommits = prInstance.divergingCommits();
+        var divergingCommits = checkablePullRequest.divergingCommits();
         if (divergingCommits.size() > 0) {
             message.append("\n");
             message.append("Since the source branch of this PR was last updated there ");
@@ -587,7 +589,7 @@ class CheckRun {
             var ignored = new PrintWriter(new StringWriter());
             var rebasePossible = true;
             var commitHash = pr.headHash();
-            var mergedHash = prInstance.mergeTarget(ignored);
+            var mergedHash = checkablePullRequest.mergeTarget(ignored);
             if (mergedHash.isPresent()) {
                 commitHash = mergedHash.get();
             } else {
@@ -597,16 +599,16 @@ class CheckRun {
             List<String> additionalErrors = List.of();
             Hash localHash;
             try {
-                localHash = prInstance.commit(commitHash, censusInstance.namespace(), censusDomain, null);
+                localHash = checkablePullRequest.commit(commitHash, censusInstance.namespace(), censusDomain, null);
             } catch (CommitFailure e) {
                 additionalErrors = List.of(e.getMessage());
                 localHash = prInstance.baseHash();
             }
-            PullRequestCheckIssueVisitor visitor = prInstance.createVisitor(localHash, censusInstance);
+            PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor(localHash, censusInstance);
             if (!localHash.equals(prInstance.baseHash())) {
                 // Determine current status
                 var additionalConfiguration = AdditionalConfiguration.get(prInstance.localRepo(), localHash, pr.repository().forge().currentUser(), comments);
-                prInstance.executeChecks(localHash, censusInstance, visitor, additionalConfiguration);
+                checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration);
                 additionalErrors = botSpecificChecks(localHash);
             } else {
                 if (additionalErrors.isEmpty()) {
