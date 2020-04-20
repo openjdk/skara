@@ -393,7 +393,7 @@ class CheckRun {
                        .findAny();
     }
 
-    private String getMergeReadyComment(String commitMessage, List<Review> reviews, boolean rebasePossible) {
+    private String getMergeReadyComment(String commitMessage, List<Review> reviews) {
         var message = new StringBuilder();
         message.append("@");
         message.append(pr.author().userName());
@@ -438,20 +438,13 @@ class CheckRun {
             message.append("pushed to the `");
             message.append(pr.targetRef());
             message.append("` branch. ");
-            if (rebasePossible) {
-                message.append("As there are no conflicts, your changes will automatically be rebased on top of ");
-                message.append("these commits when integrating. If you prefer to avoid automatic rebasing, please merge `");
-                message.append(pr.targetRef());
-                message.append("` into your branch, and then specify the current head hash when integrating, like this: ");
-                message.append("`/integrate ");
-                message.append(prInstance.targetHash());
-                message.append("`.\n");
-            } else {
-                message.append("Your changes cannot be rebased automatically without conflicts, so you will need to ");
-                message.append("merge `");
-                message.append(pr.targetRef());
-                message.append("` into your branch before integrating.\n");
-            }
+            message.append("As there are no conflicts, your changes will automatically be rebased on top of ");
+            message.append("these commits when integrating. If you prefer to avoid automatic rebasing, please merge `");
+            message.append(pr.targetRef());
+            message.append("` into your branch, and then specify the current head hash when integrating, like this: ");
+            message.append("`/integrate ");
+            message.append(prInstance.targetHash());
+            message.append("`.\n");
         } else {
             message.append("\n");
             message.append("There are currently no new commits on the `");
@@ -484,13 +477,11 @@ class CheckRun {
                 message.append(candidates);
                 message.append(") but any other Committer may sponsor as well. ");
             }
-            if (rebasePossible) {
-                message.append("\n\n");
-                message.append("➡️ To flag this PR as ready for integration with the above commit message, type ");
-                message.append("`/integrate` in a new comment. (Afterwards, your sponsor types ");
-                message.append("`/sponsor` in a new comment to perform the integration).\n");
-            }
-        } else if (rebasePossible) {
+            message.append("\n\n");
+            message.append("➡️ To flag this PR as ready for integration with the above commit message, type ");
+            message.append("`/integrate` in a new comment. (Afterwards, your sponsor types ");
+            message.append("`/sponsor` in a new comment to perform the integration).\n");
+        } else {
             message.append("\n");
             message.append("➡️ To integrate this PR with the above commit message to the `" + pr.targetRef() + "` branch, type ");
             message.append("`/integrate` in a new comment.\n");
@@ -510,8 +501,8 @@ class CheckRun {
 
     private void updateMergeReadyComment(boolean isReady, String commitMessage, List<Comment> comments, List<Review> reviews, boolean rebasePossible) {
         var existing = findComment(comments, mergeReadyMarker);
-        if (isReady) {
-            var message = getMergeReadyComment(commitMessage, reviews, rebasePossible);
+        if (isReady && rebasePossible) {
+            var message = getMergeReadyComment(commitMessage, reviews);
             if (existing.isEmpty()) {
                 pr.addComment(message);
             } else {
@@ -559,7 +550,7 @@ class CheckRun {
             // Only add the comment once per PR
             return;
         }
-        var message = "@" + pr.author().userName() + " this pull request can no longer be integrated into " +
+        var message = "@" + pr.author().userName() + " this pull request can not be integrated into " +
                 "`" + pr.targetRef() + "` due to one or more merge conflicts. To resolve these merge conflicts " +
                 "and update this pull request you can run the following commands in the local repository for your personal fork:\n" +
                 "```bash\n" +
