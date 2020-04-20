@@ -24,15 +24,16 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.census.*;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.host.*;
-import org.openjdk.skara.jcheck.*;
+import org.openjdk.skara.host.HostUser;
+import org.openjdk.skara.jcheck.JCheck;
 import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.vcs.openjdk.Issue;
 import org.openjdk.skara.vcs.openjdk.*;
 
 import java.io.*;
 import java.nio.file.Path;
+import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 class CommitFailure extends Exception {
@@ -107,14 +108,7 @@ class PullRequestInstance {
         return String.join("\n", commitMessageBuilder.format(CommitMessageFormatters.v1));
     }
 
-    private Hash commitSquashed(List<Review> activeReviews, Namespace namespace, String censusDomain, String sponsorId) throws IOException {
-        localRepo.checkout(baseHash, true);
-        localRepo.squash(headHash);
-        if (localRepo.isClean()) {
-            // There are no changes remaining after squashing
-            return baseHash;
-        }
-
+    private Hash commitSquashed(Hash finalHead, List<Review> activeReviews, Namespace namespace, String censusDomain, String sponsorId) throws IOException {
         Author committer;
         Author author;
         var contributor = namespace.get(pr.author().id());
@@ -135,39 +129,123 @@ class PullRequestInstance {
         }
 
         var commitMessage = commitMessage(activeReviews, namespace);
-        return localRepo.commit(commitMessage, author.name(), author.email(), committer.name(), committer.email());
+        return localRepo.commit(commitMessage, author.name(), author.email(), ZonedDateTime.now(),
+                committer.name(), committer.email(), ZonedDateTime.now(), List.of(targetHash), localRepo.tree(finalHead));
     }
 
-    private Hash commitMerge(List<Review> activeReviews, Namespace namespace, String censusDomain, String sponsorId) throws IOException, CommitFailure {
-        // Find the first merge commit with an incoming parent outside of the merge target
-        // The very last commit is not eligible (as the merge needs a parent)
-        var commits = localRepo.commitMetadata(baseHash, headHash);
+    private static class MergeSource {
+        private final String repositoryName;
+        private final String branchName;
+
+        private MergeSource(String repositoryName, String branchName) {
+            this.repositoryName = repositoryName;
+            this.branchName = branchName;
+        }
+    }
+
+    private final Pattern mergeSourceFullPattern = Pattern.compile("^Merge ([-/\\w]+):([-\\w]+)$");
+    private final Pattern mergeSourceBranchOnlyPattern = Pattern.compile("^Merge ([-\\w]+)$");
+
+    private Optional<MergeSource> mergeSource() {
+        var repoMatcher = mergeSourceFullPattern.matcher(pr.title());
+        if (!repoMatcher.matches()) {
+            var branchMatcher = mergeSourceBranchOnlyPattern.matcher(pr.title());
+            if (!branchMatcher.matches()) {
+                return Optional.empty();
+            }
+
+            // Verify that the branch exists
+            var isValidBranch = remoteBranches().stream()
+                    .map(Reference::name)
+                    .anyMatch(branch -> branch.equals(branchMatcher.group(1)));
+            if (!isValidBranch) {
+                // Assume the name refers to a sibling repository
+                var repoName = Path.of(pr.repository().name()).resolveSibling(branchMatcher.group(1)).toString();
+                return Optional.of(new MergeSource(repoName, "master"));
+            }
+
+            return Optional.of(new MergeSource(pr.repository().name(), branchMatcher.group(1)));
+        }
+
+        return Optional.of(new MergeSource(repoMatcher.group(1), repoMatcher.group(2)));
+    }
+
+    private CommitMetadata findSourceMergeCommit(List<CommitMetadata> commits) throws IOException, CommitFailure {
+        if (commits.size() < 2) {
+            throw new CommitFailure("A merge PR must contain at least two commits that are not already present in the target.");
+        }
+
+        var source = mergeSource();
+        if (source.isEmpty()) {
+            throw new CommitFailure("Could not determine the source for this merge. A Merge PR title must be specified on the format: " +
+                    "Merge `project`:`branch` to allow verification of the merge contents.");
+        }
+
+        // Fetch the source
+        Hash sourceHash;
+        try {
+            var mergeSourceRepo = pr.repository().forge().repository(source.get().repositoryName).orElseThrow(() ->
+                    new RuntimeException("Could not find repository " + source.get().repositoryName)
+            );
+            try {
+                sourceHash = localRepo.fetch(mergeSourceRepo.url(), source.get().branchName, false);
+            } catch (IOException e) {
+                throw new CommitFailure("Could not fetch branch `" + source.get().branchName + "` from project `" +
+                        source.get().repositoryName + "` - check that they are correct.");
+            }
+        } catch (RuntimeException e) {
+            throw new CommitFailure("Could not find project `" +
+                    source.get().repositoryName + "` - check that it is correct.");
+        }
+
+
+        // Find the first merge commit with a parent that is an ancestor of the source
         int mergeCommitIndex = commits.size();
         for (int i = 0; i < commits.size() - 1; ++i) {
             if (commits.get(i).isMerge()) {
                 boolean isSourceMerge = false;
                 for (int j = 0; j < commits.get(i).parents().size(); ++j) {
-                    if (!localRepo.isAncestor(baseHash, commits.get(i).parents().get(j))) {
+                    if (localRepo.isAncestor(commits.get(i).parents().get(j), sourceHash)) {
                         isSourceMerge = true;
                     }
                 }
                 if (isSourceMerge) {
                     mergeCommitIndex = i;
                     break;
-                } else {
-                    // TODO: We can solve this with retroactive rerere
-                    throw new CommitFailure("A merge PR is only allowed to contain a single merge commit. You will need to amend your commits.");
                 }
             }
         }
-
-        if (mergeCommitIndex == commits.size()) {
-            throw new CommitFailure("No merge commit containing incoming commits from another branch than the target was found");
+        if (mergeCommitIndex >= commits.size() - 1) {
+            throw new CommitFailure("A merge PR must contain a merge commit as well as at least one other commit from the merge source.");
         }
+
+        return commits.get(mergeCommitIndex);
+    }
+
+    private Hash commitMerge(Hash finalHead, List<Review> activeReviews, Namespace namespace, String censusDomain, String sponsorId) throws IOException, CommitFailure {
+        var commits = localRepo.commitMetadata(baseHash, finalHead);
+        var mergeCommit = findSourceMergeCommit(commits);
+
+        // Find the parent which is on the target branch - we will replace it with the target hash (if there were no merge conflicts)
+        Hash firstParent = null;
+        var finalParents = new ArrayList<Hash>();
+        for (int i = 0; i < mergeCommit.parents().size(); ++i) {
+            if (localRepo.isAncestor(mergeCommit.parents().get(i), targetHash)) {
+                if (firstParent == null) {
+                    firstParent = localRepo.mergeBase(targetHash, finalHead);
+                    continue;
+                }
+            }
+            finalParents.add(mergeCommit.parents().get(i));
+        }
+        if (firstParent == null) {
+            throw new CommitFailure("The merge commit must have a commit on the target branch as one of its parents.");
+        }
+        finalParents.add(0, firstParent);
 
         var contributor = namespace.get(pr.author().id());
         if (contributor == null) {
-            throw new CommitFailure("Merges can only be performed by Committers");
+            throw new CommitFailure("Merges can only be performed by Committers.");
         }
 
         var author = new Author(contributor.fullName().orElseThrow(), contributor.username() + "@" + censusDomain);
@@ -180,23 +258,24 @@ class PullRequestInstance {
         }
         var commitMessage = commitMessage(activeReviews, namespace);
 
-        localRepo.checkout(commits.get(mergeCommitIndex).hash(), true);
-        localRepo.squash(headHash);
-
-        return localRepo.amend(commitMessage, author.name(), author.email(), committer.name(), committer.email());
+        return localRepo.commit(commitMessage, author.name(), author.email(), ZonedDateTime.now(),
+                committer.name(), committer.email(), ZonedDateTime.now(), finalParents, localRepo.tree(finalHead));
     }
 
     private boolean isMergeCommit() {
         return pr.title().startsWith("Merge");
     }
 
-    Hash commit(Namespace namespace, String censusDomain, String sponsorId) throws IOException, CommitFailure {
+    Hash commit(Hash finalHead, Namespace namespace, String censusDomain, String sponsorId) throws IOException, CommitFailure {
         var activeReviews = filterActiveReviews(pr.reviews());
+        Hash commit;
         if (!isMergeCommit()) {
-            return commitSquashed(activeReviews, namespace, censusDomain, sponsorId);
+            commit = commitSquashed(finalHead, activeReviews, namespace, censusDomain, sponsorId);
         } else {
-            return commitMerge(activeReviews, namespace, censusDomain, sponsorId);
+            commit = commitMerge(finalHead, activeReviews, namespace, censusDomain, sponsorId);
         }
+        localRepo.checkout(commit, true);
+        return commit;
     }
 
     List<CommitMetadata> divergingCommits() {
@@ -212,8 +291,8 @@ class PullRequestInstance {
         }
     }
 
-    Optional<Hash> rebase(Hash commitHash, PrintWriter reply) {
-        var divergingCommits = divergingCommits(commitHash);
+    Optional<Hash> mergeTarget(PrintWriter reply) {
+        var divergingCommits = divergingCommits(headHash);
         if (divergingCommits.size() > 0) {
             reply.print("The following commits have been pushed to ");
             reply.print(pr.targetRef());
@@ -221,17 +300,11 @@ class PullRequestInstance {
             divergingCommits.forEach(c -> reply.println(" * " + c.hash().hex() + ": " + c.message().get(0)));
 
             try {
-                var commit = localRepo.lookup(commitHash).orElseThrow();
-                if (isMergeCommit()) {
-                    // TODO: We can solve this with retroactive rerere
-                    reply.println("Merge PRs cannot currently be automatically rebased. You will need to rebase it manually.");
-                    return Optional.empty();
-                }
-
-                localRepo.rebase(targetHash, commit.committer().name(), commit.committer().email());
+                localRepo.checkout(headHash, true);
+                localRepo.merge(targetHash);
+                var hash = localRepo.commit("Automatic merge with latest target", "duke", "duke@openjdk.org");
                 reply.println();
                 reply.println("Your commit was automatically rebased without conflicts.");
-                var hash = localRepo.head();
                 return Optional.of(hash);
             } catch (IOException e) {
                 reply.println();
@@ -239,16 +312,15 @@ class PullRequestInstance {
                 reply.print(pr.targetRef());
                 reply.println("` into your branch and try again.");
                 try {
-                    localRepo.checkout(commitHash, true);
+                    localRepo.checkout(headHash, true);
                 } catch (IOException e2) {
                     throw new UncheckedIOException(e2);
                 }
-                pr.addLabel("merge-conflict");
                 return Optional.empty();
             }
         } else {
-            // No rebase needed
-            return Optional.of(commitHash);
+            // No merge needed
+            return Optional.of(headHash);
         }
     }
 

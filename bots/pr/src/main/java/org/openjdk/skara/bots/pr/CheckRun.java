@@ -52,8 +52,6 @@ class CheckRun {
     private final String mergeReadyMarker = "<!-- PullRequestBot merge is ready comment -->";
     private final String outdatedHelpMarker = "<!-- PullRequestBot outdated help comment -->";
     private final String sourceBranchWarningMarker = "<!-- PullRequestBot source branch warning comment -->";
-    private final Pattern mergeSourceFullPattern = Pattern.compile("^Merge ([-/\\w]+):([-\\w]+)$");
-    private final Pattern mergeSourceBranchOnlyPattern = Pattern.compile("^Merge ([-\\w]+)$");
     private final Set<String> newLabels;
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, PullRequestInstance prInstance, List<Comment> comments,
@@ -112,42 +110,8 @@ class CheckRun {
         return ((names.size() == 1) && emails.size() == 1);
     }
 
-    private static class MergeSource {
-        private final String repositoryName;
-        private final String branchName;
-
-        private MergeSource(String repositoryName, String branchName) {
-            this.repositoryName = repositoryName;
-            this.branchName = branchName;
-        }
-    }
-
-    private Optional<MergeSource> mergeSource() {
-        var repoMatcher = mergeSourceFullPattern.matcher(pr.title());
-        if (!repoMatcher.matches()) {
-            var branchMatcher = mergeSourceBranchOnlyPattern.matcher(pr.title());
-            if (!branchMatcher.matches()) {
-                return Optional.empty();
-            }
-
-            // Verify that the branch exists
-            var isValidBranch = prInstance.remoteBranches().stream()
-                                          .map(Reference::name)
-                                          .anyMatch(branch -> branch.equals(branchMatcher.group(1)));
-            if (!isValidBranch) {
-                // Assume the name refers to a sibling repository
-                var repoName = Path.of(pr.repository().name()).resolveSibling(branchMatcher.group(1)).toString();
-                return Optional.of(new MergeSource(repoName, "master"));
-            }
-
-            return Optional.of(new MergeSource(pr.repository().name(), branchMatcher.group(1)));
-        }
-
-        return Optional.of(new MergeSource(repoMatcher.group(1), repoMatcher.group(2)));
-    }
-
     // Additional bot-specific checks that are not handled by JCheck
-    private List<String> botSpecificChecks() throws IOException {
+    private List<String> botSpecificChecks(Hash finalHash) throws IOException {
         var ret = new ArrayList<String>();
 
         if (bodyWithoutStatus().isBlank()) {
@@ -165,61 +129,13 @@ class CheckRun {
 
         var baseHash = prInstance.baseHash();
         var headHash = pr.headHash();
-        var commits = prInstance.localRepo().commitMetadata(baseHash, headHash);
+        var originalCommits = prInstance.localRepo().commitMetadata(baseHash, headHash);
 
-        if (!checkCommitAuthor(commits)) {
+        if (!checkCommitAuthor(originalCommits)) {
             var error = "For contributors who are not existing OpenJDK Authors, commit attribution will be taken from " +
                     "the commits in the PR. However, the commits in this PR have inconsistent user names and/or " +
                     "email addresses. Please amend the commits.";
             ret.add(error);
-        }
-
-        if (pr.title().startsWith("Merge")) {
-            if (commits.size() < 2) {
-                ret.add("A Merge PR must contain at least two commits that are not already present in the target.");
-            } else {
-                // Find the first merge commit - the very last commit is not eligible (as the merge needs a parent)
-                int mergeCommitIndex = commits.size();
-                for (int i = 0; i < commits.size() - 1; ++i) {
-                    if (commits.get(i).isMerge()) {
-                        mergeCommitIndex = i;
-                        break;
-                    }
-                }
-                if (mergeCommitIndex >= commits.size() - 1) {
-                    ret.add("A Merge PR must contain a merge commit as well as at least one other commit from the merge source.");
-                }
-
-                var source = mergeSource();
-                if (source.isPresent()) {
-                    try {
-                        var mergeSourceRepo = pr.repository().forge().repository(source.get().repositoryName).orElseThrow(() ->
-                                new RuntimeException("Could not find repository " + source.get().repositoryName)
-                        );
-                        try {
-                            var sourceHash = prInstance.localRepo().fetch(mergeSourceRepo.url(), source.get().branchName, false);
-                            var mergeCommit = commits.get(mergeCommitIndex);
-                            for (int i = 0; i < mergeCommit.parents().size(); ++i) {
-                                if (!prInstance.localRepo().isAncestor(mergeCommit.parents().get(i), sourceHash)) {
-                                    if (!mergeCommit.parents().get(i).equals(prInstance.targetHash())) {
-                                        ret.add("The merge contains commits that are neither ancestors of the source nor the target.");
-                                        break;
-                                    }
-                                }
-                            }
-                        } catch (IOException e) {
-                            ret.add("Could not fetch branch `" + source.get().branchName + "` from project `" +
-                                            source.get().repositoryName + "` - check that they are correct.");
-                        }
-                    } catch (RuntimeException e) {
-                        ret.add("Could not find project `" +
-                                        source.get().repositoryName + "` - check that it is correct.");
-                    }
-                } else {
-                    ret.add("Could not determine the source for this merge. A Merge PR title must be specified on the format: " +
-                            "Merge `project`:`branch` to allow verification of the merge contents.");
-                }
-            }
         }
 
         for (var blocker : workItem.bot.blockingCheckLabels().entrySet()) {
@@ -667,30 +583,31 @@ class CheckRun {
             // Post check in-progress
             log.info("Starting to run jcheck on PR head");
             pr.createCheck(checkBuilder.build());
+
+            var ignored = new PrintWriter(new StringWriter());
+            var rebasePossible = true;
+            var commitHash = pr.headHash();
+            var mergedHash = prInstance.mergeTarget(ignored);
+            if (mergedHash.isPresent()) {
+                commitHash = mergedHash.get();
+            } else {
+                rebasePossible = false;
+            }
+
             List<String> additionalErrors = List.of();
             Hash localHash;
             try {
-                localHash = prInstance.commit(censusInstance.namespace(), censusDomain, null);
+                localHash = prInstance.commit(commitHash, censusInstance.namespace(), censusDomain, null);
             } catch (CommitFailure e) {
-                additionalErrors = List.of("It was not possible to create a commit for the changes in this PR: " + e.getMessage());
+                additionalErrors = List.of(e.getMessage());
                 localHash = prInstance.baseHash();
             }
-            boolean rebasePossible = true;
             PullRequestCheckIssueVisitor visitor = prInstance.createVisitor(localHash, censusInstance);
             if (!localHash.equals(prInstance.baseHash())) {
-                // Try to rebase
-                var ignored = new PrintWriter(new StringWriter());
-                var rebasedHash = prInstance.rebase(localHash, ignored);
-                if (rebasedHash.isEmpty()) {
-                    rebasePossible = false;
-                } else {
-                    localHash = rebasedHash.get();
-                }
-
                 // Determine current status
                 var additionalConfiguration = AdditionalConfiguration.get(prInstance.localRepo(), localHash, pr.repository().forge().currentUser(), comments);
                 prInstance.executeChecks(localHash, censusInstance, visitor, additionalConfiguration);
-                additionalErrors = botSpecificChecks();
+                additionalErrors = botSpecificChecks(localHash);
             } else {
                 if (additionalErrors.isEmpty()) {
                     additionalErrors = List.of("This PR contains no changes");

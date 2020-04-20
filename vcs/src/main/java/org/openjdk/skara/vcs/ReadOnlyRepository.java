@@ -105,6 +105,13 @@ public interface ReadOnlyRepository {
     List<Reference> remoteBranches(String remote) throws IOException;
     List<String> remotes() throws IOException;
     List<Submodule> submodules() throws IOException;
+    Tree tree(Hash h) throws IOException;
+    default Tree tree(Commit c) throws IOException {
+        return tree(c.hash());
+    }
+    default Tree tree(CommitMetadata c) throws IOException {
+        return tree(c.hash());
+    }
 
     static Optional<ReadOnlyRepository> get(Path p) throws IOException {
         return Repository.get(p).map(r -> r);

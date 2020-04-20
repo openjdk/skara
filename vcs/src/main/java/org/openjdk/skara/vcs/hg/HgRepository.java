@@ -617,6 +617,11 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public Hash commit(String message, String authorName, String authorEmail, ZonedDateTime authorDate, String committerName, String committerEmail, ZonedDateTime committerDate, List<Hash> parents, Tree tree) throws IOException {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
     public Hash amend(String message, String authorName, String authorEmail) throws IOException {
         var user = authorEmail == null ? authorName : authorName + " <" + authorEmail + ">";
         try (var p = capture("hg", "commit", "--amend", "--message=" + message, "--user=" + user)) {
@@ -1296,6 +1301,11 @@ public class HgRepository implements Repository {
         }
 
         return modules;
+    }
+
+    @Override
+    public Tree tree(Hash h) throws IOException {
+        throw new RuntimeException("not implemented yet");
     }
 
     @Override

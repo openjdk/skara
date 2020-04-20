@@ -81,9 +81,6 @@ public class SponsorCommand implements CommandHandler {
                                                      new HostedRepositoryPool(seedPath),
                                                      pr,
                                                      bot.ignoreStaleReviews());
-            var localHash = prInstance.commit(censusInstance.namespace(), censusInstance.configuration().census().domain(),
-                                         comment.author().id());
-
             // Validate the target hash if requested
             var rebaseMessage = new StringWriter();
             if (!args.isBlank()) {
@@ -97,15 +94,14 @@ public class SponsorCommand implements CommandHandler {
 
             // Now rebase onto the target hash
             var rebaseWriter = new PrintWriter(rebaseMessage);
-            var rebasedHash = prInstance.rebase(localHash, rebaseWriter);
+            var rebasedHash = prInstance.mergeTarget(rebaseWriter);
             if (rebasedHash.isEmpty()) {
                 reply.println(rebaseMessage.toString());
                 return;
-            } else {
-                if (!rebasedHash.get().equals(localHash)) {
-                    localHash = rebasedHash.get();
-                }
             }
+
+            var localHash = prInstance.commit(rebasedHash.get(), censusInstance.namespace(), censusInstance.configuration().census().domain(),
+                    comment.author().id());
 
             var issues = prInstance.createVisitor(localHash, censusInstance);
             var additionalConfiguration = AdditionalConfiguration.get(prInstance.localRepo(), localHash, pr.repository().forge().currentUser(), allComments);
@@ -134,8 +130,7 @@ public class SponsorCommand implements CommandHandler {
             }
         } catch (Exception e) {
             log.throwing("SponsorCommand", "handle", e);
-            reply.println("An error occurred during sponsored integration");
-            throw new RuntimeException(e);
+            reply.println("An error occurred during sponsored integration. No push attempt will be made.");
         }
     }
 
