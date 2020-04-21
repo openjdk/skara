@@ -66,6 +66,9 @@ class ArchiveItem {
                                        if (mergeCommit.isPresent()) {
                                            for (int i = 0; i < mergeCommit.get().parentDiffs().size(); ++i) {
                                                var diff = mergeCommit.get().parentDiffs().get(i);
+                                               if (diff.patches().size() == 0) {
+                                                   continue;
+                                               }
                                                switch (i) {
                                                    case 0:
                                                        mergeWebrevs.add(webrevGenerator.generate(diff, String.format("00.%d", i), WebrevDescription.Type.MERGE_TARGET, prInstance.pr().targetRef()));
@@ -79,7 +82,9 @@ class ArchiveItem {
                                                        break;
                                                }
                                            }
-                                           webrevNotification.notify(0, mergeWebrevs);
+                                           if (!mergeWebrevs.isEmpty()) {
+                                               webrevNotification.notify(0, mergeWebrevs);
+                                           }
                                        }
                                        return ArchiveMessages.composeMergeConversationFooter(prInstance.pr(), prInstance.localRepo(), mergeWebrevs, base, head);
                                    } else {

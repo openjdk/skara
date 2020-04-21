@@ -263,10 +263,10 @@ class ArchiveMessages {
 
     static String composeMergeConversationFooter(PullRequest pr, Repository localRepo, List<WebrevDescription> webrevs, Hash base, Hash head) {
         var commits = commits(localRepo, base, head);
-        var webrevLinks = "";
+        String webrevLinks;
         if (webrevs.size() > 0) {
-            webrevLinks = " Webrev: " + webrevs.get(0).uri() + "\n\n" +
-                    "The webrev" + (webrevs.size() > 1 ? "s" : "") + " contain only the adjustments done while merging with regards to each parent branch:\n" +
+            webrevLinks = "The webrev" + (webrevs.size() > 1 ? "s" : "") + " contain" + (webrevs.size() == 1 ? "s" : "") +
+                    " only the adjustments done while merging with regards to each parent branch:\n" +
                     webrevs.stream()
                            .map(d -> String.format(" - %s: %s", d.shortLabel(), d.uri()))
                            .collect(Collectors.joining("\n")) + "\n\n";
@@ -275,8 +275,8 @@ class ArchiveMessages {
         }
         return "Commit messages:\n" +
                 formatCommitMessagesBrief(commits, 10).orElse("") + "\n\n" +
-                "Changes: " + pr.changeUrl() + "\n" +
                 webrevLinks +
+                "Changes: " + pr.changeUrl() + "\n" +
                 "  Stats: " + stats(localRepo, base, head) + "\n" +
                 "  Patch: " + pr.diffUrl().toString() + "\n" +
                 "  Fetch: " + fetchCommand(pr) + "\n\n" +
