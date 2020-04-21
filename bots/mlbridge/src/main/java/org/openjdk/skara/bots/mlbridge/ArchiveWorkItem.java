@@ -292,20 +292,14 @@ class ArchiveWorkItem implements WorkItem {
             // Materialize the PR's source and target ref
             var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
             var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
-            var repository = pr.repository();
             var localRepoPath = scratchPath.resolve("mlbridge-mergebase");
-            var localRepo = hostedRepositoryPool.checkout(pr, localRepoPath.resolve(repository.name()));
-            localRepo.fetch(repository.url(), "+" + pr.targetRef() + ":mlbridge_prinstance", false);
-
-            var targetHash = pr.targetHash();
-            var headHash = pr.headHash();
-            var baseHash = localRepo.mergeBase(targetHash, headHash);
+            var prInstance = new PullRequestInstance(localRepoPath, hostedRepositoryPool, pr);
 
             var webrevPath = scratchPath.resolve("mlbridge-webrevs");
             var listServer = MailingListServerFactory.createMailmanServer(bot.listArchive(), bot.smtpServer(), bot.sendInterval());
             var list = listServer.getList(bot.listAddress().address());
 
-            var archiver = new ReviewArchive(pr, bot.emailAddress(), baseHash, headHash);
+            var archiver = new ReviewArchive(prInstance, bot.emailAddress());
 
             // Regular comments
             for (var comment : comments) {
@@ -333,8 +327,8 @@ class ArchiveWorkItem implements WorkItem {
                 archiver.addReviewComment(reviewComment);
             }
 
-            var webrevGenerator = bot.webrevStorage().generator(pr, localRepo, webrevPath);
-            var newMails = archiver.generateNewEmails(sentMails, bot.cooldown(), localRepo, bot.issueTracker(), jbs.toUpperCase(), webrevGenerator,
+            var webrevGenerator = bot.webrevStorage().generator(pr, prInstance.localRepo(), webrevPath);
+            var newMails = archiver.generateNewEmails(sentMails, bot.cooldown(), prInstance.localRepo(), bot.issueTracker(), jbs.toUpperCase(), webrevGenerator,
                                                       (index, webrevs) -> updateWebrevComment(comments, index, webrevs),
                                                       user -> getAuthorAddress(census, user),
                                                       user -> getAuthorUserName(census, user),

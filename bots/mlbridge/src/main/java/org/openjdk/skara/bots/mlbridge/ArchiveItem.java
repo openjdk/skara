@@ -5,7 +5,7 @@ import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.*;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.URI;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -38,52 +38,55 @@ class ArchiveItem {
         this.footer = footer;
     }
 
-    private static Optional<Commit> mergeCommit(Repository localRepo, Hash head) {
+    private static Optional<Commit> mergeCommit(PullRequestInstance prInstance, Hash head) {
         try {
-            return localRepo.lookup(head).filter(Commit::isMerge);
-        } catch (IOException e) {
+            var author = new Author("duke", "duke@openjdk.org");
+            var hash = prInstance.commit(head, author, author, prInstance.pr().title());
+            return prInstance.localRepo().lookup(hash);
+        } catch (IOException | CommitFailure e) {
             return Optional.empty();
         }
     }
 
-    static ArchiveItem from(PullRequest pr, Repository localRepo, HostUserToEmailAuthor hostUserToEmailAuthor,
+    static ArchiveItem from(PullRequestInstance prInstance, HostUserToEmailAuthor hostUserToEmailAuthor,
                             URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator,
                             WebrevNotification webrevNotification, ZonedDateTime created, ZonedDateTime updated,
                             Hash base, Hash head, String subjectPrefix, String threadPrefix) {
-        return new ArchiveItem(null, "fc", created, updated, pr.author(), Map.of("PR-Head-Hash", head.hex(),
-                                                                                 "PR-Base-Hash", base.hex(),
-                                                                                 "PR-Thread-Prefix", threadPrefix),
-                               () -> subjectPrefix + threadPrefix + (threadPrefix.isEmpty() ? "" : ": ") + pr.title(),
+        return new ArchiveItem(null, "fc", created, updated, prInstance.pr().author(), Map.of("PR-Head-Hash", head.hex(),
+                                                                                              "PR-Base-Hash", base.hex(),
+                                                                                              "PR-Thread-Prefix", threadPrefix),
+                               () -> subjectPrefix + threadPrefix + (threadPrefix.isEmpty() ? "" : ": ") + prInstance.pr().title(),
                                () -> "",
-                               () -> ArchiveMessages.composeConversation(pr, localRepo, base, head),
+                               () -> ArchiveMessages.composeConversation(prInstance.pr()),
                                () -> {
-                                   var fullWebrev = webrevGenerator.generate(base, head, "00", WebrevDescription.Type.FULL);
-                                   if (pr.title().startsWith("Merge")) {
-                                       var mergeCommit = mergeCommit(localRepo, head);
-                                        if (mergeCommit.isPresent()) {
-                                            var mergeWebrevs = new ArrayList<WebrevDescription>();
-                                            mergeWebrevs.add(fullWebrev);
-                                            for (int i = 0; i < mergeCommit.get().parentDiffs().size(); ++i) {
-                                                var diff = mergeCommit.get().parentDiffs().get(i);
-                                                switch (i) {
-                                                    case 0:
-                                                        mergeWebrevs.add(webrevGenerator.generate(diff, String.format("00.%d", i), WebrevDescription.Type.MERGE_TARGET, pr.targetRef()));
-                                                        break;
-                                                    case 1:
-                                                        var mergeSource = pr.title().length() > 6 ? pr.title().substring(6) : null;
-                                                        mergeWebrevs.add(webrevGenerator.generate(diff, String.format("00.%d", i), WebrevDescription.Type.MERGE_SOURCE, mergeSource));
-                                                        break;
-                                                    default:
-                                                        mergeWebrevs.add(webrevGenerator.generate(diff, String.format("00.%d", i), WebrevDescription.Type.MERGE_SOURCE, null));
-                                                        break;
-                                                }
-                                            }
-                                            webrevNotification.notify(0, mergeWebrevs);
-                                            return ArchiveMessages.composeMergeConversationFooter(pr, localRepo, mergeWebrevs, base, head);
-                                        }
+                                   if (prInstance.isMerge()) {
+                                       //TODO: Try to merge in target - generate possible conflict webrev
+                                       var mergeCommit = mergeCommit(prInstance, head);
+                                       var mergeWebrevs = new ArrayList<WebrevDescription>();
+                                       if (mergeCommit.isPresent()) {
+                                           for (int i = 0; i < mergeCommit.get().parentDiffs().size(); ++i) {
+                                               var diff = mergeCommit.get().parentDiffs().get(i);
+                                               switch (i) {
+                                                   case 0:
+                                                       mergeWebrevs.add(webrevGenerator.generate(diff, String.format("00.%d", i), WebrevDescription.Type.MERGE_TARGET, prInstance.pr().targetRef()));
+                                                       break;
+                                                   case 1:
+                                                       var mergeSource = prInstance.pr().title().length() > 6 ? prInstance.pr().title().substring(6) : null;
+                                                       mergeWebrevs.add(webrevGenerator.generate(diff, String.format("00.%d", i), WebrevDescription.Type.MERGE_SOURCE, mergeSource));
+                                                       break;
+                                                   default:
+                                                       mergeWebrevs.add(webrevGenerator.generate(diff, String.format("00.%d", i), WebrevDescription.Type.MERGE_SOURCE, null));
+                                                       break;
+                                               }
+                                           }
+                                           webrevNotification.notify(0, mergeWebrevs);
+                                       }
+                                       return ArchiveMessages.composeMergeConversationFooter(prInstance.pr(), prInstance.localRepo(), mergeWebrevs, base, head);
+                                   } else {
+                                       var fullWebrev = webrevGenerator.generate(base, head, "00", WebrevDescription.Type.FULL);
+                                       webrevNotification.notify(0, List.of(fullWebrev));
+                                       return ArchiveMessages.composeConversationFooter(prInstance.pr(), issueTracker, issuePrefix, prInstance.localRepo(), fullWebrev, base, head);
                                    }
-                                   webrevNotification.notify(0, List.of(fullWebrev));
-                                   return ArchiveMessages.composeConversationFooter(pr, issueTracker, issuePrefix, localRepo, fullWebrev, base, head);
                                });
     }
 
