@@ -66,6 +66,7 @@ public class IssueCommand implements CommandHandler {
     }
 
     private static final Pattern shortIssuePattern = Pattern.compile("((?:[A-Za-z]+-)?[0-9]+)(?:,| |$)");
+    private final static Pattern subCommandPattern = Pattern.compile("^(add|remove|delete|(?:[A-Za-z]+-)?[0-9]+:?)[ ,]?.*$");
 
     private List<Issue> parseIssueList(String allowedPrefix, String issueList) throws InvalidIssue {
         List<Issue> ret;
@@ -91,8 +92,6 @@ public class IssueCommand implements CommandHandler {
                   .map(issue -> issue.id().contains("-") ? new Issue(issue.id().split("-", 2)[1], issue.description()) : issue)
                   .collect(Collectors.toList());
     }
-
-    private final static Pattern subCommandPattern = Pattern.compile("^(add|remove|delete|(?:[A-Za-z]+-)?[0-9]+:?)[ ,]+.*$");
 
     IssueCommand(String name) {
         this.name = name;

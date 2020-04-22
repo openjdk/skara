@@ -191,6 +191,17 @@ class IssueTests {
             var issue2 = credentials.createIssue(issues, "Second");
             var issue2Number = Integer.parseInt(issue2.id().split("-")[1]);
 
+            // Add a single issue with the shorthand syntax
+            pr.addComment("/solves " + issue2Number);
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "Adding additional issue to solves list");
+            assertLastCommentContains(pr, ": Second");
+
+            // And remove it
+            pr.addComment("/solves delete " + issue2Number);
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "Removing additional issue from solves list: `" + issue2Number + "`");
+
             // Add two issues with the shorthand syntax
             pr.addComment("/issue " + issue1.id() + "," + issue2Number);
             TestBotRunner.runPeriodicItems(prBot);
