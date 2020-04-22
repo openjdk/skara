@@ -43,8 +43,8 @@ public class LabelerWorkItem extends PullRequestWorkItem {
 
     private Set<String> getLabels(Repository localRepo) throws IOException {
         var labels = new HashSet<String>();
-        var prInstance = new PullRequestInstance(pr);
-        var files = prInstance.changedFiles(localRepo);
+        var prUtils = new PullRequestUtils(pr);
+        var files = prUtils.changedFiles(localRepo);
         for (var file : files) {
             for (var label : bot.labelPatterns().entrySet()) {
                 for (var pattern : label.getValue()) {

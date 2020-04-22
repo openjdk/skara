@@ -30,10 +30,10 @@ import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.regex.Pattern;
 
-public class PullRequestInstance {
+public class PullRequestUtils {
     private final PullRequest pr;
 
-    public PullRequestInstance(PullRequest pr)  {
+    public PullRequestUtils(PullRequest pr)  {
         this.pr = pr;
     }
 
@@ -160,7 +160,7 @@ public class PullRequestInstance {
         return pr.title().startsWith("Merge");
     }
 
-    public Hash commit(Repository localRepo, Hash finalHead, Author author, Author committer, String commitMessage) throws IOException, CommitFailure {
+    public Hash createCommit(Repository localRepo, Hash finalHead, Author author, Author committer, String commitMessage) throws IOException, CommitFailure {
         Hash commit;
         if (!isMerge()) {
             commit = commitSquashed(localRepo, finalHead, author, committer, commitMessage);
@@ -185,7 +185,7 @@ public class PullRequestInstance {
         return ret;
     }
 
-    List<Reference> remoteBranches(Repository localRepo) {
+    private List<Reference> remoteBranches(Repository localRepo) {
         try {
             return localRepo.remoteBranches(pr.repository().url().toString());
         } catch (IOException e) {

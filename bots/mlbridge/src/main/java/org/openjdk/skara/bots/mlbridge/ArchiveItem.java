@@ -41,8 +41,8 @@ class ArchiveItem {
     private static Optional<Commit> mergeCommit(PullRequest pr, Repository localRepo, Hash head) {
         try {
             var author = new Author("duke", "duke@openjdk.org");
-            var prInstance = new PullRequestInstance(pr);
-            var hash = prInstance.commit(localRepo, head, author, author, pr.title());
+            var prUtils = new PullRequestUtils(pr);
+            var hash = prUtils.createCommit(localRepo, head, author, author, pr.title());
             return localRepo.lookup(hash);
         } catch (IOException | CommitFailure e) {
             return Optional.empty();
@@ -60,8 +60,8 @@ class ArchiveItem {
                                () -> "",
                                () -> ArchiveMessages.composeConversation(pr),
                                () -> {
-                                   var prInstance = new PullRequestInstance(pr);
-                                   if (prInstance.isMerge()) {
+                                   var prUtils = new PullRequestUtils(pr);
+                                   if (prUtils.isMerge()) {
                                        //TODO: Try to merge in target - generate possible conflict webrev
                                        var mergeCommit = mergeCommit(pr, localRepo, head);
                                        var mergeWebrevs = new ArrayList<WebrevDescription>();

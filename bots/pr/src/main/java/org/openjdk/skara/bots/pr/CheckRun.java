@@ -47,7 +47,7 @@ class CheckRun {
     private final CensusInstance censusInstance;
     private final boolean ignoreStaleReviews;
 
-    private final PullRequestInstance prInstance;
+    private final Hash baseHash;
     private final CheckablePullRequest checkablePullRequest;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
@@ -71,7 +71,8 @@ class CheckRun {
         this.censusInstance = censusInstance;
         this.ignoreStaleReviews = ignoreStaleReviews;
 
-        prInstance = new PullRequestInstance(pr);
+        var prUtils = new PullRequestUtils(pr);
+        baseHash = prUtils.baseHash(localRepo);
         checkablePullRequest = new CheckablePullRequest(pr, localRepo, ignoreStaleReviews);
     }
 
@@ -133,7 +134,6 @@ class CheckRun {
             ret.add(error);
         }
 
-        var baseHash = prInstance.baseHash(localRepo);
         var headHash = pr.headHash();
         var originalCommits = localRepo.commitMetadata(baseHash, headHash);
 
@@ -549,7 +549,7 @@ class CheckRun {
             "```" +
             "$ git checkout " + branch + "\n" +
             "$ git checkout -b NEW-BRANCH-NAME\n" +
-            "$ git branch -f " + branch + " " + prInstance.baseHash(localRepo).hex() + "\n" +
+            "$ git branch -f " + branch + " " + baseHash.hex() + "\n" +
             "$ git push -f origin " + branch + "\n" +
             "```\n" +
             "\n" +
@@ -606,10 +606,10 @@ class CheckRun {
                 localHash = checkablePullRequest.commit(commitHash, censusInstance.namespace(), censusDomain, null);
             } catch (CommitFailure e) {
                 additionalErrors = List.of(e.getMessage());
-                localHash = prInstance.baseHash(localRepo);
+                localHash = baseHash;
             }
             PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor(localHash, censusInstance);
-            if (!localHash.equals(prInstance.baseHash(localRepo))) {
+            if (!localHash.equals(baseHash)) {
                 // Determine current status
                 var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), comments);
                 checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration);
