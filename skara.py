@@ -44,12 +44,12 @@ def _skara(ui, args, **opts):
     skara = os.path.dirname(os.path.realpath(__file__))
     git_skara = os.path.join(skara, 'bin', 'bin', 'git-skara')
     if not os.path.isfile(git_skara):
-        ui.status('Compiling ...\n')
+        ui.status(b'Compiling ...\n')
         cmd = ['gradlew.bat'] if os.name == 'nt' else ['/bin/sh', 'gradlew']
         p = subprocess.Popen(cmd, cwd=skara)
         ret = p.wait()
         if ret != 0:
-            ui.error("Error: could not compile Skara\n")
+            ui.error(b"Error: could not compile Skara\n")
             sys.exit(1)
 
     skara_bin = os.path.join(skara, 'bin')
@@ -62,14 +62,14 @@ def _skara(ui, args, **opts):
     for k in opts:
         if opts[k] == True:
             args.append('--' + k.replace('_', '-'))
-        elif opts[k] != '' and opts[k] != False:
+        elif opts[k] != b'' and opts[k] != False:
             args.append('--' + k)
             args.append(opts[k])
     return subprocess.call([git_skara] + args)
 
 skara_opts = [
 ]
-@command('skara', skara_opts, 'hg skara <defpath|help|jcheck|version|webrev|update>')
+@command(b'skara', skara_opts, b'hg skara <defpath|help|jcheck|version|webrev|update>')
 def skara(ui, repo, action=None, **opts):
     """
     Invoke, list or update Mercurial commands from project Skara
@@ -79,17 +79,17 @@ def skara(ui, repo, action=None, **opts):
     sys.exit(_skara(ui, [action, '--mercurial'], **opts))
 
 webrev_opts = [
-    ('r', 'rev', '', 'Compare against specified revision'),
-    ('o', 'output', '', 'Output directory'),
-    ('u', 'username', '', 'Use that username instead "guessing" one'),
-    ('',  'upstream', '', 'The URL to the upstream repository'),
-    ('t', 'title', '', 'The title of the webrev'),
-    ('c', 'cr', '', 'Include a link to CR (aka bugid) in the main page'),
-    ('b', 'b', False, 'Do not ignore changes in whitespace'),
-    ('C', 'no-comments', False, "Don't show comments"),
-    ('N', 'no-outgoing', False, "Do not compare against remote, use only 'status'"),
+    (b'r', b'rev', b'', b'Compare against specified revision'),
+    (b'o', b'output', b'', b'Output directory'),
+    (b'u', b'username', b'', b'Use that username instead "guessing" one'),
+    (b'',  b'upstream', b'', b'The URL to the upstream repository'),
+    (b't', b'title', b'', b'The title of the webrev'),
+    (b'c', b'cr', b'', b'Include a link to CR (aka bugid) in the main page'),
+    (b'b', b'b', False, b'Do not ignore changes in whitespace'),
+    (b'C', b'no-comments', False, b"Don't show comments"),
+    (b'N', b'no-outgoing', False, b"Do not compare against remote, use only 'status'"),
 ]
-@command('webrev', webrev_opts, 'hg webrev')
+@command(b'webrev', webrev_opts, b'hg webrev')
 def webrev(ui, repo, **opts):
     """
     Builds a set of HTML files suitable for doing a
@@ -98,15 +98,15 @@ def webrev(ui, repo, **opts):
     sys.exit(_skara(ui, ['webrev', '--mercurial'], **opts))
 
 jcheck_opts = [
-    ('r', 'rev', '', 'Check the specified revision or range (default: tip)'),
-    ('',  'whitelist', '', 'Use specified whitelist (default: .jcheck/whitelist.json)'),
-    ('',  'blacklist', '', 'Use specified blacklist (default: .jcheck/blacklist.json)'),
-    ('',  'census', '', 'Use the specified census (default: https://openjdk.java.net/census.xml)'),
-    ('',  'local', False, 'Run jcheck in "local" mode'),
-    ('',  'lax', False, 'Check comments, tags and whitespace laxly'),
-    ('s', 'strict', False, 'Check everything')
+    (b'r', b'rev', b'', b'Check the specified revision or range (default: tip)'),
+    (b'',  b'whitelist', b'', b'Use specified whitelist (default: .jcheck/whitelist.json)'),
+    (b'',  b'blacklist', b'', b'Use specified blacklist (default: .jcheck/blacklist.json)'),
+    (b'',  b'census', b'', b'Use the specified census (default: https://openjdk.java.net/census.xml)'),
+    (b'',  b'local', False, b'Run jcheck in "local" mode'),
+    (b'',  b'lax', False, b'Check comments, tags and whitespace laxly'),
+    (b's', b'strict', False, b'Check everything')
 ]
-@command('jcheck', jcheck_opts, 'hg jcheck')
+@command(b'jcheck', jcheck_opts, b'hg jcheck')
 def jcheck(ui, repo, **opts):
     """
     OpenJDK changeset checker
@@ -114,13 +114,13 @@ def jcheck(ui, repo, **opts):
     sys.exit(_skara(ui, ['jcheck', '--mercurial'], **opts))
 
 defpath_opts = [
-    ('u', 'username', '', 'Username for push URL'),
-    ('s', 'secondary', '', 'Secondary peer repostiory base URL'),
-    ('d', 'default', False, 'Use current default path to compute push path'),
-    ('g', 'gated', False, 'Created gated push URL'),
-    ('n', 'dry-run', False, 'Do not perform actions, just print output'),
+    (b'u', b'username', b'', b'Username for push URL'),
+    (b's', b'secondary', b'', b'Secondary peer repostiory base URL'),
+    (b'd', b'default', False, b'Use current default path to compute push path'),
+    (b'g', b'gated', False, b'Created gated push URL'),
+    (b'n', b'dry-run', False, b'Do not perform actions, just print output'),
 ]
-@command('defpath', defpath_opts, 'hg defpath')
+@command(b'defpath', defpath_opts, b'hg defpath')
 def defpath(ui, repo, **opts):
     """
     Examine and manipulate default path settings
