@@ -62,14 +62,14 @@ class MirrorBot implements Bot, WorkItem {
             return true;
         }
         var otherBot = (MirrorBot) other;
-        return !from.name().equals(otherBot.from.name());
+        return !to.name().equals(otherBot.to.name());
     }
 
     @Override
     public void run(Path scratchPath) {
         try {
             var sanitizedUrl =
-                URLEncoder.encode(from.webUrl().toString(), StandardCharsets.UTF_8);
+                URLEncoder.encode(to.webUrl().toString(), StandardCharsets.UTF_8);
             var dir = storage.resolve(sanitizedUrl);
             Repository repo = null;
 
@@ -83,7 +83,7 @@ class MirrorBot implements Bot, WorkItem {
                     repo = Repository.clone(to.url(), dir);
                 }
             } else {
-                log.info("Found existing scratch directory for " + from.name());
+                log.info("Found existing scratch directory for " + to.name());
                 repo = Repository.get(dir).orElseThrow(() -> {
                         return new RuntimeException("Repository in " + dir + " has vanished");
                 });
