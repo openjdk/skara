@@ -39,14 +39,16 @@ import java.util.stream.*;
 class CheckRun {
     private final CheckWorkItem workItem;
     private final PullRequest pr;
-    private final PullRequestInstance prInstance;
-    private final CheckablePullRequest checkablePullRequest;
+    private final Repository localRepo;
     private final List<Comment> comments;
     private final List<Review> allReviews;
     private final List<Review> activeReviews;
     private final Set<String> labels;
     private final CensusInstance censusInstance;
     private final boolean ignoreStaleReviews;
+
+    private final PullRequestInstance prInstance;
+    private final CheckablePullRequest checkablePullRequest;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     private final String progressMarker = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
@@ -55,13 +57,12 @@ class CheckRun {
     private final String sourceBranchWarningMarker = "<!-- PullRequestBot source branch warning comment -->";
     private final Set<String> newLabels;
 
-    private CheckRun(CheckWorkItem workItem, PullRequest pr, PullRequestInstance prInstance, List<Comment> comments,
+    private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
-                     CensusInstance censusInstance, boolean ignoreStaleReviews) {
+                     CensusInstance censusInstance, boolean ignoreStaleReviews) throws IOException {
         this.workItem = workItem;
         this.pr = pr;
-        this.prInstance = prInstance;
-        this.checkablePullRequest = new CheckablePullRequest(prInstance, ignoreStaleReviews);
+        this.localRepo = localRepo;
         this.comments = comments;
         this.allReviews = allReviews;
         this.activeReviews = activeReviews;
@@ -69,12 +70,15 @@ class CheckRun {
         this.newLabels = new HashSet<>(labels);
         this.censusInstance = censusInstance;
         this.ignoreStaleReviews = ignoreStaleReviews;
+
+        prInstance = new PullRequestInstance(pr);
+        checkablePullRequest = new CheckablePullRequest(pr, localRepo, ignoreStaleReviews);
     }
 
-    static void execute(CheckWorkItem workItem, PullRequest pr, PullRequestInstance prInstance, List<Comment> comments,
+    static void execute(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                         List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance,
-                        boolean ignoreStaleReviews) {
-        var run = new CheckRun(workItem, pr, prInstance, comments, allReviews, activeReviews, labels, censusInstance, ignoreStaleReviews);
+                        boolean ignoreStaleReviews) throws IOException {
+        var run = new CheckRun(workItem, pr, localRepo, comments, allReviews, activeReviews, labels, censusInstance, ignoreStaleReviews);
         run.checkStatus();
     }
 
@@ -129,9 +133,9 @@ class CheckRun {
             ret.add(error);
         }
 
-        var baseHash = prInstance.baseHash();
+        var baseHash = prInstance.baseHash(localRepo);
         var headHash = pr.headHash();
-        var originalCommits = prInstance.localRepo().commitMetadata(baseHash, headHash);
+        var originalCommits = localRepo.commitMetadata(baseHash, headHash);
 
         if (!checkCommitAuthor(originalCommits)) {
             var error = "For contributors who are not existing OpenJDK Authors, commit attribution will be taken from " +
@@ -403,7 +407,7 @@ class CheckRun {
 
         try {
             var hasContributingFile =
-                !prInstance.localRepo().files(prInstance.targetHash(), Path.of("CONTRIBUTING.md")).isEmpty();
+                !localRepo.files(pr.targetHash(), Path.of("CONTRIBUTING.md")).isEmpty();
             if (hasContributingFile) {
                 message.append(". When the change also fulfills all ");
                 message.append("[project specific requirements](https://github.com/");
@@ -446,7 +450,7 @@ class CheckRun {
                 message.append(pr.targetRef());
                 message.append("` into your branch, and then specify the current head hash when integrating, like this: ");
                 message.append("`/integrate ");
-                message.append(prInstance.targetHash());
+                message.append(pr.targetHash());
                 message.append("`.\n");
             } else {
                 message.append("Your changes cannot be rebased automatically without conflicts, so you will need to ");
@@ -462,7 +466,7 @@ class CheckRun {
             message.append("you perform the `/integrate` command, your PR will be automatically rebased. If you would like to avoid ");
             message.append("potential automatic rebasing, specify the current head hash when integrating, like this: ");
             message.append("`/integrate ");
-            message.append(prInstance.targetHash());
+            message.append(pr.targetHash());
             message.append("`.\n");
         }
 
@@ -524,7 +528,7 @@ class CheckRun {
         }
     }
 
-    private void addSourceBranchWarningComment(List<Comment> comments) {
+    private void addSourceBranchWarningComment(List<Comment> comments) throws IOException {
         var existing = findComment(comments, sourceBranchWarningMarker);
         if (existing.isPresent()) {
             // Only add the comment once per PR
@@ -545,7 +549,7 @@ class CheckRun {
             "```" +
             "$ git checkout " + branch + "\n" +
             "$ git checkout -b NEW-BRANCH-NAME\n" +
-            "$ git branch -f " + branch + " " + prInstance.baseHash().hex() + "\n" +
+            "$ git branch -f " + branch + " " + prInstance.baseHash(localRepo).hex() + "\n" +
             "$ git push -f origin " + branch + "\n" +
             "```\n" +
             "\n" +
@@ -602,12 +606,12 @@ class CheckRun {
                 localHash = checkablePullRequest.commit(commitHash, censusInstance.namespace(), censusDomain, null);
             } catch (CommitFailure e) {
                 additionalErrors = List.of(e.getMessage());
-                localHash = prInstance.baseHash();
+                localHash = prInstance.baseHash(localRepo);
             }
             PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor(localHash, censusInstance);
-            if (!localHash.equals(prInstance.baseHash())) {
+            if (!localHash.equals(prInstance.baseHash(localRepo))) {
                 // Determine current status
-                var additionalConfiguration = AdditionalConfiguration.get(prInstance.localRepo(), localHash, pr.repository().forge().currentUser(), comments);
+                var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), comments);
                 checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration);
                 additionalErrors = botSpecificChecks(localHash);
             } else {
@@ -627,7 +631,7 @@ class CheckRun {
                 updateReviewedMessages(comments, allReviews);
             }
 
-            var commit = prInstance.localRepo().lookup(localHash).orElseThrow();
+            var commit = localRepo.lookup(localHash).orElseThrow();
             var commitMessage = String.join("\n", commit.message());
             var readyForIntegration = visitor.getMessages().isEmpty() && additionalErrors.isEmpty();
             updateMergeReadyComment(readyForIntegration, commitMessage, comments, activeReviews, rebasePossible);

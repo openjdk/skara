@@ -32,27 +32,14 @@ import java.util.regex.Pattern;
 
 public class PullRequestInstance {
     private final PullRequest pr;
-    private final Repository localRepo;
-    private final Hash targetHash;
-    private final Hash headHash;
-    private final Hash baseHash;
 
-    public PullRequestInstance(Path localRepoPath, HostedRepositoryPool hostedRepositoryPool, PullRequest pr) throws IOException {
+    public PullRequestInstance(PullRequest pr)  {
         this.pr = pr;
-
-        // Materialize the PR's source and target ref
-        var repository = pr.repository();
-        localRepo = hostedRepositoryPool.checkout(pr, localRepoPath.resolve(repository.name()));
-        localRepo.fetch(repository.url(), "+" + pr.targetRef() + ":pr_prinstance", false);
-
-        targetHash = pr.targetHash();
-        headHash = pr.headHash();
-        baseHash = localRepo.mergeBase(targetHash, headHash);
     }
 
-    private Hash commitSquashed(Hash finalHead, Author author, Author committer, String commitMessage) throws IOException {
+    private Hash commitSquashed(Repository localRepo, Hash finalHead, Author author, Author committer, String commitMessage) throws IOException {
         return localRepo.commit(commitMessage, author.name(), author.email(), ZonedDateTime.now(),
-                                committer.name(), committer.email(), ZonedDateTime.now(), List.of(targetHash), localRepo.tree(finalHead));
+                                committer.name(), committer.email(), ZonedDateTime.now(), List.of(pr.targetHash()), localRepo.tree(finalHead));
     }
 
     private static class MergeSource {
@@ -68,7 +55,7 @@ public class PullRequestInstance {
     private final Pattern mergeSourceFullPattern = Pattern.compile("^Merge ([-/\\w]+):([-\\w]+)$");
     private final Pattern mergeSourceBranchOnlyPattern = Pattern.compile("^Merge ([-\\w]+)$");
 
-    private Optional<MergeSource> mergeSource() {
+    private Optional<MergeSource> mergeSource(Repository localRepo) {
         var repoMatcher = mergeSourceFullPattern.matcher(pr.title());
         if (!repoMatcher.matches()) {
             var branchMatcher = mergeSourceBranchOnlyPattern.matcher(pr.title());
@@ -77,7 +64,7 @@ public class PullRequestInstance {
             }
 
             // Verify that the branch exists
-            var isValidBranch = remoteBranches().stream()
+            var isValidBranch = remoteBranches(localRepo).stream()
                     .map(Reference::name)
                     .anyMatch(branch -> branch.equals(branchMatcher.group(1)));
             if (!isValidBranch) {
@@ -92,12 +79,12 @@ public class PullRequestInstance {
         return Optional.of(new MergeSource(repoMatcher.group(1), repoMatcher.group(2)));
     }
 
-    private CommitMetadata findSourceMergeCommit(List<CommitMetadata> commits) throws IOException, CommitFailure {
+    private CommitMetadata findSourceMergeCommit(Repository localRepo, List<CommitMetadata> commits) throws IOException, CommitFailure {
         if (commits.size() < 2) {
             throw new CommitFailure("A merge PR must contain at least two commits that are not already present in the target.");
         }
 
-        var source = mergeSource();
+        var source = mergeSource(localRepo);
         if (source.isEmpty()) {
             throw new CommitFailure("Could not determine the source for this merge. A Merge PR title must be specified on the format: " +
                     "Merge `project`:`branch` to allow verification of the merge contents.");
@@ -144,17 +131,17 @@ public class PullRequestInstance {
         return commits.get(mergeCommitIndex);
     }
 
-    private Hash commitMerge(Hash finalHead, Author author, Author committer, String commitMessage) throws IOException, CommitFailure {
-        var commits = localRepo.commitMetadata(baseHash, finalHead);
-        var mergeCommit = findSourceMergeCommit(commits);
+    private Hash commitMerge(Repository localRepo, Hash finalHead, Author author, Author committer, String commitMessage) throws IOException, CommitFailure {
+        var commits = localRepo.commitMetadata(baseHash(localRepo), finalHead);
+        var mergeCommit = findSourceMergeCommit(localRepo, commits);
 
         // Find the parent which is on the target branch - we will replace it with the target hash (if there were no merge conflicts)
         Hash firstParent = null;
         var finalParents = new ArrayList<Hash>();
         for (int i = 0; i < mergeCommit.parents().size(); ++i) {
-            if (localRepo.isAncestor(mergeCommit.parents().get(i), targetHash)) {
+            if (localRepo.isAncestor(mergeCommit.parents().get(i), pr.targetHash())) {
                 if (firstParent == null) {
-                    firstParent = localRepo.mergeBase(targetHash, finalHead);
+                    firstParent = localRepo.mergeBase(pr.targetHash(), finalHead);
                     continue;
                 }
             }
@@ -173,40 +160,24 @@ public class PullRequestInstance {
         return pr.title().startsWith("Merge");
     }
 
-    public Hash commit(Hash finalHead, Author author, Author committer, String commitMessage) throws IOException, CommitFailure {
+    public Hash commit(Repository localRepo, Hash finalHead, Author author, Author committer, String commitMessage) throws IOException, CommitFailure {
         Hash commit;
         if (!isMerge()) {
-            commit = commitSquashed(finalHead, author, committer, commitMessage);
+            commit = commitSquashed(localRepo, finalHead, author, committer, commitMessage);
         } else {
-            commit = commitMerge(finalHead, author, committer, commitMessage);
+            commit = commitMerge(localRepo, finalHead, author, committer, commitMessage);
         }
         localRepo.checkout(commit, true);
         return commit;
     }
 
-    public PullRequest pr() {
-        return pr;
+    public Hash baseHash(Repository localRepo) throws IOException {
+        return localRepo.mergeBase(pr.targetHash(), pr.headHash());
     }
 
-    public Repository localRepo() {
-        return localRepo;
-    }
-
-    public Hash baseHash() {
-        return baseHash;
-    }
-
-    public Hash targetHash() {
-        return targetHash;
-    }
-
-    public Hash headHash() {
-        return headHash;
-    }
-
-    public Set<Path> changedFiles() throws IOException {
+    public Set<Path> changedFiles(Repository localRepo) throws IOException {
         var ret = new HashSet<Path>();
-        var changes = localRepo.diff(baseHash, headHash);
+        var changes = localRepo.diff(baseHash(localRepo), pr.headHash());
         for (var patch : changes.patches()) {
             patch.target().path().ifPresent(ret::add);
             patch.source().path().ifPresent(ret::add);
@@ -214,7 +185,7 @@ public class PullRequestInstance {
         return ret;
     }
 
-    List<Reference> remoteBranches() {
+    List<Reference> remoteBranches(Repository localRepo) {
         try {
             return localRepo.remoteBranches(pr.repository().url().toString());
         } catch (IOException e) {

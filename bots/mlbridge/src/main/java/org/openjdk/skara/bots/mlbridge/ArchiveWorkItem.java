@@ -293,13 +293,14 @@ class ArchiveWorkItem implements WorkItem {
             var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
             var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
             var localRepoPath = scratchPath.resolve("mlbridge-mergebase");
-            var prInstance = new PullRequestInstance(localRepoPath, hostedRepositoryPool, pr);
+            var localRepo = hostedRepositoryPool.checkout(pr, localRepoPath.resolve(pr.repository().name()));
+            localRepo.fetch(pr.repository().url(), "+" + pr.targetRef() + ":archiveworkitem", false);
 
             var webrevPath = scratchPath.resolve("mlbridge-webrevs");
             var listServer = MailingListServerFactory.createMailmanServer(bot.listArchive(), bot.smtpServer(), bot.sendInterval());
             var list = listServer.getList(bot.listAddress().address());
 
-            var archiver = new ReviewArchive(prInstance, bot.emailAddress());
+            var archiver = new ReviewArchive(pr, bot.emailAddress());
 
             // Regular comments
             for (var comment : comments) {
@@ -327,8 +328,8 @@ class ArchiveWorkItem implements WorkItem {
                 archiver.addReviewComment(reviewComment);
             }
 
-            var webrevGenerator = bot.webrevStorage().generator(pr, prInstance.localRepo(), webrevPath);
-            var newMails = archiver.generateNewEmails(sentMails, bot.cooldown(), prInstance.localRepo(), bot.issueTracker(), jbs.toUpperCase(), webrevGenerator,
+            var webrevGenerator = bot.webrevStorage().generator(pr, localRepo, webrevPath);
+            var newMails = archiver.generateNewEmails(sentMails, bot.cooldown(), localRepo, bot.issueTracker(), jbs.toUpperCase(), webrevGenerator,
                                                       (index, webrevs) -> updateWebrevComment(comments, index, webrevs),
                                                       user -> getAuthorAddress(census, user),
                                                       user -> getAuthorUserName(census, user),

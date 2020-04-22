@@ -75,19 +75,19 @@ public class SponsorCommand implements CommandHandler {
         try {
             var sanitizedUrl = URLEncoder.encode(pr.repository().webUrl().toString(), StandardCharsets.UTF_8);
             var path = scratchPath.resolve("sponsor").resolve(sanitizedUrl);
-
             var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
-            var prInstance = new PullRequestInstance(path,
-                                                     new HostedRepositoryPool(seedPath),
-                                                     pr);
-            var checkablePr = new CheckablePullRequest(prInstance, bot.ignoreStaleReviews());
+            var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
+            var localRepo = hostedRepositoryPool.checkout(pr, path);
+            localRepo.fetch(pr.repository().url(), "+" + pr.targetRef() + ":sponsorcommand", false);
+            var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews());
+
             // Validate the target hash if requested
             var rebaseMessage = new StringWriter();
             if (!args.isBlank()) {
                 var wantedHash = new Hash(args);
-                if (!prInstance.targetHash().equals(wantedHash)) {
+                if (!pr.targetHash().equals(wantedHash)) {
                     reply.print("The head of the target branch is no longer at the requested hash " + wantedHash);
-                    reply.println(" - it has moved to " + prInstance.targetHash() + ". Aborting integration.");
+                    reply.println(" - it has moved to " + pr.targetHash() + ". Aborting integration.");
                     return;
                 }
             }
@@ -104,7 +104,7 @@ public class SponsorCommand implements CommandHandler {
                     comment.author().id());
 
             var issues = checkablePr.createVisitor(localHash, censusInstance);
-            var additionalConfiguration = AdditionalConfiguration.get(prInstance.localRepo(), localHash, pr.repository().forge().currentUser(), allComments);
+            var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), allComments);
             checkablePr.executeChecks(localHash, censusInstance, issues, additionalConfiguration);
             if (!issues.getMessages().isEmpty()) {
                 reply.print("Your merge request cannot be fulfilled at this time, as ");
@@ -118,7 +118,7 @@ public class SponsorCommand implements CommandHandler {
             if (!localHash.equals(pr.targetHash())) {
                 reply.println(rebaseMessage.toString());
                 reply.println("Pushed as commit " + localHash.hex() + ".");
-                prInstance.localRepo().push(localHash, pr.repository().url(), pr.targetRef());
+                localRepo.push(localHash, pr.repository().url(), pr.targetRef());
                 pr.setState(PullRequest.State.CLOSED);
                 pr.addLabel("integrated");
                 pr.removeLabel("sponsor");

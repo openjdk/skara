@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.*;
+import org.openjdk.skara.vcs.Repository;
 
 import java.io.*;
 import java.nio.file.Path;
@@ -40,9 +41,10 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         return "LabelerWorkItem@" + pr.repository().name() + "#" + pr.id();
     }
 
-    private Set<String> getLabels(PullRequestInstance prInstance) throws IOException {
+    private Set<String> getLabels(Repository localRepo) throws IOException {
         var labels = new HashSet<String>();
-        var files = prInstance.changedFiles();
+        var prInstance = new PullRequestInstance(pr);
+        var files = prInstance.changedFiles(localRepo);
         for (var file : files) {
             for (var label : bot.labelPatterns().entrySet()) {
                 for (var pattern : label.getValue()) {
@@ -63,11 +65,12 @@ public class LabelerWorkItem extends PullRequestWorkItem {
             return;
         }
         try {
+            var path = scratchPath.resolve("pr").resolve("labeler").resolve(pr.repository().name());
             var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
-            var prInstance = new PullRequestInstance(scratchPath.resolve("pr").resolve("labeler"),
-                                                     new HostedRepositoryPool(seedPath),
-                                                     pr);
-            var newLabels = getLabels(prInstance);
+            var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
+            var localRepo = hostedRepositoryPool.checkout(pr, path);
+            localRepo.fetch(pr.repository().url(), "+" + pr.targetRef() + ":labelerworkitem", false);
+            var newLabels = getLabels(localRepo);
             var currentLabels = pr.labels().stream()
                                   .filter(key -> bot.labelPatterns().containsKey(key))
                                   .collect(Collectors.toSet());

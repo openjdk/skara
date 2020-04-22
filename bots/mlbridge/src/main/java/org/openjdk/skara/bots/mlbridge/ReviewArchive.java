@@ -6,6 +6,7 @@ import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.vcs.*;
 
+import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
@@ -16,7 +17,7 @@ import java.util.logging.Logger;
 import java.util.stream.*;
 
 class ReviewArchive {
-    private final PullRequestInstance prInstance;
+    private final PullRequest pr;
     private final EmailAddress sender;
 
     private final List<Comment> comments = new ArrayList<>();
@@ -25,8 +26,8 @@ class ReviewArchive {
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
 
-    ReviewArchive(PullRequestInstance prInstance, EmailAddress sender) {
-        this.prInstance = prInstance;
+    ReviewArchive(PullRequest pr, EmailAddress sender) {
+        this.pr = pr;
         this.sender = sender;
     }
 
@@ -51,7 +52,7 @@ class ReviewArchive {
                         .findAny();
     }
 
-    private List<ArchiveItem> generateArchiveItems(List<Email> sentEmails, Repository localRepo, URI issueTracker, String issuePrefix, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, String subjectPrefix) {
+    private List<ArchiveItem> generateArchiveItems(List<Email> sentEmails, Repository localRepo, URI issueTracker, String issuePrefix, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, String subjectPrefix) throws IOException {
         var generated = new ArrayList<ArchiveItem>();
         Hash lastBase = null;
         Hash lastHead = null;
@@ -64,9 +65,9 @@ class ReviewArchive {
                 threadPrefix = first.headerValue("PR-Thread-Prefix");
             }
         } else {
-            if (prInstance.pr().state() != Issue.State.OPEN) {
+            if (pr.state() != Issue.State.OPEN) {
                 threadPrefix = "FYI";
-            } else if (prInstance.pr().labels().contains("failed-auto-merge")) {
+            } else if (pr.labels().contains("failed-auto-merge")) {
                 threadPrefix = "";
             }
         }
@@ -79,10 +80,10 @@ class ReviewArchive {
                 var created = email.date();
 
                 if (generated.isEmpty()) {
-                    var first = ArchiveItem.from(prInstance, hostUserToEmailAuthor, issueTracker, issuePrefix, webrevGenerator, webrevNotification, prInstance.pr().createdAt(), prInstance.pr().updatedAt(), curBase, curHead, subjectPrefix, threadPrefix);
+                    var first = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, issueTracker, issuePrefix, webrevGenerator, webrevNotification, pr.createdAt(), pr.updatedAt(), curBase, curHead, subjectPrefix, threadPrefix);
                     generated.add(first);
                 } else {
-                    var revision = ArchiveItem.from(prInstance.pr(), localRepo, hostUserToEmailAuthor, webrevGenerator, webrevNotification, created, created, lastBase, lastHead, curBase, curHead, ++revisionIndex, generated.get(0), subjectPrefix, threadPrefix);
+                    var revision = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, webrevGenerator, webrevNotification, created, created, lastBase, lastHead, curBase, curHead, ++revisionIndex, generated.get(0), subjectPrefix, threadPrefix);
                     generated.add(revision);
                 }
 
@@ -92,12 +93,14 @@ class ReviewArchive {
         }
 
         // Check if we're at a revision not previously reported
-        if (!prInstance.baseHash().equals(lastBase) || !prInstance.headHash().equals(lastHead)) {
+        var prInstance = new PullRequestInstance(pr);
+        var baseHash = prInstance.baseHash(localRepo);
+        if (!baseHash.equals(lastBase) || !pr.headHash().equals(lastHead)) {
             if (generated.isEmpty()) {
-                var first = ArchiveItem.from(prInstance, hostUserToEmailAuthor, issueTracker, issuePrefix, webrevGenerator, webrevNotification, prInstance.pr().createdAt(), prInstance.pr().updatedAt(), prInstance.baseHash(), prInstance.headHash(), subjectPrefix, threadPrefix);
+                var first = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, issueTracker, issuePrefix, webrevGenerator, webrevNotification, pr.createdAt(), pr.updatedAt(), baseHash, pr.headHash(), subjectPrefix, threadPrefix);
                 generated.add(first);
             } else {
-                var revision = ArchiveItem.from(prInstance.pr(), localRepo, hostUserToEmailAuthor, webrevGenerator, webrevNotification, prInstance.pr().updatedAt(), prInstance.pr().updatedAt(), lastBase, lastHead, prInstance.baseHash(), prInstance.headHash(), ++revisionIndex, generated.get(0), subjectPrefix, threadPrefix);
+                var revision = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, webrevGenerator, webrevNotification, pr.updatedAt(), pr.updatedAt(), lastBase, lastHead, baseHash, pr.headHash(), ++revisionIndex, generated.get(0), subjectPrefix, threadPrefix);
                 generated.add(revision);
             }
         }
@@ -105,26 +108,26 @@ class ReviewArchive {
         // A review always have a revision mail as parent, so start with these
         for (var review : reviews) {
             var parent = ArchiveItem.findParent(generated, review);
-            var reply = ArchiveItem.from(prInstance.pr(), review, hostUserToEmailAuthor, hostUserToUserName, hostUserToRole, parent);
+            var reply = ArchiveItem.from(pr, review, hostUserToEmailAuthor, hostUserToUserName, hostUserToRole, parent);
             generated.add(reply);
         }
         // Comments have either a comment or a review as parent, the eligible ones have been generated at this point
         for (var comment : comments) {
             var parent = ArchiveItem.findParent(generated, comment);
-            var reply = ArchiveItem.from(prInstance.pr(), comment, hostUserToEmailAuthor, parent);
+            var reply = ArchiveItem.from(pr, comment, hostUserToEmailAuthor, parent);
             generated.add(reply);
         }
         // Finally, file specific comments should be seen after general review comments
         for (var reviewComment : reviewComments) {
             var parent = ArchiveItem.findParent(generated, reviewComments, reviewComment);
-            var reply = ArchiveItem.from(prInstance.pr(), reviewComment, hostUserToEmailAuthor, parent);
+            var reply = ArchiveItem.from(pr, reviewComment, hostUserToEmailAuthor, parent);
             generated.add(reply);
         }
 
         // Post a closed notice for regular RFR threads that weren't integrated
-        if ((prInstance.pr().state() != Issue.State.OPEN) && threadPrefix.equals("RFR") && !prInstance.pr().labels().contains("integrated")) {
+        if ((pr.state() != Issue.State.OPEN) && threadPrefix.equals("RFR") && !pr.labels().contains("integrated")) {
             var parent = generated.get(0);
-            var reply = ArchiveItem.closedNotice(prInstance.pr(), hostUserToEmailAuthor, parent, subjectPrefix, threadPrefix);
+            var reply = ArchiveItem.closedNotice(pr, hostUserToEmailAuthor, parent, subjectPrefix, threadPrefix);
             generated.add(reply);
         }
 
@@ -210,13 +213,13 @@ class ReviewArchive {
 
     private EmailAddress getUniqueMessageId(String identifier) {
         try {
-            var prSpecific = prInstance.pr().repository().name().replace("/", ".") + "." + prInstance.pr().id();
+            var prSpecific = pr.repository().name().replace("/", ".") + "." + pr.id();
             var digest = MessageDigest.getInstance("SHA-256");
             digest.update(prSpecific.getBytes(StandardCharsets.UTF_8));
             digest.update(identifier.getBytes(StandardCharsets.UTF_8));
             var encodedCommon = Base64.getUrlEncoder().encodeToString(digest.digest());
 
-            return EmailAddress.from(encodedCommon + "." + UUID.randomUUID() + "@" + prInstance.pr().repository().url().getHost());
+            return EmailAddress.from(encodedCommon + "." + UUID.randomUUID() + "@" + pr.repository().url().getHost());
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Cannot find SHA-256");
         }
@@ -226,7 +229,7 @@ class ReviewArchive {
         return uniqueMessageId.localPart().split("\\.")[0];
     }
 
-    List<Email> generateNewEmails(List<Email> sentEmails, Duration cooldown, Repository localRepo, URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, String subjectPrefix, Consumer<Instant> retryConsumer) {
+    List<Email> generateNewEmails(List<Email> sentEmails, Duration cooldown, Repository localRepo, URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, String subjectPrefix, Consumer<Instant> retryConsumer) throws IOException {
         var ret = new ArrayList<Email>();
         var allItems = generateArchiveItems(sentEmails, localRepo, issueTracker, issuePrefix, hostUserToEmailAuthor, hostUserToUserName, hostUserToRole, webrevGenerator, webrevNotification, subjectPrefix);
         var sentItemIds = sentItemIds(sentEmails);
