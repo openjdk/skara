@@ -574,12 +574,11 @@ class CheckTests {
             // Let the bot see the changes
             TestBotRunner.runPeriodicItems(mergeBot);
 
-            // The bot should reply with that there is a conflict
+            // The bot should not yet post the ready for integration message
             var updated = pr.comments().stream()
-                            .filter(comment -> comment.body().contains("there has been 1 commit"))
-                            .filter(comment -> comment.body().contains("cannot be rebased automatically"))
+                            .filter(comment -> comment.body().contains("change now passes all automated"))
                             .count();
-            assertEquals(1, updated);
+            assertEquals(0, updated);
 
             // The PR should be flagged as outdated
             assertTrue(pr.labels().contains("merge-conflict"));
@@ -603,7 +602,7 @@ class CheckTests {
             // Let the bot see the changes
             TestBotRunner.runPeriodicItems(mergeBot);
 
-            // The bot should no longer detect a conflict
+            // The bot should now post an integration message
             updated = pr.comments().stream()
                         .filter(comment -> comment.body().contains("change now passes all automated"))
                         .count();
