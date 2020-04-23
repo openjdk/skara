@@ -29,7 +29,8 @@ public class WebrevDescription {
         FULL,
         INCREMENTAL,
         MERGE_TARGET,
-        MERGE_SOURCE
+        MERGE_SOURCE,
+        MERGE_CONFLICT
     }
 
     private final URI uri;
@@ -48,6 +49,10 @@ public class WebrevDescription {
         this.description = null;
     }
 
+    public Type type() {
+        return type;
+    }
+
     public URI uri() {
         return uri;
     }
@@ -62,6 +67,8 @@ public class WebrevDescription {
                 return "Merge target" + (description != null ? " (" + description + ")" : "");
             case MERGE_SOURCE:
                 return "Merge source" + (description != null ? " (" + description + ")" : "");
+            case MERGE_CONFLICT:
+                return "Merge conflicts" + (description != null ? " (" + description + ")" : "");
 
         }
         throw new RuntimeException("Unknown type");
@@ -77,6 +84,8 @@ public class WebrevDescription {
                 return description != null ? description : "merge target";
             case MERGE_SOURCE:
                 return description != null ? description : "merge source";
+            case MERGE_CONFLICT:
+                return "merge conflicts";
 
         }
         throw new RuntimeException("Unknown type");

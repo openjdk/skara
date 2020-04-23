@@ -48,6 +48,40 @@ class ArchiveItem {
         }
     }
 
+    private static Optional<Commit> conflictCommit(PullRequest pr, Repository localRepo, Hash head) {
+        try {
+            localRepo.checkout(head, true);
+        } catch (IOException e) {
+            return Optional.empty();
+        }
+
+        try {
+            localRepo.merge(pr.targetHash());
+            // No problem means no conflict
+            return Optional.empty();
+        } catch (IOException e) {
+            try {
+                var status = localRepo.status();
+                var unmerged = status.stream()
+                                     .filter(entry -> entry.status().isUnmerged())
+                                     .map(entry -> entry.source().path())
+                                     .filter(Optional::isPresent)
+                                     .map(Optional::get)
+                                     .collect(Collectors.toList());
+
+                // Drop the successful merges from the stage
+                localRepo.reset(head, false);
+                // Add the unmerged files as-is (retaining the conflict markers)
+                localRepo.add(unmerged);
+                var hash = localRepo.commit("Conflicts in " + pr.title(), "duke", "duke@openjdk.org");
+                localRepo.clean();
+                return localRepo.lookup(hash);
+            } catch (IOException ioException) {
+                return Optional.empty();
+            }
+        }
+    }
+
     static ArchiveItem from(PullRequest pr, Repository localRepo, HostUserToEmailAuthor hostUserToEmailAuthor,
                             URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator,
                             WebrevNotification webrevNotification, ZonedDateTime created, ZonedDateTime updated,
@@ -60,9 +94,11 @@ class ArchiveItem {
                                () -> ArchiveMessages.composeConversation(pr),
                                () -> {
                                    if (PullRequestUtils.isMerge(pr)) {
-                                       //TODO: Try to merge in target - generate possible conflict webrev
-                                       var mergeCommit = mergeCommit(pr, localRepo, head);
                                        var mergeWebrevs = new ArrayList<WebrevDescription>();
+                                       var conflictCommit = conflictCommit(pr, localRepo, head);
+                                       conflictCommit.ifPresent(commit -> mergeWebrevs.add(
+                                               webrevGenerator.generate(commit.parentDiffs().get(0), "00.conflicts", WebrevDescription.Type.MERGE_CONFLICT, pr.targetRef())));
+                                       var mergeCommit = mergeCommit(pr, localRepo, head);
                                        if (mergeCommit.isPresent()) {
                                            for (int i = 0; i < mergeCommit.get().parentDiffs().size(); ++i) {
                                                var diff = mergeCommit.get().parentDiffs().get(i);
