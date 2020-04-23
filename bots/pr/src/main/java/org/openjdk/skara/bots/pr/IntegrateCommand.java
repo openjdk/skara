@@ -27,8 +27,6 @@ import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.Hash;
 
 import java.io.*;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Logger;
@@ -88,38 +86,36 @@ public class IntegrateCommand implements CommandHandler {
 
         // Run a final jcheck to ensure the change has been properly reviewed
         try {
-            var sanitizedUrl = URLEncoder.encode(pr.repository().webUrl().toString(), StandardCharsets.UTF_8);
-            var path = scratchPath.resolve("integrate").resolve(sanitizedUrl);
-
+            var path = scratchPath.resolve("integrate").resolve(pr.repository().name());
             var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
-            var prInstance = new PullRequestInstance(path,
-                                                     new HostedRepositoryPool(seedPath),
-                                                     pr,
-                                                     bot.ignoreStaleReviews());
+            var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
+            var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, path);
+            var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews());
+
             // Validate the target hash if requested
             var rebaseMessage = new StringWriter();
             if (!args.isBlank()) {
                 var wantedHash = new Hash(args);
-                if (!prInstance.targetHash().equals(wantedHash)) {
+                if (!pr.targetHash().equals(wantedHash)) {
                     reply.print("The head of the target branch is no longer at the requested hash " + wantedHash);
-                    reply.println(" - it has moved to " + prInstance.targetHash() + ". Aborting integration.");
+                    reply.println(" - it has moved to " + pr.targetHash() + ". Aborting integration.");
                     return;
                 }
             };
 
             // Now merge the latest changes from the target
             var rebaseWriter = new PrintWriter(rebaseMessage);
-            var rebasedHash = prInstance.mergeTarget(rebaseWriter);
+            var rebasedHash = checkablePr.mergeTarget(rebaseWriter);
             if (rebasedHash.isEmpty()) {
                 reply.println(rebaseMessage.toString());
                 return;
             }
 
-            var localHash = prInstance.commit(rebasedHash.get(), censusInstance.namespace(), censusInstance.configuration().census().domain(), null);
+            var localHash = checkablePr.commit(rebasedHash.get(), censusInstance.namespace(), censusInstance.configuration().census().domain(), null);
 
-            var issues = prInstance.createVisitor(localHash, censusInstance);
-            var additionalConfiguration = AdditionalConfiguration.get(prInstance.localRepo(), localHash, pr.repository().forge().currentUser(), allComments);
-            prInstance.executeChecks(localHash, censusInstance, issues, additionalConfiguration);
+            var issues = checkablePr.createVisitor(localHash, censusInstance);
+            var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), allComments);
+            checkablePr.executeChecks(localHash, censusInstance, issues, additionalConfiguration);
             if (!issues.getMessages().isEmpty()) {
                 reply.print("Your merge request cannot be fulfilled at this time, as ");
                 reply.println("your changes failed the final jcheck:");
@@ -144,7 +140,7 @@ public class IntegrateCommand implements CommandHandler {
             if (!localHash.equals(pr.targetHash())) {
                 reply.println(rebaseMessage.toString());
                 reply.println("Pushed as commit " + localHash.hex() + ".");
-                prInstance.localRepo().push(localHash, pr.repository().url(), pr.targetRef());
+                localRepo.push(localHash, pr.repository().url(), pr.targetRef());
                 pr.setState(PullRequest.State.CLOSED);
                 pr.addLabel("integrated");
                 pr.removeLabel("ready");

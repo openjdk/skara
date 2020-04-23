@@ -111,12 +111,21 @@ class ArchiveMessages {
     }
 
     private static Optional<String> formatCommitMessagesBrief(List<CommitMetadata> commits) {
+        return formatCommitMessagesBrief(commits, 100);
+    }
+
+    private static Optional<String> formatCommitMessagesBrief(List<CommitMetadata> commits, int maxEntries) {
         if (commits.size() == 0) {
             return Optional.empty();
         } else {
-            return Optional.of(commits.stream()
-                                      .map(ArchiveMessages::formatCommitBrief)
-                                      .collect(Collectors.joining("\n")));
+            var commitSummary = commits.stream()
+                                       .limit(maxEntries)
+                                       .map(ArchiveMessages::formatCommitBrief)
+                                       .collect(Collectors.joining("\n"));
+            if (commits.size() > maxEntries) {
+                commitSummary += "\n - ...omitting " + (commits.size() - maxEntries) + " further commits.";
+            }
+            return Optional.of(commitSummary);
         }
     }
 
@@ -151,7 +160,7 @@ class ArchiveMessages {
         return "git fetch " + repoUrl + " " + pr.fetchRef() + ":pull/" + pr.id();
     }
 
-    static String composeConversation(PullRequest pr, Repository localRepo, Hash base, Hash head) {
+    static String composeConversation(PullRequest pr) {
         var filteredBody = filterComments(pr.body());
         if (filteredBody.isEmpty()) {
             filteredBody = pr.title().strip();
@@ -254,22 +263,20 @@ class ArchiveMessages {
 
     static String composeMergeConversationFooter(PullRequest pr, Repository localRepo, List<WebrevDescription> webrevs, Hash base, Hash head) {
         var commits = commits(localRepo, base, head);
-        var webrevLinks = "";
-        if (webrevs.size() > 1) {
-            webrevLinks = " Webrev: " + webrevs.get(0).uri() + "\n\n" +
-                    "The following webrevs contain only the adjustments done while merging with regards to each parent branch:\n" +
+        String webrevLinks;
+        if (webrevs.size() > 0) {
+            webrevLinks = "The webrev" + (webrevs.size() > 1 ? "s" : "") + " contain" + (webrevs.size() == 1 ? "s" : "") +
+                    " only the adjustments done while merging with regards to each parent branch:\n" +
                     webrevs.stream()
-                           .skip(1)
                            .map(d -> String.format(" - %s: %s", d.shortLabel(), d.uri()))
                            .collect(Collectors.joining("\n")) + "\n\n";
         } else {
-            webrevLinks = " Webrev: " + webrevs.get(0).uri() + "\n\n" +
-                    "The merge commit only contains trivial merges, so no merge-specific webrevs have been generated.\n\n";
+            webrevLinks = "The merge commit only contains trivial merges, so no merge-specific webrevs have been generated.\n\n";
         }
         return "Commit messages:\n" +
-                formatCommitMessagesBrief(commits).orElse("") + "\n\n" +
-                "Changes: " + pr.changeUrl() + "\n" +
+                formatCommitMessagesBrief(commits, 10).orElse("") + "\n\n" +
                 webrevLinks +
+                "Changes: " + pr.changeUrl() + "\n" +
                 "  Stats: " + stats(localRepo, base, head) + "\n" +
                 "  Patch: " + pr.diffUrl().toString() + "\n" +
                 "  Fetch: " + fetchCommand(pr) + "\n\n" +

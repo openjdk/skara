@@ -6,6 +6,7 @@ import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.vcs.*;
 
+import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
@@ -18,8 +19,6 @@ import java.util.stream.*;
 class ReviewArchive {
     private final PullRequest pr;
     private final EmailAddress sender;
-    private final Hash base;
-    private final Hash head;
 
     private final List<Comment> comments = new ArrayList<>();
     private final List<Review> reviews = new ArrayList<>();
@@ -27,11 +26,9 @@ class ReviewArchive {
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
 
-    ReviewArchive(PullRequest pr, EmailAddress sender, Hash base, Hash head) {
+    ReviewArchive(PullRequest pr, EmailAddress sender) {
         this.pr = pr;
         this.sender = sender;
-        this.base = base;
-        this.head = head;
     }
 
     void addComment(Comment comment) {
@@ -55,7 +52,7 @@ class ReviewArchive {
                         .findAny();
     }
 
-    private List<ArchiveItem> generateArchiveItems(List<Email> sentEmails, Repository localRepo, URI issueTracker, String issuePrefix, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, String subjectPrefix) {
+    private List<ArchiveItem> generateArchiveItems(List<Email> sentEmails, Repository localRepo, URI issueTracker, String issuePrefix, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, String subjectPrefix) throws IOException {
         var generated = new ArrayList<ArchiveItem>();
         Hash lastBase = null;
         Hash lastHead = null;
@@ -96,12 +93,13 @@ class ReviewArchive {
         }
 
         // Check if we're at a revision not previously reported
-        if (!base.equals(lastBase) || !head.equals(lastHead)) {
+        var baseHash = PullRequestUtils.baseHash(pr, localRepo);
+        if (!baseHash.equals(lastBase) || !pr.headHash().equals(lastHead)) {
             if (generated.isEmpty()) {
-                var first = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, issueTracker, issuePrefix, webrevGenerator, webrevNotification, pr.createdAt(), pr.updatedAt(), base, head, subjectPrefix, threadPrefix);
+                var first = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, issueTracker, issuePrefix, webrevGenerator, webrevNotification, pr.createdAt(), pr.updatedAt(), baseHash, pr.headHash(), subjectPrefix, threadPrefix);
                 generated.add(first);
             } else {
-                var revision = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, webrevGenerator, webrevNotification, pr.updatedAt(), pr.updatedAt(), lastBase, lastHead, base, head, ++revisionIndex, generated.get(0), subjectPrefix, threadPrefix);
+                var revision = ArchiveItem.from(pr, localRepo, hostUserToEmailAuthor, webrevGenerator, webrevNotification, pr.updatedAt(), pr.updatedAt(), lastBase, lastHead, baseHash, pr.headHash(), ++revisionIndex, generated.get(0), subjectPrefix, threadPrefix);
                 generated.add(revision);
             }
         }
@@ -230,7 +228,7 @@ class ReviewArchive {
         return uniqueMessageId.localPart().split("\\.")[0];
     }
 
-    List<Email> generateNewEmails(List<Email> sentEmails, Duration cooldown, Repository localRepo, URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, String subjectPrefix, Consumer<Instant> retryConsumer) {
+    List<Email> generateNewEmails(List<Email> sentEmails, Duration cooldown, Repository localRepo, URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, String subjectPrefix, Consumer<Instant> retryConsumer) throws IOException {
         var ret = new ArrayList<Email>();
         var allItems = generateArchiveItems(sentEmails, localRepo, issueTracker, issuePrefix, hostUserToEmailAuthor, hostUserToUserName, hostUserToRole, webrevGenerator, webrevNotification, subjectPrefix);
         var sentItemIds = sentItemIds(sentEmails);

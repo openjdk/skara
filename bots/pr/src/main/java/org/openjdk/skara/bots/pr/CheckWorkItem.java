@@ -140,7 +140,7 @@ class CheckWorkItem extends PullRequestWorkItem {
         var labels = new HashSet<>(pr.labels());
 
         // Filter out the active reviews
-        var activeReviews = PullRequestInstance.filterActiveReviews(allReviews);
+        var activeReviews = CheckablePullRequest.filterActiveReviews(allReviews);
         if (!currentCheckValid(census, comments, activeReviews, labels)) {
             if (labels.contains("integrated")) {
                 log.info("Skipping check of integrated PR");
@@ -149,11 +149,11 @@ class CheckWorkItem extends PullRequestWorkItem {
 
             try {
                 var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
-                var prInstance = new PullRequestInstance(scratchPath.resolve("pr").resolve("check"),
-                                                         new HostedRepositoryPool(seedPath),
-                                                         pr,
-                                                         bot.ignoreStaleReviews());
-                CheckRun.execute(this, pr, prInstance, comments, allReviews, activeReviews, labels, census, bot.ignoreStaleReviews());
+                var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
+                var localRepoPath = scratchPath.resolve("pr").resolve("check").resolve(pr.repository().name());
+                var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, localRepoPath);
+
+                CheckRun.execute(this, pr, localRepo, comments, allReviews, activeReviews, labels, census, bot.ignoreStaleReviews());
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
