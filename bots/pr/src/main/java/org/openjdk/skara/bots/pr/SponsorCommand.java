@@ -27,8 +27,6 @@ import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.Hash;
 
 import java.io.*;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Logger;
@@ -73,12 +71,10 @@ public class SponsorCommand implements CommandHandler {
 
         // Execute merge
         try {
-            var sanitizedUrl = URLEncoder.encode(pr.repository().webUrl().toString(), StandardCharsets.UTF_8);
-            var path = scratchPath.resolve("sponsor").resolve(sanitizedUrl);
+            var path = scratchPath.resolve("sponsor").resolve(pr.repository().name());
             var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
             var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
-            var localRepo = hostedRepositoryPool.checkout(pr, path);
-            localRepo.fetch(pr.repository().url(), "+" + pr.targetRef() + ":sponsorcommand", false);
+            var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, path);
             var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews());
 
             // Validate the target hash if requested

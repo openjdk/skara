@@ -94,10 +94,8 @@ public class CheckablePullRequest {
         Author author;
         var contributor = namespace.get(pr.author().id());
 
-        var prUtils = new PullRequestUtils(pr);
-
         if (contributor == null) {
-            if (prUtils.isMerge()) {
+            if (PullRequestUtils.isMerge(pr)) {
                 throw new CommitFailure("Merges can only be performed by Committers.");
             }
 
@@ -117,7 +115,7 @@ public class CheckablePullRequest {
 
         var activeReviews = filterActiveReviews(pr.reviews());
         var commitMessage = commitMessage(activeReviews, namespace);
-        return prUtils.createCommit(localRepo, finalHead, author, committer, commitMessage);
+        return PullRequestUtils.createCommit(pr, localRepo, finalHead, author, committer, commitMessage);
     }
 
     PullRequestCheckIssueVisitor createVisitor(Hash localHash, CensusInstance censusInstance) throws IOException {

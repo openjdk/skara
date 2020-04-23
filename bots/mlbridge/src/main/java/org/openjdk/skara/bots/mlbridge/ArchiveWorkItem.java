@@ -292,9 +292,8 @@ class ArchiveWorkItem implements WorkItem {
             // Materialize the PR's source and target ref
             var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
             var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
-            var localRepoPath = scratchPath.resolve("mlbridge-mergebase");
-            var localRepo = hostedRepositoryPool.checkout(pr, localRepoPath.resolve(pr.repository().name()));
-            localRepo.fetch(pr.repository().url(), "+" + pr.targetRef() + ":archiveworkitem", false);
+            var localRepoPath = scratchPath.resolve("mlbridge-mergebase").resolve(pr.repository().name());
+            var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, localRepoPath);
 
             var webrevPath = scratchPath.resolve("mlbridge-webrevs");
             var listServer = MailingListServerFactory.createMailmanServer(bot.listArchive(), bot.smtpServer(), bot.sendInterval());

@@ -171,8 +171,4 @@ public class HostedRepositoryPool {
         }
         return localRepo;
     }
-
-    public Repository checkout(PullRequest pr, Path path) throws IOException {
-        return checkout(pr.repository(), pr.headHash().hex(), path);
-    }
 }

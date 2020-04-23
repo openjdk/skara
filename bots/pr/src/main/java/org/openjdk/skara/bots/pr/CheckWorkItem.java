@@ -150,9 +150,8 @@ class CheckWorkItem extends PullRequestWorkItem {
             try {
                 var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
                 var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
-                var localRepoPath = scratchPath.resolve("pr").resolve("check");
-                var localRepo = hostedRepositoryPool.checkout(pr, localRepoPath.resolve(pr.repository().name()));
-                localRepo.fetch(pr.repository().url(), "+" + pr.targetRef() + ":checkworkitem", false);
+                var localRepoPath = scratchPath.resolve("pr").resolve("check").resolve(pr.repository().name());
+                var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, localRepoPath);
 
                 CheckRun.execute(this, pr, localRepo, comments, allReviews, activeReviews, labels, census, bot.ignoreStaleReviews());
             } catch (IOException e) {

@@ -71,8 +71,7 @@ class CheckRun {
         this.censusInstance = censusInstance;
         this.ignoreStaleReviews = ignoreStaleReviews;
 
-        var prUtils = new PullRequestUtils(pr);
-        baseHash = prUtils.baseHash(localRepo);
+        baseHash = PullRequestUtils.baseHash(pr, localRepo);
         checkablePullRequest = new CheckablePullRequest(pr, localRepo, ignoreStaleReviews);
     }
 

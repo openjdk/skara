@@ -43,8 +43,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
 
     private Set<String> getLabels(Repository localRepo) throws IOException {
         var labels = new HashSet<String>();
-        var prUtils = new PullRequestUtils(pr);
-        var files = prUtils.changedFiles(localRepo);
+        var files = PullRequestUtils.changedFiles(pr, localRepo);
         for (var file : files) {
             for (var label : bot.labelPatterns().entrySet()) {
                 for (var pattern : label.getValue()) {
@@ -68,8 +67,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
             var path = scratchPath.resolve("pr").resolve("labeler").resolve(pr.repository().name());
             var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
             var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
-            var localRepo = hostedRepositoryPool.checkout(pr, path);
-            localRepo.fetch(pr.repository().url(), "+" + pr.targetRef() + ":labelerworkitem", false);
+            var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, path);
             var newLabels = getLabels(localRepo);
             var currentLabels = pr.labels().stream()
                                   .filter(key -> bot.labelPatterns().containsKey(key))
