@@ -64,6 +64,10 @@ public class GitSkara {
             }
         }
         System.out.println("");
+        System.out.println("To learn more about a particular command, run:");
+        System.out.println("");
+        System.out.println("    " + vcs + " <command> -h");
+        System.out.println("");
         System.out.println("For more information, please see the Skara wiki:");
         System.out.println("");
         if (isMercurial) {
