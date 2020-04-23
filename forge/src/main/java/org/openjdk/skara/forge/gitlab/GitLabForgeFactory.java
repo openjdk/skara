@@ -21,7 +21,7 @@ public class GitLabForgeFactory implements ForgeFactory {
     @Override
     public Forge create(URI uri, Credential credential, JSONObject configuration) {
         var name = "GitLab";
-        if (configuration.contains("name")) {
+        if (configuration != null && configuration.contains("name")) {
             name = configuration.get("name").asString();
         }
         if (credential != null) {
