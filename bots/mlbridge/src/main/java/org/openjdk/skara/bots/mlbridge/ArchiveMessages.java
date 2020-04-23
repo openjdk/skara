@@ -265,8 +265,15 @@ class ArchiveMessages {
         var commits = commits(localRepo, base, head);
         String webrevLinks;
         if (webrevs.size() > 0) {
-            webrevLinks = "The webrev" + (webrevs.size() > 1 ? "s" : "") + " contain" + (webrevs.size() == 1 ? "s" : "") +
-                    " only the adjustments done while merging with regards to each parent branch:\n" +
+            var containsConflicts = webrevs.stream().anyMatch(w -> w.type().equals(WebrevDescription.Type.MERGE_CONFLICT));
+            var containsMergeDiffs = webrevs.stream().anyMatch(w -> w.type().equals(WebrevDescription.Type.MERGE_TARGET) ||
+                    w.type().equals(WebrevDescription.Type.MERGE_SOURCE));
+
+            webrevLinks = "The webrev" + (webrevs.size() > 1 ? "s" : "") + " contain" + (webrevs.size() == 1 ? "s" : "") + " " +
+                    (containsConflicts ? "the conflicts with " + pr.targetRef() : "") +
+                    (containsConflicts && containsMergeDiffs ? " and " : "") +
+                    (containsMergeDiffs ? "the adjustments done while merging with regards to each parent branch" : "")
+                    +":\n" +
                     webrevs.stream()
                            .map(d -> String.format(" - %s: %s", d.shortLabel(), d.uri()))
                            .collect(Collectors.joining("\n")) + "\n\n";
