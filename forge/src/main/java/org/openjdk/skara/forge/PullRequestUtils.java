@@ -29,6 +29,7 @@ import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class PullRequestUtils {
     private static Hash commitSquashed(PullRequest pr, Repository localRepo, Hash finalHead, Author author, Author committer, String commitMessage) throws IOException {
@@ -73,9 +74,9 @@ public class PullRequestUtils {
         return Optional.of(new MergeSource(repoMatcher.group(1), repoMatcher.group(2)));
     }
 
-    private static CommitMetadata findSourceMergeCommit(PullRequest pr, Repository localRepo, List<CommitMetadata> commits) throws IOException, CommitFailure {
-        if (commits.size() < 2) {
-            throw new CommitFailure("A merge PR must contain at least two commits that are not already present in the target.");
+    private static Hash findSourceHash(PullRequest pr, Repository localRepo, List<CommitMetadata> commits) throws IOException, CommitFailure {
+        if (commits.size() < 1) {
+            throw new CommitFailure("A merge PR must contain at least one commit that is not already present in the target.");
         }
 
         var source = mergeSource(pr, localRepo);
@@ -85,13 +86,13 @@ public class PullRequestUtils {
         }
 
         // Fetch the source
-        Hash sourceHash;
+        Hash sourceHead;
         try {
             var mergeSourceRepo = pr.repository().forge().repository(source.get().repositoryName).orElseThrow(() ->
                     new RuntimeException("Could not find repository " + source.get().repositoryName)
             );
             try {
-                sourceHash = localRepo.fetch(mergeSourceRepo.url(), source.get().branchName, false);
+                sourceHead = localRepo.fetch(mergeSourceRepo.url(), source.get().branchName, false);
             } catch (IOException e) {
                 throw new CommitFailure("Could not fetch branch `" + source.get().branchName + "` from project `" +
                         source.get().repositoryName + "` - check that they are correct.");
@@ -101,53 +102,32 @@ public class PullRequestUtils {
                     source.get().repositoryName + "` - check that it is correct.");
         }
 
-
-        // Find the first merge commit with a parent that is an ancestor of the source
-        int mergeCommitIndex = commits.size();
-        for (int i = 0; i < commits.size() - 1; ++i) {
-            if (commits.get(i).isMerge()) {
-                boolean isSourceMerge = false;
-                for (int j = 0; j < commits.get(i).parents().size(); ++j) {
-                    if (localRepo.isAncestor(commits.get(i).parents().get(j), sourceHash)) {
-                        isSourceMerge = true;
-                    }
-                }
-                if (isSourceMerge) {
-                    mergeCommitIndex = i;
-                    break;
-                }
-            }
-        }
-        if (mergeCommitIndex >= commits.size() - 1) {
-            throw new CommitFailure("A merge PR must contain a merge commit as well as at least one other commit from the merge source.");
+        // Ensure that the source and the target are related
+        try {
+            localRepo.mergeBase(pr.targetHash(), sourceHead);
+        } catch (IOException e) {
+            throw new CommitFailure("The target and the source branches do not share common history - cannot merge them.");
         }
 
-        return commits.get(mergeCommitIndex);
+        // Find the most recent commit from the merge source not present in the target
+        var sourceHash = localRepo.mergeBase(pr.headHash(), sourceHead);
+        var commitHashes = commits.stream()
+                                  .map(CommitMetadata::hash)
+                                  .collect(Collectors.toSet());
+        if (!commitHashes.contains(sourceHash)) {
+            throw new CommitFailure("A merge PR must contain at least one commit from the source branch that is not already present in the target.");
+        }
+
+        return sourceHash;
     }
 
     private static Hash commitMerge(PullRequest pr, Repository localRepo, Hash finalHead, Author author, Author committer, String commitMessage) throws IOException, CommitFailure {
         var commits = localRepo.commitMetadata(baseHash(pr, localRepo), finalHead);
-        var mergeCommit = findSourceMergeCommit(pr, localRepo, commits);
-
-        // Find the parent which is on the target branch - we will replace it with the target hash (if there were no merge conflicts)
-        Hash firstParent = null;
-        var finalParents = new ArrayList<Hash>();
-        for (int i = 0; i < mergeCommit.parents().size(); ++i) {
-            if (localRepo.isAncestor(mergeCommit.parents().get(i), pr.targetHash())) {
-                if (firstParent == null) {
-                    firstParent = localRepo.mergeBase(pr.targetHash(), finalHead);
-                    continue;
-                }
-            }
-            finalParents.add(mergeCommit.parents().get(i));
-        }
-        if (firstParent == null) {
-            throw new CommitFailure("The merge commit must have a commit on the target branch as one of its parents.");
-        }
-        finalParents.add(0, firstParent);
+        var sourceHash = findSourceHash(pr, localRepo, commits);
+        var parents = List.of(localRepo.mergeBase(pr.targetHash(), finalHead), sourceHash);
 
         return localRepo.commit(commitMessage, author.name(), author.email(), ZonedDateTime.now(),
-                committer.name(), committer.email(), ZonedDateTime.now(), finalParents, localRepo.tree(finalHead));
+                committer.name(), committer.email(), ZonedDateTime.now(), parents, localRepo.tree(finalHead));
     }
 
     public static Repository materialize(HostedRepositoryPool hostedRepositoryPool, PullRequest pr, Path path) throws IOException {

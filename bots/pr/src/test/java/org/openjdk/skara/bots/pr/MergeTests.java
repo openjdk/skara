@@ -463,14 +463,21 @@ class MergeTests {
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(mergeBot);
 
-            // The bot should reply with a failure message
-            var error = pr.comments().stream()
-                          .filter(comment -> comment.body().contains("did not complete successfully"))
-                          .count();
-            assertEquals(1, error, () -> pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
+            // The bot will create a proper merge commit
+            var pushed = pr.comments().stream()
+                           .filter(comment -> comment.body().contains("Pushed as commit"))
+                           .count();
+            assertEquals(1, pushed, () -> pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
 
-            var check = pr.checks(mergeHash).get("jcheck");
-            assertEquals("- The merge commit must have a commit on the target branch as one of its parents.", check.summary().orElseThrow());
+            // The change should now be present with correct parents on the master branch
+            var pushedRepoFolder = tempFolder.path().resolve("pushedrepo");
+            var pushedRepo = Repository.materialize(pushedRepoFolder, author.url(), "master");
+            assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
+
+            var head = pushedRepo.commitMetadata("HEAD^!").get(0);
+            assertEquals(2, head.parents().size());
+            assertEquals(masterHash, head.parents().get(0));
+            assertEquals(otherHash, head.parents().get(1));
         }
     }
 
@@ -716,7 +723,7 @@ class MergeTests {
             assertEquals(1, error, () -> pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
 
             var check = pr.checks(mergeHash).get("jcheck");
-            assertEquals("- A merge PR must contain a merge commit as well as at least one other commit from the merge source.", check.summary().orElseThrow());
+            assertEquals("- A merge PR must contain at least one commit from the source branch that is not already present in the target.", check.summary().orElseThrow());
         }
     }
 
@@ -848,7 +855,7 @@ class MergeTests {
             assertEquals(1, error, () -> pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
 
             var check = pr.checks(mergeHash).get("jcheck");
-            assertEquals("- The merge commit must have a commit on the target branch as one of its parents.", check.summary().orElseThrow());
+            assertEquals("- The target and the source branches do not share common history - cannot merge them.", check.summary().orElseThrow());
         }
     }
 
