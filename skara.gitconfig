@@ -34,3 +34,23 @@
         sync = ! git skara sync
         publish = ! git skara publish
         proxy = ! git skara proxy
+        trees = ! git skara trees
+
+        tcommit = trees commit
+        tconfig = trees config
+        tdiff = trees diff
+        tlog = trees log
+        tmerge = trees merge
+        tremote = trees remote
+        tpull = trees pull
+        tpush = trees push
+        tcheckout = trees checkout
+        tstatus = trees status
+        ttag = trees tag
+
+        tdefpath = trees defpath
+        tsync = trees sync
+        tinfo = trees info
+        tpublish = trees publish
+        tskara = trees skara
+        tproxy = trees proxy
