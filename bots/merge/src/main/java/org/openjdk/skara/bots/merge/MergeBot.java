@@ -189,16 +189,36 @@ class MergeBot implements Bot, WorkItem {
         private final Branch fromBranch;
         private final Branch toBranch;
         private final Frequency frequency;
+        private final String name;
+        private final List<String> dependencies;
 
         Spec(HostedRepository fromRepo, Branch fromBranch, Branch toBranch) {
-            this(fromRepo, fromBranch, toBranch, null);
+            this(fromRepo, fromBranch, toBranch, null, null, List.of());
+        }
+
+        Spec(HostedRepository fromRepo, Branch fromBranch, Branch toBranch, String name) {
+            this(fromRepo, fromBranch, toBranch, null, name, List.of());
+        }
+
+        Spec(HostedRepository fromRepo, Branch fromBranch, Branch toBranch, String name, List<String> dependencies) {
+            this(fromRepo, fromBranch, toBranch, null, name, dependencies);
         }
 
         Spec(HostedRepository fromRepo, Branch fromBranch, Branch toBranch, Frequency frequency) {
+            this(fromRepo, fromBranch, toBranch, frequency, null, List.of());
+        }
+
+        Spec(HostedRepository fromRepo, Branch fromBranch, Branch toBranch, Frequency frequency, String name) {
+            this(fromRepo, fromBranch, toBranch, frequency, name, List.of());
+        }
+
+        Spec(HostedRepository fromRepo, Branch fromBranch, Branch toBranch, Frequency frequency, String name, List<String> dependencies) {
             this.fromRepo = fromRepo;
             this.fromBranch = fromBranch;
             this.toBranch = toBranch;
             this.frequency = frequency;
+            this.name = name;
+            this.dependencies = dependencies;
         }
 
         HostedRepository fromRepo() {
@@ -215,6 +235,14 @@ class MergeBot implements Bot, WorkItem {
 
         Optional<Frequency> frequency() {
             return Optional.ofNullable(frequency);
+        }
+
+        Optional<String> name() {
+            return Optional.ofNullable(name);
+        }
+
+        List<String> dependencies() {
+            return dependencies;
         }
     }
 
@@ -265,6 +293,7 @@ class MergeBot implements Bot, WorkItem {
             var prs = prTarget.pullRequests();
             var currentUser = prTarget.forge().currentUser();
 
+            var unmerged = new HashSet<String>();
             for (var spec : specs) {
                 var toBranch = spec.toBranch();
                 var fromRepo = spec.fromRepo();
@@ -397,8 +426,21 @@ class MergeBot implements Bot, WorkItem {
                     }
                 }
 
+                if (spec.dependencies().stream().anyMatch(unmerged::contains)) {
+                    var failed = spec.dependencies()
+                                     .stream()
+                                     .filter(unmerged::contains)
+                                     .collect(Collectors.toList());
+                    log.info("Will not merge because the following dependencies did not merge successfully: " +
+                             String.join(", ", failed));
+                    shouldMerge = false;
+                }
+
                 if (!shouldMerge) {
                     log.info("Will not merge " + fromRepo.name() + ":" + fromBranch.name() + " to " + toBranch.name());
+                    if (spec.name().isPresent()) {
+                        unmerged.add(spec.name().get());
+                    }
                     continue;
                 }
 
@@ -447,6 +489,9 @@ class MergeBot implements Bot, WorkItem {
                         repo = cloneAndSyncFork(dir);
                     }
                 } else {
+                    if (spec.name().isPresent()) {
+                        unmerged.add(spec.name().get());
+                    }
                     log.info("Got error: " + error.getMessage());
                     log.info("Aborting unsuccesful merge");
                     var status = repo.status();
@@ -477,16 +522,16 @@ class MergeBot implements Bot, WorkItem {
                                 "that can **not** be merged into the branch `" + toBranch.name() + "`:");
 
                     message.add("");
-                    var unmerged = status.stream().filter(entry -> entry.status().isUnmerged()).collect(Collectors.toList());
-                    if (unmerged.size() <= 10) {
-                        var files = unmerged.size() > 1 ? "files" : "file";
+                    var unmergedFiles = status.stream().filter(entry -> entry.status().isUnmerged()).collect(Collectors.toList());
+                    if (unmergedFiles.size() <= 10) {
+                        var files = unmergedFiles.size() > 1 ? "files" : "file";
                         message.add("The following " + files + " contains merge conflicts:");
                         message.add("");
-                        for (var fileStatus : unmerged) {
+                        for (var fileStatus : unmergedFiles) {
                             message.add("- " + fileStatus.source().path().orElseThrow());
                         }
                     } else {
-                        message.add("Over " + unmerged.size() + " files contains merge conflicts.");
+                        message.add("Over " + unmergedFiles.size() + " files contains merge conflicts.");
                     }
                     message.add("");
 
