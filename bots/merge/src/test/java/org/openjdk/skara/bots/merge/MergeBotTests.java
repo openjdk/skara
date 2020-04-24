@@ -118,6 +118,187 @@ class MergeBotTests {
     }
 
     @Test
+    void successfulDependency(TestInfo testInfo) throws IOException {
+        try (var temp = new TemporaryDirectory(false)) {
+            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+
+            var fromDir = temp.path().resolve("from.git");
+            var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
+            var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
+
+            var toDir = temp.path().resolve("to.git");
+            var toLocalRepo = Repository.init(toDir, VCS.GIT);
+            var toGitConfig = toDir.resolve(".git").resolve("config");
+            Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
+                        StandardOpenOption.APPEND);
+            var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
+
+            var forkDir = temp.path().resolve("fork.git");
+            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkGitConfig = forkDir.resolve(".git").resolve("config");
+            Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
+                        StandardOpenOption.APPEND);
+            var toFork = new TestHostedRepository(host, "test-mirror-fork", forkLocalRepo);
+
+            var now = ZonedDateTime.now();
+            var fromFileA = fromDir.resolve("a.txt");
+            Files.writeString(fromFileA, "Hello A\n");
+            fromLocalRepo.add(fromFileA);
+            var fromHashA = fromLocalRepo.commit("Adding a.txt", "duke", "duke@openjdk.org", now);
+            var fromCommits = fromLocalRepo.commits().asList();
+            assertEquals(1, fromCommits.size());
+            assertEquals(fromHashA, fromCommits.get(0).hash());
+
+            var toFileA = toDir.resolve("a.txt");
+            Files.writeString(toFileA, "Hello A\n");
+            toLocalRepo.add(toFileA);
+            var toHashA = toLocalRepo.commit("Adding a.txt", "duke", "duke@openjdk.org", now);
+            var toCommits = toLocalRepo.commits().asList();
+            assertEquals(1, toCommits.size());
+            assertEquals(toHashA, toCommits.get(0).hash());
+            assertEquals(fromHashA, toHashA);
+            toLocalRepo.branch(toHashA, "feature");
+            assertEquals(2, toLocalRepo.branches().size());
+
+            var fromFileB = fromDir.resolve("b.txt");
+            Files.writeString(fromFileB, "Hello B\n");
+            fromLocalRepo.add(fromFileB);
+            var fromHashB = fromLocalRepo.commit("Adding b.txt", "duke", "duke@openjdk.org");
+
+            var featureBranch = fromLocalRepo.branch(fromHashB, "feature");
+            fromLocalRepo.checkout(featureBranch);
+            var fromFileD = fromDir.resolve("d.txt");
+            Files.writeString(fromFileD, "Hello D\n");
+            fromLocalRepo.add(fromFileD);
+            var fromHashD = fromLocalRepo.commit("Adding d.txt", "duke", "duke@openjdk.org");
+
+            var toFileC = toDir.resolve("c.txt");
+            Files.writeString(toFileC, "Hello C\n");
+            toLocalRepo.add(toFileC);
+            var toHashC = toLocalRepo.commit("Adding c.txt", "duke", "duke@openjdk.org");
+
+            toLocalRepo.checkout(featureBranch);
+            var toFileE = toDir.resolve("e.txt");
+            Files.writeString(toFileE, "Hello E\n");
+            toLocalRepo.add(toFileE);
+            var toHashE = toLocalRepo.commit("Adding e.txt", "duke", "duke@openjdk.org");
+
+            var storage = temp.path().resolve("storage");
+            var master = new Branch("master");
+            var feature = new Branch("feature");
+            var specs = List.of(new MergeBot.Spec(fromHostedRepo, master, master, "master"),
+                                new MergeBot.Spec(fromHostedRepo, feature, feature, "feature", List.of("master")));
+            var bot = new MergeBot(storage, toHostedRepo, toFork, specs);
+            TestBotRunner.runPeriodicItems(bot);
+
+            toCommits = toLocalRepo.commits().asList();
+            assertEquals(7, toCommits.size());
+            var hashes = toCommits.stream().map(Commit::hash).collect(Collectors.toSet());
+            assertTrue(hashes.contains(toHashA));
+            assertTrue(hashes.contains(fromHashB));
+            assertTrue(hashes.contains(toHashC));
+
+            var merges = toCommits.stream().filter(c -> c.isMerge()).collect(Collectors.toList());
+            assertEquals(2, merges.size());
+
+            assertTrue(merges.stream().anyMatch(c -> c.message().get(0).equals("Automatic merge of test:master into master")));
+            assertTrue(merges.stream().anyMatch(c -> c.message().get(0).equals("Automatic merge of test:feature into feature")));
+        }
+    }
+
+    @Test
+    void failedDependency(TestInfo testInfo) throws IOException {
+        try (var temp = new TemporaryDirectory(false)) {
+            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+
+            var fromDir = temp.path().resolve("from.git");
+            var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
+            var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
+
+            var toDir = temp.path().resolve("to.git");
+            var toLocalRepo = Repository.init(toDir, VCS.GIT);
+            var toGitConfig = toDir.resolve(".git").resolve("config");
+            Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
+                        StandardOpenOption.APPEND);
+            var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
+
+            var forkDir = temp.path().resolve("fork.git");
+            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkGitConfig = forkDir.resolve(".git").resolve("config");
+            Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
+                        StandardOpenOption.APPEND);
+            var toFork = new TestHostedRepository(host, "test-mirror-fork", forkLocalRepo);
+
+            var now = ZonedDateTime.now();
+            var fromFileA = fromDir.resolve("a.txt");
+            Files.writeString(fromFileA, "Hello A\n");
+            fromLocalRepo.add(fromFileA);
+            var fromHashA = fromLocalRepo.commit("Adding a.txt", "duke", "duke@openjdk.org", now);
+            var fromCommits = fromLocalRepo.commits().asList();
+            assertEquals(1, fromCommits.size());
+            assertEquals(fromHashA, fromCommits.get(0).hash());
+
+            var toFileA = toDir.resolve("a.txt");
+            Files.writeString(toFileA, "Hello A\n");
+            toLocalRepo.add(toFileA);
+            var toHashA = toLocalRepo.commit("Adding a.txt", "duke", "duke@openjdk.org", now);
+            var toCommits = toLocalRepo.commits().asList();
+            assertEquals(1, toCommits.size());
+            assertEquals(toHashA, toCommits.get(0).hash());
+            assertEquals(fromHashA, toHashA);
+            toLocalRepo.branch(toHashA, "feature");
+            assertEquals(2, toLocalRepo.branches().size());
+
+            var fromFileB = fromDir.resolve("b.txt");
+            Files.writeString(fromFileB, "Hello B\n");
+            fromLocalRepo.add(fromFileB);
+            var fromHashB = fromLocalRepo.commit("Adding b.txt", "duke", "duke@openjdk.org");
+
+            var featureBranch = fromLocalRepo.branch(fromHashB, "feature");
+            fromLocalRepo.checkout(featureBranch);
+            var fromFileD = fromDir.resolve("d.txt");
+            Files.writeString(fromFileD, "Hello D\n");
+            fromLocalRepo.add(fromFileD);
+            var fromHashD = fromLocalRepo.commit("Adding d.txt", "duke", "duke@openjdk.org");
+
+            var toFileB = toDir.resolve("b.txt");
+            Files.writeString(toFileB, "Hello conflict\n");
+            toLocalRepo.add(toFileB);
+            var toHashB = toLocalRepo.commit("Adding b.txt", "duke", "duke@openjdk.org");
+
+            toLocalRepo.checkout(featureBranch);
+            var toFileE = toDir.resolve("e.txt");
+            Files.writeString(toFileE, "Hello E\n");
+            toLocalRepo.add(toFileE);
+            var toHashE = toLocalRepo.commit("Adding e.txt", "duke", "duke@openjdk.org");
+
+            var toCommitsBeforeMerge = toLocalRepo.commits().asList();
+            assertEquals(3, toCommitsBeforeMerge.size());
+            assertEquals(toHashE, toCommitsBeforeMerge.get(0).hash());
+            assertEquals(toHashB, toCommitsBeforeMerge.get(1).hash());
+            assertEquals(toHashA, toCommitsBeforeMerge.get(2).hash());
+            assertEquals(toHashB, toLocalRepo.resolve("master").get());
+            assertEquals(toHashE, toLocalRepo.resolve("feature").get());
+
+            var storage = temp.path().resolve("storage");
+            var master = new Branch("master");
+            var feature = new Branch("feature");
+            var specs = List.of(new MergeBot.Spec(fromHostedRepo, master, master, "master"),
+                                new MergeBot.Spec(fromHostedRepo, feature, feature, "feature", List.of("master")));
+            var bot = new MergeBot(storage, toHostedRepo, toFork, specs);
+            TestBotRunner.runPeriodicItems(bot);
+
+            toCommits = toLocalRepo.commits().asList();
+            assertEquals(toCommitsBeforeMerge.size(), toCommits.size());
+            assertEquals(toCommitsBeforeMerge.get(0).hash(), toCommits.get(0).hash());
+            assertEquals(toCommitsBeforeMerge.get(1).hash(), toCommits.get(1).hash());
+            assertEquals(toCommitsBeforeMerge.get(2).hash(), toCommits.get(2).hash());
+            assertEquals(toHashB, toLocalRepo.resolve("master").get());
+            assertEquals(toHashE, toLocalRepo.resolve("feature").get());
+        }
+    }
+
+    @Test
     void failingMergeTest(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory()) {
             var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
