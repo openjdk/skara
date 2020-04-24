@@ -1877,7 +1877,7 @@ class MailingListBridgeBotTests {
             assertEquals(0, pr.comments().size());
         }
     }
-    
+
     @Test
     void skipAddingExistingWebrev(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
