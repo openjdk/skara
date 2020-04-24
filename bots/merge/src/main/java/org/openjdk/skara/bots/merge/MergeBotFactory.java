@@ -30,6 +30,7 @@ import java.nio.file.Files;
 import java.time.DayOfWeek;
 import java.time.Month;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.logging.Logger;
 
 public class MergeBotFactory implements BotFactory {
@@ -180,7 +181,13 @@ public class MergeBotFactory implements BotFactory {
                     }
                 }
 
-                specs.add(new MergeBot.Spec(fromRepo, fromBranch, toBranch, frequency));
+                var name = spec.get("name").asString();
+                var dependencies = spec.get("dependencies")
+                                       .stream()
+                                       .map(e -> e.asString())
+                                       .collect(Collectors.toList());
+
+                specs.add(new MergeBot.Spec(fromRepo, fromBranch, toBranch, frequency, name, dependencies));
             }
 
             bots.add(new MergeBot(storage, targetRepo, forkRepo, specs));
