@@ -23,19 +23,17 @@
 package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.email.*;
-import org.openjdk.skara.forge.HostedRepository;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.mailinglist.MailingList;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.OpenJDKTag;
 
 import java.io.*;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class MailingListUpdater implements RepositoryUpdateConsumer {
     private final MailingList list;
@@ -55,8 +53,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
 
     enum Mode {
         ALL,
-        PR,
-        PR_ONLY
+        PR
     }
 
     MailingListUpdater(MailingList list, EmailAddress recipient, EmailAddress sender, EmailAddress author,
@@ -165,14 +162,16 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
         return ret.toString();
     }
 
-    private List<Commit> filterAndSendPrCommits(HostedRepository repository, List<Commit> commits, Branch branch) throws NonRetriableException {
+    private List<Commit> filterPrCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) throws NonRetriableException {
         var ret = new ArrayList<Commit>();
-
-        var rfrsConvos = list.conversations(Duration.ofDays(365)).stream()
-                       .filter(conv -> conv.first().subject().contains("RFR: "))
-                       .collect(Collectors.toList());
+        var mergedHashes = new HashSet<Hash>();
 
         for (var commit : commits) {
+            if (mergedHashes.contains(commit.hash())) {
+                log.info("Commit " + commit.hash() + " belongs to a merge PR - skipping");
+                continue;
+            }
+
             var candidates = repository.findPullRequestsWithComment(null, "Pushed as commit " + commit.hash() + ".");
             if (candidates.size() != 1) {
                 log.warning("Commit " + commit.hash() + " matches " + candidates.size() + " pull requests - expected 1");
@@ -183,44 +182,19 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
             var candidate = candidates.get(0);
             var prLink = candidate.webUrl();
             if (!candidate.targetRef().equals(branch.name())) {
-                log.warning("Pull request " + prLink + " targets " + candidate.targetRef() + " - commit is on " + branch.toString() + " - skipping");
-                ret.add(commit);
-                continue;
-            }
-            var prLinkPattern = Pattern.compile("^(?:PR: )?" + Pattern.quote(prLink.toString()), Pattern.MULTILINE);
-
-            var rfrCandidates = rfrsConvos.stream()
-                                    .filter(conv -> prLinkPattern.matcher(conv.first().body()).find())
-                                    .collect(Collectors.toList());
-            if (rfrCandidates.size() != 1) {
-                log.warning("Pull request " + prLink + " found in " + rfrCandidates.size() + " RFR threads - expected 1");
-                ret.add(commit);
-                continue;
-            }
-            var rfrConv = rfrCandidates.get(0);
-            var alreadyNotified = rfrConv.allMessages().stream()
-                                         .anyMatch(email -> email.subject().contains("[Integrated]") &&
-                                                 email.body().contains(commit.hash().abbreviate()));
-            if (alreadyNotified) {
-                log.warning("Pull request " + prLink + " already contains an integration message - skipping");
+                log.info("Pull request " + prLink + " targets " + candidate.targetRef() + " - commit is on " + branch.toString() + " - skipping");
                 ret.add(commit);
                 continue;
             }
 
-            var body = CommitFormatters.toText(repository, commit);
-            var email = Email.reply(rfrConv.first(), "Re: " + subjectPrefix(repository, branch) +
-                    "[Integrated] " + rfrConv.first().subject(), body)
-                             .sender(sender)
-                             .author(commitToAuthor(commit))
-                             .recipient(recipient)
-                             .headers(headers)
-                             .headers(commitHeaders(repository, commits))
-                             .build();
-
+            // For a merge PR, many other of these commits could belong here as well
             try {
-                list.post(email);
-            } catch (RuntimeException e) {
-                throw new NonRetriableException(e);
+                localRepository.fetch(repository.url(), candidate.fetchRef());
+                var baseHash = PullRequestUtils.baseHash(candidate, localRepository);
+                var prCommits = localRepository.commitMetadata(baseHash, candidate.headHash());
+                prCommits.forEach(prCommit -> mergedHashes.add(prCommit.hash()));
+            } catch (IOException e) {
+                log.warning("Could not fetch commits from " + prLink + " - cannot see if the belong to the PR");
             }
         }
 
@@ -268,22 +242,15 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
 
     @Override
     public void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) throws NonRetriableException {
-        switch (mode) {
-            case PR_ONLY:
-                filterAndSendPrCommits(repository, commits, branch);
-                break;
-            case PR:
-                commits = filterAndSendPrCommits(repository, commits, branch);
-                // fall-through
-            case ALL:
-                sendCombinedCommits(repository, commits, branch);
-                break;
+        if (mode == Mode.PR) {
+            commits = filterPrCommits(repository, localRepository, commits, branch);
         }
+        sendCombinedCommits(repository, commits, branch);
     }
 
     @Override
     public void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotation) throws NonRetriableException {
-        if ((mode == Mode.PR_ONLY) || (!reportNewTags)) {
+        if (!reportNewTags) {
             return;
         }
         if (!reportNewBuilds) {
@@ -331,7 +298,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
 
     @Override
     public void handleTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag, Tag.Annotated annotation) throws NonRetriableException {
-        if ((mode == Mode.PR_ONLY) || (!reportNewTags)) {
+        if (!reportNewTags) {
             return;
         }
         var writer = new StringWriter();
@@ -383,7 +350,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
 
     @Override
     public void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) throws NonRetriableException {
-        if ((mode == Mode.PR_ONLY) || (!reportNewBranches)) {
+        if (!reportNewBranches) {
             return;
         }
         var writer = new StringWriter();

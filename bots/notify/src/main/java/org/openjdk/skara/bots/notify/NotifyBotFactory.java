@@ -28,7 +28,6 @@ import org.openjdk.skara.json.*;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.storage.StorageBuilder;
-import org.openjdk.skara.vcs.Tag;
 
 import java.net.URI;
 import java.nio.file.Path;
@@ -136,9 +135,6 @@ public class NotifyBotFactory implements BotFactory {
                         switch (mailinglist.get("mode").asString()) {
                             case "pr":
                                 mode = MailingListUpdater.Mode.PR;
-                                break;
-                            case "pr-only":
-                                mode = MailingListUpdater.Mode.PR_ONLY;
                                 break;
                             default:
                                 throw new RuntimeException("Unknown mode");
