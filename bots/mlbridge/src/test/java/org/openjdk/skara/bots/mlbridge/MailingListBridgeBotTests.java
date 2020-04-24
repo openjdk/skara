@@ -557,7 +557,7 @@ class MailingListBridgeBotTests {
 
             // The archive should contain an entry
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertTrue(archiveContains(archiveFolder.path(), "Subject: Cannot automatically merge"));
+            assertTrue(archiveContains(archiveFolder.path(), "Subject: RFR: Cannot automatically merge"));
         }
     }
 
@@ -1688,29 +1688,34 @@ class MailingListBridgeBotTests {
             localRepo.push(masterHash, archive.url(), "archive", true);
             localRepo.push(masterHash, archive.url(), "webrev", true);
 
-            // Create a merge
+            // Create a diverging branch
             var editOnlyFile = Path.of("editonly.txt");
             Files.writeString(localRepo.root().resolve(editOnlyFile), "Only added in the edit");
             localRepo.add(editOnlyFile);
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Edited");
+            localRepo.push(editHash, author.url(), "edit");
+
+            // Make conflicting changes in the target
             localRepo.checkout(masterHash, true);
             var masterOnlyFile = Path.of("masteronly.txt");
             Files.writeString(localRepo.root().resolve(masterOnlyFile), "Only added in master");
             localRepo.add(masterOnlyFile);
             var updatedMasterHash = CheckableRepository.appendAndCommit(localRepo, "Master change");
             localRepo.push(updatedMasterHash, author.url(), "master");
+
+            // Perform the merge - resolve conflicts in our favor
             localRepo.merge(editHash, "ours");
-            var mergeCommit = localRepo.commit("Merged edit", "duke", "duke@openjdk.java.net");
+            localRepo.commit("Merged edit", "duke", "duke@openjdk.java.net");
             var mergeOnlyFile = Path.of("mergeonly.txt");
             Files.writeString(localRepo.root().resolve(mergeOnlyFile), "Only added in the merge");
             localRepo.add(mergeOnlyFile);
             Files.writeString(localRepo.root().resolve(reviewFile), "Overwriting the conflict resolution");
             localRepo.add(reviewFile);
             var appendedCommit = localRepo.amend("Updated merge commit", "duke", "duke@openjdk.java.net");
-            localRepo.push(appendedCommit, author.url(), "edit", true);
+            localRepo.push(appendedCommit, author.url(), "merge_of_edit", true);
 
             // Make a merge PR
-            var pr = credentials.createPullRequest(archive, "master", "edit", "Merge edit");
+            var pr = credentials.createPullRequest(archive, "master", "merge_of_edit", "Merge edit");
             pr.setBody("This is now ready");
 
             // Run an archive pass
@@ -1719,7 +1724,7 @@ class MailingListBridgeBotTests {
 
             // The archive should contain a merge style webrev
             Repository.materialize(archiveFolder.path(), archive.url(), "archive");
-            assertTrue(archiveContains(archiveFolder.path(), "webrevs contain only the adjustments"));
+            assertTrue(archiveContains(archiveFolder.path(), "The webrevs contain the adjustments done while merging with regards to each parent branch:"));
             assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/webrev.00.0"));
             assertTrue(archiveContains(archiveFolder.path(), "3 lines in 2 files changed: 1 ins; 1 del; 1 mod"));
 
@@ -1872,75 +1877,7 @@ class MailingListBridgeBotTests {
             assertEquals(0, pr.comments().size());
         }
     }
-
-    @Test
-    void mergeWebrevNoMerge(TestInfo testInfo) throws IOException {
-        try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var archiveFolder = new TemporaryDirectory();
-             var listServer = new TestMailmanServer();
-             var webrevServer = new TestWebrevServer()) {
-            var author = credentials.getHostedRepository();
-            var archive = credentials.getHostedRepository();
-            var commenter = credentials.getHostedRepository();
-            var listAddress = EmailAddress.parse(listServer.createList("test"));
-            var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.forge().currentUser().id());
-            var from = EmailAddress.from("test", "test@test.mail");
-            var mlBot = MailingListBridgeBot.newBuilder()
-                                            .from(from)
-                                            .repo(author)
-                                            .archive(archive)
-                                            .archiveRef("archive")
-                                            .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
-                                            .listArchive(listServer.getArchive())
-                                            .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
-                                            .webrevStorageRef("webrev")
-                                            .webrevStorageBase(Path.of("test"))
-                                            .webrevStorageBaseUri(webrevServer.uri())
-                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
-                                            .build();
-
-            // Populate the projects repository
-            var reviewFile = Path.of("reviewfile.txt");
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
-            var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-            localRepo.push(masterHash, archive.url(), "archive", true);
-            localRepo.push(masterHash, archive.url(), "webrev", true);
-
-            // Create a merge
-            var editOnlyFile = Path.of("editonly.txt");
-            Files.writeString(localRepo.root().resolve(editOnlyFile), "Only added in the edit");
-            localRepo.add(editOnlyFile);
-            var editHash = CheckableRepository.appendAndCommit(localRepo, "Edited", "Commit in edit branch");
-            localRepo.checkout(masterHash, true);
-            var masterOnlyFile = Path.of("masteronly.txt");
-            Files.writeString(localRepo.root().resolve(masterOnlyFile), "Only added in master");
-            localRepo.add(masterOnlyFile);
-            var updatedMasterHash = CheckableRepository.appendAndCommit(localRepo, "Master change", "Commit in master branch");
-            localRepo.push(updatedMasterHash, author.url(), "master");
-            localRepo.push(editHash, author.url(), "edit", true);
-
-            // Make a merge PR
-            var pr = credentials.createPullRequest(archive, "master", "edit", "Merge edit");
-            pr.setBody("This is now ready");
-
-            // Run an archive pass
-            TestBotRunner.runPeriodicItems(mlBot);
-            listServer.processIncoming();
-
-            // The archive should not include any merge-specific webrevs
-            Repository.materialize(archiveFolder.path(), archive.url(), "archive");
-            assertTrue(archiveContains(archiveFolder.path(), "so no merge-specific webrevs have been generated"));
-
-            // The PR should not contain a webrev comment
-            assertEquals(0, pr.comments().size());
-        }
-    }
-
+    
     @Test
     void skipAddingExistingWebrev(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
