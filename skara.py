@@ -40,7 +40,7 @@ else:
             return func
         return decorator
 
-def _skara(ui, args, **opts):
+def _update_if_needed(ui):
     skara = os.path.dirname(os.path.realpath(__file__))
     git_skara = os.path.join(skara, 'bin', 'bin', 'git-skara')
     if not os.path.isfile(git_skara):
@@ -58,14 +58,35 @@ def _skara(ui, args, **opts):
         if os.path.isdir(skara_bin):
             shutil.rmtree(skara_bin)
         shutil.move(skara_build, skara_bin)
+    return git_skara
 
+def _opts_to_flags(cmd = None, **opts):
+    args = []
     for k in opts:
-        if opts[k] == True:
-            args.append('--' + k.replace('_', '-'))
-        elif opts[k] != b'' and opts[k] != False:
-            args.append('--' + k)
-            args.append(opts[k])
-    return subprocess.call([git_skara] + args)
+        name = k.replace('_', '-')
+        v = opts[k]
+        if v == True:
+            args.append('--' + name)
+        elif k == b'terse' and cmd == 'status':
+            if v != b'nothing':
+                args.append('--' + name)
+                args.append(str(v))
+        elif v != b'' and v != [] and v != None and v != False:
+            args.append('--' + name)
+            args.append(str(v))
+    return args
+
+def _skara(ui, args, **opts):
+    git_skara = _update_if_needed(ui)
+    flags = _opts_to_flags(**opts)
+    ret = subprocess.call([git_skara] + args + flags)
+    sys.exit(ret)
+
+def _trees(ui, command, *args, **opts):
+    git_skara = _update_if_needed(ui)
+    flags = _opts_to_flags(command, **opts)
+    ret = subprocess.call([git_skara] + ['trees', '--mercurial', command] + flags + list(args))
+    sys.exit(ret)
 
 skara_opts = [
 ]
@@ -76,7 +97,7 @@ def skara(ui, repo, action=None, **opts):
     """
     if action == None:
         action = 'help'
-    sys.exit(_skara(ui, [action, '--mercurial'], **opts))
+    _skara(ui, [action, '--mercurial'], **opts)
 
 webrev_opts = [
     (b'r', b'rev', b'', b'Compare against specified revision'),
@@ -95,7 +116,7 @@ def webrev(ui, repo, **opts):
     Builds a set of HTML files suitable for doing a
     code review of source changes via a web page
     """
-    sys.exit(_skara(ui, ['webrev', '--mercurial'], **opts))
+    _skara(ui, ['webrev', '--mercurial'], **opts)
 
 jcheck_opts = [
     (b'r', b'rev', b'', b'Check the specified revision or range (default: tip)'),
@@ -111,7 +132,7 @@ def jcheck(ui, repo, **opts):
     """
     OpenJDK changeset checker
     """
-    sys.exit(_skara(ui, ['jcheck', '--mercurial'], **opts))
+    _skara(ui, ['jcheck', '--mercurial'], **opts)
 
 defpath_opts = [
     (b'u', b'username', b'', b'Username for push URL'),
@@ -125,4 +146,47 @@ def defpath(ui, repo, **opts):
     """
     Examine and manipulate default path settings
     """
-    sys.exit(_skara(ui, ['defpath', '--mercurial'], **opts))
+    _skara(ui, ['defpath', '--mercurial'], **opts)
+
+@command(b'tclone', norepo=True)
+def tclone(ui, source, dest=None, **opts):
+    repo = mercurial.hg.peer(ui, opts, source)
+    trees = sorted(list(repo.listkeys(b'trees').values()))
+    ui.status(b'cloning %s\n' % source)
+    if mercurial.commands.clone(ui, source, dest, **opts):
+        return True
+
+    dest = os.path.basename(source) if dest == None else dest
+    with open(os.path.join(dest, '.hg', 'files'), 'w') as f:
+        f.write('\n'.join(trees))
+
+    for t in sorted(trees, key=len):
+        tsource = source + b'/' + t
+        tdest = os.path.join(dest, t)
+
+        ui.status(b'\n')
+        ui.status(b'cloning %s\n' % tsource)
+        ui.status(b'destination directory: %s\n' % tdest)
+        if mercurial.commands.clone(ui, tsource, tdest, **opts):
+            return True
+
+def extsetup(ui):
+    this = sys.modules[__name__]
+    for cmd in [b'commit', b'config', b'diff', b'heads', b'incoming',
+                b'outgoing', b'log', b'merge', b'parents', b'paths',
+                b'pull', b'push', b'status', b'summary', b'update',
+                b'tag', b'tip']:
+        def f(ui, repo, action = cmd, *args, **opts):
+            _trees(ui, action, *args, **opts)
+        tcommand = command(b't' + cmd, [], b'')(f)
+        tcommand.__doc__ = str(getattr(mercurial.commands, cmd).__doc__)
+        cte = mercurial.cmdutil.findcmd(cmd, mercurial.commands.table)[1]
+        cmdtable[b't' + cmd] = (tcommand, cte[1], cte[2])
+
+    f = lambda ui, repo, *args, **opts: _trees(ui, 'defpath', *args, **opts)
+    tdefpath = command(b'tdefpath', defpath_opts, b'hg tdefpath')(f)
+    tdefpath.__doc__ = defpath.__doc__
+
+    cte = mercurial.cmdutil.findcmd(b'clone', mercurial.commands.table)[1]
+    tclone.__doc__ = mercurial.commands.clone.__doc__
+    cmdtable[b'tclone'] = (tclone, cte[1], cte[2])

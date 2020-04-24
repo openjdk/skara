@@ -179,6 +179,7 @@ public class GitSkara {
         commands.put("sync", GitSync::main);
         commands.put("publish", GitPublish::main);
         commands.put("proxy", GitProxy::main);
+        commands.put("trees", GitTrees::main);
 
         commands.put("update", GitSkara::update);
         commands.put("help", GitSkara::usage);
