@@ -510,7 +510,7 @@ class MergeBotTests {
             assertEquals("Merge test:master", pr.title());
             assertTrue(pr.labels().contains("failed-auto-merge"));
             assertTrue(forkLocalRepo.branches().contains(new Branch("master")));
-            assertTrue(forkLocalRepo.branches().contains(new Branch("1")));
+            assertTrue(forkLocalRepo.branches().contains(new Branch("2")));
 
             // Bot should do nothing as long as PR is presnt
             TestBotRunner.runPeriodicItems(bot);
