@@ -393,4 +393,20 @@ class ArchiveMessages {
     static String composeClosedNotice(PullRequest pr) {
         return "This pull request has been closed without being integrated.";
     }
+
+    static String composeIntegratedNotice(PullRequest pr, Repository localRepo, Commit commit) {
+        var result = new StringBuilder();
+        result.append("This pull request has now been integrated.\n\n");
+        result.append("Changeset: ").append(commit.hash().abbreviate()).append("\n");
+        result.append("Author:    ").append(commit.author().name()).append(" <").append(commit.author().email()).append(">\n");
+        if (!commit.author().equals(commit.committer())) {
+            result.append("Committer: ").append(commit.committer().name()).append(" <").append(commit.committer().email()).append(">\n");
+        }
+        result.append("URL:       ").append(pr.repository().webUrl(commit.hash())).append("\n");
+        result.append("Stats:     ").append(stats(localRepo, commit.hash(), commit.parents().get(0))).append("\n");
+        result.append("\n");
+        result.append(String.join("\n", commit.message()));
+
+        return result.toString();
+    }
 }

@@ -14,6 +14,7 @@ import java.time.*;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
+import java.util.regex.*;
 import java.util.stream.*;
 
 class ReviewArchive {
@@ -21,6 +22,7 @@ class ReviewArchive {
     private final EmailAddress sender;
 
     private final List<Comment> comments = new ArrayList<>();
+    private final List<Comment> ignoredComments = new ArrayList<>();
     private final List<Review> reviews = new ArrayList<>();
     private final List<ReviewComment> reviewComments = new ArrayList<>();
 
@@ -33,6 +35,10 @@ class ReviewArchive {
 
     void addComment(Comment comment) {
         comments.add(comment);
+    }
+
+    void addIgnored(Comment comment) {
+        ignoredComments.add(comment);
     }
 
     void addReview(Review review) {
@@ -50,6 +56,18 @@ class ReviewArchive {
                         .filter(item -> item.parent().isPresent())
                         .filter(item -> item.parent().get().equals(parent))
                         .findAny();
+    }
+
+    private final static Pattern pushedPattern = Pattern.compile("Pushed as commit ([a-f0-9]{40})\\.");
+
+    private Optional<Hash> findIntegratedHash() {
+        return ignoredComments.stream()
+                              .map(Comment::body)
+                              .map(pushedPattern::matcher)
+                              .filter(Matcher::find)
+                              .map(m -> m.group(1))
+                              .map(Hash::new)
+                              .findAny();
     }
 
     private List<ArchiveItem> generateArchiveItems(List<Email> sentEmails, Repository localRepo, URI issueTracker, String issuePrefix, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, String subjectPrefix) throws IOException {
@@ -122,10 +140,25 @@ class ReviewArchive {
         }
 
         // Post a closed notice for regular RFR threads that weren't integrated
-        if ((pr.state() != Issue.State.OPEN) && threadPrefix.equals("RFR") && !pr.labels().contains("integrated")) {
+        if (pr.state() != Issue.State.OPEN) {
             var parent = generated.get(0);
-            var reply = ArchiveItem.closedNotice(pr, hostUserToEmailAuthor, parent, subjectPrefix, threadPrefix);
-            generated.add(reply);
+            if (pr.labels().contains("integrated")) {
+                var hash = findIntegratedHash();
+                if (hash.isPresent()) {
+                    var commit = localRepo.lookup(hash.get());
+                    var reply = ArchiveItem.integratedNotice(pr, localRepo, commit.orElseThrow(), hostUserToEmailAuthor, parent, subjectPrefix, threadPrefix);
+                    generated.add(reply);
+                } else {
+                    throw new RuntimeException("PR " + pr.webUrl() + " has integrated label but no integration comment");
+                }
+            } else if (localRepo.isAncestor(pr.headHash(), pr.targetHash())) {
+                var commit = localRepo.lookup(pr.headHash());
+                var reply = ArchiveItem.integratedNotice(pr, localRepo, commit.orElseThrow(), hostUserToEmailAuthor, parent, subjectPrefix, threadPrefix);
+                generated.add(reply);
+            } else if (threadPrefix.equals("RFR")) {
+                var reply = ArchiveItem.closedNotice(pr, hostUserToEmailAuthor, parent, subjectPrefix, threadPrefix);
+                generated.add(reply);
+            }
         }
 
         return generated;

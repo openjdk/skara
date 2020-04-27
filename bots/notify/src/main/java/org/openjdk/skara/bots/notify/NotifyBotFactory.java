@@ -28,7 +28,6 @@ import org.openjdk.skara.json.*;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.storage.StorageBuilder;
-import org.openjdk.skara.vcs.Tag;
 
 import java.net.URI;
 import java.nio.file.Path;
@@ -137,9 +136,6 @@ public class NotifyBotFactory implements BotFactory {
                             case "pr":
                                 mode = MailingListUpdater.Mode.PR;
                                 break;
-                            case "pr-only":
-                                mode = MailingListUpdater.Mode.PR_ONLY;
-                                break;
                             default:
                                 throw new RuntimeException("Unknown mode");
                         }
@@ -161,12 +157,6 @@ public class NotifyBotFactory implements BotFactory {
                     }
                     if (mailinglist.contains("builds")) {
                         mailingListUpdaterBuilder.reportNewBuilds(mailinglist.get("builds").asBoolean());
-                    }
-                    if (mailinglist.contains("reponame")) {
-                        mailingListUpdaterBuilder.repoInSubject(mailinglist.get("reponame").asBoolean());
-                    }
-                    if (mailinglist.contains("branchname")) {
-                        mailingListUpdaterBuilder.branchInSubject(Pattern.compile(mailinglist.get("branchname").asString()));
                     }
 
                     updaters.add(mailingListUpdaterBuilder.build());
