@@ -98,6 +98,10 @@ public interface JSONValue {
         return asObject().get(field);
     }
 
+    default JSONValue getOrDefault(String field, JSONValue fallback) {
+        return asObject().getOrDefault(field, fallback);
+    }
+
     default JSONValue get(int i) {
         return asArray().get(i);
     }
