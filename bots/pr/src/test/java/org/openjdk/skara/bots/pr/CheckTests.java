@@ -528,6 +528,7 @@ class CheckTests {
             // The bot should reply with an ok message
             var updated = pr.comments().stream()
                             .filter(comment -> comment.body().contains("there has been 1 commit"))
+                            .filter(comment -> comment.body().contains(" * " + unrelatedHash.abbreviate()))
                             .filter(comment -> comment.body().contains("please merge"))
                             .count();
             assertEquals(1, updated);
