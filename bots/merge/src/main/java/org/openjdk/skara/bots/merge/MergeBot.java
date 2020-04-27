@@ -191,34 +191,34 @@ class MergeBot implements Bot, WorkItem {
         private final Frequency frequency;
         private final String name;
         private final List<String> dependencies;
+        private final List<HostedRepository> prerequisites;
 
         Spec(HostedRepository fromRepo, Branch fromBranch, Branch toBranch) {
-            this(fromRepo, fromBranch, toBranch, null, null, List.of());
+            this(fromRepo, fromBranch, toBranch, null, null, List.of(), List.of());
         }
 
         Spec(HostedRepository fromRepo, Branch fromBranch, Branch toBranch, String name) {
-            this(fromRepo, fromBranch, toBranch, null, name, List.of());
-        }
-
-        Spec(HostedRepository fromRepo, Branch fromBranch, Branch toBranch, String name, List<String> dependencies) {
-            this(fromRepo, fromBranch, toBranch, null, name, dependencies);
+            this(fromRepo, fromBranch, toBranch, null, name, List.of(), List.of());
         }
 
         Spec(HostedRepository fromRepo, Branch fromBranch, Branch toBranch, Frequency frequency) {
-            this(fromRepo, fromBranch, toBranch, frequency, null, List.of());
+            this(fromRepo, fromBranch, toBranch, frequency, null, List.of(), List.of());
         }
 
-        Spec(HostedRepository fromRepo, Branch fromBranch, Branch toBranch, Frequency frequency, String name) {
-            this(fromRepo, fromBranch, toBranch, frequency, name, List.of());
-        }
-
-        Spec(HostedRepository fromRepo, Branch fromBranch, Branch toBranch, Frequency frequency, String name, List<String> dependencies) {
+        Spec(HostedRepository fromRepo,
+             Branch fromBranch,
+             Branch toBranch,
+             Frequency frequency,
+             String name,
+             List<String> dependencies,
+             List<HostedRepository> prerequisites) {
             this.fromRepo = fromRepo;
             this.fromBranch = fromBranch;
             this.toBranch = toBranch;
             this.frequency = frequency;
             this.name = name;
             this.dependencies = dependencies;
+            this.prerequisites = prerequisites;
         }
 
         HostedRepository fromRepo() {
@@ -243,6 +243,10 @@ class MergeBot implements Bot, WorkItem {
 
         List<String> dependencies() {
             return dependencies;
+        }
+
+        List<HostedRepository> prerequisites() {
+            return prerequisites;
         }
     }
 
@@ -303,8 +307,9 @@ class MergeBot implements Bot, WorkItem {
                 var fromName = Path.of(fromRepo.name()).getFileName();
                 var fromDesc = targetName.equals(fromName) ? fromBranch.name() : fromName + ":" + fromBranch.name();
 
-                // Check if merge conflict pull request is present
                 var shouldMerge = true;
+
+                // Check if merge conflict pull request is present
                 var title = "Merge " + fromDesc;
                 var marker = "<!-- AUTOMATIC MERGE PR -->";
                 for (var pr : prs) {
@@ -354,6 +359,7 @@ class MergeBot implements Bot, WorkItem {
                     }
                 }
 
+                // Check if merge should happen at this time
                 if (spec.frequency().isPresent()) {
                     var now = clock.now();
                     var desc = toBranch.name() + "->" + fromRepo.name() + ":" + fromBranch.name();
@@ -426,14 +432,35 @@ class MergeBot implements Bot, WorkItem {
                     }
                 }
 
-                if (spec.dependencies().stream().anyMatch(unmerged::contains)) {
-                    var failed = spec.dependencies()
-                                     .stream()
-                                     .filter(unmerged::contains)
-                                     .collect(Collectors.toList());
-                    log.info("Will not merge because the following dependencies did not merge successfully: " +
-                             String.join(", ", failed));
-                    shouldMerge = false;
+                // Check if any prerequisite repository has a conflict pull request open
+                if (shouldMerge) {
+                    for (var prereq : spec.prerequisites()) {
+                        var openMergeConflictPRs = prereq.pullRequests()
+                                                         .stream()
+                                                         .filter(pr -> pr.title().startsWith("Merge "))
+                                                         .filter(pr -> pr.body().startsWith(marker))
+                                                         .map(PullRequest::id)
+                                                         .collect(Collectors.toList());
+                        if (!openMergeConflictPRs.isEmpty()) {
+                            log.info("Will not merge because the prerequisite " + prereq.name() +
+                                     " has open merge conflicts PRs: " +
+                                     String.join(", ", openMergeConflictPRs));
+                            shouldMerge = false;
+                        }
+                    }
+                }
+
+                // Check if any dependencies failed
+                if (shouldMerge) {
+                    if (spec.dependencies().stream().anyMatch(unmerged::contains)) {
+                        var failed = spec.dependencies()
+                                         .stream()
+                                         .filter(unmerged::contains)
+                                         .collect(Collectors.toList());
+                        log.info("Will not merge because the following dependencies did not merge successfully: " +
+                                 String.join(", ", failed));
+                        shouldMerge = false;
+                    }
                 }
 
                 if (!shouldMerge) {
