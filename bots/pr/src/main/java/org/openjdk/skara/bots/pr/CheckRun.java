@@ -447,7 +447,8 @@ class CheckRun {
                             .limit(10)
                             .forEach(c -> message.append(" * ").append(c.hash().hex()).append(": ").append(c.message().get(0)).append("\n"));
             if (divergingCommits.size() > 10) {
-                message.append(" * ... full list: ").append(pr.repository().webUrl(baseHash.hex(), pr.targetRef())).append("\n");
+                message.append(" * ... and ").append(divergingCommits.size() - 10).append(" more: ")
+                       .append(pr.repository().webUrl(baseHash.hex(), pr.targetRef())).append("\n");
             }
 
             message.append("\n");
