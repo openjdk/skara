@@ -304,9 +304,10 @@ class ArchiveWorkItem implements WorkItem {
             // Regular comments
             for (var comment : comments) {
                 if (ignoreComment(comment.author(), comment.body())) {
-                    continue;
+                    archiver.addIgnored(comment);
+                } else {
+                    archiver.addComment(comment);
                 }
-                archiver.addComment(comment);
             }
 
             // Review comments

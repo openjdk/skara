@@ -222,6 +222,14 @@ class ArchiveItem {
                                () -> ArchiveMessages.composeReplyFooter(pr));
     }
 
+    static ArchiveItem integratedNotice(PullRequest pr, Repository localRepo, Commit commit, HostUserToEmailAuthor hostUserToEmailAuthor, ArchiveItem parent, String subjectPrefix, String threadPrefix) {
+        return new ArchiveItem(parent, "in", pr.updatedAt(), pr.updatedAt(), pr.author(), Map.of("PR-Integrated-Notice", "0"),
+                               () -> String.format("Re: [Integrated] %s%s%s", subjectPrefix, threadPrefix + (threadPrefix.isEmpty() ? "" : ": "), pr.title()),
+                               () -> ArchiveMessages.composeReplyHeader(parent.createdAt(), hostUserToEmailAuthor.author(parent.author())),
+                               () -> ArchiveMessages.composeIntegratedNotice(pr, localRepo, commit),
+                               () -> ArchiveMessages.composeReplyFooter(pr));
+    }
+
     private static Pattern mentionPattern = Pattern.compile("^@([\\w-]+).*");
 
     private static Optional<ArchiveItem> findLastMention(String commentText, List<ArchiveItem> eligibleParents) {
