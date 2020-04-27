@@ -77,6 +77,10 @@ class ArchiveMessages {
         }
     }
 
+    private static URI commitsLink(PullRequest pr, Hash first, Hash last) {
+        return pr.repository().webUrl(first.abbreviate(), last.abbreviate());
+    }
+
     private static String formatNumber(int number) {
         switch (number) {
             case 0: return "no";
@@ -98,32 +102,35 @@ class ArchiveMessages {
                 " commit" + (commits.size() != 1 ? "s" : "");
     }
 
-    private static Optional<String> formatCommitMessagesFull(List<CommitMetadata> commits) {
+    private static Optional<String> formatCommitMessagesFull(List<CommitMetadata> commits, URI commitsLink) {
         if (commits.size() == 0) {
             return Optional.empty();
         } else if (commits.size() == 1) {
             return Optional.of(formatSingleCommit(commits.get(0)));
         } else {
-            return Optional.of(commits.stream()
+            var commitSummary = commits.stream()
+                                      .limit(10)
                                       .map(ArchiveMessages::formatCommitInList)
-                                      .collect(Collectors.joining("\n")));
+                                      .collect(Collectors.joining("\n"));
+            if (commits.size() > 10) {
+                commitSummary += "\n - ... and " + (commits.size() - 10) + " more: ";
+                commitSummary += commitsLink.toString();
+            }
+            return Optional.of(commitSummary);
         }
     }
 
-    private static Optional<String> formatCommitMessagesBrief(List<CommitMetadata> commits) {
-        return formatCommitMessagesBrief(commits, 100);
-    }
-
-    private static Optional<String> formatCommitMessagesBrief(List<CommitMetadata> commits, int maxEntries) {
+    private static Optional<String> formatCommitMessagesBrief(List<CommitMetadata> commits, URI commitsLink) {
         if (commits.size() == 0) {
             return Optional.empty();
         } else {
             var commitSummary = commits.stream()
-                                       .limit(maxEntries)
+                                       .limit(10)
                                        .map(ArchiveMessages::formatCommitBrief)
                                        .collect(Collectors.joining("\n"));
-            if (commits.size() > maxEntries) {
-                commitSummary += "\n - ...omitting " + (commits.size() - maxEntries) + " further commits.";
+            if (commits.size() > 10) {
+                commitSummary += "\n - ... and " + (commits.size() - 10) + " more: ";
+                commitSummary += commitsLink.toString();
             }
             return Optional.of(commitSummary);
         }
@@ -169,7 +176,7 @@ class ArchiveMessages {
         return filteredBody;
     }
 
-    static String composeIncrementalRevision(Repository localRepository, String author, Hash head, Hash lastHead) {
+    static String composeIncrementalRevision(PullRequest pr, Repository localRepository, String author, Hash head, Hash lastHead) {
         var ret = new StringBuilder();
 
         var incrementalUpdate = false;
@@ -178,7 +185,8 @@ class ArchiveMessages {
         } catch (IOException ignored) {
         }
         var commits = commits(localRepository, lastHead, head);
-        var newCommitMessages = formatCommitMessagesFull(commits);
+        var commitsLink = commitsLink(pr, lastHead, head);
+        var newCommitMessages = formatCommitMessagesFull(commits, commitsLink);
         if (incrementalUpdate) {
             ret.append(author);
             ret.append(" has updated the pull request incrementally");
@@ -201,7 +209,7 @@ class ArchiveMessages {
         return ret.toString();
     }
 
-    static String composeRebasedIncrementalRevision(Repository localRepository, String author, Hash head, Hash lastHead) {
+    static String composeRebasedIncrementalRevision(PullRequest pr, Repository localRepository, String author, Hash head, Hash lastHead) {
         var ret = new StringBuilder();
 
         ret.append(author);
@@ -209,7 +217,8 @@ class ArchiveMessages {
         ret.append("The incremental webrev excludes the unrelated changes brought in by the merge/rebase.");
 
         var commits = commits(localRepository, lastHead, head);
-        var newCommitMessages = formatCommitMessagesFull(commits);
+        var commitsLink = commitsLink(pr, lastHead, head);
+        var newCommitMessages = formatCommitMessagesFull(commits, commitsLink);
         var commitsDescription = describeCommits(commits, "additional");
         newCommitMessages.ifPresent(m -> ret.append(" The pull request contains ")
                                             .append(commitsDescription)
@@ -218,14 +227,15 @@ class ArchiveMessages {
         return ret.toString();
     }
 
-    static String composeFullRevision(Repository localRepository, String author, Hash base, Hash head) {
+    static String composeFullRevision(PullRequest pr, Repository localRepository, String author, Hash base, Hash head) {
         var ret = new StringBuilder();
 
         ret.append(author);
         ret.append(" has updated the pull request with a new target base due to a merge or a rebase.");
 
         var commits = commits(localRepository, base, head);
-        var newCommitMessages = formatCommitMessagesFull(commits);
+        var commitsLink = commitsLink(pr, base, head);
+        var newCommitMessages = formatCommitMessagesFull(commits, commitsLink);
         var commitsDescription = describeCommits(commits, "");
         newCommitMessages.ifPresent(m -> ret.append(" The pull request now contains ")
                                             .append(commitsDescription)
@@ -249,9 +259,10 @@ class ArchiveMessages {
     // When changing this, ensure that the PR pattern in the notifier still matches
     static String composeConversationFooter(PullRequest pr, URI issueProject, String projectPrefix, Repository localRepo, WebrevDescription webrev, Hash base, Hash head) {
         var commits = commits(localRepo, base, head);
+        var commitsLink = commitsLink(pr, base, head);
         var issueString = issueUrl(pr, issueProject, projectPrefix).map(url -> "  Issue: " + url + "\n").orElse("");
         return "Commit messages:\n" +
-                formatCommitMessagesBrief(commits).orElse("") + "\n\n" +
+                formatCommitMessagesBrief(commits, commitsLink).orElse("") + "\n\n" +
                 "Changes: " + pr.changeUrl() + "\n" +
                 " Webrev: " + webrev.uri().toString() + "\n" +
                 issueString +
@@ -263,6 +274,7 @@ class ArchiveMessages {
 
     static String composeMergeConversationFooter(PullRequest pr, Repository localRepo, List<WebrevDescription> webrevs, Hash base, Hash head) {
         var commits = commits(localRepo, base, head);
+        var commitsLink = commitsLink(pr, base, head);
         String webrevLinks;
         if (webrevs.size() > 0) {
             var containsConflicts = webrevs.stream().anyMatch(w -> w.type().equals(WebrevDescription.Type.MERGE_CONFLICT));
@@ -281,7 +293,7 @@ class ArchiveMessages {
             webrevLinks = "The merge commit only contains trivial merges, so no merge-specific webrevs have been generated.\n\n";
         }
         return "Commit messages:\n" +
-                formatCommitMessagesBrief(commits, 10).orElse("") + "\n\n" +
+                formatCommitMessagesBrief(commits, commitsLink).orElse("") + "\n\n" +
                 webrevLinks +
                 "Changes: " + pr.changeUrl() + "\n" +
                 "  Stats: " + stats(localRepo, base, head) + "\n" +

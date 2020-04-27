@@ -160,13 +160,13 @@ class ArchiveItem {
                                () -> "",
                                () -> {
                                    if (lastBase.equals(base)) {
-                                       return ArchiveMessages.composeIncrementalRevision(localRepo, hostUserToCommitterName(hostUserToEmailAuthor, pr.author()), head, lastHead);
+                                       return ArchiveMessages.composeIncrementalRevision(pr, localRepo, hostUserToCommitterName(hostUserToEmailAuthor, pr.author()), head, lastHead);
                                    } else {
                                        var rebasedLastHead = rebasedLastHead(localRepo, base, lastHead);
                                        if (rebasedLastHead.isPresent()) {
-                                           return ArchiveMessages.composeRebasedIncrementalRevision(localRepo, hostUserToCommitterName(hostUserToEmailAuthor, pr.author()), head, rebasedLastHead.get());
+                                           return ArchiveMessages.composeRebasedIncrementalRevision(pr, localRepo, hostUserToCommitterName(hostUserToEmailAuthor, pr.author()), head, rebasedLastHead.get());
                                        } else {
-                                           return ArchiveMessages.composeFullRevision(localRepo, hostUserToCommitterName(hostUserToEmailAuthor, pr.author()), base, head);
+                                           return ArchiveMessages.composeFullRevision(pr, localRepo, hostUserToCommitterName(hostUserToEmailAuthor, pr.author()), base, head);
                                        }
                                    }
                                },
