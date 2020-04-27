@@ -201,6 +201,12 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
+    public URI webUrl(String baseRef, String headRef) {
+        var endpoint = "/" + repository + "/compare/" + baseRef + "..." + headRef;
+        return gitHubHost.getWebURI(endpoint);
+    }
+
+    @Override
     public VCS repositoryType() {
         return VCS.GIT;
     }

@@ -102,6 +102,11 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
+    public URI webUrl(String baseRef, String headRef) {
+        return null;
+    }
+
+    @Override
     public VCS repositoryType() {
         return null;
     }

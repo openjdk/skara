@@ -133,11 +133,12 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
 
     @Override
     public URI webUrl(Hash hash) {
-        try {
-            return new URI(url().toString() + "/" + hash.hex());
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
+        return URI.create(url().toString() + "/" + hash.hex());
+    }
+
+    @Override
+    public URI webUrl(String baseRef, String headRef) {
+        return URI.create(url().toString() + "/" + baseRef + "..." + headRef);
     }
 
     @Override

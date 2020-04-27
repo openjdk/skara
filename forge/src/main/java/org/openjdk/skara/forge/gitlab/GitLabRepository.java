@@ -180,6 +180,13 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
+    public URI webUrl(String baseRef, String headRef) {
+        return URIBuilder.base(gitLabHost.getUri())
+                         .setPath("/" + projectName + "/compare/" + baseRef + "..." + headRef)
+                         .build();
+    }
+
+    @Override
     public VCS repositoryType() {
         return VCS.GIT;
     }

@@ -442,7 +442,16 @@ class CheckRun {
             }
             message.append("pushed to the `");
             message.append(pr.targetRef());
-            message.append("` branch. ");
+            message.append("` branch:\n\n");
+            divergingCommits.stream()
+                            .limit(10)
+                            .forEach(c -> message.append(" * ").append(c.hash().hex()).append(": ").append(c.message().get(0)).append("\n"));
+            if (divergingCommits.size() > 10) {
+                message.append(" * ... and ").append(divergingCommits.size() - 10).append(" more: ")
+                       .append(pr.repository().webUrl(baseHash.hex(), pr.targetRef())).append("\n");
+            }
+
+            message.append("\n");
             message.append("As there are no conflicts, your changes will automatically be rebased on top of ");
             message.append("these commits when integrating. If you prefer to avoid automatic rebasing, please merge `");
             message.append(pr.targetRef());
