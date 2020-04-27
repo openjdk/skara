@@ -113,6 +113,10 @@ public class JSONObject implements JSONValue {
         return value.get(k);
     }
 
+    public JSONValue getOrDefault(String k, JSONValue fallback) {
+        return value.getOrDefault(k, fallback);
+    }
+
     public List<Field> fields() {
         return value.entrySet()
                     .stream()

@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.merge;
 
 import org.openjdk.skara.bot.*;
+import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.vcs.Branch;
 
 import java.io.*;
@@ -181,12 +182,12 @@ public class MergeBotFactory implements BotFactory {
                     }
                 }
 
-                var name = spec.get("name").asString();
-                var dependencies = spec.get("dependencies")
+                var name = spec.getOrDefault("name", JSON.of()).asString();
+                var dependencies = spec.getOrDefault("dependencies", JSON.array())
                                        .stream()
                                        .map(e -> e.asString())
                                        .collect(Collectors.toList());
-                var prerequisites = spec.get("prerequisites")
+                var prerequisites = spec.getOrDefault("prerequisites", JSON.array())
                                         .stream()
                                         .map(e -> e.asString())
                                         .map(configuration::repository)
