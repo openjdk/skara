@@ -186,8 +186,19 @@ public class MergeBotFactory implements BotFactory {
                                        .stream()
                                        .map(e -> e.asString())
                                        .collect(Collectors.toList());
+                var prerequisites = spec.get("prerequisites")
+                                        .stream()
+                                        .map(e -> e.asString())
+                                        .map(configuration::repository)
+                                        .collect(Collectors.toList());
 
-                specs.add(new MergeBot.Spec(fromRepo, fromBranch, toBranch, frequency, name, dependencies));
+                specs.add(new MergeBot.Spec(fromRepo,
+                                            fromBranch,
+                                            toBranch,
+                                            frequency,
+                                            name,
+                                            dependencies,
+                                            prerequisites));
             }
 
             bots.add(new MergeBot(storage, targetRepo, forkRepo, specs));
