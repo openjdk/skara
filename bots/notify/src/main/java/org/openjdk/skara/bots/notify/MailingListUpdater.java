@@ -29,7 +29,6 @@ import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.OpenJDKTag;
 
 import java.io.*;
-import java.nio.file.Path;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.logging.Logger;
@@ -47,8 +46,6 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
     private final Mode mode;
     private final Map<String, String> headers;
     private final Pattern allowedAuthorDomains;
-    private final boolean repoInSubject;
-    private final Pattern branchInSubject;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
     enum Mode {
@@ -58,8 +55,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
 
     MailingListUpdater(MailingList list, EmailAddress recipient, EmailAddress sender, EmailAddress author,
                        boolean includeBranch, boolean reportNewTags, boolean reportNewBranches, boolean reportNewBuilds,
-                       Mode mode, Map<String, String> headers, Pattern allowedAuthorDomains, boolean repoInSubject,
-                       Pattern branchInSubject) {
+                       Mode mode, Map<String, String> headers, Pattern allowedAuthorDomains) {
         this.list = list;
         this.recipient = recipient;
         this.sender = sender;
@@ -71,8 +67,6 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
         this.mode = mode;
         this.headers = headers;
         this.allowedAuthorDomains = allowedAuthorDomains;
-        this.repoInSubject = repoInSubject;
-        this.branchInSubject = branchInSubject;
     }
 
     static MailingListUpdaterBuilder newBuilder() {
@@ -138,28 +132,6 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
                 tag +
                 " for changeset " +
                 hash.abbreviate();
-    }
-
-    private String subjectPrefix(HostedRepository repository, Branch branch) {
-        var ret = new StringBuilder();
-        var branchName = branch.name();
-        var repoName = Path.of(repository.name()).getFileName().toString();
-        var useBranchInSubject = branchInSubject.matcher(branchName).matches();
-
-        if (useBranchInSubject || repoInSubject) {
-            ret.append("[");
-            if (repoInSubject) {
-                ret.append(repoName);
-                if (useBranchInSubject) {
-                    ret.append(":");
-                }
-            }
-            if (useBranchInSubject) {
-                ret.append(branchName);
-            }
-            ret.append("] ");
-        }
-        return ret.toString();
     }
 
     private List<Commit> filterPrCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) throws NonRetriableException {

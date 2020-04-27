@@ -158,12 +158,6 @@ public class NotifyBotFactory implements BotFactory {
                     if (mailinglist.contains("builds")) {
                         mailingListUpdaterBuilder.reportNewBuilds(mailinglist.get("builds").asBoolean());
                     }
-                    if (mailinglist.contains("reponame")) {
-                        mailingListUpdaterBuilder.repoInSubject(mailinglist.get("reponame").asBoolean());
-                    }
-                    if (mailinglist.contains("branchname")) {
-                        mailingListUpdaterBuilder.branchInSubject(Pattern.compile(mailinglist.get("branchname").asString()));
-                    }
 
                     updaters.add(mailingListUpdaterBuilder.build());
                 }

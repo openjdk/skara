@@ -98,18 +98,8 @@ public class MailingListUpdaterBuilder {
         return this;
     }
 
-    public MailingListUpdaterBuilder repoInSubject(boolean repoInSubject) {
-        this.repoInSubject = repoInSubject;
-        return this;
-    }
-
-    public MailingListUpdaterBuilder branchInSubject(Pattern branchInSubject) {
-        this.branchInSubject = branchInSubject;
-        return this;
-    }
-
     public MailingListUpdater build() {
         return new MailingListUpdater(list, recipient, sender, author, includeBranch, reportNewTags, reportNewBranches,
-                                      reportNewBuilds, mode, headers, allowedAuthorDomains, repoInSubject, branchInSubject);
+                                      reportNewBuilds, mode, headers, allowedAuthorDomains);
     }
 }
