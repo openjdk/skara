@@ -70,6 +70,14 @@ class ReviewArchive {
                               .findAny();
     }
 
+    private boolean hasLegacyIntegrationNotice(Hash hash) {
+        var legacyIntegrationPattern = Pattern.compile("Changeset: " + hash.abbreviate());
+        return ignoredComments.stream()
+                              .map(Comment::body)
+                              .map(legacyIntegrationPattern::matcher)
+                              .anyMatch(Matcher::find);
+    }
+
     private List<ArchiveItem> generateArchiveItems(List<Email> sentEmails, Repository localRepo, URI issueTracker, String issuePrefix, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, String subjectPrefix) throws IOException {
         var generated = new ArrayList<ArchiveItem>();
         Hash lastBase = null;
@@ -145,9 +153,11 @@ class ReviewArchive {
             if (pr.labels().contains("integrated")) {
                 var hash = findIntegratedHash();
                 if (hash.isPresent()) {
-                    var commit = localRepo.lookup(hash.get());
-                    var reply = ArchiveItem.integratedNotice(pr, localRepo, commit.orElseThrow(), hostUserToEmailAuthor, parent, subjectPrefix, threadPrefix);
-                    generated.add(reply);
+                    if (!hasLegacyIntegrationNotice(hash.get())) {
+                        var commit = localRepo.lookup(hash.get());
+                        var reply = ArchiveItem.integratedNotice(pr, localRepo, commit.orElseThrow(), hostUserToEmailAuthor, parent, subjectPrefix, threadPrefix);
+                        generated.add(reply);
+                    }
                 } else {
                     throw new RuntimeException("PR " + pr.webUrl() + " has integrated label but no integration comment");
                 }
