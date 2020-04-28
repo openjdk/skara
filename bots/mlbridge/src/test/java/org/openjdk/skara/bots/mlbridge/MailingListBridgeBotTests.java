@@ -402,8 +402,8 @@ class MailingListBridgeBotTests {
 
             // Add legacy integration notice
             ignoredPr.addComment(
-                    "Changeset: " + editHash.abbreviate() + "\n" +
-                    "Author:    J. Duke <duke@openjdk.org>\n");
+                    "Changeset\\: " + editHash.abbreviate() + "\n" +
+                    "Author\\:    J. Duke \\<duke at openjdk\\.org\\>\n");
 
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
