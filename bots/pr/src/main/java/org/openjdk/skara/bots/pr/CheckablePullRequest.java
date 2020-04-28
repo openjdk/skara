@@ -96,7 +96,7 @@ public class CheckablePullRequest {
 
         if (contributor == null) {
             if (PullRequestUtils.isMerge(pr)) {
-                throw new CommitFailure("Merges can only be performed by Committers.");
+                throw new CommitFailure("Merge PRs can only be created by known OpenJDK authors.");
             }
 
             // Use the information contained in the head commit - jcheck has verified that it contains sane values
