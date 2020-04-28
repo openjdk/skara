@@ -170,6 +170,13 @@ def tclone(ui, source, dest=None, **opts):
         if mercurial.commands.clone(ui, tsource, tdest, **opts):
             return True
 
+@command(b'treconfigure', [], b'hg treconfigure')
+def treconfigure(ui, repo, **opts):
+    """
+    Reconfigures the trees files for all sub-repositories
+    """
+    _trees(ui, 'treconfigure')
+
 def extsetup(ui):
     this = sys.modules[__name__]
     for cmd in [b'commit', b'config', b'diff', b'heads', b'incoming',
