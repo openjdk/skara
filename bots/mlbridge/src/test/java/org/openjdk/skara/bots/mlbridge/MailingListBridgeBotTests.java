@@ -377,9 +377,13 @@ class MailingListBridgeBotTests {
             localRepo.push(masterHash, author.url(), "master", true);
             localRepo.push(masterHash, archive.url(), "webrev", true);
 
-            // Make a change with a corresponding PR
-            var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
-                    "Change msg\n\nWith several lines");
+            // Make a change with a corresponding PR with a date in the past
+            var editFile = tempFolder.path().resolve("change.txt");
+            Files.writeString(editFile, "A simple change");
+            localRepo.add(editFile);
+            var commitDate = ZonedDateTime.of(2020, 3, 12, 0, 0, 0, 0, ZoneId.of("UTC"));
+            var editHash = localRepo.commit("An old change", "duke", "duke@openjdk.org", commitDate,
+                             "duke", "duke@openjdk.org", commitDate);
             localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(archive, "master", "edit", "1234: This is a pull request");
             pr.setBody("This is now ready");
@@ -399,11 +403,6 @@ class MailingListBridgeBotTests {
             ignoredPr.addLabel("integrated");
             ignoredPr.addComment("Pushed as commit " + editHash + ".");
             ignoredPr.setState(Issue.State.CLOSED);
-
-            // Add legacy integration notice
-            ignoredPr.addComment(
-                    "Changeset\\: " + editHash.abbreviate() + "\n" +
-                    "Author\\:    J. Duke \\<duke at openjdk\\.org\\>\n");
 
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
