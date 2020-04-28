@@ -48,6 +48,7 @@
         tstatus = trees status
         ttag = trees tag
 
+        treconfigure = trees treconfigure
         tdefpath = trees defpath
         tsync = trees sync
         tinfo = trees info

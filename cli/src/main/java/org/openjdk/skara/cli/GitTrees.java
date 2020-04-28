@@ -32,6 +32,11 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class GitTrees {
+    private static boolean isRepository(Path root, boolean isMercurial) {
+        var hidden = isMercurial ? root.resolve(".hg") : root.resolve(".git");
+        return Files.exists(hidden) && Files.isDirectory(hidden);
+    }
+
     private static Path root(boolean isMercurial) throws IOException, InterruptedException {
         var pb = isMercurial ?
             new ProcessBuilder("hg", "root") :
@@ -67,6 +72,25 @@ public class GitTrees {
         var subrepos = subrepos(root, isMercurial);
         var treesFile = treesFile(root, isMercurial);
         Files.write(treesFile, subrepos.stream().map(Path::toString).collect(Collectors.toList()));
+
+        for (var subrepo : subrepos) {
+            var subSubRepos = new ArrayList<Path>();
+            for (var repo : subrepos) {
+                if (!repo.equals(subrepo) && repo.startsWith(subrepo)) {
+                    subSubRepos.add(repo);
+                }
+            }
+            if (!subSubRepos.isEmpty()) {
+                var subSubTreesFile = treesFile(root.resolve(subrepo), isMercurial);
+                Files.write(subSubTreesFile,
+                            subSubRepos.stream()
+                                       .map(subrepo::relativize)
+                                       .map(Path::toString)
+                                       .sorted()
+                                       .collect(Collectors.toList()));
+            }
+        }
+
         return subrepos;
     }
 
@@ -78,6 +102,18 @@ public class GitTrees {
         }
 
         return null;
+    }
+
+    private static void treconfigure(Path root, boolean isMercurial) throws IOException {
+        var existing = trees(root, isMercurial);
+        if (existing != null) {
+            for (var subrepo : existing) {
+                var subRoot = root.resolve(subrepo);
+                var file = treesFile(subRoot, isMercurial);
+                Files.deleteIfExists(file);
+            }
+        }
+        tconfig(root, isMercurial);
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
@@ -94,7 +130,16 @@ public class GitTrees {
         HttpProxy.setup();
 
         var isMercurial = args.length > 0 && (args[0].equals("--mercurial") || args[0].equals("-m"));
+        var isReconfigure = isMercurial ?
+            args.length > 1 && args[1].equals("treconfigure") :
+            args.length > 0 && args[0].equals("treconfigure");
+
         var root = root(isMercurial);
+        if (isReconfigure) {
+            treconfigure(root, isMercurial);
+            return;
+        }
+
         var trees = trees(root, isMercurial);
         if (trees == null) {
             trees = tconfig(root, isMercurial);
@@ -105,7 +150,6 @@ public class GitTrees {
         for (var i = isMercurial ? 1 : 0; i < args.length; i++) {
             command.add(args[i]);
         }
-        System.out.println("executing: " + String.join(" ", command));
         var pb = new ProcessBuilder(command);
         pb.inheritIO();
 
@@ -114,9 +158,12 @@ public class GitTrees {
         var ret = pb.start().waitFor();
 
         for (var path : trees) {
-            System.out.println("[" + root.resolve(path).toString() + "]");
-            pb.directory(root.resolve(path).toFile());
-            ret += pb.start().waitFor();
+            var subroot = root.resolve(path);
+            if (isRepository(subroot, isMercurial)) {
+                System.out.println("[" + root.resolve(path).toString() + "]");
+                pb.directory(subroot.toFile());
+                ret += pb.start().waitFor();
+            }
         }
 
         System.exit(ret);
