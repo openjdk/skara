@@ -24,7 +24,8 @@ package org.openjdk.skara.forge;
 
 import org.openjdk.skara.vcs.*;
 
-import java.io.*;
+import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -37,41 +38,68 @@ public class PullRequestUtils {
                                 committer.name(), committer.email(), ZonedDateTime.now(), List.of(pr.targetHash()), localRepo.tree(finalHead));
     }
 
-    private static class MergeSource {
-        private final String repositoryName;
-        private final String branchName;
+    private final static Pattern mergeSourcePattern = Pattern.compile("^Merge ([-/\\w:]+)$");
 
-        private MergeSource(String repositoryName, String branchName) {
-            this.repositoryName = repositoryName;
-            this.branchName = branchName;
+    private static Optional<Hash> fetchRef(Repository localRepo, URI uri, String ref) throws IOException {
+        // Just a plain name - is this a branch?
+        try {
+            var hash = localRepo.fetch(uri, "+" + ref + ":refs/heads/merge_source", false);
+            return Optional.of(hash);
+        } catch (IOException e) {
         }
+
+        // Perhaps it is an actual tag object - it cannot be fetched to a branch ref
+        try {
+            var hash = localRepo.fetch(uri, "+" + ref + ":refs/tags/merge_source_tag", false);
+            return Optional.of(hash);
+        } catch (IOException e) {
+        }
+
+        return Optional.empty();
     }
 
-    private final static Pattern mergeSourceFullPattern = Pattern.compile("^Merge ([-/\\w]+):([-\\w]+)$");
-    private final static Pattern mergeSourceBranchOnlyPattern = Pattern.compile("^Merge ([-\\w]+)$");
-
-    private static Optional<MergeSource> mergeSource(PullRequest pr, Repository localRepo) {
-        var repoMatcher = mergeSourceFullPattern.matcher(pr.title());
-        if (!repoMatcher.matches()) {
-            var branchMatcher = mergeSourceBranchOnlyPattern.matcher(pr.title());
-            if (!branchMatcher.matches()) {
-                return Optional.empty();
-            }
-
-            // Verify that the branch exists
-            var isValidBranch = remoteBranches(pr, localRepo).stream()
-                                                             .map(Reference::name)
-                                                             .anyMatch(branch -> branch.equals(branchMatcher.group(1)));
-            if (!isValidBranch) {
-                // Assume the name refers to a sibling repository
-                var repoName = Path.of(pr.repository().name()).resolveSibling(branchMatcher.group(1)).toString();
-                return Optional.of(new MergeSource(repoName, "master"));
-            }
-
-            return Optional.of(new MergeSource(pr.repository().name(), branchMatcher.group(1)));
+    private static Hash fetchMergeSource(PullRequest pr, Repository localRepo) throws IOException, CommitFailure {
+        var sourceMatcher = mergeSourcePattern.matcher(pr.title());
+        if (!sourceMatcher.matches()) {
+            throw new CommitFailure("Could not determine the source for this merge. A Merge PR title must be specified on the format: " +
+                                            "Merge `project`:`branch` to allow verification of the merge contents.");
         }
 
-        return Optional.of(new MergeSource(repoMatcher.group(1), repoMatcher.group(2)));
+        var source = sourceMatcher.group(1);
+        String repoName;
+        String ref;
+        if (!source.contains(":")) {
+            // Try to fetch the source as a name of a ref (branch or tag)
+            var hash = fetchRef(localRepo, pr.repository().url(), source);
+            if (hash.isPresent()) {
+                return hash.get();
+            }
+
+            // Only valid option now is a repository - we default the ref to "master"
+            repoName = source;
+            ref = "master";
+        } else {
+            repoName = source.split(":", 2)[0];
+            ref = source.split(":", 2)[1];
+        }
+
+        // If the repository name is unqualified we assume it is a sibling
+        if (!repoName.contains("/")) {
+            repoName = Path.of(pr.repository().name()).resolveSibling(repoName).toString();
+        }
+
+        // Validate the repository
+        var sourceRepo = pr.repository().forge().repository(repoName);
+        if (sourceRepo.isEmpty()) {
+            throw new CommitFailure("Could not find project `" + repoName + "` - check that it is correct.");
+        }
+
+        var hash = fetchRef(localRepo, sourceRepo.get().url(), ref);
+        if (hash.isPresent()) {
+            return hash.get();
+        } else {
+            throw new CommitFailure("Could not find the branch or tag `" + ref + "` in the project `" + repoName + "` - check that it is correct.");
+        }
     }
 
     private static Hash findSourceHash(PullRequest pr, Repository localRepo, List<CommitMetadata> commits) throws IOException, CommitFailure {
@@ -79,28 +107,8 @@ public class PullRequestUtils {
             throw new CommitFailure("A merge PR must contain at least one commit that is not already present in the target.");
         }
 
-        var source = mergeSource(pr, localRepo);
-        if (source.isEmpty()) {
-            throw new CommitFailure("Could not determine the source for this merge. A Merge PR title must be specified on the format: " +
-                    "Merge `project`:`branch` to allow verification of the merge contents.");
-        }
-
         // Fetch the source
-        Hash sourceHead;
-        try {
-            var mergeSourceRepo = pr.repository().forge().repository(source.get().repositoryName).orElseThrow(() ->
-                    new RuntimeException("Could not find repository " + source.get().repositoryName)
-            );
-            try {
-                sourceHead = localRepo.fetch(mergeSourceRepo.url(), source.get().branchName, false);
-            } catch (IOException e) {
-                throw new CommitFailure("Could not fetch branch `" + source.get().branchName + "` from project `" +
-                        source.get().repositoryName + "` - check that they are correct.");
-            }
-        } catch (RuntimeException e) {
-            throw new CommitFailure("Could not find project `" +
-                    source.get().repositoryName + "` - check that it is correct.");
-        }
+        var sourceHead = fetchMergeSource(pr, localRepo);
 
         // Ensure that the source and the target are related
         try {
@@ -163,13 +171,5 @@ public class PullRequestUtils {
             patch.source().path().ifPresent(ret::add);
         }
         return ret;
-    }
-
-    private static List<Reference> remoteBranches(PullRequest pr, Repository localRepo) {
-        try {
-            return localRepo.remoteBranches(pr.repository().url().toString());
-        } catch (IOException e) {
-            return List.of();
-        }
     }
 }

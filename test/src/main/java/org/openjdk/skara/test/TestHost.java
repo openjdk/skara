@@ -32,11 +32,13 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class TestHost implements Forge, IssueTracker {
     private final int currentUser;
     private HostData data;
+    private final Logger log = Logger.getLogger("org.openjdk.skara.test");
 
     private static class HostData {
         final List<HostUser> users = new ArrayList<>();
@@ -97,7 +99,8 @@ public class TestHost implements Forge, IssueTracker {
             localRepository = data.repositories.get(name);
         } else {
             if (data.repositories.size() > 0) {
-                throw new RuntimeException("A test host can only manage a single repository");
+                log.warning("A test host can only manage a single repository - reporting " + name + " as not found");
+                return Optional.empty();
             }
             localRepository = createLocalRepository();
             data.repositories.put(name, localRepository);

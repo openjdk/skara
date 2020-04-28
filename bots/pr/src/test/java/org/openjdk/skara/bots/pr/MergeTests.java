@@ -209,6 +209,92 @@ class MergeTests {
     }
 
     @Test
+    void tagMerge(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make more changes in another branch
+            var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other",
+                                                                 "First other\n\nReviewed-by: integrationreviewer2");
+            localRepo.push(otherHash1, author.url(), "other", true);
+            var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other",
+                                                                 "Second other\n\nReviewed-by: integrationreviewer2");
+            var tag = localRepo.tag(otherHash2, "othertag", "Tagging other", "tagger", "tagger@one");
+            var tagHash = localRepo.lookup(tag).orElseThrow().hash();
+            localRepo.push(tagHash, author.url(), "refs/tags/othertag");
+
+            // Go back to the original master
+            localRepo.checkout(masterHash, true);
+
+            // Make a change with a corresponding PR
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            localRepo.add(unrelated);
+            var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
+            localRepo.push(updatedMaster, author.url(), "master");
+
+            localRepo.merge(otherHash2);
+            var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
+            localRepo.push(mergeHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge othertag");
+
+            // Approve it as another user
+            var approvalPr = integrator.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // Let the bot check the status
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // Push it
+            pr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an ok message
+            var pushed = pr.comments().stream()
+                           .filter(comment -> comment.body().contains("Pushed as commit"))
+                           .count();
+            assertEquals(1, pushed);
+
+            // The change should now be present on the master branch
+            var pushedRepoFolder = tempFolder.path().resolve("pushedrepo");
+            var pushedRepo = Repository.materialize(pushedRepoFolder, author.url(), "master");
+            assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
+
+            // The commits from the "other" branch should be preserved and not squashed (but not the merge commit)
+            var headHash = pushedRepo.resolve("HEAD").orElseThrow();
+            Set<Hash> commits;
+            try (var tempCommits = pushedRepo.commits(masterHash.hex() + ".." + headHash.hex())) {
+                commits = tempCommits.stream()
+                                     .map(Commit::hash)
+                                     .collect(Collectors.toSet());
+            }
+            assertTrue(commits.contains(otherHash1));
+            assertTrue(commits.contains(otherHash2));
+            assertFalse(commits.contains(mergeHash));
+
+            // Author and committer should updated in the merge commit
+            var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
+            assertEquals("Generated Committer 1", headCommit.author().name());
+            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
+            assertEquals("Generated Committer 1", headCommit.committer().name());
+            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
+        }
+    }
+
+    @Test
     void branchMergeRebase(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
@@ -597,7 +683,7 @@ class MergeTests {
             assertEquals(1, error, () -> pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
 
             var check = pr.checks(mergeHash).get("jcheck");
-            assertEquals("- Could not fetch branch `otherxyz` from project `" + author.name() + "` - check that they are correct.", check.summary().orElseThrow());
+            assertEquals("- Could not find the branch or tag `otherxyz` in the project `" + author.name() + "` - check that it is correct.", check.summary().orElseThrow());
         }
     }
 
