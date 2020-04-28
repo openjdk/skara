@@ -71,7 +71,7 @@ class ReviewArchive {
     }
 
     private boolean hasLegacyIntegrationNotice(Hash hash) {
-        var legacyIntegrationPattern = Pattern.compile("Changeset: " + hash.abbreviate());
+        var legacyIntegrationPattern = Pattern.compile("Changeset\\\\?: " + hash.abbreviate());
         return ignoredComments.stream()
                               .map(Comment::body)
                               .map(legacyIntegrationPattern::matcher)
