@@ -70,12 +70,9 @@ class ReviewArchive {
                               .findAny();
     }
 
-    private boolean hasLegacyIntegrationNotice(Hash hash) {
-        var legacyIntegrationPattern = Pattern.compile("Changeset\\\\?: " + hash.abbreviate());
-        return ignoredComments.stream()
-                              .map(Comment::body)
-                              .map(legacyIntegrationPattern::matcher)
-                              .anyMatch(Matcher::find);
+    private boolean hasLegacyIntegrationNotice(Repository localRepo, Commit commit) {
+        // Commits before this date are assumed to have been serviced by the old PR notifier
+        return commit.date().isBefore(ZonedDateTime.of(2020, 4, 28, 14, 0, 0, 0, ZoneId.of("UTC")));
     }
 
     private List<ArchiveItem> generateArchiveItems(List<Email> sentEmails, Repository localRepo, URI issueTracker, String issuePrefix, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, String subjectPrefix) throws IOException {
@@ -153,8 +150,8 @@ class ReviewArchive {
             if (pr.labels().contains("integrated")) {
                 var hash = findIntegratedHash();
                 if (hash.isPresent()) {
-                    if (!hasLegacyIntegrationNotice(hash.get())) {
-                        var commit = localRepo.lookup(hash.get());
+                    var commit = localRepo.lookup(hash.get());
+                    if (!hasLegacyIntegrationNotice(localRepo, commit.orElseThrow())) {
                         var reply = ArchiveItem.integratedNotice(pr, localRepo, commit.orElseThrow(), hostUserToEmailAuthor, parent, subjectPrefix, threadPrefix);
                         generated.add(reply);
                     }
