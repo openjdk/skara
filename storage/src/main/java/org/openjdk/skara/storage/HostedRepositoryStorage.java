@@ -36,12 +36,11 @@ class HostedRepositoryStorage<T> implements Storage<T> {
     private final String authorName;
     private final String authorEmail;
     private final String message;
-    private final Repository localRepository;
     private final StorageSerializer<T> serializer;
     private final StorageDeserializer<T> deserializer;
 
-    private Hash hash;
     private RepositoryStorage<T> repositoryStorage;
+    private Repository localRepository;
     private Set<T> current;
 
     HostedRepositoryStorage(HostedRepository repository, Path localStorage, String ref, String fileName, String authorName, String authorEmail, String message, StorageSerializer<T> serializer, StorageDeserializer<T> deserializer) {
@@ -54,27 +53,34 @@ class HostedRepositoryStorage<T> implements Storage<T> {
         this.serializer = serializer;
         this.deserializer = deserializer;
 
-        try {
-            Repository localRepository;
-            try {
-                localRepository = Repository.materialize(localStorage, repository.url(), "+" + ref + ":storage");
-            } catch (IOException e) {
-                // The remote ref may not yet exist
-                localRepository = Repository.init(localStorage, repository.repositoryType());
-                var storage = Files.writeString(localStorage.resolve(fileName), "");
-                localRepository.add(storage);
-                var firstCommit = localRepository.commit(message, authorName, authorEmail);
+        int retryCount = 0;
+        IOException lastException = null;
 
-                // If the materialization failed for any other reason than the remote ref not existing, this will fail
-                localRepository.push(firstCommit, repository.url(), ref);
+        while (retryCount < 10) {
+            try {
+                Repository localRepository;
+                try {
+                    localRepository = Repository.materialize(localStorage, repository.url(), "+" + ref + ":storage");
+                } catch (IOException e) {
+                    // The remote ref may not yet exist
+                    localRepository = Repository.init(localStorage, repository.repositoryType());
+                    var storage = Files.writeString(localStorage.resolve(fileName), "");
+                    localRepository.add(storage);
+                    var firstCommit = localRepository.commit(message, authorName, authorEmail);
+
+                    // If the materialization failed for any other reason than the remote ref not existing, this will fail
+                    localRepository.push(firstCommit, repository.url(), ref);
+                }
+                this.localRepository = localRepository;
+                repositoryStorage = new RepositoryStorage<>(localRepository, fileName, authorName, authorEmail, message, serializer, deserializer);
+                current = current();
+                return;
+            } catch (IOException e) {
+                lastException = e;
             }
-            this.localRepository = localRepository;
-            hash = localRepository.head();
-            repositoryStorage = new RepositoryStorage<>(localRepository, fileName, authorName, authorEmail, message, serializer, deserializer);
-            current = current();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            retryCount++;
         }
+        throw new UncheckedIOException("Retry count exceeded", lastException);
     }
 
     @Override
@@ -100,7 +106,6 @@ class HostedRepositoryStorage<T> implements Storage<T> {
             try {
                 var updatedHash = localRepository.head();
                 localRepository.push(updatedHash, hostedRepository.url(), ref);
-                hash = updatedHash;
                 current = updated;
                 return;
             } catch (IOException e) {
