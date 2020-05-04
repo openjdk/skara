@@ -427,7 +427,7 @@ class CheckRun {
 
         message.append("- If you would like to add a summary, use the `/summary` command.\n");
         message.append("- To credit additional contributors, use the `/contributor` command.\n");
-        message.append("- To add additional solved issues, use the `/solves` command.\n");
+        message.append("- To add additional solved issues, use the `/issue` command.\n");
 
         var divergingCommits = checkablePullRequest.divergingCommits();
         if (divergingCommits.size() > 0) {

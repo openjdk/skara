@@ -23,14 +23,12 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.PullRequest;
-import org.openjdk.skara.issuetracker.Comment;
-import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.JSON;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
 
 public class CSRCommand implements CommandHandler {
     private static final String CSR_LABEL = "csr";
@@ -48,7 +46,7 @@ public class CSRCommand implements CommandHandler {
     private static void jbsReply(PullRequest pr, PrintWriter writer) {
         writer.println("@" + pr.author().userName() + " this pull request must refer to an issue in " +
                       "[JBS](https://bugs.openjdk.java.net) to be able to link it to a CSR request. To refer this pull request to " +
-                      "an issue in JBS, please use the `/solves` command in a comment in this pull request.");
+                      "an issue in JBS, please use the `/issue` command in a comment in this pull request.");
     }
 
     private static void linkReply(PullRequest pr, Issue issue, PrintWriter writer) {
