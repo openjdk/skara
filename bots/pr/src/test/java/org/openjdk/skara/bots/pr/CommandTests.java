@@ -103,4 +103,51 @@ class CommandTests {
             assertEquals(1, error);
         }
     }
+
+    @Test
+    void selfCommand(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Issue an command using the bot account
+            var botPr = integrator.pullRequest(pr.id());
+            botPr.addComment("/help");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should not reply
+            assertEquals(1, pr.comments().size());
+            TestBotRunner.runPeriodicItems(mergeBot);
+            assertEquals(1, pr.comments().size());
+
+            // But if we add an overriding marker, it should
+            botPr.addComment("/help\n<!-- Valid self-command -->");
+
+            assertEquals(2, pr.comments().size());
+            TestBotRunner.runPeriodicItems(mergeBot);
+            assertEquals(3, pr.comments().size());
+
+            var help = pr.comments().stream()
+                         .filter(comment -> comment.body().contains("Available commands"))
+                         .filter(comment -> comment.body().contains("help"))
+                          .count();
+            assertEquals(1, help);
+        }
+    }
 }

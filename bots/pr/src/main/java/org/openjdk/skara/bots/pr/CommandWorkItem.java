@@ -36,8 +36,10 @@ import java.util.stream.*;
 public class CommandWorkItem extends PullRequestWorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
+    private final Pattern commandPattern = Pattern.compile("^/(.*)");
     private final String commandReplyMarker = "<!-- Jmerge command reply message (%s) -->";
     private final Pattern commandReplyPattern = Pattern.compile("<!-- Jmerge command reply message \\((\\S+)\\) -->");
+    private final String selfCommandMarker = "<!-- Valid self-command -->";
 
     private final static Map<String, CommandHandler> commandHandlers = Map.of(
             "help", new HelpCommand(),
@@ -84,11 +86,9 @@ public class CommandWorkItem extends PullRequestWorkItem {
                               .map(matcher -> matcher.group(1))
                               .collect(Collectors.toSet());
 
-        var commandPattern = Pattern.compile("^/(.*)");
-
         return comments.stream()
-                       .filter(comment -> !comment.author().equals(self))
                        .map(comment -> new AbstractMap.SimpleEntry<>(comment, commandPattern.matcher(comment.body())))
+                       .filter(entry -> !entry.getKey().author().equals(self) || entry.getKey().body().endsWith(selfCommandMarker))
                        .filter(entry -> entry.getValue().find())
                        .filter(entry -> !handled.contains(entry.getKey().id()))
                        .map(entry -> new AbstractMap.SimpleEntry<>(entry.getValue().group(1), entry.getKey()))
