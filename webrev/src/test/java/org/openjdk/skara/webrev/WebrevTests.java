@@ -55,6 +55,7 @@ class WebrevTests {
             var hash2 = repo.commit("Commit 2", "a", "a@a.a");
 
             new Webrev.Builder(repo, webrevFolder.path()).generate(hash1, hash2);
+            assertContains(webrevFolder.path().resolve("x.txt"), "1\n2\n3\n4\n");
             assertContains(webrevFolder.path().resolve("index.html"), "<td>1 lines changed; 1 ins; 0 del; 0 mod; 3 unchg</td>");
         }
     }
@@ -173,4 +174,25 @@ class WebrevTests {
             new Webrev.Builder(repo, tmp.path().resolve("webrev")).generate(hash1, hash2);
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void reservedName(VCS vcs) throws IOException {
+        try (var repoFolder = new TemporaryDirectory();
+             var webrevFolder = new TemporaryDirectory()) {
+            var repo = Repository.init(repoFolder.path(), vcs);
+            var file = repoFolder.path().resolve("index.html");
+            Files.writeString(file, "1\n2\n3\n", StandardCharsets.UTF_8);
+            repo.add(file);
+            var hash1 = repo.commit("Commit", "a", "a@a.a");
+            Files.writeString(file, "1\n2\n3\n4\n", StandardCharsets.UTF_8);
+            repo.add(file);
+            var hash2 = repo.commit("Commit 2", "a", "a@a.a");
+
+            new Webrev.Builder(repo, webrevFolder.path()).generate(hash1, hash2);
+            assertContains(webrevFolder.path().resolve("_index.html"), "1\n2\n3\n4\n");
+            assertContains(webrevFolder.path().resolve("index.html"), "<td>1 lines changed; 1 ins; 0 del; 0 mod; 3 unchg</td>");
+        }
+    }
+
 }
