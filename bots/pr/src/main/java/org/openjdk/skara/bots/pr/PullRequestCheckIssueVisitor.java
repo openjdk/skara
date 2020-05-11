@@ -32,10 +32,9 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 class PullRequestCheckIssueVisitor implements IssueVisitor {
-    private final Set<String> messages = new HashSet<>();
     private final List<CheckAnnotation> annotations = new LinkedList<>();
     private final Set<Check> enabledChecks;
-    private final Set<Class<? extends Check>> failedChecks = new HashSet<>();
+    private final Map<Class<? extends Check>, String> failedChecks = new HashMap<>();
 
     private boolean readyForReview;
 
@@ -53,16 +52,29 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
         readyForReview = true;
     }
 
-    List<String> getMessages() {
-        return new ArrayList<>(messages);
+    private void addFailureMessage(Check check, String message) {
+        failedChecks.put(check.getClass(), message);
+    }
+
+    List<String> messages() {
+        return new ArrayList<>(failedChecks.values());
+    }
+
+    List<String> hiddenMessages() {
+        return failedChecks.entrySet().stream()
+                           .filter(entry -> !displayedChecks.contains(entry.getKey()))
+                           .map(Map.Entry::getValue)
+                           .sorted()
+                           .collect(Collectors.toList());
     }
 
     Map<String, Boolean> getChecks() {
         return enabledChecks.stream()
                             .filter(check -> displayedChecks.contains(check.getClass()))
                             .collect(Collectors.toMap(Check::description,
-                                                      check -> !failedChecks.contains(check.getClass())));
+                                                      check -> !failedChecks.containsKey(check.getClass())));
     }
+
 
     List<CheckAnnotation> getAnnotations() { return annotations; }
 
@@ -81,8 +93,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
         var output = new StringBuilder();
         output.append("Issue id ").append(id).append(" is already used in these commits:\n");
         other.forEach(h -> output.append(" * ").append(h).append("\n"));
-        messages.add(output.toString());
-        failedChecks.add(e.check().getClass());
+        addFailureMessage(e.check(), output.toString());
         readyForReview = false;
     }
 
@@ -99,15 +110,13 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     @Override
     public void visit(SelfReviewIssue e)
     {
-        messages.add("Self-reviews are not allowed");
-        failedChecks.add(e.check().getClass());
+        addFailureMessage(e.check(), "Self-reviews are not allowed");
         readyForReview = false;
     }
 
     @Override
     public void visit(TooFewReviewersIssue e) {
-        messages.add(String.format("Too few reviewers with at least role %s found (have %d, need at least %d)", e.role(), e.numActual(), e.numRequired()));
-        failedChecks.add(e.check().getClass());
+        addFailureMessage(e.check(), String.format("Too few reviewers with at least role %s found (have %d, need at least %d)", e.role(), e.numActual(), e.numRequired()));
     }
 
     @Override
@@ -119,8 +128,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     @Override
     public void visit(MergeMessageIssue e) {
         var message = String.join("\n", e.commit().message());
-        messages.add("Merge commit message is not " + e.expected() + ", but: " + message);
-        failedChecks.add(e.check().getClass());
+        addFailureMessage(e.check(), "Merge commit message is not " + e.expected() + ", but: " + message);
     }
 
     @Override
@@ -181,8 +189,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
         var annotation = annotationBuilder.title("Whitespace error").build();
         annotations.add(annotation);
 
-        messages.add("Whitespace errors");
-        failedChecks.add(e.check().getClass());
+        addFailureMessage(e.check(), "Whitespace errors");
         readyForReview = false;
     }
 
@@ -200,23 +207,20 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     @Override
     public void visit(IssuesIssue issue) {
-        messages.add("The commit message does not reference any issue. To add an issue reference to this PR, " +
+        addFailureMessage(issue.check(), "The commit message does not reference any issue. To add an issue reference to this PR, " +
                 "edit the title to be of the format `issue number`: `message`.");
-        failedChecks.add(issue.check().getClass());
         readyForReview = false;
     }
 
     @Override
     public void visit(ExecutableIssue issue) {
-        messages.add(String.format("Executable files are not allowed (file: %s)", issue.path()));
-        failedChecks.add(issue.check().getClass());
+        addFailureMessage(issue.check(), String.format("Executable files are not allowed (file: %s)", issue.path()));
         readyForReview = false;
     }
 
     @Override
     public void visit(SymlinkIssue issue) {
-        messages.add(String.format("Symbolic links are not allowed (file: %s)", issue.path()));
-        failedChecks.add(issue.check().getClass());
+        addFailureMessage(issue.check(), String.format("Symbolic links are not allowed (file: %s)", issue.path()));
         readyForReview = false;
     }
 
@@ -232,8 +236,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     @Override
     public void visit(ProblemListsIssue issue) {
-        failedChecks.add(issue.check().getClass());
-        messages.add(issue.issue() + " is used in problem lists: " + issue.files());
+        addFailureMessage(issue.check(), issue.issue() + " is used in problem lists: " + issue.files());
         readyForReview = false;
     }
 }

@@ -102,10 +102,10 @@ public class SponsorCommand implements CommandHandler {
             var issues = checkablePr.createVisitor(localHash, censusInstance);
             var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), allComments);
             checkablePr.executeChecks(localHash, censusInstance, issues, additionalConfiguration);
-            if (!issues.getMessages().isEmpty()) {
+            if (!issues.messages().isEmpty()) {
                 reply.print("Your merge request cannot be fulfilled at this time, as ");
                 reply.println("your changes failed the final jcheck:");
-                issues.getMessages().stream()
+                issues.messages().stream()
                       .map(line -> " * " + line)
                       .forEach(reply::println);
                 return;
