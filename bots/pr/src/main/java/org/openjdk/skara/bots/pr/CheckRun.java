@@ -50,11 +50,13 @@ class CheckRun {
     private final Hash baseHash;
     private final CheckablePullRequest checkablePullRequest;
 
-    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
-    private final String progressMarker = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
-    private final String mergeReadyMarker = "<!-- PullRequestBot merge is ready comment -->";
-    private final String outdatedHelpMarker = "<!-- PullRequestBot outdated help comment -->";
-    private final String sourceBranchWarningMarker = "<!-- PullRequestBot source branch warning comment -->";
+    private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
+    private static final String progressMarker = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
+    private static final String mergeReadyMarker = "<!-- PullRequestBot merge is ready comment -->";
+    private static final String outdatedHelpMarker = "<!-- PullRequestBot outdated help comment -->";
+    private static final String sourceBranchWarningMarker = "<!-- PullRequestBot source branch warning comment -->";
+    private static final String emptyPrBodyMarker = "<!--\nReplace this text with a description of your pull request (also remove the surrounding HTML comment markers).\n" +
+            "If in doubt, feel free to delete everything in this edit box first, the bot will restore the progress section as needed.\n-->";
     private final Set<String> newLabels;
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
@@ -361,7 +363,11 @@ class CheckRun {
             log.info("Progress already up to date");
             return description;
         }
-        var newBody = bodyWithoutStatus() + "\n" + progressMarker + "\n" + message;
+        var originalBody = bodyWithoutStatus();
+        if (originalBody.isBlank()) {
+            originalBody = emptyPrBodyMarker;
+        }
+        var newBody = originalBody + "\n" + progressMarker + "\n" + message;
 
         // TODO? Retrieve the body again here to lower the chance of concurrent updates
         pr.setBody(newBody);
