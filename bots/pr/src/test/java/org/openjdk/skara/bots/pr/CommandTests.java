@@ -129,7 +129,6 @@ class CommandTests {
             // Issue an command using the bot account
             var botPr = integrator.pullRequest(pr.id());
             botPr.addComment("/help");
-            TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should not reply
             assertEquals(1, pr.comments().size());
@@ -146,7 +145,7 @@ class CommandTests {
             var help = pr.comments().stream()
                          .filter(comment -> comment.body().contains("Available commands"))
                          .filter(comment -> comment.body().contains("help"))
-                          .count();
+                         .count();
             assertEquals(1, help);
         }
     }
