@@ -704,6 +704,9 @@ class CheckTests {
             assertTrue(updatedPr.body().contains("## Error"));
             assertTrue(updatedPr.body().contains("The pull request body must not be empty."));
 
+            // There should be an indicator of where the pr body should be entered
+            assertTrue(updatedPr.body().contains("Replace this text with a description of your pull request"));
+
             // The PR should not yet be ready for review
             assertFalse(pr.labels().contains("rfr"));
             assertFalse(pr.labels().contains("ready"));
@@ -720,6 +723,9 @@ class CheckTests {
             updatedPr = author.pullRequest(pr.id());
             assertFalse(updatedPr.body().contains("## Error"));
             assertFalse(updatedPr.body().contains("The pull request body must not be empty."));
+
+            // And no new helper marker
+            assertFalse(updatedPr.body().contains("Replace this text with a description of your pull request"));
         }
     }
 
