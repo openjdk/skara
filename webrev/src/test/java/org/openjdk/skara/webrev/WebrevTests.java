@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WebrevTests {
     void assertContains(Path file, String text) throws IOException {
-        var contents = Files.readString(file);
+        var contents = Files.readString(file).replaceAll("\\R", "\n");
         assertTrue(contents.contains(text));
     }
 
