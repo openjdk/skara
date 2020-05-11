@@ -34,10 +34,12 @@ import java.util.regex.*;
 import java.util.stream.*;
 
 public class CommandWorkItem extends PullRequestWorkItem {
-    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
+    private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
-    private final String commandReplyMarker = "<!-- Jmerge command reply message (%s) -->";
-    private final Pattern commandReplyPattern = Pattern.compile("<!-- Jmerge command reply message \\((\\S+)\\) -->");
+    private static final Pattern commandPattern = Pattern.compile("^/(.*)");
+    private static final String commandReplyMarker = "<!-- Jmerge command reply message (%s) -->";
+    private static final Pattern commandReplyPattern = Pattern.compile("<!-- Jmerge command reply message \\((\\S+)\\) -->");
+    private static final String selfCommandMarker = "<!-- Valid self-command -->";
 
     private final static Map<String, CommandHandler> commandHandlers = Map.of(
             "help", new HelpCommand(),
@@ -84,10 +86,8 @@ public class CommandWorkItem extends PullRequestWorkItem {
                               .map(matcher -> matcher.group(1))
                               .collect(Collectors.toSet());
 
-        var commandPattern = Pattern.compile("^/(.*)");
-
         return comments.stream()
-                       .filter(comment -> !comment.author().equals(self))
+                       .filter(comment -> !comment.author().equals(self) || comment.body().endsWith(selfCommandMarker))
                        .map(comment -> new AbstractMap.SimpleEntry<>(comment, commandPattern.matcher(comment.body())))
                        .filter(entry -> entry.getValue().find())
                        .filter(entry -> !handled.contains(entry.getKey().id()))

@@ -43,6 +43,7 @@ import java.util.stream.Collectors;
 import java.util.logging.Logger;
 
 class MergeBot implements Bot, WorkItem {
+    private final String integrationCommand = "/integrate\n<!-- Valid self-command -->";
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final Path storage;
 
@@ -326,10 +327,10 @@ class MergeBot implements Bot, WorkItem {
                             var integrateComments =
                                 comments.stream()
                                         .filter(c -> c.author().equals(currentUser))
-                                        .filter(c -> c.body().equals("/integrate"))
+                                        .filter(c -> c.body().equals(integrationCommand))
                                         .collect(Collectors.toList());
                             if (integrateComments.isEmpty()) {
-                                pr.addComment("/integrate");
+                                pr.addComment(integrationCommand);
                             } else {
                                 var lastIntegrateComment = integrateComments.get(integrateComments.size() - 1);
                                 var id = lastIntegrateComment.id();
@@ -349,7 +350,7 @@ class MergeBot implements Bot, WorkItem {
                                     var errorPrefix = "@openjdk-bot Your merge request cannot be fulfilled at this time";
                                     if (lines.length > 1 && lines[1].startsWith(errorPrefix)) {
                                         // Try again
-                                        pr.addComment("/integrate");
+                                        pr.addComment(integrationCommand);
                                     }
                                     // Other reply, potentially due to rebase issue, just
                                     // wait for the labeler to add appropriate labels.

@@ -660,7 +660,7 @@ class MergeBotTests {
             pr = pullRequests.get(0);
             var numComments = pr.comments().size();
             var lastComment = pr.comments().get(pr.comments().size() - 1);
-            assertEquals("/integrate", lastComment.body());
+            assertEquals("/integrate\n<!-- Valid self-command -->", lastComment.body());
 
             // Running the bot again should not result in another comment
             TestBotRunner.runPeriodicItems(bot);
