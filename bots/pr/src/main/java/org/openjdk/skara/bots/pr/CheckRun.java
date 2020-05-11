@@ -157,7 +157,7 @@ class CheckRun {
             checkBuilder.complete(true);
         } else {
             checkBuilder.title("Required");
-            var summary = Stream.concat(visitor.getMessages().stream(), additionalErrors.stream())
+            var summary = Stream.concat(visitor.messages().stream(), additionalErrors.stream())
                                 .sorted()
                                 .map(m -> "- " + m)
                                 .collect(Collectors.joining("\n"));
@@ -274,13 +274,16 @@ class CheckRun {
         progressBody.append("### Progress\n");
         progressBody.append(getChecksList(visitor));
 
-        if (!additionalErrors.isEmpty()) {
+        var allAdditionalErrors = Stream.concat(visitor.hiddenMessages().stream(), additionalErrors.stream())
+                                        .sorted()
+                                        .collect(Collectors.toList());
+        if (!allAdditionalErrors.isEmpty()) {
             progressBody.append("\n\n### Error");
-            if (additionalErrors.size() > 1) {
+            if (allAdditionalErrors.size() > 1) {
                 progressBody.append("s");
             }
             progressBody.append("\n");
-            progressBody.append(getAdditionalErrorsList(additionalErrors));
+            progressBody.append(getAdditionalErrorsList(allAdditionalErrors));
         }
 
         var issue = Issue.fromString(pr.title());
@@ -632,7 +635,7 @@ class CheckRun {
 
             var commit = localRepo.lookup(localHash).orElseThrow();
             var commitMessage = String.join("\n", commit.message());
-            var readyForIntegration = visitor.getMessages().isEmpty() && additionalErrors.isEmpty();
+            var readyForIntegration = visitor.messages().isEmpty() && additionalErrors.isEmpty();
             updateMergeReadyComment(readyForIntegration, commitMessage, comments, activeReviews, rebasePossible);
             if (readyForIntegration && rebasePossible) {
                 newLabels.add("ready");

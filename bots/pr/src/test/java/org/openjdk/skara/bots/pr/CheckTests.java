@@ -22,14 +22,14 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.test.*;
-
-import org.junit.jupiter.api.*;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -720,6 +720,73 @@ class CheckTests {
             updatedPr = author.pullRequest(pr.id());
             assertFalse(updatedPr.body().contains("## Error"));
             assertFalse(updatedPr.body().contains("The pull request body must not be empty."));
+        }
+    }
+
+    @Test
+    void executableFile(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var checkBot = PullRequestBot.newBuilder()
+                                         .repo(author)
+                                         .censusRepo(censusBuilder.build())
+                                         .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
+                    Path.of("executable.exe"), Set.of("reviewers", "executable"), "0.1");
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            Files.writeString(tempFolder.path().resolve("executable.exe"), "Executable file contents", StandardCharsets.UTF_8);
+            Files.setPosixFilePermissions(tempFolder.path().resolve("executable.exe"), Set.of(PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.OWNER_READ));
+            localRepo.add(Path.of("executable.exe"));
+            var editHash = localRepo.commit("Make it executable", "duke", "duke@openjdk.org");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Another PR");
+            pr.setBody("This should now be ready");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that the check failed
+            var checks = pr.checks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            assertEquals(CheckStatus.FAILURE, check.status());
+            assertTrue(check.summary().orElseThrow().contains("Executable files are not allowed (file: executable.exe)"));
+
+            // Additional errors should be displayed in the body
+            var updatedPr = author.pullRequest(pr.id());
+            assertTrue(updatedPr.body().contains("## Error"));
+            assertTrue(updatedPr.body().contains("Executable files are not allowed (file: executable.exe)"));
+
+            // The PR should not yet be ready for review
+            assertFalse(pr.labels().contains("rfr"));
+            assertFalse(pr.labels().contains("ready"));
+
+            // Drop that error
+            Files.setPosixFilePermissions(tempFolder.path().resolve("executable.exe"), Set.of(PosixFilePermission.OWNER_READ));
+            localRepo.add(Path.of("executable.exe"));
+            var updatedHash = localRepo.commit("Make it unexecutable", "duke", "duke@openjdk.org");
+            localRepo.push(updatedHash, author.url(), "edit");
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The PR should now be ready for review
+            assertTrue(pr.labels().contains("rfr"));
+            assertFalse(pr.labels().contains("ready"));
+
+            // The additional errors should be gone
+            updatedPr = author.pullRequest(pr.id());
+            assertFalse(updatedPr.body().contains("## Error"));
+            assertFalse(updatedPr.body().contains("Executable files are not allowed"));
         }
     }
 
