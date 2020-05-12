@@ -22,23 +22,19 @@
  */
 package org.openjdk.skara.bots.merge;
 
-import org.openjdk.skara.host.*;
+import org.junit.jupiter.api.*;
+import org.openjdk.skara.host.HostUser;
+import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.issuetracker.Issue;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
+import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.time.DayOfWeek;
-import java.time.Month;
-import java.time.ZonedDateTime;
-import java.time.ZoneId;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -1287,6 +1283,80 @@ class MergeBotTests {
 
             toCommits = toLocalRepo.commits().asList();
             assertEquals(6, toCommits.size());
+        }
+    }
+
+    @Test
+    void mergeAfterDivergedStorage(TestInfo testInfo) throws IOException {
+        try (var temp = new TemporaryDirectory()) {
+            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+
+            var fromDir = temp.path().resolve("from.git");
+            var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
+            var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
+
+            var toDir = temp.path().resolve("to.git");
+            var toLocalRepo = Repository.init(toDir, VCS.GIT);
+            var toGitConfig = toDir.resolve(".git").resolve("config");
+            Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
+                    StandardOpenOption.APPEND);
+            var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
+
+            var forkDir = temp.path().resolve("fork.git");
+            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkGitConfig = forkDir.resolve(".git").resolve("config");
+            Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
+                    StandardOpenOption.APPEND);
+            var toFork = new TestHostedRepository(host, "test-mirror-fork", forkLocalRepo);
+
+            var now = ZonedDateTime.now();
+            var fromFileA = fromDir.resolve("a.txt");
+            Files.writeString(fromFileA, "Hello A\n");
+            fromLocalRepo.add(fromFileA);
+            var fromHashA = fromLocalRepo.commit("Adding a.txt", "duke", "duke@openjdk.org", now);
+            var fromCommits = fromLocalRepo.commits().asList();
+            assertEquals(1, fromCommits.size());
+            assertEquals(fromHashA, fromCommits.get(0).hash());
+
+            var toFileA = toDir.resolve("a.txt");
+            Files.writeString(toFileA, "Hello A\n");
+            toLocalRepo.add(toFileA);
+            var toHashA = toLocalRepo.commit("Adding a.txt", "duke", "duke@openjdk.org", now);
+            var toCommits = toLocalRepo.commits().asList();
+            assertEquals(1, toCommits.size());
+            assertEquals(toHashA, toCommits.get(0).hash());
+            assertEquals(fromHashA, toHashA);
+
+            var storage = temp.path().resolve("storage");
+            var master = new Branch("master");
+            var specs = List.of(new MergeBot.Spec(fromHostedRepo, master, master));
+            var bot = new MergeBot(storage, toHostedRepo, toFork, specs);
+            TestBotRunner.runPeriodicItems(bot);
+
+            // Add something new to the source
+            var fromFileB = fromDir.resolve("b.txt");
+            Files.writeString(fromFileB, "Hello B\n");
+            fromLocalRepo.add(fromFileB);
+            var fromHashB = fromLocalRepo.commit("Adding a.txt", "duke", "duke@openjdk.org", now);
+            fromLocalRepo.push(fromHashB, fromHostedRepo.url(), "master");
+
+            // Diverge the target with something non-conflicting
+            var toFileC = toDir.resolve("c.txt");
+            Files.writeString(toFileC, "Hello C\n");
+            toLocalRepo.add(toFileC);
+            var toHashC = toLocalRepo.commit("Adding c.txt", "duke", "duke@openjdk.org");
+            toLocalRepo.push(toHashC, toHostedRepo.url(), "master");
+
+            // But push something out of place to the local storage as well
+            var sanitizedForkUrl = URLEncoder.encode(toFork.webUrl().toString(), StandardCharsets.UTF_8);
+            var storageRepo = Repository.init(storage.resolve(sanitizedForkUrl), VCS.GIT);
+            var divergedForkFile = storageRepo.root().resolve("d.txt");
+            Files.writeString(divergedForkFile, "Hello D\n");
+            storageRepo.add(divergedForkFile);
+            var divergedForkHash = storageRepo.commit("Adding d.txt", "duke", "duke@openjdk.org");
+
+            // This will need manual intervention
+            assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(bot));
         }
     }
 }
