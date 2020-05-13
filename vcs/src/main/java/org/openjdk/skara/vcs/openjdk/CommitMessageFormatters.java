@@ -22,10 +22,10 @@
  */
 package org.openjdk.skara.vcs.openjdk;
 
+import org.openjdk.skara.vcs.Author;
+
 import java.util.*;
 import java.util.stream.Collectors;
-
-import org.openjdk.skara.vcs.Author;
 
 public class CommitMessageFormatters {
     public static class V0 implements CommitMessageFormatter {
@@ -40,7 +40,7 @@ public class CommitMessageFormatters {
             var lines = new ArrayList<String>();
 
             for (var issue : message.issues()) {
-                lines.add(issue.toString());
+                lines.add(issue.toShortString());
             }
             for (var summary : message.summaries()) {
                 lines.add("Summary: " + summary);
@@ -71,7 +71,7 @@ public class CommitMessageFormatters {
                 lines.add(message.title());
             } else {
                 for (var issue : message.issues()) {
-                    lines.add(issue.toString());
+                    lines.add(issue.toShortString());
                 }
             }
 

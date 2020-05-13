@@ -51,7 +51,7 @@ public class JsonUpdater implements RepositoryUpdateConsumer {
         var parsedMessage = CommitMessageParsers.v1.parse(commit);
         var issueIds = JSON.array();
         for (var issue : parsedMessage.issues()) {
-            issueIds.add(JSON.of(issue.id()));
+            issueIds.add(JSON.of(issue.shortId()));
         }
         ret.put("issue", issueIds);
         ret.put("user", commit.author().name());
@@ -67,7 +67,7 @@ public class JsonUpdater implements RepositoryUpdateConsumer {
 
         var issueIds = JSON.array();
         for (var issue : issues) {
-            issueIds.add(JSON.of(issue.id()));
+            issueIds.add(JSON.of(issue.shortId()));
         }
 
         ret.put("issue", issueIds);

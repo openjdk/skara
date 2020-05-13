@@ -270,6 +270,14 @@ class CheckRun {
         }
     }
 
+    private boolean relaxedEquals(String s1, String s2) {
+        return s1.trim()
+                 .replaceAll("\\s+", " ")
+                 .equalsIgnoreCase(s2.trim()
+                                     .replaceAll("\\s+", " "));
+    }
+
+
     private String getStatusMessage(List<Comment> comments, List<Review> reviews, PullRequestCheckIssueVisitor visitor, List<String> additionalErrors) {
         var progressBody = new StringBuilder();
         progressBody.append("---------\n");
@@ -288,7 +296,7 @@ class CheckRun {
             progressBody.append(getAdditionalErrorsList(allAdditionalErrors));
         }
 
-        var issue = Issue.fromString(pr.title());
+        var issue = Issue.fromStringRelaxed(pr.title());
         var issueProject = workItem.bot.issueProject();
         if (issueProject != null && issue.isPresent()) {
             var allIssues = new ArrayList<Issue>();
@@ -301,25 +309,36 @@ class CheckRun {
             progressBody.append("\n");
             for (var currentIssue : allIssues) {
                 progressBody.append(" * ");
-                try {
-                    var iss = issueProject.issue(currentIssue.id());
-                    if (iss.isPresent()) {
-                        progressBody.append("[");
-                        progressBody.append(iss.get().id());
-                        progressBody.append("](");
-                        progressBody.append(iss.get().webUrl());
-                        progressBody.append("): ");
-                        progressBody.append(iss.get().title());
-                        progressBody.append("\n");
-                    } else {
-                        progressBody.append("⚠️ Failed to retrieve information on issue `");
+                if (currentIssue.project().isPresent() && !currentIssue.project().get().equals(issueProject.name())) {
+                    progressBody.append("⚠️ Issue `");
+                    progressBody.append(currentIssue.id());
+                    progressBody.append("` does not belong to the `");
+                    progressBody.append(issueProject.name());
+                    progressBody.append("` project.");
+                } else {
+                    try {
+                        var iss = issueProject.issue(currentIssue.shortId());
+                        if (iss.isPresent()) {
+                            progressBody.append("[");
+                            progressBody.append(iss.get().id());
+                            progressBody.append("](");
+                            progressBody.append(iss.get().webUrl());
+                            progressBody.append("): ");
+                            progressBody.append(iss.get().title());
+                            if (!relaxedEquals(iss.get().title(), currentIssue.description())) {
+                                progressBody.append(" ⚠️ Title mismatch between PR and JBS.");
+                            }
+                            progressBody.append("\n");
+                        } else {
+                            progressBody.append("⚠️ Failed to retrieve information on issue `");
+                            progressBody.append(currentIssue.id());
+                            progressBody.append("`.\n");
+                        }
+                    } catch (RuntimeException e) {
+                        progressBody.append("⚠️ Temporary failure when trying to retrieve information on issue `");
                         progressBody.append(currentIssue.id());
                         progressBody.append("`.\n");
                     }
-                } catch (RuntimeException e) {
-                    progressBody.append("⚠️ Temporary failure when trying to retrieve information on issue `");
-                    progressBody.append(currentIssue.id());
-                    progressBody.append("`.\n");
                 }
             }
         }

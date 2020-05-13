@@ -230,7 +230,7 @@ public class GitInfo {
             var decoration = useDecoration? "Review: " : "";
             var project = jbsProject(repo, hash);
             if (message.issues().size() == 1) {
-                var issueId = message.issues().get(0).id();
+                var issueId = message.issues().get(0).shortId();
                 var issueTracker = IssueTracker.from("jira", JBS);
                 var issue = issueTracker.project(project).issue(issueId);
                 if (issue.isPresent()) {
@@ -254,11 +254,11 @@ public class GitInfo {
                 }
                 var decoration = useDecoration ? "- " : "";
                 for (var issue : issues) {
-                    System.out.println(decoration + uri + issue.id());
+                    System.out.println(decoration + uri + issue.shortId());
                 }
             } else if (issues.size() == 1) {
                 var decoration = useDecoration ? "Issue: " : "";
-                System.out.println(decoration + uri + issues.get(0).id());
+                System.out.println(decoration + uri + issues.get(0).shortId());
             }
         }
     }

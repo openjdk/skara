@@ -24,18 +24,36 @@ package org.openjdk.skara.vcs.openjdk;
 
 import java.util.*;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class Issue {
+    private final String project;
     private final String id;
     private final String description;
 
+    private final static Pattern relaxedIssueParsePattern = Pattern.compile("^((?:[A-Z][A-Z0-9]+-)?[0-9]+)[^\\p{Alnum}]+(\\S.*)$");
+
     public Issue(String id, String description) {
-        this.id = id;
+        if (id.contains("-")) {
+            var idSplit = id.split("-", 2);
+            project = idSplit[0];
+            this.id = idSplit[1];
+        } else {
+            project = null;
+            this.id = id;
+        }
+
         this.description = description;
     }
 
+    public Optional<String> project() {
+        return Optional.ofNullable(project);
+    }
+
     public String id() {
+        return (project != null ? project + "-" : "") + id;
+    }
+
+    public String shortId() {
         return id;
     }
 
@@ -53,24 +71,36 @@ public class Issue {
         return Optional.empty();
     }
 
+    public static Optional<Issue> fromStringRelaxed(String s) {
+        var relaxedIssueParseMatcher = relaxedIssueParsePattern.matcher(s.trim());
+        if (relaxedIssueParseMatcher.matches()) {
+            return Optional.of(new Issue(relaxedIssueParseMatcher.group(1), relaxedIssueParseMatcher.group(2)));
+        }
+
+        return Optional.empty();
+    }
+
     @Override
     public String toString() {
+        return id() + ": " + description;
+    }
+
+    public String toShortString() {
         return id + ": " + description;
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(id, description);
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Issue issue = (Issue) o;
+        return Objects.equals(project, issue.project) &&
+                id.equals(issue.id) &&
+                description.equals(issue.description);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (!(o instanceof Issue)) {
-            return false;
-        }
-
-        var other = (Issue) o;
-        return Objects.equals(id, other.id) &&
-               Objects.equals(description, other.description);
+    public int hashCode() {
+        return Objects.hash(project, id, description);
     }
 }

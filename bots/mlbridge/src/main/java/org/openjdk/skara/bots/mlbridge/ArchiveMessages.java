@@ -137,8 +137,8 @@ class ArchiveMessages {
     }
 
     private static Optional<String> issueUrl(PullRequest pr, URI issueTracker, String projectPrefix) {
-        var issue = Issue.fromString(pr.title());
-        return issue.map(value -> URIBuilder.base(issueTracker).appendPath(projectPrefix + "-" + value.id()).build().toString());
+        var issue = Issue.fromStringRelaxed(pr.title());
+        return issue.map(value -> URIBuilder.base(issueTracker).appendPath(projectPrefix + "-" + value.shortId()).build().toString());
     }
 
     private static String stats(Repository localRepo, Hash base, Hash head) {
