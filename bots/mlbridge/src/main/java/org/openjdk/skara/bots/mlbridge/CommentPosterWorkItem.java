@@ -77,11 +77,12 @@ public class CommentPosterWorkItem implements WorkItem {
         var marker = String.format(bridgedMailMarker,
                                  Base64.getEncoder().encodeToString(email.id().address().getBytes(StandardCharsets.UTF_8)));
 
+        var filteredEmail = QuoteFilter.stripLinkBlock(email.body(), pr.webUrl());
         var body = marker + "\n" +
                 "*Mailing list message from [" + email.author().fullName().orElse(email.author().localPart()) +
                 "](mailto:" + email.author().address() + ") on [" + email.sender().localPart() +
                 "](mailto:" + email.sender().address() + "):*\n\n" +
-                TextToMarkdown.escapeFormatting(email.body());
+                TextToMarkdown.escapeFormatting(filteredEmail);
         if (body.length() > 64000) {
             body = body.substring(0, 64000) + "...\n\n" + "" +
                     "This message was too large to bridge in full, and has been truncated. " +
