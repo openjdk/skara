@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.JSON;
 
@@ -83,7 +83,7 @@ public class CSRCommand implements CommandHandler {
         }
 
         var issueProject = bot.issueProject();
-        var issue = org.openjdk.skara.vcs.openjdk.Issue.fromString(pr.title());
+        var issue = org.openjdk.skara.vcs.openjdk.Issue.fromStringRelaxed(pr.title());
         if (issue.isEmpty()) {
             csrReply(reply);
             jbsReply(pr, reply);
@@ -91,7 +91,7 @@ public class CSRCommand implements CommandHandler {
             return;
         }
 
-        var jbsIssue = issueProject.issue(issue.get().id());
+        var jbsIssue = issueProject.issue(issue.get().shortId());
         if (jbsIssue.isEmpty()) {
             csrReply(reply);
             jbsReply(pr, reply);

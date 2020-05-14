@@ -248,7 +248,7 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
             var commitNotification = CommitFormatters.toTextBrief(repository, commit);
             var commitMessage = CommitMessageParsers.v1.parse(commit);
             for (var commitIssue : commitMessage.issues()) {
-                var optionalIssue = issueProject.issue(commitIssue.id());
+                var optionalIssue = issueProject.issue(commitIssue.shortId());
                 if (optionalIssue.isEmpty()) {
                     log.severe("Cannot update issue " + commitIssue.id() + " with commit " + commit.hash().abbreviate()
                                        + " - issue not found in issue project");
@@ -347,7 +347,7 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
 
     @Override
     public void handleNewIssue(PullRequest pr, org.openjdk.skara.vcs.openjdk.Issue issue) {
-        var realIssue = issueProject.issue(issue.id());
+        var realIssue = issueProject.issue(issue.shortId());
         if (realIssue.isEmpty()) {
             log.warning("Pull request " + pr + " added unknown issue: " + issue.id());
             return;
@@ -367,7 +367,7 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
 
     @Override
     public void handleRemovedIssue(PullRequest pr, org.openjdk.skara.vcs.openjdk.Issue issue) {
-        var realIssue = issueProject.issue(issue.id());
+        var realIssue = issueProject.issue(issue.shortId());
         if (realIssue.isEmpty()) {
             log.warning("Pull request " + pr + " removed unknown issue: " + issue.id());
             return;

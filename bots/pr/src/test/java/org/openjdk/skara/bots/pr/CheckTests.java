@@ -974,6 +974,16 @@ class CheckTests {
             assertFalse(pr.body().contains("My first issue"));
             assertTrue(pr.body().contains("My second issue"));
 
+            // The PR title does not match the issue title
+            assertTrue(pr.body().contains("Title mismatch"));
+
+            // Correct it
+            pr.setTitle(issue2.id() + " - " + issue2.title());
+
+            // Check the status again - it should now match
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertFalse(pr.body().contains("Title mismatch"));
+
             // Use an invalid issue key
             var issueKey = issue1.id().replace("TEST", "BADPROJECT");
             pr.setTitle(issueKey + ": This is a pull request");
@@ -982,7 +992,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
             assertFalse(pr.body().contains("My first issue"));
             assertFalse(pr.body().contains("My second issue"));
-            assertTrue(pr.body().contains("Failed to retrieve"));
+            assertTrue(pr.body().contains("does not belong to the `TEST` project"));
 
             // Now drop the issue key
             issueKey = issue1.id().replace("TEST-", "");

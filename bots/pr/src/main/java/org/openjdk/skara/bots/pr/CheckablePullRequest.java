@@ -63,7 +63,7 @@ public class CheckablePullRequest {
 
         var additionalIssues = SolvesTracker.currentSolved(currentUser, comments);
         var summary = Summary.summary(currentUser, comments);
-        var issue = Issue.fromString(pr.title());
+        var issue = Issue.fromStringRelaxed(pr.title());
         var commitMessageBuilder = issue.map(CommitMessage::title).orElseGet(() -> CommitMessage.title(pr.title()));
         if (issue.isPresent()) {
             commitMessageBuilder.issues(additionalIssues);

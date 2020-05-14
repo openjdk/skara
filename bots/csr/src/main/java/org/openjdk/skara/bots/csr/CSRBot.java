@@ -83,12 +83,12 @@ class CSRBot implements Bot, WorkItem {
                 continue;
             }
 
-            var issue = org.openjdk.skara.vcs.openjdk.Issue.fromString(pr.title());
+            var issue = org.openjdk.skara.vcs.openjdk.Issue.fromStringRelaxed(pr.title());
             if (issue.isEmpty()) {
                 log.info("No issue found in title for " + describe(pr));
                 continue;
             }
-            var jbsIssue = project.issue(issue.get().id());
+            var jbsIssue = project.issue(issue.get().shortId());
             if (jbsIssue.isEmpty()) {
                 log.info("No issue found in JBS for " + describe(pr));
                 continue;

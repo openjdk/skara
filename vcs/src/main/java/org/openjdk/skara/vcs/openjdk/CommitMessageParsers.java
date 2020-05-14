@@ -22,13 +22,11 @@
  */
 package org.openjdk.skara.vcs.openjdk;
 
-import java.util.*;
-import java.util.stream.Collectors;
-import java.time.*;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
+import org.openjdk.skara.vcs.Author;
 
-import org.openjdk.skara.vcs.*;
+import java.util.*;
+import java.util.regex.*;
+import java.util.stream.Collectors;
 
 import static org.openjdk.skara.vcs.openjdk.CommitMessageSyntax.*;
 
@@ -107,7 +105,7 @@ public class CommitMessageParsers {
                 title = lines.get(0);
                 i++;
             } else {
-                title = issues.stream().map(Issue::toString).collect(Collectors.joining("\n"));
+                title = issues.stream().map(Issue::toShortString).collect(Collectors.joining("\n"));
             }
 
             var firstDelimiter = true;

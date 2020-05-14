@@ -24,19 +24,37 @@ package org.openjdk.skara.vcs.openjdk;
 
 import java.util.*;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class Issue {
-    private final String id;
+    private final String project;
+    private final String shortId;
     private final String description;
 
+    private final static Pattern relaxedIssueParsePattern = Pattern.compile("^((?:[A-Z][A-Z0-9]+-)?[0-9]+)[^\\p{Alnum}]+(\\S.*)$");
+
     public Issue(String id, String description) {
-        this.id = id;
+        if (id.contains("-")) {
+            var idSplit = id.split("-", 2);
+            project = idSplit[0];
+            this.shortId = idSplit[1];
+        } else {
+            project = null;
+            this.shortId = id;
+        }
+
         this.description = description;
     }
 
+    public Optional<String> project() {
+        return Optional.ofNullable(project);
+    }
+
     public String id() {
-        return id;
+        return (project != null ? project + "-" : "") + shortId;
+    }
+
+    public String shortId() {
+        return shortId;
     }
 
     public String description() {
@@ -53,24 +71,36 @@ public class Issue {
         return Optional.empty();
     }
 
-    @Override
-    public String toString() {
-        return id + ": " + description;
+    public static Optional<Issue> fromStringRelaxed(String s) {
+        var relaxedIssueParseMatcher = relaxedIssueParsePattern.matcher(s.trim());
+        if (relaxedIssueParseMatcher.matches()) {
+            return Optional.of(new Issue(relaxedIssueParseMatcher.group(1), relaxedIssueParseMatcher.group(2)));
+        }
+
+        return Optional.empty();
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(id, description);
+    public String toString() {
+        return id() + ": " + description;
+    }
+
+    public String toShortString() {
+        return shortId + ": " + description;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof Issue)) {
-            return false;
-        }
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Issue issue = (Issue) o;
+        return Objects.equals(project, issue.project) &&
+                shortId.equals(issue.shortId) &&
+                description.equals(issue.description);
+    }
 
-        var other = (Issue) o;
-        return Objects.equals(id, other.id) &&
-               Objects.equals(description, other.description);
+    @Override
+    public int hashCode() {
+        return Objects.hash(project, shortId, description);
     }
 }

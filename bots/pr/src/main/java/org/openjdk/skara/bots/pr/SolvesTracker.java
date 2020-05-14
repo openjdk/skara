@@ -37,11 +37,11 @@ public class SolvesTracker {
 
     static String setSolvesMarker(Issue issue) {
         var encodedDescription = Base64.getEncoder().encodeToString(issue.description().getBytes(StandardCharsets.UTF_8));
-        return String.format(solvesMarker, issue.id(), encodedDescription);
+        return String.format(solvesMarker, issue.shortId(), encodedDescription);
     }
 
     static String removeSolvesMarker(Issue issue) {
-        return String.format(solvesMarker, issue.id(), "");
+        return String.format(solvesMarker, issue.shortId(), "");
     }
 
     static List<Issue> currentSolved(HostUser botUser, List<Comment> comments) {

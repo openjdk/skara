@@ -82,15 +82,12 @@ public class IssueCommand implements CommandHandler {
                                    .collect(Collectors.toList());
         }
         for (var issue : ret) {
-            if (issue.id().contains("-") && !issue.id().startsWith(allowedPrefix)) {
+            if (issue.project().isPresent() && !issue.project().get().equals(allowedPrefix)) {
                 throw new InvalidIssue(issue.id(), "This PR can only solve issues in the " + allowedPrefix + " project");
             }
         }
 
-        // Drop the validated project prefixes
-        return ret.stream()
-                  .map(issue -> issue.id().contains("-") ? new Issue(issue.id().split("-", 2)[1], issue.description()) : issue)
-                  .collect(Collectors.toList());
+        return ret;
     }
 
     IssueCommand(String name) {
@@ -119,7 +116,7 @@ public class IssueCommand implements CommandHandler {
 
         var currentSolved = SolvesTracker.currentSolved(pr.repository().forge().currentUser(), allComments)
                                          .stream()
-                                         .map(Issue::id)
+                                         .map(Issue::shortId)
                                          .collect(Collectors.toSet());
         try {
             if (args.startsWith("remove") || args.startsWith("delete")) {
@@ -134,11 +131,11 @@ public class IssueCommand implements CommandHandler {
                 }
                 var issuesToRemove = parseIssueList(bot.issueProject() == null ? "" : bot.issueProject().name(), args.substring(issueListStart));
                 for (var issue : issuesToRemove) {
-                    if (currentSolved.contains(issue.id())) {
+                    if (currentSolved.contains(issue.shortId())) {
                         reply.println(SolvesTracker.removeSolvesMarker(issue));
-                        reply.println("Removing additional issue from " + name + " list: `" + issue.id() + "`.");
+                        reply.println("Removing additional issue from " + name + " list: `" + issue.shortId() + "`.");
                     } else {
-                        reply.print("The issue `" + issue.id() + "` was not found in the list of additional solved issues. The list currently contains these issues: ");
+                        reply.print("The issue `" + issue.shortId() + "` was not found in the list of additional solved issues. The list currently contains these issues: ");
                         var currentList = currentSolved.stream()
                                                        .map(id -> "`" + id + "`")
                                                        .collect(Collectors.joining(", "));
@@ -165,16 +162,16 @@ public class IssueCommand implements CommandHandler {
                         if (bot.issueProject() == null) {
                             if (issue.description() == null) {
                                 reply.print("This repository does not have an issue project configured - you will need to input the issue title manually ");
-                                reply.println("using the syntax `/" + name + " " + issue.id() + ": title of the issue`.");
+                                reply.println("using the syntax `/" + name + " " + issue.shortId() + ": title of the issue`.");
                                 return;
                             } else {
                                 validatedIssues.add(issue);
                                 continue;
                             }
                         }
-                        var validatedIssue = bot.issueProject().issue(issue.id());
+                        var validatedIssue = bot.issueProject().issue(issue.shortId());
                         if (validatedIssue.isEmpty()) {
-                            reply.println("The issue `" + issue.id() + "` was not found in the `" + bot.issueProject().name() + "` project - make sure you have entered it correctly.");
+                            reply.println("The issue `" + issue.shortId() + "` was not found in the `" + bot.issueProject().name() + "` project - make sure you have entered it correctly.");
                             continue;
                         }
                         if (validatedIssue.get().state() != org.openjdk.skara.issuetracker.Issue.State.OPEN) {
@@ -189,8 +186,8 @@ public class IssueCommand implements CommandHandler {
 
                     } catch (RuntimeException e) {
                         if (issue.description() == null) {
-                            reply.print("Temporary failure when trying to look up issue `" + issue.id() + "` - you will need to input the issue title manually ");
-                            reply.println("using the syntax `/" + name + " " + issue.id() + ": title of the issue`.");
+                            reply.print("Temporary failure when trying to look up issue `" + issue.shortId() + "` - you will need to input the issue title manually ");
+                            reply.println("using the syntax `/" + name + " " + issue.shortId() + ": title of the issue`.");
                             return;
                         } else {
                             validatedIssues.add(issue);
@@ -202,29 +199,25 @@ public class IssueCommand implements CommandHandler {
                     return;
                 }
 
-                // Drop the validated project prefixes
-                var strippedValidatedIssues = validatedIssues.stream()
-                                                             .map(issue -> issue.id().contains("-") ? new Issue(issue.id().split("-", 2)[1], issue.description()) : issue)
-                                                             .collect(Collectors.toList());
-                var titleIssue = Issue.fromString(pr.title());
-                for (var issue : strippedValidatedIssues) {
+                var titleIssue = Issue.fromStringRelaxed(pr.title());
+                for (var issue : validatedIssues) {
                     if (titleIssue.isEmpty()) {
                         reply.print("The primary solved issue for a PR is set through the PR title. Since the current title does ");
                         reply.println("not contain an issue reference, it will now be updated.");
-                        pr.setTitle(issue.toString());
+                        pr.setTitle(issue.toShortString());
                         titleIssue = Optional.of(issue);
                         continue;
                     }
-                    if (titleIssue.get().id().equals(issue.id())) {
+                    if (titleIssue.get().shortId().equals(issue.shortId())) {
                         reply.println("This issue is referenced in the PR title - it will now be updated.");
-                        pr.setTitle(issue.toString());
+                        pr.setTitle(issue.toShortString());
                         continue;
                     }
                     reply.println(SolvesTracker.setSolvesMarker(issue));
-                    if (currentSolved.contains(issue.id())) {
-                        reply.println("Updating description of additional solved issue: `" + issue.toString() + "`.");
+                    if (currentSolved.contains(issue.shortId())) {
+                        reply.println("Updating description of additional solved issue: `" + issue.toShortString() + "`.");
                     } else {
-                        reply.println("Adding additional issue to " + name + " list: `" + issue.toString() + "`.");
+                        reply.println("Adding additional issue to " + name + " list: `" + issue.toShortString() + "`.");
                     }
                 }
             }

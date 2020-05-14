@@ -71,12 +71,12 @@ class WebrevStorage {
                             .pullRequest(pr.webUrl().toString())
                             .username(fullName);
 
-        var issue = Issue.fromString(pr.title());
+        var issue = Issue.fromStringRelaxed(pr.title());
         if (issue.isPresent()) {
             var conf = JCheckConfiguration.from(localRepository, head);
             if (!conf.isEmpty()) {
                 var project = conf.get().general().jbs() != null ? conf.get().general().jbs() : conf.get().general().project();
-                var id = issue.get().id();
+                var id = issue.get().shortId();
                 IssueTracker issueTracker = null;
                 try {
                     issueTracker = IssueTracker.from("jira", URI.create("https://bugs.openjdk.java.net"));
