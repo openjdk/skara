@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
 
 public class Issue {
     private final String project;
-    private final String id;
+    private final String shortId;
     private final String description;
 
     private final static Pattern relaxedIssueParsePattern = Pattern.compile("^((?:[A-Z][A-Z0-9]+-)?[0-9]+)[^\\p{Alnum}]+(\\S.*)$");
@@ -36,10 +36,10 @@ public class Issue {
         if (id.contains("-")) {
             var idSplit = id.split("-", 2);
             project = idSplit[0];
-            this.id = idSplit[1];
+            this.shortId = idSplit[1];
         } else {
             project = null;
-            this.id = id;
+            this.shortId = id;
         }
 
         this.description = description;
@@ -50,11 +50,11 @@ public class Issue {
     }
 
     public String id() {
-        return (project != null ? project + "-" : "") + id;
+        return (project != null ? project + "-" : "") + shortId;
     }
 
     public String shortId() {
-        return id;
+        return shortId;
     }
 
     public String description() {
@@ -86,7 +86,7 @@ public class Issue {
     }
 
     public String toShortString() {
-        return id + ": " + description;
+        return shortId + ": " + description;
     }
 
     @Override
@@ -95,12 +95,12 @@ public class Issue {
         if (o == null || getClass() != o.getClass()) return false;
         Issue issue = (Issue) o;
         return Objects.equals(project, issue.project) &&
-                id.equals(issue.id) &&
+                shortId.equals(issue.shortId) &&
                 description.equals(issue.description);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(project, id, description);
+        return Objects.hash(project, shortId, description);
     }
 }
