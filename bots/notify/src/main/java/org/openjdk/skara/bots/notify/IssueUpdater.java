@@ -24,19 +24,17 @@ package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.vcs.openjdk.*;
+import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 import java.util.stream.*;
 
 public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdateConsumer {
@@ -71,24 +69,32 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
     private boolean isPrimaryIssue(Issue issue) {
         var properties = issue.properties();
         if (!properties.containsKey("issuetype")) {
-            throw new RuntimeException("Unknown type for issue " + issue);
+            throw new RuntimeException("Unknown type for issue " + issue.id());
         }
         var type = properties.get("issuetype");
         return primaryTypes.contains(type.asString());
     }
 
-    private final static Pattern majorVersionPattern = Pattern.compile("([0-9]+)(u[0-9]+)?");
-
     /**
-     * Extracts the major version part of the string, if possible.
+     *  Return the main issue for this backport.
+     *  Harmless when called with the main issue
      */
-    private Optional<String> majorVersion(String version) {
-        var matcher = majorVersionPattern.matcher(version);
-        if (matcher.matches()) {
-            return Optional.of(matcher.group(1));
-        } else {
-            return Optional.empty();
+    private Issue findMainIssue(Issue issue) {
+        if (isPrimaryIssue(issue)) {
+            return issue;
         }
+
+        for (var link : issue.links()) {
+            if (link.issue().isPresent()) {
+                var linkedIssue = link.issue().get();
+                if (isPrimaryIssue(linkedIssue)) {
+                    return linkedIssue;
+                }
+            }
+        }
+
+        log.warning("Failed to find main issue for " + issue.id());
+        return issue;
     }
 
     private List<Issue> findBackports(Issue primary) {
@@ -120,11 +126,11 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
      * fixVersionsList must contain one entry that is an exact match for fixVersions; any
      * other entries must be scratch values.
      */
-    private boolean matchVersion(Issue issue, String fixVersion) {
+    private boolean matchVersion(Issue issue, Version fixVersion) {
         var nonScratch = fixVersions(issue).stream()
                                            .filter(this::isNonScratchVersion)
                                            .collect(Collectors.toList());
-        return nonScratch.size() == 1 && nonScratch.get(0).equals(fixVersion);
+        return nonScratch.size() == 1 && Version.parse(nonScratch.get(0)).equals(fixVersion);
     }
 
     /**
@@ -133,13 +139,10 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
      * If fixVersion has a major release of <N>, it matches the fixVersionList has an
      * <N>-pool or <N>-open entry and all other entries are scratch values.
      */
-    private boolean matchPoolVersion(Issue issue, String fixVersion) {
-        var majorVersion = majorVersion(fixVersion);
-        if (majorVersion.isEmpty()) {
-            return false;
-        }
-        var poolVersion = majorVersion.get() + "-pool";
-        var openVersion = majorVersion.get() + "-open";
+    private boolean matchPoolVersion(Issue issue, Version fixVersion) {
+        var majorVersion = fixVersion.feature();
+        var poolVersion = majorVersion + "-pool";
+        var openVersion = majorVersion + "-open";
 
         var nonScratch = fixVersions(issue).stream()
                                            .filter(this::isNonScratchVersion)
@@ -196,7 +199,7 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
      *
      * A "scratch" fixVersion is empty, "tbd.*", or "unknown".
      */
-    private Issue findIssue(Issue primary, String fixVersion) throws NonRetriableException {
+    private Issue findIssue(Issue primary, Version fixVersion) throws NonRetriableException {
         log.info("Searching for properly versioned issue for primary issue " + primary.id());
         var candidates = Stream.concat(Stream.of(primary), findBackports(primary).stream()).collect(Collectors.toList());
         candidates.forEach(c -> log.fine("Candidate: " + c.id() + " with versions: " + String.join(",", fixVersions(c))));
@@ -242,6 +245,60 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
         return Optional.of(committerEmail.localPart());
     }
 
+    private Optional<Version> mainFixVersion(Issue issue) {
+        var versionString = fixVersions(issue).stream()
+                                              .filter(this::isNonScratchVersion)
+                                              .findAny();
+        if (versionString.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(Version.parse(versionString.get()));
+    }
+
+    // Split the issue list depending on the line of development
+    private List<List<Issue>> groupByLOD(List<Issue> issues) {
+        var grouped = issues.stream()
+                            .map(issue -> new AbstractMap.SimpleEntry<Issue, Version>(issue, mainFixVersion(issue).orElse(null)))
+                            .filter(entry -> entry.getValue() != null)
+                            .collect(Collectors.groupingBy(entry -> entry.getValue().lineOfDevelopment()));
+
+        return grouped.values().stream()
+                      .map(entries -> entries.stream()
+                                             .sorted(Map.Entry.comparingByValue())
+                                             .map(AbstractMap.SimpleEntry::getKey)
+                                             .collect(Collectors.toList()))
+                      .collect(Collectors.toList());
+    }
+
+    // Give all issues related to the same change (except the first one) a specific label that indicates that
+    // it is a duplicate. This allows easier issue filtering.
+    private void labelDuplicates(Issue issue, String label) {
+        var mainIssue = findMainIssue(issue);
+        var related = findBackports(mainIssue);
+
+        var allIssues = new ArrayList<Issue>();
+        allIssues.add(mainIssue);
+        allIssues.addAll(related);
+
+        for (var lod : groupByLOD(allIssues)) {
+            // First entry should not have the label
+            var first = lod.get(0);
+            if (first.labels().contains(label)) {
+                first.removeLabel(label);
+            }
+
+            // But all the following ones should
+            if (lod.size() > 1) {
+                var rest = lod.subList(1, lod.size());
+                for (var i : rest) {
+                    if (!i.labels().contains(label)) {
+                        i.addLabel(label);
+                    }
+                }
+            }
+        }
+    }
+
     @Override
     public void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) throws NonRetriableException {
         for (var commit : commits) {
@@ -258,9 +315,14 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
 
                 // We only update primary type issues
                 if (!isPrimaryIssue(issue)) {
-                    log.severe("Issue " + issue.id() + " isn't of a primary type - ignoring");
-                    // TODO: search for the primary issue
-                    continue;
+                    var candidate = findMainIssue(issue);
+                    if (!isPrimaryIssue(candidate) || candidate.id().equals(issue.id())) {
+                        log.severe("Issue " + issue.id() + " isn't of a primary type - ignoring");
+                        continue;
+                    } else {
+                        log.warning("Issue " + issue.id() + " isn't of a primary type - using " + candidate.id() + " instead");
+                        issue = candidate;
+                    }
                 }
 
                 String requestedVersion = null;
@@ -295,7 +357,7 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
                         }
 
                         if (requestedVersion != null) {
-                            issue = findIssue(issue, requestedVersion);
+                            issue = findIssue(issue, Version.parse(requestedVersion));
                         }
                     }
                 }
@@ -335,6 +397,10 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
                     if (requestedVersion != null) {
                         issue.setProperty("fixVersions", JSON.of(requestedVersion));
                     }
+                }
+
+                if (1 == 1) {
+                    labelDuplicates(issue, "hgupdater-sync");
                 }
             }
         }

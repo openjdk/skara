@@ -24,7 +24,7 @@ package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.forge.HostedRepository;
-import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
 import org.openjdk.skara.storage.StorageBuilder;
@@ -1915,6 +1915,62 @@ class UpdaterTests {
             // But now only the idempotent one should have been retried
             assertEquals(3, idempotent.updateCount);
             assertEquals(2, nonIdempotent.updateCount);
+        }
+    }
+
+    @Test
+    void testSyncLabels(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var issueProject = credentials.getIssueProject();
+            var commitIcon = URI.create("http://www.example.com/commit.png");
+            var updater = IssueUpdater.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewLink(false)
+                                      .commitIcon(commitIcon)
+                                      .setFixVersion(true)
+                                      .build();
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .updaters(List.of(updater))
+                                     .build();
+
+            // Initialize database
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            var issue1 = credentials.createIssue(issueProject, "Issue 1");
+            issue1.setProperty("fixVersions", JSON.array().add(JSON.of("8u192")));
+            issue1.setProperty("issuetype", JSON.of("Bug"));
+
+            var issue2 = credentials.createIssue(issueProject, "Issue 2");
+            issue2.setProperty("fixVersions", JSON.array().add(JSON.of("8u162")));
+            issue2.setProperty("issuetype", JSON.of("Backport"));
+            var bpLink = Link.create(issue2, "backported by").build();
+            issue1.addLink(bpLink);
+
+            // Mention one of the issues
+            var commit = CheckableRepository.appendAndCommit(localRepo, "Hello there", issue1.id() + ": A fix");
+            localRepo.push(commit, repo.url(), "master");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            assertEquals(List.of("hgupdater-sync"), issue1.labels());
+            assertEquals(List.of(), issue2.labels());
         }
     }
 }
