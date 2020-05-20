@@ -215,10 +215,10 @@ public class BackportsTests {
             backports.assertLabeled("13");
 
             backports.addBackports("13.0.1");
-            backports.assertLabeled("13", "13.0.1");
+            backports.assertLabeled("13");
 
             backports.addBackports("13.0.2");
-            backports.assertLabeled("13", "13.0.1", "13.0.2");
+            backports.assertLabeled("13", "13.0.2");
         }
     }
 
@@ -229,7 +229,7 @@ public class BackportsTests {
             backports.assertLabeled();
 
             backports.addBackports("11.0.3", "11.0.3-oracle");
-            backports.assertLabeled("11.0.3", "11.0.3-oracle");
+            backports.assertLabeled("11.0.3-oracle");
         }
     }
 

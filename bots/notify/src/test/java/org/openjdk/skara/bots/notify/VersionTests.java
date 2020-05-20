@@ -80,19 +80,6 @@ public class VersionTests {
     }
 
     @Test
-    void lineOfDevelopment() {
-        assertEquals("8", Version.parse("8u211").lineOfDevelopment());
-        assertEquals("emb-8", Version.parse("emb-8u170").lineOfDevelopment());
-        assertEquals("hs22", Version.parse("hs22.4").lineOfDevelopment());
-        assertEquals("openjdk7", Version.parse("openjdk7u42").lineOfDevelopment());
-        assertEquals("9", Version.parse("9.0.4").lineOfDevelopment());
-        assertEquals("10+", Version.parse("10.0.2").lineOfDevelopment());
-        assertEquals("10+", Version.parse("11.0.3").lineOfDevelopment());
-        assertEquals("10+", Version.parse("11.0.2.0.1").lineOfDevelopment());
-        assertEquals("10+", Version.parse("11.0.2.0.1-oracle").lineOfDevelopment());
-    }
-
-    @Test
     void nonConforming() {
         assertEquals("bla", Version.parse("bla").feature());
         assertEquals("", Version.parse("").feature());

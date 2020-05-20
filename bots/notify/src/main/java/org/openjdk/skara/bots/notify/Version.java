@@ -62,6 +62,7 @@ public class Version implements Comparable<Version> {
 
             finalComponents.addAll(Arrays.asList(raw.split("\\.")));
             if (optional != null) {
+                finalComponents.add(null);
                 finalComponents.add(optional);
             }
         }
@@ -116,19 +117,12 @@ public class Version implements Comparable<Version> {
         }
     }
 
-    /**
-     * Similar to the feature version, except that version 10 and above are considered the same "10+" line of development.
-     * @return
-     */
-    public String lineOfDevelopment() {
-        try {
-            var numericFeature = Integer.parseInt(feature());
-            if (numericFeature >= 10) {
-                return "10+";
-            }
-        } catch (NumberFormatException e) {
+    public Optional<String> opt() {
+        if (components.size() > 1) {
+            return Optional.of(components.get(components.size() - 1));
+        } else {
+            return Optional.empty();
         }
-        return feature();
     }
 
     private String legacyFeaturePrefix() {

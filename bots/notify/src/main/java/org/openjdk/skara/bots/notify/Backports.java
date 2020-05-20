@@ -197,12 +197,35 @@ public class Backports {
                     .collect(Collectors.toList());
     }
 
+    private static String lineOfDevelopment(Version version) {
+        try {
+            var numericFeature = Integer.parseInt(version.feature());
+            if (numericFeature >= 10) {
+                if (version.update().isPresent()) {
+                    var update = version.update().get();
+                    if (update.equals("1") || update.equals("2")) {
+                        return version.feature() + "+bpr";
+                    }
+                }
+                if (version.opt().isPresent()) {
+                    var opt = version.opt().get();
+                    if (opt.equals("oracle")) {
+                        return version.feature() + "+bpr";
+                    }
+                }
+                return "10+";
+            }
+        } catch (NumberFormatException ignored) {
+        }
+        return version.feature();
+    }
+
     // Split the issue list depending on the line of development
     private static List<List<Issue>> groupByLOD(List<Issue> issues) {
         var grouped = issues.stream()
-                            .map(issue -> new AbstractMap.SimpleEntry<Issue, Version>(issue, Backports.mainFixVersion(issue).orElse(null)))
+                            .map(issue -> new AbstractMap.SimpleEntry<>(issue, Backports.mainFixVersion(issue).orElse(null)))
                             .filter(entry -> entry.getValue() != null)
-                            .collect(Collectors.groupingBy(entry -> entry.getValue().lineOfDevelopment()));
+                            .collect(Collectors.groupingBy(entry -> lineOfDevelopment(entry.getValue())));
 
         return grouped.values().stream()
                       .map(entries -> entries.stream()
