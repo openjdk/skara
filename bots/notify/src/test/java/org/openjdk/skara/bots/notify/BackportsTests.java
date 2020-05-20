@@ -28,7 +28,7 @@ import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.HostCredentials;
 
 import java.io.IOException;
-import java.util.Optional;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -95,6 +95,71 @@ public class BackportsTests {
             assertEquals(issue1, Backports.findMainIssue(issue1).orElseThrow());
             assertEquals(issue2, Backports.findMainIssue(issue2).orElseThrow());
             assertEquals(Optional.empty(), Backports.findMainIssue(issue3));
+        }
+    }
+
+    @Test
+    void findMainVersion(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var issueProject = credentials.getIssueProject();
+            var issue = credentials.createIssue(issueProject, "Issue");
+
+            issue.setProperty("fixVersions", JSON.array().add("tbd"));
+            assertEquals(Optional.empty(), Backports.mainFixVersion(issue));
+
+            issue.setProperty("fixVersions", JSON.array().add("tbd_minor"));
+            assertEquals(Optional.empty(), Backports.mainFixVersion(issue));
+
+            issue.setProperty("fixVersions", JSON.array().add("unknown"));
+            assertEquals(Optional.empty(), Backports.mainFixVersion(issue));
+
+            issue.setProperty("fixVersions", JSON.array().add("11.3"));
+            assertEquals(List.of("11", "3"), Backports.mainFixVersion(issue).orElseThrow().components());
+
+            issue.setProperty("fixVersions", JSON.array().add("unknown").add("11.3"));
+            assertEquals(List.of("11", "3"), Backports.mainFixVersion(issue).orElseThrow().components());
+
+            issue.setProperty("fixVersions", JSON.array().add("11.3").add("unknown"));
+            assertEquals(List.of("11", "3"), Backports.mainFixVersion(issue).orElseThrow().components());
+
+            issue.setProperty("fixVersions", JSON.array().add("11.3").add("12.1"));
+            assertEquals(Optional.empty(), Backports.mainFixVersion(issue));
+
+            issue.setProperty("fixVersions", JSON.array().add("12.1").add("11.3"));
+            assertEquals(Optional.empty(), Backports.mainFixVersion(issue));
+        }
+    }
+
+    @Test
+    void findIssue(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+
+            var issueProject = credentials.getIssueProject();
+            var issue = credentials.createIssue(issueProject, "Issue");
+            issue.setProperty("issuetype", JSON.of("Bug"));
+            var backport = credentials.createIssue(issueProject, "Backport");
+            backport.setProperty("issuetype", JSON.of("Backport"));
+            issue.addLink(Link.create(backport, "backported by").build());
+
+            issue.setProperty("fixVersions", JSON.array().add("11-pool"));
+            backport.setProperty("fixVersions", JSON.array().add("12-pool"));
+            assertEquals(issue, Backports.findIssue(issue, Version.parse("11.1")).orElseThrow());
+            assertEquals(backport, Backports.findIssue(issue, Version.parse("12.2")).orElseThrow());
+            assertEquals(Optional.empty(), Backports.findIssue(issue, Version.parse("13.3")));
+
+            issue.setProperty("fixVersions", JSON.array().add("tbd"));
+            assertEquals(issue, Backports.findIssue(issue, Version.parse("11.1")).orElseThrow());
+
+            issue.setProperty("fixVersions", JSON.array().add("12.2"));
+            backport.setProperty("fixVersions", JSON.array().add("tbd"));
+            assertEquals(issue, Backports.findIssue(issue, Version.parse("12.2")).orElseThrow());
+            assertEquals(backport, Backports.findIssue(issue, Version.parse("11.1")).orElseThrow());
+
+            issue.setProperty("fixVersions", JSON.array().add("12.2"));
+            backport.setProperty("fixVersions", JSON.array().add("11.1"));
+            assertEquals(issue, Backports.findIssue(issue, Version.parse("12.2")).orElseThrow());
+            assertEquals(backport, Backports.findIssue(issue, Version.parse("11.1")).orElseThrow());
+            assertEquals(Optional.empty(), Backports.findIssue(issue, Version.parse("13.3")));
         }
     }
 }

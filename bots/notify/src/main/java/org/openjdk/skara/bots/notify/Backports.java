@@ -55,14 +55,24 @@ public class Backports {
                     .collect(Collectors.toSet());
     }
 
+    /**
+     * Returns the single non-scratch fixVersion entry for an issue. If the issue has either none ore more than one,
+     * no version is returned.
+     * @param issue
+     * @return
+     */
     static Optional<Version> mainFixVersion(Issue issue) {
         var versionString = fixVersions(issue).stream()
                                               .filter(Backports::isNonScratchVersion)
-                                              .findAny();
+                                              .collect(Collectors.toList());
         if (versionString.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(Version.parse(versionString.get()));
+        if (versionString.size() > 1) {
+            log.warning("Issue " + issue.id() + " has multiple valid fixVersions - ignoring");
+            return Optional.empty();
+        }
+        return Optional.of(Version.parse(versionString.get(0)));
     }
 
     /**
@@ -96,10 +106,11 @@ public class Backports {
      * other entries must be scratch values.
      */
     private static boolean matchVersion(Issue issue, Version fixVersion) {
-        var nonScratch = fixVersions(issue).stream()
-                                           .filter(Backports::isNonScratchVersion)
-                                           .collect(Collectors.toList());
-        return nonScratch.size() == 1 && Version.parse(nonScratch.get(0)).equals(fixVersion);
+        var mainVersion = mainFixVersion(issue);
+        if (mainVersion.isEmpty()) {
+            return false;
+        }
+        return mainVersion.get().equals(fixVersion);
     }
 
     /**
@@ -110,13 +121,14 @@ public class Backports {
      */
     private static boolean matchPoolVersion(Issue issue, Version fixVersion) {
         var majorVersion = fixVersion.feature();
-        var poolVersion = majorVersion + "-pool";
-        var openVersion = majorVersion + "-open";
+        var poolVersion = Version.parse(majorVersion + "-pool");
+        var openVersion = Version.parse(majorVersion + "-open");
 
-        var nonScratch = fixVersions(issue).stream()
-                                           .filter(Backports::isNonScratchVersion)
-                                           .collect(Collectors.toList());
-        return nonScratch.size() == 1 && (nonScratch.get(0).equals(poolVersion) || nonScratch.get(0).equals(openVersion));
+        var mainVersion = mainFixVersion(issue);
+        if (mainVersion.isEmpty()) {
+            return false;
+        }
+        return mainVersion.get().equals(poolVersion) || mainVersion.get().equals(openVersion);
     }
 
     /**
