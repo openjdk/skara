@@ -78,51 +78,28 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
         return Optional.of(committerEmail.localPart());
     }
 
+    private final static Set<String> propagatedCustomProperties =
+            Set.of("customfield_10008", "customfield_10000", "customfield_10005");
 
-    // Split the issue list depending on the line of development
-    private List<List<Issue>> groupByLOD(List<Issue> issues) {
-        var grouped = issues.stream()
-                            .map(issue -> new AbstractMap.SimpleEntry<Issue, Version>(issue, Backports.mainFixVersion(issue).orElse(null)))
-                            .filter(entry -> entry.getValue() != null)
-                            .collect(Collectors.groupingBy(entry -> entry.getValue().lineOfDevelopment()));
+    /**
+     * Create a backport of issue.
+     */
+    private Issue createBackportIssue(Issue primary) throws NonRetriableException {
+        var filteredProperties = primary.properties().entrySet().stream()
+                                        .filter(entry -> !entry.getKey().startsWith("customfield_") || propagatedCustomProperties.contains(entry.getKey()))
+                                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        return grouped.values().stream()
-                      .map(entries -> entries.stream()
-                                             .sorted(Map.Entry.comparingByValue())
-                                             .map(AbstractMap.SimpleEntry::getKey)
-                                             .collect(Collectors.toList()))
-                      .collect(Collectors.toList());
-    }
+        var finalProperties = new HashMap<>(filteredProperties);
+        finalProperties.put("issuetype", JSON.of("Backport"));
 
-    // Give all issues related to the same change (except the first one) a specific label that indicates that
-    // it is a duplicate. This allows easier issue filtering.
-    private void labelDuplicates(Issue issue, String label) {
-        var mainIssue = Backports.findMainIssue(issue);
-        if (mainIssue.isEmpty()) {
-            return;
-        }
-        var related = Backports.findBackports(mainIssue.get());
+        try {
+            var backport = primary.project().createIssue(primary.title(), primary.body().lines().collect(Collectors.toList()), finalProperties);
 
-        var allIssues = new ArrayList<Issue>();
-        allIssues.add(mainIssue.get());
-        allIssues.addAll(related);
-
-        for (var lod : groupByLOD(allIssues)) {
-            // First entry should not have the label
-            var first = lod.get(0);
-            if (first.labels().contains(label)) {
-                first.removeLabel(label);
-            }
-
-            // But all the following ones should
-            if (lod.size() > 1) {
-                var rest = lod.subList(1, lod.size());
-                for (var i : rest) {
-                    if (!i.labels().contains(label)) {
-                        i.addLabel(label);
-                    }
-                }
-            }
+            var backportLink = Link.create(backport, "backported by").build();
+            primary.addLink(backportLink);
+            return backport;
+        } catch (RuntimeException e) {
+            throw new NonRetriableException(e);
         }
     }
 
@@ -163,30 +140,28 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
                         log.info("IssueUpdater@" + issue.id() + ": Pull request " + prLink + " targets " + candidate.targetRef() + " - commit is on " + branch.toString() + " - skipping");
                         continue;
                     }
-                } else {
-                    // The actual issue to be updated can change depending on the fix version
-                    if (setFixVersion) {
-                        requestedVersion = fixVersions != null ? fixVersions.getOrDefault(branch.name(), null) : null;
-                        if (requestedVersion == null) {
-                            try {
-                                var conf = localRepository.lines(Path.of(".jcheck/conf"), commit.hash());
-                                if (conf.isPresent()) {
-                                    var parsed = JCheckConfiguration.parse(conf.get());
-                                    var version = parsed.general().version();
-                                    requestedVersion = version.orElse(null);
-                                }
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
+                } else if (setFixVersion) {
+                    requestedVersion = fixVersions != null ? fixVersions.getOrDefault(branch.name(), null) : null;
+                    if (requestedVersion == null) {
+                        try {
+                            var conf = localRepository.lines(Path.of(".jcheck/conf"), commit.hash());
+                            if (conf.isPresent()) {
+                                var parsed = JCheckConfiguration.parse(conf.get());
+                                var version = parsed.general().version();
+                                requestedVersion = version.orElse(null);
                             }
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
                         }
+                    }
 
-                        if (requestedVersion != null) {
-                            var existing = Backports.findIssue(issue, Version.parse(requestedVersion));
-                            if (existing.isEmpty()) {
-                                issue = Backports.createBackportIssue(issue);
-                            } else {
-                                issue = existing.get();
-                            }
+                    // The actual issue to be updated can change depending on the fix version
+                    if (requestedVersion != null) {
+                        var existing = Backports.findIssue(issue, Version.parse(requestedVersion));
+                        if (existing.isEmpty()) {
+                            issue = createBackportIssue(issue);
+                        } else {
+                            issue = existing.get();
                         }
                     }
                 }
@@ -225,11 +200,8 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
                 if (setFixVersion) {
                     if (requestedVersion != null) {
                         issue.setProperty("fixVersions", JSON.of(requestedVersion));
+                        Backports.labelDuplicates(issue, "hgupdater-sync");
                     }
-                }
-
-                if (1 == 1) {
-                    labelDuplicates(issue, "hgupdater-sync");
                 }
             }
         }

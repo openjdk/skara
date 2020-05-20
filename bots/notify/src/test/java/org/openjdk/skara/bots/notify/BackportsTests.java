@@ -23,14 +23,14 @@
 package org.openjdk.skara.bots.notify;
 
 import org.junit.jupiter.api.*;
-import org.openjdk.skara.issuetracker.Link;
+import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.HostCredentials;
 
 import java.io.IOException;
 import java.util.*;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class BackportsTests {
     @Test
@@ -133,7 +133,6 @@ public class BackportsTests {
     @Test
     void findIssue(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {
-
             var issueProject = credentials.getIssueProject();
             var issue = credentials.createIssue(issueProject, "Issue");
             issue.setProperty("issuetype", JSON.of("Bug"));
@@ -160,6 +159,88 @@ public class BackportsTests {
             assertEquals(issue, Backports.findIssue(issue, Version.parse("12.2")).orElseThrow());
             assertEquals(backport, Backports.findIssue(issue, Version.parse("11.1")).orElseThrow());
             assertEquals(Optional.empty(), Backports.findIssue(issue, Version.parse("13.3")));
+        }
+    }
+
+    private static class BackportManager {
+        private final HostCredentials credentials;
+        private final IssueProject issueProject;
+        private final List<Issue> issues;
+
+        BackportManager(HostCredentials credentials, String initialVersion) {
+            this.credentials = credentials;
+            issueProject = credentials.getIssueProject();
+            issues = new ArrayList<>();
+
+            issues.add(credentials.createIssue(issueProject, "Main issue"));
+            issues.get(0).setProperty("issuetype", JSON.of("Bug"));
+            issues.get(0).setProperty("fixVersions", JSON.array().add(initialVersion));
+        }
+
+        void addBackports(String... versions) {
+            for (int backportIndex = 0; backportIndex < versions.length; ++backportIndex) {
+                var issue = credentials.createIssue(issueProject, "Backport issue " + backportIndex);
+                issue.setProperty("issuetype", JSON.of("Backport"));
+                issue.setProperty("fixVersions", JSON.array().add(versions[backportIndex]));
+                issues.get(0).addLink(Link.create(issue, "backported by").build());
+                issues.add(issue);
+            }
+        }
+
+        void assertLabeled(String... labeledVersions) {
+            Backports.labelDuplicates(issues.get(0), "dup");
+
+            var labeledSet = new HashSet<>(Arrays.asList(labeledVersions));
+            for (var issue : issues) {
+                var version = issue.properties().get("fixVersions").get(0).asString();
+                var labeled = issue.labels().size() > 0;
+                if (labeled) {
+                    assertTrue(labeledSet.contains(version));
+                    labeledSet.remove(version);
+                } else {
+                    assertFalse(labeledSet.contains(version));
+                }
+            }
+            assertEquals(Set.of(), labeledSet, "There are versions remaining that haven't been labeled");
+        }
+    }
+
+    @Test
+    void labelDuplicates(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "12");
+            backports.assertLabeled();
+
+            backports.addBackports("13");
+            backports.assertLabeled("13");
+
+            backports.addBackports("13.0.1");
+            backports.assertLabeled("13", "13.0.1");
+
+            backports.addBackports("13.0.2");
+            backports.assertLabeled("13", "13.0.1", "13.0.2");
+        }
+    }
+
+    @Test
+    void labelDuplicatesSiblings(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "11.0.2");
+            backports.assertLabeled();
+
+            backports.addBackports("11.0.3", "11.0.3-oracle");
+            backports.assertLabeled("11.0.3", "11.0.3-oracle");
+        }
+    }
+
+    @Test
+    void labelDuplicatesNamed(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "11.0.3-oracle");
+            backports.assertLabeled();
+
+            backports.addBackports("11.0.4-oracle");
+            backports.assertLabeled("11.0.4-oracle");
         }
     }
 }

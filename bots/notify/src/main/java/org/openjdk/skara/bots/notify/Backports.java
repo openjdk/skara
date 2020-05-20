@@ -187,31 +187,6 @@ public class Backports {
         return Optional.empty();
     }
 
-    private final static Set<String> propagatedCustomProperties =
-            Set.of("customfield_10008", "customfield_10000", "customfield_10005");
-
-    /**
-     * Create a backport of issue.
-     */
-    static Issue createBackportIssue(Issue primary) throws NonRetriableException {
-        var filteredProperties = primary.properties().entrySet().stream()
-                                        .filter(entry -> !entry.getKey().startsWith("customfield_") || propagatedCustomProperties.contains(entry.getKey()))
-                                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-        var finalProperties = new HashMap<>(filteredProperties);
-        finalProperties.put("issuetype", JSON.of("Backport"));
-
-        try {
-            var backport = primary.project().createIssue(primary.title(), primary.body().lines().collect(Collectors.toList()), finalProperties);
-
-            var backportLink = Link.create(backport, "backported by").build();
-            primary.addLink(backportLink);
-            return backport;
-        } catch (RuntimeException e) {
-            throw new NonRetriableException(e);
-        }
-    }
-
     static List<Issue> findBackports(Issue primary) {
         var links = primary.links();
         return links.stream()
@@ -220,5 +195,52 @@ public class Backports {
                     .filter(i -> i.properties().containsKey("issuetype"))
                     .filter(i -> i.properties().get("issuetype").asString().equals("Backport"))
                     .collect(Collectors.toList());
+    }
+
+    // Split the issue list depending on the line of development
+    private static List<List<Issue>> groupByLOD(List<Issue> issues) {
+        var grouped = issues.stream()
+                            .map(issue -> new AbstractMap.SimpleEntry<Issue, Version>(issue, Backports.mainFixVersion(issue).orElse(null)))
+                            .filter(entry -> entry.getValue() != null)
+                            .collect(Collectors.groupingBy(entry -> entry.getValue().lineOfDevelopment()));
+
+        return grouped.values().stream()
+                      .map(entries -> entries.stream()
+                                             .sorted(Map.Entry.comparingByValue())
+                                             .map(AbstractMap.SimpleEntry::getKey)
+                                             .collect(Collectors.toList()))
+                      .collect(Collectors.toList());
+    }
+
+    // Give all issues that are related to the same change (except the first one) in a certain line of development
+    // a label that indicates it is a duplicate. This allows easier issue filtering.
+    static void labelDuplicates(Issue issue, String label) {
+        var mainIssue = Backports.findMainIssue(issue);
+        if (mainIssue.isEmpty()) {
+            return;
+        }
+        var related = Backports.findBackports(mainIssue.get());
+
+        var allIssues = new ArrayList<Issue>();
+        allIssues.add(mainIssue.get());
+        allIssues.addAll(related);
+
+        for (var lod : groupByLOD(allIssues)) {
+            // First entry should not have the label
+            var first = lod.get(0);
+            if (first.labels().contains(label)) {
+                first.removeLabel(label);
+            }
+
+            // But all the following ones should
+            if (lod.size() > 1) {
+                var rest = lod.subList(1, lod.size());
+                for (var i : rest) {
+                    if (!i.labels().contains(label)) {
+                        i.addLabel(label);
+                    }
+                }
+            }
+        }
     }
 }
