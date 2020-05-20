@@ -64,173 +64,6 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
         return new IssueUpdaterBuilder();
     }
 
-    private final static Set<String> primaryTypes = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
-
-    private boolean isPrimaryIssue(Issue issue) {
-        var properties = issue.properties();
-        if (!properties.containsKey("issuetype")) {
-            throw new RuntimeException("Unknown type for issue " + issue.id());
-        }
-        var type = properties.get("issuetype");
-        return primaryTypes.contains(type.asString());
-    }
-
-    /**
-     *  Return the main issue for this backport.
-     *  Harmless when called with the main issue
-     */
-    private Issue findMainIssue(Issue issue) {
-        if (isPrimaryIssue(issue)) {
-            return issue;
-        }
-
-        for (var link : issue.links()) {
-            if (link.issue().isPresent()) {
-                var linkedIssue = link.issue().get();
-                if (isPrimaryIssue(linkedIssue)) {
-                    return linkedIssue;
-                }
-            }
-        }
-
-        log.warning("Failed to find main issue for " + issue.id());
-        return issue;
-    }
-
-    private List<Issue> findBackports(Issue primary) {
-        var links = primary.links();
-        return links.stream()
-                    .filter(l -> l.issue().isPresent())
-                    .map(l -> l.issue().get())
-                    .filter(i -> i.properties().containsKey("issuetype"))
-                    .filter(i -> i.properties().get("issuetype").asString().equals("Backport"))
-                    .collect(Collectors.toList());
-    }
-
-    private boolean isNonScratchVersion(String version) {
-        return !version.startsWith("tbd") && !version.toLowerCase().equals("unknown");
-    }
-
-    private Set<String> fixVersions(Issue issue) {
-        if (!issue.properties().containsKey("fixVersions")) {
-            return Set.of();
-        }
-        return issue.properties().get("fixVersions").stream()
-                    .map(JSONValue::asString)
-                    .collect(Collectors.toSet());
-    }
-
-    /**
-     * Return true if the issue's fixVersionList matches fixVersion.
-     *
-     * fixVersionsList must contain one entry that is an exact match for fixVersions; any
-     * other entries must be scratch values.
-     */
-    private boolean matchVersion(Issue issue, Version fixVersion) {
-        var nonScratch = fixVersions(issue).stream()
-                                           .filter(this::isNonScratchVersion)
-                                           .collect(Collectors.toList());
-        return nonScratch.size() == 1 && Version.parse(nonScratch.get(0)).equals(fixVersion);
-    }
-
-    /**
-     * Return true if the issue's fixVersionList is a match for fixVersion, using "-pool" or "-open".
-     *
-     * If fixVersion has a major release of <N>, it matches the fixVersionList has an
-     * <N>-pool or <N>-open entry and all other entries are scratch values.
-     */
-    private boolean matchPoolVersion(Issue issue, Version fixVersion) {
-        var majorVersion = fixVersion.feature();
-        var poolVersion = majorVersion + "-pool";
-        var openVersion = majorVersion + "-open";
-
-        var nonScratch = fixVersions(issue).stream()
-                                           .filter(this::isNonScratchVersion)
-                                           .collect(Collectors.toList());
-        return nonScratch.size() == 1 && (nonScratch.get(0).equals(poolVersion) || nonScratch.get(0).equals(openVersion));
-    }
-
-    /**
-     * Return true if fixVersionList is empty or contains only scratch values.
-     */
-    private boolean matchScratchVersion(Issue issue) {
-        var nonScratch = fixVersions(issue).stream()
-                                           .filter(this::isNonScratchVersion)
-                                           .collect(Collectors.toList());
-        return nonScratch.size() == 0;
-    }
-
-    private final static Set<String> propagatedCustomProperties =
-            Set.of("customfield_10008", "customfield_10000", "customfield_10005");
-
-    /**
-     * Create a backport of issue.
-     */
-    private Issue createBackportIssue(Issue primary) throws NonRetriableException {
-        var filteredProperties = primary.properties().entrySet().stream()
-                .filter(entry -> !entry.getKey().startsWith("customfield_") || propagatedCustomProperties.contains(entry.getKey()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-        var finalProperties = new HashMap<>(filteredProperties);
-        finalProperties.put("issuetype", JSON.of("Backport"));
-
-        try {
-            var backport = primary.project().createIssue(primary.title(), primary.body().lines().collect(Collectors.toList()), finalProperties);
-
-            var backportLink = Link.create(backport, "backported by").build();
-            primary.addLink(backportLink);
-            return backport;
-        } catch (RuntimeException e) {
-            throw new NonRetriableException(e);
-        }
-    }
-
-    /**
-     * Return issue or one of its backports that applies to fixVersion.
-     *
-     * If the main issue       has the correct fixVersion, use it.
-     * If an existing Backport has the correct fixVersion, use it.
-     * If the main issue       has a matching <N>-pool/open fixVersion, use it.
-     * If an existing Backport has a matching <N>-pool/open fixVersion, use it.
-     * If the main issue       has a "scratch" fixVersion, use it.
-     * If an existing Backport has a "scratch" fixVersion, use it.
-     *
-     * Otherwise, create a new Backport.
-     *
-     * A "scratch" fixVersion is empty, "tbd.*", or "unknown".
-     */
-    private Issue findIssue(Issue primary, Version fixVersion) throws NonRetriableException {
-        log.info("Searching for properly versioned issue for primary issue " + primary.id());
-        var candidates = Stream.concat(Stream.of(primary), findBackports(primary).stream()).collect(Collectors.toList());
-        candidates.forEach(c -> log.fine("Candidate: " + c.id() + " with versions: " + String.join(",", fixVersions(c))));
-        var matchingVersionIssue = candidates.stream()
-                .filter(i -> matchVersion(i, fixVersion))
-                .findFirst();
-        if (matchingVersionIssue.isPresent()) {
-            log.info("Issue " + matchingVersionIssue.get().id() + " has a correct fixVersion");
-            return matchingVersionIssue.get();
-        }
-
-        var matchingPoolVersionIssue = candidates.stream()
-                .filter(i -> matchPoolVersion(i, fixVersion))
-                .findFirst();
-        if (matchingPoolVersionIssue.isPresent()) {
-            log.info("Issue " + matchingPoolVersionIssue.get().id() + " has a matching pool version");
-            return matchingPoolVersionIssue.get();
-        }
-
-        var matchingScratchVersionIssue = candidates.stream()
-                .filter(this::matchScratchVersion)
-                .findFirst();
-        if (matchingScratchVersionIssue.isPresent()) {
-            log.info("Issue " + matchingScratchVersionIssue.get().id() + " has a scratch fixVersion");
-            return matchingScratchVersionIssue.get();
-        }
-
-        log.info("Creating new backport for " + primary.id());
-        return createBackportIssue(primary);
-    }
-
     private Optional<String> findIssueUsername(Commit commit) {
         var authorEmail = EmailAddress.from(commit.author().email());
         if (authorEmail.domain().equals("openjdk.org")) {
@@ -245,20 +78,11 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
         return Optional.of(committerEmail.localPart());
     }
 
-    private Optional<Version> mainFixVersion(Issue issue) {
-        var versionString = fixVersions(issue).stream()
-                                              .filter(this::isNonScratchVersion)
-                                              .findAny();
-        if (versionString.isEmpty()) {
-            return Optional.empty();
-        }
-        return Optional.of(Version.parse(versionString.get()));
-    }
 
     // Split the issue list depending on the line of development
     private List<List<Issue>> groupByLOD(List<Issue> issues) {
         var grouped = issues.stream()
-                            .map(issue -> new AbstractMap.SimpleEntry<Issue, Version>(issue, mainFixVersion(issue).orElse(null)))
+                            .map(issue -> new AbstractMap.SimpleEntry<Issue, Version>(issue, Backports.mainFixVersion(issue).orElse(null)))
                             .filter(entry -> entry.getValue() != null)
                             .collect(Collectors.groupingBy(entry -> entry.getValue().lineOfDevelopment()));
 
@@ -273,11 +97,14 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
     // Give all issues related to the same change (except the first one) a specific label that indicates that
     // it is a duplicate. This allows easier issue filtering.
     private void labelDuplicates(Issue issue, String label) {
-        var mainIssue = findMainIssue(issue);
-        var related = findBackports(mainIssue);
+        var mainIssue = Backports.findMainIssue(issue);
+        if (mainIssue.isEmpty()) {
+            return;
+        }
+        var related = Backports.findBackports(mainIssue.get());
 
         var allIssues = new ArrayList<Issue>();
-        allIssues.add(mainIssue);
+        allIssues.add(mainIssue.get());
         allIssues.addAll(related);
 
         for (var lod : groupByLOD(allIssues)) {
@@ -311,18 +138,15 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
                                        + " - issue not found in issue project");
                     continue;
                 }
-                var issue = optionalIssue.get();
 
-                // We only update primary type issues
-                if (!isPrimaryIssue(issue)) {
-                    var candidate = findMainIssue(issue);
-                    if (!isPrimaryIssue(candidate) || candidate.id().equals(issue.id())) {
-                        log.severe("Issue " + issue.id() + " isn't of a primary type - ignoring");
-                        continue;
-                    } else {
-                        log.warning("Issue " + issue.id() + " isn't of a primary type - using " + candidate.id() + " instead");
-                        issue = candidate;
-                    }
+                var issue = optionalIssue.get();
+                var mainIssue = Backports.findMainIssue(issue);
+                if (mainIssue.isEmpty()) {
+                    log.severe("Issue " + issue.id() + " is not the main issue - but no corresponding main issue found");
+                    continue;
+                } else {
+                    log.warning("Issue " + issue.id() + " is not the main issue - using " + mainIssue.get().id() + " instead");
+                    issue = mainIssue.get();
                 }
 
                 String requestedVersion = null;
@@ -357,7 +181,12 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
                         }
 
                         if (requestedVersion != null) {
-                            issue = findIssue(issue, Version.parse(requestedVersion));
+                            var existing = Backports.findIssue(issue, Version.parse(requestedVersion));
+                            if (existing.isEmpty()) {
+                                issue = Backports.createBackportIssue(issue);
+                            } else {
+                                issue = existing.get();
+                            }
                         }
                     }
                 }
