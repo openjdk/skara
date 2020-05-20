@@ -1961,8 +1961,17 @@ class UpdaterTests {
             var issue2 = credentials.createIssue(issueProject, "Issue 2");
             issue2.setProperty("fixVersions", JSON.array().add(JSON.of("8u162")));
             issue2.setProperty("issuetype", JSON.of("Backport"));
-            var bpLink = Link.create(issue2, "backported by").build();
-            issue1.addLink(bpLink);
+            issue1.addLink(Link.create(issue2, "backported by").build());
+
+            var issue3 = credentials.createIssue(issueProject, "Issue 3");
+            issue3.setProperty("fixVersions", JSON.array().add(JSON.of("10")));
+            issue3.setProperty("issuetype", JSON.of("Backport"));
+            issue1.addLink(Link.create(issue3, "backported by").build());
+
+            var issue4 = credentials.createIssue(issueProject, "Issue 4");
+            issue4.setProperty("fixVersions", JSON.array().add(JSON.of("11")));
+            issue4.setProperty("issuetype", JSON.of("Backport"));
+            issue1.addLink(Link.create(issue4, "backported by").build());
 
             // Mention one of the issues
             var commit = CheckableRepository.appendAndCommit(localRepo, "Hello there", issue1.id() + ": A fix");
@@ -1971,6 +1980,8 @@ class UpdaterTests {
 
             assertEquals(List.of("hgupdater-sync"), issue1.labels());
             assertEquals(List.of(), issue2.labels());
+            assertEquals(List.of(), issue3.labels());
+            assertEquals(List.of("hgupdater-sync"), issue4.labels());
         }
     }
 }

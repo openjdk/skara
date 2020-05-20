@@ -171,4 +171,24 @@ public class Version implements Comparable<Version> {
         // A version with additional components comes after an otherwise identical one (12.1.1 > 12.1)
         return Integer.compare(myComponents.size(), otherComponents.size());
     }
+
+    @Override
+    public String toString() {
+        return "Version{" +
+                "raw='" + raw + '\'' +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Version version = (Version) o;
+        return raw.equals(version.raw);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(raw);
+    }
 }
