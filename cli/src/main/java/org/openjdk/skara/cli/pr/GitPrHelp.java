@@ -143,7 +143,7 @@ public class GitPrHelp {
             }
         }
 
-        System.out.println("git-pr is used for interacting with pull requeqsts from a command line.");
+        System.out.println("git-pr is used for interacting with pull requests from a command line.");
         System.out.println("The following commands are available:");
         for (var command : sorted(commands.keySet())) {
             System.out.println("- " + command);
