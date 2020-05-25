@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,20 +22,27 @@
  */
 package org.openjdk.skara.bots.notify;
 
-import org.openjdk.skara.forge.HostedRepository;
-import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.vcs.openjdk.OpenJDKTag;
+import org.openjdk.skara.bot.BotConfiguration;
+import org.openjdk.skara.json.JSONObject;
 
-import java.util.List;
+import java.util.*;
+import java.util.stream.*;
 
-public interface RepositoryUpdateConsumer extends Notifier {
-    default void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) throws NonRetriableException {
-    }
-    default void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) throws NonRetriableException {
-    }
-    default void handleTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag, Tag.Annotated annotation) throws NonRetriableException {
-    }
-    default void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) throws NonRetriableException {
-    }
+public interface NotifierFactory {
+    /**
+     * A user-friendly name for the given notifier, used for configuration section naming. Should be lower case.
+     * @return
+     */
     String name();
+
+    /**
+     * Creates instances of this notifier according to the provided configuration.
+     * @return
+     */
+    Notifier create(BotConfiguration botConfiguration, JSONObject notifierConfiguration);
+
+    static List<NotifierFactory> getNotifierFactories() {
+        return StreamSupport.stream(ServiceLoader.load(NotifierFactory.class).spliterator(), false)
+                .collect(Collectors.toList());
+    }
 }

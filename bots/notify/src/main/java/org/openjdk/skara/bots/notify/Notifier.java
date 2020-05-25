@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,20 +22,19 @@
  */
 package org.openjdk.skara.bots.notify;
 
-import org.openjdk.skara.forge.HostedRepository;
-import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.vcs.openjdk.OpenJDKTag;
+import org.openjdk.skara.bot.BotConfiguration;
+import org.openjdk.skara.json.JSONObject;
 
-import java.util.List;
-
-public interface RepositoryUpdateConsumer extends Notifier {
-    default void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) throws NonRetriableException {
-    }
-    default void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) throws NonRetriableException {
-    }
-    default void handleTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag, Tag.Annotated annotation) throws NonRetriableException {
-    }
-    default void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) throws NonRetriableException {
-    }
+public interface Notifier {
     String name();
+
+    static Notifier create(String name, BotConfiguration botConfiguration, JSONObject notifierConfiguration) {
+        var factory = NotifierFactory.getNotifierFactories().stream()
+                .filter(f -> f.name().equals(name))
+                .findFirst();
+        if (factory.isEmpty()) {
+            throw new RuntimeException("No notifier factory named '" + name + "' found - check module path");
+        }
+        return factory.get().create(botConfiguration, notifierConfiguration);
+    }
 }

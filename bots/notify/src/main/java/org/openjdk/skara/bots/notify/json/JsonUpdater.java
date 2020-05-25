@@ -20,8 +20,9 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.bots.notify;
+package org.openjdk.skara.bots.notify.json;
 
+import org.openjdk.skara.bots.notify.*;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.vcs.*;
@@ -36,7 +37,7 @@ public class JsonUpdater implements RepositoryUpdateConsumer {
     private final String version;
     private final String defaultBuild;
 
-    JsonUpdater(Path path, String version, String defaultBuild) {
+    public JsonUpdater(Path path, String version, String defaultBuild) {
         this.path = path;
         this.version = version;
         this.defaultBuild = defaultBuild;

@@ -25,7 +25,7 @@ package org.openjdk.skara.bots.notify;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
-public interface PullRequestUpdateConsumer {
+public interface PullRequestUpdateConsumer extends Notifier {
     default void handleNewIssue(PullRequest pr, Issue issue) {
     }
     default void handleRemovedIssue(PullRequest pr, Issue issue) {

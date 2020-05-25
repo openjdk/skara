@@ -28,8 +28,8 @@ import org.openjdk.skara.vcs.*;
 import java.io.*;
 import java.time.format.DateTimeFormatter;
 
-class CommitFormatters {
-    static String toTextBrief(HostedRepository repository, Commit commit) {
+public class CommitFormatters {
+    public static String toTextBrief(HostedRepository repository, Commit commit) {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
@@ -56,7 +56,7 @@ class CommitFormatters {
         }
     }
 
-    static String toText(HostedRepository repository, Commit commit) {
+    public static String toText(HostedRepository repository, Commit commit) {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
