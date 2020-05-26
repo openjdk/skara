@@ -23,18 +23,19 @@
 package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
-import org.openjdk.skara.json.*;
+import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.vcs.openjdk.*;
 import org.openjdk.skara.vcs.openjdk.convert.*;
 import org.openjdk.skara.version.Version;
 
-import java.io.*;
+import java.io.IOException;
+import java.net.URI;
 import java.nio.file.*;
 import java.util.*;
+import java.util.function.Supplier;
+import java.util.logging.Level;
+
 import static java.util.stream.Collectors.toList;
-import java.util.function.*;
-import java.util.logging.*;
 
 public class GitOpenJDKImport {
     private static void die(Exception e) {
@@ -116,8 +117,8 @@ public class GitOpenJDKImport {
                                     .orElseThrow(error("%s is not a git repository", cwd));
 
             var hgDir = arguments.at(0).via(Path::of);
-            var hgRepo = ReadOnlyRepository.get(hgDir)
-                                           .orElseThrow(error("%s is not a hg repository", hgDir));
+            var hgRepo = Repository.get(hgDir)
+                                   .orElseThrow(error("%s is not a hg repository", hgDir));
 
             var replacements = new HashMap<Hash, List<String>>();
             if (arguments.contains("replacements")) {
@@ -203,9 +204,21 @@ public class GitOpenJDKImport {
             }
 
             var converter = new HgToGitConverter(replacements, corrections, lowercase, punctuated, authors, contributors, sponsors);
-            var marks = converter.convert(hgRepo, gitRepo);
-
             var hgCommits = gitRepo.root().resolve(".hgcommits");
+            List<Mark> marks;
+            if (Files.exists(hgCommits)) {
+                var lines = Files.readAllLines(hgCommits);
+                marks = new ArrayList<>();
+                for (int i = 0; i < lines.size(); ++i) {
+                    var markHashes = lines.get(i).split(" ");
+                    var mark = new Mark(i + 1, new Hash(markHashes[0]), new Hash(markHashes[1]));
+                    marks.add(mark);
+                }
+                marks = converter.pull(hgRepo, URI.create(hgRepo.pullPath("default")), gitRepo, marks);
+            } else {
+                marks = converter.convert(hgRepo, gitRepo);
+            }
+
             try (var writer = Files.newBufferedWriter(hgCommits)) {
                 for (var mark : marks) {
                     writer.write(mark.hg().hex());
