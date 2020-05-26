@@ -56,6 +56,21 @@ public class CheckablePullRequest {
 
         var comments = pr.comments();
         var currentUser = pr.repository().forge().currentUser();
+
+        if (!ignoreStaleReviews) {
+            var allReviewers = activeReviews.stream()
+                                            .map(review -> namespace.get(review.reviewer().id()))
+                                            .filter(Objects::nonNull)
+                                            .map(Contributor::username)
+                                            .collect(Collectors.toSet());
+            var additionalReviewers = Reviewers.reviewers(currentUser, comments);
+            for (var additionalReviewer : additionalReviewers) {
+                if (!allReviewers.contains(additionalReviewer)) {
+                    reviewers.add(additionalReviewer);
+                }
+            }
+        }
+
         var additionalContributors = Contributors.contributors(currentUser,
                                                                comments).stream()
                                                  .map(email -> Author.fromString(email.toString()))

@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.census.Contributor;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
@@ -246,6 +247,27 @@ class CheckRun {
                                    return entry;
                                })
                                .collect(Collectors.joining("\n"));
+
+        // Check for manually added reviewers
+        if (!ignoreStaleReviews) {
+            var namespace = censusInstance.namespace();
+            var allReviewers = reviews.stream()
+                                      .map(review -> namespace.get(review.reviewer().id()))
+                                      .filter(Objects::nonNull)
+                                      .map(Contributor::username)
+                                      .collect(Collectors.toSet());
+            var additionalEntries = new ArrayList<String>();
+            for (var additional : Reviewers.reviewers(pr.repository().forge().currentUser(), comments)) {
+                if (!allReviewers.contains(additional)) {
+                    additionalEntries.add(" * " + additional + " - " + getRole(additional) + " ⚠️ Added manually");
+                }
+            }
+            if (!reviewers.isBlank()) {
+                reviewers += "\n";
+            }
+            reviewers += String.join("\n", additionalEntries);
+        }
+
         if (reviewers.length() > 0) {
             return Optional.of(reviewers);
         } else {
