@@ -30,7 +30,7 @@ public class Issue {
     private final String shortId;
     private final String description;
 
-    private final static Pattern relaxedIssueParsePattern = Pattern.compile("^((?:[A-Z][A-Z0-9]+-)?[0-9]+)[^\\p{Alnum}]+(\\S.*)$");
+    private final static Pattern relaxedIssueParsePattern = Pattern.compile("^((?:[A-Z][A-Z0-9]+-)?[0-9]+)[^\\p{Alnum}]*\\s(\\S.*)$");
 
     public Issue(String id, String description) {
         if (id.contains("-")) {
