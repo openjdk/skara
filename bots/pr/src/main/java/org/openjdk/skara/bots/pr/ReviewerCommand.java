@@ -23,14 +23,13 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.census.Contributor;
-import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class ReviewerCommand implements CommandHandler {
     private static final Pattern commandPattern = Pattern.compile("^(add|remove)\\s+(.+)$");
@@ -91,12 +90,7 @@ public class ReviewerCommand implements CommandHandler {
         }
 
         var namespace = censusInstance.namespace();
-        var authenticatedReviewers = pr.reviews().stream()
-                                       .map(review -> namespace.get(review.reviewer().id()))
-                                       .map(Contributor::username)
-                                       .filter(Objects::nonNull)
-                                       .collect(Collectors.toSet());
-
+        var authenticatedReviewers = PullRequestUtils.reviewerNames(pr.reviews(), namespace);
         switch (matcher.group(1)) {
             case "add": {
                 if (!authenticatedReviewers.contains(reviewer.get().username())) {

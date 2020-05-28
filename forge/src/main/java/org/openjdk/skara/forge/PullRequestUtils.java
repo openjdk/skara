@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.forge;
 
+import org.openjdk.skara.census.*;
 import org.openjdk.skara.vcs.*;
 
 import java.io.IOException;
@@ -171,5 +172,13 @@ public class PullRequestUtils {
             patch.source().path().ifPresent(ret::add);
         }
         return ret;
+    }
+
+    public static Set<String> reviewerNames(List<Review> reviews, Namespace namespace) {
+        return reviews.stream()
+                      .map(review -> namespace.get(review.reviewer().id()))
+                      .filter(Objects::nonNull)
+                      .map(Contributor::username)
+                      .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 }
