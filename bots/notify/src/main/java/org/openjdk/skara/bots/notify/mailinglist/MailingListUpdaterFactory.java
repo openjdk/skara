@@ -61,8 +61,11 @@ public class MailingListUpdaterFactory implements NotifierFactory {
                                                           .allowedAuthorDomains(allowedDomains);
 
         if (notifierConfiguration.contains("mode")) {
-            var mode = MailingListUpdater.Mode.ALL;
+            MailingListUpdater.Mode mode;
             switch (notifierConfiguration.get("mode").asString()) {
+                case "all":
+                    mode = MailingListUpdater.Mode.ALL;
+                    break;
                 case "pr":
                     mode = MailingListUpdater.Mode.PR;
                     break;
