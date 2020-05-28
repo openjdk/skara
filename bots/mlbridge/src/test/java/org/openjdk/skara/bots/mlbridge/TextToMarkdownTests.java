@@ -48,4 +48,12 @@ class TextToMarkdownTests {
     void escapedPattern() {
         assertEquals("1\\$2", TextToMarkdown.escapeFormatting("1$2"));
     }
+
+    @Test
+    void separateQuoteBlocks() {
+        assertEquals("> 1\n\n2", TextToMarkdown.escapeFormatting("> 1\n2"));
+        assertEquals("> 1\n\n2", TextToMarkdown.escapeFormatting("> 1\n\n2"));
+        assertEquals("> 1\n> 2\n\n3", TextToMarkdown.escapeFormatting("> 1\n> 2\n3"));
+        assertEquals("> 1\n> 2\n\n3", TextToMarkdown.escapeFormatting("> 1\n> 2\n\n3"));
+    }
 }

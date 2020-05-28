@@ -22,11 +22,13 @@
  */
 package org.openjdk.skara.bots.mlbridge;
 
+import java.util.ArrayList;
 import java.util.regex.*;
 
 public class TextToMarkdown {
     private static final Pattern punctuationPattern = Pattern.compile("([!\"#$%&'()*+,\\-./:;<=?@\\[\\]^_`{|}~])", Pattern.MULTILINE);
     private static final Pattern indentedPattern = Pattern.compile("^ {4}", Pattern.MULTILINE);
+    private static final Pattern quoteBlockPattern = Pattern.compile("^(>(>|\\s)*\\s.*$)", Pattern.MULTILINE);
 
     private static String escapeBackslashes(String text) {
         return text.replace("\\", "\\\\");
@@ -42,7 +44,24 @@ public class TextToMarkdown {
         return indentedMatcher.replaceAll("&#32;   ");
     }
 
+    private static String separateQuoteBlocks(String text) {
+        var ret = new ArrayList<String>();
+        var lastLineQuoted = false;
+        for (var line : text.split("\\R")) {
+            if ((line.length() > 0) && (line.charAt(0) == '>')) {
+                lastLineQuoted = true;
+            } else {
+                if (lastLineQuoted && !line.isBlank()) {
+                    ret.add("");
+                }
+                lastLineQuoted = false;
+            }
+            ret.add(line);
+        }
+        return String.join("\n", ret);
+    }
+
     static String escapeFormatting(String text) {
-        return escapeIndention(escapePunctuation(escapeBackslashes(text)));
+        return escapeIndention(escapePunctuation(escapeBackslashes(separateQuoteBlocks(text))));
     }
 }
