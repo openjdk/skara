@@ -22,18 +22,18 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
-import org.openjdk.skara.issuetracker.*;
+import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
-import org.openjdk.skara.email.EmailAddress;
 
 import java.io.*;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Logger;
-import java.util.regex.*;
+import java.util.regex.Matcher;
 import java.util.stream.*;
 
 class CheckRun {
@@ -246,6 +246,23 @@ class CheckRun {
                                    return entry;
                                })
                                .collect(Collectors.joining("\n"));
+
+        // Check for manually added reviewers
+        if (!ignoreStaleReviews) {
+            var namespace = censusInstance.namespace();
+            var allReviewers = PullRequestUtils.reviewerNames(reviews, namespace);
+            var additionalEntries = new ArrayList<String>();
+            for (var additional : Reviewers.reviewers(pr.repository().forge().currentUser(), comments)) {
+                if (!allReviewers.contains(additional)) {
+                    additionalEntries.add(" * " + additional + " - " + getRole(additional) + " ⚠️ Added manually");
+                }
+            }
+            if (!reviewers.isBlank()) {
+                reviewers += "\n";
+            }
+            reviewers += String.join("\n", additionalEntries);
+        }
+
         if (reviewers.length() > 0) {
             return Optional.of(reviewers);
         } else {

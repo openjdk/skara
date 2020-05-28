@@ -50,7 +50,8 @@ public class CommandWorkItem extends PullRequestWorkItem {
             "issue", new IssueCommand(),
             "solves", new IssueCommand("solves"),
             "reviewers", new ReviewersCommand(),
-            "csr", new CSRCommand()
+            "csr", new CSRCommand(),
+            "reviewer", new ReviewerCommand()
     );
 
     static class HelpCommand implements CommandHandler {

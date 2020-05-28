@@ -45,17 +45,24 @@ public class CheckablePullRequest {
     }
 
     private String commitMessage(List<Review> activeReviews, Namespace namespace) throws IOException {
-        var reviewers = activeReviews.stream()
-                                     .filter(review -> !ignoreStaleReviews || review.hash().equals(pr.headHash()))
-                                     .filter(review -> review.verdict() == Review.Verdict.APPROVED)
-                                     .map(review -> review.reviewer().id())
-                                     .map(namespace::get)
-                                     .filter(Objects::nonNull)
-                                     .map(Contributor::username)
-                                     .collect(Collectors.toList());
-
+        var eligibleReviews = activeReviews.stream()
+                                           .filter(review -> !ignoreStaleReviews || review.hash().equals(pr.headHash()))
+                                           .filter(review -> review.verdict() == Review.Verdict.APPROVED)
+                                           .collect(Collectors.toList());
+        var reviewers = PullRequestUtils.reviewerNames(eligibleReviews, namespace);
         var comments = pr.comments();
         var currentUser = pr.repository().forge().currentUser();
+
+        if (!ignoreStaleReviews) {
+            var allReviewers = PullRequestUtils.reviewerNames(activeReviews, namespace);
+            var additionalReviewers = Reviewers.reviewers(currentUser, comments);
+            for (var additionalReviewer : additionalReviewers) {
+                if (!allReviewers.contains(additionalReviewer)) {
+                    reviewers.add(additionalReviewer);
+                }
+            }
+        }
+
         var additionalContributors = Contributors.contributors(currentUser,
                                                                comments).stream()
                                                  .map(email -> Author.fromString(email.toString()))
@@ -69,7 +76,7 @@ public class CheckablePullRequest {
             commitMessageBuilder.issues(additionalIssues);
         }
         commitMessageBuilder.contributors(additionalContributors)
-                            .reviewers(reviewers);
+                            .reviewers(new ArrayList<>(reviewers));
         summary.ifPresent(commitMessageBuilder::summary);
 
         return String.join("\n", commitMessageBuilder.format(CommitMessageFormatters.v1));
