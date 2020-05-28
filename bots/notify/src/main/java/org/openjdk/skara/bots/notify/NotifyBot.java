@@ -31,7 +31,7 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-class NotifyBot implements Bot {
+public class NotifyBot implements Bot {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final HostedRepository repository;
     private final Path storagePath;
@@ -62,7 +62,7 @@ class NotifyBot implements Bot {
         this.readyComments = readyComments;
     }
 
-    static NotifyBotBuilder newBuilder() {
+    public static NotifyBotBuilder newBuilder() {
         return new NotifyBotBuilder();
     }
 

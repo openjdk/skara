@@ -26,7 +26,7 @@ import org.openjdk.skara.vcs.*;
 
 import java.util.Objects;
 
-class UpdatedBranch {
+public class UpdatedBranch {
     private final Branch branch;
     private final String updater;
     private final Hash hash;

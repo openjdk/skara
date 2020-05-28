@@ -20,8 +20,9 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.bots.notify;
+package org.openjdk.skara.bots.notify.mailinglist;
 
+import org.openjdk.skara.bots.notify.*;
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.mailinglist.MailingList;
@@ -48,7 +49,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
     private final Pattern allowedAuthorDomains;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
-    enum Mode {
+    public enum Mode {
         ALL,
         PR
     }
@@ -69,7 +70,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
         this.allowedAuthorDomains = allowedAuthorDomains;
     }
 
-    static MailingListUpdaterBuilder newBuilder() {
+    public static MailingListUpdaterBuilder newBuilder() {
         return new MailingListUpdaterBuilder();
     }
 

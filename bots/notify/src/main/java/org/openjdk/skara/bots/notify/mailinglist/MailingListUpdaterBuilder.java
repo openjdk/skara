@@ -20,7 +20,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.bots.notify;
+package org.openjdk.skara.bots.notify.mailinglist;
 
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.mailinglist.MailingList;

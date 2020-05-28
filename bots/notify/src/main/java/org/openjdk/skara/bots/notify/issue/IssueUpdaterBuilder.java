@@ -20,7 +20,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.bots.notify;
+package org.openjdk.skara.bots.notify.issue;
 
 import org.openjdk.skara.issuetracker.IssueProject;
 
@@ -33,9 +33,6 @@ public class IssueUpdaterBuilder {
     private URI reviewIcon = null;
     private boolean commitLink = true;
     private URI commitIcon = null;
-    private boolean setFixVersion = false;
-    private Map<String, String> fixVersions = null;
-    private boolean prOnly = false;
 
     public IssueUpdaterBuilder issueProject(IssueProject issueProject) {
         this.issueProject = issueProject;
@@ -62,28 +59,7 @@ public class IssueUpdaterBuilder {
         return this;
     }
 
-    public IssueUpdaterBuilder setFixVersion(boolean setFixVersion) {
-        if (setFixVersion && prOnly) {
-            throw new IllegalArgumentException("Cannot combine setFixVersion with prOnly");
-        }
-        this.setFixVersion = setFixVersion;
-        return this;
-    }
-
-    public IssueUpdaterBuilder fixVersions(Map<String, String> fixVersions) {
-        this.fixVersions = fixVersions;
-        return this;
-    }
-
-    public IssueUpdaterBuilder prOnly(boolean prOnly) {
-        if (prOnly && setFixVersion) {
-            throw new IllegalArgumentException("Cannot combine prOnly with setFixVersion");
-        }
-        this.prOnly = prOnly;
-        return this;
-    }
-
     public IssueUpdater build() {
-        return new IssueUpdater(issueProject, reviewLink, reviewIcon, commitLink, commitIcon, setFixVersion, fixVersions, prOnly);
+        return new IssueUpdater(issueProject, reviewLink, reviewIcon, commitLink, commitIcon);
     }
 }

@@ -23,15 +23,9 @@
 package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.bot.*;
-import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.json.*;
-import org.openjdk.skara.mailinglist.MailingListServerFactory;
-import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.storage.StorageBuilder;
 
-import java.net.URI;
-import java.nio.file.Path;
-import java.time.Duration;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -43,6 +37,19 @@ public class NotifyBotFactory implements BotFactory {
     @Override
     public String name() {
         return "notify";
+    }
+
+    private JSONObject combineConfiguration(JSONObject global, JSONObject specific) {
+        var ret = new JSONObject();
+        if (global != null) {
+            for (var globalField : global.fields()) {
+                ret.put(globalField.name(), globalField.value());
+            }
+        }
+        for (var specificField : specific.fields()) {
+            ret.put(specificField.name(), specificField.value());
+        }
+        return ret;
     }
 
     @Override
@@ -64,18 +71,16 @@ public class NotifyBotFactory implements BotFactory {
                                     .collect(Collectors.toMap(obj -> obj.get("user").asString(),
                                                               obj -> Pattern.compile(obj.get("pattern").asString())));
 
-        URI reviewIcon = null;
-        if (specific.contains("reviews")) {
-            if (specific.get("reviews").contains("icon")) {
-                reviewIcon = URI.create(specific.get("reviews").get("icon").asString());
+        // Collect configuration applicable to all instances of a specific notifier
+        var notifierFactories = NotifierFactory.getNotifierFactories();
+        notifierFactories.forEach(notifierFactory -> log.info("Available notifier: " + notifierFactory.name()));
+        var notifierConfiguration = new HashMap<String, JSONObject>();
+        for (var notifierFactory : notifierFactories) {
+            if (specific.contains(notifierFactory.name())) {
+                notifierConfiguration.put(notifierFactory.name(), specific.get(notifierFactory.name()).asObject());
             }
         }
-        URI commitIcon = null;
-        if (specific.contains("commits")) {
-            if (specific.get("commits").contains("icon")) {
-                commitIcon = URI.create(specific.get("commits").get("icon").asString());
-            }
-        }
+
         for (var repo : specific.get("repositories").fields()) {
             var repoName = repo.name();
             var branchPattern = Pattern.compile("^master$");
@@ -85,110 +90,29 @@ public class NotifyBotFactory implements BotFactory {
 
             var updaters = new ArrayList<RepositoryUpdateConsumer>();
             var prUpdaters = new ArrayList<PullRequestUpdateConsumer>();
-            if (repo.value().contains("json")) {
-                var folder = repo.value().get("folder").asString();
-                var build = repo.value().get("build").asString();
-                var version = repo.value().get("version").asString();
-                updaters.add(new JsonUpdater(Path.of(folder), version, build));
-            }
 
-            if (repo.value().contains("slack")) {
-                var slackConf = repo.value().get("slack");
-                URI prWebhook = null;
-                if (slackConf.contains("pr")) {
-                    prWebhook = URIBuilder.base(slackConf.get("pr").asString()).build();
-                }
-                URI commitWebhook = null;
-                if (slackConf.contains("commit")) {
-                    commitWebhook = URIBuilder.base(slackConf.get("commit").asString()).build();
-                }
-                var username = slackConf.get("username").asString();
-                var updater = new SlackUpdater(prWebhook, commitWebhook, username);
-                updaters.add(updater);
-                prUpdaters.add(updater);
-            }
-
-            if (repo.value().contains("mailinglists")) {
-                var email = specific.get("email").asObject();
-                var smtp = email.get("smtp").asString();
-                var sender = EmailAddress.parse(email.get("sender").asString());
-                var archive = URIBuilder.base(email.get("archive").asString()).build();
-                var interval = email.contains("interval") ? Duration.parse(email.get("interval").asString()) : Duration.ofSeconds(1);
-                var listServer = MailingListServerFactory.createMailmanServer(archive, smtp, interval);
-
-                for (var mailinglist : repo.value().get("mailinglists").asArray()) {
-                    var recipient = mailinglist.get("recipient").asString();
-                    var recipientAddress = EmailAddress.parse(recipient);
-
-                    var author = mailinglist.contains("author") ? EmailAddress.parse(mailinglist.get("author").asString()) : null;
-                    var allowedDomains = author == null ? Pattern.compile(mailinglist.get("domains").asString()) : null;
-
-                    var mailingListUpdaterBuilder = MailingListUpdater.newBuilder()
-                                                                      .list(listServer.getList(recipient))
-                                                                      .recipient(recipientAddress)
-                                                                      .sender(sender)
-                                                                      .author(author)
-                                                                      .allowedAuthorDomains(allowedDomains);
-
-                    if (mailinglist.contains("mode")) {
-                        var mode = MailingListUpdater.Mode.ALL;
-                        switch (mailinglist.get("mode").asString()) {
-                            case "pr":
-                                mode = MailingListUpdater.Mode.PR;
-                                break;
-                            default:
-                                throw new RuntimeException("Unknown mode");
+            for (var notifierFactory : notifierFactories) {
+                if (repo.value().contains(notifierFactory.name())) {
+                    var confArray = repo.value().get(notifierFactory.name());
+                    if (!confArray.isArray()) {
+                        confArray = JSON.array().add(confArray);
+                    }
+                    for (var conf : confArray.asArray()) {
+                        var finalConfiguration = combineConfiguration(notifierConfiguration.get(notifierFactory.name()), conf.asObject());
+                        var notifier = Notifier.create(notifierFactory.name(), configuration, finalConfiguration);
+                        log.info("Configuring notifier " + notifierFactory.name() + " for repository " + repoName);
+                        if (notifier instanceof PullRequestUpdateConsumer) {
+                            prUpdaters.add((PullRequestUpdateConsumer)notifier);
                         }
-                        mailingListUpdaterBuilder.mode(mode);
+                        if (notifier instanceof RepositoryUpdateConsumer) {
+                            updaters.add((RepositoryUpdateConsumer)notifier);
+                        }
                     }
-                    if (mailinglist.contains("headers")) {
-                        mailingListUpdaterBuilder.headers(mailinglist.get("headers").fields().stream()
-                                                                     .collect(Collectors.toMap(JSONObject.Field::name,
-                                                                                               field -> field.value().asString())));
-                    }
-                    if (mailinglist.contains("branchnames")) {
-                        mailingListUpdaterBuilder.includeBranch(mailinglist.get("branchnames").asBoolean());
-                    }
-                    if (mailinglist.contains("tags")) {
-                        mailingListUpdaterBuilder.reportNewTags(mailinglist.get("tags").asBoolean());
-                    }
-                    if (mailinglist.contains("branches")) {
-                        mailingListUpdaterBuilder.reportNewBranches(mailinglist.get("branches").asBoolean());
-                    }
-                    if (mailinglist.contains("builds")) {
-                        mailingListUpdaterBuilder.reportNewBuilds(mailinglist.get("builds").asBoolean());
-                    }
-
-                    updaters.add(mailingListUpdaterBuilder.build());
                 }
             }
-            if (repo.value().contains("issues")) {
-                var issuesConf = repo.value().get("issues");
-                var issueProject = configuration.issueProject(issuesConf.get("project").asString());
-                var issueUpdaterBuilder = IssueUpdater.newBuilder()
-                                                      .issueProject(issueProject);
 
-                if (issuesConf.contains("reviewlink")) {
-                    issueUpdaterBuilder.reviewLink(issuesConf.get("reviewlink").asBoolean());
-                }
-                if (issuesConf.contains("commitlink")) {
-                    issueUpdaterBuilder.commitLink(issuesConf.get("commitlink").asBoolean());
-                }
-                if (issuesConf.contains("fixversions")) {
-                    issueUpdaterBuilder.setFixVersion(true);
-                    issueUpdaterBuilder.fixVersions(issuesConf.get("fixversions").fields().stream()
-                                                              .collect(Collectors.toMap(JSONObject.Field::name,
-                                                                                        f -> f.value().asString())));
-                }
-                if (issuesConf.contains("pronly")) {
-                    issueUpdaterBuilder.prOnly(issuesConf.get("pronly").asBoolean());
-                }
-                updaters.add(issueUpdaterBuilder.build());
-                prUpdaters.add(issueUpdaterBuilder.build());
-            }
-
-            if (updaters.isEmpty()) {
-                log.warning("No consumers configured for notify bot repository: " + repoName);
+            if (updaters.isEmpty() && prUpdaters.isEmpty()) {
+                log.warning("No notifiers configured for notify bot repository: " + repoName);
                 continue;
             }
 

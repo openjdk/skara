@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,24 +20,26 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-module org.openjdk.skara.bots.notify {
-    requires org.openjdk.skara.bot;
-    requires org.openjdk.skara.vcs;
-    requires org.openjdk.skara.jcheck;
-    requires org.openjdk.skara.email;
-    requires org.openjdk.skara.storage;
-    requires org.openjdk.skara.mailinglist;
-    requires org.openjdk.skara.network;
-    requires java.logging;
+package org.openjdk.skara.bots.notify.json;
 
-    exports org.openjdk.skara.bots.notify;
+import org.openjdk.skara.bot.BotConfiguration;
+import org.openjdk.skara.bots.notify.*;
+import org.openjdk.skara.json.JSONObject;
 
-    provides org.openjdk.skara.bot.BotFactory with org.openjdk.skara.bots.notify.NotifyBotFactory;
+import java.nio.file.Path;
 
-    uses org.openjdk.skara.bots.notify.NotifierFactory;
-    provides org.openjdk.skara.bots.notify.NotifierFactory with
-            org.openjdk.skara.bots.notify.issue.IssueUpdaterFactory,
-            org.openjdk.skara.bots.notify.json.JsonUpdaterFactory,
-            org.openjdk.skara.bots.notify.mailinglist.MailingListUpdaterFactory,
-            org.openjdk.skara.bots.notify.slack.SlackUpdaterFactory;
+public class JsonUpdaterFactory implements NotifierFactory {
+    @Override
+    public String name() {
+        return "json";
+    }
+
+    @Override
+    public Notifier create(BotConfiguration botConfiguration, JSONObject notifierConfiguration) {
+        var folder = notifierConfiguration.get("folder").asString();
+        var build = notifierConfiguration.get("build").asString();
+        var version = notifierConfiguration.get("version").asString();
+
+        return new JsonUpdater(Path.of(folder), version, build);
+    }
 }
