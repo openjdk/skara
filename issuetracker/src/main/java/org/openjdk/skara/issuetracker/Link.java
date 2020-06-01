@@ -108,8 +108,8 @@ public class Link {
         }
         Link link = (Link) o;
         return resolved == link.resolved &&
-                uri.equals(link.uri) &&
-                title.equals(link.title) &&
+                Objects.equals(uri, link.uri) &&
+                Objects.equals(title, link.title) &&
                 Objects.equals(relationship, link.relationship) &&
                 Objects.equals(linked, link.linked) &&
                 Objects.equals(summary, link.summary) &&

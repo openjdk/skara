@@ -108,4 +108,32 @@ class IssueTrackerTests {
             assertEquals(0, links.size());
         }
     }
+
+    @Test
+    void addIssueLink(TestInfo info) throws IOException {
+        try (var credentials = new HostCredentials(info)) {
+            var project = credentials.getIssueProject();
+
+            var userName = project.issueTracker().currentUser().userName();
+            var user = project.issueTracker().user(userName);
+            assertEquals(userName, user.get().userName());
+
+            var issue1 = credentials.createIssue(project, "Test issue");
+            issue1.setBody("This is now the body");
+
+            var issue2 = credentials.createIssue(project, "Test issue 2");
+            var link = Link.create(issue1, "duplicated by").build();
+            issue2.addLink(link);
+
+            var links = issue2.links();
+            assertEquals(1, links.size());
+            assertEquals(link, links.get(0));
+
+            assertEquals(1, issue1.links().size());
+            var linkFromIssue1 = issue1.links().get(0);
+            issue1.removeLink(linkFromIssue1);
+            links = issue2.links();
+            assertEquals(0, links.size());
+        }
+    }
 }
