@@ -88,8 +88,9 @@ public class GitLabMergeRequest implements PullRequest {
                              .sorted(Comparator.comparing(cd -> cd.date))
                              .collect(Collectors.toList());
 
+        // It's possible to create a merge request without any commits
         if (commits.size() == 0) {
-            throw new RuntimeException("Reviews on a PR without any commits?");
+            return List.of();
         }
 
         return request.get("award_emoji").execute().stream()
