@@ -19,6 +19,7 @@ repository:
 - git-translate - translate between [Mercurial](https://mercurial-scm.org/)
 and [Git](https://git-scm.com/) hashes
 - git-skara - learn about and update the Skara CLI tools
+- git-trees - run a git command in a tree of repositories
 - git-publish - publishes a local branch to a remote repository
 
 There are also CLI tools available for importing OpenJDK
@@ -44,8 +45,8 @@ external Git source code hosting providers are available:
 
 ## Building
 
-[JDK 13](http://jdk.java.net/13/) or later and [Gradle](https://gradle.org/)
-6.0 or later is required for building. To build the project on macOS or
+[JDK 14](http://jdk.java.net/14/) or later and [Gradle](https://gradle.org/)
+6.4.1 or later is required for building. To build the project on macOS or
 GNU/Linux x64, just run the following command from the source tree root:
 
 ```bash
@@ -67,7 +68,7 @@ also want to build the bot images run `sh gradlew images` on GNU/Linux or
 
 If you want to build on an operating system other than GNU/Linux, macOS or
 Windows _or_ if you want to build on a CPU architecture other than x64, then
-ensure that you have JDK 13 or later installed locally. You can then run the
+ensure that you have JDK 14 or later installed locally. You can then run the
 following command from the source tree root:
 
 ```bash
@@ -82,8 +83,8 @@ tree root.
 If you don't want the build to automatically download any dependencies, then
 you must ensure that you have installed the following software locally:
 
-- JDK 13 or later
-- Gradle 6.0 or later
+- JDK 14 or later
+- Gradle 6.4.1 or later
 
 To create a build then run the command:
 
@@ -164,7 +165,7 @@ When running `make install` the default value of `prefix` is `$HOME/.local`.
 
 ## Testing
 
-[JUnit](https://junit.org/junit5/) 5.5.2 or later is required to run the unit
+[JUnit](https://junit.org/junit5/) 5.6.2 or later is required to run the unit
 tests. To run the tests, execute following command from the source tree root:
 
 ```bash
