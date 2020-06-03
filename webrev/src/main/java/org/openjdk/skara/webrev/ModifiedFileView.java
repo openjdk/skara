@@ -26,6 +26,8 @@ import org.openjdk.skara.vcs.*;
 
 import java.io.*;
 import java.nio.file.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.charset.MalformedInputException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -64,7 +66,19 @@ class ModifiedFileView implements FileView {
                     });
                     newContent = List.of(content.get(0) + "-dirty");
                 } else {
-                    newContent = Files.readAllLines(path);
+                    List<String> lines = null;
+                    for (var charset : List.of(StandardCharsets.UTF_8, StandardCharsets.ISO_8859_1)) {
+                        try {
+                            lines = Files.readAllLines(repo.root().resolve(path), charset);
+                            break;
+                        } catch (MalformedInputException e) {
+                            continue;
+                        }
+                    }
+                    if (lines == null) {
+                        throw new IllegalStateException("Could not read " + path + " as UTF-8 nor as ISO-8859-1");
+                    }
+                    newContent = lines;
                 }
             } else {
                 newContent = repo.lines(patch.target().path().get(), head).orElseThrow(() -> {

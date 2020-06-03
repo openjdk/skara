@@ -40,6 +40,11 @@ public class Webrev {
     private static final String ICON = "nanoduke.ico";
     private static final String CSS = "style.css";
 
+    private static final String INDEX = "index.html";
+
+    public static final Set<String> STATIC_FILES =
+        Set.of(ANCNAV_HTML, ANCNAV_JS, ICON, CSS, INDEX);
+
     public static class RequiredBuilder {
         private final ReadOnlyRepository repository;
 
@@ -216,7 +221,7 @@ public class Webrev {
 
             var issueForWebrev = issue != null && issueLinker != null ? issueLinker.apply(issue) : null;
             var tailEndURL = commitLinker != null ? commitLinker.apply(tailEnd.hex()) : null;
-            try (var w = Files.newBufferedWriter(output.resolve("index.html"))) {
+            try (var w = Files.newBufferedWriter(output.resolve(INDEX))) {
                 var index = new IndexView(fileViews,
                                           title,
                                           username,
@@ -279,7 +284,7 @@ public class Webrev {
     }
 
     static String relativeToIndex(Path out, Path file) {
-        return relativeTo(out.resolve("index.html"), file);
+        return relativeTo(out.resolve(INDEX), file);
     }
 
     static String relativeToAncnavHTML(Path out, Path file) {
