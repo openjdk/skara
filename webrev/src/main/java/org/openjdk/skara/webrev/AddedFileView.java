@@ -26,6 +26,8 @@ import org.openjdk.skara.vcs.*;
 
 import java.io.*;
 import java.nio.file.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.charset.MalformedInputException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -43,20 +45,34 @@ class AddedFileView implements FileView {
         this.out = out;
         this.commits = commits;
         this.formatter = formatter;
+        var path = patch.target().path().get();
+        var pathInRepo = repo.root().resolve(path);
         if (patch.isTextual()) {
             binaryContent = null;
             if (head == null) {
-                newContent = Files.readAllLines(repo.root().resolve(patch.target().path().get()));
+                List<String> lines = null;
+                for (var charset : List.of(StandardCharsets.UTF_8, StandardCharsets.ISO_8859_1)) {
+                    try {
+                        lines = Files.readAllLines(pathInRepo, charset);
+                        break;
+                    } catch (MalformedInputException e) {
+                        continue;
+                    }
+                }
+                if (lines == null) {
+                    throw new IllegalStateException("Could not read " + pathInRepo + " as UTF-8 nor as ISO-8859-1");
+                }
+                newContent = lines;
             } else {
-                newContent = repo.lines(patch.target().path().get(), head).orElseThrow(IllegalArgumentException::new);
+                newContent = repo.lines(path, head).orElseThrow(IllegalArgumentException::new);
             }
             stats = new WebrevStats(patch.asTextualPatch().stats(), newContent.size());
         } else {
             newContent = null;
             if (head == null) {
-                binaryContent = Files.readAllBytes(repo.root().resolve(patch.target().path().get()));
+                binaryContent = Files.readAllBytes(pathInRepo);
             } else {
-                binaryContent = repo.show(patch.target().path().get(), head).orElseThrow(IllegalArgumentException::new);
+                binaryContent = repo.show(path, head).orElseThrow(IllegalArgumentException::new);
             }
             stats = WebrevStats.empty();
         }
