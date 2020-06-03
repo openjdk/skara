@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,6 +36,24 @@ public class JSONArray implements JSONValue, Iterable<JSONValue> {
         this.values = new ArrayList<JSONValue>(array.length);
         for (var v : array) {
             values.add(v);
+        }
+    }
+
+    private void append(JSONValue value) {
+        if (value instanceof JSONArray) {
+            for (var v : value.asArray()) {
+                append(v);
+            }
+        } else {
+            this.values.add(value);
+        }
+    }
+
+    public JSONArray(JSONValue value, JSONValue... values) {
+        this.values = new ArrayList<JSONValue>(values.length + 1);
+        append(value);
+        for (var v : values) {
+            append(v);
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,11 +22,11 @@
  */
 package org.openjdk.skara.json;
 
-class JSONNumber implements JSONValue {
-    long value;
+public class JSONNumber implements JSONValue {
+    private long value;
 
     public JSONNumber(int value) {
-        this.value = (long) value;
+        this.value = value;
     }
 
     public JSONNumber(long value) {

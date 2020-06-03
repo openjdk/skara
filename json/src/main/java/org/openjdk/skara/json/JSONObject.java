@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -109,6 +109,10 @@ public class JSONObject implements JSONValue {
         return this;
     }
 
+    public JSONValue remove(String k) {
+        return value.remove(k);
+    }
+
     public JSONValue get(String k) {
         return value.get(k);
     }
@@ -126,6 +130,10 @@ public class JSONObject implements JSONValue {
 
     public boolean contains(String field) {
         return value.containsKey(field);
+    }
+
+    public Set<String> keys() {
+        return value.keySet();
     }
 
     @Override

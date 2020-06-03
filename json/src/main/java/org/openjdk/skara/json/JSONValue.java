@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -90,12 +90,12 @@ public interface JSONValue {
         return asObject().fields();
     }
 
-    default boolean contains(String field) {
-        return asObject().contains(field);
+    default boolean contains(String key) {
+        return asObject().contains(key);
     }
 
-    default JSONValue get(String field) {
-        return asObject().get(field);
+    default JSONValue get(String key) {
+        return asObject().get(key);
     }
 
     default JSONValue getOrDefault(String field, JSONValue fallback) {
