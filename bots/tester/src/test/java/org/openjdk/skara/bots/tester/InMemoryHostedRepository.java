@@ -150,4 +150,13 @@ class InMemoryHostedRepository implements HostedRepository {
     public List<HostedBranch> branches() {
         return List.of();
     }
+
+    @Override
+    public List<CommitComment> commitComments(Hash commit) {
+        return List.of();
+    }
+
+    @Override
+    public void addCommitComment(Hash commit, String body) {
+    }
 }

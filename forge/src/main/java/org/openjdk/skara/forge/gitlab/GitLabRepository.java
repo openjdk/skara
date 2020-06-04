@@ -29,6 +29,7 @@ import org.openjdk.skara.vcs.*;
 
 import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -287,5 +288,41 @@ public class GitLabRepository implements HostedRepository {
                        .map(b -> new HostedBranch(b.get("name").asString(),
                                                   new Hash(b.get("commit").get("id").asString())))
                        .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<CommitComment> commitComments(Hash hash) {
+        return request.get("commits/" + hash.hex() + "/comments")
+                      .execute()
+                      .stream()
+                      .map(JSONValue::asObject)
+                      .map(o -> {
+                           var line = o.get("line").isNull()? -1 : o.get("line").asInt();
+                           var path = o.get("path").isNull()? null : Path.of(o.get("path").asString());
+                           // GitLab does not support line number in diff
+                           var position = -1;
+                           // GitLab does not offer updated_at for commit comments
+                           var createdAt = ZonedDateTime.parse(o.get("created_at").asString());
+                           // GitLab does not offer an id for commit comments
+                           var id = "";
+                           return new CommitComment(hash,
+                                                    path,
+                                                    position,
+                                                    line,
+                                                    id,
+                                                    o.get("note").asString(),
+                                                    gitLabHost.parseAuthorField(o),
+                                                    createdAt,
+                                                    createdAt);
+                      })
+                      .collect(Collectors.toList());
+    }
+
+    @Override
+    public void addCommitComment(Hash hash, String body) {
+        var query = JSON.object().put("note", body);
+        request.post("commits/" + hash.hex() + "/comments")
+               .body(query)
+               .execute();
     }
 }

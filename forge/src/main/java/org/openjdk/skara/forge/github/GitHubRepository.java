@@ -29,6 +29,7 @@ import org.openjdk.skara.vcs.*;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -256,5 +257,38 @@ public class GitHubRepository implements HostedRepository {
                        .map(b -> new HostedBranch(b.get("name").asString(),
                                                   new Hash(b.get("commit").get("sha").asString())))
                        .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<CommitComment> commitComments(Hash hash) {
+        return request.get("commits/" + hash.hex() + "/comments")
+                      .execute()
+                      .stream()
+                      .map(JSONValue::asObject)
+                      .map(o -> {
+                           var line = o.get("line").isNull()? -1 : o.get("line").asInt();
+                           var position = o.get("position").isNull()? -1 : o.get("position").asInt();
+                           var path = o.get("path").isNull()? null : Path.of(o.get("path").asString());
+                           return new CommitComment(hash,
+                                                    path,
+                                                    position,
+                                                    line,
+                                                    o.get("id").toString(),
+                                                    o.get("body").asString(),
+                                                    gitHubHost.parseUserField(o),
+                                                    ZonedDateTime.parse(o.get("created_at").asString()),
+                                                    ZonedDateTime.parse(o.get("updated_at").asString()));
+
+
+                      })
+                      .collect(Collectors.toList());
+    }
+
+    @Override
+    public void addCommitComment(Hash hash, String body) {
+        var query = JSON.object().put("body", body);
+        request.post("commits/" + hash.hex() + "/comments")
+               .body(query)
+               .execute();
     }
 }
