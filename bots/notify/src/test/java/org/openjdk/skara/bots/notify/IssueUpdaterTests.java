@@ -48,7 +48,7 @@ public class IssueUpdaterTests {
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
-            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var issueProject = credentials.getIssueProject();
@@ -64,7 +64,7 @@ public class IssueUpdaterTests {
                                      .branches(Pattern.compile("master"))
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
-                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .prStateStorageBuilder(prStateStorage)
                                      .updaters(List.of(updater))
                                      .build();
 
@@ -116,7 +116,7 @@ public class IssueUpdaterTests {
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
-            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var issueProject = credentials.getIssueProject();
@@ -132,7 +132,7 @@ public class IssueUpdaterTests {
                                      .branches(Pattern.compile("master"))
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
-                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .prStateStorageBuilder(prStateStorage)
                                      .prUpdaters(List.of(updater))
                                      .readyLabels(Set.of("rfr"))
                                      .readyComments(Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("This is now ready")))
@@ -217,7 +217,7 @@ public class IssueUpdaterTests {
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
-            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var issueProject = credentials.getIssueProject();
@@ -234,7 +234,7 @@ public class IssueUpdaterTests {
                                      .branches(Pattern.compile("master"))
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
-                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .prStateStorageBuilder(prStateStorage)
                                      .prUpdaters(List.of(updater)).readyLabels(Set.of("rfr"))
                                      .readyComments(Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("This is now ready")))
                                      .build();
@@ -276,7 +276,7 @@ public class IssueUpdaterTests {
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
-            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var issueProject = credentials.getIssueProject();
@@ -293,7 +293,7 @@ public class IssueUpdaterTests {
                                      .branches(Pattern.compile(".*"))
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
-                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .prStateStorageBuilder(prStateStorage)
                                      .updaters(List.of(updater))
                                      .prUpdaters(List.of(updater))
                                      .build();

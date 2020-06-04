@@ -47,8 +47,8 @@ public class UpdaterTests {
                 .remoteRepository(repository, "history", "Duke", "duke@openjdk.java.net", "Updated branches");
     }
 
-    public static StorageBuilder<PullRequestIssues> createPullRequestIssuesStorage(HostedRepository repository) {
-        return new StorageBuilder<PullRequestIssues>("prissues.txt")
+    public static StorageBuilder<PullRequestState> createPullRequestStateStorage(HostedRepository repository) {
+        return new StorageBuilder<PullRequestState>("prissues.txt")
                 .remoteRepository(repository, "history", "Duke", "duke@openjdk.java.net", "Updated prissues");
     }
 
@@ -112,7 +112,7 @@ public class UpdaterTests {
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
-            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var idempotent = new TestRepositoryUpdateConsumer("i", true);
@@ -123,7 +123,7 @@ public class UpdaterTests {
                                      .branches(Pattern.compile("master"))
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
-                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .prStateStorageBuilder(prStateStorage)
                                      .updaters(List.of(idempotent, nonIdempotent))
                                      .build();
 

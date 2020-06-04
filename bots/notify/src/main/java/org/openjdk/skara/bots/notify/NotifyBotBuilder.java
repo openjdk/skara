@@ -35,7 +35,7 @@ public class NotifyBotBuilder {
     private Pattern branches;
     private StorageBuilder<UpdatedTag> tagStorageBuilder;
     private StorageBuilder<UpdatedBranch> branchStorageBuilder;
-    private StorageBuilder<PullRequestIssues> prIssuesStorageBuilder;
+    private StorageBuilder<PullRequestState> prStateStorageBuilder;
     private List<RepositoryUpdateConsumer> updaters = List.of();
     private List<PullRequestUpdateConsumer> prUpdaters = List.of();
     private Set<String> readyLabels = Set.of();
@@ -66,8 +66,8 @@ public class NotifyBotBuilder {
         return this;
     }
 
-    public NotifyBotBuilder prIssuesStorageBuilder(StorageBuilder<PullRequestIssues> prIssuesStorageBuilder) {
-        this.prIssuesStorageBuilder = prIssuesStorageBuilder;
+    public NotifyBotBuilder prStateStorageBuilder(StorageBuilder<PullRequestState> prStateStorageBuilder) {
+        this.prStateStorageBuilder = prStateStorageBuilder;
         return this;
     }
 
@@ -92,6 +92,6 @@ public class NotifyBotBuilder {
     }
 
     public NotifyBot build() {
-        return new NotifyBot(repository, storagePath, branches, tagStorageBuilder, branchStorageBuilder, prIssuesStorageBuilder, updaters, prUpdaters, readyLabels, readyComments);
+        return new NotifyBot(repository, storagePath, branches, tagStorageBuilder, branchStorageBuilder, prStateStorageBuilder, updaters, prUpdaters, readyLabels, readyComments);
     }
 }
