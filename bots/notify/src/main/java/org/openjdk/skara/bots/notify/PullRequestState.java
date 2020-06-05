@@ -26,16 +26,16 @@ import org.openjdk.skara.forge.PullRequest;
 
 import java.util.*;
 
-public class PullRequestIssues {
+class PullRequestState {
     private final String prId;
     private final Set<String> issueIds;
 
-    PullRequestIssues(PullRequest pr, Set<String> issueIds) {
+    PullRequestState(PullRequest pr, Set<String> issueIds) {
         this.prId = pr.repository().id() + ":" + pr.id();
         this.issueIds = issueIds;
     }
 
-    PullRequestIssues(String prId, Set<String> issueIds) {
+    PullRequestState(String prId, Set<String> issueIds) {
         this.prId = prId;
         this.issueIds = issueIds;
     }
@@ -50,7 +50,7 @@ public class PullRequestIssues {
 
     @Override
     public String toString() {
-        return "PullRequestIssues{" +
+        return "PullRequestState{" +
                 "prId='" + prId + '\'' +
                 ", issueIds=" + issueIds +
                 '}';
@@ -64,7 +64,7 @@ public class PullRequestIssues {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        PullRequestIssues that = (PullRequestIssues) o;
+        var that = (PullRequestState) o;
         return prId.equals(that.prId) &&
                 issueIds.equals(that.issueIds);
     }

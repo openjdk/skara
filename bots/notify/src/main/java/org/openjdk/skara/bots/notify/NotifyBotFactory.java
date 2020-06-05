@@ -122,7 +122,7 @@ public class NotifyBotFactory implements BotFactory {
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added tag for " + repoName);
             var branchStorageBuilder = new StorageBuilder<UpdatedBranch>(baseName + ".branches.txt")
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added branch hash for " + repoName);
-            var issueStorageBuilder = new StorageBuilder<PullRequestIssues>(baseName + ".prissues.txt")
+            var prStateStorageBuilder = new StorageBuilder<PullRequestState>(baseName + ".prissues.txt")
                     .remoteRepository(databaseRepo, databaseRef, databaseName, databaseEmail, "Added pull request issue info for " + repoName);
             var bot = NotifyBot.newBuilder()
                                .repository(configuration.repository(repoName))
@@ -130,7 +130,7 @@ public class NotifyBotFactory implements BotFactory {
                                .branches(branchPattern)
                                .tagStorageBuilder(tagStorageBuilder)
                                .branchStorageBuilder(branchStorageBuilder)
-                               .prIssuesStorageBuilder(issueStorageBuilder)
+                               .prStateStorageBuilder(prStateStorageBuilder)
                                .updaters(updaters)
                                .prUpdaters(prUpdaters)
                                .readyLabels(readyLabels)

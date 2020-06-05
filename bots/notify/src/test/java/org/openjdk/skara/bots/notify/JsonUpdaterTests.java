@@ -57,7 +57,7 @@ public class JsonUpdaterTests {
 
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
-            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
             var jsonFolder = tempFolder.path().resolve("json");
             Files.createDirectory(jsonFolder);
             var storageFolder = tempFolder.path().resolve("storage");
@@ -69,7 +69,7 @@ public class JsonUpdaterTests {
                                      .branches(Pattern.compile("master"))
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
-                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .prStateStorageBuilder(prStateStorage)
                                      .updaters(List.of(updater))
                                      .build();
 
@@ -105,7 +105,7 @@ public class JsonUpdaterTests {
 
             var tagStorage = UpdaterTests.createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
-            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
             var jsonFolder = tempFolder.path().resolve("json");
             Files.createDirectory(jsonFolder);
             var storageFolder =tempFolder.path().resolve("storage");
@@ -117,7 +117,7 @@ public class JsonUpdaterTests {
                                      .branches(Pattern.compile("master"))
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
-                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .prStateStorageBuilder(prStateStorage)
                                      .updaters(List.of(updater))
                                      .build();
 

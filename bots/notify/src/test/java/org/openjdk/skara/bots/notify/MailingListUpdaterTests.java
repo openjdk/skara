@@ -54,7 +54,7 @@ public class MailingListUpdaterTests {
             var mailmanList = mailmanServer.getList(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
-            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
@@ -74,7 +74,7 @@ public class MailingListUpdaterTests {
                                      .branches(Pattern.compile("master"))
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
-                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .prStateStorageBuilder(prStateStorage)
                                      .updaters(List.of(updater))
                                      .build();
 
@@ -126,7 +126,7 @@ public class MailingListUpdaterTests {
             var mailmanList = mailmanServer.getList(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
-            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
@@ -144,7 +144,7 @@ public class MailingListUpdaterTests {
                                      .branches(Pattern.compile("master"))
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
-                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .prStateStorageBuilder(prStateStorage)
                                      .updaters(List.of(updater))
                                      .build();
 
@@ -198,7 +198,7 @@ public class MailingListUpdaterTests {
             var mailmanList = mailmanServer.getList(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
-            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
@@ -216,7 +216,7 @@ public class MailingListUpdaterTests {
                                      .branches(Pattern.compile("master"))
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
-                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .prStateStorageBuilder(prStateStorage)
                                      .updaters(List.of(updater))
                                      .build();
 
@@ -262,7 +262,7 @@ public class MailingListUpdaterTests {
             var mailmanList = mailmanServer.getList(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
-            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
@@ -283,7 +283,7 @@ public class MailingListUpdaterTests {
                                      .branches(Pattern.compile("master|another"))
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
-                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .prStateStorageBuilder(prStateStorage)
                                      .updaters(List.of(updater))
                                      .build();
 
@@ -360,7 +360,7 @@ public class MailingListUpdaterTests {
             var mailmanList = mailmanServer.getList(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
-            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
@@ -382,7 +382,7 @@ public class MailingListUpdaterTests {
                                      .branches(Pattern.compile("master|other"))
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
-                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .prStateStorageBuilder(prStateStorage)
                                      .updaters(List.of(updater))
                                      .build();
 
@@ -446,7 +446,7 @@ public class MailingListUpdaterTests {
             var mailmanList = mailmanServer.getList(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
-            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
@@ -465,7 +465,7 @@ public class MailingListUpdaterTests {
                                      .branches(Pattern.compile("master"))
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
-                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .prStateStorageBuilder(prStateStorage)
                                      .updaters(List.of(updater))
                                      .build();
 
@@ -538,7 +538,7 @@ public class MailingListUpdaterTests {
             var mailmanList = mailmanServer.getList(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
-            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
@@ -558,7 +558,7 @@ public class MailingListUpdaterTests {
                                      .branches(Pattern.compile("master|other"))
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
-                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .prStateStorageBuilder(prStateStorage)
                                      .updaters(List.of(updater))
                                      .build();
 
@@ -633,7 +633,7 @@ public class MailingListUpdaterTests {
             var mailmanList = mailmanServer.getList(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
-            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
@@ -658,7 +658,7 @@ public class MailingListUpdaterTests {
                                      .branches(Pattern.compile("master"))
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
-                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .prStateStorageBuilder(prStateStorage)
                                      .updaters(List.of(updater, noTagsUpdater))
                                      .build();
 
@@ -750,7 +750,7 @@ public class MailingListUpdaterTests {
             var mailmanList = mailmanServer.getList(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
-            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
@@ -776,7 +776,7 @@ public class MailingListUpdaterTests {
                                      .branches(Pattern.compile("master"))
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
-                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .prStateStorageBuilder(prStateStorage)
                                      .updaters(List.of(updater, noTagsUpdater))
                                      .build();
 
@@ -843,7 +843,7 @@ public class MailingListUpdaterTests {
             var mailmanList = mailmanServer.getList(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
-            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
@@ -861,7 +861,7 @@ public class MailingListUpdaterTests {
                                      .branches(Pattern.compile("master|newbranch."))
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
-                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .prStateStorageBuilder(prStateStorage)
                                      .updaters(List.of(updater))
                                      .build();
 
@@ -923,7 +923,7 @@ public class MailingListUpdaterTests {
             var mailmanList = mailmanServer.getList(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
-            var prIssuesStorage = createPullRequestIssuesStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
@@ -943,7 +943,7 @@ public class MailingListUpdaterTests {
                                      .branches(Pattern.compile("master"))
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
-                                     .prIssuesStorageBuilder(prIssuesStorage)
+                                     .prStateStorageBuilder(prStateStorage)
                                      .updaters(List.of(updater))
                                      .build();
 

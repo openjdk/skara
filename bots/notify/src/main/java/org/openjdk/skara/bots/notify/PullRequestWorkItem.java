@@ -36,33 +36,33 @@ import java.util.stream.*;
 
 public class PullRequestWorkItem implements WorkItem {
     private final PullRequest pr;
-    private final StorageBuilder<PullRequestIssues> prIssuesStorageBuilder;
+    private final StorageBuilder<PullRequestState> prStateStorageBuilder;
     private final List<PullRequestUpdateConsumer> pullRequestUpdateConsumers;
     private final Consumer<RuntimeException> errorHandler;
 
-    PullRequestWorkItem(PullRequest pr, StorageBuilder<PullRequestIssues> prIssuesStorageBuilder, List<PullRequestUpdateConsumer> pullRequestUpdateConsumers, Consumer<RuntimeException> errorHandler) {
+    PullRequestWorkItem(PullRequest pr, StorageBuilder<PullRequestState> prStateStorageBuilder, List<PullRequestUpdateConsumer> pullRequestUpdateConsumers, Consumer<RuntimeException> errorHandler) {
         this.pr = pr;
-        this.prIssuesStorageBuilder = prIssuesStorageBuilder;
+        this.prStateStorageBuilder = prStateStorageBuilder;
         this.pullRequestUpdateConsumers = pullRequestUpdateConsumers;
         this.errorHandler = errorHandler;
     }
 
-    private Set<PullRequestIssues> loadPrIssues(String current) {
+    private Set<PullRequestState> deserializePrState(String current) {
         if (current.isBlank()) {
             return Set.of();
         }
         var data = JSON.parse(current);
         return data.stream()
                    .map(JSONValue::asObject)
-                   .map(obj -> new PullRequestIssues(obj.get("pr").asString(), obj.get("issues").stream()
-                                                                                  .map(JSONValue::asString)
-                                                                                  .collect(Collectors.toSet())))
+                   .map(obj -> new PullRequestState(obj.get("pr").asString(), obj.get("issues").stream()
+                                                                                 .map(JSONValue::asString)
+                                                                                 .collect(Collectors.toSet())))
                    .collect(Collectors.toSet());
     }
 
-    private String serializePrIssues(Collection<PullRequestIssues> added, Set<PullRequestIssues> existing) {
+    private String serializePrState(Collection<PullRequestState> added, Set<PullRequestState> existing) {
         var addedPrs = added.stream()
-                            .map(PullRequestIssues::prId)
+                            .map(PullRequestState::prId)
                             .collect(Collectors.toSet());
         var nonReplaced = existing.stream()
                                   .filter(item -> !addedPrs.contains(item.prId()))
@@ -70,7 +70,7 @@ public class PullRequestWorkItem implements WorkItem {
 
         var entries = Stream.concat(nonReplaced.stream(),
                                     added.stream())
-                            .sorted(Comparator.comparing(PullRequestIssues::prId))
+                            .sorted(Comparator.comparing(PullRequestState::prId))
                             .map(pr -> JSON.object().put("pr", pr.prId()).put("issues", new JSONArray(
                                     pr.issueIds().stream()
                                       .map(JSON::of)
@@ -124,13 +124,13 @@ public class PullRequestWorkItem implements WorkItem {
     @Override
     public void run(Path scratchPath) {
         var historyPath = scratchPath.resolve("notify").resolve("history");
-        var storage = prIssuesStorageBuilder
-                .serializer(this::serializePrIssues)
-                .deserializer(this::loadPrIssues)
+        var storage = prStateStorageBuilder
+                .serializer(this::serializePrState)
+                .deserializer(this::deserializePrState)
                 .materialize(historyPath);
 
         var issues = parseIssues();
-        var prIssues = new PullRequestIssues(pr, issues);
+        var prIssues = new PullRequestState(pr, issues);
         var current = storage.current();
         if (current.contains(prIssues)) {
             // Already up to date

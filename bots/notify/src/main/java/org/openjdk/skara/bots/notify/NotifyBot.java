@@ -38,7 +38,7 @@ public class NotifyBot implements Bot {
     private final Pattern branches;
     private final StorageBuilder<UpdatedTag> tagStorageBuilder;
     private final StorageBuilder<UpdatedBranch> branchStorageBuilder;
-    private final StorageBuilder<PullRequestIssues> prIssuesStorageBuilder;
+    private final StorageBuilder<PullRequestState> prStateStorageBuilder;
     private final List<RepositoryUpdateConsumer> updaters;
     private final List<PullRequestUpdateConsumer> prUpdaters;
     private final PullRequestUpdateCache updateCache;
@@ -46,7 +46,7 @@ public class NotifyBot implements Bot {
     private final Map<String, Pattern> readyComments;
 
     NotifyBot(HostedRepository repository, Path storagePath, Pattern branches, StorageBuilder<UpdatedTag> tagStorageBuilder,
-              StorageBuilder<UpdatedBranch> branchStorageBuilder, StorageBuilder<PullRequestIssues> prIssuesStorageBuilder,
+              StorageBuilder<UpdatedBranch> branchStorageBuilder, StorageBuilder<PullRequestState> prStateStorageBuilder,
               List<RepositoryUpdateConsumer> updaters, List<PullRequestUpdateConsumer> prUpdaters,
               Set<String> readyLabels, Map<String, Pattern> readyComments) {
         this.repository = repository;
@@ -54,7 +54,7 @@ public class NotifyBot implements Bot {
         this.branches = branches;
         this.tagStorageBuilder = tagStorageBuilder;
         this.branchStorageBuilder = branchStorageBuilder;
-        this.prIssuesStorageBuilder = prIssuesStorageBuilder;
+        this.prStateStorageBuilder = prStateStorageBuilder;
         this.updaters = updaters;
         this.prUpdaters = prUpdaters;
         this.updateCache = new PullRequestUpdateCache();
@@ -112,7 +112,7 @@ public class NotifyBot implements Bot {
                 if (!isReady(pr)) {
                     continue;
                 }
-                ret.add(new PullRequestWorkItem(pr, prIssuesStorageBuilder, prUpdaters, e -> updateCache.invalidate(pr)));
+                ret.add(new PullRequestWorkItem(pr, prStateStorageBuilder, prUpdaters, e -> updateCache.invalidate(pr)));
             }
         }
 
