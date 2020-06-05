@@ -121,11 +121,15 @@ public class GitLabHost implements Forge {
         }
     }
 
-    private HostUser parseUserDetails(JSONObject details) {
-        var id = details.get("id").asInt();
-        var username = details.get("username").asString();
-        var name = details.get("name").asString();
-        var email = details.get("email").asString();
+    HostUser parseAuthorField(JSONValue json) {
+        return parseAuthorObject(json.get("author").asObject());
+    }
+
+    HostUser parseAuthorObject(JSONObject o) {
+        var id = o.get("id").asInt();
+        var username = o.get("username").asString();
+        var name = o.get("name").asString();
+        var email = o.get("email").asString();
         return new HostUser(id, username, name, email);
     }
 
@@ -145,13 +149,13 @@ public class GitLabHost implements Forge {
             return Optional.empty();
         }
 
-        return Optional.of(parseUserDetails(users.get(0).asObject()));
+        return Optional.of(parseAuthorObject(users.get(0).asObject()));
     }
 
     @Override
     public HostUser currentUser() {
         var details = request.get("user").execute().asObject();
-        return parseUserDetails(details);
+        return parseAuthorObject(details);
     }
 
     @Override
