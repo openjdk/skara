@@ -69,6 +69,7 @@ public interface HostedRepository {
     List<HostedBranch> branches();
     List<CommitComment> commitComments(Hash hash);
     void addCommitComment(Hash hash, String body);
+    Optional<CommitMetadata> commitMetadata(Hash hash);
 
     default PullRequest createPullRequest(HostedRepository target,
                                           String targetRef,

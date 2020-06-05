@@ -289,4 +289,24 @@ public class GitHubRepository implements HostedRepository {
                .body(query)
                .execute();
     }
+
+    @Override
+    public Optional<CommitMetadata> commitMetadata(Hash hash) {
+        var c = request.get("commits/" + hash.hex())
+                       .onError(r -> Optional.of(JSON.of()))
+                       .execute();
+        if (c.isNull()) {
+            return Optional.empty();
+        }
+        var parents = c.get("parents").stream()
+                                      .map(p -> new Hash(p.get("sha").asString()))
+                                      .collect(Collectors.toList());
+        var author = new Author(c.get("author").get("name").asString(),
+                                c.get("author").get("email").asString());
+        var committer = new Author(c.get("committer").get("name").asString(),
+                                   c.get("committer").get("email").asString());
+        var date = ZonedDateTime.parse(c.get("author").get("date").asString());
+        var message = Arrays.asList(c.get("message").asString().split("\n"));
+        return Optional.of(new CommitMetadata(hash, parents, author, committer, date, message));
+    }
 }
