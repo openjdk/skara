@@ -65,7 +65,8 @@ public class IssueUpdaterTests {
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
                                      .prStateStorageBuilder(prStateStorage)
-                                     .updaters(List.of(updater))
+                                     .prUpdaters(List.of(updater))
+                                     .integratorId(repo.forge().currentUser().id())
                                      .build();
 
             // Initialize history
@@ -80,6 +81,7 @@ public class IssueUpdaterTests {
             localRepo.push(editHash, repo.url(), "master");
             var pr = credentials.createPullRequest(repo, "master", "master", issue.id() + ": Fix that issue");
             pr.setBody("\n\n### Issue\n * [" + issue.id() + "](http://www.test.test/): The issue");
+            pr.addLabel("integrated");
             pr.addComment("Pushed as commit " + editHash.hex() + ".");
             TestBotRunner.runPeriodicItems(notifyBot);
 
@@ -294,8 +296,8 @@ public class IssueUpdaterTests {
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
                                      .prStateStorageBuilder(prStateStorage)
-                                     .updaters(List.of(updater))
                                      .prUpdaters(List.of(updater))
+                                     .integratorId(repo.forge().currentUser().id())
                                      .build();
 
             // Initialize history
@@ -318,6 +320,7 @@ public class IssueUpdaterTests {
 
             // Simulate integration
             pr.addComment("Pushed as commit " + editHash.hex() + ".");
+            pr.addLabel("integrated");
             localRepo.push(editHash, repo.url(), "other");
             TestBotRunner.runPeriodicItems(notifyBot);
 

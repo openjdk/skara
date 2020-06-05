@@ -33,7 +33,7 @@ import java.net.URI;
 import java.util.*;
 import java.util.logging.Logger;
 
-public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdateConsumer {
+public class IssueUpdater implements PullRequestUpdateConsumer {
     private final IssueProject issueProject;
     private final boolean reviewLink;
     private final URI reviewIcon;
@@ -58,7 +58,7 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
         return "issue";
     }
 
-    private Optional<String> findIssueUsername(Commit commit) {
+    private Optional<String> findIssueUsername(CommitMetadata commit) {
         var authorEmail = EmailAddress.from(commit.author().email());
         if (authorEmail.domain().equals("openjdk.org")) {
             return Optional.of(authorEmail.localPart());
@@ -73,50 +73,40 @@ public class IssueUpdater implements RepositoryUpdateConsumer, PullRequestUpdate
     }
 
     @Override
-    public void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch)  {
-        for (var commit : commits) {
-            var commitMessage = CommitMessageParsers.v1.parse(commit);
-            for (var commitIssue : commitMessage.issues()) {
-                var optionalIssue = issueProject.issue(commitIssue.shortId());
-                if (optionalIssue.isEmpty()) {
-                    log.severe("Cannot update issue " + commitIssue.id() + " with commit " + commit.hash().abbreviate()
-                            + " - issue not found in issue project");
-                    continue;
-                }
-                var issue = optionalIssue.get();
+    public void handleIntegratedPullRequest(PullRequest pr, Hash hash)  {
+        var repository = pr.repository();
+        var commit = repository.commitMetadata(hash).orElseThrow(() ->
+                new IllegalStateException("Integrated commit " + hash +
+                                          " not present in repository " + repository.webUrl())
+        );
+        var commitMessage = CommitMessageParsers.v1.parse(commit);
+        for (var commitIssue : commitMessage.issues()) {
+            var optionalIssue = issueProject.issue(commitIssue.shortId());
+            if (optionalIssue.isEmpty()) {
+                log.severe("Cannot update issue " + commitIssue.id() + " with commit " + commit.hash().abbreviate()
+                        + " - issue not found in issue project");
+                continue;
+            }
+            var issue = optionalIssue.get();
 
-                var candidates = repository.findPullRequestsWithComment(null, "Pushed as commit " + commit.hash() + ".");
-                if (candidates.size() != 1) {
-                    log.info("IssueUpdater@" + issue.id() + ": Skipping commit " + commit.hash().abbreviate() + " for repository " + repository.name() +
-                            " on branch " + branch.name() + " - " + candidates.size() + " matching PRs found (needed 1)");
-                    continue;
+            if (commitLink) {
+                var linkBuilder = Link.create(repository.webUrl(hash), "Commit")
+                                      .summary(repository.name() + "/" + hash.abbreviate());
+                if (commitIcon != null) {
+                    linkBuilder.iconTitle("Commit");
+                    linkBuilder.iconUrl(commitIcon);
                 }
-                var candidate = candidates.get(0);
-                var prLink = candidate.webUrl();
-                if (!candidate.targetRef().equals(branch.name())) {
-                    log.info("IssueUpdater@" + issue.id() + ": Pull request " + prLink + " targets " + candidate.targetRef() + " - commit is on " + branch.toString() + " - skipping");
-                    continue;
-                }
+                issue.addLink(linkBuilder.build());
+            }
 
-                if (commitLink) {
-                    var linkBuilder = Link.create(repository.webUrl(commit.hash()), "Commit")
-                                          .summary(repository.name() + "/" + commit.hash().abbreviate());
-                    if (commitIcon != null) {
-                        linkBuilder.iconTitle("Commit");
-                        linkBuilder.iconUrl(commitIcon);
-                    }
-                    issue.addLink(linkBuilder.build());
-                }
-
-                if (issue.state() == Issue.State.OPEN) {
-                    issue.setState(Issue.State.RESOLVED);
-                    if (issue.assignees().isEmpty()) {
-                        var username = findIssueUsername(commit);
-                        if (username.isPresent()) {
-                            var assignee = issueProject.issueTracker().user(username.get());
-                            if (assignee.isPresent()) {
-                                issue.setAssignees(List.of(assignee.get()));
-                            }
+            if (issue.state() == Issue.State.OPEN) {
+                issue.setState(Issue.State.RESOLVED);
+                if (issue.assignees().isEmpty()) {
+                    var username = findIssueUsername(commit);
+                    if (username.isPresent()) {
+                        var assignee = issueProject.issueTracker().user(username.get());
+                        if (assignee.isPresent()) {
+                            issue.setAssignees(List.of(assignee.get()));
                         }
                     }
                 }

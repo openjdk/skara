@@ -23,6 +23,7 @@
 package org.openjdk.skara.vcs.openjdk;
 
 import org.openjdk.skara.vcs.Commit;
+import org.openjdk.skara.vcs.CommitMetadata;
 
 import java.util.List;
 
@@ -31,5 +32,8 @@ public interface CommitMessageParser {
     CommitMessage parse(List<String> lines);
     default CommitMessage parse(Commit c) {
         return parse(c.message());
+    }
+    default CommitMessage parse(CommitMetadata metadata) {
+        return parse(metadata.message());
     }
 }
