@@ -267,11 +267,9 @@ public class GitHubRepository implements HostedRepository {
                       .map(JSONValue::asObject)
                       .map(o -> {
                            var line = o.get("line").isNull()? -1 : o.get("line").asInt();
-                           var position = o.get("position").isNull()? -1 : o.get("position").asInt();
                            var path = o.get("path").isNull()? null : Path.of(o.get("path").asString());
                            return new CommitComment(hash,
                                                     path,
-                                                    position,
                                                     line,
                                                     o.get("id").toString(),
                                                     o.get("body").asString(),

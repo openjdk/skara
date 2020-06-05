@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,15 +33,13 @@ import java.util.*;
 public class CommitComment extends Comment {
     private final Hash commit;
     private final Path path;
-    private final int position;
     private final int line;
 
-    public CommitComment(Hash commit, Path path, int position, int line, String id, String body, HostUser author, ZonedDateTime createdAt, ZonedDateTime updatedAt) {
+    public CommitComment(Hash commit, Path path, int line, String id, String body, HostUser author, ZonedDateTime createdAt, ZonedDateTime updatedAt) {
         super(id, body, author, createdAt, updatedAt);
 
         this.commit = commit;
         this.path = path;
-        this.position = position;
         this.line = line;
     }
 
@@ -57,13 +55,6 @@ public class CommitComment extends Comment {
      */
     public Optional<Path> path() {
         return Optional.ofNullable(path);
-    }
-
-    /**
-     * Returns the line index in the diff.
-     */
-    public Optional<Integer> position() {
-        return position == -1 ? Optional.empty() : Optional.of(position);
     }
 
     /**
@@ -92,12 +83,11 @@ public class CommitComment extends Comment {
         var other = (CommitComment) o;
         return Objects.equals(commit, other.commit) &&
                Objects.equals(path, other.path) &&
-               position == other.position &&
                line == other.line;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), commit, path, position, line);
+        return Objects.hash(super.hashCode(), commit, path, line);
     }
 }

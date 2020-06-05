@@ -299,15 +299,12 @@ public class GitLabRepository implements HostedRepository {
                       .map(o -> {
                            var line = o.get("line").isNull()? -1 : o.get("line").asInt();
                            var path = o.get("path").isNull()? null : Path.of(o.get("path").asString());
-                           // GitLab does not support line number in diff
-                           var position = -1;
                            // GitLab does not offer updated_at for commit comments
                            var createdAt = ZonedDateTime.parse(o.get("created_at").asString());
                            // GitLab does not offer an id for commit comments
                            var id = "";
                            return new CommitComment(hash,
                                                     path,
-                                                    position,
                                                     line,
                                                     id,
                                                     o.get("note").asString(),
