@@ -221,6 +221,15 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
         comments.add(new CommitComment(hash, null, -1, Integer.toString(id), body, host.currentUser(), createdAt, createdAt));
     }
 
+    @Override
+    public Optional<CommitMetadata> commitMetadata(Hash hash) {
+        try {
+            return localRepository.commitMetadata(hash);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     Repository localRepository() {
         return localRepository;
     }

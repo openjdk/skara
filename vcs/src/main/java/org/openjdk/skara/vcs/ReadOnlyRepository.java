@@ -49,6 +49,16 @@ public interface ReadOnlyRepository {
     Optional<Commit> lookup(Branch b) throws IOException;
     Optional<Commit> lookup(Tag t) throws IOException;
     List<CommitMetadata> commitMetadata() throws IOException;
+    default Optional<CommitMetadata> commitMetadata(Hash hash) throws IOException {
+        var l = commitMetadata(range(hash));
+        if (l.size() > 1) {
+            throw new IllegalStateException("More than one commit for hash: " + hash.hex());
+        }
+        if (l.size() == 0) {
+            return Optional.empty();
+        }
+        return Optional.of(l.get(0));
+    }
     List<CommitMetadata> commitMetadata(boolean reverse) throws IOException;
     List<CommitMetadata> commitMetadata(String range) throws IOException;
     List<CommitMetadata> commitMetadata(Hash from, Hash to) throws IOException;

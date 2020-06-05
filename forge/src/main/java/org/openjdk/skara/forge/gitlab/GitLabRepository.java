@@ -322,4 +322,25 @@ public class GitLabRepository implements HostedRepository {
                .body(query)
                .execute();
     }
+
+    @Override
+    public Optional<CommitMetadata> commitMetadata(Hash hash) {
+        var c = request.get("commits/" + hash.hex())
+                       .onError(r -> Optional.of(JSON.of()))
+                       .execute();
+        if (c.isNull()) {
+            return Optional.empty();
+        }
+        var parents = c.get("parent_ids").stream()
+                                      .map(JSONValue::asString)
+                                      .map(Hash::new)
+                                      .collect(Collectors.toList());
+        var author = new Author(c.get("author_name").asString(),
+                                c.get("author_email").asString());
+        var committer = new Author(c.get("committer_name").asString(),
+                                   c.get("committer_email").asString());
+        var date = ZonedDateTime.parse(c.get("authored_date").asString());
+        var message = Arrays.asList(c.get("message").asString().split("\n"));
+        return Optional.of(new CommitMetadata(hash, parents, author, committer, date, message));
+    }
 }
