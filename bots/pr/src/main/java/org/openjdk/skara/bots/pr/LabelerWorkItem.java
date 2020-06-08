@@ -42,20 +42,8 @@ public class LabelerWorkItem extends PullRequestWorkItem {
     }
 
     private Set<String> getLabels(Repository localRepo) throws IOException {
-        var labels = new HashSet<String>();
         var files = PullRequestUtils.changedFiles(pr, localRepo);
-        for (var file : files) {
-            for (var label : bot.labelPatterns().entrySet()) {
-                for (var pattern : label.getValue()) {
-                    var matcher = pattern.matcher(file.toString());
-                    if (matcher.find()) {
-                        labels.add(label.getKey());
-                        break;
-                    }
-                }
-            }
-        }
-        return labels;
+        return bot.labelConfiguration().fromChanges(files);
     }
 
     @Override
@@ -70,7 +58,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
             var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, path);
             var newLabels = getLabels(localRepo);
             var currentLabels = pr.labels().stream()
-                                  .filter(key -> bot.labelPatterns().containsKey(key))
+                                  .filter(key -> bot.labelConfiguration().allowed().contains(key))
                                   .collect(Collectors.toSet());
 
             // Add all labels not already set

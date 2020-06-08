@@ -38,7 +38,7 @@ class PullRequestBot implements Bot {
     private final HostedRepository remoteRepo;
     private final HostedRepository censusRepo;
     private final String censusRef;
-    private final Map<String, List<Pattern>> labelPatterns;
+    private final LabelConfiguration labelConfiguration;
     private final Map<String, String> externalCommands;
     private final Map<String, String> blockingCheckLabels;
     private final Set<String> readyLabels;
@@ -52,14 +52,14 @@ class PullRequestBot implements Bot {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef,
-                   Map<String, List<Pattern>> labelPatterns, Map<String, String> externalCommands,
+                   LabelConfiguration labelConfiguration, Map<String, String> externalCommands,
                    Map<String, String> blockingCheckLabels, Set<String> readyLabels,
                    Map<String, Pattern> readyComments, IssueProject issueProject, boolean ignoreStaleReviews,
                    Pattern allowedTargetBranches, Path seedStorage) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
-        this.labelPatterns = labelPatterns;
+        this.labelConfiguration = labelConfiguration;
         this.externalCommands = externalCommands;
         this.blockingCheckLabels = blockingCheckLabels;
         this.readyLabels = readyLabels;
@@ -149,8 +149,8 @@ class PullRequestBot implements Bot {
         return censusRef;
     }
 
-    Map<String, List<Pattern>> labelPatterns() {
-        return labelPatterns;
+    LabelConfiguration labelConfiguration() {
+        return labelConfiguration;
     }
 
     Map<String, String> externalCommands() {

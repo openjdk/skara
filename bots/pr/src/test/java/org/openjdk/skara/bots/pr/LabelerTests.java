@@ -41,12 +41,18 @@ class LabelerTests {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
 
-            var labelPatterns = Map.of("test1", List.of(Pattern.compile("a.txt")),
-                                       "test2", List.of(Pattern.compile("b.txt")));
+            var labelConfiguration = LabelConfiguration.newBuilder()
+                                                       .addMatchers("test1", List.of(Pattern.compile("a.txt")))
+                                                       .addMatchers("test2", List.of(Pattern.compile("b.txt")))
+                                                       .build();
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var labelBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).labelPatterns(labelPatterns).build();
+            var labelBot = PullRequestBot.newBuilder()
+                                         .repo(author)
+                                         .censusRepo(censusBuilder.build())
+                                         .labelConfiguration(labelConfiguration)
+                                         .build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path();
