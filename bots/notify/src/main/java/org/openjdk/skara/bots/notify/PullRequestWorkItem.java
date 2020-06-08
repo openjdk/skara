@@ -24,8 +24,10 @@ package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.storage.StorageBuilder;
+import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
 import java.nio.file.Path;
@@ -39,12 +41,31 @@ public class PullRequestWorkItem implements WorkItem {
     private final StorageBuilder<PullRequestState> prStateStorageBuilder;
     private final List<PullRequestUpdateConsumer> pullRequestUpdateConsumers;
     private final Consumer<RuntimeException> errorHandler;
+    private final String integratorId;
 
-    PullRequestWorkItem(PullRequest pr, StorageBuilder<PullRequestState> prStateStorageBuilder, List<PullRequestUpdateConsumer> pullRequestUpdateConsumers, Consumer<RuntimeException> errorHandler) {
+    PullRequestWorkItem(PullRequest pr, StorageBuilder<PullRequestState> prStateStorageBuilder, List<PullRequestUpdateConsumer> pullRequestUpdateConsumers, Consumer<RuntimeException> errorHandler, String integratorId) {
         this.pr = pr;
         this.prStateStorageBuilder = prStateStorageBuilder;
         this.pullRequestUpdateConsumers = pullRequestUpdateConsumers;
         this.errorHandler = errorHandler;
+        this.integratorId = integratorId;
+    }
+
+    private Hash resultingCommitHashFor(PullRequest pr) {
+       if (pr.labels().contains("integrated")) {
+           for (var comment : pr.comments()) {
+               if (comment.author().id().equals(integratorId)) {
+                   for (var line : comment.body().split("\n")) {
+                       if (line.startsWith("Pushed as commit")) {
+                           var parts = line.split(" ");
+                           var hash = parts[parts.length - 1].replace(".", "");
+                           return new Hash(hash);
+                       }
+                   }
+               }
+           }
+       }
+       return null;
     }
 
     private Set<PullRequestState> deserializePrState(String current) {
@@ -54,9 +75,29 @@ public class PullRequestWorkItem implements WorkItem {
         var data = JSON.parse(current);
         return data.stream()
                    .map(JSONValue::asObject)
-                   .map(obj -> new PullRequestState(obj.get("pr").asString(), obj.get("issues").stream()
-                                                                                 .map(JSONValue::asString)
-                                                                                 .collect(Collectors.toSet())))
+                   .map(obj -> {
+                       var id = obj.get("pr").asString();
+                       var issues = obj.get("issues").stream()
+                                                     .map(JSONValue::asString)
+                                                     .collect(Collectors.toSet());
+
+                       // Storage might be missing commit information
+                       if (!obj.contains("commit")) {
+                           var prId = id.split(":")[1];
+                           var currentPR = pr.repository().pullRequest(prId);
+                           var hash = resultingCommitHashFor(currentPR);
+                           if (hash == null) {
+                               obj.putNull("commit");
+                           } else {
+                               obj.put("commit", hash.hex());
+                           }
+                       }
+
+                       var commit = obj.get("commit").isNull() ?
+                           null : new Hash(obj.get("commit").asString());
+
+                       return new PullRequestState(id, issues, commit);
+                   })
                    .collect(Collectors.toSet());
     }
 
@@ -71,10 +112,17 @@ public class PullRequestWorkItem implements WorkItem {
         var entries = Stream.concat(nonReplaced.stream(),
                                     added.stream())
                             .sorted(Comparator.comparing(PullRequestState::prId))
-                            .map(pr -> JSON.object().put("pr", pr.prId()).put("issues", new JSONArray(
-                                    pr.issueIds().stream()
-                                      .map(JSON::of)
-                                      .collect(Collectors.toList()))))
+                            .map(pr -> {
+                                var issues = new JSONArray(pr.issueIds()
+                                                             .stream()
+                                                             .map(JSON::of)
+                                                             .collect(Collectors.toList()));
+                                var commit = pr.commitId().isPresent()?
+                                    JSON.of(pr.commitId().get().hex()) : JSON.of();
+                                return JSON.object().put("pr", pr.prId())
+                                                    .put("issues",issues)
+                                                    .put("commit", commit);
+                            })
                             .map(JSONObject::toString)
                             .collect(Collectors.toList());
         return "[\n" + String.join(",\n", entries) + "\n]";
@@ -130,31 +178,32 @@ public class PullRequestWorkItem implements WorkItem {
                 .materialize(historyPath);
 
         var issues = parseIssues();
-        var prIssues = new PullRequestState(pr, issues);
-        var current = storage.current();
-        if (current.contains(prIssues)) {
+        var commit = resultingCommitHashFor(pr);
+        var state = new PullRequestState(pr, issues, commit);
+        var stored = storage.current();
+        if (stored.contains(state)) {
             // Already up to date
             return;
         }
 
         // Search for an existing
-        var oldPrIssues = current.stream()
-                .filter(p -> p.prId().equals(prIssues.prId()))
+        var storedState = stored.stream()
+                .filter(ss -> ss.prId().equals(state.prId()))
                 .findAny();
-        if (oldPrIssues.isPresent()) {
-            var oldIssues = oldPrIssues.get().issueIds();
-            oldIssues.stream()
-                     .filter(issue -> !issues.contains(issue))
-                     .forEach(this::notifyListenersRemoved);
+        if (storedState.isPresent()) {
+            var storedIssues = storedState.get().issueIds();
+            storedIssues.stream()
+                        .filter(issue -> !issues.contains(issue))
+                        .forEach(this::notifyListenersRemoved);
             issues.stream()
-                  .filter(issue -> !oldIssues.contains(issue))
+                  .filter(issue -> !storedIssues.contains(issue))
                   .forEach(this::notifyListenersAdded);
         } else {
             notifyNewPr(pr);
             issues.forEach(this::notifyListenersAdded);
         }
 
-        storage.put(prIssues);
+        storage.put(state);
     }
 
     @Override

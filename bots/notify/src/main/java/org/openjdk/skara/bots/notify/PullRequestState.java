@@ -23,21 +23,25 @@
 package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.vcs.Hash;
 
 import java.util.*;
 
 class PullRequestState {
     private final String prId;
     private final Set<String> issueIds;
+    private final Hash commitId;
 
-    PullRequestState(PullRequest pr, Set<String> issueIds) {
+    PullRequestState(PullRequest pr, Set<String> issueIds, Hash commitId) {
         this.prId = pr.repository().id() + ":" + pr.id();
         this.issueIds = issueIds;
+        this.commitId = commitId;
     }
 
-    PullRequestState(String prId, Set<String> issueIds) {
+    PullRequestState(String prId, Set<String> issueIds, Hash commitId) {
         this.prId = prId;
         this.issueIds = issueIds;
+        this.commitId = commitId;
     }
 
     public String prId() {
@@ -48,11 +52,16 @@ class PullRequestState {
         return issueIds;
     }
 
+    public Optional<Hash> commitId() {
+        return Optional.ofNullable(commitId);
+    }
+
     @Override
     public String toString() {
         return "PullRequestState{" +
                 "prId='" + prId + '\'' +
                 ", issueIds=" + issueIds +
+                ", commitId=" + commitId +
                 '}';
     }
 
@@ -66,11 +75,12 @@ class PullRequestState {
         }
         var that = (PullRequestState) o;
         return prId.equals(that.prId) &&
-                issueIds.equals(that.issueIds);
+                issueIds.equals(that.issueIds) &&
+                Objects.equals(commitId, that.commitId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(prId, issueIds);
+        return Objects.hash(prId, issueIds, commitId);
     }
 }
