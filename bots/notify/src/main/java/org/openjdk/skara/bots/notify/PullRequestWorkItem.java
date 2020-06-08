@@ -169,6 +169,10 @@ public class PullRequestWorkItem implements WorkItem {
         pullRequestUpdateConsumers.forEach(c -> c.handleNewPullRequest(pr));
     }
 
+    private void notifyIntegratedPr(PullRequest pr, Hash hash) {
+        pullRequestUpdateConsumers.forEach(c -> c.handleIntegratedPullRequest(pr, hash));
+    }
+
     @Override
     public void run(Path scratchPath) {
         var historyPath = scratchPath.resolve("notify").resolve("history");
@@ -198,9 +202,17 @@ public class PullRequestWorkItem implements WorkItem {
             issues.stream()
                   .filter(issue -> !storedIssues.contains(issue))
                   .forEach(this::notifyListenersAdded);
+
+            var storedCommit = storedState.get().commitId();
+            if (!storedCommit.isPresent() && state.commitId().isPresent()) {
+                notifyIntegratedPr(pr, state.commitId().get());
+            }
         } else {
             notifyNewPr(pr);
             issues.forEach(this::notifyListenersAdded);
+            if (state.commitId().isPresent()) {
+                notifyIntegratedPr(pr, state.commitId().get());
+            }
         }
 
         storage.put(state);
