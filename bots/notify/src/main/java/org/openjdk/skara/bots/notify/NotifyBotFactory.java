@@ -70,6 +70,7 @@ public class NotifyBotFactory implements BotFactory {
                                     .map(JSONValue::asObject)
                                     .collect(Collectors.toMap(obj -> obj.get("user").asString(),
                                                               obj -> Pattern.compile(obj.get("pattern").asString())));
+        var integratorId = specific.get("integrator").asString();
 
         // Collect configuration applicable to all instances of a specific notifier
         var notifierFactories = NotifierFactory.getNotifierFactories();
@@ -135,6 +136,7 @@ public class NotifyBotFactory implements BotFactory {
                                .prUpdaters(prUpdaters)
                                .readyLabels(readyLabels)
                                .readyComments(readyComments)
+                               .integratorId(integratorId)
                                .build();
             ret.add(bot);
         }

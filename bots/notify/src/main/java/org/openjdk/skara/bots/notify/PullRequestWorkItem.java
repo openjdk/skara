@@ -41,18 +41,20 @@ public class PullRequestWorkItem implements WorkItem {
     private final StorageBuilder<PullRequestState> prStateStorageBuilder;
     private final List<PullRequestUpdateConsumer> pullRequestUpdateConsumers;
     private final Consumer<RuntimeException> errorHandler;
+    private final String integratorId;
 
-    PullRequestWorkItem(PullRequest pr, StorageBuilder<PullRequestState> prStateStorageBuilder, List<PullRequestUpdateConsumer> pullRequestUpdateConsumers, Consumer<RuntimeException> errorHandler) {
+    PullRequestWorkItem(PullRequest pr, StorageBuilder<PullRequestState> prStateStorageBuilder, List<PullRequestUpdateConsumer> pullRequestUpdateConsumers, Consumer<RuntimeException> errorHandler, String integratorId) {
         this.pr = pr;
         this.prStateStorageBuilder = prStateStorageBuilder;
         this.pullRequestUpdateConsumers = pullRequestUpdateConsumers;
         this.errorHandler = errorHandler;
+        this.integratorId = integratorId;
     }
 
-    private static Hash resultingCommitHashFor(PullRequest pr, HostUser bot) {
+    private Hash resultingCommitHashFor(PullRequest pr) {
        if (pr.labels().contains("integrated")) {
            for (var comment : pr.comments()) {
-               if (comment.author().equals(bot)) {
+               if (comment.author().id().equals(integratorId)) {
                    for (var line : comment.body().split("\n")) {
                        if (line.startsWith("Pushed as commit")) {
                            var parts = line.split(" ");
@@ -83,7 +85,7 @@ public class PullRequestWorkItem implements WorkItem {
                        if (!obj.contains("commit")) {
                            var prId = id.split(":")[1];
                            var currentPR = pr.repository().pullRequest(prId);
-                           var hash = resultingCommitHashFor(currentPR, pr.repository().forge().currentUser());
+                           var hash = resultingCommitHashFor(currentPR);
                            if (hash == null) {
                                obj.putNull("commit");
                            } else {
@@ -176,7 +178,7 @@ public class PullRequestWorkItem implements WorkItem {
                 .materialize(historyPath);
 
         var issues = parseIssues();
-        var commit = resultingCommitHashFor(pr, pr.repository().forge().currentUser());
+        var commit = resultingCommitHashFor(pr);
         var state = new PullRequestState(pr, issues, commit);
         var stored = storage.current();
         if (stored.contains(state)) {

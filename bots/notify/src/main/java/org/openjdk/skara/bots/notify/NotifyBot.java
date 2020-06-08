@@ -44,11 +44,12 @@ public class NotifyBot implements Bot {
     private final PullRequestUpdateCache updateCache;
     private final Set<String> readyLabels;
     private final Map<String, Pattern> readyComments;
+    private final String integratorId;
 
     NotifyBot(HostedRepository repository, Path storagePath, Pattern branches, StorageBuilder<UpdatedTag> tagStorageBuilder,
               StorageBuilder<UpdatedBranch> branchStorageBuilder, StorageBuilder<PullRequestState> prStateStorageBuilder,
               List<RepositoryUpdateConsumer> updaters, List<PullRequestUpdateConsumer> prUpdaters,
-              Set<String> readyLabels, Map<String, Pattern> readyComments) {
+              Set<String> readyLabels, Map<String, Pattern> readyComments, String integratorId) {
         this.repository = repository;
         this.storagePath = storagePath;
         this.branches = branches;
@@ -60,6 +61,7 @@ public class NotifyBot implements Bot {
         this.updateCache = new PullRequestUpdateCache();
         this.readyLabels = readyLabels;
         this.readyComments = readyComments;
+        this.integratorId = integratorId;
     }
 
     public static NotifyBotBuilder newBuilder() {
@@ -112,7 +114,11 @@ public class NotifyBot implements Bot {
                 if (!isReady(pr)) {
                     continue;
                 }
-                ret.add(new PullRequestWorkItem(pr, prStateStorageBuilder, prUpdaters, e -> updateCache.invalidate(pr)));
+                ret.add(new PullRequestWorkItem(pr,
+                                                prStateStorageBuilder,
+                                                prUpdaters,
+                                                e -> updateCache.invalidate(pr),
+                                                integratorId));
             }
         }
 

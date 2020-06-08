@@ -40,6 +40,7 @@ public class NotifyBotBuilder {
     private List<PullRequestUpdateConsumer> prUpdaters = List.of();
     private Set<String> readyLabels = Set.of();
     private Map<String, Pattern> readyComments = Map.of();
+    private String integratorId;
 
     public NotifyBotBuilder repository(HostedRepository repository) {
         this.repository = repository;
@@ -91,7 +92,12 @@ public class NotifyBotBuilder {
         return this;
     }
 
+    public NotifyBotBuilder integratorId(String integratorId) {
+        this.integratorId = integratorId;
+        return this;
+    }
+
     public NotifyBot build() {
-        return new NotifyBot(repository, storagePath, branches, tagStorageBuilder, branchStorageBuilder, prStateStorageBuilder, updaters, prUpdaters, readyLabels, readyComments);
+        return new NotifyBot(repository, storagePath, branches, tagStorageBuilder, branchStorageBuilder, prStateStorageBuilder, updaters, prUpdaters, readyLabels, readyComments, integratorId);
     }
 }
