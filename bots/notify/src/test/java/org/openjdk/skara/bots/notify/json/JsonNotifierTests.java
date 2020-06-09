@@ -35,7 +35,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.openjdk.skara.bots.notify.UpdaterTests.*;
+import static org.openjdk.skara.bots.notify.TestUtils.*;
 
 public class JsonNotifierTests {
     private List<Path> findJsonFiles(Path folder, String partialName) throws IOException {
@@ -104,7 +104,7 @@ public class JsonNotifierTests {
             localRepo.tag(masterHash, "jdk-12+1", "Added tag 1", "Duke", "duke@openjdk.java.net");
             localRepo.pushAll(repo.url());
 
-            var tagStorage = UpdaterTests.createTagStorage(repo);
+            var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
             var jsonFolder = tempFolder.path().resolve("json");

@@ -34,7 +34,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.openjdk.skara.bots.notify.UpdaterTests.*;
+import static org.openjdk.skara.bots.notify.TestUtils.*;
 
 public class MailingListNotifierTests {
     @Test
