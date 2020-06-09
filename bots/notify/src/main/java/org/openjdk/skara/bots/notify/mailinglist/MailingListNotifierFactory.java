@@ -33,7 +33,7 @@ import java.time.Duration;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class MailingListUpdaterFactory implements NotifierFactory {
+public class MailingListNotifierFactory implements NotifierFactory {
     @Override
     public String name() {
         return "mailinglist";
@@ -53,45 +53,47 @@ public class MailingListUpdaterFactory implements NotifierFactory {
         var author = notifierConfiguration.contains("author") ? EmailAddress.parse(notifierConfiguration.get("author").asString()) : null;
         var allowedDomains = author == null ? Pattern.compile(notifierConfiguration.get("domains").asString()) : null;
 
-        var mailingListUpdaterBuilder = MailingListUpdater.newBuilder()
-                                                          .list(listServer.getList(recipient))
-                                                          .recipient(recipientAddress)
-                                                          .sender(sender)
-                                                          .author(author)
-                                                          .allowedAuthorDomains(allowedDomains);
+        var builder = MailingListNotifier.newBuilder()
+                                         .list(listServer.getList(recipient))
+                                         .recipient(recipientAddress)
+                                         .sender(sender)
+                                         .author(author)
+                                         .allowedAuthorDomains(allowedDomains);
 
         if (notifierConfiguration.contains("mode")) {
-            MailingListUpdater.Mode mode;
+            MailingListNotifier.Mode mode;
             switch (notifierConfiguration.get("mode").asString()) {
                 case "all":
-                    mode = MailingListUpdater.Mode.ALL;
+                    mode = MailingListNotifier.Mode.ALL;
                     break;
                 case "pr":
-                    mode = MailingListUpdater.Mode.PR;
+                    mode = MailingListNotifier.Mode.PR;
                     break;
                 default:
                     throw new RuntimeException("Unknown mode");
             }
-            mailingListUpdaterBuilder.mode(mode);
+            builder.mode(mode);
         }
         if (notifierConfiguration.contains("headers")) {
-            mailingListUpdaterBuilder.headers(notifierConfiguration.get("headers").fields().stream()
-                                                                   .collect(Collectors.toMap(JSONObject.Field::name,
+            builder.headers(notifierConfiguration.get("headers")
+                                                 .fields()
+                                                 .stream()
+                                                 .collect(Collectors.toMap(JSONObject.Field::name,
                                                                            field -> field.value().asString())));
         }
         if (notifierConfiguration.contains("branchnames")) {
-            mailingListUpdaterBuilder.includeBranch(notifierConfiguration.get("branchnames").asBoolean());
+            builder.includeBranch(notifierConfiguration.get("branchnames").asBoolean());
         }
         if (notifierConfiguration.contains("tags")) {
-            mailingListUpdaterBuilder.reportNewTags(notifierConfiguration.get("tags").asBoolean());
+            builder.reportNewTags(notifierConfiguration.get("tags").asBoolean());
         }
         if (notifierConfiguration.contains("branches")) {
-            mailingListUpdaterBuilder.reportNewBranches(notifierConfiguration.get("branches").asBoolean());
+            builder.reportNewBranches(notifierConfiguration.get("branches").asBoolean());
         }
         if (notifierConfiguration.contains("builds")) {
-            mailingListUpdaterBuilder.reportNewBuilds(notifierConfiguration.get("builds").asBoolean());
+            builder.reportNewBuilds(notifierConfiguration.get("builds").asBoolean());
         }
 
-        return mailingListUpdaterBuilder.build();
+        return builder.build();
     }
 }

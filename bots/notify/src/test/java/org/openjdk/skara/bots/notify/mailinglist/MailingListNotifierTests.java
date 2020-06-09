@@ -20,11 +20,11 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.bots.notify;
+package org.openjdk.skara.bots.notify.mailinglist;
 
 import org.junit.jupiter.api.*;
-import org.openjdk.skara.bots.notify.mailinglist.MailingListUpdater;
 import org.openjdk.skara.email.*;
+import org.openjdk.skara.bots.notify.*;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
 import org.openjdk.skara.test.*;
 
@@ -36,7 +36,7 @@ import java.util.regex.Pattern;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.notify.UpdaterTests.*;
 
-public class MailingListUpdaterTests {
+public class MailingListNotifierTests {
     @Test
     void testMailingList(TestInfo testInfo) throws IOException {
         try (var listServer = new TestMailmanServer();
@@ -58,16 +58,16 @@ public class MailingListUpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = MailingListUpdater.newBuilder()
-                                            .list(mailmanList)
-                                            .recipient(listAddress)
-                                            .sender(sender)
-                                            .reportNewTags(false)
-                                            .reportNewBranches(false)
-                                            .reportNewBuilds(false)
-                                            .headers(Map.of("extra1", "value1", "extra2", "value2"))
-                                            .allowedAuthorDomains(Pattern.compile("none"))
-                                            .build();
+            var updater = MailingListNotifier.newBuilder()
+                                             .list(mailmanList)
+                                             .recipient(listAddress)
+                                             .sender(sender)
+                                             .reportNewTags(false)
+                                             .reportNewBranches(false)
+                                             .reportNewBuilds(false)
+                                             .headers(Map.of("extra1", "value1", "extra2", "value2"))
+                                             .allowedAuthorDomains(Pattern.compile("none"))
+                                             .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -130,14 +130,14 @@ public class MailingListUpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = MailingListUpdater.newBuilder()
-                                            .list(mailmanList)
-                                            .recipient(listAddress)
-                                            .sender(sender)
-                                            .reportNewTags(false)
-                                            .reportNewBranches(false)
-                                            .reportNewBuilds(false)
-                                            .build();
+            var updater = MailingListNotifier.newBuilder()
+                                             .list(mailmanList)
+                                             .recipient(listAddress)
+                                             .sender(sender)
+                                             .reportNewTags(false)
+                                             .reportNewBranches(false)
+                                             .reportNewBuilds(false)
+                                             .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -202,14 +202,14 @@ public class MailingListUpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = MailingListUpdater.newBuilder()
-                                            .list(mailmanList)
-                                            .recipient(listAddress)
-                                            .sender(sender)
-                                            .reportNewTags(false)
-                                            .reportNewBranches(false)
-                                            .reportNewBuilds(false)
-                                            .build();
+            var updater = MailingListNotifier.newBuilder()
+                                             .list(mailmanList)
+                                             .recipient(listAddress)
+                                             .sender(sender)
+                                             .reportNewTags(false)
+                                             .reportNewBranches(false)
+                                             .reportNewBuilds(false)
+                                             .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -267,16 +267,16 @@ public class MailingListUpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var author = EmailAddress.from("author", "author@duke.duke");
-            var updater = MailingListUpdater.newBuilder()
-                                            .list(mailmanList)
-                                            .recipient(listAddress)
-                                            .sender(sender)
-                                            .author(author)
-                                            .includeBranch(true)
-                                            .reportNewTags(false)
-                                            .reportNewBranches(false)
-                                            .reportNewBuilds(false)
-                                            .build();
+            var updater = MailingListNotifier.newBuilder()
+                                             .list(mailmanList)
+                                             .recipient(listAddress)
+                                             .sender(sender)
+                                             .author(author)
+                                             .includeBranch(true)
+                                             .reportNewTags(false)
+                                             .reportNewBranches(false)
+                                             .reportNewBuilds(false)
+                                             .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -365,17 +365,17 @@ public class MailingListUpdaterTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var author = EmailAddress.from("author", "author@duke.duke");
-            var updater = MailingListUpdater.newBuilder()
-                                            .list(mailmanList)
-                                            .recipient(listAddress)
-                                            .sender(sender)
-                                            .author(author)
-                                            .reportNewTags(false)
-                                            .reportNewBranches(false)
-                                            .reportNewBuilds(false)
-                                            .includeBranch(true)
-                                            .mode(MailingListUpdater.Mode.PR)
-                                            .build();
+            var updater = MailingListNotifier.newBuilder()
+                                             .list(mailmanList)
+                                             .recipient(listAddress)
+                                             .sender(sender)
+                                             .author(author)
+                                             .reportNewTags(false)
+                                             .reportNewBranches(false)
+                                             .reportNewBuilds(false)
+                                             .includeBranch(true)
+                                             .mode(MailingListNotifier.Mode.PR)
+                                             .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -450,15 +450,15 @@ public class MailingListUpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = MailingListUpdater.newBuilder()
-                                            .list(mailmanList)
-                                            .recipient(listAddress)
-                                            .sender(sender)
-                                            .reportNewTags(false)
-                                            .reportNewBranches(false)
-                                            .reportNewBuilds(false)
-                                            .mode(MailingListUpdater.Mode.PR)
-                                            .build();
+            var updater = MailingListNotifier.newBuilder()
+                                             .list(mailmanList)
+                                             .recipient(listAddress)
+                                             .sender(sender)
+                                             .reportNewTags(false)
+                                             .reportNewBranches(false)
+                                             .reportNewBuilds(false)
+                                             .mode(MailingListNotifier.Mode.PR)
+                                             .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -542,16 +542,16 @@ public class MailingListUpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = MailingListUpdater.newBuilder()
-                                            .list(mailmanList)
-                                            .recipient(listAddress)
-                                            .sender(sender)
-                                            .author(null)
-                                            .reportNewTags(false)
-                                            .reportNewBranches(false)
-                                            .reportNewBuilds(false)
-                                            .mode(MailingListUpdater.Mode.PR)
-                                            .build();
+            var updater = MailingListNotifier.newBuilder()
+                                             .list(mailmanList)
+                                             .recipient(listAddress)
+                                             .sender(sender)
+                                             .author(null)
+                                             .reportNewTags(false)
+                                             .reportNewBranches(false)
+                                             .reportNewBuilds(false)
+                                             .mode(MailingListNotifier.Mode.PR)
+                                             .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -637,21 +637,21 @@ public class MailingListUpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = MailingListUpdater.newBuilder()
-                                            .list(mailmanList)
-                                            .recipient(listAddress)
-                                            .sender(sender)
-                                            .reportNewBranches(false)
-                                            .headers(Map.of("extra1", "value1", "extra2", "value2"))
-                                            .build();
-            var noTagsUpdater = MailingListUpdater.newBuilder()
-                                                  .list(mailmanList)
-                                                  .recipient(listAddress)
-                                                  .sender(sender)
-                                                  .reportNewTags(false)
-                                                  .reportNewBranches(false)
-                                                  .reportNewBuilds(false)
-                                                  .build();
+            var updater = MailingListNotifier.newBuilder()
+                                             .list(mailmanList)
+                                             .recipient(listAddress)
+                                             .sender(sender)
+                                             .reportNewBranches(false)
+                                             .headers(Map.of("extra1", "value1", "extra2", "value2"))
+                                             .build();
+            var noTagsUpdater = MailingListNotifier.newBuilder()
+                                                   .list(mailmanList)
+                                                   .recipient(listAddress)
+                                                   .sender(sender)
+                                                   .reportNewTags(false)
+                                                   .reportNewBranches(false)
+                                                   .reportNewBuilds(false)
+                                                   .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -754,22 +754,22 @@ public class MailingListUpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = MailingListUpdater.newBuilder()
-                                            .list(mailmanList)
-                                            .recipient(listAddress)
-                                            .sender(sender)
-                                            .reportNewBranches(false)
-                                            .reportNewBuilds(false)
-                                            .headers(Map.of("extra1", "value1", "extra2", "value2"))
-                                            .build();
-            var noTagsUpdater = MailingListUpdater.newBuilder()
-                                                  .list(mailmanList)
-                                                  .recipient(listAddress)
-                                                  .sender(sender)
-                                                  .reportNewTags(false)
-                                                  .reportNewBranches(false)
-                                                  .reportNewBuilds(false)
-                                                  .build();
+            var updater = MailingListNotifier.newBuilder()
+                                             .list(mailmanList)
+                                             .recipient(listAddress)
+                                             .sender(sender)
+                                             .reportNewBranches(false)
+                                             .reportNewBuilds(false)
+                                             .headers(Map.of("extra1", "value1", "extra2", "value2"))
+                                             .build();
+            var noTagsUpdater = MailingListNotifier.newBuilder()
+                                                   .list(mailmanList)
+                                                   .recipient(listAddress)
+                                                   .sender(sender)
+                                                   .reportNewTags(false)
+                                                   .reportNewBranches(false)
+                                                   .reportNewBuilds(false)
+                                                   .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -847,14 +847,14 @@ public class MailingListUpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = MailingListUpdater.newBuilder()
-                                            .list(mailmanList)
-                                            .recipient(listAddress)
-                                            .sender(sender)
-                                            .reportNewTags(false)
-                                            .reportNewBuilds(false)
-                                            .headers(Map.of("extra1", "value1", "extra2", "value2"))
-                                            .build();
+            var updater = MailingListNotifier.newBuilder()
+                                             .list(mailmanList)
+                                             .recipient(listAddress)
+                                             .sender(sender)
+                                             .reportNewTags(false)
+                                             .reportNewBuilds(false)
+                                             .headers(Map.of("extra1", "value1", "extra2", "value2"))
+                                             .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -927,16 +927,16 @@ public class MailingListUpdaterTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
-            var updater = MailingListUpdater.newBuilder()
-                                            .list(mailmanList)
-                                            .recipient(listAddress)
-                                            .sender(sender)
-                                            .reportNewTags(false)
-                                            .reportNewBranches(false)
-                                            .reportNewBuilds(false)
-                                            .headers(Map.of("extra1", "value1", "extra2", "value2"))
-                                            .allowedAuthorDomains(Pattern.compile("none"))
-                                            .build();
+            var updater = MailingListNotifier.newBuilder()
+                                             .list(mailmanList)
+                                             .recipient(listAddress)
+                                             .sender(sender)
+                                             .reportNewTags(false)
+                                             .reportNewBranches(false)
+                                             .reportNewBuilds(false)
+                                             .headers(Map.of("extra1", "value1", "extra2", "value2"))
+                                             .allowedAuthorDomains(Pattern.compile("none"))
+                                             .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)

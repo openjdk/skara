@@ -27,6 +27,7 @@ module {
         requires 'org.junit.jupiter.api'
         requires 'org.openjdk.skara.test'
         opens 'org.openjdk.skara.bots.notify' to 'org.junit.platform.commons'
+        opens 'org.openjdk.skara.bots.notify.mailinglist' to 'org.junit.platform.commons'
     }
 }
 

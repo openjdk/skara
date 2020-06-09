@@ -38,6 +38,6 @@ module org.openjdk.skara.bots.notify {
     provides org.openjdk.skara.bots.notify.NotifierFactory with
             org.openjdk.skara.bots.notify.issue.IssueUpdaterFactory,
             org.openjdk.skara.bots.notify.json.JsonUpdaterFactory,
-            org.openjdk.skara.bots.notify.mailinglist.MailingListUpdaterFactory,
+            org.openjdk.skara.bots.notify.mailinglist.MailingListNotifierFactory,
             org.openjdk.skara.bots.notify.slack.SlackUpdaterFactory;
 }

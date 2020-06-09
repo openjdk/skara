@@ -35,7 +35,7 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-public class MailingListUpdater implements RepositoryUpdateConsumer {
+class MailingListNotifier implements RepositoryUpdateConsumer {
     private final MailingList list;
     private final EmailAddress recipient;
     private final EmailAddress sender;
@@ -54,7 +54,7 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
         PR
     }
 
-    MailingListUpdater(MailingList list, EmailAddress recipient, EmailAddress sender, EmailAddress author,
+    MailingListNotifier(MailingList list, EmailAddress recipient, EmailAddress sender, EmailAddress author,
                        boolean includeBranch, boolean reportNewTags, boolean reportNewBranches, boolean reportNewBuilds,
                        Mode mode, Map<String, String> headers, Pattern allowedAuthorDomains) {
         this.list = list;
@@ -70,8 +70,8 @@ public class MailingListUpdater implements RepositoryUpdateConsumer {
         this.allowedAuthorDomains = allowedAuthorDomains;
     }
 
-    public static MailingListUpdaterBuilder newBuilder() {
-        return new MailingListUpdaterBuilder();
+    public static MailingListNotifierBuilder newBuilder() {
+        return new MailingListNotifierBuilder();
     }
 
     private String tagAnnotationToText(HostedRepository repository, Tag.Annotated annotation) {
