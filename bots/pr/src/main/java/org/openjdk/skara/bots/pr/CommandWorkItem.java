@@ -41,17 +41,19 @@ public class CommandWorkItem extends PullRequestWorkItem {
     private static final Pattern commandReplyPattern = Pattern.compile("<!-- Jmerge command reply message \\((\\S+)\\) -->");
     private static final String selfCommandMarker = "<!-- Valid self-command -->";
 
-    private final static Map<String, CommandHandler> commandHandlers = Map.of(
-            "help", new HelpCommand(),
-            "integrate", new IntegrateCommand(),
-            "sponsor", new SponsorCommand(),
-            "contributor", new ContributorCommand(),
-            "summary", new SummaryCommand(),
-            "issue", new IssueCommand(),
-            "solves", new IssueCommand("solves"),
-            "reviewers", new ReviewersCommand(),
-            "csr", new CSRCommand(),
-            "reviewer", new ReviewerCommand()
+    private static final Map<String, CommandHandler> commandHandlers = Map.ofEntries(
+            Map.entry("help", new HelpCommand()),
+            Map.entry("integrate", new IntegrateCommand()),
+            Map.entry("sponsor", new SponsorCommand()),
+            Map.entry("contributor", new ContributorCommand()),
+            Map.entry("summary", new SummaryCommand()),
+            Map.entry("issue", new IssueCommand()),
+            Map.entry("solves", new IssueCommand("solves")),
+            Map.entry("reviewers", new ReviewersCommand()),
+            Map.entry("csr", new CSRCommand()),
+            Map.entry("reviewer", new ReviewerCommand()),
+            Map.entry("label", new LabelCommand()),
+            Map.entry("cc", new LabelCommand("cc"))
     );
 
     static class HelpCommand implements CommandHandler {

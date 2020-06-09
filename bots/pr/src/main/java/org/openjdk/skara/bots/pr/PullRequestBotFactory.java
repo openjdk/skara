@@ -62,6 +62,35 @@ public class PullRequestBotFactory implements BotFactory {
                                     .collect(Collectors.toMap(obj -> obj.get("user").asString(),
                                                               obj -> Pattern.compile(obj.get("pattern").asString())));
 
+        var labelConfigurations = new HashMap<String, LabelConfiguration>();
+        for (var labelGroup : specific.get("labels").fields()) {
+            var labelConfiguration = LabelConfiguration.newBuilder();
+            if (labelGroup.value().contains("matchers")) {
+                var matchers = labelGroup.value().get("matchers").fields().stream()
+                                         .collect(Collectors.toMap(JSONObject.Field::name,
+                                                                   field -> field.value().stream()
+                                                                                 .map(JSONValue::asString)
+                                                                                 .map(Pattern::compile)
+                                                                                 .collect(Collectors.toList())));
+                matchers.forEach(labelConfiguration::addMatchers);
+            }
+            if (labelGroup.value().contains("groups")) {
+                var groups = labelGroup.value().get("groups").fields().stream()
+                                       .collect(Collectors.toMap(JSONObject.Field::name,
+                                                                 field -> field.value().stream()
+                                                                               .map(JSONValue::asString)
+                                                                               .collect(Collectors.toList())));
+                groups.forEach(labelConfiguration::addGroup);
+            }
+            if (labelGroup.value().contains("extra")) {
+                var extra = labelGroup.value().get("extra").stream()
+                                      .map(JSONValue::asString)
+                                      .collect(Collectors.toList());
+                extra.forEach(labelConfiguration::addExtra);
+            }
+            labelConfigurations.put(labelGroup.name(), labelConfiguration.build());
+        }
+
         for (var repo : specific.get("repositories").fields()) {
             var censusRepo = configuration.repository(repo.value().get("census").asString());
             var censusRef = configuration.repositoryRef(repo.value().get("census").asString());
@@ -77,15 +106,11 @@ public class PullRequestBotFactory implements BotFactory {
                                            .seedStorage(configuration.storageFolder().resolve("seeds"));
 
             if (repo.value().contains("labels")) {
-                var labelPatterns = new HashMap<String, List<Pattern>>();
-                for (var label : repo.value().get("labels").fields()) {
-                    var patterns = label.value().stream()
-                                        .map(JSONValue::asString)
-                                        .map(Pattern::compile)
-                                        .collect(Collectors.toList());
-                    labelPatterns.put(label.name(), patterns);
+                var labelGroup = repo.value().get("labels").asString();
+                if (!labelConfigurations.containsKey(labelGroup)) {
+                    throw new RuntimeException("Unknown label group: " + labelGroup);
                 }
-                botBuilder.labelPatterns(labelPatterns);
+                botBuilder.labelConfiguration(labelConfigurations.get(labelGroup));
             }
             if (repo.value().contains("issues")) {
                 botBuilder.issueProject(configuration.issueProject(repo.value().get("issues").asString()));
