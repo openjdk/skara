@@ -20,10 +20,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.bots.notify;
+package org.openjdk.skara.bots.notify.issue;
 
 import org.junit.jupiter.api.*;
-import org.openjdk.skara.bots.notify.issue.IssueUpdater;
+import org.openjdk.skara.bots.notify.*;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.*;
 
@@ -35,7 +35,7 @@ import java.util.regex.Pattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.openjdk.skara.bots.notify.UpdaterTests.*;
 
-public class IssueUpdaterTests {
+public class IssueNotifierTests {
     @Test
     void testIssueIdempotence(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
@@ -53,7 +53,7 @@ public class IssueUpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var commitIcon = URI.create("http://www.example.com/commit.png");
-            var updater = IssueUpdater.newBuilder()
+            var updater = IssueNotifier.newBuilder()
                                       .issueProject(issueProject)
                                       .reviewLink(false)
                                       .commitIcon(commitIcon)
@@ -123,7 +123,7 @@ public class IssueUpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var reviewIcon = URI.create("http://www.example.com/review.png");
-            var updater = IssueUpdater.newBuilder()
+            var updater = IssueNotifier.newBuilder()
                                       .issueProject(issueProject)
                                       .reviewIcon(reviewIcon)
                                       .commitLink(false)
@@ -224,7 +224,7 @@ public class IssueUpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var reviewIcon = URI.create("http://www.example.com/review.png");
-            var updater = IssueUpdater.newBuilder()
+            var updater = IssueNotifier.newBuilder()
                                       .issueProject(issueProject)
                                       .reviewLink(false)
                                       .reviewIcon(reviewIcon)
@@ -283,7 +283,7 @@ public class IssueUpdaterTests {
 
             var issueProject = credentials.getIssueProject();
             var reviewIcon = URI.create("http://www.example.com/review.png");
-            var updater = IssueUpdater.newBuilder()
+            var updater = IssueNotifier.newBuilder()
                                       .issueProject(issueProject)
                                       .reviewIcon(reviewIcon)
                                       .commitLink(true)

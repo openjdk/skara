@@ -33,7 +33,7 @@ import java.net.URI;
 import java.util.*;
 import java.util.logging.Logger;
 
-public class IssueUpdater implements PullRequestUpdateConsumer {
+class IssueNotifier implements PullRequestUpdateConsumer {
     private final IssueProject issueProject;
     private final boolean reviewLink;
     private final URI reviewIcon;
@@ -41,7 +41,7 @@ public class IssueUpdater implements PullRequestUpdateConsumer {
     private final URI commitIcon;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
-    IssueUpdater(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon) {
+    IssueNotifier(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon) {
         this.issueProject = issueProject;
         this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
@@ -49,8 +49,8 @@ public class IssueUpdater implements PullRequestUpdateConsumer {
         this.commitIcon = commitIcon;
     }
 
-    public static IssueUpdaterBuilder newBuilder() {
-        return new IssueUpdaterBuilder();
+    static IssueNotifierBuilder newBuilder() {
+        return new IssueNotifierBuilder();
     }
 
     @Override
