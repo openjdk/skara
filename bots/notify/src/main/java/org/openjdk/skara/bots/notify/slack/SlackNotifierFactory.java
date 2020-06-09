@@ -29,7 +29,7 @@ import org.openjdk.skara.network.URIBuilder;
 
 import java.net.URI;
 
-public class SlackUpdaterFactory implements NotifierFactory {
+public class SlackNotifierFactory implements NotifierFactory {
     @Override
     public String name() {
         return "slack";
@@ -46,7 +46,6 @@ public class SlackUpdaterFactory implements NotifierFactory {
             commitWebhook = URIBuilder.base(notifierConfiguration.get("commit").asString()).build();
         }
         var username = notifierConfiguration.get("username").asString();
-        var updater = new SlackUpdater(prWebhook, commitWebhook, username);
-        return updater;
+        return new SlackNotifier(prWebhook, commitWebhook, username);
     }
 }
