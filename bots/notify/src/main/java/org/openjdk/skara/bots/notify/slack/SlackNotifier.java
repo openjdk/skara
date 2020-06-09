@@ -35,7 +35,7 @@ import java.net.URI;
 import java.util.List;
 import java.time.format.DateTimeFormatter;
 
-class SlackNotifier implements RepositoryUpdateConsumer, PullRequestUpdateConsumer {
+class SlackNotifier implements Notifier, RepositoryListener, PullRequestListener {
     private final RestRequest prWebhook;
     private final RestRequest commitWebhook;
     private final String username;
@@ -44,6 +44,12 @@ class SlackNotifier implements RepositoryUpdateConsumer, PullRequestUpdateConsum
         this.prWebhook = prWebhook != null ? new RestRequest(prWebhook) : null;
         this.commitWebhook = commitWebhook != null ? new RestRequest(commitWebhook) : null;
         this.username = username;
+    }
+
+    @Override
+    public void attachTo(Emitter e) {
+        e.registerPullRequestListener(this);
+        e.registerRepositoryListener(this);
     }
 
     @Override

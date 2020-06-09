@@ -53,11 +53,6 @@ public class IssueNotifierTests {
 
             var issueProject = credentials.getIssueProject();
             var commitIcon = URI.create("http://www.example.com/commit.png");
-            var updater = IssueNotifier.newBuilder()
-                                      .issueProject(issueProject)
-                                      .reviewLink(false)
-                                      .commitIcon(commitIcon)
-                                      .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -65,9 +60,14 @@ public class IssueNotifierTests {
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
                                      .prStateStorageBuilder(prStateStorage)
-                                     .prUpdaters(List.of(updater))
                                      .integratorId(repo.forge().currentUser().id())
                                      .build();
+            var updater = IssueNotifier.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewLink(false)
+                                      .commitIcon(commitIcon)
+                                      .build();
+            updater.attachTo(notifyBot);
 
             // Initialize history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -123,11 +123,6 @@ public class IssueNotifierTests {
 
             var issueProject = credentials.getIssueProject();
             var reviewIcon = URI.create("http://www.example.com/review.png");
-            var updater = IssueNotifier.newBuilder()
-                                      .issueProject(issueProject)
-                                      .reviewIcon(reviewIcon)
-                                      .commitLink(false)
-                                      .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -135,10 +130,15 @@ public class IssueNotifierTests {
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
                                      .prStateStorageBuilder(prStateStorage)
-                                     .prUpdaters(List.of(updater))
                                      .readyLabels(Set.of("rfr"))
                                      .readyComments(Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("This is now ready")))
                                      .build();
+            var updater = IssueNotifier.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewIcon(reviewIcon)
+                                      .commitLink(false)
+                                      .build();
+            updater.attachTo(notifyBot);
 
             // Initialize history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -224,12 +224,6 @@ public class IssueNotifierTests {
 
             var issueProject = credentials.getIssueProject();
             var reviewIcon = URI.create("http://www.example.com/review.png");
-            var updater = IssueNotifier.newBuilder()
-                                      .issueProject(issueProject)
-                                      .reviewLink(false)
-                                      .reviewIcon(reviewIcon)
-                                      .commitLink(false)
-                                      .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -237,9 +231,17 @@ public class IssueNotifierTests {
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
                                      .prStateStorageBuilder(prStateStorage)
-                                     .prUpdaters(List.of(updater)).readyLabels(Set.of("rfr"))
+                                     .readyLabels(Set.of("rfr"))
                                      .readyComments(Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("This is now ready")))
                                      .build();
+            var updater = IssueNotifier.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewLink(false)
+                                      .reviewIcon(reviewIcon)
+                                      .commitLink(false)
+                                      .build();
+            updater.attachTo(notifyBot);
+
             // Initialize history
             TestBotRunner.runPeriodicItems(notifyBot);
 
@@ -283,12 +285,6 @@ public class IssueNotifierTests {
 
             var issueProject = credentials.getIssueProject();
             var reviewIcon = URI.create("http://www.example.com/review.png");
-            var updater = IssueNotifier.newBuilder()
-                                      .issueProject(issueProject)
-                                      .reviewIcon(reviewIcon)
-                                      .commitLink(true)
-                                      .commitIcon(reviewIcon)
-                                      .build();
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -296,9 +292,15 @@ public class IssueNotifierTests {
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
                                      .prStateStorageBuilder(prStateStorage)
-                                     .prUpdaters(List.of(updater))
                                      .integratorId(repo.forge().currentUser().id())
                                      .build();
+            var updater = IssueNotifier.newBuilder()
+                                      .issueProject(issueProject)
+                                      .reviewIcon(reviewIcon)
+                                      .commitLink(true)
+                                      .commitIcon(reviewIcon)
+                                      .build();
+            updater.attachTo(notifyBot);
 
             // Initialize history
             localRepo.push(localRepo.resolve("master").orElseThrow(), repo.url(), "other");

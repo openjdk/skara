@@ -28,7 +28,7 @@ import org.openjdk.skara.vcs.openjdk.OpenJDKTag;
 
 import java.util.List;
 
-public interface RepositoryUpdateConsumer extends Notifier {
+public interface RepositoryListener {
     default void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) throws NonRetriableException {
     }
     default void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) throws NonRetriableException {

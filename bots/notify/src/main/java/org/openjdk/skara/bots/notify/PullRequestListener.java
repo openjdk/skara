@@ -26,7 +26,7 @@ import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
-public interface PullRequestUpdateConsumer extends Notifier {
+public interface PullRequestListener {
     default void handleNewIssue(PullRequest pr, Issue issue) {
     }
     default void handleRemovedIssue(PullRequest pr, Issue issue) {

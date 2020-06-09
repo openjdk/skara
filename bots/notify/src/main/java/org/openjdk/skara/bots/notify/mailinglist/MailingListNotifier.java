@@ -35,7 +35,7 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-class MailingListNotifier implements RepositoryUpdateConsumer {
+class MailingListNotifier implements Notifier, RepositoryListener {
     private final MailingList list;
     private final EmailAddress recipient;
     private final EmailAddress sender;
@@ -211,6 +211,11 @@ class MailingListNotifier implements RepositoryUpdateConsumer {
             ret.put("X-Git-Changeset", commits.get(0).hash().hex());
         }
         return ret;
+    }
+
+    @Override
+    public void attachTo(Emitter e) {
+        e.registerRepositoryListener(this);
     }
 
     @Override

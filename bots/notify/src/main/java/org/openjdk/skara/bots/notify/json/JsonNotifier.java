@@ -32,7 +32,7 @@ import java.nio.file.Path;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-class JsonNotifier implements RepositoryUpdateConsumer {
+class JsonNotifier implements Notifier, RepositoryListener {
     private final Path path;
     private final String version;
     private final String defaultBuild;
@@ -74,6 +74,11 @@ class JsonNotifier implements RepositoryUpdateConsumer {
         ret.put("issue", issueIds);
 
         return ret;
+    }
+
+    @Override
+    public void attachTo(Emitter e) {
+        e.registerRepositoryListener(this);
     }
 
     @Override

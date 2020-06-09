@@ -52,13 +52,13 @@ public class UpdaterTests {
                 .remoteRepository(repository, "history", "Duke", "duke@openjdk.java.net", "Updated prissues");
     }
 
-    private static class TestRepositoryUpdateConsumer implements RepositoryUpdateConsumer {
+    private static class TestRepositoryListener implements Notifier, RepositoryListener {
         private final String name;
         private final boolean idempotent;
         private int updateCount = 0;
         private boolean shouldFail = false;
 
-        TestRepositoryUpdateConsumer(String name, boolean idempotent) {
+        TestRepositoryListener(String name, boolean idempotent) {
             this.name = name;
             this.idempotent = idempotent;
         }
@@ -98,6 +98,11 @@ public class UpdaterTests {
         public String name() {
             return name;
         }
+
+        @Override
+        public void attachTo(Emitter e) {
+            e.registerRepositoryListener(this);
+        }
     }
 
     @Test
@@ -115,8 +120,6 @@ public class UpdaterTests {
             var prStateStorage = createPullRequestStateStorage(repo);
             var storageFolder = tempFolder.path().resolve("storage");
 
-            var idempotent = new TestRepositoryUpdateConsumer("i", true);
-            var nonIdempotent = new TestRepositoryUpdateConsumer("ni", false);
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -124,8 +127,13 @@ public class UpdaterTests {
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
                                      .prStateStorageBuilder(prStateStorage)
-                                     .updaters(List.of(idempotent, nonIdempotent))
                                      .build();
+
+            var idempotent = new TestRepositoryListener("i", true);
+            idempotent.attachTo(notifyBot);
+
+            var nonIdempotent = new TestRepositoryListener("ni", false);
+            nonIdempotent.attachTo(notifyBot);
 
             // Initialize history
             TestBotRunner.runPeriodicItems(notifyBot);

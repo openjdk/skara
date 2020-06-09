@@ -20,21 +20,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+
 package org.openjdk.skara.bots.notify;
 
-import org.openjdk.skara.bot.BotConfiguration;
-import org.openjdk.skara.json.JSONObject;
-
-public interface Notifier {
-    static Notifier create(String name, BotConfiguration botConfiguration, JSONObject notifierConfiguration) {
-        var factory = NotifierFactory.getNotifierFactories().stream()
-                .filter(f -> f.name().equals(name))
-                .findFirst();
-        if (factory.isEmpty()) {
-            throw new RuntimeException("No notifier factory named '" + name + "' found - check module path");
-        }
-        return factory.get().create(botConfiguration, notifierConfiguration);
-    }
-
-    void attachTo(Emitter e);
+public interface Emitter {
+    void registerPullRequestListener(PullRequestListener listener);
+    void registerRepositoryListener(RepositoryListener listener);
 }

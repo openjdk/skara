@@ -38,14 +38,14 @@ import java.util.stream.*;
 public class PullRequestWorkItem implements WorkItem {
     private final PullRequest pr;
     private final StorageBuilder<PullRequestState> prStateStorageBuilder;
-    private final List<PullRequestUpdateConsumer> pullRequestUpdateConsumers;
+    private final List<PullRequestListener> listeners;
     private final Consumer<RuntimeException> errorHandler;
     private final String integratorId;
 
-    PullRequestWorkItem(PullRequest pr, StorageBuilder<PullRequestState> prStateStorageBuilder, List<PullRequestUpdateConsumer> pullRequestUpdateConsumers, Consumer<RuntimeException> errorHandler, String integratorId) {
+    PullRequestWorkItem(PullRequest pr, StorageBuilder<PullRequestState> prStateStorageBuilder, List<PullRequestListener> listeners, Consumer<RuntimeException> errorHandler, String integratorId) {
         this.pr = pr;
         this.prStateStorageBuilder = prStateStorageBuilder;
-        this.pullRequestUpdateConsumers = pullRequestUpdateConsumers;
+        this.listeners = listeners;
         this.errorHandler = errorHandler;
         this.integratorId = integratorId;
     }
@@ -156,20 +156,20 @@ public class PullRequestWorkItem implements WorkItem {
         return false;
     }
 
-    private void notifyListenersAdded(String issueId) {
-        pullRequestUpdateConsumers.forEach(c -> c.handleNewIssue(pr, new Issue(issueId, "")));
+    private void notifyNewIssue(String issueId) {
+        listeners.forEach(c -> c.handleNewIssue(pr, new Issue(issueId, "")));
     }
 
-    private void notifyListenersRemoved(String issueId) {
-        pullRequestUpdateConsumers.forEach(c -> c.handleRemovedIssue(pr, new Issue(issueId, "")));
+    private void notifyRemovedIssue(String issueId) {
+        listeners.forEach(c -> c.handleRemovedIssue(pr, new Issue(issueId, "")));
     }
 
     private void notifyNewPr(PullRequest pr) {
-        pullRequestUpdateConsumers.forEach(c -> c.handleNewPullRequest(pr));
+        listeners.forEach(c -> c.handleNewPullRequest(pr));
     }
 
     private void notifyIntegratedPr(PullRequest pr, Hash hash) {
-        pullRequestUpdateConsumers.forEach(c -> c.handleIntegratedPullRequest(pr, hash));
+        listeners.forEach(c -> c.handleIntegratedPullRequest(pr, hash));
     }
 
     @Override
@@ -197,10 +197,10 @@ public class PullRequestWorkItem implements WorkItem {
             var storedIssues = storedState.get().issueIds();
             storedIssues.stream()
                         .filter(issue -> !issues.contains(issue))
-                        .forEach(this::notifyListenersRemoved);
+                        .forEach(this::notifyRemovedIssue);
             issues.stream()
                   .filter(issue -> !storedIssues.contains(issue))
-                  .forEach(this::notifyListenersAdded);
+                  .forEach(this::notifyNewIssue);
 
             var storedCommit = storedState.get().commitId();
             if (!storedCommit.isPresent() && state.commitId().isPresent()) {
@@ -208,7 +208,7 @@ public class PullRequestWorkItem implements WorkItem {
             }
         } else {
             notifyNewPr(pr);
-            issues.forEach(this::notifyListenersAdded);
+            issues.forEach(this::notifyNewIssue);
             if (state.commitId().isPresent()) {
                 notifyIntegratedPr(pr, state.commitId().get());
             }

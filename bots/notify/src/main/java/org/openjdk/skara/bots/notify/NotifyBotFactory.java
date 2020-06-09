@@ -89,34 +89,6 @@ public class NotifyBotFactory implements BotFactory {
                 branchPattern = Pattern.compile(repo.value().get("branches").asString());
             }
 
-            var updaters = new ArrayList<RepositoryUpdateConsumer>();
-            var prUpdaters = new ArrayList<PullRequestUpdateConsumer>();
-
-            for (var notifierFactory : notifierFactories) {
-                if (repo.value().contains(notifierFactory.name())) {
-                    var confArray = repo.value().get(notifierFactory.name());
-                    if (!confArray.isArray()) {
-                        confArray = JSON.array().add(confArray);
-                    }
-                    for (var conf : confArray.asArray()) {
-                        var finalConfiguration = combineConfiguration(notifierConfiguration.get(notifierFactory.name()), conf.asObject());
-                        var notifier = Notifier.create(notifierFactory.name(), configuration, finalConfiguration);
-                        log.info("Configuring notifier " + notifierFactory.name() + " for repository " + repoName);
-                        if (notifier instanceof PullRequestUpdateConsumer) {
-                            prUpdaters.add((PullRequestUpdateConsumer)notifier);
-                        }
-                        if (notifier instanceof RepositoryUpdateConsumer) {
-                            updaters.add((RepositoryUpdateConsumer)notifier);
-                        }
-                    }
-                }
-            }
-
-            if (updaters.isEmpty() && prUpdaters.isEmpty()) {
-                log.warning("No notifiers configured for notify bot repository: " + repoName);
-                continue;
-            }
-
             var baseName = repo.value().contains("basename") ? repo.value().get("basename").asString() : configuration.repositoryName(repoName);
 
             var tagStorageBuilder = new StorageBuilder<UpdatedTag>(baseName + ".tags.txt")
@@ -132,12 +104,33 @@ public class NotifyBotFactory implements BotFactory {
                                .tagStorageBuilder(tagStorageBuilder)
                                .branchStorageBuilder(branchStorageBuilder)
                                .prStateStorageBuilder(prStateStorageBuilder)
-                               .updaters(updaters)
-                               .prUpdaters(prUpdaters)
                                .readyLabels(readyLabels)
                                .readyComments(readyComments)
                                .integratorId(integratorId)
                                .build();
+
+            var hasAttachedNotifier = false;
+            for (var notifierFactory : notifierFactories) {
+                if (repo.value().contains(notifierFactory.name())) {
+                    var confArray = repo.value().get(notifierFactory.name());
+                    if (!confArray.isArray()) {
+                        confArray = JSON.array().add(confArray);
+                    }
+                    for (var conf : confArray.asArray()) {
+                        var finalConfiguration = combineConfiguration(notifierConfiguration.get(notifierFactory.name()), conf.asObject());
+                        var notifier = Notifier.create(notifierFactory.name(), configuration, finalConfiguration);
+                        log.info("Configuring notifier " + notifierFactory.name() + " for repository " + repoName);
+                        notifier.attachTo(bot);
+                        hasAttachedNotifier = true;
+                    }
+                }
+            }
+
+            if (!hasAttachedNotifier) {
+                log.warning("No notifiers configured for notify bot repository: " + repoName);
+                continue;
+            }
+
             ret.add(bot);
         }
 
