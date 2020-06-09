@@ -82,7 +82,7 @@ class JsonNotifier implements Notifier, RepositoryListener {
     }
 
     @Override
-    public void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) throws NonRetriableException {
+    public void onNewCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) throws NonRetriableException {
         try (var writer = new JsonWriter(path, repository.name())) {
             for (var commit : commits) {
                 var json = commitToChanges(repository, localRepository, commit, defaultBuild);
@@ -94,7 +94,7 @@ class JsonNotifier implements Notifier, RepositoryListener {
     }
 
     @Override
-    public void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotation) throws NonRetriableException {
+    public void onNewOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotation) throws NonRetriableException {
         var build = String.format("b%02d", tag.buildNum());
         try (var writer = new JsonWriter(path, repository.name())) {
             var issues = new ArrayList<Issue>();

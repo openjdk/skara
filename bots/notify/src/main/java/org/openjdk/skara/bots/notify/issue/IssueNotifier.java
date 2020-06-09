@@ -73,7 +73,7 @@ class IssueNotifier implements Notifier, PullRequestListener {
     }
 
     @Override
-    public void handleIntegratedPullRequest(PullRequest pr, Hash hash)  {
+    public void onIntegratedPullRequest(PullRequest pr, Hash hash)  {
         var repository = pr.repository();
         var commit = repository.commitMetadata(hash).orElseThrow(() ->
                 new IllegalStateException("Integrated commit " + hash +
@@ -115,7 +115,7 @@ class IssueNotifier implements Notifier, PullRequestListener {
     }
 
     @Override
-    public void handleNewIssue(PullRequest pr, org.openjdk.skara.vcs.openjdk.Issue issue) {
+    public void onNewIssue(PullRequest pr, org.openjdk.skara.vcs.openjdk.Issue issue) {
         var realIssue = issueProject.issue(issue.shortId());
         if (realIssue.isEmpty()) {
             log.warning("Pull request " + pr + " added unknown issue: " + issue.id());
@@ -135,7 +135,7 @@ class IssueNotifier implements Notifier, PullRequestListener {
     }
 
     @Override
-    public void handleRemovedIssue(PullRequest pr, org.openjdk.skara.vcs.openjdk.Issue issue) {
+    public void onRemovedIssue(PullRequest pr, org.openjdk.skara.vcs.openjdk.Issue issue) {
         var realIssue = issueProject.issue(issue.shortId());
         if (realIssue.isEmpty()) {
             log.warning("Pull request " + pr + " removed unknown issue: " + issue.id());

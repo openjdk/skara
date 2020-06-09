@@ -84,12 +84,12 @@ public class RepositoryWorkItem implements WorkItem {
         }
         var branch = new Branch(ref.name());
         var parent = new Branch(bestParent.getKey().name());
-        listener.handleNewBranch(repository, localRepo, bestParentCommits, parent, branch);
+        listener.onNewBranch(repository, localRepo, bestParentCommits, parent, branch);
     }
 
     private void handleUpdatedRef(Repository localRepo, Reference ref, List<Commit> commits, RepositoryListener listener) throws NonRetriableException {
         var branch = new Branch(ref.name());
-        listener.handleCommits(repository, localRepo, commits, branch);
+        listener.onNewCommits(repository, localRepo, commits, branch);
     }
 
     private List<Throwable> handleRef(Repository localRepo, UpdateHistory history, Reference ref, Collection<Reference> allRefs) throws IOException {
@@ -208,7 +208,7 @@ public class RepositoryWorkItem implements WorkItem {
 
             history.addTags(List.of(tag.tag()), listener.name());
             try {
-                listener.handleOpenJDKTagCommits(repository, localRepo, commits, tag, annotation.orElse(null));
+                listener.onNewOpenJDKTagCommits(repository, localRepo, commits, tag, annotation.orElse(null));
             } catch (NonRetriableException e) {
                 errors.add(e.cause());
             } catch (RuntimeException e) {
@@ -230,7 +230,7 @@ public class RepositoryWorkItem implements WorkItem {
 
             history.addTags(List.of(tag), listener.name());
             try {
-                listener.handleTagCommit(repository, localRepo, commit.get(), tag, annotation.orElse(null));
+                listener.onNewTagCommit(repository, localRepo, commit.get(), tag, annotation.orElse(null));
             } catch (NonRetriableException e) {
                 errors.add(e.cause());
             } catch (RuntimeException e) {

@@ -50,7 +50,7 @@ public class UpdaterTests {
         }
 
         @Override
-        public void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits,
+        public void onNewCommits(HostedRepository repository, Repository localRepository, List<Commit> commits,
                                   Branch branch) throws NonRetriableException {
             updateCount++;
             if (shouldFail) {
@@ -63,19 +63,19 @@ public class UpdaterTests {
         }
 
         @Override
-        public void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository,
+        public void onNewOpenJDKTagCommits(HostedRepository repository, Repository localRepository,
          List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) {
             throw new RuntimeException("unexpected");
         }
 
         @Override
-        public void handleTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag,
+        public void onNewTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag,
          Tag.Annotated annotation) {
             throw new RuntimeException("unexpected");
         }
 
         @Override
-        public void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits,
+        public void onNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits,
          Branch parent, Branch branch) {
             throw new RuntimeException("unexpected");
         }

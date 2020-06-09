@@ -27,12 +27,12 @@ import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
 public interface PullRequestListener {
-    default void handleNewIssue(PullRequest pr, Issue issue) {
+    default void onNewIssue(PullRequest pr, Issue issue) {
     }
-    default void handleRemovedIssue(PullRequest pr, Issue issue) {
+    default void onRemovedIssue(PullRequest pr, Issue issue) {
     }
-    default void handleNewPullRequest(PullRequest pr) {
+    default void onNewPullRequest(PullRequest pr) {
     }
-    default void handleIntegratedPullRequest(PullRequest pr, Hash hash) {
+    default void onIntegratedPullRequest(PullRequest pr, Hash hash) {
     }
 }
