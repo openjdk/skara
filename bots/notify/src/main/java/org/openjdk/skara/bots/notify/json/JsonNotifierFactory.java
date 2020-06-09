@@ -28,7 +28,7 @@ import org.openjdk.skara.json.JSONObject;
 
 import java.nio.file.Path;
 
-public class JsonUpdaterFactory implements NotifierFactory {
+public class JsonNotifierFactory implements NotifierFactory {
     @Override
     public String name() {
         return "json";
@@ -40,6 +40,6 @@ public class JsonUpdaterFactory implements NotifierFactory {
         var build = notifierConfiguration.get("build").asString();
         var version = notifierConfiguration.get("version").asString();
 
-        return new JsonUpdater(Path.of(folder), version, build);
+        return new JsonNotifier(Path.of(folder), version, build);
     }
 }
