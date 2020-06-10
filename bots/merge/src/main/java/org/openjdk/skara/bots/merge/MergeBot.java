@@ -284,7 +284,7 @@ class MergeBot implements Bot, WorkItem {
     }
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         try {
             var sanitizedUrl =
                 URLEncoder.encode(fork.webUrl().toString(), StandardCharsets.UTF_8);
@@ -630,6 +630,7 @@ class MergeBot implements Bot, WorkItem {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+        return List.of();
     }
 
     @Override

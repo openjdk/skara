@@ -23,9 +23,9 @@
 package org.openjdk.skara.bot;
 
 import java.nio.file.Path;
+import java.util.*;
 
 public interface WorkItem {
-
     /**
      * Return true if this item can run concurrently with <code>other</code>, otherwise false.
      * @param other
@@ -37,7 +37,7 @@ public interface WorkItem {
      * Execute the appropriate tasks with the provided scratch folder.
      * @param scratchPath
      */
-    void run(Path scratchPath);
+    Collection<WorkItem> run(Path scratchPath);
 
     /**
      * The BotRunner will catch <code>RuntimeException</code>s, implementing this method allows a WorkItem to

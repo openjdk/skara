@@ -92,7 +92,7 @@ public class CommentPosterWorkItem implements WorkItem {
     }
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         var comments = pr.comments();
 
         var alreadyBridged = new HashSet<EmailAddress>();
@@ -117,6 +117,7 @@ public class CommentPosterWorkItem implements WorkItem {
             log.info("Bridging new message from " + message.author() + " to " + pr);
             postNewMessage(message);
         }
+        return List.of();
     }
 
     @Override

@@ -26,13 +26,11 @@ import org.openjdk.skara.bot.*;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.vcs.*;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Files;
+import java.io.*;
 import java.net.URLEncoder;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
+import java.util.*;
 import java.util.logging.Logger;
 
 class ForwardBot implements Bot, WorkItem {
@@ -65,7 +63,7 @@ class ForwardBot implements Bot, WorkItem {
     }
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         try {
             var sanitizedUrl =
                 URLEncoder.encode(toHostedRepo.webUrl().toString(), StandardCharsets.UTF_8);
@@ -92,6 +90,7 @@ class ForwardBot implements Bot, WorkItem {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+        return List.of();
     }
 
     @Override

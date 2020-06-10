@@ -83,8 +83,9 @@ class PullRequestCloserBotWorkItem implements WorkItem {
     }
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         checkWelcomeMessage();
+        return List.of();
     }
 
     @Override

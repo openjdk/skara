@@ -32,8 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Files;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -65,7 +64,7 @@ class TopologicalBot implements Bot, WorkItem {
     }
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         log.info("Starting topobot run");
         try {
             var sanitizedUrl = URLEncoder.encode(hostedRepo.webUrl().toString(), StandardCharsets.UTF_8);
@@ -121,6 +120,7 @@ class TopologicalBot implements Bot, WorkItem {
             throw new UncheckedIOException(e);
         }
         log.info("Ending topobot run");
+        return List.of();
     }
 
     private static Stream<Branch> dependencies(Repository repo, Hash hash, Path depsFile) throws IOException {

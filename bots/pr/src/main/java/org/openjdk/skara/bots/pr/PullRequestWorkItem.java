@@ -28,7 +28,7 @@ import org.openjdk.skara.forge.PullRequest;
 import java.util.function.Consumer;
 
 abstract class PullRequestWorkItem implements WorkItem {
-    private final Consumer<RuntimeException> errorHandler;
+    final Consumer<RuntimeException> errorHandler;
     final PullRequestBot bot;
     final PullRequest pr;
 

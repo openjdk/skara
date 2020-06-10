@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.bots.tester;
 
-import org.openjdk.skara.bot.*;
+import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.ci.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.vcs.*;
@@ -31,7 +31,6 @@ import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.*;
@@ -248,12 +247,12 @@ public class TestWorkItem implements WorkItem {
     }
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         var state = State.from(pr, approversGroupId);
         var stage = state.stage();
         if (stage == Stage.NA || stage == Stage.ERROR || stage == Stage.PENDING || stage == Stage.FINISHED) {
             // nothing to do
-            return;
+            return List.of();
         }
 
         if (stage == Stage.STARTED) {
@@ -374,7 +373,7 @@ public class TestWorkItem implements WorkItem {
                        "@" + state.requested().author().userName() + " the test " + wording + String.join(",", nonExistingJobs) + " does not exist"
                     );
                     pr.addComment(String.join("\n", lines));
-                    return;
+                    return List.of();
                 }
 
                 jobs = trimmedJobs;
@@ -434,6 +433,7 @@ public class TestWorkItem implements WorkItem {
         } else {
             throw new RuntimeException("Unexpected state " + state);
         }
+        return List.of();
     }
 
     @Override

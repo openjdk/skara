@@ -22,7 +22,8 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.forge.*;
+import org.openjdk.skara.bot.WorkItem;
+import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.*;
@@ -130,19 +131,19 @@ public class CommandWorkItem extends PullRequestWorkItem {
     }
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         log.info("Looking for merge commands");
 
         if (pr.labels().contains("integrated")) {
             log.info("Skip checking for commands in integrated PR");
-            return;
+            return List.of();
         }
 
         var comments = pr.comments();
         var unprocessedCommands = findCommandComments(comments);
         if (unprocessedCommands.isEmpty()) {
             log.fine("No new merge commands found, stopping further processing");
-            return;
+            return List.of();
         }
 
         if (HelpCommand.external == null) {
@@ -153,6 +154,9 @@ public class CommandWorkItem extends PullRequestWorkItem {
         for (var entry : unprocessedCommands) {
             processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), entry.getKey(), entry.getValue(), comments);
         }
+
+        // Run another check to reflect potential changes from commands
+        return List.of(new CheckWorkItem(bot, pr, errorHandler));
     }
 
     @Override

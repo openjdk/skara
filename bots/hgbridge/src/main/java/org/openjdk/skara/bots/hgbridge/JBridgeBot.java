@@ -29,7 +29,7 @@ import java.io.*;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class JBridgeBot implements Bot, WorkItem {
@@ -92,7 +92,7 @@ public class JBridgeBot implements Bot, WorkItem {
     }
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         log.fine("Running export for " + exporterConfig.source().toString());
 
         try {
@@ -142,5 +142,6 @@ public class JBridgeBot implements Bot, WorkItem {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+        return List.of();
     }
 }

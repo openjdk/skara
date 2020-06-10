@@ -30,9 +30,7 @@ import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.issuetracker.Issue;
 
 import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Logger;
 
 class CSRBot implements Bot, WorkItem {
@@ -63,7 +61,7 @@ class CSRBot implements Bot, WorkItem {
     }
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         var prs = repo.pullRequests();
         for (var pr : prs) {
             if (!cache.needsUpdate(pr)) {
@@ -132,6 +130,7 @@ class CSRBot implements Bot, WorkItem {
                 }
             }
         }
+        return List.of();
     }
 
     @Override

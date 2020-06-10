@@ -232,7 +232,7 @@ class ArchiveWorkItem implements WorkItem {
     }
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         var path = scratchPath.resolve("mlbridge");
         var archiveRepo = materializeArchive(path);
         var mboxBasePath = path.resolve(bot.codeRepo().name());
@@ -248,13 +248,13 @@ class ArchiveWorkItem implements WorkItem {
                 for (var readyLabel : bot.readyLabels()) {
                     if (!labels.contains(readyLabel)) {
                         log.fine("PR is not yet ready - missing label '" + readyLabel + "'");
-                        return;
+                        return List.of();
                     }
                 }
             } else {
                 if (!labels.contains("integrated")) {
                     log.fine("Closed PR was not integrated - will not initiate an RFR thread");
-                    return;
+                    return List.of();
                 }
             }
         }
@@ -276,7 +276,7 @@ class ArchiveWorkItem implements WorkItem {
                 if (!commentFound) {
                     log.fine("PR is not yet ready - missing ready comment from '" + readyComment.getKey() +
                                      "containing '" + readyComment.getValue().pattern() + "'");
-                    return;
+                    return List.of();
                 }
             }
         }
@@ -338,7 +338,7 @@ class ArchiveWorkItem implements WorkItem {
                                                       retryConsumer
                                                       );
             if (newMails.isEmpty()) {
-                return;
+                return List.of();
             }
 
             // Push all new mails to the archive repository
@@ -360,6 +360,7 @@ class ArchiveWorkItem implements WorkItem {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+        return List.of();
     }
 
     @Override

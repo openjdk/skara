@@ -28,7 +28,8 @@ import org.openjdk.skara.vcs.Repository;
 
 import java.io.*;
 import java.nio.file.Path;
-import java.time.*;
+import java.time.ZonedDateTime;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class SubmitBotWorkItem implements WorkItem {
@@ -67,7 +68,7 @@ public class SubmitBotWorkItem implements WorkItem {
     }
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         // Is the check already up to date?
         var checks = pr.checks(pr.headHash());
         if (checks.containsKey(executor.checkName())) {
@@ -76,7 +77,7 @@ public class SubmitBotWorkItem implements WorkItem {
                 log.info("Check for hash " + pr.headHash() + " is too old - running again");
             } else {
                 log.fine("Hash " + pr.headHash() + " already has a check - skipping");
-                return;
+                return List.of();
             }
         }
 
@@ -97,5 +98,7 @@ public class SubmitBotWorkItem implements WorkItem {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+
+        return List.of();
     }
 }
