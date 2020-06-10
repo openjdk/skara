@@ -42,18 +42,18 @@ public class RepositoryWorkItem implements WorkItem {
     private final Pattern branches;
     private final StorageBuilder<UpdatedTag> tagStorageBuilder;
     private final StorageBuilder<UpdatedBranch> branchStorageBuilder;
-    private final List<RepositoryUpdateConsumer> updaters;
+    private final List<RepositoryListener> listeners;
 
-    RepositoryWorkItem(HostedRepository repository, Path storagePath, Pattern branches, StorageBuilder<UpdatedTag> tagStorageBuilder, StorageBuilder<UpdatedBranch> branchStorageBuilder, List<RepositoryUpdateConsumer> updaters) {
+    RepositoryWorkItem(HostedRepository repository, Path storagePath, Pattern branches, StorageBuilder<UpdatedTag> tagStorageBuilder, StorageBuilder<UpdatedBranch> branchStorageBuilder, List<RepositoryListener> listeners) {
         this.repository = repository;
         this.storagePath = storagePath;
         this.branches = branches;
         this.tagStorageBuilder = tagStorageBuilder;
         this.branchStorageBuilder = branchStorageBuilder;
-        this.updaters = updaters;
+        this.listeners = listeners;
     }
 
-    private void handleNewRef(Repository localRepo, Reference ref, Collection<Reference> allRefs, RepositoryUpdateConsumer updater) throws NonRetriableException {
+    private void handleNewRef(Repository localRepo, Reference ref, Collection<Reference> allRefs, RepositoryListener listener) throws NonRetriableException {
         // Figure out the best parent ref
         var candidates = new HashSet<>(allRefs);
         candidates.remove(ref);
@@ -84,24 +84,24 @@ public class RepositoryWorkItem implements WorkItem {
         }
         var branch = new Branch(ref.name());
         var parent = new Branch(bestParent.getKey().name());
-        updater.handleNewBranch(repository, localRepo, bestParentCommits, parent, branch);
+        listener.handleNewBranch(repository, localRepo, bestParentCommits, parent, branch);
     }
 
-    private void handleUpdatedRef(Repository localRepo, Reference ref, List<Commit> commits, RepositoryUpdateConsumer updater) throws NonRetriableException {
+    private void handleUpdatedRef(Repository localRepo, Reference ref, List<Commit> commits, RepositoryListener listener) throws NonRetriableException {
         var branch = new Branch(ref.name());
-        updater.handleCommits(repository, localRepo, commits, branch);
+        listener.handleCommits(repository, localRepo, commits, branch);
     }
 
     private List<Throwable> handleRef(Repository localRepo, UpdateHistory history, Reference ref, Collection<Reference> allRefs) throws IOException {
         var errors = new ArrayList<Throwable>();
         var branch = new Branch(ref.name());
-        for (var updater : updaters) {
-            var lastHash = history.branchHash(branch, updater.name());
+        for (var listener : listeners) {
+            var lastHash = history.branchHash(branch, listener.name());
             if (lastHash.isEmpty()) {
-                log.warning("No previous history found for branch '" + branch + "' and updater '" + updater.name() + " - resetting mark");
-                history.setBranchHash(branch, updater.name(), ref.hash());
+                log.warning("No previous history found for branch '" + branch + "' and listener '" + listener.name() + " - resetting mark");
+                history.setBranchHash(branch, listener.name(), ref.hash());
                 try {
-                    handleNewRef(localRepo, ref, allRefs, updater);
+                    handleNewRef(localRepo, ref, allRefs, listener);
                 } catch (NonRetriableException e) {
                     errors.add(e.cause());
                 } catch (RuntimeException e) {
@@ -114,22 +114,22 @@ public class RepositoryWorkItem implements WorkItem {
                     continue;
                 }
                 if (commitMetadata.size() > 1000) {
-                    history.setBranchHash(branch, updater.name(), ref.hash());
+                    history.setBranchHash(branch, listener.name(), ref.hash());
                     errors.add(new RuntimeException("Excessive amount of new commits on branch " + branch.name() +
-                                                       " detected (" + commitMetadata.size() + ") for updater '" +
-                                                       updater.name() + "' - skipping notifications"));
+                                                       " detected (" + commitMetadata.size() + ") for listener '" +
+                                                       listener.name() + "' - skipping notifications"));
                     continue;
                 }
 
                 var commits = localRepo.commits(lastHash.get() + ".." + ref.hash(), true).asList();
-                history.setBranchHash(branch, updater.name(), ref.hash());
+                history.setBranchHash(branch, listener.name(), ref.hash());
                 try {
-                    handleUpdatedRef(localRepo, ref, commits, updater);
+                    handleUpdatedRef(localRepo, ref, commits, listener);
                 } catch (NonRetriableException e) {
                     errors.add(e.cause());
                 } catch (RuntimeException e) {
                     // Attempt to roll back
-                    history.setBranchHash(branch, updater.name(), lastHash.get());
+                    history.setBranchHash(branch, listener.name(), lastHash.get());
                     errors.add(e);
                 }
             }
@@ -151,23 +151,23 @@ public class RepositoryWorkItem implements WorkItem {
         }
     }
 
-    private List<Throwable> handleTags(Repository localRepo, UpdateHistory history, RepositoryUpdateConsumer updater) throws IOException {
+    private List<Throwable> handleTags(Repository localRepo, UpdateHistory history, RepositoryListener listener) throws IOException {
         var errors = new ArrayList<Throwable>();
         var tags = localRepo.tags();
         var newTags = tags.stream()
-                          .filter(tag -> !history.hasTag(tag, updater.name()))
+                          .filter(tag -> !history.hasTag(tag, listener.name()))
                           .collect(Collectors.toList());
 
         if (tags.size() == newTags.size()) {
             if (tags.size() > 0) {
                 log.warning("No previous tag history found - ignoring all current tags");
-                history.addTags(tags, updater.name());
+                history.addTags(tags, listener.name());
             }
             return errors;
         }
 
         if (newTags.size() > 10) {
-            history.addTags(newTags, updater.name());
+            history.addTags(newTags, listener.name());
             errors.add(new RuntimeException("Excessive amount of new tags detected (" + newTags.size() +
                                                ") - skipping notifications"));
             return errors;
@@ -206,14 +206,14 @@ public class RepositoryWorkItem implements WorkItem {
             Collections.reverse(commits);
             var annotation = localRepo.annotate(tag.tag());
 
-            history.addTags(List.of(tag.tag()), updater.name());
+            history.addTags(List.of(tag.tag()), listener.name());
             try {
-                updater.handleOpenJDKTagCommits(repository, localRepo, commits, tag, annotation.orElse(null));
+                listener.handleOpenJDKTagCommits(repository, localRepo, commits, tag, annotation.orElse(null));
             } catch (NonRetriableException e) {
                 errors.add(e.cause());
             } catch (RuntimeException e) {
                 errors.add(e);
-                history.retryTagUpdate(tag.tag(), updater.name());
+                history.retryTagUpdate(tag.tag(), listener.name());
             }
         }
 
@@ -228,14 +228,14 @@ public class RepositoryWorkItem implements WorkItem {
 
             var annotation = localRepo.annotate(tag);
 
-            history.addTags(List.of(tag), updater.name());
+            history.addTags(List.of(tag), listener.name());
             try {
-                updater.handleTagCommit(repository, localRepo, commit.get(), tag, annotation.orElse(null));
+                listener.handleTagCommit(repository, localRepo, commit.get(), tag, annotation.orElse(null));
             } catch (NonRetriableException e) {
                 errors.add(e.cause());
             } catch (RuntimeException e) {
                 errors.add(e);
-                history.retryTagUpdate(tag, updater.name());
+                history.retryTagUpdate(tag, listener.name());
             }
         }
 
@@ -270,17 +270,17 @@ public class RepositoryWorkItem implements WorkItem {
             var history = UpdateHistory.create(tagStorageBuilder, historyPath.resolve("tags"), branchStorageBuilder, historyPath.resolve("branches"));
             var errors = new ArrayList<Throwable>();
 
-            for (var updater : updaters) {
-                errors.addAll(handleTags(localRepo, history, updater));
+            for (var listener : listeners) {
+                errors.addAll(handleTags(localRepo, history, listener));
             }
 
             boolean hasBranchHistory = !history.isEmpty();
             for (var ref : knownRefs) {
                 if (!hasBranchHistory) {
                     log.warning("No previous history found for any branch - resetting mark for '" + ref.name());
-                    for (var updater : updaters) {
-                        log.info("Resetting mark for branch '" + ref.name() + "' for updater '" + updater.name() + "'");
-                        history.setBranchHash(new Branch(ref.name()), updater.name(), ref.hash());
+                    for (var listener : listeners) {
+                        log.info("Resetting mark for branch '" + ref.name() + "' for listener '" + listener.name() + "'");
+                        history.setBranchHash(new Branch(ref.name()), listener.name(), ref.hash());
                     }
                 } else {
                     errors.addAll(handleRef(localRepo, history, ref, knownRefs));

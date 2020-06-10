@@ -58,6 +58,14 @@ public class MailingListNotifierTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prStateStorageBuilder(prStateStorage)
+                                     .build();
             var updater = MailingListNotifier.newBuilder()
                                              .list(mailmanList)
                                              .recipient(listAddress)
@@ -68,15 +76,7 @@ public class MailingListNotifierTests {
                                              .headers(Map.of("extra1", "value1", "extra2", "value2"))
                                              .allowedAuthorDomains(Pattern.compile("none"))
                                              .build();
-            var notifyBot = NotifyBot.newBuilder()
-                                     .repository(repo)
-                                     .storagePath(storageFolder)
-                                     .branches(Pattern.compile("master"))
-                                     .tagStorageBuilder(tagStorage)
-                                     .branchStorageBuilder(branchStorage)
-                                     .prStateStorageBuilder(prStateStorage)
-                                     .updaters(List.of(updater))
-                                     .build();
+            updater.attachTo(notifyBot);
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -130,6 +130,14 @@ public class MailingListNotifierTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prStateStorageBuilder(prStateStorage)
+                                     .build();
             var updater = MailingListNotifier.newBuilder()
                                              .list(mailmanList)
                                              .recipient(listAddress)
@@ -138,15 +146,7 @@ public class MailingListNotifierTests {
                                              .reportNewBranches(false)
                                              .reportNewBuilds(false)
                                              .build();
-            var notifyBot = NotifyBot.newBuilder()
-                                     .repository(repo)
-                                     .storagePath(storageFolder)
-                                     .branches(Pattern.compile("master"))
-                                     .tagStorageBuilder(tagStorage)
-                                     .branchStorageBuilder(branchStorage)
-                                     .prStateStorageBuilder(prStateStorage)
-                                     .updaters(List.of(updater))
-                                     .build();
+            updater.attachTo(notifyBot);
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -202,6 +202,14 @@ public class MailingListNotifierTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prStateStorageBuilder(prStateStorage)
+                                     .build();
             var updater = MailingListNotifier.newBuilder()
                                              .list(mailmanList)
                                              .recipient(listAddress)
@@ -210,15 +218,7 @@ public class MailingListNotifierTests {
                                              .reportNewBranches(false)
                                              .reportNewBuilds(false)
                                              .build();
-            var notifyBot = NotifyBot.newBuilder()
-                                     .repository(repo)
-                                     .storagePath(storageFolder)
-                                     .branches(Pattern.compile("master"))
-                                     .tagStorageBuilder(tagStorage)
-                                     .branchStorageBuilder(branchStorage)
-                                     .prStateStorageBuilder(prStateStorage)
-                                     .updaters(List.of(updater))
-                                     .build();
+            updater.attachTo(notifyBot);
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -267,6 +267,14 @@ public class MailingListNotifierTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var author = EmailAddress.from("author", "author@duke.duke");
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master|another"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prStateStorageBuilder(prStateStorage)
+                                     .build();
             var updater = MailingListNotifier.newBuilder()
                                              .list(mailmanList)
                                              .recipient(listAddress)
@@ -277,15 +285,7 @@ public class MailingListNotifierTests {
                                              .reportNewBranches(false)
                                              .reportNewBuilds(false)
                                              .build();
-            var notifyBot = NotifyBot.newBuilder()
-                                     .repository(repo)
-                                     .storagePath(storageFolder)
-                                     .branches(Pattern.compile("master|another"))
-                                     .tagStorageBuilder(tagStorage)
-                                     .branchStorageBuilder(branchStorage)
-                                     .prStateStorageBuilder(prStateStorage)
-                                     .updaters(List.of(updater))
-                                     .build();
+            updater.attachTo(notifyBot);
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -365,6 +365,14 @@ public class MailingListNotifierTests {
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
             var author = EmailAddress.from("author", "author@duke.duke");
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master|other"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prStateStorageBuilder(prStateStorage)
+                                     .build();
             var updater = MailingListNotifier.newBuilder()
                                              .list(mailmanList)
                                              .recipient(listAddress)
@@ -376,15 +384,7 @@ public class MailingListNotifierTests {
                                              .includeBranch(true)
                                              .mode(MailingListNotifier.Mode.PR)
                                              .build();
-            var notifyBot = NotifyBot.newBuilder()
-                                     .repository(repo)
-                                     .storagePath(storageFolder)
-                                     .branches(Pattern.compile("master|other"))
-                                     .tagStorageBuilder(tagStorage)
-                                     .branchStorageBuilder(branchStorage)
-                                     .prStateStorageBuilder(prStateStorage)
-                                     .updaters(List.of(updater))
-                                     .build();
+            updater.attachTo(notifyBot);
 
             // Populate our known branches
             localRepo.push(masterHash, repo.url(), "master", true);
@@ -450,6 +450,14 @@ public class MailingListNotifierTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prStateStorageBuilder(prStateStorage)
+                                     .build();
             var updater = MailingListNotifier.newBuilder()
                                              .list(mailmanList)
                                              .recipient(listAddress)
@@ -459,15 +467,7 @@ public class MailingListNotifierTests {
                                              .reportNewBuilds(false)
                                              .mode(MailingListNotifier.Mode.PR)
                                              .build();
-            var notifyBot = NotifyBot.newBuilder()
-                                     .repository(repo)
-                                     .storagePath(storageFolder)
-                                     .branches(Pattern.compile("master"))
-                                     .tagStorageBuilder(tagStorage)
-                                     .branchStorageBuilder(branchStorage)
-                                     .prStateStorageBuilder(prStateStorage)
-                                     .updaters(List.of(updater))
-                                     .build();
+            updater.attachTo(notifyBot);
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -542,6 +542,14 @@ public class MailingListNotifierTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master|other"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prStateStorageBuilder(prStateStorage)
+                                     .build();
             var updater = MailingListNotifier.newBuilder()
                                              .list(mailmanList)
                                              .recipient(listAddress)
@@ -552,15 +560,7 @@ public class MailingListNotifierTests {
                                              .reportNewBuilds(false)
                                              .mode(MailingListNotifier.Mode.PR)
                                              .build();
-            var notifyBot = NotifyBot.newBuilder()
-                                     .repository(repo)
-                                     .storagePath(storageFolder)
-                                     .branches(Pattern.compile("master|other"))
-                                     .tagStorageBuilder(tagStorage)
-                                     .branchStorageBuilder(branchStorage)
-                                     .prStateStorageBuilder(prStateStorage)
-                                     .updaters(List.of(updater))
-                                     .build();
+            updater.attachTo(notifyBot);
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -637,6 +637,14 @@ public class MailingListNotifierTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prStateStorageBuilder(prStateStorage)
+                                     .build();
             var updater = MailingListNotifier.newBuilder()
                                              .list(mailmanList)
                                              .recipient(listAddress)
@@ -644,6 +652,8 @@ public class MailingListNotifierTests {
                                              .reportNewBranches(false)
                                              .headers(Map.of("extra1", "value1", "extra2", "value2"))
                                              .build();
+            updater.attachTo(notifyBot);
+
             var noTagsUpdater = MailingListNotifier.newBuilder()
                                                    .list(mailmanList)
                                                    .recipient(listAddress)
@@ -652,15 +662,7 @@ public class MailingListNotifierTests {
                                                    .reportNewBranches(false)
                                                    .reportNewBuilds(false)
                                                    .build();
-            var notifyBot = NotifyBot.newBuilder()
-                                     .repository(repo)
-                                     .storagePath(storageFolder)
-                                     .branches(Pattern.compile("master"))
-                                     .tagStorageBuilder(tagStorage)
-                                     .branchStorageBuilder(branchStorage)
-                                     .prStateStorageBuilder(prStateStorage)
-                                     .updaters(List.of(updater, noTagsUpdater))
-                                     .build();
+            noTagsUpdater.attachTo(notifyBot);
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -754,6 +756,14 @@ public class MailingListNotifierTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prStateStorageBuilder(prStateStorage)
+                                     .build();
             var updater = MailingListNotifier.newBuilder()
                                              .list(mailmanList)
                                              .recipient(listAddress)
@@ -762,6 +772,7 @@ public class MailingListNotifierTests {
                                              .reportNewBuilds(false)
                                              .headers(Map.of("extra1", "value1", "extra2", "value2"))
                                              .build();
+            updater.attachTo(notifyBot);
             var noTagsUpdater = MailingListNotifier.newBuilder()
                                                    .list(mailmanList)
                                                    .recipient(listAddress)
@@ -770,15 +781,7 @@ public class MailingListNotifierTests {
                                                    .reportNewBranches(false)
                                                    .reportNewBuilds(false)
                                                    .build();
-            var notifyBot = NotifyBot.newBuilder()
-                                     .repository(repo)
-                                     .storagePath(storageFolder)
-                                     .branches(Pattern.compile("master"))
-                                     .tagStorageBuilder(tagStorage)
-                                     .branchStorageBuilder(branchStorage)
-                                     .prStateStorageBuilder(prStateStorage)
-                                     .updaters(List.of(updater, noTagsUpdater))
-                                     .build();
+            noTagsUpdater.attachTo(notifyBot);
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -847,6 +850,14 @@ public class MailingListNotifierTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master|newbranch."))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prStateStorageBuilder(prStateStorage)
+                                     .build();
             var updater = MailingListNotifier.newBuilder()
                                              .list(mailmanList)
                                              .recipient(listAddress)
@@ -855,15 +866,7 @@ public class MailingListNotifierTests {
                                              .reportNewBuilds(false)
                                              .headers(Map.of("extra1", "value1", "extra2", "value2"))
                                              .build();
-            var notifyBot = NotifyBot.newBuilder()
-                                     .repository(repo)
-                                     .storagePath(storageFolder)
-                                     .branches(Pattern.compile("master|newbranch."))
-                                     .tagStorageBuilder(tagStorage)
-                                     .branchStorageBuilder(branchStorage)
-                                     .prStateStorageBuilder(prStateStorage)
-                                     .updaters(List.of(updater))
-                                     .build();
+            updater.attachTo(notifyBot);
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -927,6 +930,14 @@ public class MailingListNotifierTests {
             var storageFolder = tempFolder.path().resolve("storage");
 
             var sender = EmailAddress.from("duke", "duke@duke.duke");
+            var notifyBot = NotifyBot.newBuilder()
+                                     .repository(repo)
+                                     .storagePath(storageFolder)
+                                     .branches(Pattern.compile("master"))
+                                     .tagStorageBuilder(tagStorage)
+                                     .branchStorageBuilder(branchStorage)
+                                     .prStateStorageBuilder(prStateStorage)
+                                     .build();
             var updater = MailingListNotifier.newBuilder()
                                              .list(mailmanList)
                                              .recipient(listAddress)
@@ -937,15 +948,7 @@ public class MailingListNotifierTests {
                                              .headers(Map.of("extra1", "value1", "extra2", "value2"))
                                              .allowedAuthorDomains(Pattern.compile("none"))
                                              .build();
-            var notifyBot = NotifyBot.newBuilder()
-                                     .repository(repo)
-                                     .storagePath(storageFolder)
-                                     .branches(Pattern.compile("master"))
-                                     .tagStorageBuilder(tagStorage)
-                                     .branchStorageBuilder(branchStorage)
-                                     .prStateStorageBuilder(prStateStorage)
-                                     .updaters(List.of(updater))
-                                     .build();
+            updater.attachTo(notifyBot);
 
             // No mail should be sent on the first run as there is no history
             TestBotRunner.runPeriodicItems(notifyBot);

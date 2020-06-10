@@ -62,7 +62,6 @@ public class JsonNotifierTests {
             Files.createDirectory(jsonFolder);
             var storageFolder = tempFolder.path().resolve("storage");
 
-            var updater = new JsonNotifier(jsonFolder, "12", "team");
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -70,8 +69,10 @@ public class JsonNotifierTests {
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
                                      .prStateStorageBuilder(prStateStorage)
-                                     .updaters(List.of(updater))
                                      .build();
+
+            var updater = new JsonNotifier(jsonFolder, "12", "team");
+            updater.attachTo(notifyBot);
 
             TestBotRunner.runPeriodicItems(notifyBot);
             assertEquals(List.of(), findJsonFiles(jsonFolder, ""));
@@ -110,7 +111,6 @@ public class JsonNotifierTests {
             Files.createDirectory(jsonFolder);
             var storageFolder =tempFolder.path().resolve("storage");
 
-            var updater = new JsonNotifier(jsonFolder, "12", "team");
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -118,8 +118,10 @@ public class JsonNotifierTests {
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
                                      .prStateStorageBuilder(prStateStorage)
-                                     .updaters(List.of(updater))
                                      .build();
+
+            var updater = new JsonNotifier(jsonFolder, "12", "team");
+            updater.attachTo(notifyBot);
 
             TestBotRunner.runPeriodicItems(notifyBot);
             assertEquals(List.of(), findJsonFiles(jsonFolder, ""));

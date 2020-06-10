@@ -33,7 +33,7 @@ import java.net.URI;
 import java.util.*;
 import java.util.logging.Logger;
 
-class IssueNotifier implements PullRequestUpdateConsumer {
+class IssueNotifier implements Notifier, PullRequestListener {
     private final IssueProject issueProject;
     private final boolean reviewLink;
     private final URI reviewIcon;
@@ -53,11 +53,6 @@ class IssueNotifier implements PullRequestUpdateConsumer {
         return new IssueNotifierBuilder();
     }
 
-    @Override
-    public String name() {
-        return "issue";
-    }
-
     private Optional<String> findIssueUsername(CommitMetadata commit) {
         var authorEmail = EmailAddress.from(commit.author().email());
         if (authorEmail.domain().equals("openjdk.org")) {
@@ -70,6 +65,11 @@ class IssueNotifier implements PullRequestUpdateConsumer {
             return Optional.empty();
         }
         return Optional.of(committerEmail.localPart());
+    }
+
+    @Override
+    public void attachTo(Emitter e) {
+        e.registerPullRequestListener(this);
     }
 
     @Override

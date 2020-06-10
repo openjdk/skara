@@ -31,7 +31,7 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-public class NotifyBot implements Bot {
+public class NotifyBot implements Bot, Emitter {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final HostedRepository repository;
     private final Path storagePath;
@@ -39,8 +39,8 @@ public class NotifyBot implements Bot {
     private final StorageBuilder<UpdatedTag> tagStorageBuilder;
     private final StorageBuilder<UpdatedBranch> branchStorageBuilder;
     private final StorageBuilder<PullRequestState> prStateStorageBuilder;
-    private final List<RepositoryUpdateConsumer> updaters;
-    private final List<PullRequestUpdateConsumer> prUpdaters;
+    private final List<RepositoryListener> repoListeners = new ArrayList<>();
+    private final List<PullRequestListener> prListeners = new ArrayList<>();
     private final PullRequestUpdateCache updateCache;
     private final Set<String> readyLabels;
     private final Map<String, Pattern> readyComments;
@@ -48,7 +48,6 @@ public class NotifyBot implements Bot {
 
     NotifyBot(HostedRepository repository, Path storagePath, Pattern branches, StorageBuilder<UpdatedTag> tagStorageBuilder,
               StorageBuilder<UpdatedBranch> branchStorageBuilder, StorageBuilder<PullRequestState> prStateStorageBuilder,
-              List<RepositoryUpdateConsumer> updaters, List<PullRequestUpdateConsumer> prUpdaters,
               Set<String> readyLabels, Map<String, Pattern> readyComments, String integratorId) {
         this.repository = repository;
         this.storagePath = storagePath;
@@ -56,8 +55,6 @@ public class NotifyBot implements Bot {
         this.tagStorageBuilder = tagStorageBuilder;
         this.branchStorageBuilder = branchStorageBuilder;
         this.prStateStorageBuilder = prStateStorageBuilder;
-        this.updaters = updaters;
-        this.prUpdaters = prUpdaters;
         this.updateCache = new PullRequestUpdateCache();
         this.readyLabels = readyLabels;
         this.readyComments = readyComments;
@@ -99,6 +96,16 @@ public class NotifyBot implements Bot {
     }
 
     @Override
+    public void registerPullRequestListener(PullRequestListener listener) {
+        prListeners.add(listener);
+    }
+
+    @Override
+    public void registerRepositoryListener(RepositoryListener listener) {
+        repoListeners.add(listener);
+    }
+
+    @Override
     public String toString() {
         return "JNotifyBot@" + repository.name();
     }
@@ -116,14 +123,14 @@ public class NotifyBot implements Bot {
                 }
                 ret.add(new PullRequestWorkItem(pr,
                                                 prStateStorageBuilder,
-                                                prUpdaters,
+                                                prListeners,
                                                 e -> updateCache.invalidate(pr),
                                                 integratorId));
             }
         }
 
         // Repository events
-        ret.add(new RepositoryWorkItem(repository, storagePath, branches, tagStorageBuilder, branchStorageBuilder, updaters));
+        ret.add(new RepositoryWorkItem(repository, storagePath, branches, tagStorageBuilder, branchStorageBuilder, repoListeners));
 
         return ret;
     }
