@@ -157,19 +157,19 @@ public class PullRequestWorkItem implements WorkItem {
     }
 
     private void notifyNewIssue(String issueId) {
-        listeners.forEach(c -> c.handleNewIssue(pr, new Issue(issueId, "")));
+        listeners.forEach(c -> c.onNewIssue(pr, new Issue(issueId, "")));
     }
 
     private void notifyRemovedIssue(String issueId) {
-        listeners.forEach(c -> c.handleRemovedIssue(pr, new Issue(issueId, "")));
+        listeners.forEach(c -> c.onRemovedIssue(pr, new Issue(issueId, "")));
     }
 
     private void notifyNewPr(PullRequest pr) {
-        listeners.forEach(c -> c.handleNewPullRequest(pr));
+        listeners.forEach(c -> c.onNewPullRequest(pr));
     }
 
     private void notifyIntegratedPr(PullRequest pr, Hash hash) {
-        listeners.forEach(c -> c.handleIntegratedPullRequest(pr, hash));
+        listeners.forEach(c -> c.onIntegratedPullRequest(pr, hash));
     }
 
     @Override

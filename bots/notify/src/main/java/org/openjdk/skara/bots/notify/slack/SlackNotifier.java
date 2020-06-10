@@ -53,7 +53,7 @@ class SlackNotifier implements Notifier, RepositoryListener, PullRequestListener
     }
 
     @Override
-    public void handleNewPullRequest(PullRequest pr) {
+    public void onNewPullRequest(PullRequest pr) {
         if (prWebhook == null) {
             return;
         }
@@ -71,10 +71,10 @@ class SlackNotifier implements Notifier, RepositoryListener, PullRequestListener
     }
 
     @Override
-    public void handleCommits(HostedRepository repository,
-                              Repository localRepository,
-                              List<Commit> commits,
-                              Branch branch) throws NonRetriableException {
+    public void onNewCommits(HostedRepository repository,
+                             Repository localRepository,
+                             List<Commit> commits,
+                             Branch branch) throws NonRetriableException {
         if (commitWebhook == null) {
             return;
         }

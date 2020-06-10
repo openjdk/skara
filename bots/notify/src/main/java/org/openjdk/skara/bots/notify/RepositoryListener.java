@@ -29,13 +29,13 @@ import org.openjdk.skara.vcs.openjdk.OpenJDKTag;
 import java.util.List;
 
 public interface RepositoryListener {
-    default void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) throws NonRetriableException {
+    default void onNewCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) throws NonRetriableException {
     }
-    default void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) throws NonRetriableException {
+    default void onNewOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) throws NonRetriableException {
     }
-    default void handleTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag, Tag.Annotated annotation) throws NonRetriableException {
+    default void onNewTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag, Tag.Annotated annotation) throws NonRetriableException {
     }
-    default void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) throws NonRetriableException {
+    default void onNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) throws NonRetriableException {
     }
     String name();
 }
