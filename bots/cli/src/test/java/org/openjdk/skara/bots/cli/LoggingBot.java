@@ -27,7 +27,7 @@ import org.openjdk.skara.json.JSON;
 
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.logging.*;
@@ -76,7 +76,8 @@ public class LoggingBot implements Bot, WorkItem {
     }
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         runnable.accept(logger);
+        return List.of();
     }
 }

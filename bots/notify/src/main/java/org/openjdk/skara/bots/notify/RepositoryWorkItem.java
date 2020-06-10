@@ -255,7 +255,7 @@ public class RepositoryWorkItem implements WorkItem {
     }
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         var historyPath = scratchPath.resolve("notify").resolve("history");
         var repositoryPool = new HostedRepositoryPool(storagePath.resolve("seeds"));
 
@@ -293,6 +293,7 @@ public class RepositoryWorkItem implements WorkItem {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+        return List.of();
     }
 
     @Override

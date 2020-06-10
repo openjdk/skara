@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.issuetracker.*;
@@ -132,7 +133,7 @@ class CheckWorkItem extends PullRequestWorkItem {
     }
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         // First determine if the current state of the PR has already been checked
         var census = CensusInstance.create(bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr);
         var comments = pr.comments();
@@ -144,7 +145,7 @@ class CheckWorkItem extends PullRequestWorkItem {
         if (!currentCheckValid(census, comments, activeReviews, labels)) {
             if (labels.contains("integrated")) {
                 log.info("Skipping check of integrated PR");
-                return;
+                return List.of();
             }
 
             try {
@@ -158,5 +159,6 @@ class CheckWorkItem extends PullRequestWorkItem {
                 throw new UncheckedIOException(e);
             }
         }
+        return List.of();
     }
 }

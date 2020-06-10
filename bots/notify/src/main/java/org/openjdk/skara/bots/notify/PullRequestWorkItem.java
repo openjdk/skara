@@ -24,7 +24,6 @@ package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.PullRequest;
-import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.storage.StorageBuilder;
 import org.openjdk.skara.vcs.Hash;
@@ -32,7 +31,7 @@ import org.openjdk.skara.vcs.openjdk.Issue;
 
 import java.nio.file.Path;
 import java.util.*;
-import java.util.function.*;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.*;
 
@@ -174,7 +173,7 @@ public class PullRequestWorkItem implements WorkItem {
     }
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         var historyPath = scratchPath.resolve("notify").resolve("history");
         var storage = prStateStorageBuilder
                 .serializer(this::serializePrState)
@@ -187,7 +186,7 @@ public class PullRequestWorkItem implements WorkItem {
         var stored = storage.current();
         if (stored.contains(state)) {
             // Already up to date
-            return;
+            return List.of();
         }
 
         // Search for an existing
@@ -216,6 +215,7 @@ public class PullRequestWorkItem implements WorkItem {
         }
 
         storage.put(state);
+        return List.of();
     }
 
     @Override

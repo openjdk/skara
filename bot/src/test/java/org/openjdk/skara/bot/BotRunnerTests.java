@@ -22,11 +22,8 @@
  */
 package org.openjdk.skara.bot;
 
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
-import org.openjdk.skara.json.JSON;
-
 import org.junit.jupiter.api.*;
+import org.openjdk.skara.json.JSON;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -35,7 +32,7 @@ import java.util.concurrent.*;
 import java.util.function.Supplier;
 import java.util.logging.*;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestWorkItem implements WorkItem {
     private final ConcurrencyCheck concurrencyCheck;
@@ -57,9 +54,10 @@ class TestWorkItem implements WorkItem {
     }
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         hasRun = true;
         System.out.println("Item " + this.toString() + " now running");
+        return List.of();
     }
 
     @Override
@@ -79,6 +77,23 @@ class TestWorkItemChild extends TestWorkItem {
     }
 }
 
+class TestWorkItemWithFollowup extends TestWorkItem {
+    private List<WorkItem> followUpItems;
+
+    TestWorkItemWithFollowup(ConcurrencyCheck concurrencyCheck, String description, List<WorkItem> followUpItems) {
+        super(concurrencyCheck, description);
+
+        this.followUpItems = followUpItems;
+    }
+
+    @Override
+    public Collection<WorkItem> run(Path scratchPath) {
+        hasRun = true;
+        System.out.println("Item with followups " + this.toString() + " now running");
+        return followUpItems;
+    }
+}
+
 class TestBlockedWorkItem implements WorkItem {
     private final CountDownLatch countDownLatch;
 
@@ -92,7 +107,7 @@ class TestBlockedWorkItem implements WorkItem {
     }
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         System.out.println("Starting to wait...");;
         try {
             countDownLatch.await();
@@ -100,11 +115,11 @@ class TestBlockedWorkItem implements WorkItem {
             throw new RuntimeException(e);
         }
         System.out.println("Done waiting");
+        return List.of();
     }
 }
 
 class TestBot implements Bot {
-
     private final List<WorkItem> items;
     private final Supplier<List<WorkItem>> itemSupplier;
 
@@ -129,7 +144,6 @@ class TestBot implements Bot {
 }
 
 class BotRunnerTests {
-
     @BeforeAll
     static void setUp() {
         Logger log = Logger.getGlobal();
@@ -305,5 +319,21 @@ class BotRunnerTests {
         assertTrue(errors.size() > 0);
         assertTrue(errors.size() <= 100);
         countdownLatch.countDown();
+    }
+
+    @Test
+    void dependentItems() throws TimeoutException {
+        var item2 = new TestWorkItem(i -> true, "Item 2");
+        var item3 = new TestWorkItem(i -> true, "Item 3");
+
+        var item1 = new TestWorkItemWithFollowup(i -> true, "Item 1", List.of(item2, item3));
+        var bot = new TestBot(item1);
+        var runner = new BotRunner(config(), List.of(bot));
+
+        runner.runOnce(Duration.ofSeconds(10));
+
+        assertTrue(item1.hasRun);
+        assertTrue(item2.hasRun);
+        assertTrue(item3.hasRun);
     }
 }

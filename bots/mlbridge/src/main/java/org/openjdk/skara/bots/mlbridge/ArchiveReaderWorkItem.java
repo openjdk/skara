@@ -27,6 +27,7 @@ import org.openjdk.skara.mailinglist.MailingList;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.*;
 
 public class ArchiveReaderWorkItem implements WorkItem {
     private final MailingListArchiveReaderBot bot;
@@ -55,11 +56,12 @@ public class ArchiveReaderWorkItem implements WorkItem {
     }
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         // Give the bot a chance to act on all found messages
         var conversations = list.conversations(Duration.ofDays(365));
         for (var conversation : conversations) {
             bot.inspect(conversation);
         }
+        return List.of();
     }
 }

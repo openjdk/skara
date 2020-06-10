@@ -76,7 +76,7 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
     private final String noticeMarker = "<!-- PullrequestCloserBot auto close notification -->";
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         var comments = pr.comments();
         if (comments.size() > 0) {
             var lastComment = comments.get(comments.size() - 1);
@@ -87,7 +87,7 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
                 log.fine("Posting prune message");
                 pr.addComment(message);
                 pr.setState(PullRequest.State.CLOSED);
-                return;
+                return List.of();
             }
         }
 
@@ -98,6 +98,7 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
 
         log.fine("Posting prune notification message");
         pr.addComment(noticeMarker + "\n\n" + message);
+        return List.of();
     }
 
     @Override

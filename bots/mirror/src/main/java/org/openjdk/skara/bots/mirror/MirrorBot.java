@@ -26,15 +26,13 @@ import org.openjdk.skara.bot.*;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.vcs.*;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Files;
+import java.io.*;
 import java.net.URLEncoder;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
+import java.util.*;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 class MirrorBot implements Bot, WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
@@ -66,7 +64,7 @@ class MirrorBot implements Bot, WorkItem {
     }
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         try {
             var sanitizedUrl =
                 URLEncoder.encode(to.webUrl().toString(), StandardCharsets.UTF_8);
@@ -104,6 +102,7 @@ class MirrorBot implements Bot, WorkItem {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+        return List.of();
     }
 
     @Override

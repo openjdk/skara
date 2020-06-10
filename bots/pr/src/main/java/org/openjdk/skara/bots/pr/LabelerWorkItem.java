@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.vcs.Repository;
 
@@ -47,9 +48,9 @@ public class LabelerWorkItem extends PullRequestWorkItem {
     }
 
     @Override
-    public void run(Path scratchPath) {
+    public Collection<WorkItem> run(Path scratchPath) {
         if (bot.currentLabels().containsKey(pr.headHash())) {
-            return;
+            return List.of();
         }
         try {
             var path = scratchPath.resolve("pr").resolve("labeler").resolve(pr.repository().name());
@@ -75,5 +76,6 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+        return List.of();
     }
 }
