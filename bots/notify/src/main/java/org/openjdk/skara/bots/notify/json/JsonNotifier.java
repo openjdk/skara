@@ -32,12 +32,12 @@ import java.nio.file.Path;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-public class JsonUpdater implements RepositoryUpdateConsumer {
+class JsonNotifier implements RepositoryUpdateConsumer {
     private final Path path;
     private final String version;
     private final String defaultBuild;
 
-    public JsonUpdater(Path path, String version, String defaultBuild) {
+    JsonNotifier(Path path, String version, String defaultBuild) {
         this.path = path;
         this.version = version;
         this.defaultBuild = defaultBuild;
@@ -78,7 +78,7 @@ public class JsonUpdater implements RepositoryUpdateConsumer {
 
     @Override
     public void handleCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) throws NonRetriableException {
-        try (var writer = new JsonUpdateWriter(path, repository.name())) {
+        try (var writer = new JsonWriter(path, repository.name())) {
             for (var commit : commits) {
                 var json = commitToChanges(repository, localRepository, commit, defaultBuild);
                 writer.write(json);
@@ -91,7 +91,7 @@ public class JsonUpdater implements RepositoryUpdateConsumer {
     @Override
     public void handleOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotation) throws NonRetriableException {
         var build = String.format("b%02d", tag.buildNum());
-        try (var writer = new JsonUpdateWriter(path, repository.name())) {
+        try (var writer = new JsonWriter(path, repository.name())) {
             var issues = new ArrayList<Issue>();
             for (var commit : commits) {
                 var parsedMessage = CommitMessageParsers.v1.parse(commit);
@@ -102,14 +102,6 @@ public class JsonUpdater implements RepositoryUpdateConsumer {
         } catch (RuntimeException e) {
             throw new NonRetriableException(e);
         }
-    }
-
-    @Override
-    public void handleTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag, Tag.Annotated annotation) {
-    }
-
-    @Override
-    public void handleNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) {
     }
 
     @Override

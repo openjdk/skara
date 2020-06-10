@@ -29,7 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.UUID;
 
-public class JsonUpdateWriter implements AutoCloseable {
+class JsonWriter implements AutoCloseable {
 
     private int sequence = 0;
     private final String baseName;
@@ -51,7 +51,7 @@ public class JsonUpdateWriter implements AutoCloseable {
         current = JSON.array();
     }
 
-    JsonUpdateWriter(Path path, String projectName) {
+    JsonWriter(Path path, String projectName) {
         this.path = path;
 
         var uuid = UUID.randomUUID();

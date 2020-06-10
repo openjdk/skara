@@ -20,10 +20,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.bots.notify;
+package org.openjdk.skara.bots.notify.json;
 
 import org.junit.jupiter.api.*;
-import org.openjdk.skara.bots.notify.json.JsonUpdater;
+import org.openjdk.skara.bots.notify.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.test.*;
 
@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.openjdk.skara.bots.notify.UpdaterTests.*;
 
-public class JsonUpdaterTests {
+public class JsonNotifierTests {
     private List<Path> findJsonFiles(Path folder, String partialName) throws IOException {
         return Files.walk(folder)
                     .filter(path -> path.toString().endsWith(".json"))
@@ -46,7 +46,7 @@ public class JsonUpdaterTests {
     }
 
     @Test
-    void testJsonUpdaterBranch(TestInfo testInfo) throws IOException {
+    void testJsonNotifierBranch(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
@@ -62,7 +62,7 @@ public class JsonUpdaterTests {
             Files.createDirectory(jsonFolder);
             var storageFolder = tempFolder.path().resolve("storage");
 
-            var updater = new JsonUpdater(jsonFolder, "12", "team");
+            var updater = new JsonNotifier(jsonFolder, "12", "team");
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
@@ -92,7 +92,7 @@ public class JsonUpdaterTests {
     }
 
     @Test
-    void testJsonUpdaterTag(TestInfo testInfo) throws IOException {
+    void testJsonNotifierTag(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
@@ -110,7 +110,7 @@ public class JsonUpdaterTests {
             Files.createDirectory(jsonFolder);
             var storageFolder =tempFolder.path().resolve("storage");
 
-            var updater = new JsonUpdater(jsonFolder, "12", "team");
+            var updater = new JsonNotifier(jsonFolder, "12", "team");
             var notifyBot = NotifyBot.newBuilder()
                                      .repository(repo)
                                      .storagePath(storageFolder)
