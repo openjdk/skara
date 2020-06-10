@@ -34,8 +34,10 @@ public interface WorkItem {
     boolean concurrentWith(WorkItem other);
 
     /**
-     * Execute the appropriate tasks with the provided scratch folder.
+     * Execute the appropriate tasks with the provided scratch folder. Optionally return follow-up work items
+     * that will be scheduled for execution.
      * @param scratchPath
+     * @return A collection of follow-up work items, allowed to be empty (or null) if none are needed.
      */
     Collection<WorkItem> run(Path scratchPath);
 
