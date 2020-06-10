@@ -35,23 +35,9 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.openjdk.skara.bots.notify.TestUtils.*;
 
 public class UpdaterTests {
-    public static StorageBuilder<UpdatedTag> createTagStorage(HostedRepository repository) {
-        return new StorageBuilder<UpdatedTag>("tags.txt")
-                .remoteRepository(repository, "history", "Duke", "duke@openjdk.java.net", "Updated tags");
-    }
-
-    public static StorageBuilder<UpdatedBranch> createBranchStorage(HostedRepository repository) {
-        return new StorageBuilder<UpdatedBranch>("branches.txt")
-                .remoteRepository(repository, "history", "Duke", "duke@openjdk.java.net", "Updated branches");
-    }
-
-    public static StorageBuilder<PullRequestState> createPullRequestStateStorage(HostedRepository repository) {
-        return new StorageBuilder<PullRequestState>("prissues.txt")
-                .remoteRepository(repository, "history", "Duke", "duke@openjdk.java.net", "Updated prissues");
-    }
-
     private static class TestRepositoryListener implements Notifier, RepositoryListener {
         private final String name;
         private final boolean idempotent;
