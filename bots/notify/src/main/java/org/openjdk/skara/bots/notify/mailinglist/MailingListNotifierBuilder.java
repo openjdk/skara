@@ -28,7 +28,7 @@ import org.openjdk.skara.mailinglist.MailingList;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-public class MailingListUpdaterBuilder {
+class MailingListNotifierBuilder {
     private MailingList list;
     private EmailAddress recipient;
     private EmailAddress sender;
@@ -37,69 +37,69 @@ public class MailingListUpdaterBuilder {
     private boolean reportNewTags = true;
     private boolean reportNewBranches = true;
     private boolean reportNewBuilds = true;
-    private MailingListUpdater.Mode mode = MailingListUpdater.Mode.ALL;
+    private MailingListNotifier.Mode mode = MailingListNotifier.Mode.ALL;
     private Map<String, String> headers = Map.of();
     private Pattern allowedAuthorDomains = Pattern.compile(".*");
     private boolean repoInSubject = false;
     private Pattern branchInSubject = Pattern.compile("a^"); // Does not match anything
 
-    public MailingListUpdaterBuilder list(MailingList list) {
+    public MailingListNotifierBuilder list(MailingList list) {
         this.list = list;
         return this;
     }
 
-    public MailingListUpdaterBuilder recipient(EmailAddress recipient) {
+    public MailingListNotifierBuilder recipient(EmailAddress recipient) {
         this.recipient = recipient;
         return this;
     }
 
-    public MailingListUpdaterBuilder sender(EmailAddress sender) {
+    public MailingListNotifierBuilder sender(EmailAddress sender) {
         this.sender = sender;
         return this;
     }
 
-    public MailingListUpdaterBuilder author(EmailAddress author) {
+    public MailingListNotifierBuilder author(EmailAddress author) {
         this.author = author;
         return this;
     }
 
-    public MailingListUpdaterBuilder includeBranch(boolean includeBranch) {
+    public MailingListNotifierBuilder includeBranch(boolean includeBranch) {
         this.includeBranch = includeBranch;
         return this;
     }
 
-    public MailingListUpdaterBuilder reportNewTags(boolean reportNewTags) {
+    public MailingListNotifierBuilder reportNewTags(boolean reportNewTags) {
         this.reportNewTags = reportNewTags;
         return this;
     }
 
-    public MailingListUpdaterBuilder reportNewBranches(boolean reportNewBranches) {
+    public MailingListNotifierBuilder reportNewBranches(boolean reportNewBranches) {
         this.reportNewBranches = reportNewBranches;
         return this;
     }
 
-    public MailingListUpdaterBuilder reportNewBuilds(boolean reportNewBuilds) {
+    public MailingListNotifierBuilder reportNewBuilds(boolean reportNewBuilds) {
         this.reportNewBuilds = reportNewBuilds;
         return this;
     }
 
-    public MailingListUpdaterBuilder mode(MailingListUpdater.Mode mode) {
+    public MailingListNotifierBuilder mode(MailingListNotifier.Mode mode) {
         this.mode = mode;
         return this;
     }
 
-    public MailingListUpdaterBuilder headers(Map<String, String> headers) {
+    public MailingListNotifierBuilder headers(Map<String, String> headers) {
         this.headers = headers;
         return this;
     }
 
-    public MailingListUpdaterBuilder allowedAuthorDomains(Pattern allowedAuthorDomains) {
+    public MailingListNotifierBuilder allowedAuthorDomains(Pattern allowedAuthorDomains) {
         this.allowedAuthorDomains = allowedAuthorDomains;
         return this;
     }
 
-    public MailingListUpdater build() {
-        return new MailingListUpdater(list, recipient, sender, author, includeBranch, reportNewTags, reportNewBranches,
+    public MailingListNotifier build() {
+        return new MailingListNotifier(list, recipient, sender, author, includeBranch, reportNewTags, reportNewBranches,
                                       reportNewBuilds, mode, headers, allowedAuthorDomains);
     }
 }
