@@ -27,39 +27,39 @@ import org.openjdk.skara.issuetracker.IssueProject;
 import java.net.URI;
 import java.util.Map;
 
-public class IssueUpdaterBuilder {
+class IssueNotifierBuilder {
     private IssueProject issueProject;
     private boolean reviewLink = true;
     private URI reviewIcon = null;
     private boolean commitLink = true;
     private URI commitIcon = null;
 
-    public IssueUpdaterBuilder issueProject(IssueProject issueProject) {
+    IssueNotifierBuilder issueProject(IssueProject issueProject) {
         this.issueProject = issueProject;
         return this;
     }
 
-    public IssueUpdaterBuilder reviewLink(boolean reviewLink) {
+    IssueNotifierBuilder reviewLink(boolean reviewLink) {
         this.reviewLink = reviewLink;
         return this;
     }
 
-    public IssueUpdaterBuilder reviewIcon(URI reviewIcon) {
+    IssueNotifierBuilder reviewIcon(URI reviewIcon) {
         this.reviewIcon = reviewIcon;
         return this;
     }
 
-    public IssueUpdaterBuilder commitLink(boolean commitLink) {
+    IssueNotifierBuilder commitLink(boolean commitLink) {
         this.commitLink = commitLink;
         return this;
     }
 
-    public IssueUpdaterBuilder commitIcon(URI commitIcon) {
+    IssueNotifierBuilder commitIcon(URI commitIcon) {
         this.commitIcon = commitIcon;
         return this;
     }
 
-    public IssueUpdater build() {
-        return new IssueUpdater(issueProject, reviewLink, reviewIcon, commitLink, commitIcon);
+    IssueNotifier build() {
+        return new IssueNotifier(issueProject, reviewLink, reviewIcon, commitLink, commitIcon);
     }
 }
