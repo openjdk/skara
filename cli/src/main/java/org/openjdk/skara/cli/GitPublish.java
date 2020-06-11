@@ -231,6 +231,9 @@ public class GitPublish {
         } else {
             err = push(remote, branch, isQuiet);
         }
-        System.exit(err);
+
+        if (err != 0) {
+            System.exit(err);
+        }
     }
 }
