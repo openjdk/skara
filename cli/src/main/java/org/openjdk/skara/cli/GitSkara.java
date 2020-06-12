@@ -24,6 +24,7 @@ package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.Main;
 import org.openjdk.skara.vcs.Repository;
+import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 import org.openjdk.skara.version.Version;
 
 import java.io.IOException;
@@ -134,7 +135,7 @@ public class GitSkara {
         }
 
         var head = repo.get().head();
-        System.out.print("Checking for updates ...");
+        System.out.println("Checking for updates ...");
         repo.get().pull();
         for (var s : repo.get().submodules()) {
             repo.get().updateSubmodule(s);
@@ -142,7 +143,12 @@ public class GitSkara {
         var newHead = repo.get().head();
 
         if (!head.equals(newHead)) {
-            System.out.println("updates downloaded");
+            System.out.println("Found the following updates:");
+            var commits = repo.get().commitMetadata(head, newHead);
+            for (var commit : commits) {
+                var message = CommitMessageParsers.v1.parse(commit);
+                System.out.println("- " + message.title());
+            }
             System.out.println("Rebuilding ...");
             var cmd = new ArrayList<String>();
             if (System.getProperty("os.name").toLowerCase().startsWith("win")) {
@@ -161,7 +167,7 @@ public class GitSkara {
                 System.exit(1);
             }
         } else {
-            System.out.println("no updates found");
+            System.out.println("No updates found");
         }
     }
 
