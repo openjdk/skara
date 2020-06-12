@@ -27,6 +27,7 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.storage.StorageBuilder;
 
 import java.nio.file.Path;
+import java.time.*;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -45,6 +46,8 @@ public class NotifyBot implements Bot, Emitter {
     private final Set<String> readyLabels;
     private final Map<String, Pattern> readyComments;
     private final String integratorId;
+
+    private ZonedDateTime lastFullUpdate;
 
     NotifyBot(HostedRepository repository, Path storagePath, Pattern branches, StorageBuilder<UpdatedTag> tagStorageBuilder,
               StorageBuilder<UpdatedBranch> branchStorageBuilder, StorageBuilder<PullRequestState> prStateStorageBuilder,
@@ -113,9 +116,19 @@ public class NotifyBot implements Bot, Emitter {
     @Override
     public List<WorkItem> getPeriodicItems() {
         var ret = new LinkedList<WorkItem>();
+        List<PullRequest> prs;
+
+        // Fetch all open pull requests periodically, and just the recently updated ones in between
+        if (lastFullUpdate == null || lastFullUpdate.isBefore(ZonedDateTime.now().minus(Duration.ofMinutes(10)))) {
+            lastFullUpdate = ZonedDateTime.now();
+            log.info("Fetching all open pull requests");
+            prs = repository.pullRequests();
+        } else {
+            log.info("Fetching recently updated pull requests (open and closed)");
+            prs = repository.pullRequests(ZonedDateTime.now().minus(Duration.ofDays(14)));
+        }
 
         // Pull request events
-        var prs = repository.pullRequests();
         for (var pr : prs) {
             if (updateCache.needsUpdate(pr)) {
                 if (!isReady(pr)) {
