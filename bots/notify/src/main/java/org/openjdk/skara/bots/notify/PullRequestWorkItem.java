@@ -191,13 +191,14 @@ public class PullRequestWorkItem implements WorkItem {
         var storedState = stored.stream()
                 .filter(ss -> ss.prId().equals(state.prId()))
                 .findAny();
-        if (storedState.isPresent()) {
-            // The stored entry could be old and be missing commit information - if so, upgrade it
-            if (storedState.get().commitId().isPresent() && storedState.get().commitId().get().equals(Hash.zero())) {
-                var hash = resultingCommitHashFor(pr);
-                storedState = Optional.of(new PullRequestState(pr, issues, hash));
-            }
+        // The stored entry could be old and be missing commit information - if so, upgrade it
+        if (storedState.isPresent() && storedState.get().commitId().equals(Optional.of(Hash.zero()))) {
+            var hash = resultingCommitHashFor(pr);
+            storedState = Optional.of(new PullRequestState(pr, storedState.get().issueIds(), hash));
+            storage.put(storedState.get());
+        }
 
+        if (storedState.isPresent()) {
             var storedIssues = storedState.get().issueIds();
             storedIssues.stream()
                         .filter(issue -> !issues.contains(issue))
