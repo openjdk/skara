@@ -23,7 +23,8 @@
 package org.openjdk.skara.bots.notify.issue;
 
 import org.junit.jupiter.api.*;
-import org.openjdk.skara.bots.notify.*;
+import org.openjdk.skara.bots.notify.NotifyBot;
+import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.*;
 
@@ -323,6 +324,7 @@ public class IssueNotifierTests {
             // Simulate integration
             pr.addComment("Pushed as commit " + editHash.hex() + ".");
             pr.addLabel("integrated");
+            pr.setState(Issue.State.CLOSED);
             localRepo.push(editHash, repo.url(), "other");
             TestBotRunner.runPeriodicItems(notifyBot);
 
