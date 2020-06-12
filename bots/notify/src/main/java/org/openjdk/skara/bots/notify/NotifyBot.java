@@ -66,7 +66,7 @@ public class NotifyBot implements Bot, Emitter {
         return new NotifyBotBuilder();
     }
 
-    private boolean isReady(PullRequest pr) {
+    private boolean isOfInterest(PullRequest pr) {
         var labels = new HashSet<>(pr.labels());
         if (!(labels.contains("rfr") || labels.contains("integrated"))) {
             log.fine("PR is not yet ready - needs either 'rfr' or 'integrated' label");
@@ -127,7 +127,7 @@ public class NotifyBot implements Bot, Emitter {
         // Pull request events
         for (var pr : prs) {
             if (updateCache.needsUpdate(pr)) {
-                if (!isReady(pr)) {
+                if (!isOfInterest(pr)) {
                     continue;
                 }
                 ret.add(new PullRequestWorkItem(pr,
