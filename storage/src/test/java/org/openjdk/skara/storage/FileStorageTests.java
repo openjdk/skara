@@ -79,4 +79,51 @@ class FileStorageTests {
 
         Files.delete(tmpFile);
     }
+
+    private static class CountingDeserializer implements StorageDeserializer<String> {
+        private int counter = 0;
+
+        CountingDeserializer() {
+        }
+
+        int counter() {
+            return counter;
+        }
+
+        @Override
+        public Set<String> deserialize(String serialized) {
+            counter++;
+            return Arrays.stream(serialized.split(";"))
+                         .filter(str -> !str.isEmpty())
+                         .collect(Collectors.toSet());
+        }
+    }
+
+    @Test
+    void cached() throws IOException {
+        var tmpFile = Files.createTempFile("filestorage", ".txt");
+        var deserializer = new CountingDeserializer();
+        var storage = new FileStorage<String>(tmpFile,
+                                              (added, cur) -> Stream.concat(cur.stream(), added.stream())
+                                                                    .sorted()
+                                                                    .collect(Collectors.joining(";")),
+                                              deserializer);
+        assertEquals(Set.of(), storage.current());
+        assertEquals(1, deserializer.counter());
+
+        // Another call to current() should not cause deseralization
+        storage.current();
+        assertEquals(1, deserializer.counter());
+
+        // Updated content should cause deseralization
+        storage.put("hello there");
+        assertEquals(Set.of("hello there"), storage.current());
+        assertEquals(2, deserializer.counter());
+
+        // Another call to current() should not cause deseralization
+        assertEquals(Set.of("hello there"), storage.current());
+        assertEquals(2, deserializer.counter());
+
+        Files.delete(tmpFile);
+    }
 }

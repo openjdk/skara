@@ -29,7 +29,9 @@ import java.util.*;
 
 class FileStorage<T> implements Storage<T> {
     private final Path file;
+    private String old;
     private String current;
+    private Set<T> deserialized;
     private StorageSerializer<T> serializer;
     private StorageDeserializer<T> deserializer;
 
@@ -48,7 +50,11 @@ class FileStorage<T> implements Storage<T> {
                 current = "";
             }
         }
-        return Collections.unmodifiableSet(deserializer.deserialize(current));
+        if (old != current) {
+            deserialized = Collections.unmodifiableSet(deserializer.deserialize(current));
+            old = current;
+        }
+        return deserialized;
     }
 
     @Override
