@@ -82,14 +82,7 @@ public class PullRequestWorkItem implements WorkItem {
 
                        // Storage might be missing commit information
                        if (!obj.contains("commit")) {
-                           var prId = id.split(":")[1];
-                           var currentPR = pr.repository().pullRequest(prId);
-                           var hash = resultingCommitHashFor(currentPR);
-                           if (hash == null) {
-                               obj.putNull("commit");
-                           } else {
-                               obj.put("commit", hash.hex());
-                           }
+                           obj.put("commit", Hash.zero().hex());
                        }
 
                        var commit = obj.get("commit").isNull() ?
@@ -116,11 +109,16 @@ public class PullRequestWorkItem implements WorkItem {
                                                              .stream()
                                                              .map(JSON::of)
                                                              .collect(Collectors.toList()));
-                                var commit = pr.commitId().isPresent()?
-                                    JSON.of(pr.commitId().get().hex()) : JSON.of();
-                                return JSON.object().put("pr", pr.prId())
-                                                    .put("issues",issues)
-                                                    .put("commit", commit);
+                                var ret = JSON.object().put("pr", pr.prId())
+                                              .put("issues",issues);
+                                if (pr.commitId().isPresent()) {
+                                    if (!pr.commitId().get().equals(Hash.zero())) {
+                                        ret.put("commit", JSON.of(pr.commitId().get().hex()));
+                                    }
+                                } else {
+                                    ret.putNull("commit");
+                                }
+                                return ret;
                             })
                             .map(JSONObject::toString)
                             .collect(Collectors.toList());
@@ -193,6 +191,13 @@ public class PullRequestWorkItem implements WorkItem {
         var storedState = stored.stream()
                 .filter(ss -> ss.prId().equals(state.prId()))
                 .findAny();
+        // The stored entry could be old and be missing commit information - if so, upgrade it
+        if (storedState.isPresent() && storedState.get().commitId().equals(Optional.of(Hash.zero()))) {
+            var hash = resultingCommitHashFor(pr);
+            storedState = Optional.of(new PullRequestState(pr, storedState.get().issueIds(), hash));
+            storage.put(storedState.get());
+        }
+
         if (storedState.isPresent()) {
             var storedIssues = storedState.get().issueIds();
             storedIssues.stream()
