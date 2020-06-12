@@ -36,7 +36,6 @@ public class NotifyBotBuilder {
     private StorageBuilder<UpdatedTag> tagStorageBuilder;
     private StorageBuilder<UpdatedBranch> branchStorageBuilder;
     private StorageBuilder<PullRequestState> prStateStorageBuilder;
-    private Set<String> readyLabels = Set.of();
     private Map<String, Pattern> readyComments = Map.of();
     private String integratorId;
 
@@ -70,11 +69,6 @@ public class NotifyBotBuilder {
         return this;
     }
 
-    public NotifyBotBuilder readyLabels(Set<String> readyLabels) {
-        this.readyLabels = readyLabels;
-        return this;
-    }
-
     public NotifyBotBuilder readyComments(Map<String, Pattern> readyComments) {
         this.readyComments = readyComments;
         return this;
@@ -86,6 +80,6 @@ public class NotifyBotBuilder {
     }
 
     public NotifyBot build() {
-        return new NotifyBot(repository, storagePath, branches, tagStorageBuilder, branchStorageBuilder, prStateStorageBuilder, readyLabels, readyComments, integratorId);
+        return new NotifyBot(repository, storagePath, branches, tagStorageBuilder, branchStorageBuilder, prStateStorageBuilder, readyComments, integratorId);
     }
 }

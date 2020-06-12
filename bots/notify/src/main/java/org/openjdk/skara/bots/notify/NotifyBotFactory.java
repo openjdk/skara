@@ -63,9 +63,6 @@ public class NotifyBotFactory implements BotFactory {
         var databaseName = database.get("name").asString();
         var databaseEmail = database.get("email").asString();
 
-        var readyLabels = specific.get("ready").get("labels").stream()
-                                  .map(JSONValue::asString)
-                                  .collect(Collectors.toSet());
         var readyComments = specific.get("ready").get("comments").stream()
                                     .map(JSONValue::asObject)
                                     .collect(Collectors.toMap(obj -> obj.get("user").asString(),
@@ -104,7 +101,6 @@ public class NotifyBotFactory implements BotFactory {
                                .tagStorageBuilder(tagStorageBuilder)
                                .branchStorageBuilder(branchStorageBuilder)
                                .prStateStorageBuilder(prStateStorageBuilder)
-                               .readyLabels(readyLabels)
                                .readyComments(readyComments)
                                .integratorId(integratorId)
                                .build();

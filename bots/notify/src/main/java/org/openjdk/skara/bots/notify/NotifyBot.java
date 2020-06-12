@@ -43,7 +43,6 @@ public class NotifyBot implements Bot, Emitter {
     private final List<RepositoryListener> repoListeners = new ArrayList<>();
     private final List<PullRequestListener> prListeners = new ArrayList<>();
     private final PullRequestUpdateCache updateCache;
-    private final Set<String> readyLabels;
     private final Map<String, Pattern> readyComments;
     private final String integratorId;
 
@@ -51,7 +50,7 @@ public class NotifyBot implements Bot, Emitter {
 
     NotifyBot(HostedRepository repository, Path storagePath, Pattern branches, StorageBuilder<UpdatedTag> tagStorageBuilder,
               StorageBuilder<UpdatedBranch> branchStorageBuilder, StorageBuilder<PullRequestState> prStateStorageBuilder,
-              Set<String> readyLabels, Map<String, Pattern> readyComments, String integratorId) {
+              Map<String, Pattern> readyComments, String integratorId) {
         this.repository = repository;
         this.storagePath = storagePath;
         this.branches = branches;
@@ -59,7 +58,6 @@ public class NotifyBot implements Bot, Emitter {
         this.branchStorageBuilder = branchStorageBuilder;
         this.prStateStorageBuilder = prStateStorageBuilder;
         this.updateCache = new PullRequestUpdateCache();
-        this.readyLabels = readyLabels;
         this.readyComments = readyComments;
         this.integratorId = integratorId;
     }
@@ -70,11 +68,9 @@ public class NotifyBot implements Bot, Emitter {
 
     private boolean isReady(PullRequest pr) {
         var labels = new HashSet<>(pr.labels());
-        for (var readyLabel : readyLabels) {
-            if (!labels.contains(readyLabel)) {
-                log.fine("PR is not yet ready - missing label '" + readyLabel + "'");
-                return false;
-            }
+        if (!(labels.contains("rfr") || labels.contains("integrated"))) {
+            log.fine("PR is not yet ready - needs either 'rfr' or 'integrated' label");
+            return false;
         }
 
         var comments = pr.comments();

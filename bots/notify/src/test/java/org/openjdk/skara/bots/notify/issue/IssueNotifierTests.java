@@ -131,7 +131,6 @@ public class IssueNotifierTests {
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
                                      .prStateStorageBuilder(prStateStorage)
-                                     .readyLabels(Set.of("rfr"))
                                      .readyComments(Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("This is now ready")))
                                      .build();
             var updater = IssueNotifier.newBuilder()
@@ -232,7 +231,6 @@ public class IssueNotifierTests {
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
                                      .prStateStorageBuilder(prStateStorage)
-                                     .readyLabels(Set.of("rfr"))
                                      .readyComments(Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("This is now ready")))
                                      .build();
             var updater = IssueNotifier.newBuilder()
@@ -313,6 +311,7 @@ public class IssueNotifierTests {
             localRepo.push(editHash, repo.url(), "edit", true);
             var pr = credentials.createPullRequest(repo, "other", "edit", issue.id() + ": Fix that issue");
             pr.setBody("\n\n### Issue\n * [" + issue.id() + "](http://www.test.test/): The issue");
+            pr.addLabel("rfr");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The issue should now contain a link to the PR
