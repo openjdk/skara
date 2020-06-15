@@ -337,10 +337,11 @@ public class GitLabRepository implements HostedRepository {
                                       .collect(Collectors.toList());
         var author = new Author(c.get("author_name").asString(),
                                 c.get("author_email").asString());
+        var authored = ZonedDateTime.parse(c.get("authored_date").asString());
         var committer = new Author(c.get("committer_name").asString(),
                                    c.get("committer_email").asString());
-        var date = ZonedDateTime.parse(c.get("authored_date").asString());
+        var committed = ZonedDateTime.parse(c.get("comitted_date").asString());
         var message = Arrays.asList(c.get("message").asString().split("\n"));
-        return Optional.of(new CommitMetadata(hash, parents, author, committer, date, message));
+        return Optional.of(new CommitMetadata(hash, parents, author, authored, committer, committed, message));
     }
 }

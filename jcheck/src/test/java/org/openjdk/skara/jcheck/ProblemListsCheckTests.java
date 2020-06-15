@@ -152,8 +152,8 @@ class ProblemListsCheckTests {
         var author = new Author("foo", "foo@host.org");
         var hash = new Hash(("" + id).repeat(40));
         var parents = List.of(Hash.zero());
-        var date = ZonedDateTime.now();
-        var metadata = new CommitMetadata(hash, parents, author, author, date, List.of(message));
+        var authored = ZonedDateTime.now();
+        var metadata = new CommitMetadata(hash, parents, author, authored, author, authored, List.of(message));
         return new Commit(metadata, List.of());
     }
 

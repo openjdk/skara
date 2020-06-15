@@ -59,8 +59,8 @@ class BinaryCheckTests {
         var hash = new Hash("0123456789012345678901234567890123456789");
         var parents = List.of(hash, hash);
         var message = List.of("A commit");
-        var date = ZonedDateTime.now();
-        var metadata = new CommitMetadata(hash, parents, author, author, date, message);
+        var authored = ZonedDateTime.now();
+        var metadata = new CommitMetadata(hash, parents, author, authored, author, authored, message);
         return new Commit(metadata, parentDiffs);
     }
 

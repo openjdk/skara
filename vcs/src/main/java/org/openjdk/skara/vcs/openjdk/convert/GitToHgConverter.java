@@ -221,14 +221,14 @@ public class GitToHgConverter implements Converter {
             if (parents.size() == 1 && patches0.isEmpty()) {
                 var tmp = Files.createFile(hgRoot.resolve("THIS_IS_A_REALLY_UNIQUE_FILE_NAME_THAT_CANT_POSSIBLY_BE_USED"));
                 hgRepo.add(tmp);
-                hgRepo.commit(hgMessage, hgAuthor, null, commit.date());
+                hgRepo.commit(hgMessage, hgAuthor, null, commit.authored());
                 hgRepo.remove(tmp);
                 hgHash = hgRepo.amend(hgMessage, hgAuthor, null);
             } else {
                 hgHash = hgRepo.commit(hgMessage,
                                        hgAuthor,
                                        null,
-                                       commit.date());
+                                       commit.authored());
             }
             log.fine("Converted hg hash: " + hgHash.hex());
             gitToHg.put(commit.hash(), hgHash);

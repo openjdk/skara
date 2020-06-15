@@ -72,7 +72,7 @@ class ReviewArchive {
 
     private boolean hasLegacyIntegrationNotice(Repository localRepo, Commit commit) {
         // Commits before this date are assumed to have been serviced by the old PR notifier
-        return commit.date().isBefore(ZonedDateTime.of(2020, 4, 28, 14, 0, 0, 0, ZoneId.of("UTC")));
+        return commit.authored().isBefore(ZonedDateTime.of(2020, 4, 28, 14, 0, 0, 0, ZoneId.of("UTC")));
     }
 
     private List<ArchiveItem> generateArchiveItems(List<Email> sentEmails, Repository localRepo, URI issueTracker, String issuePrefix, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, String subjectPrefix) throws IOException {

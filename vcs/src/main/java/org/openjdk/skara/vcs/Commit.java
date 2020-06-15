@@ -63,8 +63,12 @@ public class Commit {
         return metadata.isInitialCommit();
     }
 
-    public ZonedDateTime date() {
-        return metadata.date();
+    public ZonedDateTime authored() {
+        return metadata.authored();
+    }
+
+    public ZonedDateTime committed() {
+        return metadata.committed();
     }
 
     public boolean isMerge() {
