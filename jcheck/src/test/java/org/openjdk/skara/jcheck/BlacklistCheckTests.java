@@ -42,11 +42,10 @@ class BlacklistCheckTests {
 
     private static Commit commit(Hash hash) {
         var author = new Author("Foo", "foo@bar.org");
-        var committer = author;
         var parents = List.of(new Hash("12345789012345789012345678901234567890"));
-        var date = ZonedDateTime.now();
+        var authored = ZonedDateTime.now();
         var message = List.of("Initial commit");
-        var metadata = new CommitMetadata(hash, parents, author, committer, date, message);
+        var metadata = new CommitMetadata(hash, parents, author, authored, author, authored, message);
         return new Commit(metadata, List.of());
     }
 

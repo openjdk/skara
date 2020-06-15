@@ -304,10 +304,11 @@ public class GitHubRepository implements HostedRepository {
         var commit = o.get("commit").asObject();
         var author = new Author(commit.get("author").get("name").asString(),
                                 commit.get("author").get("email").asString());
+        var authored = ZonedDateTime.parse(commit.get("author").get("date").asString());
         var committer = new Author(commit.get("committer").get("name").asString(),
                                    commit.get("committer").get("email").asString());
-        var date = ZonedDateTime.parse(commit.get("author").get("date").asString());
+        var committed = ZonedDateTime.parse(commit.get("committer").get("date").asString());
         var message = Arrays.asList(commit.get("message").asString().split("\n"));
-        return Optional.of(new CommitMetadata(hash, parents, author, committer, date, message));
+        return Optional.of(new CommitMetadata(hash, parents, author, authored, committer, committed, message));
     }
 }

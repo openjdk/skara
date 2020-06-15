@@ -39,9 +39,10 @@ class GitCommitMetadata {
     private static final String parentsFormat = "%P";
     private static final String authorNameFormat = "%an";
     private static final String authorEmailFormat = "%ae";
+    private static final String authorDateFormat = "%aI";
     private static final String committerNameFormat = "%cn";
     private static final String committerEmailFormat = "%ce";
-    private static final String timestampFormat = "%aI";
+    private static final String committerDateFormat = "%cI";
 
     private static final String messageDelimiter = "=@=@=@=@=@";
     private static final String messageFormat = "%B" + messageDelimiter;
@@ -51,9 +52,10 @@ class GitCommitMetadata {
                                                     parentsFormat,
                                                     authorNameFormat,
                                                     authorEmailFormat,
+                                                    authorDateFormat,
                                                     committerNameFormat,
                                                     committerEmailFormat,
-                                                    timestampFormat,
+                                                    committerDateFormat,
                                                     messageFormat);
 
     public static CommitMetadata read(UnixStreamReader reader) throws IOException {
@@ -69,20 +71,24 @@ class GitCommitMetadata {
             parents.add(new Hash(parentHash));
         }
 
+        var dateFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+
         var authorName = reader.readLine();
         log.finer("authorName: " + authorName);
         var authorEmail = reader.readLine();
         log.finer("authorEmail: " + authorEmail);
         var author = new Author(authorName, authorEmail);
+        var authored = ZonedDateTime.parse(reader.readLine(), dateFormatter);
+        log.finer("authorDate: " + authored);
 
         var committerName = reader.readLine();
         log.finer("committerName: " + committerName);
         var committerEmail = reader.readLine();
         log.finer("committerEmail " + committerName);
         var committer = new Author(committerName, committerEmail);
+        var committed = ZonedDateTime.parse(reader.readLine(), dateFormatter);
+        log.finer("committerDate: " + committed);
 
-        var formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
-        var date = ZonedDateTime.parse(reader.readLine(), formatter);
 
         var message = new ArrayList<String>();
         var line = reader.readLine();
@@ -96,6 +102,6 @@ class GitCommitMetadata {
             message.add(prefix);
         }
 
-        return new CommitMetadata(hash, parents, author, committer, date, message);
+        return new CommitMetadata(hash, parents, author, authored, committer, committed, message);
     }
 }

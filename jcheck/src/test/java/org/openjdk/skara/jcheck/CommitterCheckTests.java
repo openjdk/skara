@@ -80,7 +80,7 @@ class CommitterCheckTests {
         var parents = List.of(hash, hash);
         var date = ZonedDateTime.now();
         var message = List.of("Merge");
-        var metadata = new CommitMetadata(hash, parents, author, committer, date, message);
+        var metadata = new CommitMetadata(hash, parents, author, date, committer, date, message);
         return new Commit(metadata, List.of());
     }
 
@@ -89,7 +89,7 @@ class CommitterCheckTests {
         var parents = List.of(new Hash("12345789012345789012345678901234567890"));
         var date = ZonedDateTime.now();
         var message = List.of("Initial commit");
-        var metadata = new CommitMetadata(hash, parents, author, committer, date, message);
+        var metadata = new CommitMetadata(hash, parents, author, date, committer, date, message);
         return new Commit(metadata, List.of());
     }
 

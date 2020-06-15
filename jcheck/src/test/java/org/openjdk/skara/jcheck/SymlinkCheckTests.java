@@ -71,8 +71,8 @@ class SymlinkCheckTests {
         var author = new Author("foo", "foo@localhost");
         var hash = new Hash("0123456789012345678901234567890123456789");
         var parents = List.of(hash);
-        var date = ZonedDateTime.now();
-        var metadata = new CommitMetadata(hash, parents, author, author, date, List.of("Added symlink"));
+        var authored = ZonedDateTime.now();
+        var metadata = new CommitMetadata(hash, parents, author, authored, author, authored, List.of("Added symlink"));
         return new Commit(metadata, diffs);
     }
 

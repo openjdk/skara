@@ -508,8 +508,8 @@ public class HgToGitConverter implements Converter {
                 pipe.print(" <");
                 pipe.print(author.email());
                 pipe.print("> ");
-                var epoch = commit.date().toEpochSecond();
-                var offset = commit.date().format(DateTimeFormatter.ofPattern("xx"));
+                var epoch = commit.authored().toEpochSecond();
+                var offset = commit.authored().format(DateTimeFormatter.ofPattern("xx"));
                 pipe.print(epoch);
                 pipe.print(" ");
                 pipe.println(offset);

@@ -60,8 +60,8 @@ class HgTagCommitCheckTests {
     private static Commit commit(Hash hash, List<String> message, List<Diff> parentDiffs) {
         var author = new Author("Foo Bar", "foo@bar.org");
         var parents = List.of(new Hash("12345789012345789012345678901234567890"));
-        var date = ZonedDateTime.now();
-        var metadata = new CommitMetadata(hash, parents, author, author, date, message);
+        var authored = ZonedDateTime.now();
+        var metadata = new CommitMetadata(hash, parents, author, authored, author, authored, message);
         return new Commit(metadata, parentDiffs);
     }
 
@@ -70,8 +70,8 @@ class HgTagCommitCheckTests {
         var parents = List.of(new Hash("12345789012345789012345678901234567890"),
                               new Hash("12345789012345789012345678901234567890"));
         var message = List.of("Merge");
-        var date = ZonedDateTime.now();
-        var metadata = new CommitMetadata(Hash.zero(), parents, author, author, date, message);
+        var authored = ZonedDateTime.now();
+        var metadata = new CommitMetadata(Hash.zero(), parents, author, authored, author, authored, message);
         return new Commit(metadata, List.of());
     }
 

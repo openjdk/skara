@@ -89,7 +89,7 @@ class SlackNotifier implements Notifier, RepositoryListener, PullRequestListener
                 query.put("text", branch.name() + ": " + commit.hash().abbreviate() + ": " + title + "\n" +
                                   "Author: " + commit.author().name() + "\n" +
                                   "Committer: " + commit.author().name() + "\n" +
-                                  "Date: " + commit.date().format(DateTimeFormatter.RFC_1123_DATE_TIME) + "\n");
+                                  "Date: " + commit.authored().format(DateTimeFormatter.RFC_1123_DATE_TIME) + "\n");
 
                 var attachment = JSON.object();
                 attachment.put("fallback", "Link to commit");

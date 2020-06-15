@@ -43,11 +43,12 @@ class AuthorCheckTests {
 
     private static Commit commit(Author author) {
         var committer = new Author("Foo", "foo@bar.org");
+        var committed = ZonedDateTime.now();
         var hash = new Hash("0123456789012345678901234567890123456789");
         var parents = List.of(new Hash("12345789012345789012345678901234567890"));
-        var date = ZonedDateTime.now();
+        var authored = ZonedDateTime.now();
         var message = List.of("Initial commit");
-        var metadata = new CommitMetadata(hash, parents, author, committer, date, message);
+        var metadata = new CommitMetadata(hash, parents, author, authored, committer, committed, message);
         return new Commit(metadata, List.of());
     }
 

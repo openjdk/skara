@@ -101,13 +101,13 @@ class ReviewersCheckTests {
     private static Commit commit(Author author, List<String> reviewers) {
         var hash = new Hash("0123456789012345678901234567890123456789");
         var parents = List.of(new Hash("12345789012345789012345678901234567890"));
-        var date = ZonedDateTime.now();
+        var authored = ZonedDateTime.now();
         var message = new ArrayList<String>();
         message.addAll(List.of("Initial commit"));
         if (!reviewers.isEmpty()) {
             message.addAll(List.of("", "Reviewed-by: " + String.join(", ", reviewers)));
         }
-        var metadata = new CommitMetadata(hash, parents, author, author, date, message);
+        var metadata = new CommitMetadata(hash, parents, author, authored, author, authored, message);
         return new Commit(metadata, List.of());
     }
 

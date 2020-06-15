@@ -38,7 +38,7 @@ public class CommitFormatters {
         if (!commit.author().equals(commit.committer())) {
             printer.println("Committer: " + commit.committer().name() + " <" + commit.committer().email() + ">");
         }
-        printer.println("Date:      " + commit.date().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss +0000")));
+        printer.println("Date:      " + commit.authored().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss +0000")));
         printer.println("URL:       " + repository.webUrl(commit.hash()));
 
         return writer.toString();

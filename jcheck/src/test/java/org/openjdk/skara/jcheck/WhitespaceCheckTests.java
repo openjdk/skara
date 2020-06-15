@@ -66,9 +66,9 @@ class WhitespaceCheckTests {
         var author = new Author("Foo Bar", "foo@bar.org");
         var hash = new Hash("0123456789012345678901234567890123456789");
         var parents = List.of(new Hash("12345789012345789012345678901234567890"));
-        var date = ZonedDateTime.now();
+        var authored = ZonedDateTime.now();
         var message = List.of("Initial commit", "", "Reviewed-by: baz");
-        var metadata = new CommitMetadata(hash, parents, author, author, date, message);
+        var metadata = new CommitMetadata(hash, parents, author, authored, author, authored, message);
         return new Commit(metadata, parentDiffs);
     }
 

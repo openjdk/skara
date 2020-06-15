@@ -30,18 +30,21 @@ public class CommitMetadata {
     private final Hash hash;
     private final List<Hash> parents;
     private final Author author;
+    private final ZonedDateTime authored;
     private final Author committer;
-    private final ZonedDateTime date;
+    private final ZonedDateTime committed;
     private final List<String> message;
 
     public CommitMetadata(Hash hash, List<Hash> parents,
-                          Author author, Author committer,
-                          ZonedDateTime date, List<String> message) {
+                          Author author, ZonedDateTime authored,
+                          Author committer, ZonedDateTime committed,
+                          List<String> message) {
         this.hash = hash;
         this.parents = parents;
         this.author = author;
+        this.authored = authored;
         this.committer = committer;
-        this.date = date;
+        this.committed = committed;
         this.message = message;
     }
 
@@ -65,8 +68,12 @@ public class CommitMetadata {
         return parents;
     }
 
-    public ZonedDateTime date() {
-        return date;
+    public ZonedDateTime authored() {
+        return authored;
+    }
+
+    public ZonedDateTime committed() {
+        return committed;
     }
 
     public boolean isInitialCommit() {
@@ -84,14 +91,14 @@ public class CommitMetadata {
     @Override
     public String toString() {
         final var formatter = DateTimeFormatter.RFC_1123_DATE_TIME;
-        final var displayDate = date.format(formatter);
+        final var displayDate = authored.format(formatter);
         return String.format("%s  %-12s  %s  %s",
                              hash().toString(), author(), displayDate, message.get(0));
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(hash, parents, author, committer, date, message);
+        return Objects.hash(hash, parents, author, authored, committer, committed, message);
     }
 
     @Override
@@ -104,8 +111,9 @@ public class CommitMetadata {
         return Objects.equals(hash, other.hash) &&
                Objects.equals(parents, other.parents) &&
                Objects.equals(author, other.author) &&
+               Objects.equals(authored, other.authored) &&
                Objects.equals(committer, other.committer) &&
-               Objects.equals(date, other.date) &&
+               Objects.equals(committed, other.committed) &&
                Objects.equals(message, other.message);
     }
 }

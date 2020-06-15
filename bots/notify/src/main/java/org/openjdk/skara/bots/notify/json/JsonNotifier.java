@@ -56,7 +56,7 @@ class JsonNotifier implements Notifier, RepositoryListener {
         }
         ret.put("issue", issueIds);
         ret.put("user", commit.author().name());
-        ret.put("date", commit.date().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss +0000")));
+        ret.put("date", commit.authored().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss +0000")));
 
         return ret;
     }

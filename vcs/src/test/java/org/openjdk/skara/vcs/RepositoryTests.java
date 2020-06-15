@@ -2299,4 +2299,28 @@ public class RepositoryTests {
             assertThrows(IOException.class, () -> Repository.get(dir.path()));
         }
     }
+
+    @Test
+    void testCommitterDate() throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var repo = Repository.init(dir.path(), VCS.GIT);
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            repo.add(readme);
+            var authored = ZonedDateTime.parse("2020-06-15T14:27:13+02:00");
+            var committed = authored.plusMinutes(10);
+            var head = repo.commit("Add README",
+                                   "author", "author@openjdk.java.net", authored,
+                                   "committer", "committer@openjdk.java.net", committed);
+            var commit = repo.lookup(head).orElseThrow();
+            assertEquals("author", commit.author().name());
+            assertEquals("author@openjdk.java.net", commit.author().email());
+            assertEquals(authored, commit.authored());
+
+            assertEquals("committer", commit.committer().name());
+            assertEquals("committer@openjdk.java.net", commit.committer().email());
+            assertEquals(committed, commit.committed());
+        }
+    }
 }
