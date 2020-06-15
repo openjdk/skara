@@ -89,7 +89,7 @@ class ReviewArchive {
             }
         } else {
             if (pr.state() != Issue.State.OPEN) {
-                threadPrefix = "FYI";
+                threadPrefix = "Integrated";
             }
         }
 
@@ -152,7 +152,7 @@ class ReviewArchive {
                 if (hash.isPresent()) {
                     var commit = localRepo.lookup(hash.get());
                     if (!hasLegacyIntegrationNotice(localRepo, commit.orElseThrow())) {
-                        var reply = ArchiveItem.integratedNotice(pr, localRepo, commit.orElseThrow(), hostUserToEmailAuthor, parent, subjectPrefix, threadPrefix);
+                        var reply = ArchiveItem.integratedNotice(pr, localRepo, commit.orElseThrow(), hostUserToEmailAuthor, parent, subjectPrefix);
                         generated.add(reply);
                     }
                 } else {
@@ -160,10 +160,10 @@ class ReviewArchive {
                 }
             } else if (localRepo.isAncestor(pr.headHash(), pr.targetHash())) {
                 var commit = localRepo.lookup(pr.headHash());
-                var reply = ArchiveItem.integratedNotice(pr, localRepo, commit.orElseThrow(), hostUserToEmailAuthor, parent, subjectPrefix, threadPrefix);
+                var reply = ArchiveItem.integratedNotice(pr, localRepo, commit.orElseThrow(), hostUserToEmailAuthor, parent, subjectPrefix);
                 generated.add(reply);
             } else if (threadPrefix.equals("RFR")) {
-                var reply = ArchiveItem.closedNotice(pr, hostUserToEmailAuthor, parent, subjectPrefix, threadPrefix);
+                var reply = ArchiveItem.closedNotice(pr, hostUserToEmailAuthor, parent, subjectPrefix);
                 generated.add(reply);
             }
         }

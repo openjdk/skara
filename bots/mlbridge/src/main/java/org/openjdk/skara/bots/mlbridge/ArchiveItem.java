@@ -156,7 +156,7 @@ class ArchiveItem {
                             ZonedDateTime created, ZonedDateTime updated, Hash lastBase, Hash lastHead, Hash base,
                             Hash head, int index, ArchiveItem parent, String subjectPrefix, String threadPrefix) {
         return new ArchiveItem(parent,"ha" + head.hex(), created, updated, pr.author(), Map.of("PR-Head-Hash", head.hex(), "PR-Base-Hash", base.hex()),
-                               () -> String.format("Re: %s[Rev %02d] %s%s", subjectPrefix, index, threadPrefix + (threadPrefix.isEmpty() ? "" : ": "), pr.title()),
+                               () -> String.format("Re: %s%s%s [v%d]", subjectPrefix, threadPrefix + (threadPrefix.isEmpty() ? "" : ": "), pr.title(), index + 1),
                                () -> "",
                                () -> {
                                    if (lastBase.equals(base)) {
@@ -214,17 +214,17 @@ class ArchiveItem {
                                () -> ArchiveMessages.composeReplyFooter(pr));
     }
 
-    static ArchiveItem closedNotice(PullRequest pr, HostUserToEmailAuthor hostUserToEmailAuthor, ArchiveItem parent, String subjectPrefix, String threadPrefix) {
+    static ArchiveItem closedNotice(PullRequest pr, HostUserToEmailAuthor hostUserToEmailAuthor, ArchiveItem parent, String subjectPrefix) {
         return new ArchiveItem(parent, "cn", pr.updatedAt(), pr.updatedAt(), pr.author(), Map.of("PR-Closed-Notice", "0"),
-                               () -> String.format("Re: [Closed] %s%s%s", subjectPrefix, threadPrefix + (threadPrefix.isEmpty() ? "" : ": "), pr.title()),
+                               () -> String.format("%sWithdrawn: %s", subjectPrefix, pr.title()),
                                () -> ArchiveMessages.composeReplyHeader(parent.createdAt(), hostUserToEmailAuthor.author(parent.author())),
                                () -> ArchiveMessages.composeClosedNotice(pr),
                                () -> ArchiveMessages.composeReplyFooter(pr));
     }
 
-    static ArchiveItem integratedNotice(PullRequest pr, Repository localRepo, Commit commit, HostUserToEmailAuthor hostUserToEmailAuthor, ArchiveItem parent, String subjectPrefix, String threadPrefix) {
+    static ArchiveItem integratedNotice(PullRequest pr, Repository localRepo, Commit commit, HostUserToEmailAuthor hostUserToEmailAuthor, ArchiveItem parent, String subjectPrefix) {
         return new ArchiveItem(parent, "in", pr.updatedAt(), pr.updatedAt(), pr.author(), Map.of("PR-Integrated-Notice", "0"),
-                               () -> String.format("Re: [Integrated] %s%s%s", subjectPrefix, threadPrefix + (threadPrefix.isEmpty() ? "" : ": "), pr.title()),
+                               () -> String.format("%sIntegrated: %s", subjectPrefix, pr.title()),
                                () -> ArchiveMessages.composeReplyHeader(parent.createdAt(), hostUserToEmailAuthor.author(parent.author())),
                                () -> ArchiveMessages.composeIntegratedNotice(pr, localRepo, commit),
                                () -> ArchiveMessages.composeReplyFooter(pr));
