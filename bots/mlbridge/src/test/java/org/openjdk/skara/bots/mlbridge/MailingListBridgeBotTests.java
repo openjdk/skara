@@ -335,7 +335,7 @@ class MailingListBridgeBotTests {
 
             // The archive should now contain another entry
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertTrue(archiveContains(archiveFolder.path(), "Subject: Re: \\[Integrated\\] RFR: 1234: This is a pull request"));
+            assertTrue(archiveContains(archiveFolder.path(), "Subject: Integrated: 1234: This is a pull request"));
             assertFalse(archiveContains(archiveFolder.path(), "\\[Closed\\]"));
         }
     }
@@ -478,7 +478,7 @@ class MailingListBridgeBotTests {
 
             // The archive should now contain an entry
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertTrue(archiveContains(archiveFolder.path(), "Subject: FYI: 1234: This is a pull request"));
+            assertTrue(archiveContains(archiveFolder.path(), "Subject: Integrated: 1234: This is a pull request"));
 
             var updatedHash = CheckableRepository.appendAndCommit(localRepo, "Another change");
             localRepo.push(updatedHash, author.url(), "edit");
@@ -488,8 +488,8 @@ class MailingListBridgeBotTests {
 
             // The archive should now contain another entry
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertTrue(archiveContains(archiveFolder.path(), "Subject: Re: \\[Rev 01\\] FYI: 1234: This is a pull request"));
-            assertFalse(archiveContains(archiveFolder.path(), "\\[Closed\\]"));
+            assertTrue(archiveContains(archiveFolder.path(), "Subject: Re: Integrated: 1234: This is a pull request \\[v2\\]"));
+            assertFalse(archiveContains(archiveFolder.path(), "Withdrawn"));
         }
     }
 
@@ -566,7 +566,7 @@ class MailingListBridgeBotTests {
 
             // The archive should now contain another entry - should retain the RFR thread prefix
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertTrue(archiveContains(archiveFolder.path(), "Subject: Re: \\[Rev 01\\] RFR: 1234: This is a pull request"));
+            assertTrue(archiveContains(archiveFolder.path(), "Subject: Re: RFR: 1234: This is a pull request \\[v2\\]"));
         }
     }
 
@@ -641,14 +641,15 @@ class MailingListBridgeBotTests {
 
             // The archive should now contain another entry - should say that it is closed
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Subject: Re: \\[Closed\\] RFR: 1234: This is a pull request"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Subject: Withdrawn: 1234: This is a pull request"));
 
             pr.addComment("Fair enough");
 
             // Run another archive pass - only a single close notice should have been posted
             TestBotRunner.runPeriodicItems(mlBot);
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Subject: Re: \\[Closed\\] RFR: 1234: This is a pull request"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Subject: Withdrawn: 1234: This is a pull request"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Subject: Re: RFR: 1234: This is a pull request"));
         }
     }
 
@@ -1605,9 +1606,9 @@ class MailingListBridgeBotTests {
             assertEquals(1, updatedConversations.size());
             var conversation = updatedConversations.get(0);
             assertEquals(6, conversation.allMessages().size());
-            assertEquals("[Rev 01] RFR: This is a pull request", conversation.allMessages().get(1).subject());
-            assertEquals("[Rev 01] RFR: This is a pull request", conversation.allMessages().get(2).subject(), conversation.allMessages().get(2).toString());
-            assertEquals("[Rev 04] RFR: This is a pull request", conversation.allMessages().get(5).subject());
+            assertEquals("RFR: This is a pull request [v2]", conversation.allMessages().get(1).subject());
+            assertEquals("RFR: This is a pull request [v2]", conversation.allMessages().get(2).subject(), conversation.allMessages().get(2).toString());
+            assertEquals("RFR: This is a pull request [v5]", conversation.allMessages().get(5).subject());
         }
     }
 
@@ -1703,7 +1704,7 @@ class MailingListBridgeBotTests {
                 assertEquals(listAddress, newMail.sender());
                 assertFalse(newMail.hasHeader("PR-Head-Hash"));
             }
-            assertEquals("[Rev 01] RFR: This is a pull request", conversations.get(0).allMessages().get(1).subject());
+            assertEquals("RFR: This is a pull request [v2]", conversations.get(0).allMessages().get(1).subject());
         }
     }
 
