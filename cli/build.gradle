@@ -61,7 +61,8 @@ images {
         'git-sync': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitSync',
         'git-publish': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitPublish',
         'git-proxy': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitProxy',
-        'git-trees': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitTrees'
+        'git-trees': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitTrees',
+        'git-expand': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitExpand'
     ]
 
     ext.modules = ['jdk.crypto.ec']

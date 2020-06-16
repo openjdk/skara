@@ -102,6 +102,7 @@ public interface Repository extends ReadOnlyRepository {
                 ZonedDateTime committerDate,
                 List<Hash> parents,
                 Tree tree) throws IOException;
+    Hash amend(String message) throws IOException;
     Hash amend(String message,
                String authorName,
                String authorEmail) throws IOException;

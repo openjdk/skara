@@ -711,12 +711,26 @@ public class GitRepository implements Repository {
     }
 
     @Override
+    public Hash amend(String message) throws IOException {
+        return amend(message, null, null, null, null);
+    }
+
+    @Override
     public Hash amend(String message, String authorName, String authorEmail) throws IOException {
         return amend(message, authorName, authorEmail, null, null);
     }
 
     @Override
     public Hash amend(String message, String authorName, String authorEmail, String committerName, String committerEmail) throws IOException {
+        if (authorName == null || authorEmail == null) {
+            var head = lookup(head()).orElseThrow();
+            if (authorName == null) {
+                authorName = head.author().name();
+            }
+            if (authorEmail == null) {
+                authorEmail = head.author().email();
+            }
+        }
         if (committerName == null) {
             committerName = authorName;
             committerEmail = authorEmail;
