@@ -119,8 +119,7 @@ public class PullRequestBotFactory implements BotFactory {
                 botBuilder.ignoreStaleReviews(repo.value().get("ignorestale").asBoolean());
             }
             if (repo.value().contains("issuetypes")) {
-                var types = repo.value().get("issuetypes").asArray()
-                                                          .stream()
+                var types = repo.value().get("issuetypes").stream()
                                                           .map(JSONValue::asString)
                                                           .collect(Collectors.toSet());
                 botBuilder.allowedIssueTypes(types);
