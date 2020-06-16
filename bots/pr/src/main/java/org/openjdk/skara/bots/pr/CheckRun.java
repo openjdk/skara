@@ -26,6 +26,7 @@ import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
@@ -89,6 +90,41 @@ class CheckRun {
         return matcher.matches();
     }
 
+    private Set<String> allowedIssueTypes() {
+        return workItem.bot.allowedIssueTypes();
+    }
+
+    private List<Issue> issues() {
+        var issue = Issue.fromStringRelaxed(pr.title());
+        if (issue.isPresent()) {
+            var issues = new ArrayList<Issue>();
+            issues.add(issue.get());
+            issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments));
+            return issues;
+        }
+        return List.of();
+    }
+
+    private IssueProject issueProject() {
+        return workItem.bot.issueProject();
+    }
+
+    private List<org.openjdk.skara.issuetracker.Issue> issuesOfDisallowedType() {
+        var issueProject = issueProject();
+        var allowed = allowedIssueTypes();
+        if (issueProject != null && allowed != null) {
+            return issues().stream()
+                           .filter(i -> i.project().equals(Optional.of(issueProject.name())))
+                           .map(i -> issueProject.issue(i.shortId()))
+                           .filter(Optional::isPresent)
+                           .map(Optional::get)
+                           .filter(i -> i.properties().containsKey("issuetype"))
+                           .filter(i -> !allowed.contains(i.properties().get("issuetype").asString()))
+                           .collect(Collectors.toList());
+        }
+        return List.of();
+    }
+
     private List<String> allowedTargetBranches() {
         return pr.repository()
                  .branches()
@@ -132,6 +168,20 @@ class CheckRun {
                     allowedTargetBranches().stream()
                     .map(name -> "   - " + name)
                     .collect(Collectors.joining("\n"));
+            ret.add(error);
+        }
+
+        var disallowedIssues = issuesOfDisallowedType();
+        if (!disallowedIssues.isEmpty()) {
+            var s = disallowedIssues.size() > 1 ? "s " : " ";
+            var are = disallowedIssues.size() > 1 ? "are" : "is";
+            var links = disallowedIssues.stream()
+                                        .map(i -> "[" + i.id() + "](" + i.webUrl() + ")")
+                                        .collect(Collectors.toList());
+            var error = "The issue" + s + String.join(",", links) + " " + are + " not of the expected type. The allowed issue types are:\n" +
+                allowedIssueTypes().stream()
+                .map(name -> "   - " + name)
+                .collect(Collectors.joining("\n"));
             ret.add(error);
         }
 
@@ -313,18 +363,15 @@ class CheckRun {
             progressBody.append(getAdditionalErrorsList(allAdditionalErrors));
         }
 
-        var issue = Issue.fromStringRelaxed(pr.title());
-        var issueProject = workItem.bot.issueProject();
-        if (issueProject != null && issue.isPresent()) {
-            var allIssues = new ArrayList<Issue>();
-            allIssues.add(issue.get());
-            allIssues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments));
+        var issues = issues();
+        var issueProject = issueProject();
+        if (issueProject != null && !issues.isEmpty()) {
             progressBody.append("\n\n### Issue");
-            if (allIssues.size() > 1) {
+            if (issues.size() > 1) {
                 progressBody.append("s");
             }
             progressBody.append("\n");
-            for (var currentIssue : allIssues) {
+            for (var currentIssue : issues) {
                 progressBody.append(" * ");
                 if (currentIssue.project().isPresent() && !currentIssue.project().get().equals(issueProject.name())) {
                     progressBody.append("⚠️ Issue `");

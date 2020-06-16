@@ -45,6 +45,7 @@ class PullRequestBot implements Bot {
     private final Map<String, Pattern> readyComments;
     private final IssueProject issueProject;
     private final boolean ignoreStaleReviews;
+    private final Set<String> allowedIssueTypes;
     private final Pattern allowedTargetBranches;
     private final Path seedStorage;
     private final ConcurrentMap<Hash, Boolean> currentLabels;
@@ -55,7 +56,7 @@ class PullRequestBot implements Bot {
                    LabelConfiguration labelConfiguration, Map<String, String> externalCommands,
                    Map<String, String> blockingCheckLabels, Set<String> readyLabels,
                    Map<String, Pattern> readyComments, IssueProject issueProject, boolean ignoreStaleReviews,
-                   Pattern allowedTargetBranches, Path seedStorage) {
+                   Set<String> allowedIssueTypes, Pattern allowedTargetBranches, Path seedStorage) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -66,6 +67,7 @@ class PullRequestBot implements Bot {
         this.issueProject = issueProject;
         this.readyComments = readyComments;
         this.ignoreStaleReviews = ignoreStaleReviews;
+        this.allowedIssueTypes = allowedIssueTypes;
         this.allowedTargetBranches = allowedTargetBranches;
         this.seedStorage = seedStorage;
 
@@ -183,6 +185,10 @@ class PullRequestBot implements Bot {
 
     boolean ignoreStaleReviews() {
         return ignoreStaleReviews;
+    }
+
+    Set<String> allowedIssueTypes() {
+        return allowedIssueTypes;
     }
 
     Pattern allowedTargetBranches() {
