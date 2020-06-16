@@ -622,6 +622,14 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public Hash amend(String message) throws IOException {
+        try (var p = capture("hg", "commit", "--amend", "--message=" + message)) {
+            await(p);
+        }
+        return resolve("tip").orElseThrow(() -> new IOException("Could not resolve 'tip'"));
+    }
+
+    @Override
     public Hash amend(String message, String authorName, String authorEmail) throws IOException {
         var user = authorEmail == null ? authorName : authorName + " <" + authorEmail + ">";
         try (var p = capture("hg", "commit", "--amend", "--message=" + message, "--user=" + user)) {
