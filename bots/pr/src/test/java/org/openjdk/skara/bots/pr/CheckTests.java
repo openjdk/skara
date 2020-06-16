@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.pr;
 
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.*;
+import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.*;
 
 import java.io.IOException;
@@ -1384,4 +1385,67 @@ class CheckTests {
         }
     }
 
+    @Test
+    void allowedIssueTypes(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build())
+                                         .allowedIssueTypes(Set.of("Bug"))
+                                         .issueProject(issues)
+                                         .build();
+
+            var bug = issues.createIssue("My first bug", List.of("A bug"),
+                                         Map.of("issuetype", JSON.of("Bug")));
+            var feature = issues.createIssue("My first feature", List.of("A feature"),
+                                             Map.of("issuetype", JSON.of("Enhancement")));
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var bugHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(bugHash, author.url(), "bug", true);
+            var bugPR = credentials.createPullRequest(author, "master", "bug",
+                                                      bug.id() + ": My first bug", true);
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that the check passed
+            var bugChecks = bugPR.checks(bugHash);
+            assertEquals(1, bugChecks.size());
+            var bugCheck = bugChecks.get("jcheck");
+            assertEquals(CheckStatus.SUCCESS, bugCheck.status());
+
+            // Make a change with a corresponding PR
+            var featureHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(featureHash, author.url(), "feature", true);
+            var featurePR = credentials.createPullRequest(author, "master", "feature",
+                                                          feature.id() + ": My first feature", true);
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that the check failed for the feature PR
+            var featureChecks = featurePR.checks(featureHash);
+            assertEquals(1, featureChecks.size());
+            var featureCheck = featureChecks.get("jcheck");
+            assertEquals(CheckStatus.FAILURE, featureCheck.status());
+            var link = "[" + feature.id() + "](" + feature.webUrl() + ")";
+            assertTrue(featureCheck.summary()
+                                   .orElseThrow()
+                                   .contains("The issue " + link + " is not of the expected type. " +
+                                             "The allowed issue types are:\n" +
+                                             "   - Bug\n"));
+        }
+    }
 }
