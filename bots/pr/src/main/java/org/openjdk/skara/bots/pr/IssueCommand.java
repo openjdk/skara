@@ -82,7 +82,7 @@ public class IssueCommand implements CommandHandler {
                                    .collect(Collectors.toList());
         }
         for (var issue : ret) {
-            if (issue.project().isPresent() && !issue.project().get().equals(allowedPrefix)) {
+            if (issue.project().isPresent() && !issue.project().get().equalsIgnoreCase(allowedPrefix)) {
                 throw new InvalidIssue(issue.id(), "This PR can only solve issues in the " + allowedPrefix + " project");
             }
         }
