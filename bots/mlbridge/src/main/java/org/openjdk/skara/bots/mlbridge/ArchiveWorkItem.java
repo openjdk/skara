@@ -239,11 +239,10 @@ class ArchiveWorkItem implements WorkItem {
         var mbox = MailingListServerFactory.createMboxFileServer(mboxBasePath);
         var reviewArchiveList = mbox.getList(pr.id());
         var sentMails = parseArchive(reviewArchiveList);
+        var labels = new HashSet<>(pr.labels());
 
         // First determine if this PR should be inspected further or not
         if (sentMails.isEmpty()) {
-            var labels = new HashSet<>(pr.labels());
-
             if (pr.state() == Issue.State.OPEN) {
                 for (var readyLabel : bot.readyLabels()) {
                     if (!labels.contains(readyLabel)) {
@@ -281,6 +280,25 @@ class ArchiveWorkItem implements WorkItem {
             }
         }
 
+        // Determine recipient list(s)
+        var recipients = new ArrayList<EmailAddress>();
+        for (var candidateList : bot.lists()) {
+            if (candidateList.labels().isEmpty()) {
+                recipients.add(candidateList.list());
+                continue;
+            }
+            for (var label : labels) {
+                if (candidateList.labels().contains(label)) {
+                    recipients.add(candidateList.list());
+                    break;
+                }
+            }
+        }
+        if (recipients.isEmpty()) {
+            log.severe("PR does not match any recipient list: " + pr.repository().name() + "#" + pr.id());
+            return List.of();
+        }
+
         var census = CensusInstance.create(bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr);
         var jbs = census.configuration().general().jbs();
         if (jbs == null) {
@@ -297,7 +315,7 @@ class ArchiveWorkItem implements WorkItem {
 
             var webrevPath = scratchPath.resolve("mlbridge-webrevs");
             var listServer = MailingListServerFactory.createMailmanServer(bot.listArchive(), bot.smtpServer(), bot.sendInterval());
-            var list = listServer.getList(bot.listAddress().address());
+            var list = listServer.getList(recipients.get(0).toString());
 
             var archiver = new ReviewArchive(pr, bot.emailAddress());
 
@@ -354,6 +372,7 @@ class ArchiveWorkItem implements WorkItem {
                 var filteredEmail = Email.from(newMail)
                                          .replaceHeaders(filteredHeaders)
                                          .headers(bot.headers())
+                                         .recipients(recipients)
                                          .build();
                 list.post(filteredEmail);
             }

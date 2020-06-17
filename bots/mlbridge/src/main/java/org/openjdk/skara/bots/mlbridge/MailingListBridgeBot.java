@@ -40,7 +40,7 @@ public class MailingListBridgeBot implements Bot {
     private final String archiveRef;
     private final HostedRepository censusRepo;
     private final String censusRef;
-    private final EmailAddress listAddress;
+    private final List<MailingListConfiguration> lists;
     private final Set<String> ignoredUsers;
     private final Set<Pattern> ignoredComments;
     private final URI listArchive;
@@ -64,7 +64,7 @@ public class MailingListBridgeBot implements Bot {
     private ZonedDateTime lastFullUpdate;
 
     MailingListBridgeBot(EmailAddress from, HostedRepository repo, HostedRepository archive, String archiveRef,
-                         HostedRepository censusRepo, String censusRef, EmailAddress list,
+                         HostedRepository censusRepo, String censusRef, List<MailingListConfiguration> lists,
                          Set<String> ignoredUsers, Set<Pattern> ignoredComments, URI listArchive, String smtpServer,
                          HostedRepository webrevStorageRepository, String webrevStorageRef,
                          Path webrevStorageBase, URI webrevStorageBaseUri, Set<String> readyLabels,
@@ -77,7 +77,7 @@ public class MailingListBridgeBot implements Bot {
         this.archiveRef = archiveRef;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
-        listAddress = list;
+        this.lists = lists;
         this.ignoredUsers = ignoredUsers;
         this.ignoredComments = ignoredComments;
         this.listArchive = listArchive;
@@ -126,8 +126,8 @@ public class MailingListBridgeBot implements Bot {
         return emailAddress;
     }
 
-    EmailAddress listAddress() {
-        return listAddress;
+    List<MailingListConfiguration> lists() {
+        return lists;
     }
 
     Duration sendInterval() {

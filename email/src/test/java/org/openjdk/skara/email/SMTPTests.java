@@ -22,13 +22,13 @@
  */
 package org.openjdk.skara.email;
 
-import org.openjdk.skara.test.SMTPServer;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.*;
+import org.openjdk.skara.test.SMTPServer;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -40,7 +40,7 @@ class SMTPTests {
             var recipient = EmailAddress.from("Dest", "dest@dest.email");
             var sentMail = Email.create(sender, "Subject", "Body").recipient(recipient).build();
 
-            SMTP.send(server.address(), recipient, sentMail);
+            SMTP.send(server.address(), sentMail);
             var email = server.receive(Duration.ofSeconds(10));
             assertEquals(sentMail, email);
         }
@@ -58,7 +58,7 @@ class SMTPTests {
                                 .header("Something", "Other")
                                 .build();
 
-            SMTP.send(server.address(), recipient, sentMail);
+            SMTP.send(server.address(), sentMail);
             var email = server.receive(Duration.ofSeconds(10));
             assertEquals(sentMail, email);
         }
@@ -75,7 +75,7 @@ class SMTPTests {
                                 .header("Something", "Öthè®")
                                 .build();
 
-            SMTP.send(server.address(), recipient, sentMail);
+            SMTP.send(server.address(), sentMail);
             var email = server.receive(Duration.ofSeconds(10));
             assertEquals(sentMail, email);
         }
@@ -88,7 +88,7 @@ class SMTPTests {
             var recipient = EmailAddress.from("Dest", "dest@dest.email");
             var sentMail = Email.create(sender, "Subject", "Body").recipient(recipient).build();
 
-            assertThrows(RuntimeException.class, () -> SMTP.send(server.address(), recipient, sentMail, Duration.ZERO));
+            assertThrows(RuntimeException.class, () -> SMTP.send(server.address(), sentMail, Duration.ZERO));
         }
     }
 
@@ -99,7 +99,23 @@ class SMTPTests {
             var recipient = EmailAddress.from("Dest", "dest@dest.email");
             var sentMail = Email.create(sender, "Subject", "Body\n.\nMore text").recipient(recipient).build();
 
-            SMTP.send(server.address(), recipient, sentMail);
+            SMTP.send(server.address(), sentMail);
+            var email = server.receive(Duration.ofSeconds(10));
+            assertEquals(sentMail, email);
+        }
+    }
+
+    @Test
+    void multipleRecipients() throws IOException {
+        try (var server = new SMTPServer()) {
+            var sender = EmailAddress.from("Test", "test@test.email");
+            var recipient1 = EmailAddress.from("Dest1", "dest1@dest.email");
+            var recipient2 = EmailAddress.from("Dest2", "dest2@dest.email");
+            var sentMail = Email.create(sender, "Subject", "Body")
+                                .recipients(List.of(recipient1, recipient2))
+                                .build();
+
+            SMTP.send(server.address(), sentMail);
             var email = server.receive(Duration.ofSeconds(10));
             assertEquals(sentMail, email);
         }

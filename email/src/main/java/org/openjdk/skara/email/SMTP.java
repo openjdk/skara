@@ -42,17 +42,24 @@ public class SMTP {
     private static Pattern dataReply = Pattern.compile("^354 .*");
     private static Pattern doneReply = Pattern.compile("^250 .*");
 
-    public static void send(String server, EmailAddress recipient, Email email) throws IOException {
-        send(server, recipient, email, Duration.ofMinutes(30));
+    public static void send(String server, Email email) throws IOException {
+        send(server, email, Duration.ofMinutes(30));
     }
 
-    public static void send(String server, EmailAddress recipient, Email email, Duration timeout) throws IOException {
+    public static void send(String server, Email email, Duration timeout) throws IOException {
+        if (email.recipients().isEmpty()) {
+            throw new IllegalArgumentException("Attempting to send an email without recipients");
+        }
         var port = 25;
         if (server.contains(":")) {
             var parts = server.split(":", 2);
             server = parts[0];
             port = Integer.parseInt(parts[1]);
         }
+        var recipientList = email.recipients().stream()
+                                 .map(EmailAddress::toString)
+                                 .map(MimeText::encode)
+                                 .collect(Collectors.joining(", "));
         try (var socket = new Socket(server, port);
              var out = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8);
              var in = new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8)) {
@@ -62,13 +69,15 @@ public class SMTP {
             session.waitForPattern(initReply);
             session.sendCommand("EHLO " + email.sender().domain(), ehloReply);
             session.sendCommand("MAIL FROM:" + email.sender().address(), mailReply);
-            session.sendCommand("RCPT TO:<" + recipient.address() + ">", rcptReply);
+            for (var recipient : email.recipients()) {
+                session.sendCommand("RCPT TO:<" + recipient.address() + ">", rcptReply);
+            }
             session.sendCommand("DATA", dataReply);
             session.sendCommand("From: " + MimeText.encode(email.author().toString()));
             session.sendCommand("Message-Id: " + email.id());
             session.sendCommand("Date: " + email.date().format(DateTimeFormatter.RFC_1123_DATE_TIME));
             session.sendCommand("Sender: " + MimeText.encode(email.sender().toString()));
-            session.sendCommand("To: " + MimeText.encode(recipient.toString()));
+            session.sendCommand("To: " + recipientList);
             for (var header : email.headers()) {
                 session.sendCommand(header + ": " + MimeText.encode(email.headerValue(header)));
             }
