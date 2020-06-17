@@ -1399,11 +1399,19 @@ public class GitRepository implements Repository {
             var lines = await(p).stdout();
             if (lines.size() >= 4) {
                 var name = lines.get(0);
-                var target = new Hash(lines.get(1));
-                var author = Author.fromString(lines.get(2));
+                var targetLine = lines.get(1);
+                var authorLine = lines.get(2);
+                var dateLine = lines.get(3);
 
+                if (targetLine.isEmpty() && authorLine.equals(" ") && dateLine.isEmpty()) {
+                    // Must be a lightweight tag, no metadata present
+                    return Optional.empty();
+                }
+
+                var target = new Hash(targetLine);
+                var author = Author.fromString(authorLine);
                 var formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
-                var date = ZonedDateTime.parse(lines.get(3), formatter);
+                var date = ZonedDateTime.parse(dateLine, formatter);
                 var message = String.join("\n", lines.subList(4, lines.size()));
 
                 return Optional.of(new Tag.Annotated(name, target, author, date, message));
