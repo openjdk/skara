@@ -35,6 +35,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.*;
 
 class CheckRun {
@@ -59,6 +60,7 @@ class CheckRun {
     private static final String emptyPrBodyMarker = "<!--\nReplace this text with a description of your pull request (also remove the surrounding HTML comment markers).\n" +
             "If in doubt, feel free to delete everything in this edit box first, the bot will restore the progress section as needed.\n-->";
     private final Set<String> newLabels;
+    static final Pattern ISSUE_ID_PATTERN = Pattern.compile("^(?:[A-Za-z][A-Za-z0-9]+-)?([0-9]+)$");
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
@@ -457,6 +459,27 @@ class CheckRun {
         return newBody;
     }
 
+    private String updateTitle() {
+        var title = pr.title();
+        var m = ISSUE_ID_PATTERN.matcher(title);
+        var project = issueProject();
+
+        var newTitle = title;
+        if (m.matches() && project != null) {
+            var id = m.group(1);
+            var issue = project.issue(id);
+            if (issue.isPresent()) {
+                newTitle = id + ": " + issue.get().title();
+            }
+        }
+
+        if (!title.equals(newTitle)) {
+            pr.setTitle(newTitle);
+        }
+
+        return newTitle;
+    }
+
     private String verdictToString(Review.Verdict verdict) {
         switch (verdict) {
             case APPROVED:
@@ -716,6 +739,7 @@ class CheckRun {
             // Calculate and update the status message if needed
             var statusMessage = getStatusMessage(comments, activeReviews, visitor, additionalErrors);
             var updatedBody = updateStatusMessage(statusMessage);
+            var title = updateTitle();
 
             // Post / update approval messages (only needed if the review itself can't contain a body)
             if (!pr.repository().forge().supportsReviewBody()) {
@@ -756,7 +780,7 @@ class CheckRun {
             }
 
             // Calculate current metadata to avoid unnecessary future checks
-            var metadata = workItem.getMetadata(pr.title(), updatedBody, pr.comments(), activeReviews, newLabels,
+            var metadata = workItem.getMetadata(title, updatedBody, pr.comments(), activeReviews, newLabels,
                                                 censusInstance, pr.targetHash(), pr.isDraft());
             checkBuilder.metadata(metadata);
         } catch (Exception e) {
