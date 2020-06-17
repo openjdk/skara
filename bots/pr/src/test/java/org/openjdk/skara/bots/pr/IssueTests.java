@@ -382,4 +382,71 @@ class IssueTests {
             assertTrue(pr.body().contains("## Issues\n"));
         }
     }
+
+    @Test
+    void projectPrefix(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var issueProject = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder()
+                                      .repo(integrator)
+                                      .censusRepo(censusBuilder.build())
+                                      .issueProject(issueProject)
+                                      .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Create issues
+            var issue1 = credentials.createIssue(issueProject, "Issue 1");
+            var issue2 = credentials.createIssue(issueProject, "Issue 2");
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue1.id() + ": This is a pull request");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // Add variations of this issue
+            pr.addComment("/issue add " + issue2.id().toLowerCase());
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr,"Adding additional issue to issue list");
+
+            pr.addComment("/issue remove " + issue2.id().toLowerCase());
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr,"Removing additional issue from issue list");
+
+            // Add variations of this issue
+            pr.addComment("/issue add " + issue2.id().toUpperCase());
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr,"Adding additional issue to issue list");
+
+            pr.addComment("/issue remove " + issue2.id().toUpperCase());
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr,"Removing additional issue from issue list");
+
+            // Add variations of this issue
+            pr.addComment("/issue add " + issue2.id().split("-")[1]);
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr,"Adding additional issue to issue list");
+        }
+    }
 }
