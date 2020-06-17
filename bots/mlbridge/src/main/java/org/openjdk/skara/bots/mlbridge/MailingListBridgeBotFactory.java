@@ -41,6 +41,27 @@ public class MailingListBridgeBotFactory implements BotFactory {
         return "mlbridge";
     }
 
+    private MailingListConfiguration parseList(JSONObject configuration) {
+        var listAddress = EmailAddress.parse(configuration.get("email").asString());
+        Set<String> labels = configuration.contains("labels") ?
+                configuration.get("labels").stream()
+                             .map(JSONValue::asString)
+                             .collect(Collectors.toSet()) :
+                Set.of();
+        return new MailingListConfiguration(listAddress, labels);
+    }
+
+    private List<MailingListConfiguration> parseLists(JSONValue configuration) {
+        if (configuration.isArray()) {
+            return configuration.stream()
+                                .map(JSONValue::asObject)
+                                .map(this::parseList)
+                                .collect(Collectors.toList());
+        } else {
+            return List.of(parseList(configuration.asObject()));
+        }
+    }
+
     @Override
     public List<Bot> create(BotConfiguration configuration) {
         var ret = new ArrayList<Bot>();
@@ -87,8 +108,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
                     repoConfig.get("headers").fields().stream()
                               .collect(Collectors.toMap(JSONObject.Field::name, field -> field.value().asString())) :
                     Map.of();
-
-            var list = EmailAddress.parse(repoConfig.get("list").asString());
+            var lists = parseLists(repoConfig.get("lists"));
             var folder = repoConfig.contains("folder") ? repoConfig.get("folder").asString() : configuration.repositoryName(repo);
             var botBuilder = MailingListBridgeBot.newBuilder().from(from)
                                                  .repo(configuration.repository(repo))
@@ -96,7 +116,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
                                                  .archiveRef(archiveRef)
                                                  .censusRepo(censusRepo)
                                                  .censusRef(censusRef)
-                                                 .list(list)
+                                                 .lists(lists)
                                                  .ignoredUsers(ignoredUsers)
                                                  .ignoredComments(ignoredComments)
                                                  .listArchive(listArchive)
@@ -122,7 +142,9 @@ public class MailingListBridgeBotFactory implements BotFactory {
             ret.add(botBuilder.build());
 
             if (!repoConfig.contains("bidirectional") || repoConfig.get("bidirectional").asBoolean()) {
-                listNamesForReading.add(list);
+                for (var list : lists) {
+                    listNamesForReading.add(list.list());
+                }
             }
             allRepositories.add(configuration.repository(repo));
         }

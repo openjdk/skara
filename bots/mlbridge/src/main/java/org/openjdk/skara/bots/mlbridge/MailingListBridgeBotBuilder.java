@@ -38,7 +38,7 @@ public class MailingListBridgeBotBuilder {
     private String archiveRef = "master";
     private HostedRepository censusRepo;
     private String censusRef = "master";
-    private EmailAddress list;
+    private List<MailingListConfiguration> lists;
     private Set<String> ignoredUsers = Set.of();
     private Set<Pattern> ignoredComments = Set.of();
     private URI listArchive;
@@ -90,8 +90,8 @@ public class MailingListBridgeBotBuilder {
         return this;
     }
 
-    public MailingListBridgeBotBuilder list(EmailAddress list) {
-        this.list = list;
+    public MailingListBridgeBotBuilder lists(List<MailingListConfiguration> lists) {
+        this.lists = lists;
         return this;
     }
 
@@ -181,7 +181,7 @@ public class MailingListBridgeBotBuilder {
     }
 
     public MailingListBridgeBot build() {
-        return new MailingListBridgeBot(from, repo, archive, archiveRef, censusRepo, censusRef, list,
+        return new MailingListBridgeBot(from, repo, archive, archiveRef, censusRepo, censusRef, lists,
                                         ignoredUsers, ignoredComments, listArchive, smtpServer,
                                         webrevStorageRepository, webrevStorageRef, webrevStorageBase, webrevStorageBaseUri,
                                         readyLabels, readyComments, issueTracker, headers, sendInterval, cooldown,

@@ -97,6 +97,7 @@ public class Email {
         if (message.headers.containsKey("To")) {
             recipients = Arrays.stream(message.headers.get("To").split(","))
                                .map(MimeText::decode)
+                               .map(String::strip)
                                .map(EmailAddress::parse)
                                .collect(Collectors.toList());
         } else {

@@ -27,33 +27,76 @@ import org.openjdk.skara.email.*;
 import java.io.*;
 import java.net.*;
 import java.time.*;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 public class SMTPServer implements AutoCloseable {
     private final ServerSocket serverSocket;
-    private final Thread acceptThread;
     private final ConcurrentLinkedDeque<Email> emails = new ConcurrentLinkedDeque<>();
 
-    private static Pattern ehloPattern = Pattern.compile("^EHLO .*$");
-    private static Pattern mailFromPattern = Pattern.compile("^MAIL FROM:.*$");
-    private static Pattern rcptToPattern = Pattern.compile("^RCPT TO:<.*$");
-    private static Pattern dataPattern = Pattern.compile("^DATA$");
-    private static Pattern messageEndPattern = Pattern.compile("^\\.$");
-    private static Pattern quitPattern = Pattern.compile("^QUIT$");
-
+    private final static Logger log = Logger.getLogger("org.openjdk.skara.test");;
+    private final static Pattern commandPattern = Pattern.compile("^([A-Z]+) ?(.*)$");
     private final static Pattern encodeQuotedPrintablePattern = Pattern.compile("([^\\x00-\\x7f]+)");
     private final static Pattern headerPattern = Pattern.compile("[^A-Za-z0-9-]+: .+");
 
     private class AcceptThread implements Runnable {
-        private void handleSession(SMTPSession session) throws IOException {
-            session.sendCommand("220 localhost SMTP", ehloPattern);
-            session.sendCommand("250 HELP", mailFromPattern);
-            session.sendCommand("250 FROM OK", rcptToPattern);
-            session.sendCommand("250 RCPT OK", dataPattern);
-            session.sendCommand("354 Enter message now, end with .");
-            var message = session.readLinesUntil(messageEndPattern);
-            session.sendCommand("250 MESSAGE OK", quitPattern);
+        private void sendLine(String line, BufferedWriter out) throws IOException {
+            log.fine("> " + line);
+            out.write(line + "\n");
+            out.flush();
+        }
+
+        private String readLine(BufferedReader in) throws IOException {
+            while (!in.ready()) {
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException ignored) {
+                }
+            }
+            var line = in.readLine();
+            log.fine("< " + line);
+            return line;
+        }
+
+        private void handleSession(BufferedReader in, BufferedWriter out) throws IOException {
+            sendLine("220 localhost SMTP", out);
+            var message = new ArrayList<String>();
+            var done = false;
+            while (!done) {
+                var line = readLine(in);
+                var commandMatcher = commandPattern.matcher(line);
+                if (!commandMatcher.matches()) {
+                    throw new RuntimeException("Illegal input: " + line);
+                }
+                switch (commandMatcher.group(1)) {
+                    case "EHLO":
+                        sendLine("250 HELP", out);
+                        break;
+                    case "MAIL":
+                        sendLine("250 FROM OK", out);
+                        break;
+                    case "RCPT":
+                        sendLine("250 RCPT OK", out);
+                        break;
+                    case "DATA":
+                        sendLine("354 Enter message now, end with .", out);
+                        while (true) {
+                            var messageLine = readLine(in);
+                            if (messageLine.equals(".")) {
+                                sendLine("250 MESSAGE OK", out);
+                                break;
+                            }
+                            message.add(messageLine);
+                        }
+                        break;
+                    case "QUIT":
+                        sendLine("BYE", out);
+                        done = true;
+                        break;
+                }
+            }
 
             // Email headers are only 7-bit safe, ensure that we break any high ascii passing through
             var inHeader = true;
@@ -89,8 +132,7 @@ public class SMTPServer implements AutoCloseable {
                     try (var socket = serverSocket.accept();
                          var input = new InputStreamReader(socket.getInputStream());
                          var output = new OutputStreamWriter(socket.getOutputStream())) {
-                        var session = new SMTPSession(input, output, Duration.ofMinutes(10));
-                        handleSession(session);
+                        handleSession(new BufferedReader(input), new BufferedWriter(output));
                     }
                 } catch (SocketException e) {
                     // Socket closed
@@ -103,12 +145,11 @@ public class SMTPServer implements AutoCloseable {
 
     public SMTPServer() throws IOException {
         serverSocket = new ServerSocket(0);
-        acceptThread = new Thread(new AcceptThread());
+        var acceptThread = new Thread(new AcceptThread());
         acceptThread.start();
     }
 
     public String address() {
-        var host = serverSocket.getInetAddress();
         return InetAddress.getLoopbackAddress().getHostAddress() + ":" + serverSocket.getLocalPort();
     }
 

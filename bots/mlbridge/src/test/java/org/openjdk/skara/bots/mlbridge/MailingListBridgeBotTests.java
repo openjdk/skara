@@ -122,7 +122,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
                                             .ignoredComments(Set.of())
                                             .listArchive(listServer.getArchive())
@@ -290,7 +290,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
@@ -356,20 +356,20 @@ class MailingListBridgeBotTests {
                     .addAuthor(author.forge().currentUser().id());
             var from = EmailAddress.from("test", "test@test.mail");
             var mlBot = MailingListBridgeBot.newBuilder()
-                    .from(from)
-                    .repo(author)
-                    .archive(archive)
-                    .censusRepo(censusBuilder.build())
-                    .list(listAddress)
-                    .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
-                    .listArchive(listServer.getArchive())
-                    .smtpServer(listServer.getSMTP())
-                    .webrevStorageRepository(archive)
-                    .webrevStorageRef("webrev")
-                    .webrevStorageBase(Path.of("test"))
-                    .webrevStorageBaseUri(webrevServer.uri())
-                    .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
-                    .build();
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -434,7 +434,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
@@ -513,7 +513,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
@@ -590,7 +590,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
@@ -673,7 +673,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
@@ -727,7 +727,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
@@ -822,7 +822,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageRepository(archive)
@@ -917,7 +917,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageRepository(archive)
@@ -1046,7 +1046,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageRepository(archive)
@@ -1109,7 +1109,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageRepository(archive)
@@ -1173,7 +1173,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageRepository(archive)
@@ -1238,7 +1238,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageRepository(archive)
@@ -1301,7 +1301,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageRepository(archive)
@@ -1358,7 +1358,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageRepository(archive)
@@ -1434,7 +1434,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageRepository(archive)
@@ -1500,7 +1500,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageRepository(archive)
@@ -1630,7 +1630,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageRepository(archive)
@@ -1727,7 +1727,7 @@ class MailingListBridgeBotTests {
                                             .archive(archive)
                                             .archiveRef("archive")
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageRepository(archive)
@@ -1817,7 +1817,7 @@ class MailingListBridgeBotTests {
                                             .archive(archive)
                                             .archiveRef("archive")
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageRepository(archive)
@@ -1903,7 +1903,7 @@ class MailingListBridgeBotTests {
                                             .archive(archive)
                                             .archiveRef("archive")
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageRepository(archive)
@@ -1975,7 +1975,7 @@ class MailingListBridgeBotTests {
                                             .archive(archive)
                                             .archiveRef("archive")
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageRepository(archive)
@@ -2045,7 +2045,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
@@ -2126,7 +2126,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageRepository(archive)
@@ -2215,7 +2215,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
                                             .ignoredComments(Set.of(Pattern.compile("ignore this comment", Pattern.MULTILINE | Pattern.DOTALL)))
                                             .listArchive(listServer.getArchive())
@@ -2282,7 +2282,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageRepository(archive)
@@ -2343,7 +2343,7 @@ class MailingListBridgeBotTests {
                                                    .ignoredUsers(Set.of(bot.forge().currentUser().userName()))
                                                    .archive(archive)
                                                    .censusRepo(censusBuilder.build())
-                                                   .list(listAddress)
+                                                   .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                                    .listArchive(listServer.getArchive())
                                                    .smtpServer(listServer.getSMTP())
                                                    .webrevStorageRepository(archive)
@@ -2408,7 +2408,7 @@ class MailingListBridgeBotTests {
                                                    .ignoredUsers(Set.of(bot.forge().currentUser().userName()))
                                                    .archive(archive)
                                                    .censusRepo(censusBuilder.build())
-                                                   .list(listAddress)
+                                                   .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                                    .listArchive(listServer.getArchive())
                                                    .smtpServer(listServer.getSMTP())
                                                    .webrevStorageRepository(archive)
@@ -2475,7 +2475,7 @@ class MailingListBridgeBotTests {
                                                    .ignoredUsers(Set.of(bot.forge().currentUser().userName()))
                                                    .archive(archive)
                                                    .censusRepo(censusBuilder.build())
-                                                   .list(listAddress)
+                                                   .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                                    .listArchive(listServer.getArchive())
                                                    .smtpServer(listServer.getSMTP())
                                                    .webrevStorageRepository(archive)
@@ -2564,7 +2564,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageRepository(archive)
@@ -2621,7 +2621,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageRepository(archive)
@@ -2678,7 +2678,7 @@ class MailingListBridgeBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageRepository(archive)
@@ -2739,7 +2739,7 @@ class MailingListBridgeBotTests {
                                                    .ignoredUsers(Set.of(bot.forge().currentUser().userName()))
                                                    .archive(archive)
                                                    .censusRepo(censusBuilder.build())
-                                                   .list(listAddress)
+                                                   .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                                    .listArchive(listServer.getArchive())
                                                    .smtpServer(listServer.getSMTP())
                                                    .webrevStorageRepository(archive)
@@ -2808,6 +2808,84 @@ class MailingListBridgeBotTests {
             // Check the archive
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Update number - " + counter + " -"));
+        }
+    }
+
+    @Test
+    void multipleRecipients(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var archiveFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
+            var author = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+            var listAddress1 = EmailAddress.parse(listServer.createList("test1"));
+            var listAddress2 = EmailAddress.parse(listServer.createList("test2"));
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var from = EmailAddress.from("test", "test@test.mail");
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .lists(List.of(new MailingListConfiguration(listAddress1, Set.of("list1")),
+                                                           new MailingListConfiguration(listAddress2, Set.of("list2"))))
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
+                                                               "Change msg\n\nWith several lines");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "master", "edit", "1234: This is a pull request");
+            pr.setBody("This is a PR");
+            pr.addLabel("list1");
+
+            // Run an archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // The mail should have been sent to list1
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanList = mailmanServer.getList(listAddress1.address());
+            var conversations = mailmanList.conversations(Duration.ofDays(1));
+            assertEquals(1, conversations.size());
+            var mail = conversations.get(0).first();
+            assertEquals("RFR: 1234: This is a pull request", mail.subject());
+            assertEquals(pr.author().fullName(), mail.author().fullName().orElseThrow());
+            assertEquals(noreplyAddress(archive), mail.author().address());
+            assertEquals(listAddress1, mail.sender());
+            assertEquals(List.of(listAddress1), mail.recipients());
+
+            // Add another label and comment
+            pr.addLabel("list2");
+            pr.addComment("Looks good!");
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // This one should have been sent to list1 and list2
+            conversations = mailmanList.conversations(Duration.ofDays(1));
+            assertEquals(1, conversations.size());
+            var reply = conversations.get(0).replies(conversations.get(0).first()).get(0);
+            assertEquals("RFR: 1234: This is a pull request", reply.subject());
+            assertEquals(pr.author().fullName(), reply.author().fullName().orElseThrow());
+            assertEquals(noreplyAddress(archive), reply.author().address());
+            assertEquals(listAddress1, reply.sender());
+            assertEquals(List.of(listAddress1, listAddress2), reply.recipients());
         }
     }
 }

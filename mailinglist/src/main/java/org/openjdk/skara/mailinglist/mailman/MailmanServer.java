@@ -50,7 +50,7 @@ public class MailmanServer implements MailingListServer {
         return URIBuilder.base(archive).appendPath(listName + "/" + dateStr + ".txt").build();
     }
 
-    void sendMessage(EmailAddress recipientList, Email message) {
+    void sendMessage(Email message) {
         while (lastSend.plus(sendInterval).isAfter(Instant.now())) {
             try {
                 Thread.sleep(sendInterval.dividedBy(10).toMillis());
@@ -59,7 +59,7 @@ public class MailmanServer implements MailingListServer {
         }
         lastSend = Instant.now();
         try {
-            SMTP.send(smtpServer, recipientList, message);
+            SMTP.send(smtpServer, message);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

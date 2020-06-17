@@ -38,11 +38,11 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MailingListArchiveReaderBotTests {
-    private void addReply(Conversation conversation, MailingList mailingList, PullRequest pr, String reply) {
+    private void addReply(Conversation conversation, EmailAddress recipient, MailingList mailingList, PullRequest pr, String reply) {
         var first = conversation.first();
         var references = first.id().toString();
         var email = Email.create(EmailAddress.from("Commenter", "c@test.test"), "Re: RFR: " + pr.title(), reply)
-                         .recipient(first.author())
+                         .recipient(recipient)
                          .id(EmailAddress.from(UUID.randomUUID() + "@id.id"))
                          .header("In-Reply-To", first.id().toString())
                          .header("References", references)
@@ -50,8 +50,8 @@ class MailingListArchiveReaderBotTests {
         mailingList.post(email);
     }
 
-    private void addReply(Conversation conversation, MailingList mailingList, PullRequest pr) {
-        addReply(conversation, mailingList, pr, "Looks good");
+    private void addReply(Conversation conversation, EmailAddress recipient, MailingList mailingList, PullRequest pr) {
+        addReply(conversation, recipient, mailingList, pr, "Looks good");
     }
 
     @Test
@@ -72,7 +72,7 @@ class MailingListArchiveReaderBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
@@ -113,7 +113,7 @@ class MailingListArchiveReaderBotTests {
             // Post a reply directly to the list
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
-            addReply(conversations.get(0), mailmanList, pr);
+            addReply(conversations.get(0), listAddress, mailmanList, pr);
             listServer.processIncoming();
 
             // Another archive reader pass - has to be done twice
@@ -147,7 +147,7 @@ class MailingListArchiveReaderBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
@@ -185,7 +185,7 @@ class MailingListArchiveReaderBotTests {
             // Post a reply directly to the list
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
-            addReply(conversations.get(0), mailmanList, pr);
+            addReply(conversations.get(0), listAddress, mailmanList, pr);
             listServer.processIncoming();
 
             // Another archive reader pass - has to be done twice
@@ -224,7 +224,7 @@ class MailingListArchiveReaderBotTests {
                                             .repo(author)
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
-                                            .list(listAddress)
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
@@ -267,7 +267,7 @@ class MailingListArchiveReaderBotTests {
             assertEquals(1, conversations.size());
 
             var replyBody = "This line is about 30 bytes long\n".repeat(1000 * 10);
-            addReply(conversations.get(0), mailmanList, pr, replyBody);
+            addReply(conversations.get(0), listAddress, mailmanList, pr, replyBody);
             listServer.processIncoming();
 
             // Another archive reader pass - has to be done twice

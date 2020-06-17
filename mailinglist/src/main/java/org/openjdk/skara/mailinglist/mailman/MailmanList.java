@@ -56,7 +56,7 @@ public class MailmanList implements MailingList {
 
     @Override
     public void post(Email email) {
-        server.sendMessage(listAddress, email);
+        server.sendMessage(email);
     }
 
     private List<ZonedDateTime> getMonthRange(Duration maxAge) {
