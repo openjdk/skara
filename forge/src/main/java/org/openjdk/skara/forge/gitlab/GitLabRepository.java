@@ -292,7 +292,7 @@ public class GitLabRepository implements HostedRepository {
 
     @Override
     public List<CommitComment> commitComments(Hash hash) {
-        return request.get("commits/" + hash.hex() + "/comments")
+        return request.get("repository/commits/" + hash.hex() + "/comments")
                       .execute()
                       .stream()
                       .map(JSONValue::asObject)
@@ -318,14 +318,14 @@ public class GitLabRepository implements HostedRepository {
     @Override
     public void addCommitComment(Hash hash, String body) {
         var query = JSON.object().put("note", body);
-        request.post("commits/" + hash.hex() + "/comments")
+        request.post("repository/commits/" + hash.hex() + "/comments")
                .body(query)
                .execute();
     }
 
     @Override
     public Optional<CommitMetadata> commitMetadata(Hash hash) {
-        var c = request.get("commits/" + hash.hex())
+        var c = request.get("repository/commits/" + hash.hex())
                        .onError(r -> Optional.of(JSON.of()))
                        .execute();
         if (c.isNull()) {
