@@ -2323,4 +2323,31 @@ public class RepositoryTests {
             assertEquals(committed, commit.committed());
         }
     }
+
+    @Test
+    void testLightweightTags() throws IOException, InterruptedException {
+        try (var dir = new TemporaryDirectory()) {
+            var repo = Repository.init(dir.path(), VCS.GIT);
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            repo.add(readme);
+            var head = repo.commit("Add README", "author", "author@openjdk.java.net");
+
+            // We don't want to expose making lightweight tags via the Repository class,
+            // so use a ProcessBuilder and invoke git directly here
+            var pb = new ProcessBuilder("git", "tag", "test-tag", head.hex());
+            pb.directory(repo.root().toFile());
+            assertEquals(0, pb.start().waitFor());
+
+            var tags = repo.tags();
+            assertEquals(1, tags.size());
+
+            var tag = tags.get(0);
+            assertEquals("test-tag", tag.name());
+
+            // Lightweight tags can't be annotated
+            assertEquals(Optional.empty(), repo.annotate(tag));
+        }
+    }
 }
