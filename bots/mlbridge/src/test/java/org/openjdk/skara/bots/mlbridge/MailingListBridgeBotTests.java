@@ -323,6 +323,9 @@ class MailingListBridgeBotTests {
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Subject: RFR: 1234: This is a pull request"));
 
+            // Add a comment quickly before integration - it should not be combined with the integration message
+            pr.addComment("I will now integrate this PR");
+
             // Now it has been integrated
             var ignoredPr = ignored.pullRequest(pr.id());
             ignoredPr.setBody("This has been integrated");
@@ -335,6 +338,7 @@ class MailingListBridgeBotTests {
 
             // The archive should now contain another entry
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertTrue(archiveContains(archiveFolder.path(), "Subject: Re: RFR: 1234: This is a pull request"));
             assertTrue(archiveContains(archiveFolder.path(), "Subject: Integrated: 1234: This is a pull request"));
             assertFalse(archiveContains(archiveFolder.path(), "\\[Closed\\]"));
         }

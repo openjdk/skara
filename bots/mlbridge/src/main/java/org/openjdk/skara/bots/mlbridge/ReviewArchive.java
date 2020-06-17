@@ -184,6 +184,9 @@ class ReviewArchive {
     private String parentAuthorPath(ArchiveItem item) {
         var ret = new StringBuilder();
         ret.append(item.author().id());
+        ret.append(":");
+        ret.append(item.subject());
+        ret.append(":");
         while (item.parent().isPresent()) {
             item = item.parent().get();
             ret.append(".");
