@@ -23,6 +23,7 @@
 module org.openjdk.skara.webrev {
     requires org.openjdk.skara.vcs;
     requires java.net.http;
+    requires java.logging;
 
     exports org.openjdk.skara.webrev;
 }

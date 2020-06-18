@@ -29,6 +29,8 @@ import java.net.URISyntaxException;
 import java.nio.channels.FileChannel;
 import java.nio.file.*;
 import java.util.*;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import java.util.function.Function;
 
 import static java.nio.file.StandardOpenOption.*;
@@ -41,6 +43,8 @@ public class Webrev {
     private static final String CSS = "style.css";
 
     private static final String INDEX = "index.html";
+
+    private static final Logger log = Logger.getLogger("org.openjdk.skara.webrev");
 
     public static final Set<String> STATIC_FILES =
         Set.of(ANCNAV_HTML, ANCNAV_JS, ICON, CSS, INDEX);
@@ -198,6 +202,11 @@ public class Webrev {
             }
 
             var headHash = head == null ? repository.head() : head;
+            var filesDesc = files.isEmpty() ? "" :
+                            " for files " +
+                            files.stream().map(Path::toString).collect(Collectors.joining(", "));
+            log.fine("Generating webrev from " + tailEnd + " to " + headHash + filesDesc);
+
             var fileViews = new ArrayList<FileView>();
             var formatter = new MetadataFormatter(issueLinker);
             for (var patch : patches) {
