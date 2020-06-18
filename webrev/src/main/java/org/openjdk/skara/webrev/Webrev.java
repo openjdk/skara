@@ -204,7 +204,7 @@ public class Webrev {
             var headHash = head == null ? repository.head() : head;
             var filesDesc = files.isEmpty() ? "" :
                             " for files " +
-                            String.join(", ", files.stream().map(Path::toString).collect(Collectors.toList()));
+                            files.stream().map(Path::toString).collect(Collectors.joining(", "));
             log.fine("Generating webrev from " + tailEnd + " to " + headHash + filesDesc);
 
             var fileViews = new ArrayList<FileView>();
