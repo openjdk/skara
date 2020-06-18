@@ -50,20 +50,25 @@ class ModifiedFileView implements FileView {
         this.formatter = formatter;
         if (patch.isTextual()) {
             binaryContent = null;
-            oldContent = repo.lines(patch.source().path().get(), base).orElseThrow(() -> {
-                throw new IllegalArgumentException("Could not get content for file " +
-                                                   patch.source().path().get() +
-                                                   " at revision " + base);
-            });
+            var sourcePath = patch.source().path().orElseThrow(() ->
+                new IllegalArgumentException("Could not get source path for file with hash " +
+                                                   patch.source().hash() + " with target path" +
+                                                   patch.target().path().get())
+            );
+
+            oldContent = repo.lines(sourcePath, base).orElseThrow(() ->
+                new IllegalArgumentException("Could not get content for file " +
+                                                   sourcePath + " at revision " + base)
+            );
             if (head == null) {
                 var path = repo.root().resolve(patch.target().path().get());
                 if (patch.target().type().get().isVCSLink()) {
                     var tip = repo.head();
-                    var content = repo.lines(patch.target().path().get(), tip).orElseThrow(() -> {
-                        throw new IllegalArgumentException("Could not get content for file " +
+                    var content = repo.lines(patch.target().path().get(), tip).orElseThrow(() ->
+                        new IllegalArgumentException("Could not get content for file " +
                                                            patch.target().path().get() +
-                                                           " at revision " + tip);
-                    });
+                                                           " at revision " + tip)
+                    );
                     newContent = List.of(content.get(0) + "-dirty");
                 } else {
                     List<String> lines = null;
@@ -81,11 +86,11 @@ class ModifiedFileView implements FileView {
                     newContent = lines;
                 }
             } else {
-                newContent = repo.lines(patch.target().path().get(), head).orElseThrow(() -> {
-                    throw new IllegalArgumentException("Could not get content for file " +
+                newContent = repo.lines(patch.target().path().get(), head).orElseThrow(() ->
+                    new IllegalArgumentException("Could not get content for file " +
                                                        patch.target().path().get() +
-                                                       " at revision " + head);
-                });
+                                                       " at revision " + head)
+                );
             }
             stats = new WebrevStats(patch.asTextualPatch().stats(), newContent.size());
         } else {
@@ -94,11 +99,11 @@ class ModifiedFileView implements FileView {
             if (head == null) {
                 binaryContent = Files.readAllBytes(repo.root().resolve(patch.target().path().get()));
             } else {
-                binaryContent = repo.show(patch.target().path().get(), head).orElseThrow(() -> {
-                    throw new IllegalArgumentException("Could not get content for file " +
+                binaryContent = repo.show(patch.target().path().get(), head).orElseThrow(() ->
+                    new IllegalArgumentException("Could not get content for file " +
                                                        patch.target().path().get() +
-                                                       " at revision " + head);
-                });
+                                                       " at revision " + head)
+                );
             }
             stats = WebrevStats.empty();
         }
