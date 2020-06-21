@@ -66,6 +66,7 @@ class GitCommits implements Commits, AutoCloseable {
                                          "--topo-order",
                                          "--binary",
                                          "-c",
+                                         "--combined-all-paths",
                                          "--raw",
                                          "--no-abbrev",
                                          "--unified=0",
