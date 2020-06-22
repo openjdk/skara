@@ -147,7 +147,9 @@ class GitCombinedDiffParser {
 
     private List<PatchHeader> parseCombinedRawLine(String line) {
         var headers = new ArrayList<PatchHeader>(numParents);
-        var words = line.substring(2).split("\\s");
+        var parts = line.substring(numParents).split("\\t");
+        var metadata = parts[0];
+        var words = metadata.split(" ");
 
         int index = 0;
         int end = index + numParents;
@@ -175,16 +177,21 @@ class GitCombinedDiffParser {
             statuses.add(Status.from(statusWord.charAt(i)));
         }
 
-        index++;
-        var dstPath = Path.of(words[index]);
-        if (words.length != (index + 1)) {
-            throw new IllegalStateException("Unexpected characters at end of raw line: " + line);
+
+        var srcPaths = new ArrayList<Path>(numParents);
+        index = 1;
+        end = index + numParents;
+        while (index < end) {
+            srcPaths.add(Path.of(parts[index]));
+            index++;
         }
+
+        var dstPath = Path.of(parts[index]);
 
         for (int i = 0; i < numParents; i++) {
             var status = statuses.get(i);
             var srcType = srcTypes.get(i);
-            var srcPath = status.isModified() ?  dstPath : null;
+            var srcPath = status.isAdded() ? null : srcPaths.get(i);
             var srcHash = srcHashes.get(i);
             headers.add(new PatchHeader(srcPath, srcType, srcHash,  dstPath, dstType, dstHash, status));
         }

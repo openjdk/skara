@@ -2350,4 +2350,50 @@ public class RepositoryTests {
             assertEquals(Optional.empty(), repo.annotate(tag));
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testMergeCommitWithRenamedP0AndModifiedP1(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory(false)) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README.old");
+            Files.write(readme, List.of("Hello, world!"));
+            r.add(readme);
+            var first = r.commit("Added README.old", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme, List.of("One more line"), WRITE, APPEND);
+            r.add(readme);
+            var second = r.commit("Modified README.old", "duke", "duke@openjdk.java.net");
+
+            r.checkout(first, false);
+            r.move(Path.of("README.old"), Path.of("README.new"));
+            var third = r.commit("Renamed README.old to README.new", "duke", "duke@openjdk.java.net");
+
+            r.merge(second);
+            var hash = r.commit("Merge", "duke", "duke@openjdk.java.net");
+            var merge = r.lookup(hash).orElseThrow();
+
+            var diffs = merge.parentDiffs();
+            assertEquals(2, diffs.size());
+
+            assertEquals(1, diffs.get(0).patches().size());
+            var p0 = diffs.get(0).patches().get(0);
+            assertTrue(p0.status().isModified());
+            assertEquals(Path.of("README.new"), p0.source().path().get());
+            assertEquals(Path.of("README.new"), p0.target().path().get());
+
+            assertEquals(1, diffs.get(1).patches().size());
+            var p1 = diffs.get(1).patches().get(0);
+            if (vcs == VCS.GIT) {
+                assertTrue(p1.status().isRenamed());
+            } else if (vcs == VCS.HG) {
+                assertTrue(p1.status().isCopied());
+            } else {
+                fail("Unknown VCS");
+            }
+            assertEquals(Path.of("README.old"), p1.source().path().get());
+            assertEquals(Path.of("README.new"), p1.target().path().get());
+        }
+    }
 }
