@@ -36,7 +36,7 @@ public class RejectCommand implements CommandHandler {
             reply.println("You can't reject your own changes.");
             return;
         }
-        if (!ProjectPermissions.mayReview(censusInstance, comment.author())) {
+        if (!censusInstance.isReviewer(comment.author())) {
             reply.println("Only [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to reject changes.");
             return;
         }

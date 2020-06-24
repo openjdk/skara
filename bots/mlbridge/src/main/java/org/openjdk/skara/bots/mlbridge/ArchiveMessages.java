@@ -18,13 +18,10 @@ import java.util.stream.Collectors;
 class ArchiveMessages {
     private static final Pattern commentPattern = Pattern.compile("<!--.*?-->",
                                                                   Pattern.DOTALL | Pattern.MULTILINE);
-    private static final Pattern cutoffPattern = Pattern.compile("(.*?)<!-- Anything below this marker will be .*? -->",
-                                                                 Pattern.DOTALL | Pattern.MULTILINE);
+
     private static String filterComments(String body) {
-        var cutoffMatcher = cutoffPattern.matcher(body);
-        if (cutoffMatcher.find()) {
-            body = cutoffMatcher.group(1);
-        }
+        var parsedBody = PullRequestBody.parse(body);
+        body = parsedBody.bodyText();
 
         var commentMatcher = commentPattern.matcher(body);
         body = commentMatcher.replaceAll("");

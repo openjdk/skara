@@ -60,7 +60,7 @@ public class IntegrateCommand implements CommandHandler {
             // If the command author is allowed to sponsor this change, suggest that command
             var readyHash = ReadyForSponsorTracker.latestReadyForSponsor(pr.repository().forge().currentUser(), allComments);
             if (readyHash.isPresent()) {
-                if (ProjectPermissions.mayCommit(censusInstance, comment.author())) {
+                if (censusInstance.isCommitter(comment.author())) {
                     reply.print(" As this PR is ready to be sponsored, and you are an eligible sponsor, did you mean to issue the `/sponsor` command?");
                     return;
                 }
@@ -126,7 +126,7 @@ public class IntegrateCommand implements CommandHandler {
             }
 
             // Finally check if the author is allowed to perform the actual push
-            if (!ProjectPermissions.mayCommit(censusInstance, pr.author())) {
+            if (!censusInstance.isCommitter(pr.author())) {
                 reply.println(ReadyForSponsorTracker.addIntegrationMarker(pr.headHash()));
                 reply.println("Your change (at version " + pr.headHash() + ") is now ready to be sponsored by a Committer.");
                 if (!args.isBlank()) {

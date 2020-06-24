@@ -60,7 +60,7 @@ public class LabelCommand implements CommandHandler {
 
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
-        if (!comment.author().equals(pr.author()) && (!ProjectPermissions.mayCommit(censusInstance, comment.author()))) {
+        if (!comment.author().equals(pr.author()) && (!censusInstance.isCommitter(comment.author()))) {
             reply.println("Only the PR author and project [Committers](https://openjdk.java.net/bylaws#committer) are allowed to modify labels on a PR.");
             return;
         }

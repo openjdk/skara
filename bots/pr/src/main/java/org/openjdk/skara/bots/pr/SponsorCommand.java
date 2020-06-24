@@ -36,11 +36,11 @@ public class SponsorCommand implements CommandHandler {
 
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
-        if (ProjectPermissions.mayCommit(censusInstance, pr.author())) {
+        if (censusInstance.isCommitter(pr.author())) {
             reply.println("This change does not need sponsoring - the author is allowed to integrate it.");
             return;
         }
-        if (!ProjectPermissions.mayCommit(censusInstance, comment.author())) {
+        if (!censusInstance.isReviewer(comment.author())) {
             reply.println("Only [Committers](https://openjdk.java.net/bylaws#committer) are allowed to sponsor changes.");
             return;
         }

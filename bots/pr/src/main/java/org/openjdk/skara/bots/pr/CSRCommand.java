@@ -57,7 +57,7 @@ public class CSRCommand implements CommandHandler {
 
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
-        if (!ProjectPermissions.mayReview(censusInstance, comment.author())) {
+        if (!censusInstance.isReviewer(comment.author())) {
             reply.println("only [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed require a CSR.");
             return;
         }

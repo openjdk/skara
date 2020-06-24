@@ -22,15 +22,15 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.forge.Review;
-import org.openjdk.skara.issuetracker.Comment;
+import org.junit.jupiter.api.*;
+import org.openjdk.skara.forge.*;
+import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Repository;
 
-import org.junit.jupiter.api.*;
-
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
@@ -65,14 +65,16 @@ class IssueTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a help message
-            assertLastCommentContains(pr,"Command syntax: `/issue");
+            assertLastCommentContains(pr,"Command syntax:");
+            assertLastCommentContains(pr,  "`/issue");
 
             // Check that the alias works as well
             pr.addComment("/solves");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a help message
-            assertLastCommentContains(pr,"Command syntax: `/solves");
+            assertLastCommentContains(pr,"Command syntax:");
+            assertLastCommentContains(pr,  "`/solves");
 
             // Invalid syntax
             pr.addComment("/issue something I guess");
@@ -380,6 +382,119 @@ class IssueTests {
             assertTrue(pr.body().contains("Second"));
             assertFalse(pr.body().contains("## Issue\n"));
             assertTrue(pr.body().contains("## Issues\n"));
+        }
+    }
+
+    private static final Pattern addedIssuePattern = Pattern.compile("`(.*)` was successfully created", Pattern.MULTILINE);
+
+    private static Issue issueFromLastComment(PullRequest pr, IssueProject issueProject) {
+        var comments = pr.comments();
+        var lastComment = comments.get(comments.size() - 1);
+        var addedIssueMatcher = addedIssuePattern.matcher(lastComment.body());
+        assertTrue(addedIssueMatcher.find(), lastComment.body());
+        return issueProject.issue(addedIssueMatcher.group(1)).orElseThrow();
+    }
+
+    @Test
+    void createIssue(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).issueProject(issues).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+            pr.setBody("This is the body");
+
+            // Create an issue
+            pr.addComment("/issue create hotspot");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // Verify it
+            var issue = issueFromLastComment(pr, issues);
+            assertEquals("This is a pull request", issue.title());
+            assertEquals("hotspot", issue.properties().get("components").asArray().get(0).asString());
+            assertEquals("This is the body", issue.body());
+
+            var updatedPr = author.pullRequest(pr.id());
+            var issueNr = issue.id().split("-", 2)[1];
+            assertEquals(issueNr + ": This is a pull request", updatedPr.title());
+        }
+    }
+
+    @Test
+    void createIssueParameterized(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).issueProject(issues).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Create an issue
+            pr.addComment("/issue create P2 hotspot");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // Verify it
+            var issue = issueFromLastComment(pr, issues);
+            assertEquals("This is a pull request", issue.title());
+            assertEquals("hotspot", issue.properties().get("components").asArray().get(0).asString());
+            assertEquals("2", issue.properties().get("priority").asString());
+
+            // Reset and try some more
+            pr.setTitle("This is another pull request");
+
+            // Create an issue
+            pr.addComment("/issue create P4 enhancement hotspot");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // Verify it
+            issue = issueFromLastComment(pr, issues);
+            assertEquals("This is another pull request", issue.title());
+            assertEquals("hotspot", issue.properties().get("components").asArray().get(0).asString());
+            assertEquals("4", issue.properties().get("priority").asString());
+            assertEquals("enhancement", issue.properties().get("issuetype").asString().toLowerCase());
+
+            // Reset and try some more
+            pr.setTitle("This is yet another pull request");
+
+            // Create an issue
+            pr.addComment("/issue create new feature core-libs java.io");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // Verify it
+            issue = issueFromLastComment(pr, issues);
+            assertEquals("This is yet another pull request", issue.title());
+            assertEquals("core-libs", issue.properties().get("components").asArray().get(0).asString());
+            assertEquals("new feature", issue.properties().get("issuetype").asString().toLowerCase());
+            assertEquals("java.io", issue.properties().get("customfield_10008").asString());
         }
     }
 

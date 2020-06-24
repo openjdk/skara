@@ -23,17 +23,24 @@
 package org.openjdk.skara.forge;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.regex.Pattern;
 
 public class PullRequestBody {
+    private final String bodyText;
     private final List<URI> issues;
     private final List<String> contributors;
 
-    private PullRequestBody(List<URI> issues, List<String> contributors) {
+    private static final Pattern cutoffPattern = Pattern.compile("^<!-- Anything below this marker will be .*? -->$");
+
+    private PullRequestBody(String bodyText, List<URI> issues, List<String> contributors) {
+        this.bodyText = bodyText;
         this.issues = issues;
         this.contributors = contributors;
+    }
+
+    public String bodyText() {
+        return bodyText;
     }
 
     public List<URI> issues() {
@@ -48,9 +55,15 @@ public class PullRequestBody {
         return parse(Arrays.asList(pr.body().split("\n")));
     }
 
+    public static PullRequestBody parse(String body) {
+        return parse(Arrays.asList(body.split("\n")));
+    }
+
     public static PullRequestBody parse(List<String> lines) {
         var issues = new ArrayList<URI>();
         var contributors = new ArrayList<String>();
+        var bodyText = new StringBuilder();
+        var inBotComment = false;
 
         var i = 0;
         while (i < lines.size()) {
@@ -85,8 +98,14 @@ public class PullRequestBody {
             } else {
                 i++;
             }
+            if (line.startsWith("<!-- Anything below this marker will be")) {
+                inBotComment = true;
+            }
+            if (!inBotComment) {
+                bodyText.append(line).append("\n");
+            }
         }
 
-        return new PullRequestBody(issues, contributors);
+        return new PullRequestBody(bodyText.toString(), issues, contributors);
     }
 }

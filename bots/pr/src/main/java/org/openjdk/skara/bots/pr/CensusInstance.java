@@ -24,8 +24,9 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.census.*;
 import org.openjdk.skara.forge.*;
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
-import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.vcs.Repository;
 
 import java.io.*;
 import java.net.URLEncoder;
@@ -118,5 +119,37 @@ class CensusInstance {
 
     Namespace namespace() {
         return namespace;
+    }
+
+    Optional<Contributor> contributor(HostUser hostUser) {
+        var contributor = namespace.get(hostUser.id());
+        return Optional.ofNullable(contributor);
+    }
+
+    boolean isAuthor(HostUser hostUser) {
+        int version = census.version().format();
+        var contributor = namespace.get(hostUser.id());
+        if (contributor == null) {
+            return false;
+        }
+        return project.isAuthor(contributor.username(), version);
+    }
+
+    boolean isCommitter(HostUser hostUser) {
+        int version = census.version().format();
+        var contributor = namespace.get(hostUser.id());
+        if (contributor == null) {
+            return false;
+        }
+        return project.isCommitter(contributor.username(), version);
+    }
+
+    boolean isReviewer(HostUser hostUser) {
+        int version = census.version().format();
+        var contributor = namespace.get(hostUser.id());
+        if (contributor == null) {
+            return false;
+        }
+        return project.isReviewer(contributor.username(), version);
     }
 }
