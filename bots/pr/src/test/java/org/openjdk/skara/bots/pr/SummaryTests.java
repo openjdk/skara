@@ -255,4 +255,129 @@ class SummaryTests {
             assertLastCommentContains(pr, "Updating existing summary to `single line`");
         }
     }
+
+    @Test
+    void precedingBlankLines(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(integrator.forge().currentUser().id())
+                                           .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Try setting a summary when none has been set yet
+            pr.addComment("/summary");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a help message
+            assertLastCommentContains(pr,"To set a summary");
+
+            // Add a multi-line summary with preceding blank lines
+            pr.addComment("/summary\n\n\nFirst line\nSecond line");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr,
+                "Setting summary to:\n" +
+                "\n" +
+                "```\n" +
+                "First line\n" +
+                "Second line\n" +
+                "```");
+        }
+    }
+
+    @Test
+    void trailingBlankLines(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(integrator.forge().currentUser().id())
+                                           .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Try setting a summary when none has been set yet
+            pr.addComment("/summary");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a help message
+            assertLastCommentContains(pr,"To set a summary");
+
+            // Add a multi-line summary with preceding blank lines
+            pr.addComment("/summary\nFirst line\nSecond line\n\n\n");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr,
+                "Setting summary to:\n" +
+                "\n" +
+                "```\n" +
+                "First line\n" +
+                "Second line\n" +
+                "```");
+        }
+    }
+
+    @Test
+    void singleAndMultiLineSummary(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(integrator.forge().currentUser().id())
+                                           .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Try setting a summary when none has been set yet
+            pr.addComment("/summary inline\nnext line");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a help message
+            assertLastCommentContains(pr,"To set a multi-line summary, use the syntax:");
+        }
+    }
 }

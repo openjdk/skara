@@ -29,6 +29,7 @@ import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class SummaryCommand implements CommandHandler {
     @Override
@@ -39,9 +40,9 @@ public class SummaryCommand implements CommandHandler {
         }
 
         var currentSummary = Summary.summary(pr.repository().forge().currentUser(), allComments);
+        var lines = Arrays.asList(comment.body().split("\n"));
 
         if (args.isBlank()) {
-            var lines = Arrays.asList(comment.body().split("\n"));
             if (lines.size() == 1) {
                 if (currentSummary.isPresent()) {
                     reply.println("Removing existing summary");
@@ -51,21 +52,42 @@ public class SummaryCommand implements CommandHandler {
                 }
             } else {
                 // A multi-line summary
-                var summary = String.join("\n", lines.subList(1, lines.size()));
-                var action = currentSummary.isPresent() ? "Updating existing" : "Setting";
-                reply.println(action + " summary to:\n" +
-                              "\n" +
-                              "```\n" +
-                              summary +
-                              "\n```");
-                reply.println(Summary.setSummaryMarker(summary));
+                var summaryLines = lines.subList(1, lines.size())
+                                        .stream()
+                                        .dropWhile(String::isEmpty)
+                                        .collect(Collectors.toList());
+                var lastIndexWithNonBlankLine = summaryLines.size() - 1;
+                while (lastIndexWithNonBlankLine >= 0 && summaryLines.get(lastIndexWithNonBlankLine).isEmpty()) {
+                    lastIndexWithNonBlankLine--;
+                }
+                if (lastIndexWithNonBlankLine == 0) {
+                    reply.println("To set a summary, use the syntax `/summary <summary text>`");
+                } else {
+                    var summary = String.join("\n", summaryLines.subList(0, lastIndexWithNonBlankLine + 1));
+                    var action = currentSummary.isPresent() ? "Updating existing" : "Setting";
+                    reply.println(action + " summary to:\n" +
+                                  "\n" +
+                                  "```\n" +
+                                  summary +
+                                  "\n```");
+                    reply.println(Summary.setSummaryMarker(summary));
+                }
             }
         } else {
             // A single-line summary
-            var summary = args.strip();
-            var action = currentSummary.isPresent() ? "Updating existing" : "Setting";
-            reply.println(action + " summary to `" + summary + "`");
-            reply.println(Summary.setSummaryMarker(summary));
+            if (lines.size() > 1) {
+                reply.println("To set a multi-line summary, use the syntax:\n" +
+                              "\n```\n" +
+                              "/summary\n" +
+                              "This is the first line\n" +
+                              "This is the second line\n" +
+                              "```");
+            } else {
+                var summary = args.strip();
+                var action = currentSummary.isPresent() ? "Updating existing" : "Setting";
+                reply.println(action + " summary to `" + summary + "`");
+                reply.println(Summary.setSummaryMarker(summary));
+            }
         }
     }
 
