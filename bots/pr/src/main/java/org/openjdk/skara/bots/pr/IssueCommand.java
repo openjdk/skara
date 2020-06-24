@@ -59,7 +59,7 @@ public class IssueCommand implements CommandHandler {
         reply.println("Command syntax:");
         reply.println(" * `/" + name + " [add|remove] <id>[,<id>,...]`");
         reply.println(" * `/" + name + " [add] <id>: <description>`");
-        reply.println(" * `/" + name + " create [pX] <component> [subcomponent]");
+        reply.println(" * `/" + name + " create [PX] <component>/[subcomponent]");
         reply.println();
         reply.println("Some examples:");
         reply.println();
