@@ -472,7 +472,7 @@ class IssueTests {
             pr.setTitle("This is another pull request");
 
             // Create an issue
-            pr.addComment("/issue create P4 enhancement hotspot");
+            pr.addComment("/issue create P4 hotspot");
             TestBotRunner.runPeriodicItems(prBot);
 
             // Verify it
@@ -486,14 +486,14 @@ class IssueTests {
             pr.setTitle("This is yet another pull request");
 
             // Create an issue
-            pr.addComment("/issue create new feature core-libs java.io");
+            pr.addComment("/issue create core-libs java.io");
             TestBotRunner.runPeriodicItems(prBot);
 
             // Verify it
             issue = issueFromLastComment(pr, issues);
             assertEquals("This is yet another pull request", issue.title());
             assertEquals("core-libs", issue.properties().get("components").asArray().get(0).asString());
-            assertEquals("new feature", issue.properties().get("issuetype").asString().toLowerCase());
+            assertEquals("enhancement", issue.properties().get("issuetype").asString().toLowerCase());
             assertEquals("java.io", issue.properties().get("customfield_10008").asString());
         }
     }

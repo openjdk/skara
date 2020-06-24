@@ -59,7 +59,7 @@ public class IssueCommand implements CommandHandler {
         reply.println("Command syntax:");
         reply.println(" * `/" + name + " [add|remove] <id>[,<id>,...]`");
         reply.println(" * `/" + name + " [add] <id>: <description>`");
-        reply.println(" * `/" + name + " create [pX] [type] <component> [subcomponent]");
+        reply.println(" * `/" + name + " create [pX] <component> [subcomponent]");
         reply.println();
         reply.println("Some examples:");
         reply.println();
@@ -67,7 +67,7 @@ public class IssueCommand implements CommandHandler {
         reply.println(" * `/" + name + " remove JDK-4567890`");
         reply.println(" * `/" + name + " 1234567: Use this exact title`");
         reply.println(" * `/" + name + " create hotspot jfr");
-        reply.println(" * `/" + name + " create P4 enhancement core-libs java.nio");
+        reply.println(" * `/" + name + " create P4 core-libs java.nio");
         reply.println();
         reply.print("If issues are specified only by their ID, the title will be automatically retrieved from JBS. ");
         reply.print("The project prefix (`JDK-` in the above examples) is optional. ");
@@ -212,8 +212,6 @@ public class IssueCommand implements CommandHandler {
         }
     }
 
-    private static final Set<String> allowedTypes = Set.of("bug", "new", "enhancement");
-
     private void createIssue(PullRequestBot bot, PullRequest pr, String args, CensusInstance censusInstance, HostUser author, PrintWriter reply) {
         if (!censusInstance.isAuthor(author)) {
             reply.println("Only [Authors](https://openjdk.java.net/bylaws#author) are allowed to create issues.");
@@ -230,30 +228,12 @@ public class IssueCommand implements CommandHandler {
         argSplit.pollFirst();
 
         String priority = null;
-        String type = null;
         String subComponent = null;
 
         // First argument can be a priority
         var next = argSplit.pollFirst();
         if (next != null && next.matches("^[pP]\\d$")) {
             priority = next.substring(1);
-            next = argSplit.pollFirst();
-        }
-
-        // Second (and third) can be a known issue type
-        if (next != null && allowedTypes.contains(next.toLowerCase())) {
-            if (next.equals("new")) {
-                next = argSplit.pollFirst();
-                if (next != null && next.toLowerCase().equals("feature")) {
-                    type = "new feature";
-                } else {
-                    // Undo the halfway mismatch
-                    argSplit.offerFirst(next);
-                    argSplit.offerFirst("new");
-                }
-            } else {
-                type = next.toLowerCase();
-            }
             next = argSplit.pollFirst();
         }
 
@@ -278,9 +258,7 @@ public class IssueCommand implements CommandHandler {
         if (priority != null) {
             properties.put("priority", JSON.of(priority));
         }
-        if (type != null) {
-            properties.put("issuetype", JSON.of(type));
-        }
+        properties.put("issuetype", JSON.of("enhancement"));
 
         var bodyText = PullRequestBody.parse(pr).bodyText();
         try {
