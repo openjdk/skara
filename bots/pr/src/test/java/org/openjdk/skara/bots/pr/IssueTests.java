@@ -486,7 +486,7 @@ class IssueTests {
             pr.setTitle("This is yet another pull request");
 
             // Create an issue
-            pr.addComment("/issue create core-libs java.io");
+            pr.addComment("/issue create core-libs/java.io");
             TestBotRunner.runPeriodicItems(prBot);
 
             // Verify it

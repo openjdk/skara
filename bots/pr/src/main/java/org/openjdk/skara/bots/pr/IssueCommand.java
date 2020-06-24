@@ -224,7 +224,7 @@ public class IssueCommand implements CommandHandler {
             return;
         }
 
-        var argSplit = new LinkedList<>(Arrays.asList(args.split("\\s+")));
+        var argSplit = new LinkedList<>(Arrays.asList(args.split("(?:\\s+|/)")));
         argSplit.pollFirst();
 
         String priority = null;

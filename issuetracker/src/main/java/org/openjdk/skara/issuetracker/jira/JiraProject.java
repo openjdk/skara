@@ -245,7 +245,6 @@ public class JiraProject implements IssueProject {
                                .findAny().orElseThrow()
                                .get("fields")
                                .asObject();
-        System.out.println("Allowed fields " + fields);
 
         var field = fields.get(name);
         var componentIds = allProperties.get("components").stream()
