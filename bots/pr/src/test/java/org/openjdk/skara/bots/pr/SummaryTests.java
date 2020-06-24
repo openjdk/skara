@@ -247,7 +247,7 @@ class SummaryTests {
                 "2L\n" +
                 "```");
 
-            // Finllay update it to a single line summary
+            // Finally update it to a single line summary
             pr.addComment("/summary single line");
             TestBotRunner.runPeriodicItems(prBot);
 
