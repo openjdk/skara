@@ -258,10 +258,12 @@ public class JCheck {
             return new Issues(new ArrayList<Issue>().iterator(), null);
         }
 
-        var master = repository.resolve(repository.defaultBranch().name())
-                               .orElseThrow(() -> new IllegalStateException("Default branch not found"));
+        var master = repository.resolve(repository.defaultBranch().name());
+        var head = repository.head();
 
-        var conf = parseConfiguration(repository, master, List.of());
+        var conf = master.isPresent() ?
+            parseConfiguration(repository, master.get(), List.of()) :
+            parseConfiguration(repository, head, List.of());
         var branchRegex = conf.isPresent() ? conf.get().repository().branches() : ".*";
         var tagRegex = conf.isPresent() ? conf.get().repository().tags() : ".*";
 
