@@ -133,6 +133,7 @@ class SummaryTests {
             assertEquals("Third time is surely the charm", summaryLine);
         }
     }
+
     @Test
     void invalidCommandAuthor(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
@@ -166,6 +167,92 @@ class SummaryTests {
                           .filter(comment -> comment.body().contains("Only the author"))
                           .count();
             assertEquals(1, error);
+        }
+    }
+
+    @Test
+    void multiline(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(integrator.forge().currentUser().id())
+                                           .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Try setting a summary when none has been set yet
+            pr.addComment("/summary");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a help message
+            assertLastCommentContains(pr,"To set a summary");
+
+            // Add a multi-line summary
+            pr.addComment("/summary\nFirst line\nSecond line");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr,
+                "Setting summary to:\n" +
+                "\n" +
+                "```\n" +
+                "First line\n" +
+                "Second line\n" +
+                "```");
+
+            // Remove it again
+            pr.addComment("/summary");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr,"Removing existing");
+
+            // Now add one again
+            pr.addComment("/summary\nL1\nL2");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr,
+                "Setting summary to:\n" +
+                "\n" +
+                "```\n" +
+                "L1\n" +
+                "L2\n" +
+                "```");
+
+            // Now update it
+            pr.addComment("/summary\n1L\n2L");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr,
+                "Updating existing summary to:\n" +
+                "\n" +
+                "```\n" +
+                "1L\n" +
+                "2L\n" +
+                "```");
+
+            // Finllay update it to a single line summary
+            pr.addComment("/summary single line");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr, "Updating existing summary to `single line`");
         }
     }
 }
