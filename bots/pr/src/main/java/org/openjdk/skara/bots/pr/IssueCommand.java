@@ -66,7 +66,7 @@ public class IssueCommand implements CommandHandler {
         reply.println(" * `/" + name + " add JDK-1234567,4567890`");
         reply.println(" * `/" + name + " remove JDK-4567890`");
         reply.println(" * `/" + name + " 1234567: Use this exact title`");
-        reply.println(" * `/" + name + " create hotspot jfr");
+        reply.println(" * `/" + name + " create hotspot/jfr");
         reply.println(" * `/" + name + " create P4 core-libs/java.nio");
         reply.println();
         reply.print("If issues are specified only by their ID, the title will be automatically retrieved from JBS. ");
