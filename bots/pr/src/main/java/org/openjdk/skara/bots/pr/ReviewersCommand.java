@@ -49,7 +49,7 @@ public class ReviewersCommand implements CommandHandler {
 
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
-        if (!ProjectPermissions.mayReview(censusInstance, comment.author())) {
+        if (!censusInstance.isReviewer(comment.author())) {
             reply.println("Only [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to change the number of required reviewers.");
             return;
         }

@@ -586,7 +586,7 @@ class CheckRun {
             message.append("`.\n");
         }
 
-        if (!ProjectPermissions.mayCommit(censusInstance, pr.author())) {
+        if (!censusInstance.isCommitter(pr.author())) {
             message.append("\n");
             var contributor = censusInstance.namespace().get(pr.author().id());
             if (contributor == null) {
@@ -598,7 +598,7 @@ class CheckRun {
             message.append("an existing [Committer](https://openjdk.java.net/bylaws#committer) must agree to ");
             message.append("[sponsor](https://openjdk.java.net/sponsor/) your change. ");
             var candidates = reviews.stream()
-                                    .filter(review -> ProjectPermissions.mayCommit(censusInstance, review.reviewer()))
+                                    .filter(review -> censusInstance.isCommitter(review.reviewer()))
                                     .map(review -> "@" + review.reviewer().userName())
                                     .collect(Collectors.joining(", "));
             if (candidates.length() > 0) {

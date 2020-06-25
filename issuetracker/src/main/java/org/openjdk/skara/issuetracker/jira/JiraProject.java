@@ -38,6 +38,7 @@ public class JiraProject implements IssueProject {
 
     private JSONObject projectMetadataCache = null;
     private List<JiraLinkType> linkTypes = null;
+    private JSONObject createMetaCache = null;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.issuetracker.jira");
 
@@ -54,10 +55,32 @@ public class JiraProject implements IssueProject {
         return projectMetadataCache;
     }
 
+    private JSONObject createMeta() {
+        if (createMetaCache == null) {
+            createMetaCache = request.get("issue/createmeta")
+                                     .param("projectKeys", projectName)
+                                     .param("expand", "projects.issuetypes.fields")
+                                     .execute()
+                                     .asObject();
+        }
+        return createMetaCache;
+    }
+
     private Map<String, String> issueTypes() {
-        var ret = new HashMap<String, String>();
+        var ret = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
         for (var type : project().get("issueTypes").asArray()) {
             ret.put(type.get("name").asString(), type.get("id").asString());
+        }
+        return ret;
+    }
+
+    private String issueTypeId(String name) {
+        var ret = issueTypes().get(name);
+        if (ret == null) {
+            var allowedList = issueTypes().keySet().stream()
+                                          .map(s -> "`" + s + "`")
+                                          .collect(Collectors.joining(", "));
+            throw new RuntimeException("Unknown issue type `" + name + "`` Known issue types are " + allowedList + ".");
         }
         return ret;
     }
@@ -66,6 +89,17 @@ public class JiraProject implements IssueProject {
         var ret = new HashMap<String, String>();
         for (var type : project().get("components").asArray()) {
             ret.put(type.get("name").asString(), type.get("id").asString());
+        }
+        return ret;
+    }
+
+    private String componentId(String name) {
+        var ret = components().get(name);
+        if (ret == null) {
+            var allowedList = components().keySet().stream()
+                                          .map(s -> "`" + s + "`")
+                                          .collect(Collectors.joining(", "));
+            throw new RuntimeException("Unknown component `" + name + "`. Known components are " + allowedList + ".");
         }
         return ret;
     }
@@ -148,6 +182,7 @@ public class JiraProject implements IssueProject {
                 return Optional.of(new JSONArray(value.stream()
                                                       .map(obj -> obj.get("name"))
                                                       .collect(Collectors.toList())));
+            case "customfield_10008": // fall-through
             case "issuetype":
                 return Optional.of(JSON.of(value.get("name").asString()));
             case "priority":
@@ -172,15 +207,64 @@ public class JiraProject implements IssueProject {
             case "components":
                 return Optional.of(new JSONArray(value.stream()
                                                       .map(JSONValue::asString)
-                                                      .map(s -> JSON.object().put("id", components().get(s)))
+                                                      .map(s -> JSON.object().put("id", componentId(s)))
                                                       .collect(Collectors.toList())));
             case "issuetype":
-                return Optional.of(JSON.object().put("id", issueTypes().get(value.asString())));
+                return Optional.of(JSON.object().put("id", issueTypeId(value.asString())));
             case "priority":
                 return Optional.of(JSON.object().put("id", value.asString()));
             default:
                 return Optional.of(value);
         }
+    }
+
+    JSONValue encodeCustomFields(String name, JSONValue value, Map<String, JSONValue> allProperties) {
+        if (!name.startsWith("customfield_")) {
+            return value;
+        }
+
+        if (!name.equals("customfield_10008")) {
+            if (value.isObject()) {
+                if (value.asObject().contains("id")) {
+                    return value.get("id");
+                } else {
+                    return value;
+                }
+            } else {
+                return value;
+            }
+        }
+
+        var createMeta = createMeta();
+        var fields = createMeta.get("projects").stream()
+                               .filter(p -> p.contains("name"))
+                               .filter(p -> p.get("name").asString().equalsIgnoreCase(projectName))
+                               .findAny().orElseThrow()
+                               .get("issuetypes").stream()
+                               .filter(i -> i.get("id").asString().equals(allProperties.get("issuetype").get("id").asString()))
+                               .findAny().orElseThrow()
+                               .get("fields")
+                               .asObject();
+
+        var field = fields.get(name);
+        var componentIds = allProperties.get("components").stream()
+                                        .map(c -> c.get("id").asString())
+                                        .map(Integer::parseInt)
+                                        .collect(Collectors.toSet());
+        var allowed = field.get("allowedValues").stream()
+                           .filter(c -> componentIds.contains(c.get("id").asInt()))
+                           .flatMap(c -> c.get("subComponents").stream())
+                           .collect(Collectors.toMap(s -> s.get("name").asString(),
+                                                     s -> s.get("id").asInt()));
+        if (!allowed.containsKey(value.asString())) {
+            var allowedList = allowed.keySet().stream()
+                                     .map(s -> "`" + s + "`")
+                                     .collect(Collectors.joining(", "));
+            throw new RuntimeException("Unknown subcomponent `" + value.asString() + "`. Known subcomponents are " +
+                                               allowedList + ".");
+        }
+
+        return JSON.of(allowed.get(value.asString()));
     }
 
     @Override
@@ -193,27 +277,20 @@ public class JiraProject implements IssueProject {
         return URIBuilder.base(jiraHost.getUri()).setPath("/projects/" + projectName).build();
     }
 
-    private boolean isInitialField(String name, JSONValue value) {
-        if (name.equals("project") || name.equals("summary") || name.equals("description") || name.equals("components")) {
-            return true;
-        }
-        return false;
-    }
+    private boolean isInitialField(String issueType, String name, JSONValue value) {
+        var createMeta = createMeta();
+        var fields = createMeta.get("projects").stream()
+                               .filter(p -> p.contains("name"))
+                               .filter(p -> p.get("name").asString().equalsIgnoreCase(projectName))
+                               .findAny().orElseThrow()
+                               .get("issuetypes").stream()
+                               .filter(i -> i.get("id").asString().equals(issueType))
+                               .findAny().orElseThrow()
+                               .get("fields").fields().stream()
+                               .map(JSONObject.Field::name)
+                               .collect(Collectors.toSet());
 
-    // Custom fields are set a bit differently depending on their type
-    private JSONValue filterCustomFieldValue(String name, JSONValue unfiltered) {
-        if (!name.startsWith("customfield_")) {
-            return unfiltered;
-        }
-        if (unfiltered.isObject()) {
-            if (unfiltered.asObject().contains("id")) {
-                return unfiltered.get("id");
-            } else {
-                return unfiltered;
-            }
-        } else {
-            return unfiltered;
-        }
+        return fields.contains(name);
     }
 
     @Override
@@ -237,16 +314,16 @@ public class JiraProject implements IssueProject {
 
         // Provide default values for required fields if not present
         finalProperties.putIfAbsent("components", JSON.array().add(JSON.object().put("id", defaultComponent())));
+        finalProperties.putIfAbsent("issuetype", JSON.object().put("id", defaultIssueType()));
 
         // Filter out the fields that can be set at creation time
+        var issueType = finalProperties.get("issuetype").get("id").asString();
         var fields = JSON.object();
         finalProperties.entrySet().stream()
-                       .filter(entry -> isInitialField(entry.getKey(), entry.getValue()))
-                       .forEach(entry -> fields.put(entry.getKey(), entry.getValue()));
-
-        // Certain types can only be set after creation, so always start with the default value
-        fields.put("issuetype", JSON.object().put("id", defaultIssueType()));
-
+                       .filter(entry -> isInitialField(issueType, entry.getKey(), entry.getValue()))
+                       .forEach(entry -> fields.put(entry.getKey(), encodeCustomFields(entry.getKey(),
+                                                                                       entry.getValue(),
+                                                                                       finalProperties)));
         query.put("fields", fields);
         jiraHost.securityLevel().ifPresent(securityLevel -> fields.put("security", JSON.object()
                                                                                        .put("id", securityLevel)));
@@ -257,9 +334,10 @@ public class JiraProject implements IssueProject {
         // Apply fields that have to be set later (if any)
         var editFields = JSON.object();
         finalProperties.entrySet().stream()
-                       .filter(entry -> !isInitialField(entry.getKey(), entry.getValue()))
-                       .forEach(entry -> editFields.put(entry.getKey(), filterCustomFieldValue(entry.getKey(),
-                                                                                               entry.getValue())));
+                       .filter(entry -> !isInitialField(issueType, entry.getKey(), entry.getValue()))
+                       .forEach(entry -> editFields.put(entry.getKey(), encodeCustomFields(entry.getKey(),
+                                                                                           entry.getValue(),
+                                                                                           finalProperties)));
 
         if (editFields.fields().size() > 0) {
             var id = data.get("key").asString();
