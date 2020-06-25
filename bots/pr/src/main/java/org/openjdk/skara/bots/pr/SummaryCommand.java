@@ -27,32 +27,67 @@ import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class SummaryCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
         if (!comment.author().equals(pr.author())) {
-            reply.println("Only the author (@" + pr.author().userName() + ") is allowed to issue the `summary` command.");
+            reply.println("Only the author (@" + pr.author().userName() + ") is allowed to issue the `/summary` command.");
             return;
         }
 
         var currentSummary = Summary.summary(pr.repository().forge().currentUser(), allComments);
+        var lines = Arrays.asList(comment.body().split("\n"));
 
         if (args.isBlank()) {
-            if (currentSummary.isPresent()) {
-                reply.println("Removing existing summary");
-                reply.println(Summary.setSummaryMarker(""));
+            if (lines.size() == 1) {
+                if (currentSummary.isPresent()) {
+                    reply.println("Removing existing summary");
+                    reply.println(Summary.setSummaryMarker(""));
+                } else {
+                    reply.println("To set a summary, use the syntax `/summary <summary text>`");
+                }
             } else {
-                reply.println("To set a summary, use the syntax `/summary <summary text>`");
+                // A multi-line summary
+                var summaryLines = lines.subList(1, lines.size())
+                                        .stream()
+                                        .dropWhile(String::isEmpty)
+                                        .collect(Collectors.toList());
+                var lastIndexWithNonBlankLine = summaryLines.size() - 1;
+                while (lastIndexWithNonBlankLine >= 0 && summaryLines.get(lastIndexWithNonBlankLine).isEmpty()) {
+                    lastIndexWithNonBlankLine--;
+                }
+                if (lastIndexWithNonBlankLine == 0) {
+                    reply.println("To set a summary, use the syntax `/summary <summary text>`");
+                } else {
+                    var summary = String.join("\n", summaryLines.subList(0, lastIndexWithNonBlankLine + 1));
+                    var action = currentSummary.isPresent() ? "Updating existing" : "Setting";
+                    reply.println(action + " summary to:\n" +
+                                  "\n" +
+                                  "```\n" +
+                                  summary +
+                                  "\n```");
+                    reply.println(Summary.setSummaryMarker(summary));
+                }
             }
         } else {
-            if (currentSummary.isPresent()) {
-                reply.println("Updating existing summary to `" + args.strip() + "`");
+            // A single-line summary
+            if (lines.size() > 1) {
+                reply.println("To set a multi-line summary, use the syntax:\n" +
+                              "\n```\n" +
+                              "/summary\n" +
+                              "This is the first line\n" +
+                              "This is the second line\n" +
+                              "```");
             } else {
-                reply.println("Setting summary to `" + args.strip() + "`");
+                var summary = args.strip();
+                var action = currentSummary.isPresent() ? "Updating existing" : "Setting";
+                reply.println(action + " summary to `" + summary + "`");
+                reply.println(Summary.setSummaryMarker(summary));
             }
-            reply.println(Summary.setSummaryMarker(args.strip()));
         }
     }
 
