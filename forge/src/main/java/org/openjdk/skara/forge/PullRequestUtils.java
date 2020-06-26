@@ -181,4 +181,19 @@ public class PullRequestUtils {
                       .map(Contributor::username)
                       .collect(Collectors.toCollection(LinkedHashSet::new));
     }
+
+    public static boolean containsForeignMerge(PullRequest pr, Repository localRepo) throws IOException {
+        var baseHash = baseHash(pr, localRepo);
+        var commits = localRepo.commitMetadata(baseHash, pr.headHash());
+        var mergeParents = commits.stream()
+                                  .filter(CommitMetadata::isMerge)
+                                  .flatMap(commit -> commit.parents().stream().skip(1))
+                                  .collect(Collectors.toList());
+        for (var mergeParent : mergeParents) {
+            if (!localRepo.isAncestor(baseHash, mergeParent)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
