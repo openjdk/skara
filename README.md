@@ -163,6 +163,15 @@ $ make install prefix=/path/to/install/location
 
 When running `make install` the default value of `prefix` is `$HOME/.local`.
 
+If you want `git help <skara tool>` (or the equivalent `man git-<skara tool>`
+to work, you must also add the `cli/resources/man` directory to `$MANPATH`.
+For instance, run this from the Skara top directory to add this to your
+`.bashrc` file:
+
+```
+echo "export MANPATH=\$MANPATH":$PWD/cli/resources/man >> ~/.bashrc
+```
+
 ## Testing
 
 [JUnit](https://junit.org/junit5/) 5.6.2 or later is required to run the unit
