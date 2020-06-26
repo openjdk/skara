@@ -32,4 +32,8 @@ import java.util.List;
 interface CommandHandler {
     void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply);
     String description();
+
+    default boolean multiLine() {
+        return false;
+    }
 }

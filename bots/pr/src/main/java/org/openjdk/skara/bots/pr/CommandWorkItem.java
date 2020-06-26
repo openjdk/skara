@@ -37,7 +37,7 @@ import java.util.stream.*;
 public class CommandWorkItem extends PullRequestWorkItem {
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
-    private static final Pattern commandPattern = Pattern.compile("^/(.*)");
+    private static final Pattern commandPattern = Pattern.compile("^\\s*/(.*)");
     private static final String commandReplyMarker = "<!-- Jmerge command reply message (%s) -->";
     private static final Pattern commandReplyPattern = Pattern.compile("<!-- Jmerge command reply message \\((\\S+)\\) -->");
     private static final String selfCommandMarker = "<!-- Valid self-command -->";
@@ -97,6 +97,23 @@ public class CommandWorkItem extends PullRequestWorkItem {
                        .filter(entry -> !handled.contains(entry.getKey().id()))
                        .map(entry -> new AbstractMap.SimpleEntry<>(entry.getValue().group(1), entry.getKey()))
                        .collect(Collectors.toList());
+    }
+
+    private List<CommandInvocation> extractCommands(String text, String baseId) {
+        var activeCommandBuffer = new StringBuilder();
+        for (var line : text.split("\\R")) {
+            var commandMatcher = commandPattern.matcher(line);
+            if (commandMatcher.matches()) {
+                var handler = commandHandlers.get(commandMatcher.group(1).toLowerCase());
+                
+            } else {
+
+            }
+        }
+    }
+
+    private List<CommandInvocation> findCommands(String body, List<Comment> comments) {
+
     }
 
     private void processCommand(PullRequest pr, CensusInstance censusInstance, Path scratchPath, String command, Comment comment, List<Comment> allComments) {
