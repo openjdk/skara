@@ -190,7 +190,7 @@ public class PullRequestUtils {
                                   .flatMap(commit -> commit.parents().stream().skip(1))
                                   .collect(Collectors.toList());
         for (var mergeParent : mergeParents) {
-            if (!localRepo.isAncestor(baseHash, mergeParent)) {
+            if (!localRepo.mergeBase(pr.targetHash(), mergeParent).equals(mergeParent)) {
                 return true;
             }
         }
