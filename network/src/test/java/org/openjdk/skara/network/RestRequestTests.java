@@ -175,6 +175,21 @@ class RestRequestTests {
     }
 
     @Test
+    void fieldPagination() throws IOException {
+        var page1 = "{ \"a\": 1, \"b\": [ 1, 2, 3 ] }";
+        var page2 = "{ \"a\": 1, \"b\": [ 4, 5, 6 ] }";
+        try (var receiver = new RestReceiver(List.of(page1, page2))) {
+            var request = new RestRequest(receiver.getEndpoint());
+            var result = request.post("/test").execute();
+            assertEquals(1, result.get("a").asInt());
+            assertEquals(6, result.get("b").asArray().size());
+            assertEquals(1, result.get("b").asArray().get(0).asInt());
+            assertEquals(4, result.get("b").asArray().get(3).asInt());
+            assertEquals(6, result.get("b").asArray().get(5).asInt());
+        }
+    }
+
+    @Test
     void retryOnTransientErrors() throws IOException {
         try (var receiver = new RestReceiver()) {
             receiver.setTruncatedResponseCount(1);
