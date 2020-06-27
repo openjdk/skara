@@ -38,8 +38,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class RestReceiver implements AutoCloseable {
     private final HttpServer server;
-    private final List<JSONObject> requests;
-    private final String response;
+    private final List<JSONObject> requests = new ArrayList<>();
+    private final List<String> responses;
     private int responseCode;
 
     private int truncatedResponseCount = 0;
@@ -59,7 +59,25 @@ class RestReceiver implements AutoCloseable {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             var input = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-            requests.add(JSON.parse(input).asObject());
+            if (input.isBlank()) {
+                requests.add(JSON.object());
+            } else {
+                requests.add(JSON.parse(input).asObject());
+            }
+
+            var pageQuery = exchange.getRequestURI().getQuery();
+            var requestedPage = pageQuery == null ? 1 : Integer.parseInt(pageQuery);
+            var response = responses.get(requestedPage - 1);
+
+            if (responses.size() > 1) {
+                var responseHeaders = exchange.getResponseHeaders();
+                if (requestedPage < responses.size()) {
+                    responseHeaders.add("Link", "<" + getEndpoint() + "?" + (requestedPage + 1) + ">; rel=\"next\"");
+                }
+                if (requestedPage > 1) {
+                    responseHeaders.add("Link", "<" + getEndpoint() + "?" + (requestedPage - 1) + ">; rel=\"prev\"");
+                }
+            }
 
             usedCache = false;
             if (truncatedResponseCount == 0) {
@@ -87,20 +105,30 @@ class RestReceiver implements AutoCloseable {
         }
     }
 
+    private HttpServer createServer() throws IOException {
+        InetSocketAddress address = new InetSocketAddress(InetAddress.getLoopbackAddress(), 0);
+        var server = HttpServer.create(address, 0);
+        server.createContext("/test", new Handler());
+        server.setExecutor(null);
+        server.start();
+        return server;
+    }
+
     RestReceiver() throws IOException {
         this("{}", 200);
     }
 
     RestReceiver(String response, int responseCode) throws IOException
     {
-        this.response = response;
+        this.responses = List.of(response);
         this.responseCode = responseCode;
-        requests = new ArrayList<>();
-        InetSocketAddress address = new InetSocketAddress(InetAddress.getLoopbackAddress(), 0);
-        server = HttpServer.create(address, 0);
-        server.createContext("/test", new Handler());
-        server.setExecutor(null);
-        server.start();
+        this.server = createServer();
+    }
+
+    RestReceiver(List<String> responsePages) throws IOException {
+        this.responses = Collections.unmodifiableList(responsePages);
+        this.responseCode = 200;
+        this.server = createServer();
     }
 
     URI getEndpoint() {
@@ -131,6 +159,18 @@ class RestRequestTests {
         try (var receiver = new RestReceiver()) {
             var request = new RestRequest(receiver.getEndpoint());
             request.post("/test").execute();
+        }
+    }
+
+    @Test
+    void pagination() throws IOException {
+        var page1 = "[ { \"a\": 1 } ]";
+        var page2 = "[ { \"b\": 2 } ]";
+        try (var receiver = new RestReceiver(List.of(page1, page2))) {
+            var request = new RestRequest(receiver.getEndpoint());
+            var result = request.post("/test").execute();
+            assertEquals(2, result.asArray().size());
+            assertEquals(1, result.asArray().get(0).get("a").asInt());
         }
     }
 
