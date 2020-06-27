@@ -57,6 +57,7 @@ class CheckRun {
     private static final String mergeReadyMarker = "<!-- PullRequestBot merge is ready comment -->";
     private static final String outdatedHelpMarker = "<!-- PullRequestBot outdated help comment -->";
     private static final String sourceBranchWarningMarker = "<!-- PullRequestBot source branch warning comment -->";
+    private static final String mergeCommitWarningMarker = "<!-- PullRequestBot merge commit warning comment -->";
     private static final String emptyPrBodyMarker = "<!--\nReplace this text with a description of your pull request (also remove the surrounding HTML comment markers).\n" +
             "If in doubt, feel free to delete everything in this edit box first, the bot will restore the progress section as needed.\n-->";
     private final Set<String> newLabels;
@@ -694,6 +695,22 @@ class CheckRun {
         pr.addComment(message);
     }
 
+    private void addMergeCommitWarningComment(List<Comment> comments) {
+        var existing = findComment(comments, mergeCommitWarningMarker);
+        if (existing.isPresent()) {
+            // Only add the comment once per PR
+            return;
+        }
+
+        var message = "@" + pr.author().userName() + " This pull request looks like it contains a merge commit that " +
+                "brings in commits from outside of this repository. If you want these commits to be preserved " +
+                "when you integrate, you will need to make a 'merge-style' pull request. To do this, change the " +
+                "title of this pull request to `Merge <project>:<branch>`, where `<project>` is the name of another " +
+                "project in the OpenJDK organization. For example: `Merge jdk:master`." +
+                "\n" + mergeCommitWarningMarker;
+        pr.addComment(message);
+    }
+
     private void checkStatus() {
         var checkBuilder = CheckBuilder.create("jcheck", pr.headHash());
         var censusDomain = censusInstance.configuration().census().domain();
@@ -767,6 +784,10 @@ class CheckRun {
             var branchNames = pr.repository().branches().stream().map(HostedBranch::name).collect(Collectors.toSet());
             if (!pr.repository().url().equals(pr.sourceRepository().url()) && branchNames.contains(pr.sourceRef())) {
                 addSourceBranchWarningComment(comments);
+            }
+
+            if (!PullRequestUtils.isMerge(pr) && PullRequestUtils.containsForeignMerge(pr, localRepo)) {
+                addMergeCommitWarningComment(comments);
             }
 
             // Ensure that the ready for sponsor label is up to date
