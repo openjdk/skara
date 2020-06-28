@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.*;
@@ -37,7 +38,7 @@ import java.util.stream.*;
 public class CommandWorkItem extends PullRequestWorkItem {
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
-    private static final Pattern commandPattern = Pattern.compile("^\\s*/(.*)");
+    private static final Pattern commandPattern = Pattern.compile("^\\s*/([A-Zaz]+)(?:\\s+(.*))?");
     private static final String commandReplyMarker = "<!-- Jmerge command reply message (%s) -->";
     private static final Pattern commandReplyPattern = Pattern.compile("<!-- Jmerge command reply message \\((\\S+)\\) -->");
     private static final String selfCommandMarker = "<!-- Valid self-command -->";
@@ -99,44 +100,84 @@ public class CommandWorkItem extends PullRequestWorkItem {
                        .collect(Collectors.toList());
     }
 
-    private List<CommandInvocation> extractCommands(String text, String baseId) {
-        var activeCommandBuffer = new StringBuilder();
-        for (var line : text.split("\\R")) {
-            var commandMatcher = commandPattern.matcher(line);
-            if (commandMatcher.matches()) {
-                var handler = commandHandlers.get(commandMatcher.group(1).toLowerCase());
-                
-            } else {
-
-            }
+    private String formatId(String baseId, int subId) {
+        if (subId > 0) {
+            return String.format("%s:%d", baseId, subId);
+        } else {
+            return baseId;
         }
     }
 
-    private List<CommandInvocation> findCommands(String body, List<Comment> comments) {
-
+    private List<CommandInvocation> extractCommands(String text, String baseId, HostUser user) {
+        var ret = new ArrayList<CommandInvocation>();
+        CommandHandler multiLineHandler = null;
+        List<String> multiLineBuffer = null;
+        String multiLineCommand = null;
+        int subId = 0;
+        for (var line : text.split("\\R")) {
+            var commandMatcher = commandPattern.matcher(line);
+            if (commandMatcher.matches()) {
+                if (multiLineHandler != null) {
+                    ret.add(new CommandInvocation(formatId(baseId, subId++), user, multiLineHandler, multiLineCommand, String.join("\n", multiLineBuffer)));
+                    multiLineHandler = null;
+                }
+                var command = commandMatcher.group(1).toLowerCase();
+                var handler = commandHandlers.get(command);
+                if (handler.multiLine()) {
+                    multiLineHandler = handler;
+                    multiLineBuffer = new ArrayList<>();
+                    multiLineCommand = command;
+                } else {
+                    ret.add(new CommandInvocation(formatId(baseId, subId++), user, handler, command, commandMatcher.group(2)));
+                }
+            } else {
+                if (multiLineHandler != null) {
+                    multiLineBuffer.add(line);
+                }
+            }
+        }
+        if (multiLineHandler != null) {
+            ret.add(new CommandInvocation(formatId(baseId, subId), user, multiLineHandler, multiLineCommand, String.join("\n", multiLineBuffer)));
+        }
+        return ret;
     }
 
-    private void processCommand(PullRequest pr, CensusInstance censusInstance, Path scratchPath, String command, Comment comment, List<Comment> allComments) {
+    private Optional<CommandInvocation> nextCommand(PullRequest pr, List<Comment> comments) {
+        var self = pr.repository().forge().currentUser();
+        var allCommands = Stream.concat(extractCommands(pr.body(), "body", pr.author()).stream(),
+                                        comments.stream()
+                                                .filter(comment -> !comment.author().equals(self) || comment.body().endsWith(selfCommandMarker))
+                                                .flatMap(c -> extractCommands(c.body(), c.id(), c.author()).stream()))
+                                .collect(Collectors.toList());
+
+        var handled = comments.stream()
+                              .filter(comment -> comment.author().equals(self))
+                              .map(comment -> commandReplyPattern.matcher(comment.body()))
+                              .filter(Matcher::find)
+                              .map(matcher -> matcher.group(1))
+                              .collect(Collectors.toSet());
+
+        return allCommands.stream()
+                          .filter(ci -> !handled.contains(ci.id()))
+                          .findFirst();
+    }
+
+    private void processCommand(PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments) {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
-        printer.println(String.format(commandReplyMarker, comment.id()));
+        printer.println(String.format(commandReplyMarker, command.id()));
         printer.print("@");
-        printer.print(comment.author().userName());
+        printer.print(command.user().userName());
         printer.print(" ");
 
-        command = command.strip();
-        var argSplit = command.indexOf(' ');
-        var commandWord = argSplit > 0 ? command.substring(0, argSplit) : command;
-        var commandArgs = argSplit > 0 ? command.substring(argSplit + 1) : "";
-
-        var handler = commandHandlers.get(commandWord);
-        if (handler != null) {
-            handler.handle(bot, pr, censusInstance, scratchPath, commandArgs, comment, allComments, printer);
+        var handler = command.handler();
+        if (handler.isPresent()) {
+            handler.get().handle(bot, pr, censusInstance, scratchPath, command, allComments, printer);
         } else {
-            if (!bot.externalCommands().containsKey(commandWord)) {
+            if (!bot.externalCommands().containsKey(command.name())) {
                 printer.print("Unknown command `");
-                printer.print(command);
+                printer.print(command.name());
                 printer.println("` - for a list of valid commands use `/help`.");
             } else {
                 // Do not reply to external commands
@@ -149,7 +190,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
 
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
-        log.info("Looking for merge commands");
+        log.info("Looking for PR commands");
 
         if (pr.labels().contains("integrated")) {
             log.info("Skip checking for commands in integrated PR");
@@ -157,9 +198,9 @@ public class CommandWorkItem extends PullRequestWorkItem {
         }
 
         var comments = pr.comments();
-        var unprocessedCommands = findCommandComments(comments);
-        if (unprocessedCommands.isEmpty()) {
-            log.fine("No new merge commands found, stopping further processing");
+        var nextCommand = nextCommand(pr, comments);
+        if (nextCommand.isEmpty()) {
+            log.fine("No new PR commands found, stopping further processing");
             return List.of();
         }
 
@@ -168,9 +209,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
         }
 
         var census = CensusInstance.create(bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr);
-        for (var entry : unprocessedCommands) {
-            processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), entry.getKey(), entry.getValue(), comments);
-        }
+        processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), nextCommand.get(), comments);
 
         // Run another check to reflect potential changes from commands
         return List.of(new CheckWorkItem(bot, pr, errorHandler));
