@@ -168,7 +168,7 @@ to work, you must also add the `build/bin/man` directory to `$MANPATH`.
 For instance, run this from the Skara top directory to add this to your
 `.bashrc` file:
 
-```
+```bash
 echo "export MANPATH=\$MANPATH":$PWD/build/bin/man >> ~/.bashrc
 ```
 
