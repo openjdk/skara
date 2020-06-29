@@ -26,28 +26,31 @@ import org.openjdk.skara.bot.*;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.function.Predicate;
 
 public class TestBotRunner {
-    public static void runPeriodicItems(Bot bot) throws IOException {
-        runPeriodicItems(bot, wi -> false);
+    @FunctionalInterface
+    public interface AfterItemHook {
+        void run(WorkItem item);
     }
 
-    public static void runPeriodicItems(Bot bot, Predicate<WorkItem> ignored) throws IOException {
+    public static void runPeriodicItems(Bot bot) throws IOException {
+        runPeriodicItems(bot, item -> {});
+    }
+
+    public static void runPeriodicItems(Bot bot, AfterItemHook afterItemHook) throws IOException {
         var items = new LinkedList<>(bot.getPeriodicItems());
         for (var item = items.pollFirst(); item != null; item = items.pollFirst()) {
-            if (!ignored.test(item)) {
-                Collection<WorkItem> followUpItems = null;
-                try (var scratchFolder = new TemporaryDirectory()) {
-                    followUpItems = item.run(scratchFolder.path());
-                } catch (RuntimeException e) {
-                    item.handleRuntimeException(e);
-                    // Allow tests to assert on these as well
-                    throw e;
-                }
-                if (followUpItems != null) {
-                    items.addAll(followUpItems);
-                }
+            Collection<WorkItem> followUpItems = null;
+            try (var scratchFolder = new TemporaryDirectory()) {
+                followUpItems = item.run(scratchFolder.path());
+                afterItemHook.run(item);
+            } catch (RuntimeException e) {
+                item.handleRuntimeException(e);
+                // Allow tests to assert on these as well
+                throw e;
+            }
+            if (followUpItems != null) {
+                items.addAll(followUpItems);
             }
         }
     }

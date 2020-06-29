@@ -183,9 +183,14 @@ class IntegrateTests {
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
-            // Attempt a merge, do not run the check from the bot
+            // Attempt a merge, but point the check at some other commit
             pr.addComment("/integrate");
-            TestBotRunner.runPeriodicItems(mergeBot, item -> item instanceof CheckWorkItem);
+            TestBotRunner.runPeriodicItems(mergeBot, item -> {
+                if (item instanceof CheckWorkItem) {
+                    var newCheck = CheckBuilder.create("jcheck", masterHash).build();
+                    pr.updateCheck(newCheck);
+                }
+            });
 
             // The bot should reply with an error message
             var error = pr.comments().stream()
@@ -305,9 +310,14 @@ class IntegrateTests {
             var updatedHash = CheckableRepository.appendAndCommit(localRepo, "Yet another line");
             localRepo.push(updatedHash, author.url(), "edit", true);
 
-            // Attempt a merge - avoid running checks from the bot
+            // Attempt a merge, but point the check at some other commit
             pr.addComment("/integrate");
-            TestBotRunner.runPeriodicItems(mergeBot, item -> item instanceof CheckWorkItem);
+            TestBotRunner.runPeriodicItems(mergeBot, item -> {
+                if (item instanceof CheckWorkItem) {
+                    var newCheck = CheckBuilder.create("jcheck", masterHash).build();
+                    pr.updateCheck(newCheck);
+                }
+            });
 
             // The bot should reply with an error message
             var error = pr.comments().stream()
@@ -580,15 +590,15 @@ class IntegrateTests {
             var badCensusHash = localCensus.commit("Bad census update", "duke", "duke@openjdk.org");
             localCensus.push(badCensusHash, censusRepo.url(), "master", true);
 
-            // Attempt a merge (without triggering another check)
+            // Attempt a merge
             pr.addComment("/integrate");
-            assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(mergeBot, wi -> wi instanceof CheckWorkItem));
+            assertThrows(RuntimeException.class, () -> TestBotRunner.runPeriodicItems(mergeBot));
 
             // Restore the census
             localCensus.push(currentCensusHash, censusRepo.url(), "master", true);
 
             // The bot should now retry
-            TestBotRunner.runPeriodicItems(mergeBot, wi -> wi instanceof CheckWorkItem);
+            TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an ok message
             var pushed = pr.comments().stream()
