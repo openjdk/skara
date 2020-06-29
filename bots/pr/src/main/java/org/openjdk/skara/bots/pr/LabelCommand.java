@@ -118,4 +118,9 @@ public class LabelCommand implements CommandHandler {
     public String description() {
         return "add or remove an additional classification label";
     }
+
+    @Override
+    public boolean allowedInBody() {
+        return true;
+    }
 }

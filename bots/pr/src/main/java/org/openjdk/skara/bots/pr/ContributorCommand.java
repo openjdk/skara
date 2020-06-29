@@ -130,4 +130,9 @@ public class ContributorCommand implements CommandHandler {
     public String description() {
         return "adds or removes additional contributors for a PR";
     }
+
+    @Override
+    public boolean allowedInBody() {
+        return true;
+    }
 }

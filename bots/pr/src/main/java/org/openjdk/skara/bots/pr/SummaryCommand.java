@@ -70,4 +70,9 @@ public class SummaryCommand implements CommandHandler {
     public boolean multiLine() {
         return true;
     }
+
+    @Override
+    public boolean allowedInBody() {
+        return true;
+    }
 }

@@ -108,6 +108,18 @@ public class CommandWorkItem extends PullRequestWorkItem {
         }
     }
 
+    private static class InvalidBodyCommandHandler implements CommandHandler {
+        @Override
+        public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+            reply.println("The command `" + command.name() + "` cannot be used in the pull request body. Please use it in a new comment.");
+        }
+
+        @Override
+        public String description() {
+            return "";
+        }
+    }
+
     private List<CommandInvocation> extractCommands(String text, String baseId, HostUser user) {
         var ret = new ArrayList<CommandInvocation>();
         CommandHandler multiLineHandler = null;
@@ -123,6 +135,9 @@ public class CommandWorkItem extends PullRequestWorkItem {
                 }
                 var command = commandMatcher.group(1).toLowerCase();
                 var handler = commandHandlers.get(command);
+                if (handler != null && baseId.equals("body") && !handler.allowedInBody()) {
+                    handler = new InvalidBodyCommandHandler();
+                }
                 if (handler != null && handler.multiLine()) {
                     multiLineHandler = handler;
                     multiLineBuffer = new ArrayList<>();

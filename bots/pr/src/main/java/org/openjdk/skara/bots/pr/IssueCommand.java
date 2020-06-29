@@ -309,4 +309,9 @@ public class IssueCommand implements CommandHandler {
     public String description() {
         return "edit the list of issues that this PR solves";
     }
+
+    @Override
+    public boolean allowedInBody() {
+        return true;
+    }
 }
