@@ -31,12 +31,12 @@ import java.util.List;
 
 public class RejectCommand implements CommandHandler {
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
-        if (pr.author().equals(comment.author())) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+        if (pr.author().equals(command.user())) {
             reply.println("You can't reject your own changes.");
             return;
         }
-        if (!censusInstance.isReviewer(comment.author())) {
+        if (!censusInstance.isReviewer(command.user())) {
             reply.println("Only [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to reject changes.");
             return;
         }
@@ -44,7 +44,7 @@ public class RejectCommand implements CommandHandler {
         var botUser = pr.repository().forge().currentUser();
         var vetoers = Veto.vetoers(botUser, allComments);
 
-        if (vetoers.contains(comment.author().id())) {
+        if (vetoers.contains(command.user().id())) {
             reply.println("You have already rejected this change.");
             return;
         }
@@ -55,7 +55,7 @@ public class RejectCommand implements CommandHandler {
         reply.println("This change cannot be integrated while the rejection is in place. To lift the rejection, ");
         reply.println("issue an allow command: `/allow`");
 
-        reply.println(Veto.addVeto(comment.author()));
+        reply.println(Veto.addVeto(command.user()));
 
         if (vetoers.isEmpty()) {
             pr.addLabel("rejected");

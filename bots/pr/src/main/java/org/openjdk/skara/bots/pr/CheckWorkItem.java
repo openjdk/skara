@@ -159,6 +159,6 @@ class CheckWorkItem extends PullRequestWorkItem {
                 throw new UncheckedIOException(e);
             }
         }
-        return List.of();
+        return List.of(new CommandWorkItem(bot, pr, errorHandler));
     }
 }

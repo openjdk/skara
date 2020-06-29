@@ -272,11 +272,12 @@ public class IssueCommand implements CommandHandler {
     }
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
-        if (!comment.author().equals(pr.author())) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+        if (!command.user().equals(pr.author())) {
             reply.println("Only the author (@" + pr.author().userName() + ") is allowed to issue the `/" + name + "` command.");
             return;
         }
+        var args = command.args();
         if (args.isBlank()) {
             showHelp(reply);
             return;
@@ -295,7 +296,7 @@ public class IssueCommand implements CommandHandler {
             if (args.startsWith("remove") || args.startsWith("delete")) {
                 removeIssue(bot, args, currentSolved, reply);
             } else if (args.startsWith("create")) {
-                createIssue(bot, pr, args, censusInstance, comment.author(), reply);
+                createIssue(bot, pr, args, censusInstance, command.user(), reply);
             } else {
                 addIssue(bot, pr, args, currentSolved, reply);
             }
@@ -307,5 +308,10 @@ public class IssueCommand implements CommandHandler {
     @Override
     public String description() {
         return "edit the list of issues that this PR solves";
+    }
+
+    @Override
+    public boolean allowedInBody() {
+        return true;
     }
 }

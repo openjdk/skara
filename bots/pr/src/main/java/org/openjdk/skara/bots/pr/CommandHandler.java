@@ -30,6 +30,13 @@ import java.nio.file.Path;
 import java.util.List;
 
 interface CommandHandler {
-    void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply);
+    void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply);
     String description();
+
+    default boolean multiLine() {
+        return false;
+    }
+    default boolean allowedInBody() {
+        return false;
+    }
 }

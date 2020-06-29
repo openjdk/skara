@@ -35,12 +35,12 @@ public class SponsorCommand implements CommandHandler {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (censusInstance.isCommitter(pr.author())) {
             reply.println("This change does not need sponsoring - the author is allowed to integrate it.");
             return;
         }
-        if (!censusInstance.isReviewer(comment.author())) {
+        if (!censusInstance.isReviewer(command.user())) {
             reply.println("Only [Committers](https://openjdk.java.net/bylaws#committer) are allowed to sponsor changes.");
             return;
         }
@@ -79,8 +79,8 @@ public class SponsorCommand implements CommandHandler {
 
             // Validate the target hash if requested
             var rebaseMessage = new StringWriter();
-            if (!args.isBlank()) {
-                var wantedHash = new Hash(args);
+            if (!command.args().isBlank()) {
+                var wantedHash = new Hash(command.args());
                 if (!pr.targetHash().equals(wantedHash)) {
                     reply.print("The head of the target branch is no longer at the requested hash " + wantedHash);
                     reply.println(" - it has moved to " + pr.targetHash() + ". Aborting integration.");
@@ -97,7 +97,7 @@ public class SponsorCommand implements CommandHandler {
             }
 
             var localHash = checkablePr.commit(rebasedHash.get(), censusInstance.namespace(), censusInstance.configuration().census().domain(),
-                    comment.author().id());
+                    command.user().id());
 
             var issues = checkablePr.createVisitor(localHash, censusInstance);
             var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), allComments);

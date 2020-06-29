@@ -22,13 +22,13 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.test.*;
-
 import org.junit.jupiter.api.*;
+import org.openjdk.skara.test.*;
 
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
 
 class CommandTests {
     @Test
@@ -105,6 +105,49 @@ class CommandTests {
     }
 
     @Test
+    void multipleCommands(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Issue multiple commands in a comment
+            pr.addComment("/contributor add A <a@b.c>\n/summary line 1\nline 2\n/contributor add B <b@c.d>");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // Each command should get a separate reply
+            assertEquals(4, pr.comments().size());
+            assertTrue(pr.comments().get(1).body().contains("Contributor `A <a@b.c>` successfully added"), pr.comments().get(1).body());
+            assertTrue(pr.comments().get(2).body().contains("Setting summary to:\n" +
+                                                                    "\n" +
+                                                                    "```\n" +
+                                                                    "line 1\n" +
+                                                                    "line 2"), pr.comments().get(2).body());
+            assertTrue(pr.comments().get(3).body().contains("Contributor `B <b@c.d>` successfully added"), pr.comments().get(3).body());
+
+            // They should only be executed once
+            TestBotRunner.runPeriodicItems(mergeBot);
+            TestBotRunner.runPeriodicItems(mergeBot);
+            assertEquals(4, pr.comments().size());
+        }
+    }
+
+    @Test
     void selfCommand(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
@@ -147,6 +190,74 @@ class CommandTests {
                          .filter(comment -> comment.body().contains("help"))
                          .count();
             assertEquals(1, help);
+        }
+    }
+
+    @Test
+    void inBody(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder()
+                                         .repo(integrator)
+                                         .censusRepo(censusBuilder.build())
+                                         .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Issue an invalid body command
+            pr.setBody("This is a body\n/contributor add A <a@b.c>\n/contributor add B <b@c.d>");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The second command reply should be the last comment
+            assertLastCommentContains(pr, "Contributor `B <b@c.d>` successfully added.");
+
+            // The first command should also be reflected in the body
+            assertTrue(pr.body().contains("A `<a@b.c>`"));
+        }
+    }
+
+    @Test
+    void disallowedInBody(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Issue an invalid body command
+            pr.setBody("/help");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with some help
+            assertLastCommentContains(pr, "The command `help` cannot be used in the pull request body");
         }
     }
 }

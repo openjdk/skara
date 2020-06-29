@@ -376,8 +376,14 @@ class SummaryTests {
             pr.addComment("/summary inline\nnext line");
             TestBotRunner.runPeriodicItems(prBot);
 
-            // The bot should reply with a help message
-            assertLastCommentContains(pr,"To set a multi-line summary, use the syntax:");
+            // This should also be interpreted as a multi-line summary
+            assertLastCommentContains(pr,
+                                      "Setting summary to:\n" +
+                                              "\n" +
+                                              "```\n" +
+                                              "inline\n" +
+                                              "next line\n" +
+                                              "```");
         }
     }
 }

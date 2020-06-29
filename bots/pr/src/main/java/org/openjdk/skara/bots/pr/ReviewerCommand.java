@@ -66,8 +66,8 @@ public class ReviewerCommand implements CommandHandler {
     }
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
-        if (!comment.author().equals(pr.author())) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+        if (!command.user().equals(pr.author())) {
             reply.println("Only the author (@" + pr.author().userName() + ") is allowed to issue the `reviewer` command.");
             return;
         }
@@ -76,7 +76,7 @@ public class ReviewerCommand implements CommandHandler {
             return;
         }
 
-        var matcher = commandPattern.matcher(args);
+        var matcher = commandPattern.matcher(command.args());
         if (!matcher.matches()) {
             showHelp(pr, reply);
             return;
