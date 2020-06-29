@@ -164,12 +164,12 @@ $ make install prefix=/path/to/install/location
 When running `make install` the default value of `prefix` is `$HOME/.local`.
 
 If you want `git help <skara tool>` (or the equivalent `man git-<skara tool>`
-to work, you must also add the `cli/resources/man` directory to `$MANPATH`.
+to work, you must also add the `build/bin/man` directory to `$MANPATH`.
 For instance, run this from the Skara top directory to add this to your
 `.bashrc` file:
 
 ```
-echo "export MANPATH=\$MANPATH":$PWD/cli/resources/man >> ~/.bashrc
+echo "export MANPATH=\$MANPATH":$PWD/build/bin/man >> ~/.bashrc
 ```
 
 ## Testing
