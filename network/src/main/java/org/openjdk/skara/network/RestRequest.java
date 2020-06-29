@@ -318,6 +318,39 @@ public class RestRequest {
                           .collect(Collectors.toMap(m -> m.group(2), m -> m.group(1)));
     }
 
+    private JSONValue combinePages(List<JSONValue> pages) {
+        if (pages.get(0).isArray()) {
+            return new JSONArray(pages.stream()
+                                      .map(JSONValue::asArray)
+                                      .flatMap(JSONArray::stream)
+                                      .toArray(JSONValue[]::new));
+        } else {
+            // Find the largest array - that should be the paginated one
+            JSONValue paginated = null;
+            for (var field : pages.get(0).fields()) {
+                if (field.value().isArray()) {
+                    if ((paginated == null) || field.value().asArray().size() > paginated.asArray().size()) {
+                        paginated = field.value();
+                    }
+                }
+            }
+
+            var ret = JSON.object();
+            for (var field : pages.get(0).fields()) {
+                if (field.value() == paginated) {
+                    var combined = new JSONArray(pages.stream()
+                                                      .map(page -> page.get(field.name()).asArray())
+                                                      .flatMap(JSONArray::stream)
+                                                      .toArray(JSONValue[]::new));
+                    ret.put(field.name(), combined);
+                } else {
+                    ret.put(field.name(), field.value());
+                }
+            }
+            return ret;
+        }
+    }
+
     private JSONValue execute(QueryBuilder queryBuilder) throws IOException {
         var request = createRequest(queryBuilder.queryType, queryBuilder.endpoint, queryBuilder.composedBody(),
                                     queryBuilder.params, queryBuilder.headers);
@@ -332,9 +365,9 @@ public class RestRequest {
             return parseResponse(response);
         }
 
-        // If a pagination header is present, it means that the returned data type must be an array
-        var ret = new LinkedList<JSONArray>();
-        var parsedResponse = parseResponse(response).asArray();
+        // If a pagination header is present, we have to collect all responses
+        var ret = new LinkedList<JSONValue>();
+        var parsedResponse = parseResponse(response);
         ret.add(parsedResponse);
 
         var links = parseLink(link.get());
@@ -353,11 +386,10 @@ public class RestRequest {
             links = parseLink(link.orElseThrow(
                     () -> new RuntimeException("Initial paginated response no longer paginated")));
 
-            parsedResponse = parseResponse(response).asArray();
+            parsedResponse = parseResponse(response);
             ret.add(parsedResponse);
         }
-
-        return new JSONArray(ret.stream().flatMap(JSONArray::stream).toArray(JSONValue[]::new));
+        return combinePages(ret);
     }
 
     private String executeUnparsed(QueryBuilder queryBuilder) throws IOException {
