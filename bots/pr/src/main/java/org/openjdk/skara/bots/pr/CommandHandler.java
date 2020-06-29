@@ -36,5 +36,7 @@ interface CommandHandler {
     default boolean multiLine() {
         return false;
     }
-    default boolean allowedInBody() { return false; }
+    default boolean allowedInBody() {
+        return false;
+    }
 }
