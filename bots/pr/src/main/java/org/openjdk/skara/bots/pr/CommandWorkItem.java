@@ -38,7 +38,7 @@ import java.util.stream.*;
 public class CommandWorkItem extends PullRequestWorkItem {
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
-    private static final Pattern commandPattern = Pattern.compile("^\\s*/([A-Zaz]+)(?:\\s+(.*))?");
+    private static final Pattern commandPattern = Pattern.compile("^\\s*/([A-Za-z]+)(?:\\s+(.*))?");
     private static final String commandReplyMarker = "<!-- Jmerge command reply message (%s) -->";
     private static final Pattern commandReplyPattern = Pattern.compile("<!-- Jmerge command reply message \\((\\S+)\\) -->");
     private static final String selfCommandMarker = "<!-- Valid self-command -->";
@@ -62,14 +62,14 @@ public class CommandWorkItem extends PullRequestWorkItem {
         static private Map<String, String> external = null;
 
         @Override
-        public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
+        public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
             reply.println("Available commands:");
             Stream.concat(
                     commandHandlers.entrySet().stream()
                                    .map(entry -> entry.getKey() + " - " + entry.getValue().description()),
                     external.entrySet().stream()
                             .map(entry -> entry.getKey() + " - " + entry.getValue())
-            ).sorted().forEachOrdered(command -> reply.println(" * " + command));
+            ).sorted().forEachOrdered(c -> reply.println(" * " + c));
         }
 
         @Override
@@ -123,9 +123,12 @@ public class CommandWorkItem extends PullRequestWorkItem {
                 }
                 var command = commandMatcher.group(1).toLowerCase();
                 var handler = commandHandlers.get(command);
-                if (handler.multiLine()) {
+                if (handler != null && handler.multiLine()) {
                     multiLineHandler = handler;
                     multiLineBuffer = new ArrayList<>();
+                    if (commandMatcher.group(2) != null) {
+                        multiLineBuffer.add(commandMatcher.group(2));
+                    }
                     multiLineCommand = command;
                 } else {
                     ret.add(new CommandInvocation(formatId(baseId, subId++), user, handler, command, commandMatcher.group(2)));

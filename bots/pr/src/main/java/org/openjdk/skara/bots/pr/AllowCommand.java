@@ -31,11 +31,11 @@ import java.util.List;
 
 public class AllowCommand implements CommandHandler {
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         var botUser = pr.repository().forge().currentUser();
         var vetoers = Veto.vetoers(botUser, allComments);
 
-        if (!vetoers.contains(comment.author().id())) {
+        if (!vetoers.contains(command.user().id())) {
             reply.println("You have not rejected this change");
             return;
         }
@@ -48,7 +48,7 @@ public class AllowCommand implements CommandHandler {
             reply.println("However, it still remains blocked by other rejections.");
         }
 
-        reply.println(Veto.removeVeto(comment.author()));
+        reply.println(Veto.removeVeto(command.user()));
     }
 
     @Override

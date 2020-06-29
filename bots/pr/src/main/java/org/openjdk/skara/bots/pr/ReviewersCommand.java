@@ -48,13 +48,13 @@ public class ReviewersCommand implements CommandHandler {
     }
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
-        if (!censusInstance.isReviewer(comment.author())) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+        if (!censusInstance.isReviewer(command.user())) {
             reply.println("Only [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to change the number of required reviewers.");
             return;
         }
 
-        var splitArgs = args.split(" ");
+        var splitArgs = command.args().split(" ");
         if (splitArgs.length < 1 || splitArgs.length > 2) {
             showHelp(reply);
             return;

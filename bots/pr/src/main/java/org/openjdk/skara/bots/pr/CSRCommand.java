@@ -56,22 +56,22 @@ public class CSRCommand implements CommandHandler {
     }
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
-        if (!censusInstance.isReviewer(comment.author())) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+        if (!censusInstance.isReviewer(command.user())) {
             reply.println("only [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed require a CSR.");
             return;
         }
 
         var labels = pr.labels();
 
-        if (args.trim().toLowerCase().equals("unneeded")) {
+        if (command.args().trim().toLowerCase().equals("unneeded")) {
             if (labels.contains(CSR_LABEL)) {
                 pr.removeLabel(CSR_LABEL);
             }
             reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
                           "is no longer needed for this pull request.");
             return;
-        } else if (!args.isEmpty()) {
+        } else if (!command.args().isEmpty()) {
             showHelp(reply);
             return;
         }

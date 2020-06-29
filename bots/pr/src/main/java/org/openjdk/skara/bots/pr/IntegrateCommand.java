@@ -53,14 +53,14 @@ public class IntegrateCommand implements CommandHandler {
     }
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, String args, Comment comment, List<Comment> allComments, PrintWriter reply) {
-        if (!comment.author().equals(pr.author())) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+        if (!command.user().equals(pr.author())) {
             reply.print("Only the author (@" + pr.author().userName() + ") is allowed to issue the `integrate` command.");
 
             // If the command author is allowed to sponsor this change, suggest that command
             var readyHash = ReadyForSponsorTracker.latestReadyForSponsor(pr.repository().forge().currentUser(), allComments);
             if (readyHash.isPresent()) {
-                if (censusInstance.isCommitter(comment.author())) {
+                if (censusInstance.isCommitter(command.user())) {
                     reply.print(" As this PR is ready to be sponsored, and you are an eligible sponsor, did you mean to issue the `/sponsor` command?");
                     return;
                 }
@@ -94,8 +94,8 @@ public class IntegrateCommand implements CommandHandler {
 
             // Validate the target hash if requested
             var rebaseMessage = new StringWriter();
-            if (!args.isBlank()) {
-                var wantedHash = new Hash(args);
+            if (!command.args().isBlank()) {
+                var wantedHash = new Hash(command.args());
                 if (!pr.targetHash().equals(wantedHash)) {
                     reply.print("The head of the target branch is no longer at the requested hash " + wantedHash);
                     reply.println(" - it has moved to " + pr.targetHash() + ". Aborting integration.");
@@ -129,7 +129,7 @@ public class IntegrateCommand implements CommandHandler {
             if (!censusInstance.isCommitter(pr.author())) {
                 reply.println(ReadyForSponsorTracker.addIntegrationMarker(pr.headHash()));
                 reply.println("Your change (at version " + pr.headHash() + ") is now ready to be sponsored by a Committer.");
-                if (!args.isBlank()) {
+                if (!command.args().isBlank()) {
                     reply.println("Note that your sponsor will make the final decision onto which target hash to integrate.");
                 }
                 pr.addLabel("sponsor");
