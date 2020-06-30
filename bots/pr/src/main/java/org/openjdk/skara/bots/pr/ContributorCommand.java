@@ -65,7 +65,12 @@ public class ContributorCommand implements CommandHandler {
             }
         } else {
             try {
-                return Optional.of(EmailAddress.parse(user));
+                var email = EmailAddress.parse(user);
+                if (email.fullName().isPresent()) {
+                    return Optional.of(email);
+                } else {
+                    return Optional.empty();
+                }
             } catch (RuntimeException e) {
                 return Optional.empty();
             }
@@ -74,7 +79,7 @@ public class ContributorCommand implements CommandHandler {
         if (contributor.fullName().isPresent()) {
             return Optional.of(EmailAddress.from(contributor.fullName().get(), contributor.username() + "@openjdk.org"));
         } else {
-            return Optional.of(EmailAddress.from(contributor.username() + "@openjdk.org"));
+            return Optional.empty();
         }
     }
 
