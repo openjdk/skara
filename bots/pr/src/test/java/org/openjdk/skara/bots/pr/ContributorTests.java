@@ -227,6 +227,11 @@ class ContributorTests {
             pr.addComment("/contributor add someone");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "Could not parse `someone` as a valid contributor");
+
+            // No full name
+            pr.addComment("/contributor add some@one");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "Could not parse `some@one` as a valid contributor");
         }
     }
 
