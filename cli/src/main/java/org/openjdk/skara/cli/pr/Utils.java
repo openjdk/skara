@@ -28,6 +28,7 @@ import org.openjdk.skara.cli.Logging;
 import org.openjdk.skara.cli.GitCredentials;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
+import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.issuetracker.IssueTracker;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
@@ -468,5 +469,34 @@ class Utils {
             GitCredentials.approve(credentials);
         }
         return forge.get();
+    }
+
+    public static Optional<Comment> awaitReplyTo(PullRequest pr, Comment command) throws InterruptedException {
+        for (var i = 0; i < 90; i++) {
+            for (var comment : pr.comments()) {
+                if (comment.body().startsWith("<!-- Jmerge command reply message (" + command.id()  + ") -->\n")) {
+                    return Optional.of(comment);
+                }
+            }
+            Thread.sleep(2000);
+        }
+
+        return Optional.empty();
+    }
+
+    public static void showReply(Optional<Comment> reply) {
+        if (reply.isEmpty()) {
+            System.err.println("error: timed out while waiting for reply");
+            System.exit(1);
+        }
+
+        var lines = Arrays.asList(reply.get().body().split("\n"));
+        for (var line : lines) {
+            if (line.startsWith("<!--") && line.endsWith("-->")) {
+                continue;
+            }
+
+            System.out.println(line);
+        }
     }
 }
