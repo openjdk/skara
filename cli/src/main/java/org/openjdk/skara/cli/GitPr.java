@@ -72,7 +72,10 @@ public class GitPr {
                            .main(GitPrTest::main),
                     Command.name("info")
                            .helptext("show status of a pull request")
-                           .main(GitPrInfo::main)
+                           .main(GitPrInfo::main),
+                    Command.name("issue")
+                           .helptext("add, remove or create issues")
+                           .main(GitPrIssue::main)
         );
 
         HttpProxy.setup();
