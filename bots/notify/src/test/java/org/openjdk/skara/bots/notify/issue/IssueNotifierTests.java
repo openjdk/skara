@@ -314,29 +314,11 @@ public class IssueNotifierTests {
             credentials.commitLock(localRepo);
             localRepo.pushAll(repo.url());
 
-            var tagStorage = createTagStorage(repo);
-            var branchStorage = createBranchStorage(repo);
-            var prStateStorage = createPullRequestStateStorage(repo);
-            var storageFolder = tempFolder.path().resolve("storage");
-
             var issueProject = credentials.getIssueProject();
+            var storageFolder = tempFolder.path().resolve("storage");
             var reviewIcon = URI.create("http://www.example.com/review.png");
-            var notifyBot = NotifyBot.newBuilder()
-                                     .repository(repo)
-                                     .storagePath(storageFolder)
-                                     .branches(Pattern.compile(".*"))
-                                     .tagStorageBuilder(tagStorage)
-                                     .branchStorageBuilder(branchStorage)
-                                     .prStateStorageBuilder(prStateStorage)
-                                     .integratorId(repo.forge().currentUser().id())
-                                     .build();
-            var updater = IssueNotifier.newBuilder()
-                                      .issueProject(issueProject)
-                                      .reviewIcon(reviewIcon)
-                                      .commitLink(true)
-                                      .commitIcon(reviewIcon)
-                                      .build();
-            updater.attachTo(notifyBot);
+            var jbsNotifierConfig = JSON.object().put("reviews", JSON.object().put("icon", reviewIcon.toString()));
+            var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
 
             // Initialize history
             localRepo.push(localRepo.resolve("master").orElseThrow(), repo.url(), "other");
@@ -377,6 +359,9 @@ public class IssueNotifierTests {
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
             links = updatedIssue.links();
             assertEquals(2, links.size());
+
+            // And no comments should have been made
+            assertEquals(0, issue.comments().size());
         }
     }
 

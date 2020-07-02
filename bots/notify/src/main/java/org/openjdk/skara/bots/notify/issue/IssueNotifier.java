@@ -46,11 +46,12 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     private final boolean setFixVersion;
     private final Map<String, String> fixVersions;
     private final JbsBackport jbsBackport;
+    private final boolean prOnly;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
     IssueNotifier(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,
-            boolean setFixVersion, Map<String, String> fixVersions, JbsBackport jbsBackport) {
+            boolean setFixVersion, Map<String, String> fixVersions, JbsBackport jbsBackport, boolean prOnly) {
         this.issueProject = issueProject;
         this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
@@ -59,6 +60,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         this.setFixVersion = setFixVersion;
         this.fixVersions = fixVersions;
         this.jbsBackport = jbsBackport;
+        this.prOnly = prOnly;
     }
 
     static IssueNotifierBuilder newBuilder() {
@@ -88,7 +90,9 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     @Override
     public void attachTo(Emitter e) {
         e.registerPullRequestListener(this);
-        e.registerRepositoryListener(this);
+        if (!prOnly) {
+            e.registerRepositoryListener(this);
+        }
     }
 
     @Override
@@ -116,6 +120,20 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                     linkBuilder.iconUrl(commitIcon);
                 }
                 issue.addLink(linkBuilder.build());
+            }
+
+            // If prOnly is false, this is instead done when processing commits
+            if (prOnly) {
+                if (issue.state() == Issue.State.OPEN) {
+                    issue.setState(Issue.State.RESOLVED);
+                    if (issue.assignees().isEmpty()) {
+                        var username = findIssueUsername(commit);
+                        if (username.isPresent()) {
+                            var assignee = issueProject.issueTracker().user(username.get());
+                            assignee.ifPresent(hostUser -> issue.setAssignees(List.of(hostUser)));
+                        }
+                    }
+                }
             }
         }
     }
