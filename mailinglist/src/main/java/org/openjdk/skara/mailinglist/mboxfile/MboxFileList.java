@@ -90,7 +90,6 @@ public class MboxFileList implements MailingList {
             mbox = Files.readString(file, StandardCharsets.UTF_8);
         } catch (IOException e) {
             log.info("Failed to open mbox file");
-            log.throwing("MboxFileList", "conversations", e);
             return new LinkedList<>();
         }
         var cutoff = Instant.now().minus(maxAge);
