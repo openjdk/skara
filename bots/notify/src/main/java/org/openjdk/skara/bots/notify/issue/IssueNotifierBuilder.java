@@ -33,6 +33,10 @@ class IssueNotifierBuilder {
     private URI reviewIcon = null;
     private boolean commitLink = true;
     private URI commitIcon = null;
+    private boolean setFixVersion = false;
+    private Map<String, String> fixVersions = null;
+    private JbsVault vault = null;
+    private String securityLevel = null;
 
     IssueNotifierBuilder issueProject(IssueProject issueProject) {
         this.issueProject = issueProject;
@@ -59,7 +63,29 @@ class IssueNotifierBuilder {
         return this;
     }
 
+    public IssueNotifierBuilder setFixVersion(boolean setFixVersion) {
+        this.setFixVersion = setFixVersion;
+        return this;
+    }
+
+    public IssueNotifierBuilder fixVersions(Map<String, String> fixVersions) {
+        this.fixVersions = fixVersions;
+        return this;
+    }
+
+    public IssueNotifierBuilder vault(JbsVault vault) {
+        this.vault = vault;
+        return this;
+    }
+
+    public IssueNotifierBuilder securityLevel(String securityLevel) {
+        this.securityLevel = securityLevel;
+        return this;
+    }
+
     IssueNotifier build() {
-        return new IssueNotifier(issueProject, reviewLink, reviewIcon, commitLink, commitIcon);
+        var jbsBackport = new JbsBackport(issueProject.webUrl(), vault, securityLevel);
+        return new IssueNotifier(issueProject, reviewLink, reviewIcon, commitLink, commitIcon,
+                                 setFixVersion, fixVersions, jbsBackport);
     }
 }
