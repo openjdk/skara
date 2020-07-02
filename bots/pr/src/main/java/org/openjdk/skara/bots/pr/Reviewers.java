@@ -29,6 +29,7 @@ import org.openjdk.skara.issuetracker.Comment;
 import java.util.*;
 import java.util.regex.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 class Reviewers {
     private final static String addMarker = "<!-- add reviewer: '%s' -->";
@@ -46,7 +47,8 @@ class Reviewers {
     static List<String> reviewers(HostUser botUser, List<Comment> comments) {
         var reviewerActions = comments.stream()
                                          .filter(comment -> comment.author().equals(botUser))
-                                         .map(comment -> markerPattern.matcher(comment.body()))
+                                         .flatMap(comment -> Stream.of(comment.body().split("\n")))
+                                         .map(line -> markerPattern.matcher(line))
                                          .filter(Matcher::find)
                                          .collect(Collectors.toList());
         var contributors = new LinkedHashSet<String>();
