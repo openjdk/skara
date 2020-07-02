@@ -84,7 +84,7 @@ public class ReviewerCommand implements CommandHandler {
         }
 
         var reviewers = new ArrayList<Contributor>();
-        for (var entry : matcher.group(2).split(" ")) {
+        for (var entry : matcher.group(2).split("[\\s,]+")) {
             var reviewer = parseUser(entry, pr, censusInstance);
             if (reviewer.isEmpty()) {
                 reply.println("Could not parse `" + entry + "` as a valid reviewer.");
