@@ -33,6 +33,7 @@ import java.net.URI;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -78,6 +79,15 @@ public class GitHubPullRequest implements PullRequest {
         return host.parseUserField(json);
     }
 
+    private Optional<ZonedDateTime> lastBaseRefChange() {
+        return request.get("issues/" + json.get("number").toString() + "/timeline").execute().stream()
+                      .map(JSONValue::asObject)
+                      .filter(obj -> obj.contains("event"))
+                      .filter(obj -> obj.get("event").asString().equals("base_ref_changed"))
+                      .map(o -> ZonedDateTime.parse(o.get("created_at").asString()))
+                      .max(Comparator.comparing(Function.identity()));
+    }
+
     @Override
     public List<Review> reviews() {
         var reviews = request.get("pulls/" + json.get("number").toString() + "/reviews").execute().stream()
@@ -104,6 +114,15 @@ public class GitHubPullRequest implements PullRequest {
                                  return new Review(createdAt, reviewer, verdict, hash, id, body);
                              })
                              .collect(Collectors.toList());
+
+        // In the unlikely event that the base ref has changed after a review, we treat those as invalid
+        var lastBaseRefChange = lastBaseRefChange();
+        if (lastBaseRefChange.isPresent()) {
+            reviews = reviews.stream()
+                             .filter(r -> r.createdAt().isAfter(lastBaseRefChange.get()))
+                             .collect(Collectors.toList());;
+        }
+
         return reviews;
     }
 
