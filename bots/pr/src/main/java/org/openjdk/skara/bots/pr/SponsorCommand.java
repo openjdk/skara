@@ -40,7 +40,7 @@ public class SponsorCommand implements CommandHandler {
             reply.println("This change does not need sponsoring - the author is allowed to integrate it.");
             return;
         }
-        if (!censusInstance.isReviewer(command.user())) {
+        if (!censusInstance.isCommitter(command.user())) {
             reply.println("Only [Committers](https://openjdk.java.net/bylaws#committer) are allowed to sponsor changes.");
             return;
         }
