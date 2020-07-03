@@ -210,7 +210,7 @@ class ReviewerTests {
             // Use a full name
             pr.addComment("/reviewer add Moo <Foo.Bar (at) host.com>");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "Could not parse `Moo <Foo.Bar (at) host.com>` as a valid reviewer");
+            assertLastCommentContains(pr, "Could not parse `Moo` as a valid reviewer");
 
             // Empty platform id
             pr.addComment("/reviewer add @");
@@ -458,6 +458,49 @@ class ReviewerTests {
 
             // The bot should reply with an error message
             assertLastCommentContains(pr,"Reviewer `integrationreviewer1` has already made an authenticated review of this PR");
+        }
+    }
+
+    @Test
+    void multiple(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var extra = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(integrator.forge().currentUser().id())
+                                           .addAuthor(extra.forge().currentUser().id())
+                                           .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Add two reviewers
+            pr.addComment("/reviewer add integrationreviewer1 integrationauthor2");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // Expect success
+            assertLastCommentContains(pr, "Reviewed-by: integrationreviewer1, integrationauthor2");
+
+            // Remove both reviewers
+            pr.addComment("/reviewer remove integrationreviewer1 integrationauthor2");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // Expect success
+            assertLastCommentContains(pr, "Reviewer `integrationreviewer1` successfully removed");
+            assertLastCommentContains(pr, "Reviewer `integrationauthor2` successfully removed");
         }
     }
 }

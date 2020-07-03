@@ -35,10 +35,11 @@ public class ReviewerCommand implements CommandHandler {
     private static final Pattern commandPattern = Pattern.compile("^(add|remove)\\s+(.+)$");
 
     private void showHelp(PullRequest pr, PrintWriter reply) {
-        reply.println("Syntax: `/reviewer (add|remove) [@user | openjdk-user]`. For example:");
+        reply.println("Syntax: `/reviewer (add|remove) [@user | openjdk-user]+`. For example:");
         reply.println();
         reply.println(" * `/reviewer add @openjdk-bot`");
         reply.println(" * `/reviewer add duke`");
+        reply.println(" * `/reviewer add @user1 @user2`");
     }
 
     private Optional<Contributor> parseUser(String user, PullRequest pr, CensusInstance censusInstance) {
@@ -82,43 +83,53 @@ public class ReviewerCommand implements CommandHandler {
             return;
         }
 
-        var reviewer = parseUser(matcher.group(2), pr, censusInstance);
-        if (reviewer.isEmpty()) {
-            reply.println("Could not parse `" + matcher.group(2) + "` as a valid reviewer.");
-            showHelp(pr, reply);;
-            return;
+        var reviewers = new ArrayList<Contributor>();
+        for (var entry : matcher.group(2).split("[\\s,]+")) {
+            var reviewer = parseUser(entry, pr, censusInstance);
+            if (reviewer.isEmpty()) {
+                reply.println("Could not parse `" + entry + "` as a valid reviewer.");
+                showHelp(pr, reply);
+                return;
+            }
+
+            reviewers.add(reviewer.get());
         }
 
         var namespace = censusInstance.namespace();
         var authenticatedReviewers = PullRequestUtils.reviewerNames(pr.reviews(), namespace);
-        switch (matcher.group(1)) {
-            case "add": {
-                if (!authenticatedReviewers.contains(reviewer.get().username())) {
-                    reply.println(Reviewers.addReviewerMarker(reviewer.get()));
-                    reply.println("Reviewer `" + reviewer.get().username() + "` successfully added.");
+        var action = matcher.group(1);
+        if (action.equals("add")) {
+            for (var reviewer : reviewers) {
+                if (!authenticatedReviewers.contains(reviewer.username())) {
+                    reply.println(Reviewers.addReviewerMarker(reviewer));
+                    reply.println("Reviewer `" + reviewer.username() + "` successfully added.");
                 } else {
-                    reply.println("Reviewer `" + reviewer.get().username() + "` has already made an authenticated review of this PR, and does not need to be added manually.");
+                    reply.println("Reviewer `" + reviewer.username() + "` has already made an authenticated review of this PR, and does not need to be added manually.");
                 }
-                break;
             }
-            case "remove": {
-                var existing = new HashSet<>(Reviewers.reviewers(pr.repository().forge().currentUser(), allComments));
-                if (existing.contains(reviewer.get().username())) {
-                    reply.println(Reviewers.removeReviewerMarker(reviewer.get()));
-                    reply.println("Reviewer `" + reviewer.get().username() + "` successfully removed.");
+        } else if (action.equals("remove")) {
+            var failed = false;
+            var existing = new HashSet<>(Reviewers.reviewers(pr.repository().forge().currentUser(), allComments));
+            for (var reviewer : reviewers) {
+                if (existing.contains(reviewer.username())) {
+                    reply.println(Reviewers.removeReviewerMarker(reviewer));
+                    reply.println("Reviewer `" + reviewer.username() + "` successfully removed.");
                 } else {
                     if (existing.isEmpty()) {
                         reply.println("There are no additional reviewers associated with this pull request.");
+                        failed = true;
                     } else {
-                        reply.println("Reviewer `" + reviewer.get().username() + "` was not found.");
-                        reply.println("Current additional reviewers are:");
-                        for (var e : existing) {
-                            reply.println("- `" + e + "`");
-                        }
+                        reply.println("Reviewer `" + reviewer.username() + "` was not found.");
+                        failed = true;
                     }
-                    break;
                 }
-                break;
+            }
+
+            if (failed) {
+                reply.println("Current additional reviewers are:");
+                for (var e : existing) {
+                    reply.println("- `" + e + "`");
+                }
             }
         }
     }
