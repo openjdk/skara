@@ -24,9 +24,10 @@ package org.openjdk.skara.network;
 
 import java.io.IOException;
 import java.net.http.*;
-import java.time.Duration;
+import java.time.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.*;
 import java.util.logging.Logger;
 
 enum RestRequestCache {
@@ -62,10 +63,18 @@ enum RestRequestCache {
     private final Map<RequestContext, HttpResponse<String>> cachedResponses = new ConcurrentHashMap<>();
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final Logger log = Logger.getLogger("org.openjdk.skara.network");
+    private final Map<String, Lock> authLocks = new HashMap<>();
+    private final Map<String, Instant> lastUpdates = new ConcurrentHashMap<>();
 
     HttpResponse<String> send(String authId, HttpRequest.Builder requestBuilder) throws IOException, InterruptedException {
         var unauthenticatedRequest = requestBuilder.build();
         var requestContext = new RequestContext(authId, unauthenticatedRequest);
+        synchronized (authLocks) {
+            if (!authLocks.containsKey(authId)) {
+                authLocks.put(authId, new ReentrantLock());
+            }
+        }
+        var authLock = authLocks.get(authId);
         if (unauthenticatedRequest.method().equals("GET")) {
             var cached = cachedResponses.get(requestContext);
             if (cached != null) {
@@ -73,7 +82,14 @@ enum RestRequestCache {
                 tag.ifPresent(value -> requestBuilder.header("If-None-Match", value));
             }
             var finalRequest = requestBuilder.build();
-            var response = client.send(finalRequest, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response;
+            try {
+                // Perform requests using a certain account serially
+                authLock.lock();
+                response = client.send(finalRequest, HttpResponse.BodyHandlers.ofString());
+            } finally {
+                authLock.unlock();
+            }
             if (response.statusCode() == 304) {
                 log.finer("Using cached response for " + finalRequest + " (" + authId + ")");
                 return cached;
@@ -85,7 +101,28 @@ enum RestRequestCache {
         } else {
             var finalRequest = requestBuilder.build();
             log.finer("Not using response cache for " + finalRequest + " (" + authId + ")");
-            return client.send(finalRequest, HttpResponse.BodyHandlers.ofString());
+            try {
+                Instant lastUpdate;
+                try {
+                    authLock.lock();
+                    lastUpdate = lastUpdates.get(authId);
+                    lastUpdates.put(authId, Instant.now());
+                } finally {
+                    authLock.unlock();
+                }
+                // Perform at most one update per second
+                var requiredDelay = Duration.between(Instant.now().minus(Duration.ofSeconds(1)), lastUpdate);
+                if (!requiredDelay.isNegative()) {
+                    try {
+                        Thread.sleep(requiredDelay.toMillis());
+                    } catch (InterruptedException ignored) {
+                    }
+                }
+                authLock.lock();
+                return client.send(finalRequest, HttpResponse.BodyHandlers.ofString());
+            } finally {
+                authLock.unlock();
+            }
         }
     }
 }
