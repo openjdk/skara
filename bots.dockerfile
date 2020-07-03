@@ -60,6 +60,7 @@ ENV LC_ALL en_US.UTF-8
 RUN yum -y install unzip
 
 COPY gradlew ./
+COPY deps.env ./
 
 ENV JAVA_TOOL_OPTIONS=$JAVA_OPTIONS
 RUN sh gradlew --no-daemon --version $GRADLE_OPTIONS
@@ -104,12 +105,12 @@ RUN yum -y install rsync unzip && yum clean all
 
 COPY --from=prerequisites-runtime /bots/git/ /bots/git/
 COPY --from=prerequisites-runtime /bots/hg/ /bots/hg/
-COPY --from=builder /bots-build/bots/cli/build/distributions/cli-unknown-linux.tar.gz /bots/tar/
+COPY --from=builder /bots-build/bots/cli/build/distributions/cli-unknown-linux-x64.tar.gz /bots/tar/
 
 ENV JAVA_TOOL_OPTIONS=$JAVA_OPTIONS
 ENV PATH=/bots/git/bin:/bots/hg/bin:${PATH}
 
-RUN tar xvf /bots/tar/cli-unknown-linux.tar.gz
+RUN tar xvf /bots/tar/cli-unknown-linux-x64.tar.gz
 
 ENTRYPOINT ["/bots/bin/skara-bots"]
 CMD ["--help"]
