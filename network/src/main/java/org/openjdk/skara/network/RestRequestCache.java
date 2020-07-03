@@ -67,6 +67,9 @@ enum RestRequestCache {
     private final Map<String, Instant> lastUpdates = new ConcurrentHashMap<>();
 
     HttpResponse<String> send(String authId, HttpRequest.Builder requestBuilder) throws IOException, InterruptedException {
+        if (authId == null) {
+            authId = "anonymous";
+        }
         var unauthenticatedRequest = requestBuilder.build();
         var requestContext = new RequestContext(authId, unauthenticatedRequest);
         synchronized (authLocks) {
@@ -101,23 +104,23 @@ enum RestRequestCache {
         } else {
             var finalRequest = requestBuilder.build();
             log.finer("Not using response cache for " + finalRequest + " (" + authId + ")");
+            Instant lastUpdate;
             try {
-                Instant lastUpdate;
+                authLock.lock();
+                lastUpdate = lastUpdates.getOrDefault(authId, Instant.now().minus(Duration.ofDays(1)));
+                lastUpdates.put(authId, Instant.now());
+            } finally {
+                authLock.unlock();
+            }
+            // Perform at most one update per second
+            var requiredDelay = Duration.between(Instant.now().minus(Duration.ofSeconds(1)), lastUpdate);
+            if (!requiredDelay.isNegative()) {
                 try {
-                    authLock.lock();
-                    lastUpdate = lastUpdates.get(authId);
-                    lastUpdates.put(authId, Instant.now());
-                } finally {
-                    authLock.unlock();
+                    Thread.sleep(requiredDelay.toMillis());
+                } catch (InterruptedException ignored) {
                 }
-                // Perform at most one update per second
-                var requiredDelay = Duration.between(Instant.now().minus(Duration.ofSeconds(1)), lastUpdate);
-                if (!requiredDelay.isNegative()) {
-                    try {
-                        Thread.sleep(requiredDelay.toMillis());
-                    } catch (InterruptedException ignored) {
-                    }
-                }
+            }
+            try {
                 authLock.lock();
                 return client.send(finalRequest, HttpResponse.BodyHandlers.ofString());
             } finally {
