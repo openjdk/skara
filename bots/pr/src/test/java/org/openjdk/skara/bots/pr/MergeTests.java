@@ -1064,7 +1064,7 @@ class MergeTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // There should be a warning
-            assertLastCommentContains(pr, "This pull request looks like it contains a merge commit");
+            assertLastCommentContains(pr, "This pull request contains merges that brings in commits not present");
         }
     }
 }
