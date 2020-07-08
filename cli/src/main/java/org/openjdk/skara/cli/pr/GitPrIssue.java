@@ -92,7 +92,7 @@ public class GitPrIssue {
             var comment = pr.addComment("/issue add" + " " + issueId);
             showReply(awaitReplyTo(pr, comment));
         } else if (arguments.contains("remove")) {
-            var issueId = arguments.get("add").asString();
+            var issueId = arguments.get("remove").asString();
             var comment = pr.addComment("/issue remove" + " " + issueId);
             showReply(awaitReplyTo(pr, comment));
         } else if (arguments.contains("create")) {
