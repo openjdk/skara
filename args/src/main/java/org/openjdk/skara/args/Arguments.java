@@ -23,6 +23,7 @@
 package org.openjdk.skara.args;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Arguments {
     private final List<String> positionals;
@@ -39,6 +40,12 @@ public class Arguments {
                 names.put(flag.shortcut(), flag);
             }
         }
+    }
+
+    public List<Argument> inputs() {
+        return positionals.stream()
+                          .map(Argument::new)
+                          .collect(Collectors.toList());
     }
 
     public Argument at(int pos) {
