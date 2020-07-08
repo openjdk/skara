@@ -75,7 +75,10 @@ public class GitPr {
                            .main(GitPrInfo::main),
                     Command.name("issue")
                            .helptext("add, remove or create issues")
-                           .main(GitPrIssue::main)
+                           .main(GitPrIssue::main),
+                    Command.name("reviewer")
+                           .helptext("add or remove reviewers")
+                           .main(GitPrReviewer::main)
         );
 
         HttpProxy.setup();
