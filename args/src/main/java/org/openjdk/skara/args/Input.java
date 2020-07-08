@@ -62,7 +62,8 @@ public class Input {
     @Override
     public String toString() {
         var builder = new StringBuilder();
-        for (var i = 0; i < occurrences; i++) {
+        var n = isTrailing() ? 1 : occurrences;
+        for (var i = 0; i < n; i++) {
             if (!isRequired()) {
                 builder.append("[");
             }
@@ -72,7 +73,7 @@ public class Input {
             if (!isRequired()) {
                 builder.append("]");
             }
-            if (i != (occurrences - 1)) {
+            if (i != (n - 1)) {
                 builder.append(" ");
             }
 
