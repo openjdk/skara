@@ -59,16 +59,14 @@ public class CommandWorkItem extends PullRequestWorkItem {
     );
 
     static class HelpCommand implements CommandHandler {
-        static private Map<String, String> external = null;
-
         @Override
         public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
             reply.println("Available commands:");
             Stream.concat(
                     commandHandlers.entrySet().stream()
                                    .map(entry -> entry.getKey() + " - " + entry.getValue().description()),
-                    external.entrySet().stream()
-                            .map(entry -> entry.getKey() + " - " + entry.getValue())
+                    bot.externalCommands().entrySet().stream()
+                                          .map(entry -> entry.getKey() + " - " + entry.getValue())
             ).sorted().forEachOrdered(c -> reply.println(" * " + c));
         }
 
@@ -177,6 +175,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
 
         return allCommands.stream()
                           .filter(ci -> !handled.contains(ci.id()))
+                          .filter(ci -> !bot.externalCommands().containsKey(ci.name()))
                           .findFirst();
     }
 
@@ -193,14 +192,9 @@ public class CommandWorkItem extends PullRequestWorkItem {
         if (handler.isPresent()) {
             handler.get().handle(bot, pr, censusInstance, scratchPath, command, allComments, printer);
         } else {
-            if (!bot.externalCommands().containsKey(command.name())) {
-                printer.print("Unknown command `");
-                printer.print(command.name());
-                printer.println("` - for a list of valid commands use `/help`.");
-            } else {
-                // Do not reply to external commands
-                return;
-            }
+            printer.print("Unknown command `");
+            printer.print(command.name());
+            printer.println("` - for a list of valid commands use `/help`.");
         }
 
         pr.addComment(writer.toString());
@@ -218,16 +212,14 @@ public class CommandWorkItem extends PullRequestWorkItem {
         var comments = pr.comments();
         var nextCommand = nextCommand(pr, comments);
         if (nextCommand.isEmpty()) {
-            log.fine("No new PR commands found, stopping further processing");
+            log.info("No new non-external PR commands found, stopping further processing");
             return List.of();
         }
 
-        if (HelpCommand.external == null) {
-            HelpCommand.external = bot.externalCommands();
-        }
-
         var census = CensusInstance.create(bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr);
-        processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), nextCommand.get(), comments);
+        var command = nextCommand.get();
+        log.info("Processing command: " + command.id() + " - " + command.name());
+        processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), command, comments);
 
         // Run another check to reflect potential changes from commands
         return List.of(new CheckWorkItem(bot, pr, errorHandler));

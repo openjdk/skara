@@ -26,6 +26,7 @@ import org.junit.jupiter.api.*;
 import org.openjdk.skara.test.*;
 
 import java.io.IOException;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
@@ -258,6 +259,52 @@ class CommandTests {
 
             // The bot should reply with some help
             assertLastCommentContains(pr, "The command `help` cannot be used in the pull request body");
+        }
+    }
+
+    @Test
+    void externalCommandFollowedByNonExternalCommand(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder()
+                                         .repo(integrator)
+                                         .censusRepo(censusBuilder.build())
+                                         .externalCommands(Map.of("external", "Help for external command"))
+                                         .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Issue an external command
+            var externalCommandComment = pr.addComment("/external");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should not reply since the external command will be handled by another bot
+            var lastComment = pr.comments().get(pr.comments().size() - 1);
+            assertEquals(externalCommandComment, lastComment);
+
+            // Issue the help command
+            pr.addComment("/help");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with help
+            assertLastCommentContains(pr, "@user1 Available commands:");
+            assertLastCommentContains(pr, " * help - shows this text");
+            assertLastCommentContains(pr, " * external - Help for external command");
         }
     }
 }
