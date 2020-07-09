@@ -87,7 +87,10 @@ public class GitPr {
                            .main(GitPrCC::main),
                     Command.name("csr")
                            .helptext("require CSR for the pull request")
-                           .main(GitPrCSR::main)
+                           .main(GitPrCSR::main),
+                    Command.name("contributor")
+                           .helptext("add or remove contributors")
+                           .main(GitPrContributor::main)
         );
 
         HttpProxy.setup();
