@@ -81,7 +81,10 @@ public class GitPr {
                            .main(GitPrReviewer::main),
                     Command.name("summary")
                            .helptext("add a summary to the commit message for the pull request")
-                           .main(GitPrSummary::main)
+                           .main(GitPrSummary::main),
+                    Command.name("cc")
+                           .helptext("add one or more labels")
+                           .main(GitPrCC::main)
         );
 
         HttpProxy.setup();
