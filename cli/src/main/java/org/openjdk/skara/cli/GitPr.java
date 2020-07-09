@@ -85,6 +85,9 @@ public class GitPr {
                     Command.name("cc")
                            .helptext("add one or more labels")
                            .main(GitPrCC::main),
+                    Command.name("csr")
+                           .helptext("require CSR for the pull request")
+                           .main(GitPrCSR::main),
                     Command.name("contributor")
                            .helptext("add or remove contributors")
                            .main(GitPrContributor::main)

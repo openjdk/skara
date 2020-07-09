@@ -86,6 +86,16 @@ class CSRTests {
             assertLastCommentContains(pr, "determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
                                           "is no longer needed for this pull request.");
             assertFalse(pr.labels().contains("csr"));
+
+            // Require CSR again with long form
+            prAsReviewer.addComment("/csr needed");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a message that a CSR is needed
+            assertLastCommentContains(pr, "has indicated that a " +
+                                          "[compatibility and specification](https://wiki.openjdk.java.net/display/csr/Main) (CSR) request " +
+                                          "is needed for this pull request.");
+            assertTrue(pr.labels().contains("csr"));
         }
     }
 
@@ -239,7 +249,7 @@ class CSRTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // Show help
-            assertLastCommentContains(pr, "usage: `/csr [unneeded]`, requires that the issue the pull request links " +
+            assertLastCommentContains(pr, "usage: `/csr [needed|unneeded]`, requires that the issue the pull request refers to links " +
                                           "to an approved [CSR](https://wiki.openjdk.java.net/display/csr/Main) request.");
             assertFalse(pr.labels().contains("csr"));
         }
