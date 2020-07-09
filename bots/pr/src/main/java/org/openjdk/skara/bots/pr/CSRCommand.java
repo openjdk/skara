@@ -34,7 +34,7 @@ public class CSRCommand implements CommandHandler {
     private static final String CSR_LABEL = "csr";
 
     private static void showHelp(PrintWriter writer) {
-        writer.println("usage: `/csr [needed|unneeded]`, requires that the issue the pull request links to an approved [CSR](https://wiki.openjdk.java.net/display/csr/Main) request.");
+        writer.println("usage: `/csr [needed|unneeded]`, requires that the issue the pull request refers to links to an approved [CSR](https://wiki.openjdk.java.net/display/csr/Main) request.");
     }
 
     private static void csrReply(PrintWriter writer) {

@@ -249,7 +249,7 @@ class CSRTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // Show help
-            assertLastCommentContains(pr, "usage: `/csr [needed|unneeded]`, requires that the issue the pull request links " +
+            assertLastCommentContains(pr, "usage: `/csr [needed|unneeded]`, requires that the issue the pull request refers to links " +
                                           "to an approved [CSR](https://wiki.openjdk.java.net/display/csr/Main) request.");
             assertFalse(pr.labels().contains("csr"));
         }
