@@ -76,5 +76,6 @@ public class GitPrSummary {
         var comment = lines.size() == 1 ?
             pr.addComment("/summary " + lines.get(0)) :
             pr.addComment("/summary\n" + String.join("\n", lines));
+        showReply(awaitReplyTo(pr, comment));
     }
 }
