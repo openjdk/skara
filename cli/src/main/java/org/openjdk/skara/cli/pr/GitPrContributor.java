@@ -36,12 +36,12 @@ public class GitPrContributor {
         Option.shortcut("")
               .fullname("add")
               .describe("USERNAME")
-              .helptext("Consider pull request reviewed by this user")
+              .helptext("Consider pull request contributed to by this user")
               .optional(),
         Option.shortcut("")
               .fullname("remove")
               .describe("USERNAME")
-              .helptext("Do not consider pull request reviewed by this user")
+              .helptext("Do not consider pull request contributed to by this user")
               .optional(),
         Switch.shortcut("")
               .fullname("verbose")
