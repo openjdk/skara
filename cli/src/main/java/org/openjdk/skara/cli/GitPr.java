@@ -84,7 +84,10 @@ public class GitPr {
                            .main(GitPrSummary::main),
                     Command.name("cc")
                            .helptext("add one or more labels")
-                           .main(GitPrCC::main)
+                           .main(GitPrCC::main),
+                    Command.name("contributor")
+                           .helptext("add or remove contributors")
+                           .main(GitPrContributor::main)
         );
 
         HttpProxy.setup();
