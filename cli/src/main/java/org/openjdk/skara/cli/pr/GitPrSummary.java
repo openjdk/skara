@@ -33,6 +33,10 @@ import java.nio.file.Files;
 public class GitPrSummary {
     static final List<Flag> flags = List.of(
         Switch.shortcut("")
+              .fullname("remove")
+              .helptext("Remove an existing summary")
+              .optional(),
+        Switch.shortcut("")
               .fullname("verbose")
               .helptext("Turn on verbose output")
               .optional(),
@@ -61,6 +65,11 @@ public class GitPrSummary {
         var host = getForge(uri, repo, arguments);
         var id = pullRequestIdArgument(repo, arguments);
         var pr = getPullRequest(uri, repo, host, id);
+
+        if (arguments.contains("remove")) {
+            showReply(awaitReplyTo(pr, pr.addComment("/summary")));
+            return;
+        }
 
         var file = Files.createTempFile("SUMMARY", ".txt");
         var success = spawnEditor(repo, file);
