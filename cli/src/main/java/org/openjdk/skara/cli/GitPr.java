@@ -78,7 +78,10 @@ public class GitPr {
                            .main(GitPrIssue::main),
                     Command.name("reviewer")
                            .helptext("add or remove reviewers")
-                           .main(GitPrReviewer::main)
+                           .main(GitPrReviewer::main),
+                    Command.name("cc")
+                           .helptext("add one or more labels")
+                           .main(GitPrCC::main)
         );
 
         HttpProxy.setup();
