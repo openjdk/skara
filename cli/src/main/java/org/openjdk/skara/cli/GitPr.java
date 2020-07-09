@@ -78,7 +78,10 @@ public class GitPr {
                            .main(GitPrIssue::main),
                     Command.name("reviewer")
                            .helptext("add or remove reviewers")
-                           .main(GitPrReviewer::main)
+                           .main(GitPrReviewer::main),
+                    Command.name("summary")
+                           .helptext("add a summary to the commit message for the pull request")
+                           .main(GitPrSummary::main)
         );
 
         HttpProxy.setup();
