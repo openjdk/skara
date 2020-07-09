@@ -84,7 +84,10 @@ public class GitPr {
                            .main(GitPrSummary::main),
                     Command.name("cc")
                            .helptext("add one or more labels")
-                           .main(GitPrCC::main)
+                           .main(GitPrCC::main),
+                    Command.name("csr")
+                           .helptext("require CSR for the pull request")
+                           .main(GitPrCSR::main)
         );
 
         HttpProxy.setup();
