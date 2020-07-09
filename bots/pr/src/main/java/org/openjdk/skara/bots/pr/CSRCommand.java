@@ -34,7 +34,7 @@ public class CSRCommand implements CommandHandler {
     private static final String CSR_LABEL = "csr";
 
     private static void showHelp(PrintWriter writer) {
-        writer.println("usage: `/csr [unneeded]`, requires that the issue the pull request links to an approved [CSR](https://wiki.openjdk.java.net/display/csr/Main) request.");
+        writer.println("usage: `/csr [needed|unneeded]`, requires that the issue the pull request links to an approved [CSR](https://wiki.openjdk.java.net/display/csr/Main) request.");
     }
 
     private static void csrReply(PrintWriter writer) {
@@ -64,14 +64,15 @@ public class CSRCommand implements CommandHandler {
 
         var labels = pr.labels();
 
-        if (command.args().trim().toLowerCase().equals("unneeded")) {
+        var cmd = command.args().trim().toLowerCase();
+        if (cmd.equals("unneeded") || cmd.equals("uneeded")) {
             if (labels.contains(CSR_LABEL)) {
                 pr.removeLabel(CSR_LABEL);
             }
             reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
                           "is no longer needed for this pull request.");
             return;
-        } else if (!command.args().isEmpty()) {
+        } else if (!cmd.isEmpty() && !cmd.equals("needed")) {
             showHelp(reply);
             return;
         }
