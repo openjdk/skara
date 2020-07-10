@@ -176,7 +176,7 @@ public class GitHubApplication {
     }
 
     private String generateInstallationToken() throws Token.GeneratorError {
-        var tokens = URIBuilder.base(apiBase).setPath("/installations/" + id + "/access_tokens").build();
+        var tokens = URIBuilder.base(apiBase).setPath("/app/installations/" + id + "/access_tokens").build();
 
         try {
             var response = client.send(
