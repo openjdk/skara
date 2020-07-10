@@ -122,8 +122,11 @@ public class GitTrees {
             System.exit(0);
         }
 
-        if (args.length == 1 && args[0].equals("-h")) {
-            System.out.println("git-trees version: " + Version.fromManifest().orElse("unknown"));
+        if (args.length == 1 && (args[0].equals("-h") || args[0].equals("--help"))) {
+            System.out.println("usage: git-trees [options] <COMMAND>");
+            System.out.println("\t-m, --mercurial\tDeprecated: force use of mercurial");
+            System.out.println("\t-h, --help     \tShow this help text");
+            System.out.println("\t    --version  \tPrint the version of this tool");
             System.exit(0);
         }
 
