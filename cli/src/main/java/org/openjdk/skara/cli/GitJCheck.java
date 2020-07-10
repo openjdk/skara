@@ -108,25 +108,15 @@ public class GitJCheck {
                   .describe("CHECKS")
                   .helptext("Ignore errors from checks with the given name")
                   .optional(),
-            Option.shortcut("")
-                  .fullname("push-url")
-                  .describe("URL")
-                  .helptext("URL that is being pushed to")
-                  .optional(),
-            Option.shortcut("")
-                  .fullname("setup-pre-push-hooks")
-                  .describe("CHECKS")
-                  .helptext("Set up a pre-push hook for the given checks")
+            Switch.shortcut("")
+                  .fullname("setup-pre-push-hook")
+                  .helptext("Set up a pre-push hook that runs jcheck on commits to be pushed")
                   .optional(),
             Switch.shortcut("m")
                   .fullname("mercurial")
                   .helptext("Deprecated: force use of mercurial")
                   .optional(),
             Switch.shortcut("")
-                  .fullname("pre-push")
-                  .helptext("Execute as a pre-push hook")
-                  .optional(),
-            Switch.shortcut("v")
                   .fullname("verbose")
                   .helptext("Turn on verbose output")
                   .optional(),
@@ -164,37 +154,23 @@ public class GitJCheck {
         HttpProxy.setup();
 
         var isMercurial = getSwitch("mercurial", arguments);
-        var setupPrePushHooksOption = getOption("setup-pre-push-hooks", arguments);
-        if (!isMercurial && setupPrePushHooksOption != null) {
+        var setupPrePushHook = getSwitch("setup-pre-push-hook", arguments);
+        if (!isMercurial && setupPrePushHook) {
             var hookFile = repo.root().resolve(".git").resolve("hooks").resolve("pre-push");
             Files.createDirectories(hookFile.getParent());
             var lines = List.of(
                 "#!/usr/bin/sh",
-                "git jcheck --pre-push --push-url=\"$2\""
+                "JCHECK_IS_PRE_PUSH_HOOK=1 git jcheck"
             );
             Files.write(hookFile, lines);
             if (hookFile.getFileSystem().supportedFileAttributeViews().contains("posix")) {
                 var permissions = PosixFilePermissions.fromString("rwxr-xr-x");
                 Files.setPosixFilePermissions(hookFile, permissions);
             }
-
-            for (var check : setupPrePushHooksOption.split(",")) {
-                switch (check.trim()) {
-                    case "branches":
-                        repo.config("jcheck.pre-push", "branches", "true", false);
-                        break;
-                    case "commits":
-                        repo.config("jcheck.pre-push", "commits", "true", false);
-                        break;
-                    default:
-                        System.err.println("error: unexpected pre-push check: " + check.trim());
-                        return 1;
-                }
-            }
             return 0;
         }
 
-        var isPrePush = getSwitch("pre-push", arguments);
+        var isPrePush = System.getenv().containsKey("JCHECK_IS_PRE_PUSH_HOOK");
         var ranges = new ArrayList<String>();
         var targetBranches = new HashSet<String>();
         if (!isMercurial && isPrePush) {
@@ -279,60 +255,13 @@ public class GitJCheck {
             }
         }
 
-        var lines = repo.config("jcheck.pre-push.branches");
-        var shouldCheckRemoteBranches = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
-        if (!isMercurial && isPrePush && shouldCheckRemoteBranches &&
-            !Files.exists(repo.root().resolve(".git").resolve("GIT_SYNC_RUNNING"))) {
-            var url = arguments.get("push-url").asString();
-            if (url == null) {
-                System.err.println("error: url for push not provided via --url option");
-                return 1;
-            }
-            var webUrl = Remote.toWebURI(url);
-            var forge = Forge.from(webUrl);
-            if (!forge.isPresent()) {
-                System.err.println("error: cannot find forge for " + webUrl);
-                return 1;
-            }
-            var remoteRepo = forge.get().repository(webUrl.getPath().substring(1));
-            if (!remoteRepo.isPresent()) {
-                System.err.println("error: could not find remote repository at " + webUrl);
-                return 1;
-            }
-            var parentRepo = remoteRepo.get().parent();
-            if (!parentRepo.isPresent()) {
-                System.err.println("error: could not find upstream repository for " + webUrl);
-                return 1;
-            }
-
-            var upstreamBranchNames = repo.remoteBranches(parentRepo.get().webUrl().toString())
-                                          .stream()
-                                          .map(r -> r.name())
-                                          .collect(Collectors.toSet());
-
-            var displayedError = false;
-            for (var branch : targetBranches) {
-                if (upstreamBranchNames.contains(branch)) {
-                    System.err.println("error: should not push to branch in personal fork also present in upstream repository: " + branch);
-                    displayedError = true;
-                }
-            }
-            if (displayedError) {
-                return 1;
-            }
-        }
-
         var isLax = getSwitch("lax", arguments);
         var visitor = new JCheckCLIVisitor(ignore, isMercurial, isLax);
-        lines = repo.config("jcheck.pre-push.commits");
-        var shouldCheckCommits = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
         var commitMessageParser = isMercurial ? CommitMessageParsers.v0 : CommitMessageParsers.v1;
-        if (!isPrePush || shouldCheckCommits) {
-            for (var range : ranges) {
-                try (var errors = JCheck.check(repo, census, commitMessageParser, range, whitelist, blacklist)) {
-                    for (var error : errors) {
-                        error.accept(visitor);
-                    }
+        for (var range : ranges) {
+            try (var errors = JCheck.check(repo, census, commitMessageParser, range, whitelist, blacklist)) {
+                for (var error : errors) {
+                    error.accept(visitor);
                 }
             }
         }
