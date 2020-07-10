@@ -232,7 +232,6 @@ public class GitSync {
             }
         }
 
-        var marker = repo.root().resolve(".git").resolve("GIT_SYNC_RUNNING");
         var remoteBranches = repo.remoteBranches(from);
         for (var branch : remoteBranches) {
             var name = branch.name();
@@ -245,14 +244,7 @@ public class GitSync {
             System.out.print("Syncing " + from + "/" + name + " to " + to + "/" + name + "... ");
             System.out.flush();
             var fetchHead = repo.fetch(fromPullPath, branch.name());
-
-            Files.createFile(marker);
-            try {
-                repo.push(fetchHead, toPushPath, name);
-            } finally {
-                Files.delete(marker);
-            }
-
+            repo.push(fetchHead, toPushPath, name);
             System.out.println("done");
         }
 
