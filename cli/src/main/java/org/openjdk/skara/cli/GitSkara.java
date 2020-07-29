@@ -24,6 +24,7 @@ package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.Main;
 import org.openjdk.skara.vcs.Repository;
+import org.openjdk.skara.vcs.git.GitVersion;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 import org.openjdk.skara.version.Version;
 
@@ -171,6 +172,19 @@ public class GitSkara {
         }
     }
 
+    private static void checkGitVersion() {
+        try {
+            GitVersion version = GitVersion.get();
+            if (!version.isKnownSupported()) {
+                System.err.println("WARNING: Your git version is: " + version + "," +
+                        " which is not a known supported version." +
+                        " Please consider upgrading to a more recent version.");
+            }
+        } catch (IOException e) {
+            System.err.println("Could not check git version: " + e.getMessage());
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         commands.put("jcheck", GitJCheck::main);
         commands.put("webrev", GitWebrev::main);
@@ -190,6 +204,8 @@ public class GitSkara {
         commands.put("update", GitSkara::update);
         commands.put("help", GitSkara::usage);
         commands.put("version", GitSkara::version);
+
+        checkGitVersion();
 
         var isEmpty = args.length == 0;
         var command = isEmpty ? "help" : args[0];
