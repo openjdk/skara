@@ -175,7 +175,7 @@ public class BackportsTests {
             }
             issue.setProperty("fixVersions", JSON.array().add(version));
             if (!resolvedInBuild.isEmpty()) {
-                issue.setProperty("customfield_10006", JSON.of(resolvedInBuild));
+                issue.setProperty("customfield_10006", JSON.object().put("value", resolvedInBuild));
             }
         }
 
