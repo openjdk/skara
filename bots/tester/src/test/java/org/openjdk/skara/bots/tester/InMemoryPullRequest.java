@@ -96,8 +96,8 @@ class InMemoryPullRequest implements PullRequest {
     }
 
     @Override
-    public HostedRepository sourceRepository() {
-        return null;
+    public Optional<HostedRepository> sourceRepository() {
+        return Optional.empty();
     }
 
     @Override

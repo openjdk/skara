@@ -247,8 +247,12 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
-    public HostedRepository sourceRepository() {
-        return new GitHubRepository(host, json.get("head").get("repo").get("full_name").asString());
+    public Optional<HostedRepository> sourceRepository() {
+        if (json.get("head").get("repo").isNull()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(new GitHubRepository(host, json.get("head").get("repo").get("full_name").asString()));
+        }
     }
 
     @Override

@@ -146,8 +146,8 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     }
 
     @Override
-    public HostedRepository sourceRepository() {
-        return sourceRepository;
+    public Optional<HostedRepository> sourceRepository() {
+        return Optional.of(sourceRepository);
     }
 
     @Override

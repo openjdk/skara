@@ -208,7 +208,7 @@ public class GitPrList {
             issues.add(String.join(",", prIssues));
             urls.add(pr.webUrl().toString());
 
-            if (pr.sourceRepository().webUrl().equals(uri)) {
+            if (pr.sourceRepository().isPresent() && pr.sourceRepository().get().webUrl().equals(uri)) {
                 branches.add(pr.sourceRef());
             } else {
                 branches.add("");

@@ -654,7 +654,7 @@ class CheckRun {
             "a branch with the same name as the source branch for this pull request (`" + branch + "`) " +
             "is present in the [target repository](" + pr.repository().nonTransformedWebUrl() + "). " +
             "If you eventually integrate this pull request then the branch `" + branch + "` " +
-            "in your [personal fork](" + pr.sourceRepository().nonTransformedWebUrl() + ") will diverge once you sync " +
+            "in your [personal fork](" + pr.sourceRepository().get().nonTransformedWebUrl() + ") will diverge once you sync " +
             "your personal fork with the upstream repository.\n" +
             "\n" +
             "To avoid this situation, create a new branch for your changes and reset the `" + branch + "` branch. " +
@@ -782,9 +782,11 @@ class CheckRun {
                 newLabels.remove("merge-conflict");
             }
 
-            var branchNames = pr.repository().branches().stream().map(HostedBranch::name).collect(Collectors.toSet());
-            if (!pr.repository().url().equals(pr.sourceRepository().url()) && branchNames.contains(pr.sourceRef())) {
-                addSourceBranchWarningComment(comments);
+            if (pr.sourceRepository().isPresent()) {
+                var branchNames = pr.repository().branches().stream().map(HostedBranch::name).collect(Collectors.toSet());
+                if (!pr.repository().url().equals(pr.sourceRepository().get().url()) && branchNames.contains(pr.sourceRef())) {
+                    addSourceBranchWarningComment(comments);
+                }
             }
 
             if (!PullRequestUtils.isMerge(pr) && PullRequestUtils.containsForeignMerge(pr, localRepo)) {
