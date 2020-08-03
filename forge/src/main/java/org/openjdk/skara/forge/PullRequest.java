@@ -88,7 +88,7 @@ public interface PullRequest extends Issue {
      * Returns the repository the request is created from.
      * @return
      */
-    HostedRepository sourceRepository();
+    Optional<HostedRepository> sourceRepository();
 
     /**
      * Returns the name of the ref the request is intended to be merged into.

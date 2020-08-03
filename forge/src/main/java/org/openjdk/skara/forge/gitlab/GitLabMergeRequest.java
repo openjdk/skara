@@ -267,9 +267,13 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
-    public HostedRepository sourceRepository() {
-        return new GitLabRepository((GitLabHost) repository.forge(),
-                                    json.get("source_project_id").asInt());
+    public Optional<HostedRepository> sourceRepository() {
+        if (json.get("source_project_id").isNull()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(new GitLabRepository((GitLabHost) repository.forge(),
+                                                    json.get("source_project_id").asInt()));
+        }
     }
 
     @Override
