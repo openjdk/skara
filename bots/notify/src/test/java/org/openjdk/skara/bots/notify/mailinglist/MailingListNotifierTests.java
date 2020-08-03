@@ -619,7 +619,8 @@ public class MailingListNotifierTests {
     void testMailinglistTag(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
-             var listServer = new TestMailmanServer()) {
+             var listServer = new TestMailmanServer();
+             var scratchFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
             var localRepoFolder = tempFolder.path().resolve("repo");
             var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
@@ -665,7 +666,7 @@ public class MailingListNotifierTests {
             noTagsUpdater.attachTo(notifyBot);
 
             // No mail should be sent on the first run as there is no history
-            TestBotRunner.runPeriodicItems(notifyBot);
+            TestBotRunner.runPeriodicItems(notifyBot, scratchFolder.path());
             assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "23456789: More fixes");
@@ -680,7 +681,7 @@ public class MailingListNotifierTests {
             localRepo.tag(editHash3, "jdk-13+0", "Added tag 4", "Duke Tagger", "tagger@openjdk.java.net");
             localRepo.pushAll(repo.url());
 
-            TestBotRunner.runPeriodicItems(notifyBot);
+            TestBotRunner.runPeriodicItems(notifyBot, scratchFolder.path());
             listServer.processIncoming();
             listServer.processIncoming();
             listServer.processIncoming();
