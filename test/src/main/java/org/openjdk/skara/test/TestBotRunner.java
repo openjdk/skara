@@ -25,6 +25,7 @@ package org.openjdk.skara.test;
 import org.openjdk.skara.bot.*;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 
 public class TestBotRunner {
@@ -38,11 +39,21 @@ public class TestBotRunner {
     }
 
     public static void runPeriodicItems(Bot bot, AfterItemHook afterItemHook) throws IOException {
+        try (var scratchFolder = new TemporaryDirectory()) {
+            runPeriodicItems(bot, afterItemHook, scratchFolder.path());
+        }
+    }
+
+    public static void runPeriodicItems(Bot bot, Path scratchFolder) throws IOException {
+        runPeriodicItems(bot, item -> {}, scratchFolder);
+    }
+
+    public static void runPeriodicItems(Bot bot, AfterItemHook afterItemHook, Path scratchFolder) throws IOException {
         var items = new LinkedList<>(bot.getPeriodicItems());
         for (var item = items.pollFirst(); item != null; item = items.pollFirst()) {
-            Collection<WorkItem> followUpItems = null;
-            try (var scratchFolder = new TemporaryDirectory()) {
-                followUpItems = item.run(scratchFolder.path());
+            Collection<WorkItem> followUpItems;
+            try {
+                followUpItems = item.run(scratchFolder);
                 afterItemHook.run(item);
             } catch (RuntimeException e) {
                 item.handleRuntimeException(e);
