@@ -34,6 +34,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 class MailingListNotifier implements Notifier, RepositoryListener {
     private final MailingList list;
@@ -137,17 +138,14 @@ class MailingListNotifier implements Notifier, RepositoryListener {
 
     private List<Commit> filterPrCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) throws NonRetriableException {
         var ret = new ArrayList<Commit>();
-        var mergedHashes = new HashSet<Hash>();
+        var mergedCommits = new HashSet<Hash>();
 
         for (var commit : commits) {
-            if (mergedHashes.contains(commit.hash())) {
-                log.info("Commit " + commit.hash() + " belongs to a merge PR - skipping");
-                continue;
-            }
-
             var candidates = repository.findPullRequestsWithComment(null, "Pushed as commit " + commit.hash() + ".");
             if (candidates.size() != 1) {
-                log.warning("Commit " + commit.hash() + " matches " + candidates.size() + " pull requests - expected 1");
+                if (candidates.size() > 1) {
+                    log.warning("Commit " + commit.hash() + " matches " + candidates.size() + " pull requests - expected 1");
+                }
                 ret.add(commit);
                 continue;
             }
@@ -161,17 +159,29 @@ class MailingListNotifier implements Notifier, RepositoryListener {
             }
 
             // For a merge PR, many other of these commits could belong here as well
-            try {
-                localRepository.fetch(repository.url(), candidate.fetchRef());
-                var baseHash = PullRequestUtils.baseHash(candidate, localRepository);
-                var prCommits = localRepository.commitMetadata(baseHash, candidate.headHash());
-                prCommits.forEach(prCommit -> mergedHashes.add(prCommit.hash()));
-            } catch (IOException e) {
-                log.warning("Could not fetch commits from " + prLink + " - cannot see if the belong to the PR");
+            if (commit.parents().size() > 1) {
+                if (!PullRequestUtils.isMerge(candidate)) {
+                    log.warning("Merge commit from non-merge PR?");
+                    ret.add(commit);
+                    continue;
+                }
+
+                // For a merge PR, the first parent is always the target branch, so skip that one
+                for (int i = 1; i < commit.parents().size(); ++i) {
+                    try {
+                        localRepository.commitMetadata(commit.parents().get(0), commit.parents().get(i))
+                                       .forEach(c -> mergedCommits.add(c.hash()));
+                    } catch (IOException e) {
+                        log.warning("Unable to check if commits between " + commit.parents().get(0) + " and "
+                                            + commit.parents().get(i) + " were brought in through merging in " + prLink);
+                    }
+                }
             }
         }
 
-        return ret;
+        return ret.stream()
+                  .filter(c -> !mergedCommits.contains(c.hash()))
+                  .collect(Collectors.toList());
     }
 
     private void sendCombinedCommits(HostedRepository repository, List<Commit> commits, Branch branch) throws NonRetriableException {
