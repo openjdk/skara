@@ -227,12 +227,20 @@ class Utils {
         return issues;
     }
 
-    static String jbsProjectFromJcheckConf(Repository repo, String targetBranch) throws IOException {
+    static Optional<String> jbsProjectFromJcheckConf(Repository repo, String targetBranch) throws IOException {
         var conf = JCheckConfiguration.from(repo, repo.resolve(targetBranch).orElseThrow(() ->
             new IOException("Could not resolve '" + targetBranch + "' branch")
         ));
 
-        return conf.get().general().jbs();
+        if (conf.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(conf.get().general().jbs());
+    }
+
+    static Optional<Issue> getIssue(Commit commit, Optional<String> project) throws IOException {
+        return project.isEmpty() ? Optional.empty() : getIssue(commit, project.get());
     }
 
     static Optional<Issue> getIssue(Commit commit, String project) throws IOException {
@@ -245,6 +253,10 @@ class Utils {
             return getIssue(issue.id(), project);
         }
         return Optional.empty();
+    }
+
+    static Optional<Issue> getIssue(Branch b, Optional<String> project) throws IOException {
+        return project.isEmpty() ? Optional.empty() : getIssue(b, project.get());
     }
 
     static Optional<Issue> getIssue(Branch b, String project) throws IOException {
