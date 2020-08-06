@@ -100,7 +100,7 @@ public class GitHgExport {
 
         System.out.println("# HG changeset patch");
         System.out.println("# User " + username);
-        System.out.println("# Date " + date.toEpochSecond() + " " + (-1 * date.getOffset().getTotalSeconds())); 
+        System.out.println("# Date " + date.toEpochSecond() + " " + (-1 * date.getOffset().getTotalSeconds()));
         System.out.println("#      " + date.format(dateFormatter));
 
         var message = CommitMessageParsers.v1.parse(c);
