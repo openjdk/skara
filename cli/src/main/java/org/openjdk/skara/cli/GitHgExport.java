@@ -92,7 +92,7 @@ public class GitHgExport {
         var c = commit.get();
         var committer = c.committer();
         if (committer.email() == null || !committer.email().endsWith("@openjdk.org")) {
-            die("commiter is not an OpenJDK committer");
+            die("committer is not an OpenJDK committer");
         }
         var username = committer.email().split("@")[0];
         var date = c.committed();
