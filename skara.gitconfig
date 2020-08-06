@@ -35,6 +35,7 @@
         publish = ! git skara publish
         proxy = ! git skara proxy
         trees = ! git skara trees
+        hg-export = ! git skara hg-export
 
         tcommit = trees commit
         tconfig = trees config

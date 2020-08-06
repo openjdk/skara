@@ -30,9 +30,6 @@ import java.util.stream.Collectors;
 public class CommitMessageFormatters {
     public static class V0 implements CommitMessageFormatter {
         public List<String> format(CommitMessage message) {
-            if (message.title() != null) {
-                throw new IllegalArgumentException("Can't format title, must use issues as title");
-            }
             if (message.issues().isEmpty()) {
                 throw new IllegalArgumentException("Must supply at least one issue");
             }

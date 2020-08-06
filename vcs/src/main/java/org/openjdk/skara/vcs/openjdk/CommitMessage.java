@@ -64,6 +64,10 @@ public class CommitMessage {
         return contributors;
     }
 
+    public void addContributor(Author contributor) {
+        contributors.add(contributor);
+    }
+
     public List<String> summaries() {
         return summaries;
     }
