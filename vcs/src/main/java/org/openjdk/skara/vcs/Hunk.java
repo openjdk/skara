@@ -23,7 +23,9 @@
 package org.openjdk.skara.vcs;
 
 import java.io.BufferedWriter;
+import java.io.StringWriter;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
 
 public class Hunk {
@@ -80,7 +82,17 @@ public class Hunk {
         return new WebrevStats(added, removed, modified);
     }
 
+    public int changes() {
+        return source.lines().size() + target.lines().size();
+    }
 
+    public int additions() {
+        return target.lines().size();
+    }
+
+    public int deletions() {
+        return source.lines().size();
+    }
 
     public void write(BufferedWriter w) throws IOException {
         w.append("@@ -");
@@ -109,5 +121,37 @@ public class Hunk {
             w.append("\\ No newline at end of file");
             w.write("\n");
         }
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        sb.append("@@ -");
+        sb.append(source.range().toString());
+        sb.append(" +");
+        sb.append(target.range().toString());
+        sb.append(" @@");
+        sb.append("\n");
+
+        for (var line : source.lines()) {
+            sb.append("-");
+            sb.append(line);
+            sb.append("\n");
+        }
+        if (!source.hasNewlineAtEndOfFile()) {
+            sb.append("\\ No newline at end of file");
+            sb.append("\n");
+        }
+
+        for (var line : target.lines()) {
+            sb.append("+");
+            sb.append(line);
+            sb.append("\n");
+        }
+        if (!target.hasNewlineAtEndOfFile()) {
+            sb.append("\\ No newline at end of file");
+            sb.append("\n");
+        }
+        return sb.toString();
     }
 }

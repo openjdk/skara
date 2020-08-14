@@ -23,12 +23,17 @@
 package org.openjdk.skara.webrev;
 
 import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.json.JSON;
 
 import java.io.*;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.channels.FileChannel;
 import java.nio.file.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.function.Function;
@@ -66,7 +71,11 @@ public class Webrev {
         private final Path output;
         private String title = "webrev";
         private String username;
-        private String upstream;
+        private URI upstreamURI;
+        private String upstreamName;
+        private URI forkURI;
+        private String forkName;
+        private String fork;
         private String pullRequest;
         private String branch;
         private String issue;
@@ -90,8 +99,25 @@ public class Webrev {
             return this;
         }
 
-        public Builder upstream(String upstream) {
-            this.upstream = upstream;
+        public Builder upstream(String name) {
+            this.upstreamName = name;
+            return this;
+        }
+
+        public Builder upstream(URI uri, String name) {
+            this.upstreamURI = uri;
+            this.upstreamName = name;
+            return this;
+        }
+
+        public Builder fork(String name) {
+            this.forkName = name;
+            return this;
+        }
+
+        public Builder fork(URI uri, String name) {
+            this.forkURI = uri;
+            this.forkName = name;
             return this;
         }
 
@@ -141,8 +167,139 @@ public class Webrev {
             generate(diff, tailEnd, head);
         }
 
+        public void generateJSON(Hash tailEnd, Hash head) throws IOException {
+            if (head == null) {
+                head = repository.head();
+            }
+            var diff = repository.diff(tailEnd, head, files);
+            generateJSON(diff, tailEnd, head);
+        }
+
         public void generate(Diff diff) throws IOException {
             generate(diff, diff.from(), diff.to());
+        }
+
+        public void generateJSON(Diff diff) throws IOException {
+            generateJSON(diff, diff.from(), diff.to());
+        }
+
+        private void generateJSON(Diff diff, Hash tailEnd, Hash head) throws IOException {
+            if (head == null) {
+                throw new IllegalArgumentException("Must supply a head hash");
+            }
+            if (upstreamURI == null) {
+                throw new IllegalStateException("Must supply an URI to upstream repository");
+            }
+            if (upstreamName == null) {
+                throw new IllegalStateException("Must supply a name for the upstream repository");
+            }
+            if (forkURI == null) {
+                throw new IllegalStateException("Must supply an URI to fork repository");
+            }
+            if (forkName == null) {
+                throw new IllegalStateException("Must supply a name for the fork repository");
+            }
+
+            Files.createDirectories(output);
+            var metadata = JSON.object();
+            var now = ZonedDateTime.now();
+            metadata.put("created_at", now.format(DateTimeFormatter.ISO_INSTANT));
+
+            var base = JSON.object();
+            base.put("sha", tailEnd.hex());
+            base.put("repo",
+                JSON.object().put("html_url", upstreamURI.toString())
+                             .put("full_name", upstreamName)
+            );
+            metadata.put("base", base);
+
+            var headObj = JSON.object();
+            headObj.put("sha", head.hex());
+            headObj.put("repo",
+                JSON.object().put("html_url", forkURI.toString())
+                             .put("full_name", forkName)
+            );
+            metadata.put("head", headObj);
+
+            var pathsPerCommit = new HashMap<Hash, List<Path>>();
+            var comparison = JSON.object();
+            var files = JSON.array();
+            for (var patch : diff.patches()) {
+                var file = JSON.object();
+                Path filename = null;
+                Path previousFilename = null;
+                String status = null;
+                if (patch.status().isModified()) {
+                    status = "modified";
+                    filename = patch.target().path().get();
+                } else if (patch.status().isAdded()) {
+                    status = "added";
+                    filename = patch.target().path().get();
+                } else if (patch.status().isDeleted()) {
+                    status = "deleted";
+                    filename = patch.source().path().get();
+                } else if (patch.status().isCopied()) {
+                    status = "copied";
+                    filename = patch.target().path().get();
+                    previousFilename = patch.source().path().get();
+                } else if (patch.status().isRenamed()) {
+                    status = "renamed";
+                    filename = patch.target().path().get();
+                    previousFilename = patch.source().path().get();
+                } else {
+                    throw new IllegalStateException("Unexpected status: " + patch.status());
+                }
+
+                file.put("filename", filename.toString());
+                file.put("status", status);
+                if (previousFilename != null) {
+                    file.put("previous_filename", previousFilename.toString());
+                }
+                if (patch.isBinary()) {
+                    file.put("binary", true);
+                } else {
+                    file.put("binary", false);
+                    var textualPatch = patch.asTextualPatch();
+
+                    file.put("additions", textualPatch.additions());
+                    file.put("deletions", textualPatch.deletions());
+                    file.put("changes", textualPatch.changes());
+
+                    var sb = new StringBuilder();
+                    for (var hunk : textualPatch.hunks()) {
+                        sb.append(hunk.toString());
+                    }
+                    file.put("patch", sb.toString());
+                }
+                files.add(file);
+                var commits = repository.commitMetadata(tailEnd, head, List.of(filename));
+                for (var commit : commits) {
+                    if (!pathsPerCommit.containsKey(commit.hash())) {
+                        pathsPerCommit.put(commit.hash(), new ArrayList<Path>());
+                    }
+                    pathsPerCommit.get(commit.hash()).add(filename);
+                }
+            }
+            comparison.put("files", files);
+
+            var commits = JSON.array();
+            for (var commit : repository.commitMetadata(tailEnd, head)) {
+                var c = JSON.object();
+                c.put("sha", commit.hash().hex());
+                c.put("commit",
+                    JSON.object().put("message", String.join("\n", commit.message()))
+                );
+                var filesArray = JSON.array();
+                for (var path : pathsPerCommit.get(commit.hash())) {
+                    filesArray.add(JSON.object().put("filename", path.toString()));
+                }
+                c.put("files", filesArray);
+                commits.add(c);
+            }
+
+            Files.writeString(output.resolve("metadata.json"), metadata.toString(), StandardCharsets.UTF_8);
+            Files.writeString(output.resolve("comparison.json"), comparison.toString(), StandardCharsets.UTF_8);
+            Files.writeString(output.resolve("commits.json"), commits.toString(), StandardCharsets.UTF_8);
         }
 
         private void generate(Diff diff, Hash tailEnd, Hash head) throws IOException {
@@ -234,7 +391,7 @@ public class Webrev {
                 var index = new IndexView(fileViews,
                                           title,
                                           username,
-                                          upstream,
+                                          upstreamName,
                                           branch,
                                           pullRequest,
                                           issueForWebrev,

@@ -33,6 +33,7 @@ module {
 
 dependencies {
     implementation project(':vcs')
+    implementation project(':json')
 
     testImplementation project(':test')
 }
