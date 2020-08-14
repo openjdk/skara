@@ -60,8 +60,8 @@ class GitCommits implements Commits, AutoCloseable {
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("git", "log", "--format=" + format,
                                          "--patch",
-                                         "--find-renames=99%",
-                                         "--find-copies=99%",
+                                         "--find-renames=90%",
+                                         "--find-copies=90%",
                                          "--find-copies-harder",
                                          "--topo-order",
                                          "--binary",
