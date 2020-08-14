@@ -56,7 +56,7 @@ public class Diff {
         return patches;
     }
 
-    public List<PatchStats> stats() {
+    public List<WebrevStats> stats() {
         return patches().stream()
                         .filter(Patch::isTextual)
                         .map(Patch::asTextualPatch)
@@ -64,16 +64,11 @@ public class Diff {
                         .collect(Collectors.toList());
     }
 
-    public int added() {
-        return stats().stream().mapToInt(PatchStats::added).sum();
-    }
-
-    public int modified() {
-        return stats().stream().mapToInt(PatchStats::modified).sum();
-    }
-
-    public int removed() {
-        return stats().stream().mapToInt(PatchStats::removed).sum();
+    public WebrevStats totalStats() {
+        var added = stats().stream().mapToInt(WebrevStats::added).sum();
+        var removed = stats().stream().mapToInt(WebrevStats::removed).sum();
+        var modified = stats().stream().mapToInt(WebrevStats::modified).sum();
+        return new WebrevStats(added, removed, modified);
     }
 
     public void write(BufferedWriter w) throws IOException {

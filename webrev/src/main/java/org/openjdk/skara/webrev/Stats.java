@@ -20,26 +20,32 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.vcs;
+package org.openjdk.skara.webrev;
 
-import java.nio.file.Path;
-import java.util.Objects;
+import org.openjdk.skara.vcs.WebrevStats;
 
-public class PatchStats {
-    private final Path path;
+class Stats {
     private final int added;
     private final int removed;
     private final int modified;
+    private final int total;
 
-    public PatchStats(Path path, int added, int removed, int modified) {
-        this.path = path;
+    public Stats(WebrevStats stats, int total) {
+        this.added = stats.added();
+        this.removed = stats.removed();
+        this.modified = stats.modified();
+        this.total = total;
+    }
+
+    public Stats(int added, int removed, int modified, int total) {
         this.added = added;
         this.removed = removed;
         this.modified = modified;
+        this.total = total;
     }
 
-    public Path path() {
-        return path;
+    public static Stats empty() {
+        return new Stats(0, 0, 0, 0);
     }
 
     public int added() {
@@ -54,25 +60,21 @@ public class PatchStats {
         return modified;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(path, added, removed, modified);
+    public int changed() {
+        return added() + removed() + modified();
+    }
+
+    public int unchanged() {
+        return total() - changed();
+    }
+
+    public int total() {
+        return total;
     }
 
     @Override
-    public boolean equals(Object other) {
-        if (other == this) {
-            return true;
-        }
-
-        if (!(other instanceof PatchStats)) {
-            return false;
-        }
-
-        var o = (PatchStats) other;
-        return Objects.equals(path, o.path) &&
-               Objects.equals(added, o.added) &&
-               Objects.equals(removed, o.removed) &&
-               Objects.equals(modified, o.modified);
+    public String toString() {
+        return String.format("%d lines changed; %d ins; %d del; %d mod; %d unchg",
+                             changed(), added(), removed(), modified(), unchanged());
     }
 }

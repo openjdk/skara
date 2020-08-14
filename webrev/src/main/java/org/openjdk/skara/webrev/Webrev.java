@@ -225,8 +225,8 @@ public class Webrev {
                 }
             }
 
-            var total = fileViews.stream().map(FileView::stats).mapToInt(WebrevStats::total).sum();
-            var stats = new WebrevStats(diff.added(), diff.removed(), diff.modified(), total);
+            var total = fileViews.stream().map(FileView::stats).mapToInt(Stats::total).sum();
+            var stats = new Stats(diff.totalStats(), total);
 
             var issueForWebrev = issue != null && issueLinker != null ? issueLinker.apply(issue) : null;
             var tailEndURL = commitLinker != null ? commitLinker.apply(tailEnd.hex()) : null;

@@ -108,9 +108,11 @@ class HgToGitConverterTests {
             assertEquals(hgHunk.target().range(), gitHunk.target().range());
             assertEquals(hgHunk.target().lines(), gitHunk.target().lines());
 
-            assertEquals(hgHunk.added(), gitHunk.added());
-            assertEquals(hgHunk.removed(), gitHunk.removed());
-            assertEquals(hgHunk.modified(), gitHunk.modified());
+            var hgStats = hgHunk.stats();
+            var gitStats = gitHunk.stats();
+            assertEquals(hgStats.added(), gitStats.added());
+            assertEquals(hgStats.removed(), gitStats.removed());
+            assertEquals(hgStats.modified(), gitStats.modified());
         }
     }
 

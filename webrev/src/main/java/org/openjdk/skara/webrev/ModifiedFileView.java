@@ -40,7 +40,7 @@ class ModifiedFileView implements FileView {
     private final List<String> oldContent;
     private final List<String> newContent;
     private final byte[] binaryContent;
-    private final WebrevStats stats;
+    private final Stats stats;
 
     public ModifiedFileView(ReadOnlyRepository repo, Hash base, Hash head, List<CommitMetadata> commits, MetadataFormatter formatter, Patch patch, Path out, Navigation navigation) throws IOException {
         this.patch = patch;
@@ -92,7 +92,7 @@ class ModifiedFileView implements FileView {
                                                        " at revision " + head)
                 );
             }
-            stats = new WebrevStats(patch.asTextualPatch().stats(), newContent.size());
+            stats = new Stats(patch.asTextualPatch().stats(), newContent.size());
         } else {
             oldContent = null;
             newContent = null;
@@ -105,12 +105,12 @@ class ModifiedFileView implements FileView {
                                                        " at revision " + head)
                 );
             }
-            stats = WebrevStats.empty();
+            stats = Stats.empty();
         }
     }
 
     @Override
-    public WebrevStats stats() {
+    public Stats stats() {
         return stats;
     }
 

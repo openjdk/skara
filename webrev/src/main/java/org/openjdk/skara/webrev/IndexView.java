@@ -154,7 +154,7 @@ class IndexView implements View {
                      Hash revision,
                      String revisionURL,
                      Path patchFile,
-                     WebrevStats stats) {
+                     Stats stats) {
         this.files = files;
         map = new HashMap<String, String>(); 
 

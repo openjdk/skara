@@ -36,7 +36,7 @@ class RemovedFileView implements FileView {
     private final MetadataFormatter formatter;
     private final List<String> oldContent;
     private final byte[] binaryContent;
-    private final WebrevStats stats;
+    private final Stats stats;
 
     public RemovedFileView(ReadOnlyRepository repo, Hash base, Hash head, List<CommitMetadata> commits, MetadataFormatter formatter, Patch patch, Path out) throws IOException {
         this.patch = patch;
@@ -46,16 +46,16 @@ class RemovedFileView implements FileView {
         if (patch.isTextual()) {
             binaryContent = null;
             oldContent = repo.lines(patch.source().path().get(), base).orElseThrow(IllegalArgumentException::new);
-            stats = new WebrevStats(patch.asTextualPatch().stats(), oldContent.size());
+            stats = new Stats(patch.asTextualPatch().stats(), oldContent.size());
         } else {
             oldContent = null;
             binaryContent = repo.show(patch.source().path().get(), base).orElseThrow(IllegalArgumentException::new);
-            stats = WebrevStats.empty();
+            stats = Stats.empty();
         }
     }
 
     @Override
-    public WebrevStats stats() {
+    public Stats stats() {
         return stats;
     }
 

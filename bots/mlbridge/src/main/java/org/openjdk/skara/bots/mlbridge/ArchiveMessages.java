@@ -141,9 +141,10 @@ class ArchiveMessages {
     private static String stats(Repository localRepo, Hash base, Hash head) {
         try {
             var diff = localRepo.diff(base, head);
-            var inserted = diff.added();
-            var deleted = diff.removed();
-            var modified = diff.modified();
+            var diffStats = diff.totalStats();
+            var inserted = diffStats.added();
+            var deleted = diffStats.removed();
+            var modified = diffStats.modified();
             var linesChanged = inserted + deleted + modified;
             var filesChanged = diff.patches().size();
             return String.format("%d line%s in %d file%s changed: %d ins; %d del; %d mod",

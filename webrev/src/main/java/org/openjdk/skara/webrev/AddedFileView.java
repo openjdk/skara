@@ -38,7 +38,7 @@ class AddedFileView implements FileView {
     private final MetadataFormatter formatter;
     private final List<String> newContent;
     private final byte[] binaryContent;
-    private final WebrevStats stats;
+    private final Stats stats;
 
     public AddedFileView(ReadOnlyRepository repo, Hash base, Hash head, List<CommitMetadata> commits, MetadataFormatter formatter, Patch patch, Path out) throws IOException {
         this.patch = patch;
@@ -66,7 +66,7 @@ class AddedFileView implements FileView {
             } else {
                 newContent = repo.lines(path, head).orElseThrow(IllegalArgumentException::new);
             }
-            stats = new WebrevStats(patch.asTextualPatch().stats(), newContent.size());
+            stats = new Stats(patch.asTextualPatch().stats(), newContent.size());
         } else {
             newContent = null;
             if (head == null) {
@@ -74,12 +74,12 @@ class AddedFileView implements FileView {
             } else {
                 binaryContent = repo.show(path, head).orElseThrow(IllegalArgumentException::new);
             }
-            stats = WebrevStats.empty();
+            stats = Stats.empty();
         }
     }
 
     @Override
-    public WebrevStats stats() {
+    public Stats stats() {
         return stats;
     }
 

@@ -20,32 +20,21 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.webrev;
+package org.openjdk.skara.vcs;
 
-import org.openjdk.skara.vcs.PatchStats;
+import java.nio.file.Path;
+import java.util.Objects;
+import java.util.Optional;
 
-class WebrevStats {
+public class WebrevStats {
     private final int added;
     private final int removed;
     private final int modified;
-    private final int total;
 
-    public WebrevStats(PatchStats stats, int total) {
-        this.added = stats.added();
-        this.removed = stats.removed();
-        this.modified = stats.modified();
-        this.total = total;
-    }
-
-    public WebrevStats(int added, int removed, int modified, int total) {
+    public WebrevStats(int added, int removed, int modified) {
         this.added = added;
         this.removed = removed;
         this.modified = modified;
-        this.total = total;
-    }
-
-    public static WebrevStats empty() {
-        return new WebrevStats(0, 0, 0, 0);
     }
 
     public int added() {
@@ -60,21 +49,24 @@ class WebrevStats {
         return modified;
     }
 
-    public int changed() {
-        return added() + removed() + modified();
-    }
-
-    public int unchanged() {
-        return total() - changed();
-    }
-
-    public int total() {
-        return total;
+    @Override
+    public int hashCode() {
+        return Objects.hash(added, removed, modified);
     }
 
     @Override
-    public String toString() {
-        return String.format("%d lines changed; %d ins; %d del; %d mod; %d unchg",
-                             changed(), added(), removed(), modified(), unchanged());
+    public boolean equals(Object other) {
+        if (other == this) {
+            return true;
+        }
+
+        if (!(other instanceof WebrevStats)) {
+            return false;
+        }
+
+        var o = (WebrevStats) other;
+        return Objects.equals(added, o.added) &&
+               Objects.equals(removed, o.removed) &&
+               Objects.equals(modified, o.modified);
     }
 }
