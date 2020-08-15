@@ -971,8 +971,8 @@ public class GitRepository implements Repository {
     public List<StatusEntry> status(Hash from, Hash to) throws IOException {
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("git", "diff", "--raw",
-                                          "--find-renames=99%",
-                                          "--find-copies=99%",
+                                          "--find-renames=90%",
+                                          "--find-copies=90%",
                                           "--find-copies-harder",
                                           "--no-abbrev",
                                           "--no-color"));
@@ -1015,8 +1015,8 @@ public class GitRepository implements Repository {
     @Override
     public Diff diff(Hash from, Hash to, List<Path> files) throws IOException {
         var cmd = new ArrayList<>(List.of("git", "diff", "--patch",
-                                                         "--find-renames=99%",
-                                                         "--find-copies=99%",
+                                                         "--find-renames=90%",
+                                                         "--find-copies=90%",
                                                          "--find-copies-harder",
                                                          "--binary",
                                                          "--raw",
