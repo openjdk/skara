@@ -95,7 +95,7 @@ public class GitWebrev {
             Option.shortcut("r")
                   .fullname("rev")
                   .describe("REV")
-                  .helptext("Compare against a specified revision")
+                  .helptext("Compare against a specified base revision (alias for --base)")
                   .optional(),
             Option.shortcut("o")
                   .fullname("output")
@@ -126,6 +126,21 @@ public class GitWebrev {
                   .fullname("remote")
                   .describe("NAME")
                   .helptext("Use remote to calculate outgoing changes")
+                  .optional(),
+            Option.shortcut("")
+                  .fullname("base")
+                  .describe("REV")
+                  .helptext("Use specified revision as base for comparison")
+                  .optional(),
+            Option.shortcut("")
+                  .fullname("head")
+                  .describe("REV")
+                  .helptext("Use specified revision as head for comparison")
+                  .optional(),
+            Option.shortcut("s")
+                  .fullname("similarity")
+                  .describe("SIMILARITY")
+                  .helptext("Guess renamed files by similarity (0 - 100)")
                   .optional(),
             Switch.shortcut("b")
                   .fullname("")
@@ -242,8 +257,21 @@ public class GitWebrev {
             }
         }
 
+        if (arguments.contains("base") && arguments.contains("rev")) {
+            System.err.println("error: cannot combine --base and --rev options");
+            System.exit(1);
+        }
+        if (arguments.contains("head") && arguments.contains("rev")) {
+            System.err.println("error: cannot combine --head and --rev options");
+            System.exit(1);
+        }
+        if (arguments.contains("head") && !arguments.contains("base")) {
+            System.err.println("error: cannot use --head without using --base");
+            System.exit(1);
+        }
+
         var rev = arguments.contains("rev") ? resolve(repo, arguments.get("rev").asString()) : null;
-        if (rev == null) {
+        if (rev == null && !(arguments.contains("base") && arguments.contains("head"))) {
             if (isMercurial) {
                 resolve(repo, noOutgoing ? "tip" : "min(outgoing())^");
             } else {
@@ -295,6 +323,9 @@ public class GitWebrev {
                 }
             }
         }
+
+        var base = arguments.contains("base") ? resolve(repo, arguments.get("base").asString()) : rev;
+        var head = arguments.contains("head") ? resolve(repo, arguments.get("head").asString()) : null;
 
         var issue = arguments.contains("cr") ? arguments.get("cr").asString() : null;
         if (issue != null) {
@@ -369,18 +400,38 @@ public class GitWebrev {
             }
         }
 
+        var similarity = 90;
+        try {
+            var similarityArg = arg("similarity", arguments, repo);
+            if (similarityArg != null) {
+                var value = Integer.parseInt(similarityArg);
+                if (value < 0 || value > 100) {
+                    System.err.println("error: --similarity must be a number between 0 and 100");
+                    System.exit(1);
+                }
+                similarity = value;
+            }
+        } catch (NumberFormatException e) {
+                System.err.println("error: --similarity must be a number between 0 and 100");
+                System.exit(1);
+        }
+
         var jbs = "https://bugs.openjdk.java.net/browse/";
         var issueParts = issue != null ? issue.split("-") : new String[0];
         var jbsProject = issueParts.length == 2 && KNOWN_JBS_PROJECTS.contains(issueParts[0])?
             issueParts[0] : "JDK";
         if (arguments.contains("json")) {
+            if (head == null) {
+                head = repo.head();
+            }
             var upstreamName = upstreamPullPath.getPath().substring(1);
             var originName = originPullPath.getPath().substring(1);
             Webrev.repository(repo)
                   .output(output)
                   .upstream(upstreamPullPath, upstreamName)
                   .fork(originPullPath, originName)
-                  .generateJSON(rev, repo.head());
+                  .similarity(similarity)
+                  .generateJSON(base, head);
         } else {
             Webrev.repository(repo)
                   .output(output)
@@ -392,7 +443,8 @@ public class GitWebrev {
                   .issue(issue)
                   .version(version)
                   .files(files)
-                  .generate(rev);
+                  .similarity(similarity)
+                  .generate(base, head);
         }
     }
 

@@ -234,19 +234,19 @@ class TestRepository implements ReadOnlyRepository {
     public void dump(FileEntry entry, Path to) throws IOException {
     }
 
-    public Diff diff(Hash base, Hash head) throws IOException {
+    public Diff diff(Hash base, Hash head, int similarity) throws IOException {
         return null;
     }
 
-    public Diff diff(Hash base, Hash head, List<Path> files) throws IOException {
+    public Diff diff(Hash base, Hash head, List<Path> files, int similarity) throws IOException {
         return null;
     }
 
-    public Diff diff(Hash head) throws IOException {
+    public Diff diff(Hash head, int similarity) throws IOException {
         return null;
     }
 
-    public Diff diff(Hash head, List<Path> files) throws IOException {
+    public Diff diff(Hash head, List<Path> files, int similarity) throws IOException {
         return null;
     }
 
