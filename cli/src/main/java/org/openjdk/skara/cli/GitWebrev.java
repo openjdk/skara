@@ -95,7 +95,7 @@ public class GitWebrev {
             Option.shortcut("r")
                   .fullname("rev")
                   .describe("REV")
-                  .helptext("Compare against a specified revision")
+                  .helptext("Compare against a specified base revision (alias for --base)")
                   .optional(),
             Option.shortcut("o")
                   .fullname("output")
@@ -126,6 +126,16 @@ public class GitWebrev {
                   .fullname("remote")
                   .describe("NAME")
                   .helptext("Use remote to calculate outgoing changes")
+                  .optional(),
+            Option.shortcut("")
+                  .fullname("base")
+                  .describe("REV")
+                  .helptext("Use specified revision as base for comparison")
+                  .optional(),
+            Option.shortcut("")
+                  .fullname("head")
+                  .describe("REV")
+                  .helptext("Use specified revision as head for comparison")
                   .optional(),
             Switch.shortcut("b")
                   .fullname("")
@@ -224,8 +234,21 @@ public class GitWebrev {
             }
         }
 
+        if (arguments.contains("base") && arguments.contains("rev")) {
+            System.err.println("error: cannot combine --base and --rev options");
+            System.exit(1);
+        }
+        if (arguments.contains("head") && arguments.contains("rev")) {
+            System.err.println("error: cannot combine --head and --rev options");
+            System.exit(1);
+        }
+        if (arguments.contains("head") && !arguments.contains("base")) {
+            System.err.println("error: cannot use --head without using --base");
+            System.exit(1);
+        }
+
         var rev = arguments.contains("rev") ? resolve(repo, arguments.get("rev").asString()) : null;
-        if (rev == null) {
+        if (rev == null && !(arguments.contains("base") && arguments.contains("head"))) {
             if (isMercurial) {
                 resolve(repo, noOutgoing ? "tip" : "min(outgoing())^");
             } else {
@@ -278,6 +301,9 @@ public class GitWebrev {
                 }
             }
         }
+
+        var base = arguments.contains("base") ? resolve(repo, arguments.get("base").asString()) : rev;
+        var head = arguments.contains("head") ? resolve(repo, arguments.get("head").asString()) : null;
 
         var issue = arguments.contains("cr") ? arguments.get("cr").asString() : null;
         if (issue != null) {
@@ -366,7 +392,7 @@ public class GitWebrev {
               .issue(issue)
               .version(version)
               .files(files)
-              .generate(rev);
+              .generate(base, head);
     }
 
     private static void apply(String[] args) throws Exception {
