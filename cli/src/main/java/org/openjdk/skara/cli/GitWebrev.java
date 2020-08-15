@@ -127,6 +127,11 @@ public class GitWebrev {
                   .describe("NAME")
                   .helptext("Use remote to calculate outgoing changes")
                   .optional(),
+            Option.shortcut("s")
+                  .fullname("similarity")
+                  .describe("SIMILARITY")
+                  .helptext("Guess renamed files by similarity (0 - 100)")
+                  .optional(),
             Switch.shortcut("b")
                   .fullname("")
                   .helptext("Do not ignore changes in whitespace (always true)")
@@ -352,6 +357,22 @@ public class GitWebrev {
             }
         }
 
+        var similarity = 90;
+        try {
+            var similarityArg = arg("similarity", arguments, repo);
+            if (similarityArg != null) {
+                var value = Integer.parseInt(similarityArg);
+                if (value < 0 || value > 100) {
+                    System.err.println("error: --similarity must be a number between 0 and 100");
+                    System.exit(1);
+                }
+                similarity = value;
+            }
+        } catch (NumberFormatException e) {
+                System.err.println("error: --similarity must be a number between 0 and 100");
+                System.exit(1);
+        }
+
         var jbs = "https://bugs.openjdk.java.net/browse/";
         var issueParts = issue != null ? issue.split("-") : new String[0];
         var jbsProject = issueParts.length == 2 && KNOWN_JBS_PROJECTS.contains(issueParts[0])?
@@ -366,6 +387,7 @@ public class GitWebrev {
               .issue(issue)
               .version(version)
               .files(files)
+              .similarity(similarity)
               .generate(rev);
     }
 

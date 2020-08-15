@@ -74,6 +74,7 @@ public class Webrev {
         private Function<String, String> commitLinker;
         private String version;
         private List<Path> files = List.of();
+        private int similarity = 90;
 
         Builder(ReadOnlyRepository repository, Path output) {
             this.repository = repository;
@@ -130,14 +131,19 @@ public class Webrev {
             return this;
         }
 
+        public Builder similarity(int similarity) {
+            this.similarity = similarity;
+            return this;
+        }
+
         public void generate(Hash tailEnd) throws IOException {
             generate(tailEnd, null);
         }
 
         public void generate(Hash tailEnd, Hash head) throws IOException {
             var diff = head == null ?
-                    repository.diff(tailEnd, files) :
-                    repository.diff(tailEnd, head, files);
+                    repository.diff(tailEnd, files, similarity) :
+                    repository.diff(tailEnd, head, files, similarity);
             generate(diff, tailEnd, head);
         }
 
