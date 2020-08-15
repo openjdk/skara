@@ -846,22 +846,22 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public Diff diff(Hash from) throws IOException {
+    public Diff diff(Hash from, int similarity) throws IOException {
         return diff(from, List.of());
     }
 
     @Override
-    public Diff diff(Hash from, List<Path> files) throws IOException {
+    public Diff diff(Hash from, List<Path> files, int similarity) throws IOException {
         return diff(from, null, files);
     }
 
     @Override
-    public Diff diff(Hash from, Hash to) throws IOException {
+    public Diff diff(Hash from, Hash to, int similarity) throws IOException {
         return diff(from, to, List.of());
     }
 
     @Override
-    public Diff diff(Hash from, Hash to, List<Path> files) throws IOException {
+    public Diff diff(Hash from, Hash to, List<Path> files, int similarity) throws IOException {
         var ext = Files.createTempFile("ext", ".py");
         copyResource(EXT_PY, ext);
 

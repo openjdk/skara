@@ -998,25 +998,28 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public Diff diff(Hash from) throws IOException {
-        return diff(from, List.of());
+    public Diff diff(Hash from, int similarity) throws IOException {
+        return diff(from, List.of(), similarity);
     }
 
     @Override
-    public Diff diff(Hash from, List<Path> files) throws IOException {
-        return diff(from, null, files);
+    public Diff diff(Hash from, List<Path> files, int similarity) throws IOException {
+        return diff(from, null, files, similarity);
     }
 
     @Override
-    public Diff diff(Hash from, Hash to) throws IOException {
-        return diff(from, to, List.of());
+    public Diff diff(Hash from, Hash to, int similarity) throws IOException {
+        return diff(from, to, List.of(), similarity);
     }
 
     @Override
-    public Diff diff(Hash from, Hash to, List<Path> files) throws IOException {
+    public Diff diff(Hash from, Hash to, List<Path> files, int similarity) throws IOException {
+        if (similarity < 0 || similarity > 100) {
+            throw new IllegalArgumentException("similarity must be between 0 and 100, is: "  + similarity);
+        }
         var cmd = new ArrayList<>(List.of("git", "diff", "--patch",
-                                                         "--find-renames=90%",
-                                                         "--find-copies=90%",
+                                                         "--find-renames=" + similarity + "%",
+                                                         "--find-copies=" + similarity + "%",
                                                          "--find-copies-harder",
                                                          "--binary",
                                                          "--raw",
