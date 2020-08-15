@@ -63,4 +63,17 @@ public class TextualPatch extends Patch {
 
         return new WebrevStats(added, removed, modified);
     }
+
+    public int additions() {
+        return hunks.stream().mapToInt(Hunk::additions).sum();
+    }
+
+    public int deletions() {
+        return hunks.stream().mapToInt(Hunk::deletions).sum();
+    }
+
+    public int changes() {
+        return additions() + deletions();
+    }
+
 }

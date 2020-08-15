@@ -150,6 +150,10 @@ public class GitWebrev {
                   .fullname("mercurial")
                   .helptext("Deprecated: force use of mercurial")
                   .optional(),
+            Switch.shortcut("")
+                  .fullname("json")
+                  .helptext("Generate a JSON description instead of HTML")
+                  .optional(),
             Switch.shortcut("C")
                   .fullname("no-comments")
                   .helptext("Don't show comments")
@@ -200,30 +204,44 @@ public class GitWebrev {
         var repo = repository.get();
         var isMercurial = arguments.contains("mercurial");
 
+
+        URI upstreamPullPath = null;
+        URI originPullPath = null;
+        var remotes = repo.remotes();
+        if (remotes.contains("upstream")) {
+            upstreamPullPath = Remote.toWebURI(repo.pullPath("upstream"));
+        }
+        if (remotes.contains("origin") || remotes.contains("default")) {
+            var remote = isMercurial ? "default" : "origin";
+            originPullPath = Remote.toWebURI(repo.pullPath(remote));
+        }
+
+        if (arguments.contains("json") &&
+            (upstreamPullPath == null || originPullPath == null)) {
+            System.err.println("error: --json requires remotes 'upstream' and 'origin' to be present");
+            System.exit(1);
+        }
+
         var upstream = arg("upstream", arguments, repo);
         if (upstream == null) {
-            var remotes = repo.remotes();
-            if (remotes.contains("upstream")) {
-                var pullPath = Remote.toWebURI(repo.pullPath("upstream"));
-                var host = pullPath.getHost();
+            if (upstreamPullPath != null) {
+                var host = upstreamPullPath.getHost();
                 if (host != null && host.endsWith("openjdk.java.net")) {
-                    upstream = pullPath.toString();
+                    upstream = upstreamPullPath.toString();
                 } else if (host != null && host.equals("github.com")) {
-                    var path = pullPath.getPath();
+                    var path = upstreamPullPath.getPath();
                     if (path != null && path.startsWith("/openjdk/")) {
-                        upstream = pullPath.toString();
+                        upstream = upstreamPullPath.toString();
                     }
                 }
-            } else if (remotes.contains("origin") || remotes.contains("default")) {
-                var remote = isMercurial ? "default" : "origin";
-                var pullPath = Remote.toWebURI(repo.pullPath(remote));
-                var host = pullPath.getHost();
+            } else if (originPullPath != null) {
+                var host = originPullPath.getHost();
                 if (host != null && host.endsWith("openjdk.java.net")) {
-                    upstream = pullPath.toString();
+                    upstream = originPullPath.toString();
                 } else if (host != null && host.equals("github.com")) {
-                    var path = pullPath.getPath();
+                    var path = originPullPath.getPath();
                     if (path != null && path.startsWith("/openjdk/")) {
-                        upstream = pullPath.toString();
+                        upstream = originPullPath.toString();
                     }
                 }
             }
@@ -272,7 +290,6 @@ public class GitWebrev {
                     } else {
                         String remote = arg("remote", arguments, repo);
                         if (remote == null) {
-                            var remotes = repo.remotes();
                             if (remotes.size() == 0) {
                                 System.err.println("error: no remotes present, cannot figure out outgoing changes");
                                 System.err.println("       Use --rev to specify revision to compare against");
@@ -403,18 +420,32 @@ public class GitWebrev {
         var issueParts = issue != null ? issue.split("-") : new String[0];
         var jbsProject = issueParts.length == 2 && KNOWN_JBS_PROJECTS.contains(issueParts[0])?
             issueParts[0] : "JDK";
-        Webrev.repository(repo)
-              .output(output)
-              .title(title)
-              .upstream(upstream)
-              .username(author.name())
-              .commitLinker(hash -> upstreamURL == null ? null : upstreamURL + "/commit/" + hash)
-              .issueLinker(id -> jbs + (isDigit(id.charAt(0)) ? jbsProject + "-" : "") + id)
-              .issue(issue)
-              .version(version)
-              .files(files)
-              .similarity(similarity)
-              .generate(base, head);
+        if (arguments.contains("json")) {
+            if (head == null) {
+                head = repo.head();
+            }
+            var upstreamName = upstreamPullPath.getPath().substring(1);
+            var originName = originPullPath.getPath().substring(1);
+            Webrev.repository(repo)
+                  .output(output)
+                  .upstream(upstreamPullPath, upstreamName)
+                  .fork(originPullPath, originName)
+                  .similarity(similarity)
+                  .generateJSON(base, head);
+        } else {
+            Webrev.repository(repo)
+                  .output(output)
+                  .title(title)
+                  .upstream(upstream)
+                  .username(author.name())
+                  .commitLinker(hash -> upstreamURL == null ? null : upstreamURL + "/commit/" + hash)
+                  .issueLinker(id -> jbs + (isDigit(id.charAt(0)) ? jbsProject + "-" : "") + id)
+                  .issue(issue)
+                  .version(version)
+                  .files(files)
+                  .similarity(similarity)
+                  .generate(base, head);
+        }
     }
 
     private static void apply(String[] args) throws Exception {
