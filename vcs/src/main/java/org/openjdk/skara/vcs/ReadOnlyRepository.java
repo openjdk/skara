@@ -102,10 +102,25 @@ public interface ReadOnlyRepository {
     void dump(FileEntry entry, Path to) throws IOException;
     List<StatusEntry> status(Hash from, Hash to) throws IOException;
     List<StatusEntry> status() throws IOException;
-    Diff diff(Hash base, Hash head) throws IOException;
-    Diff diff(Hash base, Hash head, List<Path> files) throws IOException;
-    Diff diff(Hash head) throws IOException;
-    Diff diff(Hash head, List<Path> files) throws IOException;
+
+    static final int DEFAULT_SIMILARITY = 90;
+    default Diff diff(Hash base, Hash head) throws IOException {
+        return diff(base, head, DEFAULT_SIMILARITY);
+    }
+    Diff diff(Hash base, Hash head, int similarity) throws IOException;
+    default Diff diff(Hash base, Hash head, List<Path> files) throws IOException {
+        return diff(base, head, files, DEFAULT_SIMILARITY);
+    }
+    Diff diff(Hash base, Hash head, List<Path> files, int similarity) throws IOException;
+    default Diff diff(Hash head) throws IOException {
+        return diff(head, DEFAULT_SIMILARITY);
+    }
+    Diff diff(Hash head, int similarity) throws IOException;
+    default Diff diff(Hash head, List<Path> files) throws IOException {
+        return diff(head, files, DEFAULT_SIMILARITY);
+    }
+
+    Diff diff(Hash head, List<Path> files, int similarity) throws IOException;
     List<String> config(String key) throws IOException;
     Repository copyTo(Path destination) throws IOException;
     String pullPath(String remote) throws IOException;
