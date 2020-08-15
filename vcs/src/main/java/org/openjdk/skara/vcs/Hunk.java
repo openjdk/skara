@@ -73,17 +73,14 @@ public class Hunk {
         return target;
     }
 
-    public int modified() {
-        return Math.min(source.lines().size(), target.lines().size());
+    public WebrevStats stats() {
+        var modified = Math.min(source.lines().size(), target.lines().size());
+        var added = target.lines().size() - modified;
+        var removed = source.lines().size() - modified;
+        return new WebrevStats(added, removed, modified);
     }
 
-    public int added() {
-        return target.lines().size() - modified();
-    }
 
-    public int removed() {
-        return source.lines().size() - modified();
-    }
 
     public void write(BufferedWriter w) throws IOException {
         w.append("@@ -");

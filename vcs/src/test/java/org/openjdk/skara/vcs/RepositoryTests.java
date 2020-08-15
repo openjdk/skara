@@ -290,9 +290,10 @@ public class RepositoryTests {
             assertEquals(Hash.zero(), diff.from());
             assertEquals(hash, diff.to());
 
-            assertEquals(0, diff.removed());
-            assertEquals(0, diff.modified());
-            assertEquals(1, diff.added());
+            var stats = diff.totalStats();
+            assertEquals(0, stats.removed());
+            assertEquals(0, stats.modified());
+            assertEquals(1, stats.added());
 
             var patches = diff.patches();
             assertEquals(1, patches.size());
@@ -368,9 +369,10 @@ public class RepositoryTests {
             assertEquals(hash1, diff.from());
             assertEquals(hash2, diff.to());
 
-            assertEquals(0, diff.removed());
-            assertEquals(0, diff.modified());
-            assertEquals(1, diff.added());
+            var stats = diff.totalStats();
+            assertEquals(0, stats.removed());
+            assertEquals(0, stats.modified());
+            assertEquals(1, stats.added());
 
             var patches = diff.patches();
             assertEquals(1, patches.size());
@@ -446,9 +448,10 @@ public class RepositoryTests {
             assertEquals(hash1, diff.from());
             assertEquals(head.hash(), diff.to());
 
-            assertEquals(2, diff.removed());
-            assertEquals(0, diff.modified());
-            assertEquals(0, diff.added());
+            var stats = diff.totalStats();
+            assertEquals(2, stats.removed());
+            assertEquals(0, stats.modified());
+            assertEquals(0, stats.added());
         }
     }
 
@@ -500,9 +503,10 @@ public class RepositoryTests {
             assertEquals(hash1, diff.from());
             assertEquals(head.hash(), diff.to());
 
-            assertEquals(0, diff.removed());
-            assertEquals(0, diff.modified());
-            assertEquals(2, diff.added());
+            var stats = diff.totalStats();
+            assertEquals(0, stats.removed());
+            assertEquals(0, stats.modified());
+            assertEquals(2, stats.added());
 
             var patches = diff.patches();
             assertEquals(1, patches.size());
@@ -607,9 +611,10 @@ public class RepositoryTests {
             assertEquals(1, diffs.size());
             var diff = diffs.get(0);
 
-            assertEquals(0, diff.removed());
-            assertEquals(0, diff.modified());
-            assertEquals(1, diff.added());
+            var stats = diff.totalStats();
+            assertEquals(0, stats.removed());
+            assertEquals(0, stats.modified());
+            assertEquals(1, stats.added());
 
             var patches = diff.patches();
             assertEquals(1, patches.size());
@@ -899,9 +904,10 @@ public class RepositoryTests {
             assertEquals(1, hunk.target().range().count());
             assertLinesEquals(List.of("One more line"), hunk.target().lines());
 
-            assertEquals(1, hunk.added());
-            assertEquals(0, hunk.removed());
-            assertEquals(0, hunk.modified());
+            var stats = hunk.stats();
+            assertEquals(1, stats.added());
+            assertEquals(0, stats.removed());
+            assertEquals(0, stats.modified());
         }
     }
 
@@ -1016,9 +1022,10 @@ public class RepositoryTests {
             assertEquals(2, hunk1.target().range().count());
             assertLinesEquals(List.of("1", "2"), hunk1.target().lines());
 
-            assertEquals(1, hunk1.added());
-            assertEquals(0, hunk1.removed());
-            assertEquals(1, hunk1.modified());
+            var stats1 = hunk1.stats();
+            assertEquals(1, stats1.added());
+            assertEquals(0, stats1.removed());
+            assertEquals(1, stats1.modified());
 
             var hunk2 = hunks.get(1);
             assertEquals(3, hunk2.source().range().start());
@@ -1029,9 +1036,10 @@ public class RepositoryTests {
             assertEquals(1, hunk2.target().range().count());
             assertLinesEquals(List.of("3"), hunk2.target().lines());
 
-            assertEquals(0, hunk2.added());
-            assertEquals(0, hunk2.removed());
-            assertEquals(1, hunk2.modified());
+            var stats2 = hunk2.stats();
+            assertEquals(0, stats2.added());
+            assertEquals(0, stats2.removed());
+            assertEquals(1, stats2.modified());
         }
     }
 
@@ -1077,9 +1085,10 @@ public class RepositoryTests {
             assertEquals(0, hunk.target().range().count());
             assertLinesEquals(List.of(), hunk.target().lines());
 
-            assertEquals(0, hunk.added());
-            assertEquals(1, hunk.removed());
-            assertEquals(0, hunk.modified());
+            var stats = hunk.stats();
+            assertEquals(0, stats.added());
+            assertEquals(1, stats.removed());
+            assertEquals(0, stats.modified());
         }
     }
 
@@ -1126,9 +1135,10 @@ public class RepositoryTests {
             assertEquals(1, hunk.target().range().count());
             assertLinesEquals(List.of("make"), hunk.target().lines());
 
-            assertEquals(1, hunk.added());
-            assertEquals(0, hunk.removed());
-            assertEquals(0, hunk.modified());
+            var stats = hunk.stats();
+            assertEquals(1, stats.added());
+            assertEquals(0, stats.removed());
+            assertEquals(0, stats.modified());
         }
     }
 
@@ -1172,9 +1182,10 @@ public class RepositoryTests {
             assertEquals(1, hunk.target().range().count());
             assertLinesEquals(List.of("One more line"), hunk.target().lines());
 
-            assertEquals(1, hunk.added());
-            assertEquals(0, hunk.removed());
-            assertEquals(0, hunk.modified());
+            var stats = hunk.stats();
+            assertEquals(1, stats.added());
+            assertEquals(0, stats.removed());
+            assertEquals(0, stats.modified());
         }
     }
 
@@ -1785,7 +1796,7 @@ public class RepositoryTests {
             var commit = commits.get(0);
             var diffs = commit.parentDiffs();
             var diff = diffs.get(0);
-            assertEquals(2, diff.added());
+            assertEquals(2, diff.totalStats().added());
 
             var patches = diff.patches();
             assertEquals(1, patches.size());
@@ -2026,9 +2037,10 @@ public class RepositoryTests {
             Files.writeString(contribute, "2. Run git commit", WRITE, APPEND);
 
             var diff = repo.diff(first, List.of(Path.of("README")));
-            assertEquals(1, diff.added());
-            assertEquals(0, diff.modified());
-            assertEquals(0, diff.removed());
+            var diffStats = diff.totalStats();
+            assertEquals(1, diffStats.added());
+            assertEquals(0, diffStats.modified());
+            assertEquals(0, diffStats.removed());
             var patches = diff.patches();
             assertEquals(1, patches.size());
             var patch = patches.get(0);
@@ -2042,9 +2054,10 @@ public class RepositoryTests {
             var second = repo.commit("Updates to both README and CONTRIBUTE", "duke", "duke@openjdk.org");
 
             diff = repo.diff(first, second, List.of(Path.of("CONTRIBUTE")));
-            assertEquals(1, diff.added());
-            assertEquals(0, diff.modified());
-            assertEquals(0, diff.removed());
+            diffStats = diff.totalStats();
+            assertEquals(1, diffStats.added());
+            assertEquals(0, diffStats.modified());
+            assertEquals(0, diffStats.removed());
             patches = diff.patches();
             assertEquals(1, patches.size());
             patch = patches.get(0);

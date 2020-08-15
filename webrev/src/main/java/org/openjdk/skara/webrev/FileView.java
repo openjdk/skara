@@ -23,7 +23,7 @@
 package org.openjdk.skara.webrev;
 
 interface FileView extends View {
-    WebrevStats stats();
+    Stats stats();
 }
 
 

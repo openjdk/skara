@@ -49,18 +49,18 @@ public class TextualPatch extends Patch {
         return hunks.isEmpty();
     }
 
-    public PatchStats stats() {
+    public WebrevStats stats() {
         int added = 0;
         int removed = 0;
         int modified = 0;
 
         for (var hunk : hunks()) {
-            added += hunk.added();
-            removed += hunk.removed();
-            modified += hunk.modified();
+            var stats = hunk.stats();
+            added += stats.added();
+            removed += stats.removed();
+            modified += stats.modified();
         }
 
-        var path = target().path().isPresent() ? target().path().get() : source().path().get();
-        return new PatchStats(path, added, removed, modified);
+        return new WebrevStats(added, removed, modified);
     }
 }
