@@ -29,6 +29,7 @@ import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Repository;
+import org.openjdk.skara.json.JSON;
 
 import org.junit.jupiter.api.*;
 
@@ -127,7 +128,7 @@ class MailingListBridgeBotTests {
                                             .ignoredComments(Set.of())
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -294,7 +295,7 @@ class MailingListBridgeBotTests {
                                             .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -368,7 +369,7 @@ class MailingListBridgeBotTests {
                                             .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -442,7 +443,7 @@ class MailingListBridgeBotTests {
                                             .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -521,7 +522,7 @@ class MailingListBridgeBotTests {
                                             .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -598,7 +599,7 @@ class MailingListBridgeBotTests {
                                             .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -681,7 +682,7 @@ class MailingListBridgeBotTests {
                                             .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -735,7 +736,7 @@ class MailingListBridgeBotTests {
                                             .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -829,7 +830,7 @@ class MailingListBridgeBotTests {
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -924,7 +925,7 @@ class MailingListBridgeBotTests {
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -1053,7 +1054,7 @@ class MailingListBridgeBotTests {
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -1116,7 +1117,7 @@ class MailingListBridgeBotTests {
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -1180,7 +1181,7 @@ class MailingListBridgeBotTests {
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -1245,7 +1246,7 @@ class MailingListBridgeBotTests {
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -1308,7 +1309,7 @@ class MailingListBridgeBotTests {
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -1365,7 +1366,7 @@ class MailingListBridgeBotTests {
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -1441,7 +1442,7 @@ class MailingListBridgeBotTests {
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -1507,7 +1508,7 @@ class MailingListBridgeBotTests {
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -1637,7 +1638,7 @@ class MailingListBridgeBotTests {
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -1734,7 +1735,7 @@ class MailingListBridgeBotTests {
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -1824,7 +1825,7 @@ class MailingListBridgeBotTests {
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -1910,7 +1911,7 @@ class MailingListBridgeBotTests {
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -1982,7 +1983,7 @@ class MailingListBridgeBotTests {
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -2053,7 +2054,7 @@ class MailingListBridgeBotTests {
                                             .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -2133,7 +2134,7 @@ class MailingListBridgeBotTests {
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -2224,7 +2225,7 @@ class MailingListBridgeBotTests {
                                             .ignoredComments(Set.of(Pattern.compile("ignore this comment", Pattern.MULTILINE | Pattern.DOTALL)))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -2289,7 +2290,7 @@ class MailingListBridgeBotTests {
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -2350,7 +2351,7 @@ class MailingListBridgeBotTests {
                                                    .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                                    .listArchive(listServer.getArchive())
                                                    .smtpServer(listServer.getSMTP())
-                                                   .webrevStorageRepository(archive)
+                                                   .webrevStorageHTMLRepository(archive)
                                                    .webrevStorageRef("webrev")
                                                    .webrevStorageBase(Path.of("test"))
                                                    .webrevStorageBaseUri(webrevServer.uri())
@@ -2415,7 +2416,7 @@ class MailingListBridgeBotTests {
                                                    .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                                    .listArchive(listServer.getArchive())
                                                    .smtpServer(listServer.getSMTP())
-                                                   .webrevStorageRepository(archive)
+                                                   .webrevStorageHTMLRepository(archive)
                                                    .webrevStorageRef("webrev")
                                                    .webrevStorageBase(Path.of("test"))
                                                    .webrevStorageBaseUri(webrevServer.uri())
@@ -2482,7 +2483,7 @@ class MailingListBridgeBotTests {
                                                    .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                                    .listArchive(listServer.getArchive())
                                                    .smtpServer(listServer.getSMTP())
-                                                   .webrevStorageRepository(archive)
+                                                   .webrevStorageHTMLRepository(archive)
                                                    .webrevStorageRef("webrev")
                                                    .webrevStorageBase(Path.of("test"))
                                                    .webrevStorageBaseUri(webrevServer.uri())
@@ -2571,7 +2572,7 @@ class MailingListBridgeBotTests {
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -2628,7 +2629,7 @@ class MailingListBridgeBotTests {
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -2685,7 +2686,7 @@ class MailingListBridgeBotTests {
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -2746,7 +2747,7 @@ class MailingListBridgeBotTests {
                                                    .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
                                                    .listArchive(listServer.getArchive())
                                                    .smtpServer(listServer.getSMTP())
-                                                   .webrevStorageRepository(archive)
+                                                   .webrevStorageHTMLRepository(archive)
                                                    .webrevStorageRef("webrev")
                                                    .webrevStorageBase(Path.of("test"))
                                                    .webrevStorageBaseUri(webrevServer.uri())
@@ -2838,7 +2839,7 @@ class MailingListBridgeBotTests {
                                                            new MailingListConfiguration(listAddress2, Set.of("list2"))))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
-                                            .webrevStorageRepository(archive)
+                                            .webrevStorageHTMLRepository(archive)
                                             .webrevStorageRef("webrev")
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
@@ -2890,6 +2891,207 @@ class MailingListBridgeBotTests {
             assertEquals(noreplyAddress(archive), reply.author().address());
             assertEquals(listAddress1, reply.sender());
             assertEquals(List.of(listAddress1, listAddress2), reply.recipients());
+        }
+    }
+
+    @Test
+    void jsonArchive(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var archiveFolder = new TemporaryDirectory();
+             var webrevFolder = new TemporaryDirectory(false);
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
+            var author = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+            var ignored = credentials.getHostedRepository();
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var from = EmailAddress.from("test", "test@test.mail");
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .ignoredComments(Set.of())
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageJSONRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .webrevGenerateHTML(false)
+                                            .webrevGenerateJSON(true)
+                                            .readyLabels(Set.of("rfr"))
+                                            .readyComments(Map.of(ignored.forge().currentUser().userName(), Pattern.compile("ready")))
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .headers(Map.of("Extra1", "val1", "Extra2", "val2"))
+                                            .sendInterval(Duration.ZERO)
+                                            .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
+                                                               "Change msg\n\nWith several lines");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "master", "edit", "1234: This is a pull request");
+            pr.setBody("This should not be ready");
+
+            // Run an archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // A PR that isn't ready for review should not be archived
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertFalse(archiveContains(archiveFolder.path(), "This is a pull request"));
+
+            // Flag it as ready for review
+            pr.setBody("This should now be ready");
+            pr.addLabel("rfr");
+
+            // Run another archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // But it should still not be archived
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertFalse(archiveContains(archiveFolder.path(), "This is a pull request"));
+
+            // Now post a general comment - not a ready marker
+            var ignoredPr = ignored.pullRequest(pr.id());
+            ignoredPr.addComment("hello there");
+
+            // Run another archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // It should still not be archived
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertFalse(archiveContains(archiveFolder.path(), "This is a pull request"));
+
+            // Now post a ready comment
+            ignoredPr.addComment("ready");
+
+            // Run another archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // The archive should now contain an entry
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertTrue(archiveContains(archiveFolder.path(), "This is a pull request"));
+            assertTrue(archiveContains(archiveFolder.path(), "This should now be ready"));
+            assertTrue(archiveContains(archiveFolder.path(), "Patch:"));
+            assertTrue(archiveContains(archiveFolder.path(), "Changes:"));
+            assertTrue(archiveContains(archiveFolder.path(), "Webrev:"));
+            assertTrue(archiveContains(archiveFolder.path(), webrevServer.uri().toString()));
+            assertTrue(archiveContains(archiveFolder.path(), "&pr=" + pr.id() + "&range=00"));
+            assertTrue(archiveContains(archiveFolder.path(), "Issue:"));
+            assertTrue(archiveContains(archiveFolder.path(), "http://issues.test/browse/TSTPRJ-1234"));
+            assertTrue(archiveContains(archiveFolder.path(), "Fetch:"));
+            assertTrue(archiveContains(archiveFolder.path(), "^ - Change msg"));
+            assertFalse(archiveContains(archiveFolder.path(), "With several lines"));
+
+            // The mailing list as well
+            listServer.processIncoming();
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanList = mailmanServer.getList(listAddress.address());
+            var conversations = mailmanList.conversations(Duration.ofDays(1));
+            assertEquals(1, conversations.size());
+            var mail = conversations.get(0).first();
+            assertEquals("RFR: 1234: This is a pull request", mail.subject());
+            assertEquals(pr.author().fullName(), mail.author().fullName().orElseThrow());
+            assertEquals(noreplyAddress(archive), mail.author().address());
+            assertEquals(listAddress, mail.sender());
+            assertEquals("val1", mail.headerValue("Extra1"));
+            assertEquals("val2", mail.headerValue("Extra2"));
+
+            // And there should be a JSON version of a webrev
+            Repository.materialize(webrevFolder.path(), archive.url(), "webrev");
+            var jsonDir = webrevFolder.path()
+                                      .resolve(author.name())
+                                      .resolve(pr.id())
+                                      .resolve("00");
+            assertTrue(Files.exists(jsonDir));
+            assertTrue(Files.isDirectory(jsonDir));
+
+            var commitsFile = jsonDir.resolve("commits.json");
+            assertTrue(Files.exists(commitsFile));
+            var commits = JSON.parse(Files.readString(commitsFile));
+            assertEquals(1, commits.asArray().size());
+            var commit = commits.get(0);
+            assertEquals(editHash.hex(), commit.get("sha").asString());
+            assertEquals("Change msg\n\nWith several lines", commit.get("commit").get("message").asString());
+            assertEquals(1, commit.get("files").asArray().size());
+
+            var metadataFile = jsonDir.resolve("metadata.json");
+            assertTrue(Files.exists(metadataFile));
+            var metadata = JSON.parse(Files.readString(metadataFile));
+            assertEquals(masterHash.hex(), metadata.get("base").get("sha").asString());
+            assertEquals(editHash.hex(), metadata.get("head").get("sha").asString());
+
+            var comparisonFile = jsonDir.resolve("comparison.json");
+            assertTrue(Files.exists(comparisonFile));
+            var comparsion = JSON.parse(Files.readString(comparisonFile));
+            assertEquals(1, comparsion.get("files").asArray().size());
+            assertEquals("modified", comparsion.get("files").get(0).get("status").asString());
+            assertTrue(comparsion.get("files").get(0).get("patch").asString().contains("A simple change"));
+
+            var comments = pr.comments();
+            var webrevComments = comments.stream()
+                                         .filter(comment -> comment.author().equals(author.forge().currentUser()))
+                                         .filter(comment -> comment.body().contains("webrev"))
+                                         .filter(comment -> comment.body().contains(editHash.hex()))
+                                         .collect(Collectors.toList());
+            assertEquals(1, webrevComments.size());
+            var comment = webrevComments.get(0);
+            assertTrue(comment.body().contains("&pr=" + pr.id()));
+            assertTrue(comment.body().contains("&range=00"));
+
+            // Add a comment
+            pr.addComment("This is a comment :smile:");
+
+            // Add a comment from an ignored user as well
+            ignoredPr.addComment("Don't mind me");
+
+            // Run another archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // The archive should now contain the comment, but not the ignored one
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertTrue(archiveContains(archiveFolder.path(), "This is a comment"));
+            assertTrue(archiveContains(archiveFolder.path(), "> This should now be ready"));
+            assertFalse(archiveContains(archiveFolder.path(), "Don't mind me"));
+
+            listServer.processIncoming();
+            conversations = mailmanList.conversations(Duration.ofDays(1));
+            assertEquals(1, conversations.size());
+            assertEquals(2, conversations.get(0).allMessages().size());
+
+            // Remove the rfr flag and post another comment
+            pr.addLabel("rfr");
+            pr.addComment("This is another comment");
+
+            // Run another archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // The archive should contain the additional comment
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertTrue(archiveContains(archiveFolder.path(), "This is another comment"));
+            assertTrue(archiveContains(archiveFolder.path(), ">> This should now be ready"));
+
+            listServer.processIncoming();
+            conversations = mailmanList.conversations(Duration.ofDays(1));
+            assertEquals(1, conversations.size());
+            assertEquals(3, conversations.get(0).allMessages().size());
+            for (var newMail : conversations.get(0).allMessages()) {
+                assertEquals(noreplyAddress(archive), newMail.author().address());
+                assertEquals(listAddress, newMail.sender());
+            }
+            assertTrue(conversations.get(0).allMessages().get(2).body().contains("This is a comment 😄"));
         }
     }
 }

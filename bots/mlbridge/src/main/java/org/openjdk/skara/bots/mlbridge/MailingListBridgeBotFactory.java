@@ -79,7 +79,8 @@ public class MailingListBridgeBotFactory implements BotFactory {
         var listSmtp = specific.get("server").get("smtp").asString();
         var interval = specific.get("server").contains("interval") ? Duration.parse(specific.get("server").get("interval").asString()) : Duration.ofSeconds(1);
 
-        var webrevRepo = configuration.repository(specific.get("webrevs").get("repository").asString());
+        var webrevHTMLRepo = configuration.repository(specific.get("webrevs").get("repository").get("html").asString());
+        var webrevJSONRepo = configuration.repository(specific.get("webrevs").get("repository").get("json").asString());
         var webrevRef = configuration.repositoryRef(specific.get("webrevs").get("repository").asString());
         var webrevWeb = specific.get("webrevs").get("web").asString();
 
@@ -110,6 +111,17 @@ public class MailingListBridgeBotFactory implements BotFactory {
                     Map.of();
             var lists = parseLists(repoConfig.get("lists"));
             var folder = repoConfig.contains("folder") ? repoConfig.get("folder").asString() : configuration.repositoryName(repo);
+
+            var webrevGenerateHTML = true;
+            if (repoConfig.contains("webrev") &&
+                repoConfig.get("webrev").contains("html") &&
+                repoConfig.get("webrev").get("html").asBoolean() == false) {
+                webrevGenerateHTML = false;
+            }
+            var webrevGenerateJSON = repoConfig.contains("webrev") &&
+                                     repoConfig.get("webrev").contains("json") &&
+                                     repoConfig.get("webrev").get("json").asBoolean();
+
             var botBuilder = MailingListBridgeBot.newBuilder().from(from)
                                                  .repo(configuration.repository(repo))
                                                  .archive(archiveRepo)
@@ -121,10 +133,13 @@ public class MailingListBridgeBotFactory implements BotFactory {
                                                  .ignoredComments(ignoredComments)
                                                  .listArchive(listArchive)
                                                  .smtpServer(listSmtp)
-                                                 .webrevStorageRepository(webrevRepo)
+                                                 .webrevStorageHTMLRepository(webrevHTMLRepo)
+                                                 .webrevStorageJSONRepository(webrevJSONRepo)
                                                  .webrevStorageRef(webrevRef)
                                                  .webrevStorageBase(Path.of(folder))
                                                  .webrevStorageBaseUri(URIBuilder.base(webrevWeb).build())
+                                                 .webrevGenerateHTML(webrevGenerateHTML)
+                                                 .webrevGenerateJSON(webrevGenerateJSON)
                                                  .readyLabels(readyLabels)
                                                  .readyComments(readyComments)
                                                  .issueTracker(issueTracker)
