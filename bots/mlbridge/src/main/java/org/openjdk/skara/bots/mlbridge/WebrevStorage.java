@@ -222,7 +222,7 @@ class WebrevStorage {
         try {
             var localStorage = Repository.materialize(scratchPath, storage.url(),
                                                       "+" + storageRef + ":mlbridge_webrevs");
-            var relativeFolder = baseFolder.resolve(String.format("%s/webrev.%s", pr.id(), identifier));
+            var relativeFolder = baseFolder.resolve(String.format("%s/%s", pr.id(), identifier));
             var outputFolder = scratchPath.resolve(relativeFolder);
             // If a previous operation was interrupted there may be content here already - overwrite if so
             if (Files.exists(outputFolder)) {

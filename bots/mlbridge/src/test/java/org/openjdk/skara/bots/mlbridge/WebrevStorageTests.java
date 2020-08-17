@@ -76,12 +76,12 @@ class WebrevStorageTests {
 
             // Update the local repository and check that the webrev has been generated
             Repository.materialize(repoFolder, archive.url(), "webrev");
-            assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/webrev.00/index.html")));
+            assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/00/index.html")));
 
             // Create it again - it will overwrite the previous one
             generator.generate(masterHash, editHash, "00", WebrevDescription.Type.FULL);
             Repository.materialize(repoFolder, archive.url(), "webrev");
-            assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/webrev.00/index.html")));
+            assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/00/index.html")));
         }
     }
 
@@ -125,9 +125,9 @@ class WebrevStorageTests {
 
             // Update the local repository and check that the webrev has been generated
             Repository.materialize(repoFolder, archive.url(), "webrev");
-            assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/webrev.00/index.html")));
-            assertTrue(Files.size(repoFolder.resolve("test/" + pr.id() + "/webrev.00/large.txt")) > 0);
-            assertTrue(Files.size(repoFolder.resolve("test/" + pr.id() + "/webrev.00/large.txt")) < 1000);
+            assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/00/index.html")));
+            assertTrue(Files.size(repoFolder.resolve("test/" + pr.id() + "/00/large.txt")) > 0);
+            assertTrue(Files.size(repoFolder.resolve("test/" + pr.id() + "/00/large.txt")) < 1000);
         }
     }
 }
