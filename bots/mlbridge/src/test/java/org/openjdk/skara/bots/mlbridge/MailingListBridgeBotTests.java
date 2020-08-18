@@ -194,7 +194,7 @@ class MailingListBridgeBotTests {
             assertTrue(archiveContains(archiveFolder.path(), "Changes:"));
             assertTrue(archiveContains(archiveFolder.path(), "Webrev:"));
             assertTrue(archiveContains(archiveFolder.path(), webrevServer.uri().toString()));
-            assertTrue(archiveContains(archiveFolder.path(), "webrev.00"));
+            assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/00"));
             assertTrue(archiveContains(archiveFolder.path(), "Issue:"));
             assertTrue(archiveContains(archiveFolder.path(), "http://issues.test/browse/TSTPRJ-1234"));
             assertTrue(archiveContains(archiveFolder.path(), "Fetch:"));
@@ -1553,8 +1553,8 @@ class MailingListBridgeBotTests {
             // The archive should reference the updated push
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "has updated the pull request incrementally"));
-            assertTrue(archiveContains(archiveFolder.path(), "full.*/" + pr.id() + "/webrev.01"));
-            assertTrue(archiveContains(archiveFolder.path(), "inc.*/" + pr.id() + "/webrev.00-01"));
+            assertTrue(archiveContains(archiveFolder.path(), "full.*/" + pr.id() + "/01"));
+            assertTrue(archiveContains(archiveFolder.path(), "inc.*/" + pr.id() + "/00-01"));
             assertTrue(archiveContains(archiveFolder.path(), "Patch"));
             assertTrue(archiveContains(archiveFolder.path(), "Fetch"));
             assertTrue(archiveContains(archiveFolder.path(), "Fixing"));
@@ -1682,7 +1682,7 @@ class MailingListBridgeBotTests {
             // The archive should reference the rebased push
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "has updated the pull request with a new target base"));
-            assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/webrev.01"));
+            assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/01"));
             assertFalse(archiveContains(archiveFolder.path(), "Incremental"));
             assertTrue(archiveContains(archiveFolder.path(), "Patch"));
             assertTrue(archiveContains(archiveFolder.path(), "Fetch"));
@@ -1794,8 +1794,8 @@ class MailingListBridgeBotTests {
             Repository.materialize(archiveFolder.path(), archive.url(), "archive");
             assertTrue(archiveContains(archiveFolder.path(), "has updated the pull request with a new target base"));
             assertTrue(archiveContains(archiveFolder.path(), "excludes"));
-            assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/webrev.01"));
-            assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/webrev.00-01"));
+            assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/01"));
+            assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/00-01"));
             assertTrue(archiveContains(archiveFolder.path(), "Original msg"));
             assertTrue(archiveContains(archiveFolder.path(), "More updates"));
         }
@@ -1876,7 +1876,7 @@ class MailingListBridgeBotTests {
             // The archive should contain a merge style webrev
             Repository.materialize(archiveFolder.path(), archive.url(), "archive");
             assertTrue(archiveContains(archiveFolder.path(), "The webrevs contain the adjustments done while merging with regards to each parent branch:"));
-            assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/webrev.00.0"));
+            assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/00.0"));
             assertTrue(archiveContains(archiveFolder.path(), "3 lines in 2 files changed: 1 ins; 1 del; 1 mod"));
 
             // The PR should contain a webrev comment
@@ -1949,7 +1949,7 @@ class MailingListBridgeBotTests {
             // The archive should contain a merge style webrev
             Repository.materialize(archiveFolder.path(), archive.url(), "archive");
             assertTrue(archiveContains(archiveFolder.path(), "The webrev contains the conflicts with master:"));
-            assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/webrev.00.conflicts"));
+            assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/00.conflicts"));
             assertTrue(archiveContains(archiveFolder.path(), "2 lines in 2 files changed: 2 ins; 0 del; 0 mod"));
 
             // The PR should contain a webrev comment
@@ -2090,7 +2090,7 @@ class MailingListBridgeBotTests {
                                          .filter(comment -> comment.body().contains(editHash.hex()))
                                          .collect(Collectors.toList());
             assertEquals(1, webrevComments.size());
-            assertEquals(1, countSubstrings(webrevComments.get(0).body(), "webrev.00"));
+            assertEquals(1, countSubstrings(webrevComments.get(0).body(), pr.id() + "/00"));
 
             // Pretend the archive didn't work out
             archiveRepo.push(masterHash, archive.url(), "master", true);
@@ -2106,7 +2106,7 @@ class MailingListBridgeBotTests {
                                      .filter(comment -> comment.body().contains(editHash.hex()))
                                      .collect(Collectors.toList());
             assertEquals(1, webrevComments.size());
-            assertEquals(1, countSubstrings(webrevComments.get(0).body(), "webrev.00"));
+            assertEquals(1, countSubstrings(webrevComments.get(0).body(), pr.id() + "/00"));
         }
     }
 
@@ -2454,7 +2454,7 @@ class MailingListBridgeBotTests {
 
             // Check the archive
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertTrue(archiveContains(archiveFolder.path(), "webrev.01"));
+            assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/01"));
         }
     }
 
