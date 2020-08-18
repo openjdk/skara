@@ -81,7 +81,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
 
         var webrevHTMLRepo = configuration.repository(specific.get("webrevs").get("repository").get("html").asString());
         var webrevJSONRepo = configuration.repository(specific.get("webrevs").get("repository").get("json").asString());
-        var webrevRef = configuration.repositoryRef(specific.get("webrevs").get("repository").asString());
+        var webrevRef = specific.get("webrevs").get("ref").asString();
         var webrevWeb = specific.get("webrevs").get("web").asString();
 
         var archiveRepo = configuration.repository(specific.get("archive").asString());
