@@ -43,25 +43,53 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 class WebrevStorage {
-    private final HostedRepository storage;
+    private final HostedRepository htmlStorage;
+    private final HostedRepository jsonStorage;
     private final String storageRef;
     private final Path baseFolder;
     private final URI baseUri;
     private final EmailAddress author;
+    private final boolean generateHTML;
+    private final boolean generateJSON;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
     private static final HttpClient client = HttpClient.newBuilder()
                                                        .connectTimeout(Duration.ofSeconds(10))
                                                        .build();
 
-    WebrevStorage(HostedRepository storage, String ref, Path baseFolder, URI baseUri, EmailAddress author) {
+    WebrevStorage(HostedRepository htmlStorage,
+                  String ref,
+                  Path baseFolder,
+                  URI baseUri,
+                  EmailAddress author) {
         this.baseFolder = baseFolder;
         this.baseUri = baseUri;
-        this.storage = storage;
+        this.htmlStorage = htmlStorage;
+        this.jsonStorage = null;
         storageRef = ref;
         this.author = author;
+        this.generateHTML = true;
+        this.generateJSON = false;
     }
 
-    private void generate(PullRequest pr, Repository localRepository, Path folder, Diff diff, Hash base, Hash head) throws IOException {
+    WebrevStorage(HostedRepository htmlStorage,
+                  HostedRepository jsonStorage,
+                  String ref,
+                  Path baseFolder,
+                  URI baseUri,
+                  EmailAddress author,
+                  boolean generateHTML,
+                  boolean generateJSON) {
+        this.baseFolder = baseFolder;
+        this.baseUri = baseUri;
+        this.htmlStorage = htmlStorage;
+        this.jsonStorage = jsonStorage;
+        storageRef = ref;
+        this.author = author;
+        this.generateHTML = generateHTML;
+        this.generateJSON = generateJSON;
+    }
+
+    private void generateHTML(PullRequest pr, ReadOnlyRepository localRepository, Path folder, Diff diff, Hash base, Hash head) throws IOException {
         Files.createDirectories(folder);
         var fullName = pr.author().fullName();
         var builder = Webrev.repository(localRepository)
@@ -96,6 +124,24 @@ class WebrevStorage {
             builder.generate(diff);
         } else {
             builder.generate(base, head);
+        }
+    }
+
+    private void generateJSON(PullRequest pr, ReadOnlyRepository localRepository, Path folder, Diff diff, Hash base, Hash head) throws IOException {
+        Files.createDirectories(folder);
+        var builder = Webrev.repository(localRepository)
+                            .output(folder)
+                            .upstream(pr.repository().webUrl(), pr.repository().name());
+        var sourceRepository = pr.sourceRepository();
+        if (sourceRepository.isEmpty()) {
+            throw new IllegalArgumentException("Cannot generate JSON for PR without source repository. PR: " + pr.id() + ", repo: " + pr.repository().webUrl());
+        }
+        builder.fork(sourceRepository.get().webUrl(), sourceRepository.get().name());
+
+        if (diff != null) {
+            builder.generateJSON(diff);
+        } else {
+            builder.generateJSON(base, head);
         }
     }
 
@@ -139,7 +185,7 @@ class WebrevStorage {
         }
     }
 
-    private void push(Repository localStorage, Path webrevFolder, String identifier, String placeholder) throws IOException {
+    private void push(Repository localStorage, URI remote, Path webrevFolder, String identifier, String placeholder) throws IOException {
         var batchIndex = new AtomicInteger();
 
         // Replace large files (except the index) with placeholders
@@ -169,7 +215,7 @@ class WebrevStorage {
                     // where some of the files have already been committed. Ignore it and continue.
                     continue;
                 }
-                localStorage.push(hash, storage.url(), storageRef);
+                localStorage.push(hash, remote, storageRef);
             }
         }
     }
@@ -220,21 +266,37 @@ class WebrevStorage {
 
     private URI createAndArchive(PullRequest pr, Repository localRepository, Path scratchPath, Diff diff, Hash base, Hash head, String identifier) {
         try {
-            var localStorage = Repository.materialize(scratchPath, storage.url(),
-                                                      "+" + storageRef + ":mlbridge_webrevs");
             var relativeFolder = baseFolder.resolve(String.format("%s/%s", pr.id(), identifier));
             var outputFolder = scratchPath.resolve(relativeFolder);
-            // If a previous operation was interrupted there may be content here already - overwrite if so
-            if (Files.exists(outputFolder)) {
-                clearDirectory(outputFolder);
-            }
-            generate(pr, localRepository, outputFolder, diff, base, head);
             var placeholder = generatePlaceholder(pr, base, head);
-            if (!localStorage.isClean()) {
-                push(localStorage, outputFolder, baseFolder.resolve(pr.id()).toString(), placeholder);
+            URI uri = null;
+
+            if (generateJSON) {
+                var jsonLocalStorage = Repository.materialize(scratchPath, jsonStorage.url(),
+                                                              "+" + storageRef + ":mlbridge_webrevs");
+                if (Files.exists(outputFolder)) {
+                    clearDirectory(outputFolder);
+                }
+                generateJSON(pr, localRepository, outputFolder, diff, base, head);
+                if (!jsonLocalStorage.isClean()) {
+                    push(jsonLocalStorage, jsonStorage.url(), outputFolder, baseFolder.resolve(pr.id()).toString(), placeholder);
+                }
+                var repoName = Path.of(pr.repository().name()).getFileName();
+                uri = URI.create(baseUri.toString() + "?repo=" + repoName + "&pr=" + pr.id() + "&range=" + identifier);
             }
-            var uri = URIBuilder.base(baseUri).appendPath(relativeFolder.toString().replace('\\', '/')).build();
-            awaitPublication(uri, Duration.ofMinutes(30));
+            if (generateHTML) {
+                var htmlLocalStorage = Repository.materialize(scratchPath, htmlStorage.url(),
+                                                              "+" + storageRef + ":mlbridge_webrevs");
+                if (Files.exists(outputFolder)) {
+                    clearDirectory(outputFolder);
+                }
+                generateHTML(pr, localRepository, outputFolder, diff, base, head);
+                if (!htmlLocalStorage.isClean()) {
+                    push(htmlLocalStorage, htmlStorage.url(), outputFolder, baseFolder.resolve(pr.id()).toString(), placeholder);
+                }
+                uri = URIBuilder.base(baseUri).appendPath(relativeFolder.toString().replace('\\', '/')).build();
+                awaitPublication(uri, Duration.ofMinutes(30));
+            }
             return uri;
         } catch (IOException e) {
             throw new UncheckedIOException(e);

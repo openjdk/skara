@@ -43,10 +43,13 @@ public class MailingListBridgeBotBuilder {
     private Set<Pattern> ignoredComments = Set.of();
     private URI listArchive;
     private String smtpServer;
-    private HostedRepository webrevStorageRepository;
+    private HostedRepository webrevStorageHTMLRepository;
+    private HostedRepository webrevStorageJSONRepository;
     private String webrevStorageRef;
     private Path webrevStorageBase;
     private URI webrevStorageBaseUri;
+    private boolean webrevGenerateHTML = true;
+    private boolean webrevGenerateJSON = false;
     private Set<String> readyLabels = Set.of();
     private Map<String, Pattern> readyComments = Map.of();
     private URI issueTracker;
@@ -115,8 +118,13 @@ public class MailingListBridgeBotBuilder {
         return this;
     }
 
-    public MailingListBridgeBotBuilder webrevStorageRepository(HostedRepository webrevStorageRepository) {
-        this.webrevStorageRepository = webrevStorageRepository;
+    public MailingListBridgeBotBuilder webrevStorageHTMLRepository(HostedRepository webrevStorageHTMLRepository) {
+        this.webrevStorageHTMLRepository = webrevStorageHTMLRepository;
+        return this;
+    }
+
+    public MailingListBridgeBotBuilder webrevStorageJSONRepository(HostedRepository webrevStorageJSONRepository) {
+        this.webrevStorageJSONRepository = webrevStorageJSONRepository;
         return this;
     }
 
@@ -132,6 +140,16 @@ public class MailingListBridgeBotBuilder {
 
     public MailingListBridgeBotBuilder webrevStorageBaseUri(URI webrevStorageBaseUri) {
         this.webrevStorageBaseUri = webrevStorageBaseUri;
+        return this;
+    }
+
+    public MailingListBridgeBotBuilder webrevGenerateHTML(boolean webrevGenerateHTML) {
+        this.webrevGenerateHTML = webrevGenerateHTML;
+        return this;
+    }
+
+    public MailingListBridgeBotBuilder webrevGenerateJSON(boolean webrevGenerateJSON) {
+        this.webrevGenerateJSON = webrevGenerateJSON;
         return this;
     }
 
@@ -183,8 +201,9 @@ public class MailingListBridgeBotBuilder {
     public MailingListBridgeBot build() {
         return new MailingListBridgeBot(from, repo, archive, archiveRef, censusRepo, censusRef, lists,
                                         ignoredUsers, ignoredComments, listArchive, smtpServer,
-                                        webrevStorageRepository, webrevStorageRef, webrevStorageBase, webrevStorageBaseUri,
-                                        readyLabels, readyComments, issueTracker, headers, sendInterval, cooldown,
-                                        repoInSubject, branchInSubject, seedStorage);
+                                        webrevStorageHTMLRepository, webrevStorageJSONRepository, webrevStorageRef,
+                                        webrevStorageBase, webrevStorageBaseUri, webrevGenerateHTML, webrevGenerateJSON,
+                                        readyLabels, readyComments, issueTracker, headers, sendInterval,
+                                        cooldown, repoInSubject, branchInSubject, seedStorage);
     }
 }

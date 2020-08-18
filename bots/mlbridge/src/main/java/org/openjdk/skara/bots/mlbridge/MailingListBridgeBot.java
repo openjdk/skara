@@ -66,8 +66,9 @@ public class MailingListBridgeBot implements Bot {
     MailingListBridgeBot(EmailAddress from, HostedRepository repo, HostedRepository archive, String archiveRef,
                          HostedRepository censusRepo, String censusRef, List<MailingListConfiguration> lists,
                          Set<String> ignoredUsers, Set<Pattern> ignoredComments, URI listArchive, String smtpServer,
-                         HostedRepository webrevStorageRepository, String webrevStorageRef,
-                         Path webrevStorageBase, URI webrevStorageBaseUri, Set<String> readyLabels,
+                         HostedRepository webrevStorageHTMLRepository, HostedRepository webrevStorageJSONRepository,
+                         String webrevStorageRef, Path webrevStorageBase, URI webrevStorageBaseUri,
+                         boolean webrevGenerateHTML, boolean webrevGenerateJSON, Set<String> readyLabels,
                          Map<String, Pattern> readyComments, URI issueTracker, Map<String, String> headers,
                          Duration sendInterval, Duration cooldown, boolean repoInSubject, Pattern branchInSubject,
                          Path seedStorage) {
@@ -92,8 +93,9 @@ public class MailingListBridgeBot implements Bot {
         this.branchInSubject = branchInSubject;
         this.seedStorage = seedStorage;
 
-        webrevStorage = new WebrevStorage(webrevStorageRepository, webrevStorageRef, webrevStorageBase,
-                                          webrevStorageBaseUri, from);
+        webrevStorage = new WebrevStorage(webrevStorageHTMLRepository, webrevStorageJSONRepository, webrevStorageRef,
+                                          webrevStorageBase, webrevStorageBaseUri, from,
+                                          webrevGenerateHTML, webrevGenerateJSON);
         updateCache = new PullRequestUpdateCache();
         cooldownQuarantine = new CooldownQuarantine();
     }
