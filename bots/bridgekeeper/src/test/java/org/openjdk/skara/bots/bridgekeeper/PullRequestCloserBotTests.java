@@ -29,7 +29,7 @@ import org.junit.jupiter.api.*;
 
 import java.io.IOException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.issuetracker.Issue.State.*;
 
 class PullRequestCloserBotTests {
@@ -38,7 +38,7 @@ class PullRequestCloserBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
-            var bot = new PullRequestCloserBot(author);
+            var bot = new PullRequestCloserBot(author, PullRequestCloserBot.Type.MIRROR);
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -68,7 +68,7 @@ class PullRequestCloserBotTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
-            var bot = new PullRequestCloserBot(author);
+            var bot = new PullRequestCloserBot(author, PullRequestCloserBot.Type.MIRROR);
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -99,6 +99,51 @@ class PullRequestCloserBotTests {
 
             // There should still only be one welcome comment
             assertEquals(1, pr.comments().size());
+
+            // The message should mention mirroring
+            assertTrue(pr.comments().get(0).body().contains("This repository is currently a read-only git mirror"));
+        }
+    }
+
+    @Test
+    void dataMessage(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var bot = new PullRequestCloserBot(author, PullRequestCloserBot.Type.DATA);
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Let the bot see it
+            TestBotRunner.runPeriodicItems(bot);
+
+            // There should now be no open PRs
+            var prs = author.pullRequests();
+            assertEquals(0, prs.size());
+
+            // The author is persistent
+            pr.setState(Issue.State.OPEN);
+            prs = author.pullRequests();
+            assertEquals(1, prs.size());
+
+            // But so is the bot
+            TestBotRunner.runPeriodicItems(bot);
+            prs = author.pullRequests();
+            assertEquals(0, prs.size());
+
+            // There should still only be one welcome comment
+            assertEquals(1, pr.comments().size());
+
+            // The message should mention automatically generated data
+            assertTrue(pr.comments().get(0).body().contains("This repository currently holds only automatically generated data"));
         }
     }
 }
