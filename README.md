@@ -46,7 +46,7 @@ external Git source code hosting providers are available:
 ## Building
 
 [JDK 14](http://jdk.java.net/14/) or later and [Gradle](https://gradle.org/)
-6.4.1 or later is required for building. To build the project on macOS or
+6.6 or later is required for building. To build the project on macOS or
 GNU/Linux x64, just run the following command from the source tree root:
 
 ```bash
@@ -84,7 +84,7 @@ If you don't want the build to automatically download any dependencies, then
 you must ensure that you have installed the following software locally:
 
 - JDK 14 or later
-- Gradle 6.4.1 or later
+- Gradle 6.6 or later
 
 To create a build then run the command:
 
