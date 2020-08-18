@@ -113,14 +113,14 @@ public class MailingListBridgeBotFactory implements BotFactory {
             var folder = repoConfig.contains("folder") ? repoConfig.get("folder").asString() : configuration.repositoryName(repo);
 
             var webrevGenerateHTML = true;
-            if (repoConfig.contains("webrev") &&
-                repoConfig.get("webrev").contains("html") &&
-                repoConfig.get("webrev").get("html").asBoolean() == false) {
+            if (repoConfig.contains("webrevs") &&
+                repoConfig.get("webrevs").contains("html") &&
+                repoConfig.get("webrevs").get("html").asBoolean() == false) {
                 webrevGenerateHTML = false;
             }
-            var webrevGenerateJSON = repoConfig.contains("webrev") &&
-                                     repoConfig.get("webrev").contains("json") &&
-                                     repoConfig.get("webrev").get("json").asBoolean();
+            var webrevGenerateJSON = repoConfig.contains("webrevs") &&
+                                     repoConfig.get("webrevs").contains("json") &&
+                                     repoConfig.get("webrevs").get("json").asBoolean();
 
             var botBuilder = MailingListBridgeBot.newBuilder().from(from)
                                                  .repo(configuration.repository(repo))
