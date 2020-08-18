@@ -40,7 +40,11 @@ public class BridgekeeperBotFactory implements BotFactory {
         var specific = configuration.specific();
 
         for (var repo : specific.get("mirrors").asArray()) {
-            var bot = new PullRequestCloserBot(configuration.repository(repo.asString()));
+            var bot = new PullRequestCloserBot(configuration.repository(repo.asString()), PullRequestCloserBot.Type.MIRROR);
+            ret.add(bot);
+        }
+        for (var repo : specific.get("data").asArray()) {
+            var bot = new PullRequestCloserBot(configuration.repository(repo.asString()), PullRequestCloserBot.Type.DATA);
             ret.add(bot);
         }
         var pruned = new HashMap<HostedRepository, Duration>();

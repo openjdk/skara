@@ -35,10 +35,12 @@ class PullRequestCloserBotWorkItem implements WorkItem {
     private final HostedRepository repository;
     private final PullRequest pr;
     private final Consumer<RuntimeException> errorHandler;
+    private final PullRequestCloserBot.Type type;
 
-    PullRequestCloserBotWorkItem(HostedRepository repository, PullRequest pr, Consumer<RuntimeException> errorHandler) {
+    PullRequestCloserBotWorkItem(HostedRepository repository, PullRequest pr, PullRequestCloserBot.Type type, Consumer<RuntimeException> errorHandler) {
         this.pr = pr;
         this.repository = repository;
+        this.type = type;
         this.errorHandler = errorHandler;
     }
 
@@ -52,13 +54,24 @@ class PullRequestCloserBotWorkItem implements WorkItem {
                                     .anyMatch(comment -> comment.body().contains(welcomeMarker));
 
         if (!welcomePosted) {
-            var message = "Welcome to the OpenJDK organization on GitHub!\n\n" +
-                    "This repository is currently a read-only git mirror of the official Mercurial " +
-                    "repository (located at https://hg.openjdk.java.net/). As such, we are not " +
-                    "currently accepting pull requests here. If you would like to contribute to " +
-                    "the OpenJDK project, please see https://openjdk.java.net/contribute/ on how " +
-                    "to proceed.\n\n" +
-                    "This pull request will be automatically closed.";
+            String message = null;
+            if (type == PullRequestCloserBot.Type.MIRROR) {
+                message = "Welcome to the OpenJDK organization on GitHub!\n\n" +
+                "This repository is currently a read-only git mirror of the official Mercurial " +
+                "repository (located at https://hg.openjdk.java.net/). As such, we are not " +
+                "currently accepting pull requests here. If you would like to contribute to " +
+                "the OpenJDK project, please see https://openjdk.java.net/contribute/ on how " +
+                "to proceed.\n\n" +
+                "This pull request will be automatically closed.";
+            } else if (type == PullRequestCloserBot.Type.DATA) {
+                message = "Welcome to the OpenJDK organization on GitHub!\n\n" +
+                "This repository currently holds only automatically generated data and therefore does not accept pull requests." +
+                "This pull request will be automatically closed.";
+            } else {
+                message = "Welcome to the OpenJDK organization on GitHub!\n\n" +
+                "This repository does not currently accept pull requests." +
+                "This pull request will be automatically closed.";
+            }
 
             log.fine("Posting welcome message");
             pr.addComment(welcomeMarker + "\n\n" + message);
@@ -102,10 +115,16 @@ class PullRequestCloserBotWorkItem implements WorkItem {
 public class PullRequestCloserBot implements Bot {
     private final HostedRepository remoteRepo;
     private final PullRequestUpdateCache updateCache;
+    public enum Type {
+        MIRROR,
+        DATA
+    }
+    private final Type type;
 
-    PullRequestCloserBot(HostedRepository repo) {
+    PullRequestCloserBot(HostedRepository repo, Type type) {
         this.remoteRepo = repo;
         this.updateCache = new PullRequestUpdateCache();
+        this.type = type;
     }
 
     @Override
@@ -114,7 +133,7 @@ public class PullRequestCloserBot implements Bot {
 
         for (var pr : remoteRepo.pullRequests()) {
             if (updateCache.needsUpdate(pr)) {
-                var item = new PullRequestCloserBotWorkItem(remoteRepo, pr, e -> updateCache.invalidate(pr));
+                var item = new PullRequestCloserBotWorkItem(remoteRepo, pr, type, e -> updateCache.invalidate(pr));
                 ret.add(item);
             }
         }
