@@ -34,7 +34,17 @@ import java.util.stream.Collectors;
 import java.util.logging.Logger;
 
 public class GitToHgConverter implements Converter {
-    private final Logger log = Logger.getLogger("org.openjdk.skara.vcs.openjdk.convert");
+    private final static Logger log = Logger.getLogger("org.openjdk.skara.vcs.openjdk.convert");
+    private final Branch branch;
+    private final List<Mark> marks = new ArrayList<Mark>();
+
+    public GitToHgConverter() {
+        this(new Branch("master"));
+    }
+
+    public GitToHgConverter(Branch branch) {
+        this.branch = branch;
+    }
 
     private String convertMessage(CommitMessage message, Author author, Author committer) {
         var sb = new StringBuilder();
@@ -105,10 +115,6 @@ public class GitToHgConverter implements Converter {
         return result.toString().getBytes(StandardCharsets.UTF_8);
     }
 
-    private void applyPatches(ReadOnlyRepository gitRepo, Path gitRoot, Repository hgRepo, Path hgRoot, List<Patch> patches, Hash to) throws IOException {
-        apply(gitRepo, gitRoot, hgRepo, hgRoot, patches.stream().map(StatusEntry::new).collect(Collectors.toList()), to);
-    }
-
     private void apply(ReadOnlyRepository gitRepo, Path gitRoot, Repository hgRepo, Path hgRoot, List<StatusEntry> entries, Hash to) throws IOException {
         var toRemove = new ArrayList<Path>();
         var toAdd = new ArrayList<Path>();
@@ -154,53 +160,90 @@ public class GitToHgConverter implements Converter {
         }
     }
 
-    private boolean changesHgTags(Commit c) {
-        for (var diff : c.parentDiffs()) {
-            for (var patch : diff.patches()) {
-                var status = patch.status();
-                if ((status.isModified() || status.isAdded()) &&
-                    patch.target().path().orElseThrow().toString().equals(".hgtags")) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+    private boolean changesHgTags(List<StatusEntry> status) {
+        var hgtags = Optional.of(Path.of(".hgtags"));
+        return status.stream()
+                     .filter(e -> e.status().isModified() || e.status().isAdded())
+                     .anyMatch(e -> e.target().path().equals(hgtags));
     }
 
-    private List<Hash> convert(Commits commits,
-                               Repository hgRepo,
-                               ReadOnlyRepository gitRepo,
-                               Map<Hash, Hash> gitToHg,
-                               Map<Hash, Hash> hgToGit) throws IOException {
+    private Hash hgHashFor(Map<Hash, Hash> gitToHg, Hash gitHash) {
+        var hgHash = gitToHg.get(gitHash);
+        if (hgHash == null) {
+            throw new IllegalArgumentException("No known hg hash for git hash: " + gitHash.hex());
+        }
+        return hgHash;
+    }
+
+    private void convertTags(Repository hgRepo, ReadOnlyRepository gitRepo, Map<Hash, Hash> gitToHg) throws IOException {
+        var gitTags = new TreeSet<String>();
+        for (var tag : gitRepo.tags()) {
+            gitTags.add(tag.name());
+        }
+        var hgTags = new TreeSet<String>();
+        for (var tag : hgRepo.tags()) {
+            hgTags.add(tag.name());
+        }
+        var missing = new TreeSet<String>(gitTags);
+        missing.removeAll(hgTags);
+        for (var name : missing) {
+            var gitHash = gitRepo.resolve(name).orElseThrow(() ->
+                    new IOException("Cannot resolve known tag " + name)
+            );
+            var hgHash = gitToHg.get(gitHash);
+            var annotated = gitRepo.annotate(new Tag(name));
+            if (annotated.isPresent()) {
+                var msg = annotated.get().message();
+                var user = username(annotated.get().author());
+                var date = annotated.get().date();
+                hgRepo.tag(hgHash, name, msg, user, null, date);
+            } else {
+                hgRepo.tag(hgHash, name, "Added tag " + name + " for " + hgHash.abbreviate(), "duke", null, null); 
+            }
+            var hgTagCommitHash = hgRepo.head();
+            var last = marks.get(marks.size() - 1);
+            var newMark = new Mark(last.key(), last.hg(), last.git(), hgTagCommitHash);
+            marks.set(marks.size() - 1, newMark);
+        }
+    }
+
+    private void convert(List<CommitMetadata> commits,
+                         Repository hgRepo,
+                         ReadOnlyRepository gitRepo,
+                         Map<Hash, Hash> gitToHg) throws IOException {
         var hgRoot = hgRepo.root();
         var gitRoot = gitRepo.root();
-        var hgHashes = new ArrayList<Hash>();
+
         for (var commit : commits) {
-            log.fine("Converting: " + commit.hash().hex());
+            log.fine("Converting Git hash: " + commit.hash().hex());
             var parents = commit.parents();
-            var hgParent0 = gitToHg.get(parents.get(0));
-            var patches0 = commit.parentDiffs().get(0).patches();
+            var gitParent0 = parents.get(0);
+            var status0 = gitRepo.status(gitParent0, commit.hash());
 
             if (commit.isInitialCommit()) {
-                applyPatches(gitRepo, gitRoot, hgRepo, hgRoot, patches0, commit.hash());
+                apply(gitRepo, gitRoot, hgRepo, hgRoot, status0, commit.hash());
             } else if (parents.size() == 1) {
+                var hgParent0 = hgHashFor(gitToHg, gitParent0);
+                log.fine("Parent 0:" + hgParent0.hex());
                 hgRepo.checkout(hgParent0, false);
-                applyPatches(gitRepo, gitRoot, hgRepo, hgRoot, patches0, commit.hash());
+                apply(gitRepo, gitRoot, hgRepo, hgRoot, status0, commit.hash());
             } else if (parents.size() == 2) {
+                var hgParent0 = hgHashFor(gitToHg, gitParent0);
+                log.fine("Parent 0:" + hgParent0.hex());
                 hgRepo.checkout(hgParent0, false);
 
-                var hgParent1 = gitToHg.get(parents.get(1));
-                hgRepo.merge(hgParent1, ":local");
+                var hgParent1 = hgHashFor(gitToHg, parents.get(1));
+                log.fine("Parent 1:" + hgParent1.hex());
+                hgRepo.merge(hgParent1, ":local", Repository.FastForward.DISABLE);
                 hgRepo.revert(hgParent0);
+                hgRepo.deleteUntrackedFiles();
 
-                var changes = gitRepo.status(parents.get(0), commit.hash());
-                apply(gitRepo, gitRoot, hgRepo, hgRoot, changes, commit.hash());
+                apply(gitRepo, gitRoot, hgRepo, hgRoot, status0, commit.hash());
             } else {
-                throw new IllegalStateException("More than two parents is not supported");
+                throw new IllegalStateException("Merging more than two parents is not supported in Mercurial");
             }
 
-            if (changesHgTags(commit)) {
+            if (changesHgTags(status0)) {
                 var content = gitRepo.show(Path.of(".hgtags"), commit.hash()).orElseThrow();
                 var adjustedContent = updateTags(gitRepo, gitToHg, content);
                 Files.write(hgRoot.resolve(".hgtags"), adjustedContent, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
@@ -216,69 +259,74 @@ public class GitToHgConverter implements Converter {
             log.finest("Message: " + hgMessage);
             var hgAuthor = username(committer);
             log.finer("Author: " + hgAuthor);
+            var date = commit.authored();
+            log.finer("Date: " + date);
 
             Hash hgHash = null;
-            if (parents.size() == 1 && patches0.isEmpty()) {
+            if (parents.size() == 1 && status0.isEmpty()) {
                 var tmp = Files.createFile(hgRoot.resolve("THIS_IS_A_REALLY_UNIQUE_FILE_NAME_THAT_CANT_POSSIBLY_BE_USED"));
                 hgRepo.add(tmp);
-                hgRepo.commit(hgMessage, hgAuthor, null, commit.authored());
+                hgRepo.commit(hgMessage, hgAuthor, null, date);
                 hgRepo.remove(tmp);
                 hgHash = hgRepo.amend(hgMessage, hgAuthor, null);
             } else {
-                hgHash = hgRepo.commit(hgMessage,
-                                       hgAuthor,
-                                       null,
-                                       commit.authored());
+                hgHash = hgRepo.commit(hgMessage, hgAuthor, null, date);
             }
             log.fine("Converted hg hash: " + hgHash.hex());
+
+            marks.add(new Mark(marks.size() + 1, hgHash, commit.hash()));
             gitToHg.put(commit.hash(), hgHash);
-            hgToGit.put(hgHash, commit.hash());
-            hgHashes.add(hgHash);
         }
 
-        return hgHashes;
+        convertTags(hgRepo, gitRepo, gitToHg);
     }
 
-    private List<Mark> createMarks(List<Hash> hgHashes, Map<Hash, Hash> gitToHg, Map<Hash, Hash> hgToGit) {
-        return createMarks(List.of(), hgHashes, gitToHg, hgToGit);
-    }
-
-    private List<Mark> createMarks(List<Mark> old, List<Hash> hgHashes, Map<Hash, Hash> gitToHg, Map<Hash, Hash> hgToGit) {
-        var marks = new ArrayList<Mark>(old);
-        for (var i = 0; i < hgHashes.size(); i++) {
-            var hgHash = hgHashes.get(i);
-            var gitHash = hgToGit.get(hgHash);
-            if (gitHash == null) {
-                throw new IllegalStateException("No git hash for hg hash " + hgHash.hex());
-            }
-            var key = old.size() + i + 1;
-            marks.add(new Mark(key, hgHash, hgToGit.get(hgHash)));
-        }
+    public List<Mark> marks() {
         return marks;
     }
 
     public List<Mark> convert(ReadOnlyRepository gitRepo, Repository hgRepo) throws IOException {
+        return convert(gitRepo, hgRepo, List.of());
+    }
+
+    public List<Mark> convert(ReadOnlyRepository gitRepo, Repository hgRepo, List<Mark> oldMarks) throws IOException {
         var gitToHg = new HashMap<Hash, Hash>();
-        var hgToGit = new HashMap<Hash, Hash>();
-        try (var commits = gitRepo.commits(true)) {
-            var hgHashes = convert(commits, hgRepo, gitRepo, gitToHg, hgToGit);
-            return createMarks(hgHashes, gitToHg, hgToGit);
+        for (var mark : oldMarks) {
+            if (mark.tag().isPresent()) {
+                gitToHg.put(mark.git(), mark.tag().get());
+            } else {
+                gitToHg.put(mark.git(), mark.hg());
+            }
+            marks.add(mark);
         }
+        var gitCommits = gitRepo.commitMetadata(branch.name(), true);
+        var converted = oldMarks.stream()
+                                .map(Mark::git)
+                                .collect(Collectors.toSet());
+        var notConverted = gitCommits.stream()
+                                     .filter(c -> !converted.contains(c.hash()))
+                                     .collect(Collectors.toList());
+        convert(notConverted, hgRepo, gitRepo, gitToHg);
+        return marks;
     }
 
     public List<Mark> pull(Repository gitRepo, URI source, Repository hgRepo, List<Mark> oldMarks) throws IOException {
         var gitToHg = new HashMap<Hash, Hash>();
-        var hgToGit = new HashMap<Hash, Hash>();
         for (var mark : oldMarks) {
-            gitToHg.put(mark.git(), mark.hg());
-            hgToGit.put(mark.hg(), mark.git());
+            if (mark.tag().isPresent()) {
+                gitToHg.put(mark.git(), mark.tag().get());
+            } else {
+                gitToHg.put(mark.git(), mark.hg());
+            }
+            marks.add(mark);
         }
 
-        var head = gitRepo.head();
-        var fetchHead = gitRepo.fetch(source, "master:refs/remotes/origin/master");
-        try (var commits = gitRepo.commits(head.toString() + ".." + fetchHead.toString(), true)) {
-            var hgHashes = convert(commits, hgRepo, gitRepo, gitToHg, hgToGit);
-            return createMarks(oldMarks, hgHashes, gitToHg, hgToGit);
-        }
+        gitRepo.checkout(branch);
+        var oldHead = gitRepo.head();
+        gitRepo.pull(source.toString(), branch.name());
+        var newHead = gitRepo.head();
+        var commits = gitRepo.commitMetadata(gitRepo.rangeInclusive(oldHead, newHead), true);
+        convert(commits, hgRepo, gitRepo, gitToHg);
+        return marks;
     }
 }
