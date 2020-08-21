@@ -41,6 +41,7 @@ public class GitRepository implements Repository {
     private final Path dir;
     private final Logger log = Logger.getLogger("org.openjdk.skara.vcs.git");
     private Path cachedRoot = null;
+    private static final Hash EMPTY_TREE = new Hash("4b825dc642cb6eb9a060e54bf8d69288fbee4904");
 
     private java.lang.Process start(String... cmd) throws IOException {
         return start(Arrays.asList(cmd));
@@ -977,7 +978,11 @@ public class GitRepository implements Repository {
                                           "--no-abbrev",
                                           "--no-color"));
         if (from != null) {
-            cmd.add(from.hex());
+            if (from.equals(Hash.zero())) {
+                cmd.add(EMPTY_TREE.hex());
+            } else {
+                cmd.add(from.hex());
+            }
         }
         if (to != null) {
             cmd.add(to.hex());
@@ -1025,8 +1030,14 @@ public class GitRepository implements Repository {
                                                          "--raw",
                                                          "--no-abbrev",
                                                          "--unified=0",
-                                                         "--no-color",
-                                                         from.hex()));
+                                                         "--no-color"));
+        if (from != null) {
+            if (from.equals(Hash.zero())) {
+                cmd.add(EMPTY_TREE.hex());
+            } else {
+                cmd.add(from.hex());
+            }
+        }
         if (to != null) {
             cmd.add(to.hex());
         }
