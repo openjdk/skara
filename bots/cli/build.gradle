@@ -49,6 +49,7 @@ dependencies {
     implementation project(':bots:submit')
     implementation project(':bots:forward')
     implementation project(':bots:bridgekeeper')
+    implementation project(':bots:checkout')
     implementation project(':ci')
     implementation project(':vcs')
     implementation project(':jcheck')
@@ -82,7 +83,8 @@ images {
                    'org.openjdk.skara.bots.tester',
                    'org.openjdk.skara.bots.topological',
                    'org.openjdk.skara.bots.forward',
-                   'org.openjdk.skara.bots.bridgekeeper']
+                   'org.openjdk.skara.bots.bridgekeeper',
+                   'org.openjdk.skara.bots.checkout']
         launchers = ['skara-bots': 'org.openjdk.skara.bots.cli/org.openjdk.skara.bots.cli.BotLauncher']
         options = ["--module-path", "plugins"]
         bundles = ['zip', 'tar.gz']
