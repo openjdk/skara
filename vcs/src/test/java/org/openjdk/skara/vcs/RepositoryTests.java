@@ -557,6 +557,34 @@ public class RepositoryTests {
 
     @ParameterizedTest
     @EnumSource(VCS.class)
+    void testIsAncestor(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            r.add(readme);
+            var hash1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme, List.of("Another line"), WRITE, APPEND);
+            r.add(readme);
+            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.java.net");
+
+            assertTrue(r.isAncestor(hash1, hash2));
+
+            r.checkout(hash1, false);
+            Files.write(readme, List.of("A conflicting line"), WRITE, APPEND);
+            r.add(readme);
+            var hash3 = r.commit("Branching README modification", "duke", "duke@openjdk.java.net");
+
+            assertTrue(r.isAncestor(hash1, hash3));
+            assertFalse(r.isAncestor(hash2, hash3));
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
     void testRebase(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
             var r = Repository.init(dir.path(), vcs);

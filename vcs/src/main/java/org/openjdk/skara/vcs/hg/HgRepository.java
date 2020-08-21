@@ -697,7 +697,7 @@ public class HgRepository implements Repository {
 
     @Override
     public boolean isAncestor(Hash ancestor, Hash descendant) throws IOException {
-        throw new RuntimeException("Not implemented yet");
+        return mergeBase(ancestor, descendant).equals(ancestor);
     }
 
     @Override
