@@ -1697,6 +1697,7 @@ public class RepositoryTests {
             var entry = entries.get(0);
             assertEquals(Path.of("README"), entry.path());
             assertTrue(entry.type().isRegularNonExecutable());
+            assertFalse(entry.hash().equals(Hash.zero()));
 
             var f2 = dir.path().resolve("CONTRIBUTING");
             Files.writeString(f2, "Hello\n");
@@ -1706,6 +1707,7 @@ public class RepositoryTests {
             entries = r.files(second);
             assertEquals(2, entries.size());
             assertTrue(entries.stream().allMatch(e -> e.type().isRegularNonExecutable()));
+            assertTrue(entries.stream().noneMatch(e -> e.hash().equals(Hash.zero())));
             var paths = entries.stream().map(FileEntry::path).collect(Collectors.toSet());
             assertTrue(paths.contains(Path.of("README")));
             assertTrue(paths.contains(Path.of("CONTRIBUTING")));
@@ -1715,6 +1717,7 @@ public class RepositoryTests {
             entry = entries.get(0);
             assertEquals(Path.of("README"), entry.path());
             assertTrue(entry.type().isRegularNonExecutable());
+            assertFalse(entry.hash().equals(Hash.zero()));
         }
     }
 

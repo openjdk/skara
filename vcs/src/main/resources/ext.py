@@ -28,6 +28,7 @@ import mercurial.node
 import mercurial.copies
 import difflib
 import sys
+import hashlib
 
 # space separated version list
 testedwith = '4.9.2 5.0.2 5.2.1 5.3.0'
@@ -319,7 +320,6 @@ def metadata(ui, repo, revs, filenames=None, **opts):
 
 @command(b'ls-tree', [], b'hg ls-tree')
 def ls_tree(ui, repo, rev, **opts):
-    nullHash = b'0' * 40
     ctx = revsingle(repo, rev)
     for filename in ctx.manifest():
         fctx = ctx.filectx(filename)
@@ -327,7 +327,13 @@ def ls_tree(ui, repo, rev, **opts):
             write(b'100755 blob ')
         else:
             write(b'100644 blob ')
-        write(nullHash)
+        data = fctx.data()
+        m = hashlib.sha1()
+        m.update(b"blob ")
+        m.update(str(len(data)).encode())
+        m.update(b"\x00")
+        m.update(data)
+        write(m.hexdigest().encode())
         write(b'\t')
         writeln(filename)
 
