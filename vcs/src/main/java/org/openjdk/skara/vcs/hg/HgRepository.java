@@ -948,26 +948,48 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public void merge(Hash h) throws IOException {
-        merge(h.hex(), null);
+    public void merge(Hash h, FastForward ff) throws IOException {
+        merge(h, null, ff);
     }
 
     @Override
-    public void merge(Branch b) throws IOException {
-        merge(b.name(), null);
+    public void merge(Branch b, FastForward ff) throws IOException {
+        var hash = resolve(b).orElseThrow(() ->
+            new IOException("Can't lookup branch " + b.name())
+        );
+        merge(hash, null, ff);
     }
 
     @Override
-    public void merge(Hash h, String strategy) throws IOException {
-        merge(h.hex(), strategy);
-    }
+    public void merge(Hash other, String strategy, FastForward ff) throws IOException {
+        var head = head();
+        List<String> cmd = null;
 
-    private void merge(String ref, String strategy) throws IOException {
-        var cmd = new ArrayList<String>();
-        cmd.addAll(List.of("hg", "merge", "--rev=" + ref));
+        var update = List.of("hg", "update", "--rev", other.hex());
+        var debugsetparents = List.of("hg", "debugsetparents", head.hex(), other.hex());
+        var merge = new ArrayList<>(List.of("hg", "merge", "--rev=" + other.hex()));
         if (strategy != null) {
-            cmd.add("--tool=" + strategy);
+            merge.add("--tool=" + strategy);
         }
+
+        if (ff == FastForward.ONLY) {
+            cmd = update;
+        } else if (ff == FastForward.DISABLE) {
+            if (isAncestor(head, other)) {
+                cmd = debugsetparents;
+            } else {
+                cmd = merge;
+            }
+        } else if (ff == FastForward.AUTO) {
+            if (isAncestor(head, other)) {
+                cmd = update;
+            } else {
+                cmd = merge;
+            }
+        } else {
+            throw new IllegalArgumentException("Unexpected fast forward value: " + ff);
+        }
+
         try (var p = capture(cmd)) {
             await(p);
         }
