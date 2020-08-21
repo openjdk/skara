@@ -204,6 +204,7 @@ public class GitRepository implements Repository {
         var args = new ArrayList<String>();
         args.addAll(List.of("git", "rev-list",
                                    "--format=" + GitCommitMetadata.FORMAT,
+                                   "--topo-order",
                                    "--no-abbrev",
                                    "--no-color",
                                    range));
