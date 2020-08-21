@@ -39,7 +39,7 @@ public class SkaraDebug {
                        .main(GitOpenJDKImport::main),
                 Command.name("import-git")
                        .helptext("import git repository")
-                       .main(GitOpenJDKImport::main),
+                       .main(HgOpenJDKImport::main),
                 Command.name("verify-import")
                        .helptext("verify imported repository")
                        .main(GitVerifyImport::main),
