@@ -1570,6 +1570,48 @@ public class RepositoryTests {
         }
     }
 
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testDiffAgainstInitialRevision(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.isClean());
+
+            var readme = dir.path().resolve("README.md");
+            Files.writeString(readme, "Hello world\n");
+            r.add(readme);
+            var hash = r.commit("Added readme", "duke", "duke@openjdk.java.net");
+            var commit = r.lookup(hash).orElseThrow();
+            var parent = commit.parents().get(0);
+
+            var diff = r.diff(parent, commit.hash());
+            assertEquals(parent, diff.from());
+            assertEquals(hash, diff.to());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testStatusAgainstInitialRevision(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.isClean());
+
+            var readme = dir.path().resolve("README.md");
+            Files.writeString(readme, "Hello world\n");
+            r.add(readme);
+            var hash = r.commit("Added readme", "duke", "duke@openjdk.java.net");
+            var commit = r.lookup(hash).orElseThrow();
+            var parent = commit.parents().get(0);
+
+            var entries = r.status(parent, commit.hash());
+            assertEquals(1, entries.size());
+            var entry = entries.get(0);
+            assertTrue(entry.status().isAdded());
+            assertEquals(Path.of("README.md"), entry.target().path().get());
+        }
+    }
+
     @Test
     void testSingleEmptyCommit() throws IOException, InterruptedException {
         try (var dir = new TemporaryDirectory()) {
