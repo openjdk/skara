@@ -863,7 +863,7 @@ public class GitRepository implements Repository {
     }
 
     private String treeEntry(Path path, Hash hash) throws IOException {
-        try (var p = Process.capture("git", "ls-tree", hash.hex(), path.toString())
+        try (var p = Process.capture("git", "-c", "core.quotePath=false", "ls-tree", hash.hex(), path.toString())
                             .workdir(root())
                             .execute()) {
             var res = await(p);
@@ -879,7 +879,7 @@ public class GitRepository implements Repository {
 
     private List<FileEntry> allFiles(Hash hash, List<Path> paths) throws IOException {
         var cmd = new ArrayList<String>();
-        cmd.addAll(List.of("git", "ls-tree", "-r"));
+        cmd.addAll(List.of("git", "-c", "core.quotePath=false", "ls-tree", "-r"));
         cmd.add(hash.hex());
         cmd.addAll(paths.stream().map(Path::toString).collect(Collectors.toList()));
         try (var p = Process.capture(cmd.toArray(new String[0]))
@@ -970,7 +970,7 @@ public class GitRepository implements Repository {
     @Override
     public List<StatusEntry> status(Hash from, Hash to) throws IOException {
         var cmd = new ArrayList<String>();
-        cmd.addAll(List.of("git", "diff", "--raw",
+        cmd.addAll(List.of("git", "-c", "core.quotePath=false", "diff", "--raw",
                                           "--find-renames=90%",
                                           "--find-copies=90%",
                                           "--find-copies-harder",
@@ -1017,7 +1017,7 @@ public class GitRepository implements Repository {
         if (similarity < 0 || similarity > 100) {
             throw new IllegalArgumentException("similarity must be between 0 and 100, is: "  + similarity);
         }
-        var cmd = new ArrayList<>(List.of("git", "diff", "--patch",
+        var cmd = new ArrayList<>(List.of("git", "-c", "core.quotePath=false", "diff", "--patch",
                                                          "--find-renames=" + similarity + "%",
                                                          "--find-copies=" + similarity + "%",
                                                          "--find-copies-harder",

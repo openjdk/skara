@@ -1771,6 +1771,30 @@ public class RepositoryTests {
 
     @ParameterizedTest
     @EnumSource(VCS.class)
+    void testStatusWithUnicodeFiles(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.isClean());
+
+            var f = dir.path().resolve("REÁDME.md");
+            Files.writeString(f, "Hello\n");
+            r.add(f);
+            var first = r.commit("Add readme", "duke", "duke@openjdk.org");
+
+            Files.writeString(f, "Hello\nWorld\n");
+            r.add(f);
+            var second = r.commit("Update readme", "duke", "duke@openjdk.org");
+
+            var entries = r.status(first, second);
+            assertEquals(1, entries.size());
+            var entry = entries.get(0);
+            assertTrue(entry.status().isModified());
+            assertEquals(Path.of("REÁDME.md"), entry.target().path().get());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
     void testTrackLineEndings(VCS vcs) throws IOException, InterruptedException {
         try (var dir = new TemporaryDirectory()) {
             var r = Repository.init(dir.path(), vcs);
