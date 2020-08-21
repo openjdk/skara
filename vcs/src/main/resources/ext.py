@@ -333,7 +333,7 @@ def ls_tree(ui, repo, rev, **opts):
         m.update(str(len(data)).encode())
         m.update(b"\x00")
         m.update(data)
-        write(m.hexdigest())
+        write(m.hexdigest().encode())
         write(b'\t')
         writeln(filename)
 
