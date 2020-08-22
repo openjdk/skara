@@ -58,7 +58,7 @@ class GitCommits implements Commits, AutoCloseable {
     @Override
     public Iterator<Commit> iterator() {
         var cmd = new ArrayList<String>();
-        cmd.addAll(List.of("git", "log", "--format=" + format,
+        cmd.addAll(List.of("git", "-c", "core.quotePath=false", "log", "--format=" + format,
                                          "--patch",
                                          "--find-renames=90%",
                                          "--find-copies=90%",
