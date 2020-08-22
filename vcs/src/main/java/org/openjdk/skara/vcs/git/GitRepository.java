@@ -1093,28 +1093,40 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public void merge(Hash h) throws IOException {
-        merge(h.hex(), null);
+    public void merge(Hash h, FastForward ff) throws IOException {
+        merge(h.hex(), null, ff);
     }
 
     @Override
-    public void merge(Branch b) throws IOException {
-        merge(b.name(), null);
+    public void merge(Branch b, FastForward ff) throws IOException {
+        merge(b.name(), null, ff);
     }
 
     @Override
-    public void merge(Hash h, String strategy) throws IOException {
-        merge(h.hex(), strategy);
+    public void merge(Hash h, String strategy, FastForward ff) throws IOException {
+        merge(h.hex(), strategy, ff);
     }
 
-    private void merge(String ref, String strategy) throws IOException {
+    private void merge(String ref, String strategy, FastForward ff) throws IOException {
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("git", "-c", "user.name=unused", "-c", "user.email=unused",
                            "merge", "--no-commit"));
+
+        if (ff == FastForward.AUTO) {
+            cmd.add("--ff");
+        } else if (ff == FastForward.DISABLE) {
+            cmd.add("--no-ff");
+        } else if (ff == FastForward.ONLY) {
+            cmd.add("--ff-only");
+        } else {
+            throw new IllegalArgumentException("Unexpected fast forward value: " + ff);
+        }
+
         if (strategy != null) {
             cmd.add("-s");
             cmd.add(strategy);
         }
+
         cmd.add(ref);
         try (var p = capture(cmd)) {
             await(p);

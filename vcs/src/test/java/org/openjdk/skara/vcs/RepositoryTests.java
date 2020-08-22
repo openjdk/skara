@@ -2521,4 +2521,54 @@ public class RepositoryTests {
             assertNull(annotated.author().email());
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testNonFastForwardMerge(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            r.add(readme);
+            var hash1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme, List.of("Another line"), WRITE, APPEND);
+            r.add(readme);
+            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.java.net");
+
+            r.checkout(hash1, false);
+            r.merge(hash2, Repository.FastForward.DISABLE);
+            var hash3 = r.commit("Non fast-forward merge", "duke", "duke@openjdk.java.net");
+            var mergeCommit = r.lookup(hash3).orElseThrow();
+            assertEquals(2, mergeCommit.parents().size());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testFastForwardMerge(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            r.add(readme);
+            var hash1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var other = r.branch(hash1, "other");
+            r.checkout(other);
+
+            Files.write(readme, List.of("Another line"), WRITE, APPEND);
+            r.add(readme);
+            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.java.net");
+
+            r.checkout(r.defaultBranch());
+            r.merge(hash2, Repository.FastForward.AUTO);
+            var diff = r.diff(r.head());
+            assertEquals(List.of(), diff.patches());
+            assertEquals(2, r.commits().asList().size());
+        }
+    }
 }

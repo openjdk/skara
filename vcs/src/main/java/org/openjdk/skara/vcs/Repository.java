@@ -116,9 +116,25 @@ public interface Repository extends ReadOnlyRepository {
     void prune(Branch branch, String remote) throws IOException;
     void delete(Branch b) throws IOException;
     void rebase(Hash hash, String committerName, String committerEmail) throws IOException;
-    void merge(Hash hash) throws IOException;
-    void merge(Branch branch) throws IOException;
-    void merge(Hash hash, String strategy) throws IOException;
+
+    enum FastForward {
+        ONLY,
+        DISABLE,
+        AUTO
+    }
+
+    default void merge(Hash hash) throws IOException {
+        merge(hash, FastForward.AUTO);
+    }
+    void merge(Hash hash, FastForward ff) throws IOException;
+    default void merge(Branch branch) throws IOException {
+        merge(branch, FastForward.AUTO);
+    }
+    void merge(Branch branch, FastForward ff) throws IOException;
+    default void merge(Hash hash, String strategy) throws IOException {
+        merge(hash, strategy, FastForward.AUTO);
+    }
+    void merge(Hash hash, String strategy, FastForward ff) throws IOException;
     void abortMerge() throws IOException;
     void addRemote(String name, String path) throws IOException;
     void setPaths(String remote, String pullPath, String pushPath) throws IOException;

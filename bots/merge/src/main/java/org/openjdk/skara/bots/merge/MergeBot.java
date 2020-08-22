@@ -477,7 +477,7 @@ class MergeBot implements Bot, WorkItem {
                 var remoteBranch = new Branch(repo.upstreamFor(toBranch).orElseThrow(() ->
                     new IllegalStateException("Could not get remote branch name for " + toBranch.name())
                 ));
-                repo.merge(remoteBranch); // should always be a fast-forward merge
+                repo.merge(remoteBranch, Repository.FastForward.ONLY);
                 if (!repo.isClean()) {
                     throw new RuntimeException("Local repository isn't clean after fast-forward merge - has the fork diverged unexpectedly?");
                 }
