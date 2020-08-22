@@ -650,7 +650,9 @@ public class HgRepository implements Repository {
 
     @Override
     public Tag tag(Hash hash, String name, String message, String authorName, String authorEmail) throws IOException {
-        var user = authorName + " <" + authorEmail + ">";
+        var user = authorEmail != null ?
+            authorName + " <" + authorEmail + ">" :
+            authorName;
         try (var p = capture("hg", "tag",
                              "--message", message,
                              "--user", user,

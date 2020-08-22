@@ -2478,4 +2478,19 @@ public class RepositoryTests {
             assertEquals(Path.of("README.new"), p1.target().path().get());
         }
     }
+
+    @Test
+    void testMercurialTagWithoutEmail() throws IOException, InterruptedException {
+        try (var dir = new TemporaryDirectory()) {
+            var repo = Repository.init(dir.path(), VCS.HG);
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+            repo.add(readme);
+            var head = repo.commit("Add README", "author", "author@openjdk.java.net");
+            var tag = repo.tag(head, "1.0", "Add tag 1.0", "duke", null);
+            var annotated = repo.annotate(tag).orElseThrow();
+            assertEquals("duke", annotated.author().name());
+            assertNull(annotated.author().email());
+        }
+    }
 }
