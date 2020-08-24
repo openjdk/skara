@@ -198,7 +198,7 @@ public class GitToHgConverter implements Converter {
                 var date = annotated.get().date();
                 hgRepo.tag(hgHash, name, msg, user, null, date);
             } else {
-                hgRepo.tag(hgHash, name, "Added tag " + name + " for " + hgHash.abbreviate(), "duke", null, null); 
+                hgRepo.tag(hgHash, name, "Added tag " + name + " for " + hgHash.abbreviate(), "duke", null, null);
             }
             var hgTagCommitHash = hgRepo.head();
             var last = marks.get(marks.size() - 1);
