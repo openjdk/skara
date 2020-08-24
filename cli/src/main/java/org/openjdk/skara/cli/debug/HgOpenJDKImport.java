@@ -26,11 +26,12 @@ import org.openjdk.skara.args.*;
 import org.openjdk.skara.cli.Logging;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.convert.GitToHgConverter;
+import org.openjdk.skara.vcs.openjdk.convert.Mark;
 import org.openjdk.skara.version.Version;
 
 import java.io.IOException;
 import java.nio.file.*;
-import java.util.List;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 
@@ -88,16 +89,38 @@ public class HgOpenJDKImport {
             var gitRepo = ReadOnlyRepository.get(gitDir)
                                             .orElseThrow(error("%s is not a git repository", gitDir));
 
-            var converter = new GitToHgConverter();
-            var marks = converter.convert(gitRepo, hgRepo);
-
-            var hgCommits = hgRepo.root().resolve(".hg").resolve("shamap");
-            try (var writer = Files.newBufferedWriter(hgCommits)) {
-                for (var mark : marks) {
-                    writer.write(mark.git().hex());
-                    writer.write(" ");
-                    writer.write(mark.hg().hex());
-                    writer.newLine();
+            var converter = new GitToHgConverter(new Branch("master"));
+            try {
+                var shamap = hgRepo.root().resolve(".hg").resolve("shamap");
+                var marks = new ArrayList<Mark>();
+                if (Files.exists(shamap)) {
+                    var lines = Files.readAllLines(shamap);
+                    for (var i = 0; i < lines.size(); i++) {
+                        var line = lines.get(i);
+                        var parts = line.split(" ");
+                        var key = i + 1;
+                        if (parts.length == 2) {
+                            marks.add(new Mark(key, new Hash(parts[1]), new Hash(parts[0])));
+                        } else if (parts.length == 3) {
+                            marks.add(new Mark(key, new Hash(parts[1]), new Hash(parts[0]), new Hash(parts[2])));
+                        } else {
+                            throw new IllegalStateException("Unexpected line at row " + i + ": " + line);
+                        }
+                    }
+                }
+                converter.convert(gitRepo, hgRepo, marks);
+            } finally {
+                var marks = converter.marks();
+                if (!marks.isEmpty()) {
+                    var shamap = hgRepo.root().resolve(".hg").resolve("shamap");
+                    try (var writer = Files.newBufferedWriter(shamap)) {
+                        for (var mark : marks) {
+                            writer.write(mark.git().hex());
+                            writer.write(" ");
+                            writer.write(mark.hg().hex());
+                            writer.newLine();
+                        }
+                    }
                 }
             }
         } catch (ErrorException e) {
