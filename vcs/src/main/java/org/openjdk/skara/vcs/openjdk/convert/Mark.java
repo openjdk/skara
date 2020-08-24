@@ -24,12 +24,14 @@ package org.openjdk.skara.vcs.openjdk.convert;
 
 import org.openjdk.skara.vcs.Hash;
 import java.util.Objects;
+import java.util.Optional;
 import static java.util.Objects.equals;
 
 public class Mark implements Comparable<Mark> {
     private final int key;
     private final Hash hg;
     private final Hash git;
+    private final Hash tag;
 
     public Mark(int key, Hash hg, Hash git) {
         if (key == 0) {
@@ -38,6 +40,17 @@ public class Mark implements Comparable<Mark> {
         this.key = key;
         this.hg = hg;
         this.git = git;
+        this.tag = null;
+    }
+
+    public Mark(int key, Hash hg, Hash git, Hash tag) {
+        if (key == 0) {
+            throw new IllegalArgumentException("A mark cannot be 0");
+        }
+        this.key = key;
+        this.hg = hg;
+        this.git = git;
+        this.tag = tag;
     }
 
     public int key() {
@@ -52,6 +65,10 @@ public class Mark implements Comparable<Mark> {
         return git;
     }
 
+    public Optional<Hash> tag() {
+        return Optional.ofNullable(tag);
+    }
+
     @Override
     public int compareTo(Mark o) {
         return Integer.compare(key, o.key);
@@ -59,7 +76,7 @@ public class Mark implements Comparable<Mark> {
 
     @Override
     public int hashCode() {
-        return Objects.hash(key, hg, git);
+        return Objects.hash(key, hg, git, tag);
     }
 
     @Override
@@ -72,7 +89,8 @@ public class Mark implements Comparable<Mark> {
             var m = (Mark) o;
             return Objects.equals(key, m.key) &&
                    Objects.equals(hg, m.hg) &&
-                   Objects.equals(git, m.git);
+                   Objects.equals(git, m.git) &&
+                   Objects.equals(tag, m.tag);
         }
 
         return false;
