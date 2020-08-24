@@ -20,7 +20,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.cli;
+package org.openjdk.skara.cli.debug;
 
 import org.junit.jupiter.api.Test;
 
@@ -28,44 +28,44 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class TestMLRules {
+public class TestGitMlRules {
     @Test
     void collapseEquals() {
         assertEquals(Map.of("", List.of("v1")),
-                     MLRules.stripDuplicatePrefixes(Map.of("k1", List.of("v1"))));
+                     GitMlRules.stripDuplicatePrefixes(Map.of("k1", List.of("v1"))));
     }
 
     @Test
     void collapseSameList() {
         assertEquals(Map.of("", List.of("v1")),
-                     MLRules.stripDuplicatePrefixes(Map.of("k1a", List.of("v1"),
-                                                           "k1b", List.of("v1"))));
+                     GitMlRules.stripDuplicatePrefixes(Map.of("k1a", List.of("v1"),
+                                                              "k1b", List.of("v1"))));
     }
 
     @Test
     void collapseDifferentList() {
         assertEquals(Map.of("k1a", List.of("v1"),
                             "k1b", List.of("v2")),
-                     MLRules.stripDuplicatePrefixes(Map.of("k1a", List.of("v1"),
-                                                           "k1b", List.of("v2"))));
+                     GitMlRules.stripDuplicatePrefixes(Map.of("k1a", List.of("v1"),
+                                                              "k1b", List.of("v2"))));
     }
 
     @Test
     void collapseMultiple() {
         assertEquals(Map.of("", List.of("v1")),
-                     MLRules.stripDuplicatePrefixes(Map.of("k1a", List.of("v1"),
-                                                           "k1b", List.of("v1"),
-                                                           "k2bb", List.of("v1"))));
+                     GitMlRules.stripDuplicatePrefixes(Map.of("k1a", List.of("v1"),
+                                                              "k1b", List.of("v1"),
+                                                              "k2bb", List.of("v1"))));
 
     }
 
     @Test
     void collapseMultiple2() {
         assertEquals(Map.of("", List.of("v1")),
-                     MLRules.stripDuplicatePrefixes(Map.of("k1a", List.of("v1"),
-                                                           "k1b", List.of("v1"),
-                                                           "k2bb", List.of("v1"),
-                                                           "k4", List.of("v1"))));
+                     GitMlRules.stripDuplicatePrefixes(Map.of("k1a", List.of("v1"),
+                                                              "k1b", List.of("v1"),
+                                                              "k2bb", List.of("v1"),
+                                                              "k4", List.of("v1"))));
 
     }
 
@@ -73,8 +73,8 @@ public class TestMLRules {
     void collapseSingle() {
         assertEquals(Map.of("k1/a", List.of("v1"),
                             "k1/b", List.of("v2")),
-                     MLRules.stripDuplicatePrefixes(Map.of("k1/a/a", List.of("v1"),
-                                                           "k1/b/b", List.of("v2"))));
+                     GitMlRules.stripDuplicatePrefixes(Map.of("k1/a/a", List.of("v1"),
+                                                              "k1/b/b", List.of("v2"))));
 
     }
 
@@ -82,9 +82,9 @@ public class TestMLRules {
     void collapseSingle2() {
         assertEquals(Map.of("k/1", List.of("v1"),
                             "k/2a", List.of("v2")),
-                     MLRules.stripDuplicatePrefixes(Map.of("k/1/aa", List.of("v1"),
-                                                           "k/1/bb", List.of("v1"),
-                                                           "k/2a", List.of("v2"))));
+                     GitMlRules.stripDuplicatePrefixes(Map.of("k/1/aa", List.of("v1"),
+                                                              "k/1/bb", List.of("v1"),
+                                                              "k/2a", List.of("v2"))));
 
     }
 

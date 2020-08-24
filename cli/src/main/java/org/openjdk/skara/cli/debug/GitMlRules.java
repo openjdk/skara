@@ -20,9 +20,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.cli;
+package org.openjdk.skara.cli.debug;
 
 import org.openjdk.skara.args.*;
+import org.openjdk.skara.cli.Logging;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.process.Process;
 import org.openjdk.skara.vcs.*;
@@ -42,7 +43,7 @@ import java.util.logging.*;
 import java.util.regex.Pattern;
 import java.util.stream.*;
 
-public class MLRules {
+public class GitMlRules {
     private final static Pattern rfrSubject = Pattern.compile("(?:^Subject: .*?)([78]\\d{6})", Pattern.MULTILINE);
     private final static Pattern rfrSubjectOrIssue = Pattern.compile("(?:(?:^Subject: .*?)|(?:JDK-))([78]\\\\d{6})", Pattern.MULTILINE);
     private final static Logger log = Logger.getLogger("org.openjdk.skara.mlrules");
@@ -51,6 +52,53 @@ public class MLRules {
     private static int daysOfHistory = 30;
     private static int filterDivider = 5;
     private static Pattern listFilterPattern = Pattern.compile(".*");
+
+    static final List<Flag> flags = List.of(
+            Option.shortcut("d")
+                  .fullname("days")
+                  .describe("DAYS")
+                  .helptext("Number of days to look back")
+                  .optional(),
+            Option.shortcut("f")
+                  .fullname("filter")
+                  .describe("DIVIDER")
+                  .helptext("Divider for filter threshold")
+                  .optional(),
+            Option.shortcut("o")
+                  .fullname("output")
+                  .describe("FILE")
+                  .helptext("Name of file to write output to")
+                  .optional(),
+            Option.shortcut("v")
+                  .fullname("verify")
+                  .describe("FILE")
+                  .helptext("Name of file to verify against")
+                  .optional(),
+            Option.shortcut("l")
+                  .fullname("lists")
+                  .describe("PATTERN")
+                  .helptext("Regular expression matching mailing lists to include when verifying (default all known)")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("verbose")
+                  .helptext("Turn on verbose output")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("debug")
+                  .helptext("Turn on debugging output")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("relaxed")
+                  .helptext("Use more relaxed matching when searching for reviews")
+                  .optional()
+    );
+
+    static final List<Input> inputs = List.of(
+            Input.position(0)
+                 .describe("repository root or files")
+                 .trailing()
+                 .required()
+    );
 
     private static String archivePageName(ZonedDateTime month) {
         return DateTimeFormatter.ofPattern("yyyy-MMMM", Locale.US).format(month);
@@ -74,7 +122,7 @@ public class MLRules {
 
     private static Set<String> archivePageNames() {
         return monthRange(Duration.of(daysOfHistory, ChronoUnit.DAYS)).stream()
-                                                                      .map(MLRules::archivePageName)
+                                                                      .map(GitMlRules::archivePageName)
                                                                       .collect(Collectors.toSet());
     }
 
@@ -490,53 +538,7 @@ public class MLRules {
     }
 
     public static void main(String[] args) throws IOException {
-        var flags = List.of(
-                Option.shortcut("d")
-                      .fullname("days")
-                      .describe("DAYS")
-                      .helptext("Number of days to look back")
-                      .optional(),
-                Option.shortcut("f")
-                      .fullname("filter")
-                      .describe("DIVIDER")
-                      .helptext("Divider for filter threshold")
-                      .optional(),
-                Option.shortcut("o")
-                      .fullname("output")
-                      .describe("FILE")
-                      .helptext("Name of file to write output to")
-                      .optional(),
-                Option.shortcut("v")
-                      .fullname("verify")
-                      .describe("FILE")
-                      .helptext("Name of file to verify against")
-                      .optional(),
-                Option.shortcut("l")
-                      .fullname("lists")
-                      .describe("PATTERN")
-                      .helptext("Regular expression matching mailing lists to include when verifying (default all known)")
-                      .optional(),
-                Switch.shortcut("")
-                      .fullname("verbose")
-                      .helptext("Turn on verbose output")
-                      .optional(),
-                Switch.shortcut("")
-                      .fullname("debug")
-                      .helptext("Turn on debugging output")
-                      .optional(),
-                Switch.shortcut("")
-                      .fullname("relaxed")
-                      .helptext("Use more relaxed matching when searching for reviews")
-                      .optional()
-        );
-
-        var inputs = List.of(
-                Input.position(0)
-                     .describe("repository root or files")
-                     .trailing()
-                     .required()
-        );
-        var parser = new ArgumentParser("mlrules", flags, inputs);
+        var parser = new ArgumentParser("git skara debug mlrules", flags, inputs);
         var arguments = parser.parse(args);
 
         if (arguments.contains("verbose") || arguments.contains("debug")) {

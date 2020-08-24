@@ -29,9 +29,8 @@ import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 import org.openjdk.skara.version.Version;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Files;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
 import java.util.*;
 
 public class GitSkara {
@@ -189,8 +188,7 @@ public class GitSkara {
         commands.put("jcheck", GitJCheck::main);
         commands.put("webrev", GitWebrev::main);
         commands.put("defpath", GitDefpath::main);
-        commands.put("verify-import", GitVerifyImport::main);
-        commands.put("openjdk-import", GitOpenJDKImport::main);
+        commands.put("debug", GitDebug::main);
         commands.put("fork", GitFork::main);
         commands.put("pr", GitPr::main);
         commands.put("token", GitToken::main);
@@ -201,7 +199,6 @@ public class GitSkara {
         commands.put("proxy", GitProxy::main);
         commands.put("trees", GitTrees::main);
         commands.put("hg-export", GitHgExport::main);
-        commands.put("mlrules", MLRules::main);
 
         commands.put("update", GitSkara::update);
         commands.put("help", GitSkara::usage);
