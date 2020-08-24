@@ -27,6 +27,12 @@ plugins {
 
 module {
     name = 'org.openjdk.skara.cli'
+    test {
+        requires 'org.openjdk.skara.test'
+        requires 'org.junit.jupiter.api'
+        opens 'org.openjdk.skara.cli.debug' to 'org.junit.platform.commons'
+    }
+
 }
 
 dependencies {
@@ -42,6 +48,9 @@ dependencies {
     implementation project(':issuetracker')
     implementation project(':proxy')
     implementation project(':version')
+    implementation project(':process')
+
+    testImplementation project(':test')
 }
 
 images {
@@ -49,15 +58,12 @@ images {
         'git-jcheck': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitJCheck',
         'git-webrev': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitWebrev',
         'git-defpath': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitDefpath',
-        'git-verify-import': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitVerifyImport',
-        'git-openjdk-import': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitOpenJDKImport',
         'git-fork': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitFork',
         'git-pr': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitPr',
         'git-token': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitToken',
         'git-info': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitInfo',
         'git-translate': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitTranslate',
         'git-skara': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitSkara',
-        'hg-openjdk-import': 'org.openjdk.skara.cli/org.openjdk.skara.cli.HgOpenJDKImport',
         'git-sync': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitSync',
         'git-publish': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitPublish',
         'git-proxy': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitProxy',

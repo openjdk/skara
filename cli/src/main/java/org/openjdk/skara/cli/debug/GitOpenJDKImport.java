@@ -20,9 +20,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.cli;
+package org.openjdk.skara.cli.debug;
 
 import org.openjdk.skara.args.*;
+import org.openjdk.skara.cli.Logging;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.convert.*;
@@ -38,17 +39,7 @@ import java.util.logging.Level;
 import static java.util.stream.Collectors.toList;
 
 public class GitOpenJDKImport {
-    private static void die(Exception e) {
-        System.err.println(e.getMessage());
-        System.exit(1);
-    }
-
-    private static Supplier<NoSuchElementException> error(String fmt, Object... args) {
-        return () -> new NoSuchElementException(String.format(fmt, args));
-    }
-
-    public static void main(String[] args) {
-        var flags = List.of(
+    static final List<Flag> flags = List.of(
             Option.shortcut("")
                   .fullname("replacements")
                   .describe("FILE")
@@ -97,17 +88,27 @@ public class GitOpenJDKImport {
                   .helptext("Print the version of this tool")
                   .optional());
 
-        var inputs = List.of(
+    static final List<Input> inputs = List.of(
             Input.position(0)
                  .describe("REPO")
                  .singular()
                  .required());
 
-        var parser = new ArgumentParser("git-openjdk-import", flags, inputs);
+    private static void die(Exception e) {
+        System.err.println(e.getMessage());
+        System.exit(1);
+    }
+
+    private static Supplier<NoSuchElementException> error(String fmt, Object... args) {
+        return () -> new NoSuchElementException(String.format(fmt, args));
+    }
+
+    public static void main(String[] args) {
+        var parser = new ArgumentParser("git skara debug hg-import", flags, inputs);
         var arguments = parser.parse(args);
 
         if (arguments.contains("version")) {
-            System.out.println("git-openjdk-import version: " + Version.fromManifest().orElse("unknown"));
+            System.out.println("git skara debug hg-import version: " + Version.fromManifest().orElse("unknown"));
             System.exit(0);
         }
 

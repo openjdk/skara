@@ -20,7 +20,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.cli;
+package org.openjdk.skara.cli.debug;
 
 import org.openjdk.skara.args.*;
 import org.openjdk.skara.vcs.*;
@@ -32,6 +32,22 @@ import java.util.*;
 import java.util.stream.*;
 
 public class GitVerifyImport {
+    static final List<Flag> flags = List.of(
+            Switch.shortcut("")
+                  .fullname("verbose")
+                  .helptext("Turn on verbose output")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("version")
+                  .helptext("Print the version of this tool")
+                  .optional());
+
+    static final List<Input> inputs = List.of(
+            Input.position(0)
+                 .describe("hg repository")
+                 .singular()
+                 .required());
+
     private static boolean isVerbose;
 
     private static <T> void diff(Set<T> hg, Set<T> git, String description) throws IOException {
@@ -177,21 +193,7 @@ public class GitVerifyImport {
     }
 
     public static void main(String[] args) throws IOException {
-        var flags = List.of(
-            Switch.shortcut("")
-                  .fullname("verbose")
-                  .helptext("Turn on verbose output")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("version")
-                  .helptext("Print the version of this tool")
-                  .optional());
 
-        var inputs = List.of(
-                Input.position(0)
-                     .describe("hg repository")
-                     .singular()
-                     .required());
 
         var parser = new ArgumentParser("git verify-import", flags, inputs);
         var arguments = parser.parse(args);

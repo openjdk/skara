@@ -20,35 +20,22 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.cli;
+package org.openjdk.skara.cli.debug;
 
 import org.openjdk.skara.args.*;
-import org.openjdk.skara.json.*;
+import org.openjdk.skara.cli.Logging;
 import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.vcs.openjdk.*;
-import org.openjdk.skara.vcs.openjdk.convert.*;
+import org.openjdk.skara.vcs.openjdk.convert.GitToHgConverter;
 import org.openjdk.skara.version.Version;
 
-import java.io.*;
+import java.io.IOException;
 import java.nio.file.*;
-import java.util.*;
-import static java.util.stream.Collectors.toList;
-import java.util.function.*;
-import java.util.logging.*;
+import java.util.List;
+import java.util.function.Supplier;
+import java.util.logging.Level;
 
 public class HgOpenJDKImport {
-    static class ErrorException extends RuntimeException {
-        ErrorException(String s) {
-            super(s);
-        }
-    }
-
-    private static Supplier<ErrorException> error(String fmt, Object... args) {
-        return () -> new ErrorException(String.format(fmt, args));
-    }
-
-    public static void main(String[] args) throws IOException {
-        var flags = List.of(
+    static final List<Flag> flags = List.of(
             Switch.shortcut("")
                   .fullname("verbose")
                   .helptext("Turn on verbose output")
@@ -62,17 +49,28 @@ public class HgOpenJDKImport {
                   .helptext("Print the version of this tool")
                   .optional());
 
-        var inputs = List.of(
+    static final List<Input> inputs = List.of(
             Input.position(0)
                  .describe("REPO")
                  .singular()
                  .required());
 
-        var parser = new ArgumentParser("hg-openjdk-import", flags, inputs);
+    static class ErrorException extends RuntimeException {
+        ErrorException(String s) {
+            super(s);
+        }
+    }
+
+    private static Supplier<ErrorException> error(String fmt, Object... args) {
+        return () -> new ErrorException(String.format(fmt, args));
+    }
+
+    public static void main(String[] args) throws IOException {
+        var parser = new ArgumentParser("git skara debug git-import", flags, inputs);
         var arguments = parser.parse(args);
 
         if (arguments.contains("version")) {
-            System.out.println("hg-openjdk-import version: " + Version.fromManifest().orElse("unknown"));
+            System.out.println("git skara debug git-import version: " + Version.fromManifest().orElse("unknown"));
             System.exit(0);
         }
 
