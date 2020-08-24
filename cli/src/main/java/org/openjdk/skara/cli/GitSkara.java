@@ -188,7 +188,7 @@ public class GitSkara {
         commands.put("jcheck", GitJCheck::main);
         commands.put("webrev", GitWebrev::main);
         commands.put("defpath", GitDefpath::main);
-        commands.put("debug", GitDebug::main);
+        commands.put("debug", SkaraDebug::main);
         commands.put("fork", GitFork::main);
         commands.put("pr", GitPr::main);
         commands.put("token", GitToken::main);

@@ -30,7 +30,7 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
-public class GitDebugHelp {
+public class SkaraDebugHelp {
     private static final class Pair<T1, T2> {
         T1 e1;
         T2 e2;

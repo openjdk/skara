@@ -28,12 +28,12 @@ import org.openjdk.skara.proxy.HttpProxy;
 
 import java.util.List;
 
-public class GitDebug {
+public class SkaraDebug {
     public static void main(String[] args) throws Exception {
         var commands = List.of(
                 Default.name("help")
                        .helptext("show help text")
-                       .main(GitDebugHelp::main),
+                       .main(SkaraDebugHelp::main),
                 Command.name("import-hg")
                        .helptext("import a hg repository")
                        .main(GitOpenJDKImport::main),
