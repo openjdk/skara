@@ -27,6 +27,12 @@ plugins {
 
 module {
     name = 'org.openjdk.skara.cli'
+    test {
+        requires 'org.openjdk.skara.test'
+        requires 'org.junit.jupiter.api'
+        opens 'org.openjdk.skara.cli' to 'org.junit.platform.commons'
+    }
+
 }
 
 dependencies {
@@ -42,6 +48,9 @@ dependencies {
     implementation project(':issuetracker')
     implementation project(':proxy')
     implementation project(':version')
+    implementation project(':process')
+
+    testImplementation project(':test')
 }
 
 images {
