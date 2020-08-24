@@ -43,7 +43,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class GitToHgConverterTests {
     void assertCommitEquals(ReadOnlyRepository gitRepo, Commit gitCommit, ReadOnlyRepository hgRepo, Commit hgCommit) throws IOException {
-        System.out.println("git commit: " + gitCommit.hash() + ", hg commit: " + hgCommit.hash());
         assertEquals(gitCommit.authored(), hgCommit.authored());
         assertEquals(gitCommit.isInitialCommit(), hgCommit.isInitialCommit());
         assertEquals(gitCommit.isMerge(), hgCommit.isMerge());
