@@ -35,7 +35,7 @@ public class GitDebug {
                        .helptext("show help text")
                        .main(GitDebugHelp::main),
                 Command.name("import-hg")
-                       .helptext("convert hg to git")
+                       .helptext("import a hg repository")
                        .main(GitOpenJDKImport::main),
                 Command.name("import-git")
                        .helptext("convert git to hg")
