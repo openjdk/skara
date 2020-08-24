@@ -1450,7 +1450,7 @@ public class GitRepository implements Repository {
                 var author = Author.fromString(authorLine);
                 var formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
                 var date = ZonedDateTime.parse(dateLine, formatter);
-                var message = String.join("\n", lines.subList(4, lines.size()));
+                var message = String.join("\n", lines.subList(4, lines.size() - 1)); // Git adds newline
 
                 return Optional.of(new Tag.Annotated(name, target, author, date, message));
             }

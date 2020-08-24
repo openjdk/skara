@@ -1368,7 +1368,7 @@ public class HgRepository implements Repository {
                     var rev = parts[0].substring(0, parts[0].length() - 1).trim(); // skip last ':' and ev. whitespace
                     var hash = resolve(rev).orElseThrow(IOException::new);
                     var commit = lookup(hash).orElseThrow(IOException::new);
-                    var message = String.join("\n", commit.message()) + "\n";
+                    var message = String.join("\n", commit.message());
                     return Optional.of(new Tag.Annotated(tagName, target, commit.author(), commit.authored(), message));
                 }
             }

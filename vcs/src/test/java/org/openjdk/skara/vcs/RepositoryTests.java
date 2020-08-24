@@ -2077,7 +2077,7 @@ public class RepositoryTests {
             Files.writeString(readme, "Hello\n");
             repo.add(readme);
             var head = repo.commit("Added README", "duke", "duke@openjdk.org");
-            var tag = repo.tag(head, "1.0", "Added tag 1.0 for HEAD\n", "duke", "duke@openjdk.org");
+            var tag = repo.tag(head, "1.0", "Added tag 1.0 for HEAD", "duke", "duke@openjdk.org");
             var annotated = repo.annotate(tag).get();
 
             assertEquals("1.0", annotated.name());
@@ -2088,7 +2088,7 @@ public class RepositoryTests {
             assertEquals(now.getDayOfYear(), annotated.date().getDayOfYear());
             assertEquals(now.getHour(), annotated.date().getHour());
             assertEquals(now.getOffset(), annotated.date().getOffset());
-            assertEquals("Added tag 1.0 for HEAD\n", annotated.message());
+            assertEquals("Added tag 1.0 for HEAD", annotated.message());
         }
     }
 
