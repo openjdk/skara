@@ -38,10 +38,10 @@ public class GitDebug {
                        .helptext("import a hg repository")
                        .main(GitOpenJDKImport::main),
                 Command.name("import-git")
-                       .helptext("convert git to hg")
+                       .helptext("import git repository")
                        .main(GitOpenJDKImport::main),
                 Command.name("verify-import")
-                       .helptext("verify hg to git")
+                       .helptext("verify imported repository")
                        .main(GitVerifyImport::main),
                 Command.name("mlrules")
                        .helptext("create and verify jdk mailing list filter rules")
@@ -50,7 +50,7 @@ public class GitDebug {
 
         HttpProxy.setup();
 
-        var parser = new MultiCommandParser("git debug", commands);
+        var parser = new MultiCommandParser("skara debug", commands);
         var command = parser.parse(args);
         command.execute();
     }
