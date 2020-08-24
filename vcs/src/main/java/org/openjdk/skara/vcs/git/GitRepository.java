@@ -761,13 +761,17 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public Tag tag(Hash hash, String name, String message, String authorName, String authorEmail) throws IOException {
+    public Tag tag(Hash hash, String name, String message, String authorName, String authorEmail, ZonedDateTime date) throws IOException {
         var cmd = Process.capture("git", "tag", "--annotate", "--message=" + message, name, hash.hex())
                          .workdir(dir)
                          .environ("GIT_AUTHOR_NAME", authorName)
                          .environ("GIT_AUTHOR_EMAIL", authorEmail)
                          .environ("GIT_COMMITTER_NAME", authorName)
                          .environ("GIT_COMMITTER_EMAIL", authorEmail);
+        if (date != null) {
+            cmd = cmd.environ("GIT_AUTHOR_DATE", date.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+            cmd = cmd.environ("GIT_COMMITTER_DATE", date.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+        }
         try (var p = cmd.execute()) {
             await(p);
         }

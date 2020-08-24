@@ -660,15 +660,21 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public Tag tag(Hash hash, String name, String message, String authorName, String authorEmail) throws IOException {
+    public Tag tag(Hash hash, String name, String message, String authorName, String authorEmail, ZonedDateTime date) throws IOException {
         var user = authorEmail != null ?
             authorName + " <" + authorEmail + ">" :
             authorName;
-        try (var p = capture("hg", "tag",
-                             "--message", message,
-                             "--user", user,
-                             "--rev", hash.hex(),
-                             name)) {
+        var cmd = new ArrayList<String>();
+        cmd.addAll(List.of("hg", "tag",
+                           "--message", message,
+                           "--user", user,
+                           "--rev", hash.hex()));
+        if (date != null) {
+            cmd.add("--date");
+            cmd.add(date.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+        }
+        cmd.add(name);
+        try (var p = capture(cmd)) {
             await(p);
         }
 

@@ -2596,4 +2596,23 @@ public class RepositoryTests {
             assertTrue(paths.contains(readme));
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testTimestampOnTags(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            r.add(readme);
+            var hash = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var date = ZonedDateTime.parse("2007-12-03T10:15:30+01:00");
+            var tag = r.tag(hash, "1.0", "Added tag 1.0", "duke", "duke@openjdk.org", date);
+            var annotated = r.annotate(tag);
+            assertTrue(annotated.isPresent());
+            assertEquals(date, annotated.get().date());
+        }
+    }
 }
