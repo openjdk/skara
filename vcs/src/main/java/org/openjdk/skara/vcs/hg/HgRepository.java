@@ -359,6 +359,17 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public void deleteUntrackedFiles() throws IOException {
+        var root = root();
+        try (var p = capture("hg", "status", "--unknown", "--no-status")) {
+            var res = await(p);
+            for (var line : res.stdout()) {
+                Files.delete(root.resolve(line));
+            }
+        }
+    }
+
+    @Override
     public void clean() throws IOException {
         try (var p = capture("hg", "merge", "--abort")) {
             p.await();

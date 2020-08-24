@@ -147,6 +147,7 @@ public interface Repository extends ReadOnlyRepository {
     }
     void addSubmodule(String pullPath, Path path) throws IOException;
     void updateSubmodule(Path path) throws IOException;
+    void deleteUntrackedFiles() throws IOException;
     default void updateSubmodule(Submodule s) throws IOException {
         updateSubmodule(s.path());
     }

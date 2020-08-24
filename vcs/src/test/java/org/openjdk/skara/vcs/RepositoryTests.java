@@ -2571,4 +2571,29 @@ public class RepositoryTests {
             assertEquals(2, r.commits().asList().size());
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testDeleteUntrackedFiles(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            r.add(readme);
+            var hash1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var untracked = dir.path().resolve("UNTRACKED");
+            Files.write(untracked, List.of("Hello, untracked!"));
+
+            var paths = Files.list(r.root()).collect(Collectors.toList());
+            assertTrue(paths.contains(untracked));
+            assertTrue(paths.contains(readme));
+
+            r.deleteUntrackedFiles();
+            paths = Files.list(r.root()).collect(Collectors.toList());
+            assertFalse(paths.contains(untracked));
+            assertTrue(paths.contains(readme));
+        }
+    }
 }

@@ -366,6 +366,17 @@ public class GitRepository implements Repository {
     }
 
     @Override
+    public void deleteUntrackedFiles() throws IOException {
+        var root = root();
+        try (var p = capture("git", "ls-files", "--full-name", "--other")) {
+            var res = await(p);
+            for (var line : res.stdout()) {
+                Files.delete(root.resolve(line));
+            }
+        }
+    }
+
+    @Override
     public void reset(Hash target, boolean hard) throws IOException {
         var cmd = new ArrayList<>(List.of("git", "reset"));
         if (hard) {
