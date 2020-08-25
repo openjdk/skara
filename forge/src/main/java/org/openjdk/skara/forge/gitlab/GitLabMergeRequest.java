@@ -43,6 +43,8 @@ public class GitLabMergeRequest implements PullRequest {
     private final Logger log = Logger.getLogger("org.openjdk.skara.host");;
     private final GitLabRepository repository;
 
+    private Hash targetHash = null;
+
     GitLabMergeRequest(GitLabRepository repository, JSONValue jsonValue, RestRequest request) {
         this.repository = repository;
         this.json = jsonValue;
@@ -278,12 +280,19 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public String targetRef() {
-        return json.get("target_branch").asString();
+        var targetRef = json.get("target_branch").asString();
+        if (targetHash == null) {
+            // Read this value before returning, to ensure that future fetches of this ref contains the hash
+            targetHash = repository.branchHash(targetRef);
+        }
+        return targetRef;
     }
 
     @Override
     public Hash targetHash() {
-        return repository.branchHash(targetRef());
+        // Ensure that the field is populated
+        targetRef();
+        return targetHash;
     }
 
     @Override
