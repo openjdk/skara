@@ -282,18 +282,7 @@ public class HgRepository implements Repository {
         if (paths != null && !paths.isEmpty()) {
             cmd.addAll(paths.stream().map(Path::toString).collect(Collectors.toList()));
         }
-        var p = start(cmd);
-        var reader = new UnixStreamReader(p.getInputStream());
-        var result = new ArrayList<CommitMetadata>();
-
-        var line = reader.readLine();
-        while (line != null) {
-            result.add(HgCommitMetadata.read(reader));
-            line = reader.readLine();
-        }
-
-        await(p);
-        return result;
+        return readMetadata(cmd);
     }
 
     @Override
@@ -334,6 +323,38 @@ public class HgRepository implements Repository {
     @Override
     public List<CommitMetadata> commitMetadata() throws IOException {
         return commitMetadata(null, List.of(), false);
+    }
+
+    @Override
+    public List<CommitMetadata> follow(Path path) throws IOException {
+        return follow(path, null, null);
+    }
+
+    private List<CommitMetadata> readMetadata(List<String> cmd) throws IOException {
+        var p = start(cmd);
+        var reader = new UnixStreamReader(p.getInputStream());
+        var result = new ArrayList<CommitMetadata>();
+
+        var line = reader.readLine();
+        while (line != null) {
+            result.add(HgCommitMetadata.read(reader));
+            line = reader.readLine();
+        }
+
+        await(p);
+        return result;
+    }
+
+    @Override
+    public List<CommitMetadata> follow(Path path, Hash from, Hash to) throws IOException {
+        var cmd = new ArrayList<String>();
+        cmd.addAll(List.of("hg", "log", "--follow", "--template", HgCommitMetadata.TEMPLATE));
+        if (from != null && to != null) {
+            cmd.add("--rev");
+            cmd.add(from.hex() + ".." + to.hex() + " - " + from.hex());
+        }
+        cmd.add(path.toString());
+        return readMetadata(cmd);
     }
 
     @Override

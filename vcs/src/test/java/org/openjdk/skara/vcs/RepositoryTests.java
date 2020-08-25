@@ -2615,4 +2615,30 @@ public class RepositoryTests {
             assertEquals(date, annotated.get().date());
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testFollow(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            r.add(readme);
+            var first = r.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            var readme2 = dir.path().resolve("README2");
+            r.move(readme, readme2);
+            var second = r.commit("Move README to README2", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme2, List.of("Hello, readme2!"));
+            r.add(readme2);
+            var third = r.commit("Update README2", "duke", "duke@openjdk.java.net");
+
+            var commits = r.follow(readme2);
+            var hashes = commits.stream().map(CommitMetadata::hash).collect(Collectors.toList());
+            assertEquals(List.of(third, second, first), hashes);
+        }
+    }
 }

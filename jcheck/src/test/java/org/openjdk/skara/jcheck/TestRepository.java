@@ -321,4 +321,12 @@ class TestRepository implements ReadOnlyRepository {
     public String rangeExclusive(Hash from, Hash to) {
         return null;
     }
+
+    public List<CommitMetadata> follow(Path path) {
+        return List.of();
+    }
+
+    public List<CommitMetadata> follow(Path path, Hash from, Hash to) {
+        return List.of();
+    }
 }

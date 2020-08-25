@@ -218,22 +218,7 @@ public class GitRepository implements Repository {
                 args.add(path.toString());
             }
         }
-        var p = start(args);
-        var reader = new UnixStreamReader(p.getInputStream());
-        var result = new ArrayList<CommitMetadata>();
-
-        var line = reader.readLine();
-        while (line != null) {
-            if (!line.startsWith("commit")) {
-                throw new IOException("Unexpected line: " + line);
-            }
-
-            result.add(GitCommitMetadata.read(reader));
-            line = reader.readLine();
-        }
-
-        await(p);
-        return result;
+        return readMetadata(args, "commit ");
     }
 
     @Override
@@ -290,6 +275,49 @@ public class GitRepository implements Repository {
     public List<CommitMetadata> commitMetadata() throws IOException {
         return commitMetadata("--all");
     }
+
+    private List<CommitMetadata> readMetadata(List<String> cmd, String delimiter) throws IOException {
+        var p = start(cmd);
+        var reader = new UnixStreamReader(p.getInputStream());
+        var result = new ArrayList<CommitMetadata>();
+
+        var line = reader.readLine();
+        while (line != null) {
+            if (!line.startsWith(delimiter)) {
+                throw new IOException("Unexpected line: " + line);
+            }
+
+            result.add(GitCommitMetadata.read(reader));
+            line = reader.readLine();
+        }
+
+        await(p);
+        return result;
+    }
+
+    @Override
+    public List<CommitMetadata> follow(Path path) throws IOException {
+        return follow(path, null, null);
+    }
+
+    @Override
+    public List<CommitMetadata> follow(Path path, Hash from, Hash to) throws IOException {
+        var delimiter = "#@!_-=&";
+        var cmd = new ArrayList<String>();
+        cmd.addAll(List.of("git", "log",
+                                  "--follow",
+                                  "--format=" + delimiter + "\n" + GitCommitMetadata.FORMAT,
+                                  "--topo-order",
+                                  "--no-abbrev",
+                                  "--no-color"));
+        if (from != null && to != null) {
+            cmd.add(from.hex() + ".." + to.hex());
+        }
+        cmd.add("--");
+        cmd.add(path.toString());
+        return readMetadata(cmd, delimiter);
+    }
+
 
     private List<Hash> refs() throws IOException {
         try (var p = capture("git", "show-ref", "--hash", "--abbrev")) {
