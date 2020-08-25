@@ -120,6 +120,8 @@ public interface ReadOnlyRepository {
         return diff(head, files, DEFAULT_SIMILARITY);
     }
 
+    List<CommitMetadata> follow(Path path) throws IOException;
+    List<CommitMetadata> follow(Path path, Hash base, Hash head) throws IOException;
     Diff diff(Hash head, List<Path> files, int similarity) throws IOException;
     List<String> config(String key) throws IOException;
     Repository copyTo(Path destination) throws IOException;
