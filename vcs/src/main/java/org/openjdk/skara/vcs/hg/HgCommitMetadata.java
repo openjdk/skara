@@ -28,10 +28,33 @@ import org.openjdk.skara.vcs.tools.*;
 import java.io.IOException;
 import java.util.*;
 import java.time.*;
+import java.time.format.DateTimeParseException;
 import java.time.format.*;
 import java.nio.charset.StandardCharsets;
 
 class HgCommitMetadata {
+    private static final String delimiter = "#@!_-=&";
+    private static final String hash = "{node}";
+    private static final String rev = "{rev}";
+    private static final String branch = "{branch}";
+    private static final String parentHashes = "{p1.node} {p2.node}";
+    private static final String parentRevs = "{p1.rev} {p2.rev}";
+    private static final String user = "{user}";
+    private static final String date = "{date|rfc3339date}";
+    private static final String descLen = "{desc|count}";
+    private static final String desc = "{desc}";
+
+    public static final String TEMPLATE = String.join("\n",
+                                                      delimiter,
+                                                      hash,
+                                                      rev,
+                                                      branch,
+                                                      parentHashes,
+                                                      parentRevs,
+                                                      user,
+                                                      date,
+                                                      descLen,
+                                                      desc);
     public static CommitMetadata read(UnixStreamReader reader) throws IOException {
         var hash = new Hash(reader.readLine());
 
@@ -46,8 +69,17 @@ class HgCommitMetadata {
 
         var author = Author.fromString(reader.readLine());
 
-        var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd H:m:sZ");
-        var authored = ZonedDateTime.parse(reader.readLine(), formatter);
+        // ext.py and hg uses slightly different time formats
+        ZonedDateTime authored = null;
+        var date = reader.readLine();
+        try {
+            // ext.py
+            var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd H:m:sZ");
+            authored = ZonedDateTime.parse(date, formatter);
+        } catch (DateTimeParseException e) {
+            // hg's rfc3339date
+            authored = ZonedDateTime.parse(date, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+        }
 
         var messageSize = Integer.parseInt(reader.readLine());
         var messageBuffer = reader.read(messageSize);
