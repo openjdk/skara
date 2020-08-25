@@ -278,7 +278,7 @@ public class Webrev {
                     file.put("patch", sb.toString());
                 }
                 files.add(file);
-                var commits = repository.commitMetadata(tailEnd, head, List.of(filename));
+                var commits = repository.follow(filename, tailEnd, head);
                 for (var commit : commits) {
                     if (!pathsPerCommit.containsKey(commit.hash())) {
                         pathsPerCommit.put(commit.hash(), new ArrayList<Path>());
