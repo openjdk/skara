@@ -273,18 +273,16 @@ public class HgRepository implements Repository {
 
     @Override
     public List<CommitMetadata> commitMetadata(String range, List<Path> paths, boolean reverse) throws IOException {
-        var ext = Files.createTempFile("ext", ".py");
-        copyResource(EXT_PY, ext);
-
-        var args = new ArrayList<String>();
-        args.addAll(List.of("hg", "--config", "extensions.dump=" + ext.toAbsolutePath().toString(), "metadata"));
+        var cmd = new ArrayList<String>();
+        cmd.addAll(List.of("hg", "log", "--template", HgCommitMetadata.TEMPLATE));
         range = range == null ? "tip:0" : range;
         var revset = reverse ? "reverse(" + range + ")" : range;
-        args.add(revset);
+        cmd.add("--rev");
+        cmd.add(revset);
         if (paths != null && !paths.isEmpty()) {
-            args.add(paths.stream().map(Path::toString).collect(Collectors.joining("\t")));
+            cmd.addAll(paths.stream().map(Path::toString).collect(Collectors.toList()));
         }
-        var p = start(args);
+        var p = start(cmd);
         var reader = new UnixStreamReader(p.getInputStream());
         var result = new ArrayList<CommitMetadata>();
 
