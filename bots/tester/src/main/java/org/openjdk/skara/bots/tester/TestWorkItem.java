@@ -26,6 +26,7 @@ import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.ci.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.host.HostUser;
 
 import java.io.*;
 import java.net.*;
@@ -34,11 +35,13 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.*;
+import java.util.function.Predicate;
 
 public class TestWorkItem implements WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final ContinuousIntegration ci;
     private final String approversGroupId;
+    private final Set<String> allowlist;
     private final List<String> availableJobs;
     private final List<String> defaultJobs;
     private final String name;
@@ -46,10 +49,11 @@ public class TestWorkItem implements WorkItem {
     private final HostedRepository repository;
     private final PullRequest pr;
 
-    TestWorkItem(ContinuousIntegration ci, String approversGroupId, List<String> availableJobs,
+    TestWorkItem(ContinuousIntegration ci, String approversGroupId, Set<String> allowlist, List<String> availableJobs,
                  List<String> defaultJobs, String name, Path storage, PullRequest pr) {
         this.ci = ci;
         this.approversGroupId = approversGroupId;
+        this.allowlist = allowlist;
         this.availableJobs = availableJobs;
         this.defaultJobs = defaultJobs;
         this.name = name;
@@ -246,9 +250,14 @@ public class TestWorkItem implements WorkItem {
         return sb.toString();
     }
 
+    private boolean validate(HostUser u) {
+        var forge = pr.repository().forge();
+        return forge.isMemberOf(approversGroupId, u) || allowlist.contains(u.id());
+    }
+
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
-        var state = State.from(pr, approversGroupId);
+        var state = State.from(pr, this::validate);
         var stage = state.stage();
         if (stage == Stage.NA || stage == Stage.ERROR || stage == Stage.PENDING || stage == Stage.FINISHED) {
             // nothing to do

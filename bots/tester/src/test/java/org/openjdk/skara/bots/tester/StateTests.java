@@ -48,7 +48,7 @@ class StateTests {
         pr.author = duke;
         pr.comments = List.of();
 
-        var state = State.from(pr, "0");
+        var state = State.from(pr, u -> host.isMemberOf("0", u));
         assertEquals(Stage.NA, state.stage());
         assertEquals(null, state.requested());
         assertEquals(null, state.pending());
@@ -78,7 +78,7 @@ class StateTests {
         var approvers = "0";
         host.groups = Map.of(approvers, Set.of());
 
-        var state = State.from(pr, approvers);
+        var state = State.from(pr, u -> host.isMemberOf(approvers, u));
         assertEquals(Stage.REQUESTED, state.stage());
         assertEquals(comment, state.requested());
         assertEquals(null, state.pending());
@@ -108,7 +108,7 @@ class StateTests {
         var approvers = "0";
         host.groups = Map.of(approvers, Set.of(duke));
 
-        var state = State.from(pr, approvers);
+        var state = State.from(pr, u -> host.isMemberOf(approvers, u));
         assertEquals(Stage.APPROVED, state.stage());
         assertEquals(comment, state.requested());
         assertEquals(null, state.pending());
@@ -143,7 +143,7 @@ class StateTests {
         pr.comments = List.of(testComment, pendingComment);
         host.groups = Map.of("0", Set.of());
 
-        var state = State.from(pr, "0");
+        var state = State.from(pr, u -> host.isMemberOf("0", u));
         assertEquals(Stage.PENDING, state.stage());
         assertEquals(testComment, state.requested());
         assertEquals(pendingComment, state.pending());
@@ -191,7 +191,7 @@ class StateTests {
         var approvers = "0";
         host.groups = Map.of(approvers, Set.of(member));
 
-        var state = State.from(pr, approvers);
+        var state = State.from(pr, u -> host.isMemberOf(approvers, u));
         assertEquals(Stage.STARTED, state.stage());
         assertEquals(testComment, state.requested());
         assertEquals(pendingComment, state.pending());
@@ -222,7 +222,7 @@ class StateTests {
         var approvers = "0";
         host.groups = Map.of(approvers, Set.of());
 
-        var state = State.from(pr, approvers);
+        var state = State.from(pr, u -> host.isMemberOf(approvers, u));
         assertEquals(Stage.CANCELLED, state.stage());
         assertEquals(testComment, state.requested());
         assertEquals(cancelComment, state.cancelled());
@@ -256,7 +256,7 @@ class StateTests {
         var approvers = "0";
         host.groups = Map.of(approvers, Set.of());
 
-        var state = State.from(pr, approvers);
+        var state = State.from(pr, u -> host.isMemberOf(approvers, u));
         assertEquals(Stage.REQUESTED, state.stage());
         assertEquals(testComment, state.requested());
         assertEquals(null, state.cancelled());
@@ -289,7 +289,7 @@ class StateTests {
         var approvers = "0";
         host.groups = Map.of(approvers, Set.of());
 
-        var state = State.from(pr, approvers);
+        var state = State.from(pr, u -> host.isMemberOf(approvers, u));
         assertEquals(Stage.REQUESTED, state.stage());
         assertEquals(test3Comment, state.requested());
         assertEquals(null, state.cancelled());
@@ -326,7 +326,7 @@ class StateTests {
         var approvers = "0";
         host.groups = Map.of(approvers, Set.of());
 
-        var state = State.from(pr, approvers);
+        var state = State.from(pr, u -> host.isMemberOf(approvers, u));
         assertEquals(Stage.ERROR, state.stage());
         assertEquals(testComment, state.requested());
         assertEquals(null, state.pending());
@@ -381,7 +381,7 @@ class StateTests {
         var approvers = "0";
         host.groups = Map.of(approvers, Set.of(member));
 
-        var state = State.from(pr, approvers);
+        var state = State.from(pr, u -> host.isMemberOf(approvers, u));
         assertEquals(Stage.FINISHED, state.stage());
         assertEquals(testComment, state.requested());
         assertEquals(pendingComment, state.pending());

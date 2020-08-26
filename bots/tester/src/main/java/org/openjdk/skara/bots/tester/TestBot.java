@@ -47,6 +47,7 @@ public class TestBot implements Bot {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final ContinuousIntegration ci;
     private final String approversGroupId;
+    private final Set<String> allowlist;
     private final List<String> availableJobs;
     private final List<String> defaultJobs;
     private final String name;
@@ -57,6 +58,7 @@ public class TestBot implements Bot {
 
     TestBot(ContinuousIntegration ci,
             String approversGroupId,
+            Set<String> allowlist,
             List<String> availableJobs,
             List<String> defaultJobs,
             String name,
@@ -64,6 +66,7 @@ public class TestBot implements Bot {
             HostedRepository repo) {
         this.ci = ci;
         this.approversGroupId = approversGroupId;
+        this.allowlist = allowlist;
         this.availableJobs = availableJobs;
         this.defaultJobs = defaultJobs;
         this.name = name;
@@ -83,6 +86,7 @@ public class TestBot implements Bot {
             if (cache.needsUpdate(pr)) {
                 ret.add(new TestWorkItem(ci,
                                          approversGroupId,
+                                         allowlist,
                                          availableJobs,
                                          defaultJobs,
                                          name,
@@ -121,6 +125,7 @@ public class TestBot implements Bot {
                     if (shouldUpdate) {
                         ret.add(new TestWorkItem(ci,
                                                  approversGroupId,
+                                                 allowlist,
                                                  availableJobs,
                                                  defaultJobs,
                                                  name,

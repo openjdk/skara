@@ -52,13 +52,14 @@ public class TestBotFactory implements BotFactory {
         var specific = configuration.specific();
 
         var approvers = specific.get("approvers").asString();
+        var allowlist = specific.get("allowlist").stream().map(JSONValue::asString).collect(Collectors.toSet());
         var availableJobs = specific.get("availableJobs").stream().map(JSONValue::asString).collect(Collectors.toList());
         var defaultJobs = specific.get("defaultJobs").stream().map(JSONValue::asString).collect(Collectors.toList());
         var name = specific.get("name").asString();
         var ci = configuration.continuousIntegration(specific.get("ci").asString());
         for (var repo : specific.get("repositories").asArray()) {
             var hostedRepo = configuration.repository(repo.asString());
-            ret.add(new TestBot(ci, approvers, availableJobs, defaultJobs, name, storage, hostedRepo));
+            ret.add(new TestBot(ci, approvers, allowlist, availableJobs, defaultJobs, name, storage, hostedRepo));
         }
 
         return ret;
