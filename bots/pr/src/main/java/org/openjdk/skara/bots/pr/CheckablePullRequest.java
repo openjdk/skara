@@ -130,7 +130,7 @@ public class CheckablePullRequest {
         return new PullRequestCheckIssueVisitor(checks);
     }
 
-    void executeChecks(Hash localHash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor, List<String> additionalConfiguration) throws Exception {
+    void executeChecks(Hash localHash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor, List<String> additionalConfiguration) throws IOException {
         try (var issues = JCheck.check(localRepo, censusInstance.census(), CommitMessageParsers.v1, localHash,
                                        pr.targetHash(), additionalConfiguration)) {
             for (var issue : issues) {

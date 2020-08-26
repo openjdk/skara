@@ -28,6 +28,7 @@ import org.openjdk.skara.vcs.Hash;
 
 import java.io.*;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -70,7 +71,16 @@ public class SponsorCommand implements CommandHandler {
         reply.print("@" + pr.author().userName() + " ");
 
         // Execute merge
-        try {
+        try (var integrationLock = IntegrationLock.create(pr, Duration.ofMinutes(10))) {
+            if (!integrationLock.isLocked()) {
+                log.severe("Unable to acquire the integration lock during sponsoring for " + pr.webUrl());
+                reply.print("Unable to acquire the integration lock; aborting sponsored integration. The error has been logged and will be investigated.");
+                return;
+            }
+
+            // Now that we have the integration lock, refresh the PR metadata
+            pr = pr.repository().pullRequest(pr.id());
+
             var path = scratchPath.resolve("sponsor").resolve(pr.repository().name());
             var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
             var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
@@ -124,9 +134,12 @@ public class SponsorCommand implements CommandHandler {
                 reply.print("Warning! This commit did not result in any changes! ");
                 reply.println("No push attempt will be made.");
             }
-        } catch (Exception e) {
+        } catch (IOException | CommitFailure e) {
+            log.severe("An error occurred during sponsored integration (" + pr.webUrl() + "): " + e.getMessage());
             log.throwing("SponsorCommand", "handle", e);
-            reply.println("An error occurred during sponsored integration. No push attempt will be made.");
+            reply.println("An unexpected error occurred during sponsored integration. No push attempt will be made. " +
+                                  "The error has been logged and will be investigated. It is possible that this error " +
+                                  "is caused by a transient issue; feel free to retry the operation.");
         }
     }
 
