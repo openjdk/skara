@@ -55,7 +55,7 @@ public class CheckoutBotFactory implements BotFactory {
             var fromBranch = new Branch(from.substring(lastColon + 1));
             var to = Path.of(repo.get("to").asString());
 
-            var repoName = Path.of(fromURI.getPath()).getFileName().toString();
+            var repoName = fromURI.getPath();
             var markStorage = MarkStorage.create(marksRepo, marksUser, repoName);
 
             bots.add(new CheckoutBot(fromURI, fromBranch, to, storage, markStorage));

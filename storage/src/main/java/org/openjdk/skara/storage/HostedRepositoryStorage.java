@@ -69,6 +69,8 @@ class HostedRepositoryStorage<T> implements Storage<T> {
                 } catch (IOException ignored) {
                     // The remote ref may not yet exist
                     Repository localRepository = Repository.init(localStorage, repository.repositoryType());
+                    var file = localStorage.resolve(fileName);
+                    Files.createDirectories(file.getParent());
                     var storage = Files.writeString(localStorage.resolve(fileName), "");
                     localRepository.add(storage);
                     var firstCommit = localRepository.commit(message, authorName, authorEmail);

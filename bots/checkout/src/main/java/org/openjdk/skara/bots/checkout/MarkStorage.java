@@ -84,7 +84,7 @@ class MarkStorage {
     }
 
     static StorageBuilder<Mark> create(HostedRepository repo, Author user, String name) {
-        return new StorageBuilder<Mark>(name + ".marks.txt")
+        return new StorageBuilder<Mark>(name + "/marks.txt")
             .remoteRepository(repo, "master", user.name(), user.email(), "Updated marks for " + name)
             .serializer(MarkStorage::serialize)
             .deserializer(MarkStorage::deserialize);
