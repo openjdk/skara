@@ -56,6 +56,11 @@ public class GitPrCreate {
               .describe("NAME")
               .helptext("Name of target branch, defaults to 'master'")
               .optional(),
+        Option.shortcut("")
+              .fullname("cc")
+              .describe("MAILING LISTS")
+              .helptext("CC additional mailing lists for inital RFR e-mail")
+              .optional(),
         Switch.shortcut("")
               .fullname("ignore-workspace")
               .helptext("Ignore local changes in worktree and staging area when creating pull request")
@@ -353,6 +358,11 @@ public class GitPrCreate {
         } else {
             System.err.println("error: cannot create pull request with empty body, aborting");
             System.exit(1);
+        }
+
+        if (arguments.contains("cc")) {
+            var lists = arguments.get("cc").asString().trim();
+            body.add("/cc " + lists);
         }
 
         var isDraft = getSwitch("draft", "create", arguments);
