@@ -20,11 +20,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.bots.pr;
+package org.openjdk.skara.forge;
+
+import org.openjdk.skara.json.JSONValue;
+import org.openjdk.skara.json.JSONObject;
 
 import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class LabelConfiguration {
     private final Map<String, List<Pattern>> matchers;
@@ -44,22 +48,22 @@ public class LabelConfiguration {
         this.allowed = Collections.unmodifiableSet(allowed);
     }
 
-    static class LabelConfigurationBuilder {
+    public static class Builder {
         private final Map<String, List<Pattern>> matchers = new HashMap<>();
         private final Map<String, List<String>> groups = new HashMap<>();
         private final Set<String> extra = new HashSet<>();
 
-        public LabelConfigurationBuilder addMatchers(String label, List<Pattern> matchers) {
+        public Builder addMatchers(String label, List<Pattern> matchers) {
             this.matchers.put(label, matchers);
             return this;
         }
 
-        public LabelConfigurationBuilder addGroup(String label, List<String> members) {
+        public Builder addGroup(String label, List<String> members) {
             groups.put(label, members);
             return this;
         }
 
-        public LabelConfigurationBuilder addExtra(String label) {
+        public Builder addExtra(String label) {
             extra.add(label);
             return this;
         }
@@ -69,11 +73,43 @@ public class LabelConfiguration {
         }
     }
 
-    static LabelConfigurationBuilder newBuilder() {
-        return new LabelConfigurationBuilder();
+    public static Builder builder() {
+        return new Builder();
     }
 
-    public Set<String> fromChanges(Set<Path> changes) {
+    public static LabelConfiguration fromJSON(JSONValue json) {
+        var builder = builder();
+        if (json.contains("matchers")) {
+            var fields = json.get("matchers").fields();
+            var matchers = fields.stream()
+                                 .collect(Collectors.toMap(JSONObject.Field::name,
+                                                           field -> field.value()
+                                                                         .stream()
+                                                                         .map(JSONValue::asString)
+                                                                         .map(Pattern::compile)
+                                                                         .collect(Collectors.toList())));
+            matchers.forEach(builder::addMatchers);
+        }
+        if (json.contains("groups")) {
+            var fields = json.get("groups").fields();
+            var groups = fields.stream()
+                               .collect(Collectors.toMap(JSONObject.Field::name,
+                                                         field -> field.value()
+                                                                       .stream()
+                                                                       .map(JSONValue::asString)
+                                                                       .collect(Collectors.toList())));
+            groups.forEach(builder::addGroup);
+        }
+        if (json.contains("extra")) {
+            var extra = json.get("extra").stream()
+                                         .map(JSONValue::asString)
+                                         .collect(Collectors.toList());
+            extra.forEach(builder::addExtra);
+        }
+        return builder.build();
+    }
+
+    public Set<String> label(Set<Path> changes) {
         var labels = new HashSet<String>();
         for (var file : changes) {
             for (var label : matchers.entrySet()) {
@@ -107,5 +143,9 @@ public class LabelConfiguration {
 
     public Set<String> allowed() {
         return allowed;
+    }
+
+    public boolean isAllowed(String s) {
+        return allowed.contains(s);
     }
 }
