@@ -800,6 +800,12 @@
             "test/lib/jdk/test/lib/dcmd/",
             "test/lib/jdk/test/lib/hprof/"
         ],
+        "shenandoah": [
+            "src/hotspot/cpu/\\w+/gc/shenandoah/",
+            "src/hotspot/share/gc/shenandoah/",
+            "src/jdk.hotspot.agent/share/classes/sun/jvm/hotspot/gc/shenandoah/",
+            "test/hotspot/jtreg/gc/shenandoah/"
+        ],
         "sound": [
             "src/java.desktop/macosx/native/libjsound/",
             "src/java.desktop/share/classes/com/sun/media/sound/",
