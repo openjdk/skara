@@ -57,6 +57,6 @@ public class LabelConfigurationTests {
 
         assertEquals(Set.of("1"), config.fromChanges(Set.of(Path.of("a.cpp"))));
         assertEquals(Set.of("2"), config.fromChanges(Set.of(Path.of("a.hpp"))));
-        assertEquals(Set.of("1", "2", "both"), config.fromChanges(Set.of(Path.of("a.cpp"), Path.of("a.hpp"))));
+        assertEquals(Set.of("both"), config.fromChanges(Set.of(Path.of("a.cpp"), Path.of("a.hpp"))));
     }
 }
