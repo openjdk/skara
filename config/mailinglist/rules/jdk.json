@@ -91,11 +91,8 @@
         ],
         "build-dev": [
             "\\.\\w+",
-            "ADDITIONAL_LICENSE_INFO",
-            "Makefile",
-            "README",
+            "makefile|configure",
             "bin/",
-            "configure",
             "doc/",
             "make/",
             "src/java.base/share/man/",
@@ -618,6 +615,9 @@
             "test/langtools/tools/javac/diags/examples/",
             "test/langtools/tools/javac/doclint/",
             "test/langtools/tools/javac/doctree/"
+        ],
+        "jdk-dev": [
+            "(?!makefile|configure)\\w+$"
         ],
         "jmx-dev": [
             "src/java.management.rmi/share/classes/javax/management/",
