@@ -87,21 +87,22 @@ public class LabelConfiguration {
             }
         }
 
-        // If the current labels matches at least two members of a group, the group is also included
+        var ret = new HashSet<>(labels);
+        // If the current labels matches at least two members of a group, use the group instead
         for (var group : groups.entrySet()) {
             var count = 0;
             for (var groupEntry : group.getValue()) {
-                if (labels.contains(groupEntry)) {
+                if (ret.contains(groupEntry)) {
                     count++;
                     if (count == 2) {
-                        labels.add(group.getKey());
+                        ret.add(group.getKey());
+                        ret.removeAll(group.getValue());
                         break;
                     }
                 }
             }
         }
-
-        return labels;
+        return ret;
     }
 
     public Set<String> allowed() {

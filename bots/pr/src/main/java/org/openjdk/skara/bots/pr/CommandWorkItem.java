@@ -213,7 +213,8 @@ public class CommandWorkItem extends PullRequestWorkItem {
         var nextCommand = nextCommand(pr, comments);
         if (nextCommand.isEmpty()) {
             log.info("No new non-external PR commands found, stopping further processing");
-            return List.of();
+            // When all commands are processed, it's time to check labels
+            return List.of(new LabelerWorkItem(bot, pr, errorHandler));
         }
 
         var census = CensusInstance.create(bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr);
