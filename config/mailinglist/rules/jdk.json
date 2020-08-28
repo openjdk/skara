@@ -1,6 +1,6 @@
 {
     "matchers": {
-        "2d-dev": [
+        "2d": [
             "make/\\w+(Demos|X11)",
             "make/autoconf/lib-(font|freetype|x11)",
             "make/data/(font|x11)",
@@ -59,7 +59,7 @@
             "test/jdk/javax/print/",
             "test/jdk/sun/java2d/"
         ],
-        "awt-dev": [
+        "awt": [
             "src/java.base/share/classes/jdk/internal/access/\\w+AWT",
             "src/java.datatransfer/share/classes/java/awt/",
             "src/java.desktop/aix/classes",
@@ -89,7 +89,7 @@
             "test/jdk/java/awt/(?!font)",
             "test/jdk/sun/awt/dnd"
         ],
-        "build-dev": [
+        "build": [
             "\\.\\w+",
             "makefile|configure",
             "bin/",
@@ -102,7 +102,7 @@
             "test/jdk/build/",
             "test/make/"
         ],
-        "compiler-dev": [
+        "compiler": [
             "make/Compile",
             "make/data/symbols/java.compiler",
             "make/jdk/src/classes/build/tools/depend",
@@ -181,7 +181,7 @@
             "test/langtools/tools/jdeps/",
             "test/langtools/tools/sjavac/"
         ],
-        "core-libs-dev": [
+        "core-libs": [
             "bin/idea.sh",
             "make/CompileJavaModules.gmk",
             "make/CompileToolsJdk.gmk",
@@ -377,7 +377,7 @@
             "test/micro/org/openjdk/bench/jdk",
             "test/micro/org/openjdk/bench/vm/lang/"
         ],
-        "hotspot-compiler-dev": [
+        "hotspot-compiler": [
             "src/hotspot/.mx.jvmci/",
             "src/hotspot/cpu/",
             "src/hotspot/share/adlc/",
@@ -430,7 +430,7 @@
             "test/lib/sun/hotspot/cpuinfo",
             "test/micro/org/openjdk/bench/vm/compiler/"
         ],
-        "hotspot-gc-dev": [
+        "hotspot-gc": [
             "src/hotspot/cpu/\\w+/gc/",
             "src/hotspot/os/\\w+/gc/",
             "src/hotspot/os_cpu/\\w+/gc/",
@@ -455,7 +455,7 @@
             "test/jdk/jdk/jfr/event/gc/",
             "test/lib/sun/hotspot/gc"
         ],
-        "hotspot-jfr-dev": [
+        "hotspot-jfr": [
             "make/hotspot/gensrc/.*Jfr.gmk",
             "make/modules/jdk.jfr/",
             "src/hotspot/share/jfr/",
@@ -468,7 +468,7 @@
             "test/jdk/jdk/jfr/",
             "test/lib/jdk/test/lib/jfr/"
         ],
-        "hotspot-runtime-dev": [
+        "hotspot-runtime": [
             "src/hotspot/cpu/\\w+/(\\w*interpreter|frame|macroassembler|rdtsc|vm_version)",
             "src/hotspot/os/",
             "src/hotspot/os_cpu/",
@@ -514,7 +514,7 @@
             "test/lib/jdk/test/lib/process/",
             "test/lib/sun/hotspot/WhiteBox.java"
         ],
-        "i18n-dev": [
+        "i18n": [
             "make/CopyInterimTZDB.gmk",
             "make/data/characterdata/",
             "make/data/charsetmapping/",
@@ -597,7 +597,7 @@
             "test/jdk/sun/util/resources/cldr/",
             "test/jdk/tools/jlink/plugins/\\w*locales"
         ],
-        "javadoc-dev": [
+        "javadoc": [
             "make/data/docs-resources/resources",
             "make/jdk/src/classes/build/tools/taglet/",
             "src/java.base/share/classes/java/lang/doc-files/",
@@ -616,10 +616,10 @@
             "test/langtools/tools/javac/doclint/",
             "test/langtools/tools/javac/doctree/"
         ],
-        "jdk-dev": [
+        "jdk": [
             "(?!makefile|configure)\\w+$"
         ],
-        "jmx-dev": [
+        "jmx": [
             "src/java.management.rmi/share/classes/javax/management/",
             "src/jdk.management.agent/",
             "src/jdk.management/",
@@ -627,7 +627,7 @@
             "test/jdk/javax/management/",
             "test/jdk/sun/management/"
         ],
-        "net-dev": [
+        "net": [
             "make/modules/jdk.net",
             "make/modules/jdk.sctp",
             "src/java.base/aix/native/libnet",
@@ -657,7 +657,7 @@
             "test/lib/jdk/test/lib/net/",
             "test/micro/org/openjdk/bench/java/net/"
         ],
-        "nio-dev": [
+        "nio": [
             "src/java.base/aix/classes/sun/nio/",
             "src/java.base/aix/native/libnio/",
             "src/java.base/linux/classes/sun/nio/",
@@ -678,7 +678,7 @@
             "test/jdk/jdk/nio/",
             "test/micro/org/openjdk/bench/java/nio/"
         ],
-        "security-dev": [
+        "security": [
             "make/ZipSecurity.gmk",
             "make/data/cacerts/",
             "make/data/publicsuffixlist/",
@@ -739,7 +739,7 @@
             "test/micro/org/openjdk/bench/java/security/",
             "test/micro/org/openjdk/bench/javax/crypto/"
         ],
-        "serviceability-dev": [
+        "serviceability": [
             "make/jdk/src/classes/build/tools/jdwpgen/",
             "make/modules/java.instrument",
             "make/modules/java.management",
@@ -800,7 +800,7 @@
             "test/lib/jdk/test/lib/dcmd/",
             "test/lib/jdk/test/lib/hprof/"
         ],
-        "sound-dev": [
+        "sound": [
             "src/java.desktop/macosx/native/libjsound/",
             "src/java.desktop/share/classes/com/sun/media/sound/",
             "src/java.desktop/share/classes/javax/sound/",
@@ -809,7 +809,7 @@
             "src/java.desktop/windows/native/libjsound/",
             "test/jdk/javax/sound/"
         ],
-        "swing-dev": [
+        "swing": [
             "make/jdk/src/classes/build/tools/generatenimbus/",
             "src/demo/share/jfc/SwingSet2/",
             "src/java.desktop/aix/classes",
@@ -826,13 +826,13 @@
         ]
     },
     "groups": {
-        "hotspot-dev": [
-            "hotspot-compiler-dev",
-            "hotspot-gc-dev",
-            "hotspot-runtime-dev",
-            "hotspot-jfr-dev"
+        "hotspot": [
+            "hotspot-compiler",
+            "hotspot-gc",
+            "hotspot-runtime",
+            "hotspot-jfr"
         ],
-        "jdk-dev": [
+        "jdk": [
             "hotspot",
             "core-libs",
             "compiler",
