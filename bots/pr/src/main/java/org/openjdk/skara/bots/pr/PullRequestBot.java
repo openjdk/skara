@@ -119,7 +119,6 @@ class PullRequestBot implements Bot {
                 }
 
                 ret.add(new CheckWorkItem(this, pr, e -> updateCache.invalidate(pr)));
-                ret.add(new LabelerWorkItem(this, pr, e -> updateCache.invalidate(pr)));
             }
         }
 

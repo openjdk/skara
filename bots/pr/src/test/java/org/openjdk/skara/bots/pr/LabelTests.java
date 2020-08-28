@@ -125,7 +125,7 @@ public class LabelTests {
     }
 
     @Test
-    void removeAutoApplied(TestInfo testInfo) throws IOException {
+    void adjustAutoApplied(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
@@ -165,7 +165,7 @@ public class LabelTests {
             // It will refuse to remove it
             pr.addComment("/label remove 2");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "The `2` label was automatically added and cannot be removed.");
+            assertLastCommentContains(pr, "The `2` label was successfully removed.");
 
             // Add another file to trigger a group match
             Files.writeString(localRepoFolder.resolve("test.cpp"), "Hello there");
@@ -173,15 +173,80 @@ public class LabelTests {
             editHash = localRepo.commit("Another one", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "edit");
 
-            // The bot should have applied more labels automatically
+            // The bot should have applied more labels automatically (but not the manually removed)
             TestBotRunner.runPeriodicItems(prBot);
-            assertEquals(Set.of("1", "2", "group", "rfr"), new HashSet<>(pr.labels()));
+            assertEquals(Set.of("group", "rfr"), new HashSet<>(pr.labels()));
 
-            // It will refuse to remove these as well
-            pr.addComment("/label remove group, 1");
+            // Remove one of these as well
+            pr.addComment("/label remove group");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "The `1` label was automatically added and cannot be removed.");
-            assertLastCommentContains(pr, "The `group` label was automatically added and cannot be removed.");
+            assertLastCommentContains(pr, "The `group` label was successfully removed.");
+            assertEquals(Set.of("rfr"), new HashSet<>(pr.labels()));
+
+            // Adding them back again is fine
+            pr.addComment("/label add group 1");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "The `group` label was successfully added.");
+            assertLastCommentContains(pr, "The `1` label was successfully added.");
+            assertEquals(Set.of("1", "group", "rfr"), new HashSet<>(pr.labels()));
+        }
+    }
+
+    @Test
+    void overrideAutoApplied(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(integrator.forge().currentUser().id())
+                                           .addCommitter(author.forge().currentUser().id());
+            var labelConfiguration = LabelConfiguration.newBuilder()
+                                                       .addMatchers("1", List.of(Pattern.compile("cpp$")))
+                                                       .addMatchers("2", List.of(Pattern.compile("hpp$")))
+                                                       .addGroup("group", List.of("1", "2"))
+                                                       .addExtra("extra")
+                                                       .build();
+            var prBot = PullRequestBot.newBuilder()
+                                      .repo(integrator)
+                                      .censusRepo(censusBuilder.build())
+                                      .labelConfiguration(labelConfiguration)
+                                      .build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType(), Path.of("test.hpp"));
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
+            pr.setBody("/cc 1");
+
+            // The bot will not add any label automatically
+            TestBotRunner.runPeriodicItems(prBot);
+            assertEquals(Set.of("1", "rfr"), new HashSet<>(pr.labels()));
+
+            // Add another file to trigger a group match
+            Files.writeString(localRepoFolder.resolve("test.cpp"), "Hello there");
+            localRepo.add(Path.of("test.cpp"));
+            editHash = localRepo.commit("Another one", "duke", "duke@openjdk.org");
+            localRepo.push(editHash, author.url(), "edit");
+
+            // The bot will still not do any automatic labelling
+            TestBotRunner.runPeriodicItems(prBot);
+            assertEquals(Set.of("1", "rfr"), new HashSet<>(pr.labels()));
+
+            // Adding manually is still fine
+            pr.addComment("/label add group 2");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "The `group` label was successfully added.");
+            assertLastCommentContains(pr, "The `2` label was successfully added.");
+            assertEquals(Set.of("1", "2", "group", "rfr"), new HashSet<>(pr.labels()));
         }
     }
 

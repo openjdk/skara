@@ -49,15 +49,6 @@ public class LabelCommand implements CommandHandler {
         labelConfiguration.allowed().forEach(label -> reply.println(" * `" + label + "`"));
     }
 
-    private Set<String> automaticLabels(PullRequestBot bot, PullRequest pr, Path scratchPath) throws IOException {
-        var path = scratchPath.resolve("pr").resolve("labelcommand").resolve(pr.repository().name());
-        var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
-        var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
-        var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, path);
-        var files = PullRequestUtils.changedFiles(pr, localRepo);
-        return bot.labelConfiguration().fromChanges(files);
-    }
-
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (!command.user().equals(pr.author()) && (!censusInstance.isCommitter(command.user()))) {
@@ -88,28 +79,21 @@ public class LabelCommand implements CommandHandler {
             for (var label : labels) {
                 if (!currentLabels.contains(label)) {
                     pr.addLabel(label);
+                    reply.println(LabelTracker.addLabelMarker(label));
                     reply.println("The `" + label + "` label was successfully added.");
                 } else {
                     reply.println("The `" + label + "` label was already applied.");
                 }
             }
         } else if (argumentMatcher.group(1).equals("remove")) {
-            try {
-                var automaticLabels = automaticLabels(bot, pr, scratchPath);
-                for (var label : labels) {
-                    if (currentLabels.contains(label)) {
-                        if (automaticLabels.contains(label)) {
-                            reply.println("The `" + label + "` label was automatically added and cannot be removed.");
-                        } else {
-                            pr.removeLabel(label);
-                            reply.println("The `" + label + "` label was successfully removed.");
-                        }
-                    } else {
-                        reply.println("The `" + label + "` label was not set.");
-                    }
+            for (var label : labels) {
+                if (currentLabels.contains(label)) {
+                    pr.removeLabel(label);
+                    reply.println(LabelTracker.removeLabelMarker(label));
+                    reply.println("The `" + label + "` label was successfully removed.");
+                } else {
+                    reply.println("The `" + label + "` label was not set.");
                 }
-            } catch (IOException e) {
-                reply.println("An error occurred when trying to check automatically added labels");
             }
         }
     }
