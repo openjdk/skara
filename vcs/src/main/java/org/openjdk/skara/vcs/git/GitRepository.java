@@ -305,6 +305,9 @@ public class GitRepository implements Repository {
         var delimiter = "#@!_-=&";
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("git", "log",
+                                  "-c",
+                                  "--no-patch",
+                                  "--full-history",
                                   "--follow",
                                   "--format=" + delimiter + "\n" + GitCommitMetadata.FORMAT,
                                   "--topo-order",
