@@ -20,7 +20,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.bots.pr;
+package org.openjdk.skara.forge;
 
 import org.junit.jupiter.api.Test;
 
@@ -33,21 +33,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class LabelConfigurationTests {
     @Test
     void simple() {
-        var config = LabelConfiguration.newBuilder()
+        var config = LabelConfiguration.builder()
                                        .addMatchers("1", List.of(Pattern.compile("cpp$")))
                                        .addMatchers("2", List.of(Pattern.compile("hpp$")))
                                        .build();
 
         assertEquals(Set.of("1", "2"), config.allowed());
 
-        assertEquals(Set.of("1"), config.fromChanges(Set.of(Path.of("a.cpp"))));
-        assertEquals(Set.of("2"), config.fromChanges(Set.of(Path.of("a.hpp"))));
-        assertEquals(Set.of("1", "2"), config.fromChanges(Set.of(Path.of("a.cpp"), Path.of("a.hpp"))));
+        assertEquals(Set.of("1"), config.label(Set.of(Path.of("a.cpp"))));
+        assertEquals(Set.of("2"), config.label(Set.of(Path.of("a.hpp"))));
+        assertEquals(Set.of("1", "2"), config.label(Set.of(Path.of("a.cpp"), Path.of("a.hpp"))));
     }
 
     @Test
     void group() {
-        var config = LabelConfiguration.newBuilder()
+        var config = LabelConfiguration.builder()
                                        .addMatchers("1", List.of(Pattern.compile("cpp$")))
                                        .addMatchers("2", List.of(Pattern.compile("hpp$")))
                                        .addGroup("both", List.of("1", "2"))
@@ -55,8 +55,8 @@ public class LabelConfigurationTests {
 
         assertEquals(Set.of("1", "2", "both"), config.allowed());
 
-        assertEquals(Set.of("1"), config.fromChanges(Set.of(Path.of("a.cpp"))));
-        assertEquals(Set.of("2"), config.fromChanges(Set.of(Path.of("a.hpp"))));
-        assertEquals(Set.of("both"), config.fromChanges(Set.of(Path.of("a.cpp"), Path.of("a.hpp"))));
+        assertEquals(Set.of("1"), config.label(Set.of(Path.of("a.cpp"))));
+        assertEquals(Set.of("2"), config.label(Set.of(Path.of("a.hpp"))));
+        assertEquals(Set.of("both"), config.label(Set.of(Path.of("a.cpp"), Path.of("a.hpp"))));
     }
 }

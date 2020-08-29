@@ -44,7 +44,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
 
     private Set<String> getLabels(Repository localRepo) throws IOException {
         var files = PullRequestUtils.changedFiles(pr, localRepo);
-        return bot.labelConfiguration().fromChanges(files);
+        return bot.labelConfiguration().label(files);
     }
 
     @Override

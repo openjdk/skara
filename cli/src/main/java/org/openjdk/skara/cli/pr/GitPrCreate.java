@@ -26,17 +26,18 @@ import org.openjdk.skara.args.*;
 import org.openjdk.skara.cli.GitPublish;
 import org.openjdk.skara.cli.GitJCheck;
 import org.openjdk.skara.vcs.Branch;
+import org.openjdk.skara.vcs.ReadOnlyRepository;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
+import org.openjdk.skara.forge.Forge;
+import org.openjdk.skara.forge.LabelConfiguration;
+import org.openjdk.skara.json.JSON;
 
 import static org.openjdk.skara.cli.pr.Utils.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class GitPrCreate {
@@ -55,6 +56,11 @@ public class GitPrCreate {
               .fullname("branch")
               .describe("NAME")
               .helptext("Name of target branch, defaults to 'master'")
+              .optional(),
+        Option.shortcut("")
+              .fullname("cc")
+              .describe("MAILING LISTS")
+              .helptext("Mailing lists to CC for inital RFR e-mail")
               .optional(),
         Switch.shortcut("")
               .fullname("ignore-workspace")
@@ -96,6 +102,33 @@ public class GitPrCreate {
              .singular()
              .optional()
     );
+
+
+    private static LabelConfiguration labelConfiguration(Forge forge, String project) throws IOException {
+        var group = project.split("/")[0];
+        var skaraRemoteRepo = forge.repository(group + "/skara").orElseThrow(() ->
+            new IOException("error: could not resolve Skara repository")
+        );
+        var rules = skaraRemoteRepo.fileContents("config/mailinglist/rules/jdk.json", "master");
+        var json = JSON.parse(rules);
+        return LabelConfiguration.fromJSON(json);
+    }
+
+    private static Set<String> suggestedLabels(ReadOnlyRepository repo, Forge forge, String project, String targetRef, String headRef) throws IOException {
+        var config = labelConfiguration(forge, project);
+        var baseHash = repo.resolve(targetRef).orElseThrow(() ->
+            new IOException("error: cannot resolve " + targetRef)
+        );
+        var headHash = repo.resolve(headRef).orElseThrow(() ->
+            new IOException("error: cannot resolve " + headRef)
+        );
+        var status = repo.status(baseHash, headHash);
+        var files = status.stream()
+                          .filter(e -> !e.status().isDeleted())
+                          .map(e -> e.target().path().get())
+                          .collect(Collectors.toSet());
+        return config.label(files);
+    }
 
     public static void main(String[] args) throws IOException, InterruptedException {
         var parser = new ArgumentParser("git-pr", flags, inputs);
@@ -269,6 +302,84 @@ public class GitPrCreate {
             }
         }
 
+        var mailingLists = new ArrayList<String>();
+        var parentProject = projectName(parentRepo.url());
+        var isTargetingJDKRepo = parentProject.endsWith("jdk");
+        var cc = getOption("cc", "create", arguments);
+        var isCCManual = cc != null && !cc.equals("auto");
+        if (!isTargetingJDKRepo && isCCManual) {
+            System.out.println("error: you cannot manually CC additional mailing lists for " + parentProject);
+            System.exit(1);
+        }
+        if (isTargetingJDKRepo) {
+            if (isCCManual) {
+                var config = labelConfiguration(host, parentProject);
+                var lists = cc.split(",");
+                for (var input : lists) {
+                    var label = input;
+                    if (label.endsWith("@openjdk.java.net")) {
+                        label = input.split("@")[0];
+                    }
+                    if (label.endsWith("-dev")) {
+                        label = label.replace("-dev", "");
+                    }
+                    if (!config.isAllowed(label) && !config.isAllowed(label + "-dev")) {
+                        System.out.println("error: the mailing list \"" + label +
+                                           "-dev@openjdk.java.net\" is not applicable, aborting.");
+                        System.exit(1);
+                    }
+                }
+                System.out.println("You have chosen the following mailing lists to be CC:d for the \"RFR\" e-mail:");
+                for (var input : lists) {
+                    String list = null;
+                    if (input.endsWith("@openjdk.java.net")) {
+                        list = input;
+                    } else if (input.endsWith("-dev")) {
+                        list = input + "@openjdk.java.net";
+                    } else  {
+                        list = input + "-dev@openjdk.java.net";
+                    }
+                    System.out.println("- " + list);
+                    mailingLists.add(list);
+                }
+            } else {
+                var suggested = suggestedLabels(repo, host, parentProject, targetBranch, headRef);
+                System.out.println("The following mailing lists will be CC:d for the \"RFR\" e-mail:");
+                for (var label : suggested) {
+                    String list = null;
+                    if (label.endsWith("-dev")) {
+                        list = label + "@openjdk.java.net";
+                    } else {
+                        list = label + "-dev@openjdk.java.net";
+                    }
+                    if (cc == null) {
+                        System.out.println("- " + list);
+                    }
+                    mailingLists.add(list);
+                }
+            }
+            if (cc == null || !cc.equals("auto")) {
+                System.out.println("");
+                System.out.print("Do you want to proceed with this mailing list selection? [Y/n]: ");
+                var scanner = new Scanner(System.in);
+                var answer = scanner.nextLine().toLowerCase();
+                while (!(answer.equals("y") || answer.equals("n") || answer.isEmpty())) {
+                    System.out.print("Please answer with 'y', 'n' or empty for the default choice: ");
+                    answer = scanner.nextLine().toLowerCase();
+                }
+                if (!(answer.isEmpty() || answer.equals("y"))) {
+                    System.out.println("");
+                    System.out.println("error: user not satisfied with mailing list selection, aborting.");
+                    if (cc == null) {
+                        System.out.println("       To specify mailing lists manually, use the --cc option.");
+                    } else if (cc.equals("auto")) {
+                        System.out.println("       You have set --cc=auto, you can use --cc to specify mailing lists manually");
+                    }
+                    System.exit(1);
+                }
+            }
+        }
+
         var project = jbsProjectFromJcheckConf(repo, targetBranch);
         var issue = getIssue(currentBranch, project);
         var file = Files.createTempFile("PULL_REQUEST_", ".md");
@@ -327,6 +438,13 @@ public class GitPrCreate {
         }
         appendPaddedHTMLComment(file, "Repository: " + parentRepo.webUrl());
         appendPaddedHTMLComment(file, "Branch:     " + targetBranch);
+        if (!mailingLists.isEmpty()) {
+            appendPaddedHTMLComment(file, "");
+            appendPaddedHTMLComment(file, "The following mailing lists will be CC:d for the \"RFR\" e-mail:");
+            for (var list : mailingLists) {
+                appendPaddedHTMLComment(file, "- " + list);
+            }
+        }
 
         var success = spawnEditor(repo, file);
         if (!success) {
@@ -353,6 +471,13 @@ public class GitPrCreate {
         } else {
             System.err.println("error: cannot create pull request with empty body, aborting");
             System.exit(1);
+        }
+
+        if (isCCManual && !mailingLists.isEmpty()) {
+            var arg = mailingLists.stream()
+                                  .map(l -> l.split("@")[0].replace("-dev", ""))
+                                  .collect(Collectors.joining(","));
+            body.add("/cc " + arg);
         }
 
         var isDraft = getSwitch("draft", "create", arguments);

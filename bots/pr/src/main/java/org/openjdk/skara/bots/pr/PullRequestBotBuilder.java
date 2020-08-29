@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.HostedRepository;
+import org.openjdk.skara.forge.LabelConfiguration;
 import org.openjdk.skara.issuetracker.IssueProject;
 
 import java.nio.file.Path;
@@ -33,7 +34,7 @@ public class PullRequestBotBuilder {
     private HostedRepository repo;
     private HostedRepository censusRepo;
     private String censusRef = "master";
-    private LabelConfiguration labelConfiguration = LabelConfiguration.newBuilder().build();
+    private LabelConfiguration labelConfiguration = LabelConfiguration.builder().build();
     private Map<String, String> externalCommands = Map.of();
     private Map<String, String> blockingCheckLabels = Map.of();
     private Set<String> readyLabels = Set.of();

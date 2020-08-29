@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.bot.*;
+import org.openjdk.skara.forge.LabelConfiguration;
 import org.openjdk.skara.json.*;
 
 import java.util.*;
@@ -64,31 +65,8 @@ public class PullRequestBotFactory implements BotFactory {
 
         var labelConfigurations = new HashMap<String, LabelConfiguration>();
         for (var labelGroup : specific.get("labels").fields()) {
-            var labelConfiguration = LabelConfiguration.newBuilder();
-            if (labelGroup.value().contains("matchers")) {
-                var matchers = labelGroup.value().get("matchers").fields().stream()
-                                         .collect(Collectors.toMap(JSONObject.Field::name,
-                                                                   field -> field.value().stream()
-                                                                                 .map(JSONValue::asString)
-                                                                                 .map(Pattern::compile)
-                                                                                 .collect(Collectors.toList())));
-                matchers.forEach(labelConfiguration::addMatchers);
-            }
-            if (labelGroup.value().contains("groups")) {
-                var groups = labelGroup.value().get("groups").fields().stream()
-                                       .collect(Collectors.toMap(JSONObject.Field::name,
-                                                                 field -> field.value().stream()
-                                                                               .map(JSONValue::asString)
-                                                                               .collect(Collectors.toList())));
-                groups.forEach(labelConfiguration::addGroup);
-            }
-            if (labelGroup.value().contains("extra")) {
-                var extra = labelGroup.value().get("extra").stream()
-                                      .map(JSONValue::asString)
-                                      .collect(Collectors.toList());
-                extra.forEach(labelConfiguration::addExtra);
-            }
-            labelConfigurations.put(labelGroup.name(), labelConfiguration.build());
+            labelConfigurations.put(labelGroup.name(),
+                                    LabelConfiguration.fromJSON(labelGroup.value()));
         }
 
         for (var repo : specific.get("repositories").fields()) {
