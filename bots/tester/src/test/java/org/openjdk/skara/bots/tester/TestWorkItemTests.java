@@ -64,7 +64,7 @@ class TestWorkItemTests {
             pr.author = duke;
             pr.comments = List.of();
 
-            var item = new TestWorkItem(ci, approvers, available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
             item.run(scratch);
 
             var comments = pr.comments();
@@ -99,7 +99,7 @@ class TestWorkItemTests {
             var testApproveComment = new Comment("0", "/test approve", duke, now, now);
             pr.comments = List.of(testApproveComment);
 
-            var item = new TestWorkItem(ci, approvers, available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
             item.run(scratch);
 
             var comments = pr.comments();
@@ -135,7 +135,7 @@ class TestWorkItemTests {
             var testApproveComment = new Comment("0", "/test cancel", duke, now, now);
             pr.comments = List.of(testApproveComment);
 
-            var item = new TestWorkItem(ci, approvers, available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
             item.run(scratch);
 
             var comments = pr.comments();
@@ -173,7 +173,7 @@ class TestWorkItemTests {
             var comment = new Comment("0", "/test foobar", duke, now, now);
             pr.comments = new ArrayList<>(List.of(comment));
 
-            var item = new TestWorkItem(ci, approvers, available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
             item.run(scratch);
 
             var comments = pr.comments();
@@ -220,7 +220,7 @@ class TestWorkItemTests {
             var comment = new Comment("0", "/test foobar", duke, now, now);
             pr.comments = new ArrayList<>(List.of(comment));
 
-            var item = new TestWorkItem(ci, approvers, available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
 
             // Non-existing test group should result in error
             item.run(scratch);
@@ -301,7 +301,7 @@ class TestWorkItemTests {
             var cancelComment = new Comment("1", "/test cancel", duke, now, now);
             pr.comments = new ArrayList<>(List.of(testComment, cancelComment));
 
-            var item = new TestWorkItem(ci, approvers, available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
 
             item.run(scratch);
 
@@ -342,7 +342,7 @@ class TestWorkItemTests {
             var comment = new Comment("0", "/test tier1", duke, now, now);
             pr.comments = new ArrayList<>(List.of(comment));
 
-            var item = new TestWorkItem(ci, approvers, available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
 
             item.run(scratch);
 
@@ -426,7 +426,7 @@ class TestWorkItemTests {
             var comment = new Comment("0", "/test tier1", duke, now, now);
             pr.comments = new ArrayList<>(List.of(comment));
 
-            var item = new TestWorkItem(ci, approvers, available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
 
             item.run(scratch);
 
@@ -513,7 +513,7 @@ class TestWorkItemTests {
             var comment = new Comment("0", "/test tier1", duke, now, now);
             pr.comments = new ArrayList<>(List.of(comment));
 
-            var item = new TestWorkItem(ci, approvers, available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
 
             item.run(scratch);
 
@@ -621,7 +621,7 @@ class TestWorkItemTests {
             var comment = new Comment("0", "/test tier1", duke, now, now);
             pr.comments = new ArrayList<>(List.of(comment));
 
-            var item = new TestWorkItem(ci, approvers, available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
 
             item.run(scratch);
 
@@ -746,7 +746,7 @@ class TestWorkItemTests {
             var comment = new Comment("0", "/test tier1", duke, now, now);
             pr.comments = new ArrayList<>(List.of(comment));
 
-            var item = new TestWorkItem(ci, approvers, available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
 
             item.run(scratch);
 
@@ -834,7 +834,7 @@ class TestWorkItemTests {
             var comment = new Comment("0", "/test tier1", duke, now, now);
             pr.comments = new ArrayList<>(List.of(comment));
 
-            var item = new TestWorkItem(ci, approvers, available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
 
             item.run(scratch);
 
@@ -943,6 +943,84 @@ class TestWorkItemTests {
             assertEquals("", summaryLines[9]);
             assertEquals("## Result", summaryLines[10]);
             assertEquals("8 jobs passed, 0 jobs with failures, 0 jobs not run", summaryLines[11]);
+        }
+    }
+
+    @Test
+    void userOnApprovelistDoesNotNeedApproval() throws IOException {
+        try (var tmp = new TemporaryDirectory()) {
+            var localRepoDir = tmp.path().resolve("repository.git");
+            var localRepo = Repository.init(localRepoDir, VCS.GIT);
+            var readme = localRepoDir.resolve("README");
+            Files.writeString(readme, "Hello\n");
+            localRepo.add(readme);
+            var head = localRepo.commit("Add README", "duke", "duke@openjdk.org");
+
+            var ci = new InMemoryContinuousIntegration();
+            var approvers = "0";
+            var available = List.of("tier1", "tier2", "tier3");
+            var defaultJobs = List.of("tier1");
+            var name = "test";
+            var storage = tmp.path().resolve("storage");
+            var scratch = tmp.path().resolve("storage");
+
+            var bot = new HostUser(1, "bot", "openjdk [bot]");
+            var host = new InMemoryHost();
+            host.currentUserDetails = bot;
+            host.groups = Map.of(approvers, Set.of());
+
+            var repo = new InMemoryHostedRepository();
+            repo.host = host;
+            repo.webUrl = URI.create("file://" + localRepoDir.toAbsolutePath());
+            repo.url = URI.create("file://" + localRepoDir.toAbsolutePath());
+            repo.id = 1337L;
+
+            var pr = new InMemoryPullRequest();
+            pr.repository = repo;
+            pr.id = "17";
+
+            var duke = new HostUser(0, "duke", "Duke");
+            pr.author = duke;
+            pr.headHash = head;
+
+            var now = ZonedDateTime.now();
+            var comment = new Comment("0", "/test tier1", duke, now, now);
+            pr.comments = new ArrayList<>(List.of(comment));
+
+            var item = new TestWorkItem(ci, approvers, Set.of("0"), available, defaultJobs, name, storage, pr);
+
+            var expectedJobId = "null-1337-17-0";
+            var expectedJob = new InMemoryJob();
+            expectedJob.status = new Job.Status(0, 1, 7);
+            ci.jobs.put(expectedJobId, expectedJob);
+
+            item.run(scratch);
+
+            var comments = pr.comments();
+            assertEquals(2, comments.size());
+            assertEquals(comment, comments.get(0));
+            var secondComment = comments.get(1);
+            assertEquals(bot, secondComment.author());
+
+            var lines = secondComment.body().split("\n");
+            assertEquals("<!-- TEST STARTED -->", lines[0]);
+            assertEquals("<!-- " + expectedJobId + " -->", lines[1]);
+            assertEquals("<!-- " + head.hex() + " -->", lines[2]);
+            assertEquals("A test job has been started with id: " + expectedJobId, lines[3]);
+
+            assertEquals(1, ci.submissions.size());
+            var submission = ci.submissions.get(0);
+            assertTrue(submission.source.startsWith(storage));
+            assertEquals(List.of("tier1"), submission.jobs);
+            assertEquals(expectedJobId, submission.id);
+
+            var checks = pr.checks(pr.headHash());
+            assertEquals(1, checks.keySet().size());
+            var check = checks.get("test");
+            assertEquals("Summary", check.title().get());
+            assertTrue(check.summary()
+                            .get()
+                            .contains("0 jobs completed, 1 job running, 7 jobs not yet started"));
         }
     }
 }

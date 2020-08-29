@@ -23,7 +23,10 @@
 package org.openjdk.skara.bots.tester;
 
 import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
+
+import java.util.function.Predicate;
 
 class State {
     private final Stage stage;
@@ -77,7 +80,7 @@ class State {
         return finished;
     }
 
-    static State from(PullRequest pr, String approverGroupId) {
+    static State from(PullRequest pr, Predicate<HostUser> validate) {
         Comment requested = null;
         Comment pending = null;
         Comment approval = null;
@@ -127,7 +130,7 @@ class State {
                     }
                 } else if (body.equals("/test approve")) {
                     approval = comment;
-                    if (host.isMemberOf(approverGroupId, author)) {
+                    if (validate.test(author)) {
                         isApproved = true;
                     }
                 } else if (body.equals("/test cancel")) {
@@ -135,7 +138,7 @@ class State {
                         cancelled = comment;
                     }
                 } else if (body.startsWith("/test")) {
-                    if (host.isMemberOf(approverGroupId, author)) {
+                    if (validate.test(author)) {
                         isApproved = true;
                     }
                 }
