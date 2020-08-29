@@ -2641,4 +2641,53 @@ public class RepositoryTests {
             assertEquals(List.of(third, second, first), hashes);
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testFollowMergeCommit(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory(false)) {
+            var r = Repository.init(dir.path(), vcs);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            r.add(readme);
+            var first = r.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme, List.of("Hello, again!!"));
+            r.add(readme);
+            var second = r.commit("Update README", "duke", "duke@openjdk.java.net");
+
+            r.checkout(first);
+            Files.write(readme, List.of("Greetings, world"));
+            r.add(readme);
+            var third = r.commit("Update README concurrently", "duke", "duke@openjdk.java.net");
+
+            if (vcs == VCS.GIT) {
+                r.checkout(r.defaultBranch());
+                r.merge(third, "ours", Repository.FastForward.DISABLE);
+            } else if (vcs == VCS.HG) {
+                r.checkout(second);
+                r.merge(third, ":local", Repository.FastForward.DISABLE);
+            } else {
+                fail("Unexpected VCS: " + vcs);
+            }
+            Files.write(readme, List.of("Resolve merge"));
+            r.add(readme);
+            var merge = r.commit("Merge", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme, List.of("Final update"));
+            r.add(readme);
+            var fourth = r.commit("Final README update", "duke", "duke@openjdk.java.net");
+
+            var commits = r.follow(readme);
+            var hashes = commits.stream().map(CommitMetadata::hash).collect(Collectors.toList());
+            assertEquals(5, hashes.size());
+            assertTrue(hashes.contains(first));
+            assertTrue(hashes.contains(second));
+            assertTrue(hashes.contains(third));
+            assertTrue(hashes.contains(merge));
+            assertTrue(hashes.contains(fourth));
+        }
+    }
 }
