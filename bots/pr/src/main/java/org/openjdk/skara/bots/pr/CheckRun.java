@@ -78,7 +78,10 @@ class CheckRun {
         this.ignoreStaleReviews = ignoreStaleReviews;
 
         baseHash = PullRequestUtils.baseHash(pr, localRepo);
-        checkablePullRequest = new CheckablePullRequest(pr, localRepo, ignoreStaleReviews);
+        checkablePullRequest = new CheckablePullRequest(pr, localRepo, ignoreStaleReviews,
+                                                        workItem.bot.confOverrideRepository().orElse(null),
+                                                        workItem.bot.confOverrideName(),
+                                                        workItem.bot.confOverrideRef());
     }
 
     static void execute(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,

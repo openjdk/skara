@@ -25,9 +25,10 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.census.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
-import org.openjdk.skara.jcheck.JCheck;
+import org.openjdk.skara.jcheck.*;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.*;
+import org.openjdk.skara.vcs.openjdk.Issue;
 
 import java.io.*;
 import java.util.*;
@@ -37,11 +38,19 @@ public class CheckablePullRequest {
     private final PullRequest pr;
     private final Repository localRepo;
     private final boolean ignoreStaleReviews;
+    private final List<String> confOverride;
 
-    CheckablePullRequest(PullRequest pr, Repository localRepo, boolean ignoreStaleReviews) {
+    CheckablePullRequest(PullRequest pr, Repository localRepo, boolean ignoreStaleReviews,
+            HostedRepository jcheckRepo, String jcheckName, String jcheckRef) {
         this.pr = pr;
         this.localRepo = localRepo;
         this.ignoreStaleReviews = ignoreStaleReviews;
+
+        if (jcheckRepo != null) {
+            confOverride = jcheckRepo.fileContents(jcheckName, jcheckRef).lines().collect(Collectors.toList());
+        } else {
+            confOverride = null;
+        }
     }
 
     private String commitMessage(List<Review> activeReviews, Namespace namespace) throws IOException {
@@ -131,8 +140,17 @@ public class CheckablePullRequest {
     }
 
     void executeChecks(Hash localHash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor, List<String> additionalConfiguration) throws IOException {
+        Optional<JCheckConfiguration> conf;
+        if (confOverride != null) {
+            conf = JCheck.parseConfiguration(confOverride, additionalConfiguration);
+        } else {
+            conf = JCheck.parseConfiguration(localRepo, pr.targetHash(), additionalConfiguration);
+        }
+        if (conf.isEmpty()) {
+            throw new RuntimeException("Failed to parse jcheck configuration at: " + pr.targetHash() + " with extra: " + additionalConfiguration);
+        }
         try (var issues = JCheck.check(localRepo, censusInstance.census(), CommitMessageParsers.v1, localHash,
-                                       pr.targetHash(), additionalConfiguration)) {
+                                       conf.get())) {
             for (var issue : issues) {
                 issue.accept(visitor);
             }

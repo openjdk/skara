@@ -105,6 +105,13 @@ public class PullRequestBotFactory implements BotFactory {
             if (repo.value().contains("targetbranches")) {
                 botBuilder.allowedTargetBranches(repo.value().get("targetbranches").asString());
             }
+            if (repo.value().contains("jcheck")) {
+                botBuilder.confOverrideRepo(configuration.repository(repo.value().get("jcheck").get("repo").asString()));
+                botBuilder.confOverrideRef(configuration.repositoryRef(repo.value().get("jcheck").get("repo").asString()));
+                if (repo.value().get("jcheck").contains("name")) {
+                    botBuilder.confOverrideName(repo.value().get("jcheck").get("name").asString());
+                }
+            }
 
             ret.add(botBuilder.build());
         }

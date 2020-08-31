@@ -1528,4 +1528,95 @@ class CheckTests {
             assertEquals(numericId + ": " + bug.title(), bugPR.title());
         }
     }
+
+    @Test
+    void overrideJcheckConf(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var confFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var conf = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var checkBot = PullRequestBot.newBuilder()
+                                         .repo(author)
+                                         .censusRepo(censusBuilder.build())
+                                         .confOverrideRepo(conf)
+                                         .confOverrideName("jcheck.conf")
+                                         .confOverrideRef("jcheck-branch")
+                                         .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Create a different conf on a different branch
+            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            var newConf = defaultConf.replace("reviewers=1", "reviewers=0");
+            Files.writeString(localRepo.root().resolve("jcheck.conf"), newConf, StandardCharsets.UTF_8);
+            localRepo.add(localRepo.root().resolve("jcheck.conf"));
+            var confHash = localRepo.commit("Separate conf", "duke", "duke@openjdk.org");
+            localRepo.push(confHash, author.url(), "jcheck-branch", true);
+            localRepo.checkout(masterHash, true);
+
+            // Make a change with a corresponding PR
+            var testHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(testHash, author.url(), "test", true);
+            var pr = credentials.createPullRequest(author, "master", "test", "This is a PR");
+
+            // Check the status (should become ready immediately as reviewercount is overridden to 0)
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertEquals(Set.of("rfr", "ready"), new HashSet<>(pr.labels()));
+        }
+    }
+
+    @Test
+    void overrideNonexistingJcheckConf(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var confFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var conf = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var checkBot = PullRequestBot.newBuilder()
+                                         .repo(author)
+                                         .censusRepo(censusBuilder.build())
+                                         .confOverrideRepo(conf)
+                                         .confOverrideName("jcheck.conf")
+                                         .confOverrideRef("jcheck-branch")
+                                         .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Create a different conf on a different branch
+            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            var newConf = defaultConf.replace("reviewers=1", "reviewers=0");
+            Files.writeString(localRepo.root().resolve("jcheck.conf"), newConf, StandardCharsets.UTF_8);
+            localRepo.add(localRepo.root().resolve("jcheck.conf"));
+            var confHash = localRepo.commit("Separate conf", "duke", "duke@openjdk.org");
+            localRepo.push(confHash, author.url(), "jcheck-branch", true);
+            localRepo.checkout(masterHash, true);
+
+            // Remove the default one
+            localRepo.remove(localRepo.root().resolve(".jcheck/conf"));
+            var newMasterHash = localRepo.commit("No more conf", "duke", "duke@openjdk.org");
+            localRepo.push(newMasterHash, author.url(), "master");
+
+            // Make a change with a corresponding PR
+            var testHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(testHash, author.url(), "test", true);
+            var pr = credentials.createPullRequest(author, "master", "test", "This is a PR");
+
+            // Check the status (should become ready immediately as reviewercount is overridden to 0)
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertEquals(Set.of("rfr", "ready"), new HashSet<>(pr.labels()));
+        }
+    }
 }

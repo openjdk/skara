@@ -48,6 +48,9 @@ class PullRequestBot implements Bot {
     private final Set<String> allowedIssueTypes;
     private final Pattern allowedTargetBranches;
     private final Path seedStorage;
+    private final HostedRepository confOverrideRepo;
+    private final String confOverrideName;
+    private final String confOverrideRef;
     private final ConcurrentMap<Hash, Boolean> currentLabels;
     private final PullRequestUpdateCache updateCache;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
@@ -56,7 +59,8 @@ class PullRequestBot implements Bot {
                    LabelConfiguration labelConfiguration, Map<String, String> externalCommands,
                    Map<String, String> blockingCheckLabels, Set<String> readyLabels,
                    Map<String, Pattern> readyComments, IssueProject issueProject, boolean ignoreStaleReviews,
-                   Set<String> allowedIssueTypes, Pattern allowedTargetBranches, Path seedStorage) {
+                   Set<String> allowedIssueTypes, Pattern allowedTargetBranches, Path seedStorage,
+                   HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -70,6 +74,9 @@ class PullRequestBot implements Bot {
         this.allowedIssueTypes = allowedIssueTypes;
         this.allowedTargetBranches = allowedTargetBranches;
         this.seedStorage = seedStorage;
+        this.confOverrideRepo = confOverrideRepo;
+        this.confOverrideName = confOverrideName;
+        this.confOverrideRef = confOverrideRef;
 
         this.currentLabels = new ConcurrentHashMap<>();
         this.updateCache = new PullRequestUpdateCache();
@@ -195,5 +202,17 @@ class PullRequestBot implements Bot {
 
     Optional<Path> seedStorage() {
         return Optional.ofNullable(seedStorage);
+    }
+
+    Optional<HostedRepository> confOverrideRepository() {
+        return Optional.ofNullable(confOverrideRepo);
+    }
+
+    String confOverrideName() {
+        return confOverrideName;
+    }
+
+    String confOverrideRef() {
+        return confOverrideRef;
     }
 }

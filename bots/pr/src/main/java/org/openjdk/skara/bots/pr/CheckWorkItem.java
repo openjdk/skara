@@ -135,7 +135,8 @@ class CheckWorkItem extends PullRequestWorkItem {
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
         // First determine if the current state of the PR has already been checked
-        var census = CensusInstance.create(bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr);
+        var census = CensusInstance.create(bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
+                                           bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef());
         var comments = pr.comments();
         var allReviews = pr.reviews();
         var labels = new HashSet<>(pr.labels());
