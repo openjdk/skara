@@ -1530,6 +1530,59 @@ class CheckTests {
     }
 
     @Test
+    void expandInvalidTitleWithNumericIssueId(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var checkBot = PullRequestBot.newBuilder()
+                                         .repo(author)
+                                         .censusRepo(censusBuilder.build())
+                                         .issueProject(issues)
+                                         .build();
+
+            var bug = issues.createIssue("My first bug", List.of("A bug"), Map.of());
+            var numericId = bug.id().split("-")[1];
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
+                                                     Path.of("appendable.txt"), Set.of("issues"), "0.9");
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var bugHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(bugHash, author.url(), "bug", true);
+
+            var bugPR = credentials.createPullRequest(author, "master", "bug", "bad title", true);
+
+            // Check the status (should not expand title)
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertEquals("bad title", bugPR.title());
+            assertEquals(CheckStatus.FAILURE, bugPR.checks(bugHash).get("jcheck").status());
+            assertTrue(bugPR.checks(bugHash).get("jcheck").summary().get().contains("The commit message does not reference any issue"));
+
+            // Now update it
+            bugPR.setTitle(numericId);
+            bugPR = author.pullRequest(bugPR.id());
+            assertEquals(numericId, bugPR.title());
+
+            // Check the status (should expand title)
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertEquals(CheckStatus.SUCCESS, bugPR.checks(bugHash).get("jcheck").status());
+
+            // Verify that the title is expanded
+            bugPR = author.pullRequest(bugPR.id());
+            assertEquals(numericId + ": " + bug.title(), bugPR.title());
+        }
+    }
+
+    @Test
     void overrideJcheckConf(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
