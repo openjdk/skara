@@ -338,7 +338,7 @@ class ArchiveMessages {
             body.append(reviewComment.path()).append(" line ").append(reviewComment.line()).append(":\n\n");
             try {
                 var contents = pr.repository().fileContents(reviewComment.path(), reviewComment.hash().hex()).lines().collect(Collectors.toList());
-                for (int i = Math.max(0, reviewComment.line() - 2); i < Math.min(contents.size(), reviewComment.line() + 1); ++i) {
+                for (int i = Math.max(0, reviewComment.line() - 3); i < Math.min(contents.size(), reviewComment.line()); ++i) {
                     body.append("> ").append(i + 1).append(": ").append(contents.get(i)).append("\n");
                 }
                 body.append("\n");
