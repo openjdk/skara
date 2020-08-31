@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 class CheckWorkItem extends PullRequestWorkItem {
     private final Pattern metadataComments = Pattern.compile("<!-- (?:(add|remove) (?:contributor|reviewer))|(?:summary: ')|(?:solves: ')|(?:additional required reviewers)");
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
+    static final Pattern ISSUE_ID_PATTERN = Pattern.compile("^(?:[A-Za-z][A-Za-z0-9]+-)?([0-9]+)$");
 
     CheckWorkItem(PullRequestBot bot, PullRequest pr, Consumer<RuntimeException> errorHandler) {
         super(bot, pr, errorHandler);
@@ -127,6 +128,28 @@ class CheckWorkItem extends PullRequestWorkItem {
         return false;
     }
 
+    private boolean updateTitle() {
+        var title = pr.title();
+        var m = ISSUE_ID_PATTERN.matcher(title);
+        var project = bot.issueProject();
+
+        var newTitle = title;
+        if (m.matches() && project != null) {
+            var id = m.group(1);
+            var issue = project.issue(id);
+            if (issue.isPresent()) {
+                newTitle = id + ": " + issue.get().title();
+            }
+        }
+
+        if (!title.equals(newTitle)) {
+            pr.setTitle(newTitle);
+            return true;
+        }
+
+        return false;
+    }
+
     @Override
     public String toString() {
         return "CheckWorkItem@" + pr.repository().name() + "#" + pr.id();
@@ -147,6 +170,11 @@ class CheckWorkItem extends PullRequestWorkItem {
             if (labels.contains("integrated")) {
                 log.info("Skipping check of integrated PR");
                 return List.of();
+            }
+
+            // If the title needs updating, we run the check again
+            if (updateTitle()) {
+                return List.of(new CheckWorkItem(bot, pr.repository().pullRequest(pr.id()), errorHandler));
             }
 
             try {
