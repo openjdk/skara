@@ -1337,11 +1337,10 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
 
-            // The archive should only contain context around line 2
+            // The archive should only contain context up to and including Line 2
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "^> 2: Line 1$"));
-            assertTrue(archiveContains(archiveFolder.path(), "^> 3: Line 2$"));
-            assertFalse(archiveContains(archiveFolder.path(), "^> 4: Line 3$"));
+            assertFalse(archiveContains(archiveFolder.path(), "^> 3: Line 2$"));
         }
     }
 
