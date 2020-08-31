@@ -296,7 +296,7 @@ public class Webrev {
                     JSON.object().put("message", String.join("\n", commit.message()))
                 );
                 var filesArray = JSON.array();
-                for (var path : pathsPerCommit.get(commit.hash())) {
+                for (var path : pathsPerCommit.getOrDefault(commit.hash(), List.of())) {
                     filesArray.add(JSON.object().put("filename", path.toString()));
                 }
                 c.put("files", filesArray);
