@@ -76,12 +76,13 @@ class CensusInstance {
         return namespace;
     }
 
-    private static JCheckConfiguration configuration(HostedRepository remoteRepo, String ref) {
-        var confFile = remoteRepo.fileContents(".jcheck/conf", ref);
+    private static JCheckConfiguration configuration(HostedRepository remoteRepo, String name, String ref) {
+        var confFile = remoteRepo.fileContents(name, ref);
         return JCheckConfiguration.parse(confFile.lines().collect(Collectors.toList()));
     }
 
-    static CensusInstance create(HostedRepository censusRepo, String censusRef, Path folder, PullRequest pr) {
+    static CensusInstance create(HostedRepository censusRepo, String censusRef, Path folder, PullRequest pr,
+                                 HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef) {
         var repoName = censusRepo.url().getHost() + "/" + censusRepo.name();
         var repoFolder = folder.resolve(URLEncoder.encode(repoName, StandardCharsets.UTF_8));
         try {
@@ -95,7 +96,12 @@ class CensusInstance {
         }
 
         try {
-            var configuration = configuration(pr.repository(), pr.targetRef());
+            JCheckConfiguration configuration;
+            if (confOverrideRepo == null) {
+                configuration = configuration(pr.repository(), ".jcheck/conf", pr.targetRef());
+            } else {
+                configuration = configuration(confOverrideRepo, confOverrideName, confOverrideRef);
+            }
             var census = Census.parse(repoFolder);
             var project = project(configuration, census);
             var namespace = namespace(census, pr.repository().namespace());

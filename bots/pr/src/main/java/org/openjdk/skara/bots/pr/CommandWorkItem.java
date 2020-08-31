@@ -217,7 +217,8 @@ public class CommandWorkItem extends PullRequestWorkItem {
             return List.of(new LabelerWorkItem(bot, pr, errorHandler));
         }
 
-        var census = CensusInstance.create(bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr);
+        var census = CensusInstance.create(bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
+                                           bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef());
         var command = nextCommand.get();
         log.info("Processing command: " + command.id() + " - " + command.name());
         processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), command, comments);

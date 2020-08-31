@@ -100,7 +100,10 @@ public class IntegrateCommand implements CommandHandler {
             var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
             var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
             var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, path);
-            var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews());
+            var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews(),
+                                                       bot.confOverrideRepository().orElse(null),
+                                                       bot.confOverrideName(),
+                                                       bot.confOverrideRef());
 
             // Validate the target hash if requested
             var rebaseMessage = new StringWriter();

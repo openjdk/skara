@@ -22,8 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.forge.HostedRepository;
-import org.openjdk.skara.forge.LabelConfiguration;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.IssueProject;
 
 import java.nio.file.Path;
@@ -44,6 +43,9 @@ public class PullRequestBotBuilder {
     private Set<String> allowedIssueTypes = null;
     private Pattern allowedTargetBranches = Pattern.compile(".*");
     private Path seedStorage = null;
+    private HostedRepository confOverrideRepo = null;
+    private String confOverrideName = ".conf/jcheck";
+    private String confOverrideRef = "master";
 
     PullRequestBotBuilder() {
     }
@@ -113,10 +115,25 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder confOverrideRepo(HostedRepository confOverrideRepo) {
+        this.confOverrideRepo = confOverrideRepo;
+        return this;
+    }
+
+    public PullRequestBotBuilder confOverrideName(String confOverrideName) {
+        this.confOverrideName = confOverrideName;
+        return this;
+    }
+
+    public PullRequestBotBuilder confOverrideRef(String confOverrideRef) {
+        this.confOverrideRef = confOverrideRef;
+        return this;
+    }
+
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration, externalCommands,
                                   blockingCheckLabels, readyLabels, readyComments, issueProject,
                                   ignoreStaleReviews, allowedIssueTypes, allowedTargetBranches,
-                                  seedStorage);
+                                  seedStorage, confOverrideRepo, confOverrideName, confOverrideRef);
     }
 }

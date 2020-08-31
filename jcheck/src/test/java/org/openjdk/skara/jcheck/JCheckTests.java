@@ -342,7 +342,8 @@ class JCheckTests {
 
             // Check the last commit without reviewers with the initial .jcheck/conf. Should fail
             // due to missing reviewers.
-            try (var issues = JCheck.check(repo, census, CommitMessageParsers.v1, secondCommit, initialCommit.hash(), List.of())) {
+            var conf = JCheck.parseConfiguration(repo, initialCommit.hash(), List.of()).orElseThrow();
+            try (var issues = JCheck.check(repo, census, CommitMessageParsers.v1, secondCommit, conf)) {
                 for (var issue : issues) {
                     issue.accept(visitor);
                 }

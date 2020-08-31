@@ -87,14 +87,19 @@ public class JCheck {
         );
     }
 
-    private static Optional<JCheckConfiguration> parseConfiguration(ReadOnlyRepository r, Hash h, List<String> additionalConfiguration) {
+    public static Optional<JCheckConfiguration> parseConfiguration(List<String> configuration, List<String> additionalConfiguration) {
+        var content = new ArrayList<>(configuration);
+        content.addAll(additionalConfiguration);
+        if (content.size() == 0) {
+            return Optional.empty();
+        }
+        return Optional.of(JCheckConfiguration.parse(content));
+    }
+
+    public static Optional<JCheckConfiguration> parseConfiguration(ReadOnlyRepository r, Hash h, List<String> additionalConfiguration) {
         try {
             var content = new ArrayList<>(r.lines(Paths.get(".jcheck/conf"), h).orElse(Collections.emptyList()));
-            content.addAll(additionalConfiguration);
-            if (content.size() == 0) {
-                return Optional.empty();
-            }
-            return Optional.of(JCheckConfiguration.parse(content));
+            return parseConfiguration(content, additionalConfiguration);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -232,20 +237,15 @@ public class JCheck {
                                Census census,
                                CommitMessageParser parser,
                                Hash toCheck,
-                               Hash configuration,
-                               List<String> additionalConfiguration) throws IOException {
+                               JCheckConfiguration configuration) throws IOException {
         if (repository.isEmpty()) {
             return new Issues(new ArrayList<Issue>().iterator(), null);
         }
 
-        var conf = parseConfiguration(repository, configuration, additionalConfiguration).orElseThrow(() ->
-            new IllegalArgumentException("No .jcheck/conf present at hash " + configuration.hex())
-        );
+        var branchRegex = configuration.repository().branches();
+        var tagRegex = configuration.repository().tags();
 
-        var branchRegex = conf.repository().branches();
-        var tagRegex = conf.repository().tags();
-
-        return check(repository, census, parser, branchRegex, tagRegex, repository.range(toCheck), Map.of(), Set.of(), List.of(), conf);
+        return check(repository, census, parser, branchRegex, tagRegex, repository.range(toCheck), Map.of(), Set.of(), List.of(), configuration);
     }
 
     public static Issues check(ReadOnlyRepository repository,
