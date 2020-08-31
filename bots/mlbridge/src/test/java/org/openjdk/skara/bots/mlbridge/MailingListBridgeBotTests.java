@@ -1466,7 +1466,10 @@ class MailingListBridgeBotTests {
             // Make a bunch of comments
             pr.addComment("Plain comment\n<!-- this is a comment -->");
             pr.addReviewComment(masterHash, editHash, reviewFile.toString(), 2, "Review comment <!-- this is a comment -->\n");
+            pr.addComment("  /cc others");
             pr.addComment("/integrate stuff");
+            pr.addComment("the command is /hello there");
+            pr.addComment("but this will be parsed\n/newline command");
             TestBotRunner.runPeriodicItems(mlBot);
 
             // Run an archive pass
@@ -1483,6 +1486,10 @@ class MailingListBridgeBotTests {
             assertTrue(archiveContains(archiveFolder.path(), "Plain comment"));
             assertTrue(archiveContains(archiveFolder.path(), "Review comment"));
             assertFalse(archiveContains(archiveFolder.path(), "/integrate"));
+            assertFalse(archiveContains(archiveFolder.path(), "/cc"));
+            assertTrue(archiveContains(archiveFolder.path(), "/hello there"));
+            assertTrue(archiveContains(archiveFolder.path(), "but this will be parsed"));
+            assertFalse(archiveContains(archiveFolder.path(), "/newline"));
         }
     }
 

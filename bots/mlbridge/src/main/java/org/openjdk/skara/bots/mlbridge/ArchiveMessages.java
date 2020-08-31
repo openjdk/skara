@@ -18,13 +18,17 @@ import java.util.stream.Collectors;
 class ArchiveMessages {
     private static final Pattern commentPattern = Pattern.compile("<!--.*?-->",
                                                                   Pattern.DOTALL | Pattern.MULTILINE);
+    private static final Pattern commandPattern = Pattern.compile("^\\s*/([A-Za-z]+).*$", Pattern.MULTILINE);
 
-    private static String filterComments(String body) {
+    private static String filterCommentsAndCommands(String body) {
         var parsedBody = PullRequestBody.parse(body);
         body = parsedBody.bodyText();
 
         var commentMatcher = commentPattern.matcher(body);
         body = commentMatcher.replaceAll("");
+
+        var commandLineMatcher = commandPattern.matcher(body);
+        body = commandLineMatcher.replaceAll("");
 
         body = MarkdownToText.removeFormatting(body);
         return body.strip();
@@ -166,7 +170,7 @@ class ArchiveMessages {
     }
 
     static String composeConversation(PullRequest pr) {
-        var filteredBody = filterComments(pr.body());
+        var filteredBody = filterCommentsAndCommands(pr.body());
         if (filteredBody.isEmpty()) {
             filteredBody = pr.title().strip();
         }
@@ -323,7 +327,7 @@ class ArchiveMessages {
     }
 
     static String composeComment(Comment comment) {
-        return filterComments(comment.body());
+        return filterCommentsAndCommands(comment.body());
     }
 
     static String composeReviewComment(PullRequest pr, ReviewComment reviewComment) {
@@ -342,7 +346,7 @@ class ArchiveMessages {
                 body.append("> (failed to retrieve contents of file, check the PR for context)\n");
             }
         }
-        body.append(filterComments(reviewComment.body()));
+        body.append(filterCommentsAndCommands(reviewComment.body()));
         return body.toString();
     }
 
@@ -365,7 +369,7 @@ class ArchiveMessages {
 
     static String composeReview(PullRequest pr, Review review, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole) {
         if (review.body().isPresent() && !review.body().get().isBlank()) {
-            return filterComments(review.body().get());
+            return filterCommentsAndCommands(review.body().get());
         } else {
             return composeReviewVerdict(review, hostUserToUserName, hostUserToRole);
         }
