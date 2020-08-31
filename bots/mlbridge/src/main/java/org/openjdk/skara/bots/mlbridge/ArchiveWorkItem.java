@@ -36,7 +36,7 @@ import java.time.*;
 import java.util.*;
 import java.util.function.*;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
+import java.util.regex.*;
 import java.util.stream.Collectors;
 
 class ArchiveWorkItem implements WorkItem {
@@ -104,7 +104,7 @@ class ArchiveWorkItem implements WorkItem {
         }
     }
 
-    private final static Pattern commandPattern = Pattern.compile("^/.*$");
+    private final static Pattern commandPattern = Pattern.compile("^\\s*/([A-Za-z]+).*$");
 
     private boolean ignoreComment(HostUser author, String body) {
         if (pr.repository().forge().currentUser().equals(author)) {
@@ -113,8 +113,11 @@ class ArchiveWorkItem implements WorkItem {
         if (bot.ignoredUsers().contains(author.userName())) {
             return true;
         }
-        var commandMatcher = commandPattern.matcher(body);
-        if (commandMatcher.matches()) {
+        // Check if this comment only contains command lines
+        var commandOnly = body.strip().lines()
+                              .map(commandPattern::matcher)
+                              .allMatch(Matcher::matches);
+        if (body.strip().lines().count() > 0 && commandOnly) {
             return true;
         }
         for (var ignoredCommentPattern : bot.ignoredComments()) {
