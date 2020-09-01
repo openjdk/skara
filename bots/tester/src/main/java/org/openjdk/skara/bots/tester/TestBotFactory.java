@@ -51,6 +51,16 @@ public class TestBotFactory implements BotFactory {
         var ret = new ArrayList<Bot>();
         var specific = configuration.specific();
 
+        var censusDir = storage.resolve("census.git");
+        try {
+            Files.createDirectories(censusDir);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        var censusRemote = configuration.repository(specific.get("census").asString());
+        var checkCommitterStatus = specific.contains("role") &&
+                                   specific.get("role").asString().toLowerCase().equals("committer");
+
         var approvers = specific.get("approvers").asString();
         var allowlist = specific.get("allowlist").stream().map(JSONValue::asString).collect(Collectors.toSet());
         var availableJobs = specific.get("availableJobs").stream().map(JSONValue::asString).collect(Collectors.toList());
@@ -59,7 +69,7 @@ public class TestBotFactory implements BotFactory {
         var ci = configuration.continuousIntegration(specific.get("ci").asString());
         for (var repo : specific.get("repositories").asArray()) {
             var hostedRepo = configuration.repository(repo.asString());
-            ret.add(new TestBot(ci, approvers, allowlist, availableJobs, defaultJobs, name, storage, hostedRepo));
+            ret.add(new TestBot(ci, approvers, allowlist, availableJobs, defaultJobs, name, storage, hostedRepo, censusRemote, censusDir, checkCommitterStatus));
         }
 
         return ret;

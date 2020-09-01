@@ -49,7 +49,8 @@ class TestBotTests {
 
             var storage = tmp.path().resolve("storage");
             var ci = new InMemoryContinuousIntegration();
-            var bot = new TestBot(ci, "0", Set.of(), List.of(), List.of(), "", storage, upstreamHostedRepo);
+            var bot = new TestBot(ci, "0", Set.of(), List.of(), List.of(), "",
+                                  storage, upstreamHostedRepo, null, null, false);
             var runner = new TestBotRunner();
 
             runner.runPeriodicItems(bot);

@@ -48,9 +48,10 @@ public class TestWorkItem implements WorkItem {
     private final Path storage;
     private final HostedRepository repository;
     private final PullRequest pr;
+    private final Predicate<HostUser> isCommitter;
 
     TestWorkItem(ContinuousIntegration ci, String approversGroupId, Set<String> allowlist, List<String> availableJobs,
-                 List<String> defaultJobs, String name, Path storage, PullRequest pr) {
+                 List<String> defaultJobs, String name, Path storage, PullRequest pr, Predicate<HostUser> isCommitter) {
         this.ci = ci;
         this.approversGroupId = approversGroupId;
         this.allowlist = allowlist;
@@ -60,6 +61,7 @@ public class TestWorkItem implements WorkItem {
         this.storage = storage;
         this.repository = pr.repository();
         this.pr = pr;
+        this.isCommitter = isCommitter;
     }
 
     @Override
@@ -252,7 +254,7 @@ public class TestWorkItem implements WorkItem {
 
     private boolean validate(HostUser u) {
         var forge = pr.repository().forge();
-        return forge.isMemberOf(approversGroupId, u) || allowlist.contains(u.id());
+        return isCommitter.test(u) && (forge.isMemberOf(approversGroupId, u) || allowlist.contains(u.id()));
     }
 
     @Override

@@ -26,12 +26,17 @@ import org.openjdk.skara.ci.ContinuousIntegration;
 import org.openjdk.skara.ci.Job;
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.forge.*;
+import org.openjdk.skara.census.Census;
+import org.openjdk.skara.jcheck.JCheckConfiguration;
+import org.openjdk.skara.vcs.Repository;
+import org.openjdk.skara.host.HostUser;
 
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.function.Predicate;
 
 public class TestBot implements Bot {
     private static class Observation {
@@ -55,6 +60,9 @@ public class TestBot implements Bot {
     private final HostedRepository repo;
     private final PullRequestUpdateCache cache;
     private final Map<String, Observation> states;
+    private final HostedRepository censusRemote;
+    private final Path censusDir;
+    private final boolean checkCommitterStatus;
 
     TestBot(ContinuousIntegration ci,
             String approversGroupId,
@@ -63,7 +71,10 @@ public class TestBot implements Bot {
             List<String> defaultJobs,
             String name,
             Path storage,
-            HostedRepository repo) {
+            HostedRepository repo,
+            HostedRepository censusRemote,
+            Path censusDir,
+            boolean checkCommitterStatus) {
         this.ci = ci;
         this.approversGroupId = approversGroupId;
         this.allowlist = allowlist;
@@ -74,10 +85,36 @@ public class TestBot implements Bot {
         this.repo = repo;
         this.cache = new PullRequestUpdateCache();
         this.states = new HashMap<>();
+        this.censusRemote = censusRemote;
+        this.censusDir = censusDir;
+        this.checkCommitterStatus = checkCommitterStatus;
     }
 
     @Override
     public List<WorkItem> getPeriodicItems() {
+        Predicate<HostUser> isCommitter = null;
+        if (checkCommitterStatus) {
+            try {
+                var censusRepo = Repository.materialize(censusDir, censusRemote.url(), "master");
+                var census = Census.parse(censusDir);
+                var namespace = census.namespace(repo.namespace());
+                var jcheckConf = repo.fileContents(".jcheck/conf", "master");
+                var jcheck = JCheckConfiguration.parse(jcheckConf.lines().collect(Collectors.toList()));
+                var project = census.project(jcheck.general().project());
+                isCommitter = u -> {
+                   var contributor = namespace.get(u.id());
+                   if (contributor == null) {
+                       return false;
+                   }
+                   return project.isCommitter(contributor.username(), census.version().format());
+                };
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        } else {
+            isCommitter = u -> true;
+        }
+
         var ret = new ArrayList<WorkItem>();
 
         var host = repo.webUrl().getHost();
@@ -91,7 +128,8 @@ public class TestBot implements Bot {
                                          defaultJobs,
                                          name,
                                          storage,
-                                         pr));
+                                         pr,
+                                         isCommitter));
             } else {
                 // is there a job running for this PR?
                 var desc = pr.repository().name() + "#" + pr.id();
@@ -130,7 +168,8 @@ public class TestBot implements Bot {
                                                  defaultJobs,
                                                  name,
                                                  storage,
-                                                 pr));
+                                                 pr,
+                                                 isCommitter));
                     }
                 }
             }
