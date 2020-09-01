@@ -64,6 +64,10 @@ class FileStorage<T> implements Storage<T> {
             return;
         }
         try {
+            Files.createDirectories(file.getParent());
+            if (!Files.exists(file)) {
+                Files.createFile(file);
+            }
             Files.writeString(file, updated, StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
