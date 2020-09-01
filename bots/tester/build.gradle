@@ -40,6 +40,7 @@ dependencies {
     implementation project(':issuetracker')
     implementation project(':json')
     implementation project(':vcs')
+    implementation project(':jcheck')
 
     testImplementation project(':test')
 }

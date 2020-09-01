@@ -64,7 +64,8 @@ class TestWorkItemTests {
             pr.author = duke;
             pr.comments = List.of();
 
-            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr,
+                                        u -> true);
             item.run(scratch);
 
             var comments = pr.comments();
@@ -99,7 +100,8 @@ class TestWorkItemTests {
             var testApproveComment = new Comment("0", "/test approve", duke, now, now);
             pr.comments = List.of(testApproveComment);
 
-            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr,
+                                        u -> true);
             item.run(scratch);
 
             var comments = pr.comments();
@@ -135,7 +137,8 @@ class TestWorkItemTests {
             var testApproveComment = new Comment("0", "/test cancel", duke, now, now);
             pr.comments = List.of(testApproveComment);
 
-            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr,
+                                        u -> true);
             item.run(scratch);
 
             var comments = pr.comments();
@@ -173,7 +176,8 @@ class TestWorkItemTests {
             var comment = new Comment("0", "/test foobar", duke, now, now);
             pr.comments = new ArrayList<>(List.of(comment));
 
-            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr,
+                                        u -> true);
             item.run(scratch);
 
             var comments = pr.comments();
@@ -220,7 +224,8 @@ class TestWorkItemTests {
             var comment = new Comment("0", "/test foobar", duke, now, now);
             pr.comments = new ArrayList<>(List.of(comment));
 
-            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr,
+                                        u -> true);
 
             // Non-existing test group should result in error
             item.run(scratch);
@@ -301,7 +306,8 @@ class TestWorkItemTests {
             var cancelComment = new Comment("1", "/test cancel", duke, now, now);
             pr.comments = new ArrayList<>(List.of(testComment, cancelComment));
 
-            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr,
+                                        u -> true);
 
             item.run(scratch);
 
@@ -342,7 +348,8 @@ class TestWorkItemTests {
             var comment = new Comment("0", "/test tier1", duke, now, now);
             pr.comments = new ArrayList<>(List.of(comment));
 
-            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr,
+                                        u -> true);
 
             item.run(scratch);
 
@@ -426,7 +433,8 @@ class TestWorkItemTests {
             var comment = new Comment("0", "/test tier1", duke, now, now);
             pr.comments = new ArrayList<>(List.of(comment));
 
-            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr,
+                                        u -> true);
 
             item.run(scratch);
 
@@ -513,7 +521,8 @@ class TestWorkItemTests {
             var comment = new Comment("0", "/test tier1", duke, now, now);
             pr.comments = new ArrayList<>(List.of(comment));
 
-            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr,
+                                        u -> true);
 
             item.run(scratch);
 
@@ -621,7 +630,8 @@ class TestWorkItemTests {
             var comment = new Comment("0", "/test tier1", duke, now, now);
             pr.comments = new ArrayList<>(List.of(comment));
 
-            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr,
+                                        u -> true);
 
             item.run(scratch);
 
@@ -746,7 +756,8 @@ class TestWorkItemTests {
             var comment = new Comment("0", "/test tier1", duke, now, now);
             pr.comments = new ArrayList<>(List.of(comment));
 
-            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr,
+                                        u -> true);
 
             item.run(scratch);
 
@@ -834,7 +845,8 @@ class TestWorkItemTests {
             var comment = new Comment("0", "/test tier1", duke, now, now);
             pr.comments = new ArrayList<>(List.of(comment));
 
-            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr,
+                                        u -> true);
 
             item.run(scratch);
 
@@ -987,7 +999,8 @@ class TestWorkItemTests {
             var comment = new Comment("0", "/test tier1", duke, now, now);
             pr.comments = new ArrayList<>(List.of(comment));
 
-            var item = new TestWorkItem(ci, approvers, Set.of("0"), available, defaultJobs, name, storage, pr);
+            var item = new TestWorkItem(ci, approvers, Set.of("0"), available, defaultJobs, name, storage, pr,
+                                        u -> true);
 
             var expectedJobId = "null-1337-17-0";
             var expectedJob = new InMemoryJob();
@@ -1023,4 +1036,86 @@ class TestWorkItemTests {
                             .contains("0 jobs completed, 1 job running, 7 jobs not yet started"));
         }
     }
+
+    @Test
+    void testCommentFromNonCommitterShouldRequireApproval() throws IOException {
+        try (var tmp = new TemporaryDirectory()) {
+            var ci = new InMemoryContinuousIntegration();
+            var approvers = "0";
+            var available = List.of("tier1", "tier2", "tier3");
+            var defaultJobs = List.of("tier1");
+            var name = "test";
+            var storage = tmp.path().resolve("storage");
+            var scratch = tmp.path().resolve("storage");
+
+            var bot = new HostUser(1, "bot", "openjdk [bot]");
+            var host = new InMemoryHost();
+            host.currentUserDetails = bot;
+
+            var repo = new InMemoryHostedRepository();
+            repo.host = host;
+
+            var pr = new InMemoryPullRequest();
+            pr.repository = repo;
+
+            var duke = new HostUser(0, "duke", "Duke");
+            host.groups = Map.of(approvers, Set.of(duke));
+            pr.author = duke;
+            pr.headHash = new Hash("01234567890123456789012345789012345789");
+
+            var now = ZonedDateTime.now();
+            var comment = new Comment("0", "/test foobar", duke, now, now);
+            pr.comments = new ArrayList<>(List.of(comment));
+
+            var item = new TestWorkItem(ci, approvers, Set.of(), available, defaultJobs, name, storage, pr,
+                                        u -> false);
+
+            // Non-existing test group should result in error
+            item.run(scratch);
+
+            var comments = pr.comments();
+            assertEquals(2, comments.size());
+            assertEquals(comment, comments.get(0));
+
+            var secondComment = comments.get(1);
+            assertEquals(bot, secondComment.author());
+
+            var lines = secondComment.body().split("\n");
+            assertEquals(2, lines.length);
+            assertEquals("<!-- TEST ERROR -->", lines[0]);
+            assertEquals("@duke the test group foobar does not exist", lines[1]);
+
+            // Trying to test again should be fine
+            var thirdComment = new Comment("2", "/test tier1", duke, now, now);
+            pr.comments.add(thirdComment);
+            item.run(scratch);
+
+            comments = pr.comments();
+            assertEquals(4, comments.size());
+            assertEquals(comment, comments.get(0));
+            assertEquals(secondComment, comments.get(1));
+            assertEquals(thirdComment, comments.get(2));
+
+            var fourthComment = comments.get(3);
+            assertEquals(bot, fourthComment.author());
+
+            lines = fourthComment.body().split("\n");
+            assertEquals("<!-- TEST PENDING -->", lines[0]);
+            assertEquals("<!-- 01234567890123456789012345789012345789 -->", lines[1]);
+            assertEquals("<!-- tier1 -->", lines[2]);
+            assertEquals("@duke you need to get approval to run the tests in tier1 for commits up until 01234567",
+                         lines[3]);
+
+            // Nothing should change if we run it yet again
+            item.run(scratch);
+
+            comments = pr.comments();
+            assertEquals(4, comments.size());
+            assertEquals(comment, comments.get(0));
+            assertEquals(secondComment, comments.get(1));
+            assertEquals(thirdComment, comments.get(2));
+            assertEquals(fourthComment, comments.get(3));
+        }
+    }
+
 }

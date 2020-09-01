@@ -24,6 +24,8 @@ module org.openjdk.skara.bots.tester {
     requires org.openjdk.skara.bot;
     requires org.openjdk.skara.vcs;
     requires org.openjdk.skara.ci;
+    requires org.openjdk.skara.census;
+    requires org.openjdk.skara.jcheck;
 
     requires java.logging;
 
