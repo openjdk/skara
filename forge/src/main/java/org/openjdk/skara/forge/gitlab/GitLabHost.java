@@ -93,7 +93,7 @@ public class GitLabHost implements Forge {
         }
     }
 
-    JSONObject getProjectInfo(String name) {
+    Optional<JSONObject> getProjectInfo(String name) {
         var encodedName = URLEncoder.encode(name, StandardCharsets.US_ASCII);
         var project = request.get("projects/" + encodedName)
                              .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.object().put("retry", true)) : Optional.empty())
@@ -101,15 +101,25 @@ public class GitLabHost implements Forge {
         if (project.contains("retry")) {
             // Depending on web server configuration, GitLab may need double escaping of project names
             encodedName = URLEncoder.encode(encodedName, StandardCharsets.US_ASCII);
-            project = request.get("projects/" + encodedName).execute();
+            project = request.get("projects/" + encodedName)
+                             .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.object().put("NOT_FOUND", true)) : Optional.empty())
+                             .execute();
+            if (project.contains("NOT_FOUND")) {
+                return Optional.empty();
+            }
         }
-        return project.asObject();
+        return Optional.of(project.asObject());
     }
 
-    JSONObject getProjectInfo(int id) {
-        return request.get("projects/" + Integer.toString(id))
-                      .execute()
-                      .asObject();
+    Optional<JSONObject> getProjectInfo(int id) {
+        var project = request.get("projects/" + id)
+                      .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.object().put("NOT_FOUND", true)) : Optional.empty())
+                      .execute();
+        if (project.contains("NOT_FOUND")) {
+            return Optional.empty();
+        } else {
+            return Optional.of(project.asObject());
+        }
     }
 
     @Override
@@ -166,8 +176,8 @@ public class GitLabHost implements Forge {
 
     boolean isProjectForkComplete(String name) {
         var project = getProjectInfo(name);
-        if (project.contains("import_status")) {
-            var status = project.get("import_status").asString();
+        if (project.isPresent() && project.get().contains("import_status")) {
+            var status = project.get().get("import_status").asString();
             switch (status) {
                 case "finished":
                     return true;
