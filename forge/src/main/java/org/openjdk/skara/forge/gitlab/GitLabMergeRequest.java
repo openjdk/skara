@@ -273,8 +273,13 @@ public class GitLabMergeRequest implements PullRequest {
         if (json.get("source_project_id").isNull()) {
             return Optional.empty();
         } else {
-            return Optional.of(new GitLabRepository((GitLabHost) repository.forge(),
-                                                    json.get("source_project_id").asInt()));
+            var projectId = json.get("source_project_id").asInt();
+            var project = ((GitLabHost) repository.forge()).getProjectInfo(projectId);
+            if (project.isEmpty()) {
+                return Optional.empty();
+            } else {
+                return Optional.of(new GitLabRepository((GitLabHost) repository.forge(), project.get()));
+            }
         }
     }
 

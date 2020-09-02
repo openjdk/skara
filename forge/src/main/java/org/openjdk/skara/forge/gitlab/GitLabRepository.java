@@ -44,14 +44,14 @@ public class GitLabRepository implements HostedRepository {
     private final Pattern mergeRequestPattern;
 
     public GitLabRepository(GitLabHost gitLabHost, String projectName) {
-        this(gitLabHost, gitLabHost.getProjectInfo(projectName));
+        this(gitLabHost, gitLabHost.getProjectInfo(projectName).orElseThrow(() -> new RuntimeException("Project not found: " + projectName)));
     }
 
     public GitLabRepository(GitLabHost gitLabHost, int id) {
-        this(gitLabHost, gitLabHost.getProjectInfo(id));
+        this(gitLabHost, gitLabHost.getProjectInfo(id).orElseThrow(() -> new RuntimeException("Project not found by id: " + id)));
     }
 
-    private GitLabRepository(GitLabHost gitLabHost, JSONValue json) {
+    GitLabRepository(GitLabHost gitLabHost, JSONValue json) {
         this.gitLabHost = gitLabHost;
         this.json = json;
         this.projectName = json.get("path_with_namespace").asString();
