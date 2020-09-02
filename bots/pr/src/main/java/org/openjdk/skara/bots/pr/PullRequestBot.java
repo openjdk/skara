@@ -23,11 +23,13 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.bot.*;
+import org.openjdk.skara.census.Contributor;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.Hash;
 
+import java.net.URI;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.*;
@@ -51,6 +53,7 @@ class PullRequestBot implements Bot {
     private final HostedRepository confOverrideRepo;
     private final String confOverrideName;
     private final String confOverrideRef;
+    private final String censusLink;
     private final ConcurrentMap<Hash, Boolean> currentLabels;
     private final PullRequestUpdateCache updateCache;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
@@ -60,7 +63,8 @@ class PullRequestBot implements Bot {
                    Map<String, String> blockingCheckLabels, Set<String> readyLabels,
                    Map<String, Pattern> readyComments, IssueProject issueProject, boolean ignoreStaleReviews,
                    Set<String> allowedIssueTypes, Pattern allowedTargetBranches, Path seedStorage,
-                   HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef) {
+                   HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef,
+                   String censusLink) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -77,6 +81,7 @@ class PullRequestBot implements Bot {
         this.confOverrideRepo = confOverrideRepo;
         this.confOverrideName = confOverrideName;
         this.confOverrideRef = confOverrideRef;
+        this.censusLink = censusLink;
 
         this.currentLabels = new ConcurrentHashMap<>();
         this.updateCache = new PullRequestUpdateCache();
@@ -214,5 +219,12 @@ class PullRequestBot implements Bot {
 
     String confOverrideRef() {
         return confOverrideRef;
+    }
+
+    Optional<URI> censusLink(Contributor contributor) {
+        if (censusLink == null) {
+            return Optional.empty();
+        }
+        return Optional.of(URI.create(censusLink.replace("{{contributor}}", contributor.username())));
     }
 }

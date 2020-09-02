@@ -48,7 +48,11 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).build();
+            var checkBot = PullRequestBot.newBuilder()
+                                         .repo(author)
+                                         .censusRepo(censusBuilder.build())
+                                         .censusLink("https://census.com/{{contributor}}-profile")
+                                         .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -88,6 +92,7 @@ class CheckTests {
 
             // The PR should now be ready
             assertTrue(pr.labels().contains("ready"));
+            assertTrue(pr.body().contains("https://census.com/integrationreviewer2-profile"));
         }
     }
 
@@ -244,6 +249,10 @@ class CheckTests {
             assertEquals(1, authorPr.body().split("Generated Reviewer", -1).length - 1);
             assertTrue(authorPr.reviews().size() >= 2);
             assertFalse(authorPr.body().contains("Note"));
+
+            // No census link is set
+            var reviewerString = "Generated Reviewer 2 (@" + reviewer.forge().currentUser().userName() + " - **Reviewer**)";
+            assertTrue(authorPr.body().contains(reviewerString));
         }
     }
 

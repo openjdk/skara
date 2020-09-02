@@ -72,7 +72,6 @@ public class PullRequestBotFactory implements BotFactory {
         for (var repo : specific.get("repositories").fields()) {
             var censusRepo = configuration.repository(repo.value().get("census").asString());
             var censusRef = configuration.repositoryRef(repo.value().get("census").asString());
-
             var botBuilder = PullRequestBot.newBuilder()
                                            .repo(configuration.repository(repo.name()))
                                            .censusRepo(censusRepo)
@@ -111,6 +110,9 @@ public class PullRequestBotFactory implements BotFactory {
                 if (repo.value().get("jcheck").contains("name")) {
                     botBuilder.confOverrideName(repo.value().get("jcheck").get("name").asString());
                 }
+            }
+            if (repo.value().contains("censuslink")) {
+                botBuilder.censusLink(repo.value().get("censuslink").asString());
             }
 
             ret.add(botBuilder.build());

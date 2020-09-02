@@ -46,6 +46,7 @@ public class PullRequestBotBuilder {
     private HostedRepository confOverrideRepo = null;
     private String confOverrideName = ".conf/jcheck";
     private String confOverrideRef = "master";
+    private String censusLink = null;
 
     PullRequestBotBuilder() {
     }
@@ -130,10 +131,16 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder censusLink(String censusLink) {
+        this.censusLink = censusLink;
+        return this;
+    }
+
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration, externalCommands,
                                   blockingCheckLabels, readyLabels, readyComments, issueProject,
                                   ignoreStaleReviews, allowedIssueTypes, allowedTargetBranches,
-                                  seedStorage, confOverrideRepo, confOverrideName, confOverrideRef);
+                                  seedStorage, confOverrideRepo, confOverrideName, confOverrideRef,
+                                  censusLink);
     }
 }
