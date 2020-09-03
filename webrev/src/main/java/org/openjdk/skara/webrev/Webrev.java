@@ -189,6 +189,11 @@ public class Webrev {
             generateJSON(diff, diff.from(), diff.to());
         }
 
+        private boolean hasMergeCommits(Hash tailEnd, Hash head) throws IOException {
+            var commits = repository.commitMetadata(tailEnd, head);
+            return commits.stream().anyMatch(CommitMetadata::isMerge);
+        }
+
         private void generateJSON(Diff diff, Hash tailEnd, Hash head) throws IOException {
             if (head == null) {
                 throw new IllegalArgumentException("Must supply a head hash");
@@ -278,7 +283,9 @@ public class Webrev {
                     file.put("patch", sb.toString());
                 }
                 files.add(file);
-                var commits = repository.follow(filename, tailEnd, head);
+                var commits = hasMergeCommits(tailEnd, head) ?
+                    repository.commitMetadata(repository.rangeInclusive(tailEnd, head), List.of(filename)) :
+                    repository.follow(filename, tailEnd, head);
                 for (var commit : commits) {
                     if (!pathsPerCommit.containsKey(commit.hash())) {
                         pathsPerCommit.put(commit.hash(), new ArrayList<Path>());
