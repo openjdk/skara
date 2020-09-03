@@ -274,7 +274,7 @@ class CheckRun {
             if (censusLink.isPresent()) {
                 ret.append("](");
                 ret.append(censusLink.get().toString());
-                ret.append("]");
+                ret.append(")");
             }
             ret.append(" (@");
             ret.append(reviewer.userName());
