@@ -23,7 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.bot.*;
-import org.openjdk.skara.forge.LabelConfiguration;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.json.*;
 
 import java.util.*;
@@ -65,8 +65,16 @@ public class PullRequestBotFactory implements BotFactory {
 
         var labelConfigurations = new HashMap<String, LabelConfiguration>();
         for (var labelGroup : specific.get("labels").fields()) {
-            labelConfigurations.put(labelGroup.name(),
-                                    LabelConfiguration.fromJSON(labelGroup.value()));
+            if (labelGroup.value().contains("repository")) {
+                var repository = configuration.repository(labelGroup.value().get("repository").asString());
+                var ref = configuration.repositoryRef(labelGroup.value().get("repository").asString());
+                var filename = labelGroup.value().get("filename").asString();
+                labelConfigurations.put(labelGroup.name(),
+                                        LabelConfigurationHostedRepository.from(repository, ref, filename));
+            } else {
+                labelConfigurations.put(labelGroup.name(),
+                                        LabelConfigurationJson.from(labelGroup.value()));
+            }
         }
 
         for (var repo : specific.get("repositories").fields()) {

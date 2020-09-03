@@ -33,10 +33,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class LabelConfigurationTests {
     @Test
     void simple() {
-        var config = LabelConfiguration.builder()
-                                       .addMatchers("1", List.of(Pattern.compile("cpp$")))
-                                       .addMatchers("2", List.of(Pattern.compile("hpp$")))
-                                       .build();
+        var config = LabelConfigurationJson.builder()
+                                           .addMatchers("1", List.of(Pattern.compile("cpp$")))
+                                           .addMatchers("2", List.of(Pattern.compile("hpp$")))
+                                           .build();
 
         assertEquals(Set.of("1", "2"), config.allowed());
 
@@ -47,11 +47,11 @@ public class LabelConfigurationTests {
 
     @Test
     void group() {
-        var config = LabelConfiguration.builder()
-                                       .addMatchers("1", List.of(Pattern.compile("cpp$")))
-                                       .addMatchers("2", List.of(Pattern.compile("hpp$")))
-                                       .addGroup("both", List.of("1", "2"))
-                                       .build();
+        var config = LabelConfigurationJson.builder()
+                                           .addMatchers("1", List.of(Pattern.compile("cpp$")))
+                                           .addMatchers("2", List.of(Pattern.compile("hpp$")))
+                                           .addGroup("both", List.of("1", "2"))
+                                           .build();
 
         assertEquals(Set.of("1", "2", "both"), config.allowed());
 

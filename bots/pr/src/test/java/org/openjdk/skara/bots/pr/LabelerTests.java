@@ -22,8 +22,8 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.test.*;
-import org.openjdk.skara.forge.LabelConfiguration;
 
 import org.junit.jupiter.api.*;
 
@@ -42,10 +42,10 @@ class LabelerTests {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
 
-            var labelConfiguration = LabelConfiguration.builder()
-                                                       .addMatchers("test1", List.of(Pattern.compile("a.txt")))
-                                                       .addMatchers("test2", List.of(Pattern.compile("b.txt")))
-                                                       .build();
+            var labelConfiguration = LabelConfigurationJson.builder()
+                                                           .addMatchers("test1", List.of(Pattern.compile("a.txt")))
+                                                           .addMatchers("test2", List.of(Pattern.compile("b.txt")))
+                                                           .build();
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());

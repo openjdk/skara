@@ -23,22 +23,18 @@
 package org.openjdk.skara.cli.pr;
 
 import org.openjdk.skara.args.*;
-import org.openjdk.skara.cli.GitPublish;
-import org.openjdk.skara.cli.GitJCheck;
-import org.openjdk.skara.vcs.Branch;
-import org.openjdk.skara.vcs.ReadOnlyRepository;
-import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
-import org.openjdk.skara.forge.Forge;
-import org.openjdk.skara.forge.LabelConfiguration;
+import org.openjdk.skara.cli.*;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.json.JSON;
-
-import static org.openjdk.skara.cli.pr.Utils.*;
+import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
+import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static org.openjdk.skara.cli.pr.Utils.*;
 
 public class GitPrCreate {
     static final List<Flag> flags = List.of(
@@ -111,7 +107,7 @@ public class GitPrCreate {
         );
         var rules = skaraRemoteRepo.fileContents("config/mailinglist/rules/jdk.json", "master");
         var json = JSON.parse(rules);
-        return LabelConfiguration.fromJSON(json);
+        return LabelConfigurationJson.from(json);
     }
 
     private static Set<String> suggestedLabels(ReadOnlyRepository repo, Forge forge, String project, String targetRef, String headRef) throws IOException {
