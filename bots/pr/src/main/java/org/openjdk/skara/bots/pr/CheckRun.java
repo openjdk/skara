@@ -263,11 +263,25 @@ class CheckRun {
         var namespace = censusInstance.namespace();
         var contributor = namespace.get(reviewer.id());
         if (contributor == null) {
-            return reviewer.userName() + " (no known " + namespace.name() + " user name / role)";
+            return "@" + reviewer.userName() + " (no known " + namespace.name() + " user name / role)";
         } else {
-            var userNameLink = "[" + contributor.username() + "](@" + reviewer.userName() + ")";
-            return contributor.fullName().orElse(contributor.username()) + " (" + userNameLink + " - " +
-                    getRole(contributor.username()) + ")";
+            var ret = new StringBuilder();
+            var censusLink = workItem.bot.censusLink(contributor);
+            if (censusLink.isPresent()) {
+                ret.append("[");
+            }
+            ret.append(contributor.fullName().orElse(contributor.username()));
+            if (censusLink.isPresent()) {
+                ret.append("](");
+                ret.append(censusLink.get().toString());
+                ret.append("]");
+            }
+            ret.append(" (@");
+            ret.append(reviewer.userName());
+            ret.append(" - ");
+            ret.append(getRole(contributor.username()));
+            ret.append(")");
+            return ret.toString();
         }
     }
 
