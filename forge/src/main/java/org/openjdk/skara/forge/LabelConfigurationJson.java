@@ -85,7 +85,7 @@ public class LabelConfigurationJson implements LabelConfiguration {
                                                            field -> field.value()
                                                                          .stream()
                                                                          .map(JSONValue::asString)
-                                                                         .map(Pattern::compile)
+                                                                         .map(s -> Pattern.compile("^" + s, Pattern.CASE_INSENSITIVE))
                                                                          .collect(Collectors.toList())));
             matchers.forEach(builder::addMatchers);
         }
