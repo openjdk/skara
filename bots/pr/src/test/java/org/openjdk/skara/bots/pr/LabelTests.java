@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.forge.LabelConfiguration;
+import org.openjdk.skara.forge.*;
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.test.*;
 
@@ -45,12 +45,12 @@ public class LabelTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var labelConfiguration = LabelConfiguration.builder()
-                                                       .addMatchers("1", List.of(Pattern.compile("cpp$")))
-                                                       .addMatchers("2", List.of(Pattern.compile("hpp$")))
-                                                       .addGroup("group", List.of("1", "2"))
-                                                       .addExtra("extra")
-                                                       .build();
+            var labelConfiguration = LabelConfigurationJson.builder()
+                                                           .addMatchers("1", List.of(Pattern.compile("cpp$")))
+                                                           .addMatchers("2", List.of(Pattern.compile("hpp$")))
+                                                           .addGroup("group", List.of("1", "2"))
+                                                           .addExtra("extra")
+                                                           .build();
             var prBot = PullRequestBot.newBuilder()
                                       .repo(integrator)
                                       .censusRepo(censusBuilder.build())
@@ -135,12 +135,12 @@ public class LabelTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var labelConfiguration = LabelConfiguration.builder()
-                                                       .addMatchers("1", List.of(Pattern.compile("cpp$")))
-                                                       .addMatchers("2", List.of(Pattern.compile("hpp$")))
-                                                       .addGroup("group", List.of("1", "2"))
-                                                       .addExtra("extra")
-                                                       .build();
+            var labelConfiguration = LabelConfigurationJson.builder()
+                                                           .addMatchers("1", List.of(Pattern.compile("cpp$")))
+                                                           .addMatchers("2", List.of(Pattern.compile("hpp$")))
+                                                           .addGroup("group", List.of("1", "2"))
+                                                           .addExtra("extra")
+                                                           .build();
             var prBot = PullRequestBot.newBuilder()
                                       .repo(integrator)
                                       .censusRepo(censusBuilder.build())
@@ -203,12 +203,12 @@ public class LabelTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var labelConfiguration = LabelConfiguration.builder()
-                                                       .addMatchers("1", List.of(Pattern.compile("cpp$")))
-                                                       .addMatchers("2", List.of(Pattern.compile("hpp$")))
-                                                       .addGroup("group", List.of("1", "2"))
-                                                       .addExtra("extra")
-                                                       .build();
+            var labelConfiguration = LabelConfigurationJson.builder()
+                                                           .addMatchers("1", List.of(Pattern.compile("cpp$")))
+                                                           .addMatchers("2", List.of(Pattern.compile("hpp$")))
+                                                           .addGroup("group", List.of("1", "2"))
+                                                           .addExtra("extra")
+                                                           .build();
             var prBot = PullRequestBot.newBuilder()
                                       .repo(integrator)
                                       .censusRepo(censusBuilder.build())
@@ -265,12 +265,12 @@ public class LabelTests {
                                            .addCommitter(committer.forge().currentUser().id())
                                            .addAuthor(author.forge().currentUser().id())
                                            .addAuthor(other.forge().currentUser().id());
-            var labelConfiguration = LabelConfiguration.builder()
-                                                       .addMatchers("1", List.of(Pattern.compile("cpp$")))
-                                                       .addMatchers("2", List.of(Pattern.compile("hpp$")))
-                                                       .addGroup("group", List.of("1", "2"))
-                                                       .addExtra("extra")
-                                                       .build();
+            var labelConfiguration = LabelConfigurationJson.builder()
+                                                           .addMatchers("1", List.of(Pattern.compile("cpp$")))
+                                                           .addMatchers("2", List.of(Pattern.compile("hpp$")))
+                                                           .addGroup("group", List.of("1", "2"))
+                                                           .addExtra("extra")
+                                                           .build();
             var prBot = PullRequestBot.newBuilder()
                                       .repo(integrator)
                                       .censusRepo(censusBuilder.build())

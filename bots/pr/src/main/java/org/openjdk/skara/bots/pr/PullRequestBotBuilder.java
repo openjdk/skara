@@ -33,7 +33,7 @@ public class PullRequestBotBuilder {
     private HostedRepository repo;
     private HostedRepository censusRepo;
     private String censusRef = "master";
-    private LabelConfiguration labelConfiguration = LabelConfiguration.builder().build();
+    private LabelConfiguration labelConfiguration = LabelConfigurationJson.builder().build();
     private Map<String, String> externalCommands = Map.of();
     private Map<String, String> blockingCheckLabels = Map.of();
     private Set<String> readyLabels = Set.of();
