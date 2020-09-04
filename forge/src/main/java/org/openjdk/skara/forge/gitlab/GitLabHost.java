@@ -40,6 +40,8 @@ public class GitLabHost implements Forge {
     private final RestRequest request;
     private final Logger log = Logger.getLogger("org.openjdk.skara.forge.gitlab");
 
+    private HostUser cachedCurrentUser = null;
+
     GitLabHost(String name, URI uri, Credential pat) {
         this.name = name;
         this.uri = uri;
@@ -164,8 +166,12 @@ public class GitLabHost implements Forge {
 
     @Override
     public HostUser currentUser() {
+        if (cachedCurrentUser != null) {
+            return cachedCurrentUser;
+        }
         var details = request.get("user").execute().asObject();
-        return parseAuthorObject(details);
+        cachedCurrentUser = parseAuthorObject(details);
+        return cachedCurrentUser;
     }
 
     @Override
