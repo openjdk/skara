@@ -33,6 +33,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
 
 class LabelerTests {
     @Test
@@ -69,6 +70,8 @@ class LabelerTests {
             // Check the status - only the rfr label should be set
             TestBotRunner.runPeriodicItems(labelBot);
             assertEquals(Set.of("rfr"), new HashSet<>(pr.labels()));
+            assertLastCommentContains(pr, "However, no automatic labelling rule matches the changes in this pull request.");
+            assertLastCommentContains(pr, "The following labels are valid: `test1`, `test2`");
 
             var fileA = localRepoFolder.resolve("a.txt");
             Files.writeString(fileA, "Hello");

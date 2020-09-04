@@ -162,6 +162,8 @@ public class LabelTests {
             // The bot should have applied one label automatically
             TestBotRunner.runPeriodicItems(prBot);
             assertEquals(Set.of("2", "rfr"), new HashSet<>(pr.labels()));
+            assertLastCommentContains(pr, "The following labels will be automatically applied");
+            assertLastCommentContains(pr, "`2`");
 
             // It will refuse to remove it
             pr.addComment("/label remove 2");
@@ -231,6 +233,8 @@ public class LabelTests {
             // The bot will not add any label automatically
             TestBotRunner.runPeriodicItems(prBot);
             assertEquals(Set.of("1", "rfr"), new HashSet<>(pr.labels()));
+            assertEquals(1, pr.comments().size());
+            assertLastCommentContains(pr, "The `1` label was successfully added.");
 
             // Add another file to trigger a group match
             Files.writeString(localRepoFolder.resolve("test.cpp"), "Hello there");
