@@ -288,11 +288,16 @@ public class GitDefpath {
             if (setUpstream) {
                 var originPullPath = repo.pullPath("origin");
                 var uri = Remote.toWebURI(originPullPath);
-                upstreamURI = Forge.from(uri)
-                                   .flatMap(f -> f.repository(uri.getPath().substring(1)))
-                                   .flatMap(r -> r.parent())
-                                   .map(p -> p.webUrl())
-                                   .orElse(null);
+                try {
+                    upstreamURI = Forge.from(uri)
+                                       .flatMap(f -> f.repository(uri.getPath().substring(1)))
+                                       .flatMap(r -> r.parent())
+                                       .map(p -> p.webUrl())
+                                       .orElse(null);
+                } catch (Throwable t) {
+                    System.err.println("error: could not find upstream repository");
+                    System.exit(1);
+                }
                 if (upstreamURI != null && !dryRun) {
                     if (remotes.contains("upstream")) {
                         repo.setPaths("upstream", upstreamURI.toString(), upstreamURI.toString());
@@ -318,11 +323,16 @@ public class GitDefpath {
                     System.err.println("error: no username for " + uri.getHost() + " found, use git-credentials");
                     System.exit(1);
                 }
-                forkURI = Forge.from(uri, new Credential(credentials.username(), credentials.password()))
-                               .flatMap(f -> f.repository(uri.getPath().substring(1)))
-                               .map(r -> r.fork())
-                               .map(fork -> fork.webUrl())
-                               .orElse(null);
+                try {
+                    forkURI = Forge.from(uri, new Credential(credentials.username(), credentials.password()))
+                                   .flatMap(f -> f.repository(uri.getPath().substring(1)))
+                                   .map(r -> r.fork())
+                                   .map(fork -> fork.webUrl())
+                                   .orElse(null);
+                } catch (Throwable t) {
+                    System.err.println("error: could not find fork for upstream repository");
+                    System.exit(1);
+                }
                 if (forkURI != null) {
                     GitCredentials.approve(credentials);
                     forkURI = URI.create("ssh://git@" + forkURI.getHost() + forkURI.getPath());
