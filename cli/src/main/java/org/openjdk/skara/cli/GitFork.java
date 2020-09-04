@@ -153,10 +153,9 @@ public class GitFork {
                   .describe("DATE")
                   .helptext("Same as git clones flag 'shallow-since'")
                   .optional(),
-            Option.shortcut("")
-                  .fullname("setup-pre-push-hooks")
-                  .describe("CHECKS")
-                  .helptext("Setups pre-push hooks for [branches,commits]")
+            Switch.shortcut("")
+                  .fullname("setup-pre-push-hook")
+                  .helptext("Setup a pre-push hook that runs git-jcheck")
                   .optional(),
             Option.shortcut("")
                   .fullname("host")
@@ -382,9 +381,9 @@ public class GitFork {
                     GitSync.sync(repo, new String[]{"--from", "upstream", "--to", "origin", "--fast-forward"});
                 }
 
-                var setupPrePushHooksOption = getOption("setup-pre-push-hooks", subsection, arguments);
+                var setupPrePushHooksOption = getOption("setup-pre-push-hook", subsection, arguments);
                 if (setupPrePushHooksOption != null) {
-                    var res = GitJCheck.run(repo, new String[]{"--setup-pre-push-hooks", setupPrePushHooksOption });
+                    var res = GitJCheck.run(repo, new String[]{"--setup-pre-push-hook", setupPrePushHooksOption });
                     if (res != 0) {
                         System.exit(res);
                     }
