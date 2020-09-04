@@ -69,13 +69,13 @@ public class GitInfo {
 
     public static void main(String[] args) throws IOException {
         var flags = List.of(
-            Switch.shortcut("m")
-                  .fullname("mercurial")
-                  .helptext("Deprecated: force use of mercurial")
-                  .optional(),
             Switch.shortcut("")
                   .fullname("no-decoration")
                   .helptext("Do not prefix lines with any decoration")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("title")
+                  .helptext("Show title of commit message")
                   .optional(),
             Switch.shortcut("")
                   .fullname("issues")
@@ -139,8 +139,7 @@ public class GitInfo {
         }
 
         HttpProxy.setup();
-        var isMercurial = arguments.contains("mercurial");
-        var ref = arguments.at(0).orString(isMercurial ? "tip" : "HEAD");
+        var ref = arguments.at(0).orString("HEAD");
         var cwd = Path.of("").toAbsolutePath();
         var repo = ReadOnlyRepository.get(cwd).orElseThrow(die("error: no repository found at " + cwd.toString()));
         var hash = repo.resolve(ref).orElseThrow(die("error: " + ref + " is not a commit"));
