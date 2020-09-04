@@ -32,13 +32,23 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class GitSkara {
     private static final Map<String, Main> commands = new TreeMap<>();
     private static final Set<String> mercurialCommands = Set.of("webrev", "defpath", "jcheck");
 
-    private static void usage(String[] args) {
+    private static void help(String[] args) throws Exception {
         var isMercurial = args.length > 0 && args[0].equals("--mercurial");
+        if (args.length > 0 && !isMercurial) {
+            var command = args[0];
+            if (commands.containsKey(command)) {
+                commands.get(command).main(new String[]{"-h"});
+            } else {
+                System.err.println("error: unknown command: " + command);
+            }
+        }
+
         var skaraCommands = Set.of("help", "version", "update");
 
         var names = new ArrayList<String>();
@@ -46,7 +56,10 @@ public class GitSkara {
             names.addAll(mercurialCommands);
             names.addAll(skaraCommands);
         } else {
-            names.addAll(commands.keySet());
+            names.addAll(commands.keySet().stream()
+                                          .filter(s -> !s.startsWith("-"))
+                                          .filter(s -> !s.equals("debug"))
+                                          .collect(Collectors.toList()));
         }
 
         var vcs = isMercurial ? "hg" : "git";
@@ -201,8 +214,12 @@ public class GitSkara {
         commands.put("hg-export", GitHgExport::main);
 
         commands.put("update", GitSkara::update);
-        commands.put("help", GitSkara::usage);
+        commands.put("-h", GitSkara::help);
+        commands.put("--help", GitSkara::help);
+        commands.put("help", GitSkara::help);
         commands.put("version", GitSkara::version);
+        commands.put("--version", GitSkara::version);
+        commands.put("-v", GitSkara::version);
 
         checkGitVersion();
 
@@ -213,7 +230,7 @@ public class GitSkara {
             commands.get(command).main(commandArgs);
         } else {
             System.err.println("error: unknown command: " + command);
-            usage(args);
+            help(new String[0]);
         }
     }
 }
