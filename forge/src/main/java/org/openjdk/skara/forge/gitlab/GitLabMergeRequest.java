@@ -44,11 +44,17 @@ public class GitLabMergeRequest implements PullRequest {
     private final GitLabRepository repository;
 
     private Hash targetHash = null;
+    private List<String> labels;
 
     GitLabMergeRequest(GitLabRepository repository, JSONValue jsonValue, RestRequest request) {
         this.repository = repository;
         this.json = jsonValue;
         this.request = request.restrict("merge_requests/" + json.get("iid").toString() + "/");
+
+        labels = json.get("labels").stream()
+                            .map(JSONValue::asString)
+                            .sorted()
+                            .collect(Collectors.toList());
     }
 
     @Override
@@ -593,6 +599,7 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public void addLabel(String label) {
+        labels = null;
         // GitLab does not allow adding/removing single labels, only setting the full list
         // We retrieve the list again here to try to minimize the race condition window
         var currentJson = request.get("").execute().asObject();
@@ -607,6 +614,7 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public void removeLabel(String label) {
+        labels = null;
         var currentJson = request.get("").execute().asObject();
         var labels = currentJson.get("labels").stream()
                 .map(JSONValue::asString)
@@ -619,11 +627,14 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public List<String> labels() {
-        var currentJson = request.get("").execute().asObject();
-        return currentJson.get("labels").stream()
-                .map(JSONValue::asString)
-                .sorted()
-                .collect(Collectors.toList());
+        if (labels == null) {
+            var currentJson = request.get("").execute().asObject();
+            labels = currentJson.get("labels").stream()
+                              .map(JSONValue::asString)
+                              .sorted()
+                              .collect(Collectors.toList());
+        }
+        return labels;
     }
 
     @Override
