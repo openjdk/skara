@@ -77,8 +77,13 @@ public class GitToken {
 
         var command = arguments.at(0).asString();
         var uri = arguments.at(1).via(URI::create);
+        if (uri.getScheme() == null) {
+            uri = URI.create("https://" + uri.toString());
+        }
 
         if (command.equals("store")) {
+            System.out.println("info: if you are prompted for a password, fill in your personal access token,\n" +
+                               "      *not* your login password for " + uri.toString());
             var credentials = GitCredentials.fill(uri.getHost(), uri.getPath(), null, null, uri.getScheme());
             GitCredentials.approve(credentials);
         } else if (command.equals("revoke")) {
