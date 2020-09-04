@@ -31,7 +31,7 @@ import java.nio.file.Files;
 import java.util.List;
 
 public class GitPrApply {
-    static List<Flag> flags = List.of(
+    static final List<Flag> flags = List.of(
         Option.shortcut("u")
               .fullname("username")
               .describe("NAME")
@@ -60,7 +60,7 @@ public class GitPrApply {
               .optional()
     );
 
-    static List<Input> inputs = List.of(
+    static final List<Input> inputs = List.of(
         Input.position(0)
              .describe("ID")
              .singular()

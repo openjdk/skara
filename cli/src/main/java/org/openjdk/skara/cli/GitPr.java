@@ -27,72 +27,83 @@ import org.openjdk.skara.cli.pr.*;
 import org.openjdk.skara.proxy.HttpProxy;
 
 import java.util.List;
+import java.util.Optional;
 
 public class GitPr {
-    public static void main(String[] args) throws Exception {
-        var commands = List.of(
-                    Default.name("help")
-                           .helptext("show help text")
-                           .main(GitPrHelp::main),
-                    Command.name("list")
-                           .helptext("list open pull requests")
-                           .main(GitPrList::main),
-                    Command.name("fetch")
-                           .helptext("fetch a pull request")
-                           .main(GitPrFetch::main),
-                    Command.name("show")
-                           .helptext("show a pull request")
-                           .main(GitPrShow::main),
-                    Command.name("checkout")
-                           .helptext("checkout a pull request")
-                           .main(GitPrCheckout::main),
-                    Command.name("apply")
-                           .helptext("apply a pull request")
-                           .main(GitPrApply::main),
-                    Command.name("integrate")
-                           .helptext("integrate a pull request")
-                           .main(GitPrIntegrate::main),
-                    Command.name("approve")
-                           .helptext("approve a pull request")
-                           .main(GitPrApprove::main),
-                    Command.name("create")
-                           .helptext("create a pull request")
-                           .main(GitPrCreate::main),
-                    Command.name("close")
-                           .helptext("close a pull request")
-                           .main(GitPrClose::main),
-                    Command.name("set")
-                           .helptext("set properties of a pull request")
-                           .main(GitPrSet::main),
-                    Command.name("sponsor")
-                           .helptext("sponsor a pull request")
-                           .main(GitPrSet::main),
-                    Command.name("test")
-                           .helptext("test a pull request")
-                           .main(GitPrTest::main),
-                    Command.name("info")
-                           .helptext("show status of a pull request")
-                           .main(GitPrInfo::main),
-                    Command.name("issue")
-                           .helptext("add, remove or create issues")
-                           .main(GitPrIssue::main),
-                    Command.name("reviewer")
-                           .helptext("add or remove reviewers")
-                           .main(GitPrReviewer::main),
-                    Command.name("summary")
-                           .helptext("add a summary to the commit message for the pull request")
-                           .main(GitPrSummary::main),
-                    Command.name("cc")
-                           .helptext("add one or more labels")
-                           .main(GitPrCC::main),
-                    Command.name("csr")
-                           .helptext("require CSR for the pull request")
-                           .main(GitPrCSR::main),
-                    Command.name("contributor")
-                           .helptext("add or remove contributors")
-                           .main(GitPrContributor::main)
-        );
+    private static final List<Command> commands = List.of(
+            Default.name("help")
+                    .helptext("show help text")
+                    .main(GitPrHelp::main),
+            Command.name("list")
+                    .helptext("list open pull requests")
+                    .main(GitPrList::main),
+            Command.name("fetch")
+                    .helptext("fetch a pull request")
+                    .main(GitPrFetch::main),
+            Command.name("show")
+                    .helptext("show a pull request")
+                    .main(GitPrShow::main),
+            Command.name("checkout")
+                    .helptext("checkout a pull request")
+                    .main(GitPrCheckout::main),
+            Command.name("apply")
+                    .helptext("apply a pull request")
+                    .main(GitPrApply::main),
+            Command.name("integrate")
+                    .helptext("integrate a pull request")
+                    .main(GitPrIntegrate::main),
+            Command.name("approve")
+                    .helptext("approve a pull request")
+                    .main(GitPrApprove::main),
+            Command.name("create")
+                    .helptext("create a pull request")
+                    .main(GitPrCreate::main),
+            Command.name("close")
+                    .helptext("close a pull request")
+                    .main(GitPrClose::main),
+            Command.name("set")
+                    .helptext("set properties of a pull request")
+                    .main(GitPrSet::main),
+            Command.name("sponsor")
+                    .helptext("sponsor a pull request")
+                    .main(GitPrSet::main),
+            Command.name("test")
+                    .helptext("test a pull request")
+                    .main(GitPrTest::main),
+            Command.name("info")
+                    .helptext("show status of a pull request")
+                    .main(GitPrInfo::main),
+            Command.name("issue")
+                    .helptext("add, remove or create issues")
+                    .main(GitPrIssue::main),
+            Command.name("reviewer")
+                    .helptext("add or remove reviewers")
+                    .main(GitPrReviewer::main),
+            Command.name("summary")
+                    .helptext("add a summary to the commit message for the pull request")
+                    .main(GitPrSummary::main),
+            Command.name("cc")
+                    .helptext("add one or more labels")
+                    .main(GitPrCC::main),
+            Command.name("csr")
+                    .helptext("require CSR for the pull request")
+                    .main(GitPrCSR::main),
+            Command.name("contributor")
+                    .helptext("add or remove contributors")
+                    .main(GitPrContributor::main)
+    );
 
+    public static String getHelpForCommand(String command) {
+        Optional<Command> foundCommand = commands.stream().filter(c -> c.name().equals(command)).findFirst();
+
+        if (foundCommand.isPresent()) {
+            return foundCommand.get().helpText();
+        } else {
+            return "";
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
         HttpProxy.setup();
 
         var parser = new MultiCommandParser("git pr", commands);

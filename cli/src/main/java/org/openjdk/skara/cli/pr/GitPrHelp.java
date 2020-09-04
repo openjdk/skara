@@ -23,6 +23,7 @@
 package org.openjdk.skara.cli.pr;
 
 import org.openjdk.skara.args.*;
+import org.openjdk.skara.cli.GitPr;
 import org.openjdk.skara.version.Version;
 import org.openjdk.skara.cli.Logging;
 
@@ -130,6 +131,7 @@ public class GitPrHelp {
         if (arguments.at(0).isPresent()) {
             var command = arguments.at(0).asString();
             if (commands.keySet().contains(command)) {
+               System.out.println("pr " + command + " -- " + GitPr.getHelpForCommand(command));
                showHelpFor(command, 0);
                System.exit(0);
             } else {
@@ -144,9 +146,10 @@ public class GitPrHelp {
         }
 
         System.out.println("git-pr is used for interacting with pull requests from a command line.");
-        System.out.println("The following commands are available:");
+        System.out.println("The following sub-commands are available:");
         for (var command : sorted(commands.keySet())) {
-            System.out.println("- " + command);
+            System.out.println();
+            System.out.println("- " + command + " -- " + GitPr.getHelpForCommand(command));
             showHelpFor(command, 2);
         }
     }
