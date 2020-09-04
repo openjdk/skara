@@ -105,7 +105,7 @@ public class GitWebrev {
             Option.shortcut("u")
                   .fullname("username")
                   .describe("NAME")
-                  .helptext("Use that username instead of 'guessing' one")
+                  .helptext("Use specified username instead of 'guessing' one")
                   .optional(),
             Option.shortcut("")
                   .fullname("upstream")
@@ -120,12 +120,12 @@ public class GitWebrev {
             Option.shortcut("c")
                   .fullname("cr")
                   .describe("CR#")
-                  .helptext("Include link to CR (aka bugid) in the main page")
+                  .helptext("Include link to the CR (aka bugid) in the main page")
                   .optional(),
             Option.shortcut("")
                   .fullname("remote")
                   .describe("NAME")
-                  .helptext("Use remote to calculate outgoing changes")
+                  .helptext("Use specified remote for calculating outgoing changes")
                   .optional(),
             Option.shortcut("")
                   .fullname("base")
@@ -152,11 +152,11 @@ public class GitWebrev {
                   .optional(),
             Switch.shortcut("")
                   .fullname("json")
-                  .helptext("Generate a JSON description instead of HTML")
+                  .helptext("Generate JSON instead of HTML")
                   .optional(),
             Switch.shortcut("C")
                   .fullname("no-comments")
-                  .helptext("Don't show comments")
+                  .helptext("Do not show comments")
                   .optional(),
             Switch.shortcut("N")
                   .fullname("no-outgoing")
