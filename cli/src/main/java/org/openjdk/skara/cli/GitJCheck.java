@@ -241,6 +241,16 @@ public class GitJCheck {
 
         var endpoint = getOption("census", arguments);
         if (endpoint == null) {
+            try {
+                var conf = JCheckConfiguration.from(repo, repo.head());
+                if (conf.isPresent()) {
+                    endpoint = conf.get().census().url().toString();
+                }
+            } catch (IOException e) {
+                // pass
+            }
+        }
+        if (endpoint == null) {
             endpoint = "https://openjdk.java.net/census.xml";
         }
         var census = endpoint.startsWith("http://") || endpoint.startsWith("https://") ?

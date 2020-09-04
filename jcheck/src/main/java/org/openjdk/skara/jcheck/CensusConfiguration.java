@@ -23,17 +23,20 @@
 package org.openjdk.skara.jcheck;
 
 import org.openjdk.skara.ini.Section;
+import java.net.URI;
 
 public class CensusConfiguration {
     private static final CensusConfiguration DEFAULT =
-        new CensusConfiguration(0, "localhost");
+        new CensusConfiguration(0, "localhost", URI.create("https://openjdk.java.net/census.xml"));
 
     private final int version;
     private final String domain;
+    private final URI url;
 
-    CensusConfiguration(int version, String domain) {
+    CensusConfiguration(int version, String domain, URI url) {
         this.version = version;
         this.domain = domain;
+        this.url = url;
     }
 
     public int version() {
@@ -42,6 +45,10 @@ public class CensusConfiguration {
 
     public String domain() {
         return domain;
+    }
+
+    public URI url() {
+        return url;
     }
 
     static String name() {
@@ -55,6 +62,7 @@ public class CensusConfiguration {
 
         var version = s.get("version", DEFAULT.version());
         var domain = s.get("domain", DEFAULT.domain());
-        return new CensusConfiguration(version, domain);
+        var url = s.get("url", DEFAULT.url().toString());
+        return new CensusConfiguration(version, domain, URI.create(url));
     }
 }
