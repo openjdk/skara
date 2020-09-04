@@ -42,7 +42,7 @@ public class GitTranslate {
             Option.shortcut("")
                   .fullname("map")
                   .describe("FILE")
-                  .helptext("File with commit info (defaults to .hgcommits)")
+                  .helptext("File with commit mapping (defaults to .hgcommits)")
                   .optional(),
             Option.shortcut("")
                   .fullname("to-hg")
