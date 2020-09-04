@@ -388,6 +388,15 @@ public class JiraIssue implements Issue {
     }
 
     private void addWebLinkAsComment(Link link) {
+        var alreadyPosted = comments().stream()
+                                      .map(this::parseWebLinkComment)
+                                      .filter(Optional::isPresent)
+                                      .map(Optional::get)
+                                      .anyMatch(l -> l.uri().equals(link.uri()) && l.title().equals(link.title()));
+        if (alreadyPosted) {
+            return;
+        }
+
         var body = new StringBuilder();
         body.append("Remote link: ").append(link.title().orElseThrow()).append("\n");
         body.append("URL: ").append(link.uri().orElseThrow().toString()).append("\n");
