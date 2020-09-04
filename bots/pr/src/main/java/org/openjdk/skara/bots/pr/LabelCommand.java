@@ -33,7 +33,8 @@ import java.util.regex.Pattern;
 public class LabelCommand implements CommandHandler {
     private final String commandName;
 
-    private static final Pattern argumentPattern = Pattern.compile("(?:(add|remove)\\s+)?((?:[A-Za-z0-9_-]+[\\s,]*)+)");
+    private static final Pattern argumentPattern = Pattern.compile("(?:(add|remove)\\s+)?((?:[A-Za-z0-9_@.-]+[\\s,]*)+)");
+    private static final Pattern ignoredSuffixes = Pattern.compile("^(.*)(?:-dev(?:@openjdk.java.net)?)$");
 
     LabelCommand() {
         this("label");
@@ -63,7 +64,13 @@ public class LabelCommand implements CommandHandler {
         }
 
         var labels = argumentMatcher.group(2).split("[\\s,]+");
-        for (var label : labels) {
+        for (int i = 0; i < labels.length; ++i) {
+            var label = labels[i];
+            var ignoredSuffixMatcher = ignoredSuffixes.matcher(label);
+            if (ignoredSuffixMatcher.matches()) {
+                label = ignoredSuffixMatcher.group(1);
+                labels[i] = label;
+            }
             if (!bot.labelConfiguration().allowed().contains(label)) {
                 reply.println("The label `" + label + "` is not a valid label. These labels are valid:");
                 bot.labelConfiguration().allowed().forEach(l -> reply.println(" * `" + l + "`"));
