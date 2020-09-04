@@ -144,7 +144,7 @@ public class GitPublish {
                   .optional(),
             Switch.shortcut("")
                   .fullname("browse")
-                  .helptext("Open link returend by remote in web browser")
+                  .helptext("Open link returned by remote in web browser")
                   .optional(),
             Switch.shortcut("")
                   .fullname("verbose")
