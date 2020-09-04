@@ -318,7 +318,7 @@ public class LabelTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(integrator.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var labelConfiguration = LabelConfiguration.builder()
+            var labelConfiguration = LabelConfigurationJson.builder()
                                                        .addMatchers("1", List.of(Pattern.compile("cpp$")))
                                                        .addMatchers("2", List.of(Pattern.compile("hpp$")))
                                                        .addGroup("group", List.of("1", "2"))
