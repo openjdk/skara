@@ -143,8 +143,8 @@ public class GitPublish {
                   .helptext("Silence all output")
                   .optional(),
             Switch.shortcut("")
-                  .fullname("follow")
-                  .helptext("Open link provided by remote")
+                  .fullname("browse")
+                  .helptext("Open link returned by remote in web browser")
                   .optional(),
             Switch.shortcut("")
                   .fullname("verbose")
@@ -212,9 +212,9 @@ public class GitPublish {
 
         var branch = repo.currentBranch().get();
         var isQuiet = getSwitch("quiet", arguments, repo);
-        var shouldFollow = getSwitch("follow", arguments, repo);
+        var shouldBrowse = getSwitch("browse", arguments, repo);
         int err = 0;
-        if (shouldFollow) {
+        if (shouldBrowse) {
             var browser = getOption("browser", arguments, repo);
             if (browser == null) {
                 var os = System.getProperty("os.name").toLowerCase();
