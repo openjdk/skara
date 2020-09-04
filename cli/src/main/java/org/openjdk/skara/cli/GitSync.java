@@ -155,7 +155,7 @@ public class GitSync {
                                         .flatMap(r -> r.parent())
                                         .map(p -> p.webUrl().toString())
                                         .orElse(null);
-                        } catch (IllegalArgumentException e) {
+                        } catch (Throwable e) {
                             from = null;
                         }
                     }
@@ -164,7 +164,9 @@ public class GitSync {
         }
 
         if (from == null) {
-            die("Could not find repository to sync from, please specify one with --from");
+            System.err.println("error: could not find repository to sync from, please specify one with --from");
+            System.err.println("       or add a remote named 'upstream'");
+            System.exit(1);
         }
 
         var fromPullPath = remotes.contains(from) ?
