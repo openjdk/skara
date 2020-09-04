@@ -109,6 +109,9 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         if (bot.currentLabels().containsKey(pr.headHash())) {
             return List.of();
         }
+        if (bot.labelConfiguration().allowed().isEmpty()) {
+            return List.of();
+        }
         try {
             var path = scratchPath.resolve("pr").resolve("labeler").resolve(pr.repository().name());
             var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));

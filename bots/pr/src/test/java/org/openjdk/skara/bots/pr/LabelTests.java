@@ -68,6 +68,7 @@ public class LabelTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
+            TestBotRunner.runPeriodicItems(prBot);
 
             // No arguments
             pr.addComment("/label");
@@ -292,6 +293,7 @@ public class LabelTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
+            TestBotRunner.runPeriodicItems(prBot);
 
             // Non committers cannot modify labels
             var otherPr = other.pullRequest(pr.id());
