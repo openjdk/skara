@@ -110,6 +110,16 @@ public class Project {
         return result;
     }
 
+    public Map<String, Set<Contributor>> roles(int version) {
+        var res = new HashMap<String, Set<Contributor>>();
+        var lead = lead(version);
+        res.put("lead", lead == null ? Set.of() : Set.of(lead));
+        res.put("reviewer", members(reviewers, version));
+        res.put("comitter", members(committers, version));
+        res.put("author", members(authors, version));
+        return res;
+    }
+
     public Contributor lead(int version) {
         var leadersAtVersion = members(leaders, version);
         if (leadersAtVersion.size() != 1) {
