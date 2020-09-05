@@ -42,6 +42,11 @@ public class GitPrApprove {
               .describe("NAME")
               .helptext("Name of remote, defaults to 'origin'")
               .optional(),
+        Option.shortcut("m")
+              .fullname("message")
+              .describe("TEXT")
+              .helptext("Message to author as part of approval (e.g. \"Looks good!\")")
+              .optional(),
         Switch.shortcut("")
               .fullname("verbose")
               .helptext("Turn on verbose output")
@@ -71,6 +76,10 @@ public class GitPrApprove {
         var host = getForge(uri, repo, arguments);
         var id = pullRequestIdArgument(repo, arguments);
         var pr = getPullRequest(uri, repo, host, id);
-        pr.addReview(Review.Verdict.APPROVED, "Looks good!");
+
+        var message = arguments.contains("message") ?
+            arguments.get("message").asString() :
+            null;
+        pr.addReview(Review.Verdict.APPROVED, message);
     }
 }
