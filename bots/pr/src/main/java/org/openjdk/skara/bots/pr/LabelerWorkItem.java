@@ -73,25 +73,29 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         if (newLabels.isEmpty()) {
             message.append("To determine the appropriate audience for reviewing this pull request, one or more ");
             message.append("labels corresponding to different subsystems will normally be applied automatically. ");
-            message.append("However, no automatic labelling rule matches the changes in this pull request. ");
+            message.append("However, no automatic labelling rule matches the changes in this pull request.\n\n");
             message.append("In order to have an RFR email automatically sent to the correct mailing list, you will ");
             message.append("need to add one or more labels manually using the `/label add \"label\"` command. ");
             message.append("The following labels are valid: ");
             var labels = bot.labelConfiguration().allowed().stream()
                             .sorted()
                             .map(label -> "`" + label + "`")
-                            .collect(Collectors.joining(", "));
+                            .collect(Collectors.joining(" "));
             message.append(labels);
             message.append(".");
         } else {
-            message.append("The following labels will be automatically applied to this pull request: ");
+            message.append("The following label");
+            if (newLabels.size() > 1) {
+                message.append("s");
+            }
+            message.append(" will be automatically applied to this pull request: ");
             var labels = newLabels.stream()
                                   .sorted()
                                   .map(label -> "`" + label + "`")
-                                  .collect(Collectors.joining(", "));
+                                  .collect(Collectors.joining(" "));
             message.append("`");
             message.append(labels);
-            message.append("`. When this pull request is ready to be reviewed, an RFR email will be sent to the ");
+            message.append("`.\n\nWhen this pull request is ready to be reviewed, an RFR email will be sent to the ");
             message.append("corresponding mailing list");
             if (newLabels.size() > 1) {
                 message.append("s");

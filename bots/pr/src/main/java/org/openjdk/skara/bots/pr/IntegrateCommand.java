@@ -155,7 +155,9 @@ public class IntegrateCommand implements CommandHandler {
                 if (!finalRebaseMessage.isBlank()) {
                     reply.println(rebaseMessage.toString());
                 }
-                reply.println("Pushed as commit " + localHash.hex() + ". :bulb: You may see a message that your pull request was closed with unmerged commits. This can be safely ignored.");
+                reply.println("Pushed as commit " + localHash.hex() + ".");
+                reply.println();
+                reply.println(":bulb: You may see a message that your pull request was closed with unmerged commits. This can be safely ignored.");
                 localRepo.push(localHash, pr.repository().url(), pr.targetRef());
                 pr.setState(PullRequest.State.CLOSED);
                 pr.addLabel("integrated");
