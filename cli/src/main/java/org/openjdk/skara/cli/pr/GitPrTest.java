@@ -41,6 +41,15 @@ public class GitPrTest {
               .describe("NAME")
               .helptext("Name of remote, defaults to 'origin'")
               .optional(),
+        Option.shortcut("j")
+              .fullname("job")
+              .describe("NAME")
+              .helptext("Name of a job")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("approve")
+              .helptext("Approve a test request")
+              .optional(),
         Switch.shortcut("")
               .fullname("verbose")
               .helptext("Turn on verbose output")
@@ -63,7 +72,7 @@ public class GitPrTest {
     );
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        var parser = new ArgumentParser("git-pr", flags, inputs);
+        var parser = new ArgumentParser("git-pr test", flags, inputs);
         var arguments = parse(parser, args);
         var repo = getRepo();
         var uri = getURI(repo, arguments);
@@ -71,7 +80,14 @@ public class GitPrTest {
         var id = pullRequestIdArgument(repo, arguments);
         var pr = getPullRequest(uri, repo, host, id);
         var head = pr.headHash();
-        var testComment = pr.addComment("/test");
+
+        var command = "/test";
+        if (arguments.contains("approve")) {
+            command += " approve";
+        } else if (arguments.contains("job")) {
+            command += arguments.get("job").asString();
+        }
+        var testComment = pr.addComment(command);
 
         var seenTestComment = false;
         for (var i = 0; i < 90; i++) {
