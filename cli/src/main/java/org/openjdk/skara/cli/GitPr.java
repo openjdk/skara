@@ -66,7 +66,7 @@ public class GitPr {
                     .main(GitPrSet::main),
             Command.name("sponsor")
                     .helptext("sponsor a pull request")
-                    .main(GitPrSet::main),
+                    .main(GitPrSponsor::main),
             Command.name("test")
                     .helptext("test a pull request")
                     .main(GitPrTest::main),
