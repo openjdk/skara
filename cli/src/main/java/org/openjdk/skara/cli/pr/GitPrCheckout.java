@@ -44,7 +44,7 @@ public class GitPrCheckout {
         Option.shortcut("b")
               .fullname("branch")
               .describe("NAME")
-              .helptext("Name of target branch, defaults to 'master'")
+              .helptext("Create a new branched named NAME")
               .optional(),
         Switch.shortcut("")
               .fullname("no-token")
