@@ -41,11 +41,6 @@ public class GitPrFetch {
               .describe("NAME")
               .helptext("Name of remote, defaults to 'origin'")
               .optional(),
-        Option.shortcut("b")
-              .fullname("branch")
-              .describe("NAME")
-              .helptext("Name of target branch, defaults to 'master'")
-              .optional(),
         Switch.shortcut("")
               .fullname("no-token")
               .helptext("Do not use a personal access token (PAT)")
@@ -81,11 +76,6 @@ public class GitPrFetch {
         var pr = getPullRequest(uri, repo, host, id);
 
         var fetchHead = repo.fetch(pr.repository().webUrl(), pr.fetchRef());
-        var branchName = getOption("branch", "fetch", arguments);
-        if (branchName != null) {
-            repo.branch(fetchHead, branchName);
-        } else {
-            System.out.println(fetchHead.hex());
-        }
+        System.out.println(fetchHead.hex());
     }
 }
