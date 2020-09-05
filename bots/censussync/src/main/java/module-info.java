@@ -20,7 +20,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-module org.openjdk.skara.bots.censusssync {
+module org.openjdk.skara.bots.censussync {
     requires org.openjdk.skara.vcs;
     requires org.openjdk.skara.host;
     requires org.openjdk.skara.network;

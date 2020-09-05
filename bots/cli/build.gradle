@@ -85,7 +85,8 @@ images {
                    'org.openjdk.skara.bots.topological',
                    'org.openjdk.skara.bots.forward',
                    'org.openjdk.skara.bots.bridgekeeper',
-                   'org.openjdk.skara.bots.checkout']
+                   'org.openjdk.skara.bots.checkout',
+                   'org.openjdk.skara.bots.censussync']
         launchers = ['skara-bots': 'org.openjdk.skara.bots.cli/org.openjdk.skara.bots.cli.BotLauncher']
         options = ["--module-path", "plugins"]
         bundles = ['zip', 'tar.gz']
