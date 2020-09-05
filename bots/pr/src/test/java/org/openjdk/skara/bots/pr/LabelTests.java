@@ -163,7 +163,7 @@ public class LabelTests {
             // The bot should have applied one label automatically
             TestBotRunner.runPeriodicItems(prBot);
             assertEquals(Set.of("2", "rfr"), new HashSet<>(pr.labels()));
-            assertLastCommentContains(pr, "The following labels will be automatically applied");
+            assertLastCommentContains(pr, "The following label will be automatically applied");
             assertLastCommentContains(pr, "`2`");
 
             // It will refuse to remove it
