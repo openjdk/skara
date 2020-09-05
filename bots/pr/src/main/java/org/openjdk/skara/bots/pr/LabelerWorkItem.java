@@ -93,9 +93,8 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                                   .sorted()
                                   .map(label -> "`" + label + "`")
                                   .collect(Collectors.joining(" "));
-            message.append("`");
             message.append(labels);
-            message.append("`.\n\nWhen this pull request is ready to be reviewed, an RFR email will be sent to the ");
+            message.append(".\n\nWhen this pull request is ready to be reviewed, an RFR email will be sent to the ");
             message.append("corresponding mailing list");
             if (newLabels.size() > 1) {
                 message.append("s");
