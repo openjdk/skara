@@ -298,7 +298,7 @@ class ArchiveWorkItem implements WorkItem {
             }
         }
         if (recipients.isEmpty()) {
-            log.severe("PR does not match any recipient list: " + pr.repository().name() + "#" + pr.id());
+            log.fine("PR does not match any recipient list: " + pr.repository().name() + "#" + pr.id());
             return List.of();
         }
 
