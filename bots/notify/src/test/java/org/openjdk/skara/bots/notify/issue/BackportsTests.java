@@ -200,13 +200,13 @@ public class BackportsTests {
         }
 
         void assertLabeled(String... labeledVersions) {
-            Backports.labelReleaseStreamDuplicates(issues.get(0), "hgupdater-sync");
+            Backports.labelReleaseStreamDuplicates(issues.get(0), "hgupdate-sync");
 
             var labels = new HashSet<>(Arrays.asList(labeledVersions));
             var labeledIssues = new HashSet<String>();
             for (var issue : issues) {
                 var version = issue.properties().get("fixVersions").get(0).asString();
-                if (issue.labels().contains("hgupdater-sync")) {
+                if (issue.labels().contains("hgupdate-sync")) {
                     labeledIssues.add(version);
                 }
             }
