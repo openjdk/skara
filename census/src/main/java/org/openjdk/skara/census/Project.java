@@ -115,7 +115,7 @@ public class Project {
         var lead = lead(version);
         res.put("lead", lead == null ? Set.of() : Set.of(lead));
         res.put("reviewer", members(reviewers, version));
-        res.put("comitter", members(committers, version));
+        res.put("committer", members(committers, version));
         res.put("author", members(authors, version));
         return res;
     }
