@@ -248,7 +248,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 if (setFixVersion) {
                     if (requestedVersion != null) {
                         issue.setProperty("fixVersions", JSON.of(requestedVersion));
-                        Backports.labelReleaseStreamDuplicates(issue, "hgupdater-sync");
+                        Backports.labelReleaseStreamDuplicates(issue, "hgupdate-sync");
                     }
                 }
             }

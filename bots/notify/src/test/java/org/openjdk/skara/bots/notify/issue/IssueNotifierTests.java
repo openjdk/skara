@@ -699,10 +699,10 @@ public class IssueNotifierTests {
             localRepo.push(commit, repo.url(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
-            assertEquals(List.of("hgupdater-sync"), issue1.labels());
+            assertEquals(List.of("hgupdate-sync"), issue1.labels());
             assertEquals(List.of(), issue2.labels());
             assertEquals(List.of(), issue3.labels());
-            assertEquals(List.of("hgupdater-sync"), issue4.labels());
+            assertEquals(List.of("hgupdate-sync"), issue4.labels());
         }
     }
 }
