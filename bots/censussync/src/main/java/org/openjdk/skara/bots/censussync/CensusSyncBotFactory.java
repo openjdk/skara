@@ -43,10 +43,10 @@ public class CensusSyncBotFactory implements BotFactory {
     public List<Bot> create(BotConfiguration configuration) {
         var bots = new ArrayList<Bot>();
         var specific = configuration.specific();
-        for (var spec : specific.get("mirrors").asArray()) {
-            var from = configuration.repository(spec.get("from").asString());
-            var to = configuration.repository(spec.get("to").asString());
-            var version = spec.get("version").asInt();
+        for (var sync : specific.get("sync").asArray()) {
+            var from = configuration.repository(sync.get("from").asString());
+            var to = configuration.repository(sync.get("to").asString());
+            var version = sync.get("version").asInt();
             bots.add(new CensusSyncBot(from, to, version));
         }
         return bots;
