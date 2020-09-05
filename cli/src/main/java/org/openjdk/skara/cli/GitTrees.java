@@ -123,7 +123,9 @@ public class GitTrees {
         }
 
         if (args.length == 1 && (args[0].equals("-h") || args[0].equals("--help"))) {
-            System.out.println("usage: git-trees [options] <COMMAND>");
+            System.out.println("usage: git-trees [options] <COMMAND> [<ARGS>]");
+            System.out.println("\t<COMMAND>\tA git/hg command to run once for each repo, or");
+            System.out.println("\ttreconfigure\tto pick up changes in the tree hierarchy");
             System.out.println("\t-m, --mercurial\tDeprecated: force use of mercurial");
             System.out.println("\t-h, --help     \tShow this help text");
             System.out.println("\t    --version  \tPrint the version of this tool");
@@ -163,6 +165,7 @@ public class GitTrees {
         for (var path : trees) {
             var subroot = root.resolve(path);
             if (isRepository(subroot, isMercurial)) {
+                System.out.println();
                 System.out.println("[" + root.resolve(path).toString() + "]");
                 pb.directory(subroot.toFile());
                 ret += pb.start().waitFor();
