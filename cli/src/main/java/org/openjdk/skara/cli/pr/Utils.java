@@ -414,7 +414,7 @@ class Utils {
     }
 
     static void apply(Path patch) throws IOException {
-        var pb = new ProcessBuilder("git", "apply", "--no-commit", patch.toString());
+        var pb = new ProcessBuilder("git", "apply", patch.toString());
         pb.inheritIO();
         await(pb.start());
     }
