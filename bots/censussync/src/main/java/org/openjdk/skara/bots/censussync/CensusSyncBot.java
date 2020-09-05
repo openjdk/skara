@@ -55,6 +55,10 @@ public class CensusSyncBot implements Bot, WorkItem {
         this.last = null;
     }
 
+    private static String escape(String s) {
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    }
+
     @Override
     public boolean concurrentWith(WorkItem other) {
         if (!(other instanceof CensusSyncBot)) {
@@ -95,7 +99,7 @@ public class CensusSyncBot implements Bot, WorkItem {
             }
             try (var file = new PrintWriter(Files.newBufferedWriter(censusXML))) {
                 file.println("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
-                var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'H:m:sZ");
+                var formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
                 file.println("<census time=\"" + ZonedDateTime.now().format(formatter) + "\">");
                 for (var contributor : census.contributors()) {
                     file.println("<person name=\"" + contributor.username() + "\">");
@@ -104,7 +108,7 @@ public class CensusSyncBot implements Bot, WorkItem {
                 }
                 for (var group : census.groups()) {
                     file.println("<group name=\"" + group.name() + "\">");
-                    file.println("  <full-name>" + group.fullName() + "</full-name>");
+                    file.println("  <full-name>" + escape(group.fullName()) + "</full-name>");
                     file.println("  <person ref=\"" + group.lead().username() + "\" role=\"lead\" />");
                     for (var member : group.members()) {
                         if (!member.username().equals(group.lead().username())) {
@@ -115,7 +119,7 @@ public class CensusSyncBot implements Bot, WorkItem {
                 }
                 for (var project : census.projects()) {
                     file.println("<project name=\"" + project.name() + "\">");
-                    file.println("  <full-name>" + project.fullName() + "</full-name>");
+                    file.println("  <full-name>" + escape(project.fullName()) + "</full-name>");
                     file.println("  <sponsor ref=\"" + project.sponsor().name() + "\" />");
 
                     var roles = project.roles(version);
