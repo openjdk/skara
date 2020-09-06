@@ -23,12 +23,11 @@
 package org.openjdk.skara.bots.notify.comment;
 
 import org.junit.jupiter.api.*;
-import org.openjdk.skara.bots.notify.*;
+import org.openjdk.skara.bots.notify.NotifyBot;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.*;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -76,7 +75,7 @@ public class CommitCommentNotifierTests {
             var pr = credentials.createPullRequest(repo, "master", "master", "Fix an issue");
             pr.setBody("I made a fix");
             pr.addLabel("integrated");
-            pr.addComment("Pushed as commit " + editHash.hex() + ".");
+            pr.addComment("More text!\n\n@user Pushed as commit " + editHash.hex() + ". Even more text.\n\nAnd some additional text.");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Check commit comment
