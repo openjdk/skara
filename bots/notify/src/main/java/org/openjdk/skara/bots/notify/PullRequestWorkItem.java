@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.storage.StorageBuilder;
 import org.openjdk.skara.vcs.Hash;
@@ -32,7 +33,7 @@ import org.openjdk.skara.vcs.openjdk.Issue;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
+import java.util.regex.*;
 import java.util.stream.*;
 
 public class PullRequestWorkItem implements WorkItem {
@@ -50,21 +51,21 @@ public class PullRequestWorkItem implements WorkItem {
         this.integratorId = integratorId;
     }
 
-    private Hash resultingCommitHashFor(PullRequest pr) {
-       if (pr.labels().contains("integrated")) {
-           for (var comment : pr.comments()) {
-               if (comment.author().id().equals(integratorId)) {
-                   for (var line : comment.body().split("\n")) {
-                       if (line.startsWith("Pushed as commit")) {
-                           var parts = line.split(" ");
-                           var hash = parts[parts.length - 1].replace(".", "");
-                           return new Hash(hash);
-                       }
-                   }
-               }
-           }
-       }
-       return null;
+    private final static Pattern pushedPattern = Pattern.compile("Pushed as commit ([a-f0-9]{40})\\.");
+
+    private Hash resultingCommitHash() {
+        if (pr.labels().contains("integrated")) {
+            return pr.comments().stream()
+                     .filter(comment -> comment.author().id().equals(integratorId))
+                     .map(Comment::body)
+                     .map(pushedPattern::matcher)
+                     .filter(Matcher::find)
+                     .map(m -> m.group(1))
+                     .map(Hash::new)
+                     .findAny()
+                     .orElse(null);
+        }
+        return null;
     }
 
     private Set<PullRequestState> deserializePrState(String current) {
@@ -179,7 +180,7 @@ public class PullRequestWorkItem implements WorkItem {
                 .materialize(historyPath);
 
         var issues = parseIssues();
-        var commit = resultingCommitHashFor(pr);
+        var commit = resultingCommitHash();
         var state = new PullRequestState(pr, issues, commit);
         var stored = storage.current();
         if (stored.contains(state)) {
@@ -193,7 +194,7 @@ public class PullRequestWorkItem implements WorkItem {
                 .findAny();
         // The stored entry could be old and be missing commit information - if so, upgrade it
         if (storedState.isPresent() && storedState.get().commitId().equals(Optional.of(Hash.zero()))) {
-            var hash = resultingCommitHashFor(pr);
+            var hash = resultingCommitHash();
             storedState = Optional.of(new PullRequestState(pr, storedState.get().issueIds(), hash));
             storage.put(storedState.get());
         }
