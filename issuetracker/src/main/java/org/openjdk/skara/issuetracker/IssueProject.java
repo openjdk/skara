@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.issuetracker;
 
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.json.JSONValue;
 
 import java.net.URI;
@@ -34,4 +35,5 @@ public interface IssueProject {
     Optional<Issue> issue(String id);
     List<Issue> issues();
     String name();
+    Optional<HostUser> findUser(String findBy);
 }

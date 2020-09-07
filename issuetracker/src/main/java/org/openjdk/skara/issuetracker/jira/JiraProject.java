@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.issuetracker.jira;
 
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
@@ -385,5 +386,25 @@ public class JiraProject implements IssueProject {
     @Override
     public String name() {
         return projectName.toUpperCase();
+    }
+
+    @Override
+    public Optional<HostUser> findUser(String findBy) {
+        var user = request.get("user/search")
+                          .param("username", findBy)
+                          .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.object().put("NOT_FOUND", true)) : Optional.empty())
+                          .execute();
+        if (user.contains("NOT_FOUND")) {
+            return Optional.empty();
+        }
+        if (user.asArray().size() != 1) {
+            log.severe("Multiple results returned for user query: " + findBy);
+            return Optional.empty();
+        }
+        var data = user.asArray().get(0);
+        return Optional.of(new HostUser(data.get("name").asString(),
+                                        data.get("name").asString(),
+                                        data.get("displayName").asString(),
+                                        data.get("emailAddresss").asString()));
     }
 }

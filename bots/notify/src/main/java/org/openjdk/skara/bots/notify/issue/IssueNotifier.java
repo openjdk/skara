@@ -77,14 +77,25 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         var authorEmail = EmailAddress.from(commit.author().email());
         if (authorEmail.domain().equals("openjdk.org")) {
             return Optional.of(authorEmail.localPart());
+        } else {
+            var user = issueProject.findUser(authorEmail.address());
+            if (user.isPresent()) {
+                return Optional.of(user.get().userName());
+            }
         }
 
         var committerEmail = EmailAddress.from(commit.committer().email());
-        if (!committerEmail.domain().equals("openjdk.org")) {
+        if (committerEmail.domain().equals("openjdk.org")) {
+            return Optional.of(committerEmail.localPart());
+        } else {
+            var user = issueProject.findUser(committerEmail.address());
+            if (user.isPresent()) {
+                return Optional.of(user.get().userName());
+            }
+
             log.severe("Cannot determine issue tracker user name from committer email: " + committerEmail);
             return Optional.empty();
         }
-        return Optional.of(committerEmail.localPart());
     }
 
     @Override
