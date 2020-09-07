@@ -517,7 +517,7 @@ class CheckRun {
             var hasContributingFile =
                 !localRepo.files(pr.targetHash(), Path.of("CONTRIBUTING.md")).isEmpty();
             if (hasContributingFile) {
-                message.append(". When the change also fulfills all ");
+                message.append(". In addition to the automated checks, the change must also fulfill all ");
                 message.append("[project specific requirements](https://github.com/");
                 message.append(pr.repository().name());
                 message.append("/blob/");
@@ -528,8 +528,8 @@ class CheckRun {
             throw new UncheckedIOException(e);
         }
 
-        message.append(", type `/integrate` in a new comment to proceed. After integration, ");
-        message.append("the commit message will be:\n");
+        message.append("\n\n");
+        message.append("After integration, the commit message will be:\n");
         message.append("```\n");
         message.append(commitMessage);
         message.append("\n```\n");
