@@ -103,24 +103,34 @@ public class CheckoutBot implements Bot, WorkItem {
             Files.createDirectories(marksDir);
             var marks = marksStorage.materialize(marksDir);
             var converter = new GitToHgConverter(branch);
+            var hasConverted = false;
             try {
                 if (!Files.exists(to)) {
                     log.info("Creating Hg repository at: " + to);
                     Files.createDirectories(to);
                     var toRepo = Repository.init(to, VCS.HG);
                     converter.convert(fromRepo, toRepo);
+                    hasConverted = true;
                 } else {
                     log.info("Found existing Hg repository at: " + to);
                     var toRepo = Repository.get(to).orElseThrow(() ->
                         new IllegalStateException("Repository vanished from " + to));
                     var existing = new ArrayList<Mark>(marks.current());
                     log.info("Found " + existing.size() + " existing marks");
-                    Collections.sort(existing);
-                    converter.convert(fromRepo, toRepo, existing);
+
+                    var convertedGitHashes = existing.stream().map(Mark::git).collect(Collectors.toSet());
+                    var gitHead = fromRepo.head();
+                    if (!convertedGitHashes.contains(gitHead)) {
+                        Collections.sort(existing);
+                        converter.convert(fromRepo, toRepo, existing);
+                        hasConverted = true;
+                    }
                 }
             } finally {
-                log.info("Storing " + converter.marks().size() + " marks");
-                marks.put(converter.marks());
+                if (hasConverted) {
+                    log.info("Storing " + converter.marks().size() + " marks");
+                    marks.put(converter.marks());
+                }
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
