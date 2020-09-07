@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.test;
 
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.network.URIBuilder;
@@ -74,5 +75,10 @@ public class TestIssueProject implements IssueProject {
     @Override
     public String name() {
         return projectName.toUpperCase();
+    }
+
+    @Override
+    public Optional<HostUser> findUser(String findBy) {
+        return host.findUser(findBy);
     }
 }
