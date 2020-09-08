@@ -771,12 +771,6 @@
             "hotspot-gc",
             "hotspot-runtime",
             "hotspot-jfr"
-        ],
-        "jdk": [
-            "hotspot",
-            "core-libs",
-            "compiler",
-            "2d"
         ]
     }
 }
