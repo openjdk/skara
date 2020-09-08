@@ -89,7 +89,7 @@ public class HgOpenJDKImport {
             var gitRepo = ReadOnlyRepository.get(gitDir)
                                             .orElseThrow(error("%s is not a git repository", gitDir));
 
-            var converter = new GitToHgConverter(new Branch("master"));
+            var converter = new GitToHgConverter(Branch.defaultFor(VCS.GIT));
             try {
                 var shamap = hgRepo.root().resolve(".hg").resolve("shamap");
                 var marks = new ArrayList<Mark>();

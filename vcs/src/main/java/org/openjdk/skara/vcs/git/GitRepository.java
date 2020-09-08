@@ -894,7 +894,7 @@ public class GitRepository implements Repository {
                 var ref = res.stdout().get(0).substring("origin/".length());
                 return new Branch(ref);
             } else {
-                return new Branch("master");
+                return Branch.defaultFor(VCS.GIT);
             }
         }
     }

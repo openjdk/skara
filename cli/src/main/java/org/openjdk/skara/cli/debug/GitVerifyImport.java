@@ -74,7 +74,7 @@ public class GitVerifyImport {
         var gitBranches = git.branches()
                              .stream()
                              .map(Branch::name)
-                             .map(b -> b.equals("master") ? "default" : b)
+                             .map(b -> b.equals(Branch.defaultFor(VCS.GIT).name()) ? Branch.defaultFor(VCS.HG).name() : b)
                              .collect(Collectors.toSet());
         if (!hgBranches.equals(gitBranches)) {
             if (isVerbose) {
@@ -225,7 +225,7 @@ public class GitVerifyImport {
         var tags = verifyTags(hg, git);
 
         for (var branch : branches) {
-            verifyFiles(hg, branch, git, branch.equals("default") ? "master" : branch);
+            verifyFiles(hg, branch, git, branch.equals(Branch.defaultFor(VCS.HG).name()) ? Branch.defaultFor(VCS.GIT).name() : branch);
         }
 
         for (var tag : tags) {

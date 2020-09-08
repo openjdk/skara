@@ -39,7 +39,7 @@ public class GitToHgConverter implements Converter {
     private final List<Mark> marks = new ArrayList<Mark>();
 
     public GitToHgConverter() {
-        this(new Branch("master"));
+        this(Branch.defaultFor(VCS.GIT));
     }
 
     public GitToHgConverter(Branch branch) {

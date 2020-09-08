@@ -28,6 +28,7 @@ import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.JSONObject;
 import org.openjdk.skara.network.URIBuilder;
+import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.VCS;
 
 import java.io.*;
@@ -198,7 +199,7 @@ public class BotRunnerConfiguration {
         }
 
         if (ret.ref == null) {
-            ret.ref = ret.repository.repositoryType() == VCS.GIT ? "master" : "default";
+            ret.ref = Branch.defaultFor(ret.repository.repositoryType()).name();
         }
 
         return ret;

@@ -258,11 +258,11 @@ public class JCheck {
             return new Issues(new ArrayList<Issue>().iterator(), null);
         }
 
-        var master = repository.resolve(repository.defaultBranch().name());
+        var defaultHead = repository.resolve(repository.defaultBranch().name());
         var head = repository.head();
 
-        var conf = master.isPresent() ?
-            parseConfiguration(repository, master.get(), List.of()) :
+        var conf = defaultHead.isPresent() ?
+            parseConfiguration(repository, defaultHead.get(), List.of()) :
             parseConfiguration(repository, head, List.of());
         var branchRegex = conf.isPresent() ? conf.get().repository().branches() : ".*";
         var tagRegex = conf.isPresent() ? conf.get().repository().tags() : ".*";

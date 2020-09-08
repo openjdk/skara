@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.bots.mlbridge;
 
+import org.openjdk.skara.vcs.Branch;
+import org.openjdk.skara.vcs.VCS;
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.HostedRepository;
 
@@ -35,9 +37,9 @@ public class MailingListBridgeBotBuilder {
     private EmailAddress from;
     private HostedRepository repo;
     private HostedRepository archive;
-    private String archiveRef = "master";
+    private String archiveRef = Branch.defaultFor(VCS.GIT).name();
     private HostedRepository censusRepo;
-    private String censusRef = "master";
+    private String censusRef = Branch.defaultFor(VCS.GIT).name();
     private List<MailingListConfiguration> lists;
     private Set<String> ignoredUsers = Set.of();
     private Set<Pattern> ignoredComments = Set.of();

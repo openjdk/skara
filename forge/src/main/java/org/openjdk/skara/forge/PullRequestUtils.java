@@ -76,9 +76,9 @@ public class PullRequestUtils {
                 return hash.get();
             }
 
-            // Only valid option now is a repository - we default the ref to "master"
+            // Only valid option now is a repository - use default ref
             repoName = source;
-            ref = "master";
+            ref = Branch.defaultFor(VCS.GIT).name();
         } else {
             repoName = source.split(":", 2)[0];
             ref = source.split(":", 2)[1];

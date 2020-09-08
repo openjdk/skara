@@ -695,12 +695,13 @@ class CheckRun {
             return;
         }
 
+        var defaultBranch = Branch.defaultFor(VCS.GIT);
         var message = "⚠️  @" + pr.author().userName() +
                       " This pull request contains merges that bring in commits not present in the target repository." +
                       " Since this is not a \"merge style\" pull request, these changes will be squashed when this pull request in integrated." +
                       " If this is your intention, then please ignore this message. If you want to preserve the commit structure, you must change" +
                       " the title of this pull request to `Merge <project>:<branch>` where `<project>` is the name of another project in the" +
-                      " [OpenJDK organization](https://github.com/openjdk) (for example `Merge jdk:master`).\n" +
+                      " [OpenJDK organization](https://github.com/openjdk) (for example `Merge jdk:" + defaultBranch + "`).\n" +
                       mergeCommitWarningMarker;
         pr.addComment(message);
     }

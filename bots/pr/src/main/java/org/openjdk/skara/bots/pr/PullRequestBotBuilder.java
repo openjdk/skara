@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.vcs.Branch;
+import org.openjdk.skara.vcs.VCS;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.IssueProject;
 
@@ -32,7 +34,7 @@ import java.util.regex.Pattern;
 public class PullRequestBotBuilder {
     private HostedRepository repo;
     private HostedRepository censusRepo;
-    private String censusRef = "master";
+    private String censusRef = Branch.defaultFor(VCS.GIT).name();
     private LabelConfiguration labelConfiguration = LabelConfigurationJson.builder().build();
     private Map<String, String> externalCommands = Map.of();
     private Map<String, String> blockingCheckLabels = Map.of();
@@ -45,7 +47,7 @@ public class PullRequestBotBuilder {
     private Path seedStorage = null;
     private HostedRepository confOverrideRepo = null;
     private String confOverrideName = ".conf/jcheck";
-    private String confOverrideRef = "master";
+    private String confOverrideRef = Branch.defaultFor(VCS.GIT).name();
     private String censusLink = null;
 
     PullRequestBotBuilder() {
