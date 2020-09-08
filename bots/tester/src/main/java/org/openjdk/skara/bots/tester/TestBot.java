@@ -28,7 +28,7 @@ import org.openjdk.skara.bot.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.census.Census;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
-import org.openjdk.skara.vcs.Repository;
+import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.host.HostUser;
 
 import java.io.*;
@@ -95,10 +95,10 @@ public class TestBot implements Bot {
         Predicate<HostUser> isCommitter = null;
         if (checkCommitterStatus) {
             try {
-                var censusRepo = Repository.materialize(censusDir, censusRemote.url(), "master");
+                var censusRepo = Repository.materialize(censusDir, censusRemote.url(), Branch.defaultFor(VCS.GIT).name());
                 var census = Census.parse(censusDir);
                 var namespace = census.namespace(repo.namespace());
-                var jcheckConf = repo.fileContents(".jcheck/conf", "master");
+                var jcheckConf = repo.fileContents(".jcheck/conf", Branch.defaultFor(VCS.GIT).name());
                 var jcheck = JCheckConfiguration.parse(jcheckConf.lines().collect(Collectors.toList()));
                 var project = census.project(jcheck.general().project());
                 isCommitter = u -> {

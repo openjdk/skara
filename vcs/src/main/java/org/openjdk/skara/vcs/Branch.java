@@ -23,6 +23,9 @@
 package org.openjdk.skara.vcs;
 
 public class Branch {
+    private static final Branch defaultGit = new Branch("master");
+    private static final Branch defaultHg = new Branch("default");
+
     private final String name;
 
     public Branch(String name) {
@@ -31,6 +34,16 @@ public class Branch {
 
     public String name() {
         return this.name;
+    }
+
+    public static Branch defaultFor(VCS vcs) {
+        if (vcs == VCS.GIT) {
+            return defaultGit;
+        }
+        if (vcs == VCS.HG) {
+            return defaultHg;
+        }
+        throw new IllegalArgumentException("Unsupported VCS: " + vcs);
     }
 
     @Override

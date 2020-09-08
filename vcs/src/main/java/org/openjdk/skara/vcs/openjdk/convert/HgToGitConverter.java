@@ -136,8 +136,8 @@ public class HgToGitConverter implements Converter {
     }
 
     private static Branch convertBranch(Branch branch) {
-        if (branch.name().equals("default")) {
-            return new Branch("master");
+        if (branch.equals(Branch.defaultFor(VCS.HG))) {
+            return Branch.defaultFor(VCS.GIT);
         }
 
         return branch;

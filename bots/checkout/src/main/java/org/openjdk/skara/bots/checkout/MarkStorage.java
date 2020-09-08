@@ -24,8 +24,7 @@
 package org.openjdk.skara.bots.checkout;
 
 import org.openjdk.skara.forge.HostedRepository;
-import org.openjdk.skara.vcs.Author;
-import org.openjdk.skara.vcs.Hash;
+import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.convert.Mark;
 import org.openjdk.skara.storage.StorageBuilder;
 
@@ -85,7 +84,7 @@ class MarkStorage {
 
     static StorageBuilder<Mark> create(HostedRepository repo, Author user, String name) {
         return new StorageBuilder<Mark>(name + "/marks.txt")
-            .remoteRepository(repo, "master", user.name(), user.email(), "Updated marks for " + name)
+            .remoteRepository(repo, Branch.defaultFor(VCS.GIT).name(), user.name(), user.email(), "Updated marks for " + name)
             .serializer(MarkStorage::serialize)
             .deserializer(MarkStorage::deserialize);
     }

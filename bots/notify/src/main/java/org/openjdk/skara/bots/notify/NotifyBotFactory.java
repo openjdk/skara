@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.bots.notify;
 
+import org.openjdk.skara.vcs.Branch;
+import org.openjdk.skara.vcs.VCS;
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.storage.StorageBuilder;
@@ -81,7 +83,7 @@ public class NotifyBotFactory implements BotFactory {
 
         for (var repo : specific.get("repositories").fields()) {
             var repoName = repo.name();
-            var branchPattern = Pattern.compile("^master$");
+            var branchPattern = Pattern.compile("^" + Branch.defaultFor(VCS.GIT).name() + "$");
             if (repo.value().contains("branches")) {
                 branchPattern = Pattern.compile(repo.value().get("branches").asString());
             }

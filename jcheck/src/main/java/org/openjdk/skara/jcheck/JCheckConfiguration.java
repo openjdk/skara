@@ -166,8 +166,9 @@ public class JCheckConfiguration {
     }
 
     public static Optional<JCheckConfiguration> from(ReadOnlyRepository r) throws IOException {
-        var master = r.resolve("master")
-                      .orElseThrow(() -> new IOException("Cannot resolve 'master' branch"));
-        return from(r, master, Path.of(".jcheck", "conf"));
+        var defaultBranch = r.defaultBranch();
+        var defaultHead = r.resolve(defaultBranch)
+                      .orElseThrow(() -> new IOException("Cannot resolve '" + defaultBranch + "' branch"));
+        return from(r, defaultHead, Path.of(".jcheck", "conf"));
     }
 }

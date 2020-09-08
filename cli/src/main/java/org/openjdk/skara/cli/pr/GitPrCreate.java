@@ -51,7 +51,7 @@ public class GitPrCreate {
         Option.shortcut("b")
               .fullname("branch")
               .describe("NAME")
-              .helptext("Name of target branch, defaults to 'master'")
+              .helptext("Name of target branch, defaults to '" + Branch.defaultFor(VCS.GIT) + "'")
               .optional(),
         Option.shortcut("")
               .fullname("cc")
@@ -105,7 +105,7 @@ public class GitPrCreate {
         var skaraRemoteRepo = forge.repository(group + "/skara").orElseThrow(() ->
             new IOException("error: could not resolve Skara repository")
         );
-        var rules = skaraRemoteRepo.fileContents("config/mailinglist/rules/jdk.json", "master");
+        var rules = skaraRemoteRepo.fileContents("config/mailinglist/rules/jdk.json", Branch.defaultFor(VCS.GIT).name());
         var json = JSON.parse(rules);
         return LabelConfigurationJson.from(json);
     }
