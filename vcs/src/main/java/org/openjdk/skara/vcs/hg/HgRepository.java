@@ -773,7 +773,7 @@ public class HgRepository implements Repository {
 
     @Override
     public Branch defaultBranch() throws IOException {
-        return new Branch("default");
+        return Branch.defaultFor(VCS.HG);
     }
 
     @Override
