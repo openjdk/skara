@@ -32,14 +32,14 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 public class ReviewerCommand implements CommandHandler {
-    private static final Pattern commandPattern = Pattern.compile("^(add|remove)\\s+(.+)$");
+    private static final Pattern commandPattern = Pattern.compile("^(credit|remove)\\s+(.+)$");
 
     private void showHelp(PullRequest pr, PrintWriter reply) {
-        reply.println("Syntax: `/reviewer (add|remove) [@user | openjdk-user]+`. For example:");
+        reply.println("Syntax: `/reviewer (credit|remove) [@user | openjdk-user]+`. For example:");
         reply.println();
-        reply.println(" * `/reviewer add @openjdk-bot`");
-        reply.println(" * `/reviewer add duke`");
-        reply.println(" * `/reviewer add @user1 @user2`");
+        reply.println(" * `/reviewer credit @openjdk-bot`");
+        reply.println(" * `/reviewer credit duke`");
+        reply.println(" * `/reviewer credit @user1 @user2`");
     }
 
     private Optional<Contributor> parseUser(String user, PullRequest pr, CensusInstance censusInstance) {
@@ -72,10 +72,6 @@ public class ReviewerCommand implements CommandHandler {
             reply.println("Only the author (@" + pr.author().userName() + ") is allowed to issue the `reviewer` command.");
             return;
         }
-        if (bot.ignoreStaleReviews()) {
-            reply.println("This project requires authenticated reviews - please ask your reviewer to flag this PR as reviewed.");
-            return;
-        }
 
         var matcher = commandPattern.matcher(command.args());
         if (!matcher.matches()) {
@@ -98,13 +94,13 @@ public class ReviewerCommand implements CommandHandler {
         var namespace = censusInstance.namespace();
         var authenticatedReviewers = PullRequestUtils.reviewerNames(pr.reviews(), namespace);
         var action = matcher.group(1);
-        if (action.equals("add")) {
+        if (action.equals("credit")) {
             for (var reviewer : reviewers) {
                 if (!authenticatedReviewers.contains(reviewer.username())) {
                     reply.println(Reviewers.addReviewerMarker(reviewer));
-                    reply.println("Reviewer `" + reviewer.username() + "` successfully added.");
+                    reply.println("Reviewer `" + reviewer.username() + "` successfully credited.");
                 } else {
-                    reply.println("Reviewer `" + reviewer.username() + "` has already made an authenticated review of this PR, and does not need to be added manually.");
+                    reply.println("Reviewer `" + reviewer.username() + "` has already made an authenticated review of this PR, and does not need to be credited manually.");
                 }
             }
         } else if (action.equals("remove")) {
@@ -116,7 +112,7 @@ public class ReviewerCommand implements CommandHandler {
                     reply.println("Reviewer `" + reviewer.username() + "` successfully removed.");
                 } else {
                     if (existing.isEmpty()) {
-                        reply.println("There are no additional reviewers associated with this pull request.");
+                        reply.println("There are no manually specified reviewers associated with this pull request.");
                         failed = true;
                     } else {
                         reply.println("Reviewer `" + reviewer.username() + "` was not found.");
@@ -126,7 +122,7 @@ public class ReviewerCommand implements CommandHandler {
             }
 
             if (failed) {
-                reply.println("Current additional reviewers are:");
+                reply.println("Current credited reviewers are:");
                 for (var e : existing) {
                     reply.println("- `" + e + "`");
                 }
@@ -136,6 +132,6 @@ public class ReviewerCommand implements CommandHandler {
 
     @Override
     public String description() {
-        return "adds or removes additional reviewers for a PR";
+        return "manage additional reviewers for a PR";
     }
 }

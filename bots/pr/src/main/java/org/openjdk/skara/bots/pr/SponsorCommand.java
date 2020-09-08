@@ -125,14 +125,15 @@ public class SponsorCommand implements CommandHandler {
             }
 
             if (!localHash.equals(pr.targetHash())) {
+                var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace());
                 var finalRebaseMessage = rebaseMessage.toString();
                 if (!finalRebaseMessage.isBlank()) {
                     reply.println(rebaseMessage.toString());
                 }
-                reply.println("Pushed as commit " + localHash.hex() + ".");
+                reply.println("Pushed as commit " + amendedHash.hex() + ".");
                 reply.println();
                 reply.println(":bulb: You may see a message that your pull request was closed with unmerged commits. This can be safely ignored.");
-                localRepo.push(localHash, pr.repository().url(), pr.targetRef());
+                localRepo.push(amendedHash, pr.repository().url(), pr.targetRef());
                 pr.setState(PullRequest.State.CLOSED);
                 pr.addLabel("integrated");
                 pr.removeLabel("sponsor");

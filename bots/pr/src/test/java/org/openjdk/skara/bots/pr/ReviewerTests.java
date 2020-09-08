@@ -68,11 +68,11 @@ class ReviewerTests {
             assertLastCommentContains(pr,"Syntax");
 
             // Add a reviewer
-            pr.addComment("/reviewer add @" + integrator.forge().currentUser().userName());
+            pr.addComment("/reviewer credit @" + integrator.forge().currentUser().userName());
             TestBotRunner.runPeriodicItems(prBot);
 
-            // The bot should now consider the PR ready
-            assertLastCommentContains(pr,"This change now passes all automated pre-integration checks");
+            // The bot should not yet consider the PR ready
+            assertFalse(pr.labels().contains("ready"));
 
             // Remove it again
             pr.addComment("/reviewer remove @" + integrator.forge().currentUser().userName());
@@ -86,10 +86,10 @@ class ReviewerTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with an error message
-            assertLastCommentContains(pr,"There are no additional reviewers associated with this pull request");
+            assertLastCommentContains(pr,"There are no manually specified reviewers associated with this pull request");
 
             // Add the reviewer again
-            pr.addComment("/reviewer add integrationreviewer1");
+            pr.addComment("/reviewer credit integrationreviewer1");
             TestBotRunner.runPeriodicItems(prBot);
 
             // But also add the review the old-fashioned way
@@ -112,7 +112,7 @@ class ReviewerTests {
             assertEquals(1, pushed);
 
             // Add a second reviewer
-            pr.addComment("/reviewer add integrationauthor2");
+            pr.addComment("/reviewer credit integrationauthor2");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
 
@@ -172,7 +172,7 @@ class ReviewerTests {
 
             // Issue a contributor command not as the PR author
             var externalPr = external.pullRequest(pr.id());
-            externalPr.addComment("/reviewer add integrationauthor1");
+            externalPr.addComment("/reviewer credit integrationauthor1");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an error message
@@ -208,22 +208,22 @@ class ReviewerTests {
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Use a full name
-            pr.addComment("/reviewer add Moo <Foo.Bar (at) host.com>");
+            pr.addComment("/reviewer credit Moo <Foo.Bar (at) host.com>");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "Could not parse `Moo` as a valid reviewer");
 
             // Empty platform id
-            pr.addComment("/reviewer add @");
+            pr.addComment("/reviewer credit @");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "Could not parse `@` as a valid reviewer");
 
             // Unknown platform id
-            pr.addComment("/reviewer add @someone");
+            pr.addComment("/reviewer credit @someone");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "Could not parse `@someone` as a valid reviewer");
 
             // Unknown openjdk user
-            pr.addComment("/reviewer add someone");
+            pr.addComment("/reviewer credit someone");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "Could not parse `someone` as a valid reviewer");
         }
@@ -254,11 +254,11 @@ class ReviewerTests {
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Use a platform name
-            pr.addComment("/reviewer add @" + author.forge().currentUser().userName());
+            pr.addComment("/reviewer credit @" + author.forge().currentUser().userName());
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply
-            assertLastCommentContains(pr, "Reviewer `integrationcommitter2` successfully added.");
+            assertLastCommentContains(pr, "Reviewer `integrationcommitter2` successfully credited.");
         }
     }
 
@@ -287,11 +287,11 @@ class ReviewerTests {
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Use a platform name
-            pr.addComment("/reviewer add integrationauthor1");
+            pr.addComment("/reviewer credit integrationauthor1");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply
-            assertLastCommentContains(pr, "Reviewer `integrationauthor1` successfully added.");
+            assertLastCommentContains(pr, "Reviewer `integrationauthor1` successfully credited.");
         }
     }
 
@@ -322,18 +322,18 @@ class ReviewerTests {
             // Remove a reviewer that hasn't been added
             pr.addComment("/reviewer remove integrationauthor1");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "There are no additional reviewers associated with this pull request.");
+            assertLastCommentContains(pr, "There are no manually specified reviewers associated with this pull request.");
 
             // Add a reviewer
-            pr.addComment("/reviewer add integrationauthor1");
+            pr.addComment("/reviewer credit integrationauthor1");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "successfully added.");
+            assertLastCommentContains(pr, "successfully credited.");
 
             // Remove another (not added) reviewer
             pr.addComment("/reviewer remove integrationcommitter2");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "Reviewer `integrationcommitter2` was not found.");
-            assertLastCommentContains(pr, "Current additional reviewers are:");
+            assertLastCommentContains(pr, "Current credited reviewers are:");
             assertLastCommentContains(pr, "- `integrationauthor1`");
 
             // Remove an existing reviewer
@@ -368,10 +368,10 @@ class ReviewerTests {
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Add a reviewer
-            pr.addComment("/reviewer add integrationauthor1");
+            pr.addComment("/reviewer credit integrationauthor1");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "successfully added.");
+            assertLastCommentContains(pr, "successfully credited.");
 
             // Verify that body is updated
             var body = pr.body().split("\n");
@@ -403,10 +403,10 @@ class ReviewerTests {
             assertFalse(pr.body().contains("Added manually"));
 
             // Add it once more
-            pr.addComment("/reviewer add integrationauthor1");
+            pr.addComment("/reviewer credit integrationauthor1");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "successfully added.");
+            assertLastCommentContains(pr, "successfully credited.");
             assertTrue(pr.body().contains("Added manually"));
 
             // Now add an authenticated review from the same reviewer
@@ -452,7 +452,7 @@ class ReviewerTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // Try to add it manually as well
-            pr.addComment("/reviewer add integrationreviewer1");
+            pr.addComment("/reviewer credit integrationreviewer1");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
 
@@ -471,7 +471,7 @@ class ReviewerTests {
 
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(integrator.forge().currentUser().id())
-                                           .addAuthor(extra.forge().currentUser().id())
+                                           .addReviewer(extra.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
             var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
 
@@ -487,20 +487,25 @@ class ReviewerTests {
             localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
-            // Add two reviewers
-            pr.addComment("/reviewer add integrationreviewer1 integrationauthor2");
+            // Credit two additional reviewers
+            pr.addComment("/reviewer credit integrationreviewer1 integrationcommitter3");
             TestBotRunner.runPeriodicItems(prBot);
 
-            // Expect success
-            assertLastCommentContains(pr, "Reviewed-by: integrationreviewer1, integrationauthor2");
+            // Add a real review
+            var approvalPr = extra.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // Check the ready comment
+            assertLastCommentContains(pr, "Reviewed-by: integrationreviewer2, integrationreviewer1, integrationcommitter3");
 
             // Remove both reviewers
-            pr.addComment("/reviewer remove integrationreviewer1 integrationauthor2");
+            pr.addComment("/reviewer remove integrationreviewer1 integrationcommitter3");
             TestBotRunner.runPeriodicItems(prBot);
 
             // Expect success
             assertLastCommentContains(pr, "Reviewer `integrationreviewer1` successfully removed");
-            assertLastCommentContains(pr, "Reviewer `integrationauthor2` successfully removed");
+            assertLastCommentContains(pr, "Reviewer `integrationcommitter3` successfully removed");
         }
     }
 }
