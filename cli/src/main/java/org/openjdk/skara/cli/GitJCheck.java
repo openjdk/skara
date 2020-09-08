@@ -89,16 +89,6 @@ public class GitJCheck {
                   .helptext("Check the specified revision or range (default: HEAD)")
                   .optional(),
             Option.shortcut("")
-                  .fullname("whitelist")
-                  .describe("FILE")
-                  .helptext("Use the specified whitelist (default: .jcheck/whitelist.json)")
-                  .optional(),
-            Option.shortcut("")
-                  .fullname("blacklist")
-                  .describe("FILE")
-                  .helptext("Use the specified blacklist (default: .jcheck/blacklist.json)")
-                  .optional(),
-            Option.shortcut("")
                   .fullname("census")
                   .describe("FILE")
                   .helptext("Use the specified census (default: https://openjdk.java.net/census.xml)")
@@ -210,35 +200,6 @@ public class GitJCheck {
             }
         }
 
-        var whitelistOption = getOption("whitelist", arguments);
-        if (whitelistOption == null) {
-            whitelistOption = ".jcheck/whitelist.json";
-        }
-        var whitelistFile = Path.of(whitelistOption);
-        var whitelist = new HashMap<String, Set<Hash>>();
-        if (Files.exists(whitelistFile)) {
-            var json = JSON.parse(Files.readString(whitelistFile));
-            for (var field : json.fields()) {
-                var check = field.name();
-                var hashes = field.value().stream().map(JSONValue::asString).map(Hash::new).collect(Collectors.toSet());
-                whitelist.put(check, hashes);
-            }
-        }
-
-        var blacklistOption = getOption("blacklist", arguments);
-        if (blacklistOption == null) {
-            blacklistOption = ".jcheck/blacklist.json";
-        }
-        var blacklistFile = Path.of(blacklistOption);
-        var blacklist = new HashSet<Hash>();
-        if (Files.exists(blacklistFile)) {
-            var json = JSON.parse(Files.readString(blacklistFile));
-            json.get("commits").stream()
-                               .map(JSONValue::asString)
-                               .map(Hash::new)
-                               .forEach(blacklist::add);
-        }
-
         var endpoint = getOption("census", arguments);
         if (endpoint == null) {
             try {
@@ -269,7 +230,7 @@ public class GitJCheck {
         var visitor = new JCheckCLIVisitor(ignore, isMercurial, isLax);
         var commitMessageParser = isMercurial ? CommitMessageParsers.v0 : CommitMessageParsers.v1;
         for (var range : ranges) {
-            try (var errors = JCheck.check(repo, census, commitMessageParser, range, whitelist, blacklist)) {
+            try (var errors = JCheck.check(repo, census, commitMessageParser, range)) {
                 for (var error : errors) {
                     error.accept(visitor);
                 }

@@ -228,11 +228,6 @@ class JCheckTests {
         }
 
         @Override
-        public void visit(BlacklistIssue e) {
-            issues.add(e);
-        }
-
-        @Override
         public void visit(BinaryIssue e) {
             issues.add(e);
         }
@@ -300,7 +295,7 @@ class JCheckTests {
             var census = Census.parse(censusPath);
 
             var visitor = new TestVisitor();
-            try (var issues = JCheck.check(repo, census, CommitMessageParsers.v1, first.hex() + ".." + second.hex(), Map.of(), Set.of())) {
+            try (var issues = JCheck.check(repo, census, CommitMessageParsers.v1, first.hex() + ".." + second.hex())) {
                 for (var issue : issues) {
                     issue.accept(visitor);
                 }
@@ -333,7 +328,7 @@ class JCheckTests {
             // Check the last commit without reviewers, should pass since .jcheck/conf was updated
             var range = initialCommit.hash().hex() + ".." + secondCommit.hex();
             var visitor = new TestVisitor();
-            try (var issues = JCheck.check(repo, census, CommitMessageParsers.v1, range, Map.of(), Set.of())) {
+            try (var issues = JCheck.check(repo, census, CommitMessageParsers.v1, range)) {
                 for (var issue : issues) {
                     issue.accept(visitor);
                 }

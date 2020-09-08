@@ -290,13 +290,6 @@ class JCheckCLIVisitor implements IssueVisitor {
         }
     }
 
-    public void visit(BlacklistIssue i) {
-        if (!ignore.contains(i.check().name())) {
-            println(i, "commit is blacklisted");
-            hasDisplayedErrors = true;
-        }
-    }
-
     public void visit(BinaryIssue i) {
         if (!ignore.contains(i.check().name())) {
             println(i, "adds binary file: " + i.path().toString());
