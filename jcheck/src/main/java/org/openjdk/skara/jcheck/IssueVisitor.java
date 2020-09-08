@@ -41,7 +41,6 @@ public interface IssueVisitor {
     void visit(MessageWhitespaceIssue issue);
     void visit(IssuesIssue issue);
     void visit(ExecutableIssue issue);
-    void visit(BlacklistIssue issue);
     void visit(BinaryIssue issue);
     void visit(SymlinkIssue issue);
     void visit(ProblemListsIssue problemListIssue);
