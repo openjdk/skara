@@ -394,7 +394,7 @@ public class JiraProject implements IssueProject {
                           .param("username", findBy)
                           .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.object().put("NOT_FOUND", true)) : Optional.empty())
                           .execute();
-        if (user.contains("NOT_FOUND")) {
+        if (!user.isArray()) {
             return Optional.empty();
         }
         if (user.asArray().size() != 1) {
