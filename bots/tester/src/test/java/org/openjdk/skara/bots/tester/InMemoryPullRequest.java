@@ -40,6 +40,7 @@ class InMemoryPullRequest implements PullRequest {
     Hash headHash;
     String id;
     Map<String, Map<String, Check>> checks = new HashMap<>();
+    Set<String> labels = new TreeSet<>();
 
     @Override
     public HostedRepository repository() {
@@ -209,15 +210,17 @@ class InMemoryPullRequest implements PullRequest {
 
     @Override
     public void addLabel(String label) {
+        labels.add(label);
     }
 
     @Override
     public void removeLabel(String label) {
+        labels.remove(label);
     }
 
     @Override
     public List<String> labels() {
-        return null;
+        return new ArrayList<String>(labels);
     }
 
     @Override
