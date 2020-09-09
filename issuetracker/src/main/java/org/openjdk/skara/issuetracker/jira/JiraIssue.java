@@ -329,18 +329,25 @@ public class JiraIssue implements Issue {
 
     @Override
     public List<Link> links() {
-        var result = request.get("/remotelink").execute();
-        var links = result.stream()
-                          .map(JSONValue::asObject)
-                          .filter(obj -> obj.contains("globalId"))
-                          .filter(obj -> obj.get("globalId").asString().startsWith("skaralink="))
-                          .map(this::parseLink);
+        var result = new ArrayList<Link>();
+
+        var webLinks = request.get("/remotelink")
+                              .onError(e -> e.statusCode() == 401 ? Optional.of(JSON.array()) : Optional.empty())
+                              .execute()
+                              .stream()
+                              .map(JSONValue::asObject)
+                              .filter(obj -> obj.contains("globalId"))
+                              .filter(obj -> obj.get("globalId").asString().startsWith("skaralink="))
+                              .map(this::parseLink)
+                              .collect(Collectors.toList());
+        result.addAll(webLinks);
 
         var commentLinks = comments().stream()
                                      .map(this::parseWebLinkComment)
                                      .filter(Optional::isPresent)
-                                     .map(Optional::get);
-        links = Stream.concat(commentLinks, links);
+                                     .map(Optional::get)
+                                     .collect(Collectors.toList());
+        result.addAll(commentLinks);
 
         if (json.get("fields").contains("issuelinks")) {
             var issueLinks = json.get("fields").get("issuelinks").stream()
@@ -349,12 +356,12 @@ public class JiraIssue implements Issue {
                                                                jiraProject.issue(o.get("outwardIssue").get("key").asString()).orElseThrow(),
                                                        o.contains("inwardIssue") ? o.get("type").get("inward").asString() :
                                                                o.get("type").get("outward").asString())
-                                               .build());
-
-            links = Stream.concat(issueLinks, links);
+                                               .build())
+                                 .collect(Collectors.toList());
+            result.addAll(issueLinks);
         }
 
-        return links.collect(Collectors.toList());
+        return result;
     }
 
     private static final Pattern titlePattern = Pattern.compile("^Remote link: (.*)");
