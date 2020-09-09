@@ -53,7 +53,7 @@ public class CheckablePullRequest {
         }
     }
 
-    private String commitMessage(List<Review> activeReviews, Namespace namespace) throws IOException {
+    private String commitMessage(List<Review> activeReviews, Namespace namespace, boolean manualReviewers) throws IOException {
         var eligibleReviews = activeReviews.stream()
                                            .filter(review -> !ignoreStaleReviews || review.hash().equals(pr.headHash()))
                                            .filter(review -> review.verdict() == Review.Verdict.APPROVED)
@@ -62,7 +62,7 @@ public class CheckablePullRequest {
         var comments = pr.comments();
         var currentUser = pr.repository().forge().currentUser();
 
-        if (!ignoreStaleReviews) {
+        if (manualReviewers) {
             var allReviewers = PullRequestUtils.reviewerNames(activeReviews, namespace);
             var additionalReviewers = Reviewers.reviewers(currentUser, comments);
             for (var additionalReviewer : additionalReviewers) {
@@ -130,8 +130,20 @@ public class CheckablePullRequest {
         }
 
         var activeReviews = filterActiveReviews(pr.reviews());
-        var commitMessage = commitMessage(activeReviews, namespace);
+        var commitMessage = commitMessage(activeReviews, namespace, false);
         return PullRequestUtils.createCommit(pr, localRepo, finalHead, author, committer, commitMessage);
+    }
+
+    Hash amendManualReviewers(Hash commit, Namespace namespace) throws IOException {
+        var activeReviews = filterActiveReviews(pr.reviews());
+        var originalCommitMessage = commitMessage(activeReviews, namespace, false);
+        var amendedCommitMessage = commitMessage(activeReviews, namespace, true);
+
+        if (originalCommitMessage.equals(amendedCommitMessage)) {
+            return commit;
+        } else {
+            return localRepo.amend(amendedCommitMessage);
+        }
     }
 
     PullRequestCheckIssueVisitor createVisitor(Hash localHash, CensusInstance censusInstance) throws IOException {

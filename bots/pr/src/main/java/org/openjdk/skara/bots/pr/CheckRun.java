@@ -758,7 +758,8 @@ class CheckRun {
                 updateReviewedMessages(comments, allReviews);
             }
 
-            var commit = localRepo.lookup(localHash).orElseThrow();
+            var amendedHash = checkablePullRequest.amendManualReviewers(localHash, censusInstance.namespace());
+            var commit = localRepo.lookup(amendedHash).orElseThrow();
             var commitMessage = String.join("\n", commit.message());
             var readyForIntegration = visitor.messages().isEmpty() && additionalErrors.isEmpty();
             updateMergeReadyComment(readyForIntegration, commitMessage, comments, activeReviews, rebasePossible);
