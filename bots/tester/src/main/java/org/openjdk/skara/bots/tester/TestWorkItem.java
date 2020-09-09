@@ -38,6 +38,7 @@ import java.util.stream.*;
 import java.util.function.Predicate;
 
 public class TestWorkItem implements WorkItem {
+    private final static String TEST_REQUEST_LABEL = "test-request";
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final ContinuousIntegration ci;
     private final String approversGroupId;
@@ -353,10 +354,15 @@ public class TestWorkItem implements WorkItem {
                         String.join(",", trimmedJobs) + " for commits up until " + head.abbreviate()
                 );
                 pr.addComment(String.join("\n", lines));
+                pr.addLabel(TEST_REQUEST_LABEL);
             }
         } else if (stage == Stage.APPROVED) {
             Hash head = null;
             List<String> jobs = null;
+
+            if (pr.labels().contains(TEST_REQUEST_LABEL)) {
+                pr.removeLabel(TEST_REQUEST_LABEL);
+            }
 
             if (state.pending() != null) {
                 var comment = state.pending();
