@@ -223,8 +223,11 @@ public class CommandWorkItem extends PullRequestWorkItem {
         log.info("Processing command: " + command.id() + " - " + command.name());
         processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), command, comments);
 
+        // Must re-fetch PR after running the command, the command might have updated the PR
+        var updatedPR = pr.repository().pullRequest(pr.id());
+
         // Run another check to reflect potential changes from commands
-        return List.of(new CheckWorkItem(bot, pr, errorHandler));
+        return List.of(new CheckWorkItem(bot, updatedPR, errorHandler));
     }
 
     @Override
