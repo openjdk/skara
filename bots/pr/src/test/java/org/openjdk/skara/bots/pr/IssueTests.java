@@ -564,4 +564,52 @@ class IssueTests {
             assertLastCommentContains(pr,"Adding additional issue to issue list");
         }
     }
+
+    @Test
+    void multipleIssuesInBody(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var issueProject = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder()
+                                      .repo(integrator)
+                                      .censusRepo(censusBuilder.build())
+                                      .issueProject(issueProject)
+                                      .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            var issue1 = credentials.createIssue(issueProject, "Issue 1");
+            var issue2 = credentials.createIssue(issueProject, "Issue 2");
+            var issue3 = credentials.createIssue(issueProject, "Issue 3");
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Pull request title",
+                     List.of("/issue add " + issue1.id(),
+                             "/issue add " + issue2.id(),
+                             "/issue add " + issue3.id()));
+
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The first issue should be the title
+            assertTrue(pr.title().startsWith(issue1.id().split("-")[1] + ": "));
+
+            var comments = pr.comments();
+            assertEquals(3, comments.size());
+
+            assertTrue(comments.get(0).body().contains("current title does not contain an issue reference"));
+            assertTrue(comments.get(1).body().contains("Adding additional issue to"));
+            assertTrue(comments.get(2).body().contains("Adding additional issue to"));
+        }
+    }
 }

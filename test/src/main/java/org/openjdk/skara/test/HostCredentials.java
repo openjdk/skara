@@ -354,14 +354,22 @@ public class HostCredentials implements AutoCloseable {
         return credentials.getIssueProject(host);
     }
 
-    public PullRequest createPullRequest(HostedRepository hostedRepository, String targetRef, String sourceRef, String title, boolean draft) {
-        var pr = hostedRepository.createPullRequest(hostedRepository, targetRef, sourceRef, title, List.of("PR body"), draft);
+    public PullRequest createPullRequest(HostedRepository hostedRepository, String targetRef, String sourceRef, String title, List<String> body, boolean draft) {
+        var pr = hostedRepository.createPullRequest(hostedRepository, targetRef, sourceRef, title, body, draft);
         pullRequestsToBeClosed.add(pr);
         return pr;
     }
 
+    public PullRequest createPullRequest(HostedRepository hostedRepository, String targetRef, String sourceRef, String title, boolean draft) {
+        return createPullRequest(hostedRepository, targetRef, sourceRef, title, List.of("PR body"), draft);
+    }
+
+    public PullRequest createPullRequest(HostedRepository hostedRepository, String targetRef, String sourceRef, String title, List<String> body) {
+        return createPullRequest(hostedRepository, targetRef, sourceRef, title, body, false);
+    }
+
     public PullRequest createPullRequest(HostedRepository hostedRepository, String targetRef, String sourceRef, String title) {
-        return createPullRequest(hostedRepository, targetRef, sourceRef, title, false);
+        return createPullRequest(hostedRepository, targetRef, sourceRef, title, List.of("PR body"), false);
     }
 
     public Issue createIssue(IssueProject issueProject, String title) {
