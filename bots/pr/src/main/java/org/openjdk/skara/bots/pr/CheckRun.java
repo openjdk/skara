@@ -583,13 +583,11 @@ class CheckRun {
         if (!censusInstance.isCommitter(pr.author())) {
             message.append("\n");
             var contributor = censusInstance.namespace().get(pr.author().id());
-            if (contributor == null) {
-                message.append("As you are not a known OpenJDK [Author](https://openjdk.java.net/bylaws#author), ");
-            } else {
-                message.append("As you do not have Committer status in this project, ");
-            }
-
-            message.append("an existing [Committer](https://openjdk.java.net/bylaws#committer) must agree to ");
+            message.append("As you do not have [Committer](https://openjdk.java.net/bylaws#committer) status in ");
+            message.append("[this project](https://openjdk.java.net/census#");
+            message.append(censusInstance.project().name());
+            message.append(")");
+            message.append("an existing Committer must agree to ");
             message.append("[sponsor](https://openjdk.java.net/sponsor/) your change. ");
             var candidates = reviews.stream()
                                     .filter(review -> censusInstance.isCommitter(review.reviewer()))
