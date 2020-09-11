@@ -201,7 +201,15 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     @Override
     public void visit(MessageWhitespaceIssue issue) {
-        addFailureMessage(issue.check(), "The commit message contains bad whitespace");
+        String desc;
+        if (issue.kind() == MessageWhitespaceIssue.Whitespace.TRAILING) {
+            desc = "trailing whitespace";
+        } else if (issue.kind() == MessageWhitespaceIssue.Whitespace.CR) {
+            desc = "a carriage return";
+        } else {
+            desc = "a tab";
+        }
+        addFailureMessage(issue.check(), "The commit message contains " + desc + " on line " + issue.line());
         readyForReview = false;
     }
 
