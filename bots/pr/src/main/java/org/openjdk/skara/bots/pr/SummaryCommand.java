@@ -28,6 +28,7 @@ import org.openjdk.skara.issuetracker.Comment;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class SummaryCommand implements CommandHandler {
     @Override
@@ -46,7 +47,9 @@ public class SummaryCommand implements CommandHandler {
                 reply.println("To set a summary, use the syntax `/summary <summary text>`");
             }
         } else {
-            var summary = command.args().strip();
+            var summary = command.args().lines()
+                                 .map(String::strip)
+                                 .collect(Collectors.joining("\n"));
             var action = currentSummary.isPresent() ? "Updating existing" : "Setting";
             if (summary.contains("\n")) {
                 reply.println(action + " summary to:\n" +
