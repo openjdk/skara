@@ -224,4 +224,22 @@ public class CommitMessageParsersTests {
         assertEquals(List.of(), message.summaries());
         assertEquals(List.of("Unknown-trailer: bar"), message.additional());
     }
+
+    @Test
+    void internationalCoAuthors() {
+        var text = List.of("01234567: An issue",
+                           "",
+                           "Co-authored-by: Föö Bår <foo@bar.com>",
+                           "Co-authored-by: Bår Bäz <bar@baz.com>",
+                           "Reviewed-by: ab, cd, ef");
+        var message = CommitMessageParsers.v1.parse(text);
+
+        assertEquals("01234567: An issue", message.title());
+        assertEquals(List.of(new Issue("01234567", "An issue")), message.issues());
+        assertEquals(List.of("ab", "cd", "ef"), message.reviewers());
+        assertEquals(List.of(new Author("Föö Bår", "foo@bar.com"), new Author("Bår Bäz", "bar@baz.com")),
+                     message.contributors());
+        assertEquals(List.of(), message.summaries());
+        assertEquals(List.of(), message.additional());
+    }
 }

@@ -115,9 +115,10 @@ public class CommitMessageParsers {
             while (i < lines.size() && lines.get(i).equals("")) {
                 i++;
 
-                if (matcher(CO_AUTHOR_PATTERN, lines, i) != null ||
-                    matcher(REVIEWED_BY_PATTERN, lines, i) != null) {
+                if (lines.get(i).startsWith("Co-authored-by:") ||
+                    lines.get(i).startsWith("Reviewed-by:")) {
                     // "trailers" section
+
                     while ((m = matcher(CO_AUTHOR_PATTERN, lines, i)) != null) {
                         for (var author : m.group(1).split(", ")) {
                             coAuthors.add(Author.fromString(author));
