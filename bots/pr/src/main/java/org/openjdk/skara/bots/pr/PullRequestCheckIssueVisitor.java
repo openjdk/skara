@@ -201,8 +201,8 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     @Override
     public void visit(MessageWhitespaceIssue issue) {
-        var message = String.join("\n", issue.commit().message());
-        throw new IllegalStateException("Commit message contains bad whitespace: " + message);
+        addFailureMessage(issue.check(), "The commit message contains bad whitespace");
+        readyForReview = false;
     }
 
     @Override
