@@ -206,8 +206,10 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
             desc = "trailing whitespace";
         } else if (issue.kind() == MessageWhitespaceIssue.Whitespace.CR) {
             desc = "a carriage return";
-        } else {
+        } else if (issue.kind() == MessageWhitespaceIssue.Whitespace.TAB) {
             desc = "a tab";
+        } else {
+            desc = "an unknown kind of whitespace (" + issue.kind().name() + ")";
         }
         addFailureMessage(issue.check(), "The commit message contains " + desc + " on line " + issue.line());
         readyForReview = false;
