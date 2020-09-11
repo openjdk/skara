@@ -47,11 +47,13 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     private final Map<String, String> fixVersions;
     private final JbsBackport jbsBackport;
     private final boolean prOnly;
+    private final String buildName;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
     IssueNotifier(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,
-            boolean setFixVersion, Map<String, String> fixVersions, JbsBackport jbsBackport, boolean prOnly) {
+            boolean setFixVersion, Map<String, String> fixVersions, JbsBackport jbsBackport, boolean prOnly,
+                  String buildName) {
         this.issueProject = issueProject;
         this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
@@ -61,6 +63,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         this.fixVersions = fixVersions;
         this.jbsBackport = jbsBackport;
         this.prOnly = prOnly;
+        this.buildName = buildName;
     }
 
     static IssueNotifierBuilder newBuilder() {
@@ -257,6 +260,9 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 }
 
                 if (setFixVersion) {
+                    if (buildName != null) {
+                        issue.setProperty("customfield_10006", JSON.of(buildName));
+                    }
                     if (requestedVersion != null) {
                         issue.setProperty("fixVersions", JSON.of(requestedVersion));
                         Backports.labelReleaseStreamDuplicates(issue, "hgupdate-sync");

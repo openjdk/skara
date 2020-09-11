@@ -45,6 +45,9 @@ public class IssueNotifierFactory implements NotifierFactory {
                                                       .collect(Collectors.toMap(JSONObject.Field::name,
                                                                                 f -> f.value().asString())));
         }
+        if (notifierConfiguration.contains("buildname")) {
+            builder.buildName(notifierConfiguration.get("buildname").asString());
+        }
 
         if (notifierConfiguration.contains("vault")) {
             var vaultConfiguration = notifierConfiguration.get("vault").asObject();

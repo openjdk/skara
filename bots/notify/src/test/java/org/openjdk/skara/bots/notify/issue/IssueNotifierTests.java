@@ -378,7 +378,8 @@ public class IssueNotifierTests {
 
             var issueProject = credentials.getIssueProject();
             var storageFolder = tempFolder.path().resolve("storage");
-            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object());
+            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object())
+                                        .put("buildname", "team");
             var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
 
             // Initialize history
@@ -399,8 +400,9 @@ public class IssueNotifierTests {
             var comment = comments.get(0);
             assertTrue(comment.body().contains(editHash.abbreviate()));
 
-            // As well as a fixVersion
+            // As well as a fixVersion and a resolved in build
             assertEquals(Set.of("0.1"), fixVersions(updatedIssue));
+            assertEquals("team", updatedIssue.properties().get("customfield_10006").asString());
 
             // The issue should be assigned and resolved
             assertEquals(RESOLVED, updatedIssue.state());
