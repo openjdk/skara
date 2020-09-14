@@ -166,33 +166,26 @@ public class LabelTests {
             assertLastCommentContains(pr, "The following label will be automatically applied");
             assertLastCommentContains(pr, "`2`");
 
-            // It will refuse to remove it
+            // The bot will remove the label
             pr.addComment("/label remove 2");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "The `2` label was successfully removed.");
 
-            // Add another file to trigger a group match
+            // Add another file that would have trigger a group match
             Files.writeString(localRepoFolder.resolve("test.cpp"), "Hello there");
             localRepo.add(Path.of("test.cpp"));
             editHash = localRepo.commit("Another one", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "edit");
 
-            // The bot should have applied more labels automatically (but not the manually removed)
+            // The bot should not apply labels since the user has manually removed labels
             TestBotRunner.runPeriodicItems(prBot);
-            assertEquals(Set.of("group", "rfr"), new HashSet<>(pr.labels()));
-
-            // Remove one of these as well
-            pr.addComment("/label remove group");
-            TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "The `group` label was successfully removed.");
             assertEquals(Set.of("rfr"), new HashSet<>(pr.labels()));
 
-            // Adding them back again is fine
-            pr.addComment("/label add group 1");
+            // Adding the label manually is fine
+            pr.addComment("/label add group");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "The `group` label was successfully added.");
-            assertLastCommentContains(pr, "The `1` label was successfully added.");
-            assertEquals(Set.of("1", "group", "rfr"), new HashSet<>(pr.labels()));
+            assertEquals(Set.of("group", "rfr"), new HashSet<>(pr.labels()));
         }
     }
 

@@ -115,6 +115,17 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         if (bot.labelConfiguration().allowed().isEmpty()) {
             return List.of();
         }
+
+        var comments = pr.comments();
+        var manuallyAdded = LabelTracker.currentAdded(pr.repository().forge().currentUser(), comments);
+        var manuallyRemoved = LabelTracker.currentRemoved(pr.repository().forge().currentUser(), comments);
+
+        // If a manual label command has been issued before we have done any labeling,
+        // that is considered to be a request to override any automatic labelling
+        if (manuallyAdded.size() > 0 || manuallyRemoved.size() > 0) {
+            return List.of();
+        }
+
         try {
             var path = scratchPath.resolve("pr").resolve("labeler").resolve(pr.repository().name());
             var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
@@ -125,15 +136,6 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                                   .filter(key -> bot.labelConfiguration().allowed().contains(key))
                                   .collect(Collectors.toSet());
 
-            var comments = pr.comments();
-            var manuallyAdded = LabelTracker.currentAdded(pr.repository().forge().currentUser(), comments);
-            var manuallyRemoved = LabelTracker.currentRemoved(pr.repository().forge().currentUser(), comments);
-
-            // If a manual label command has been issued before we have done any labeling,
-            // that is considered to be a request to override any automatic labelling
-            if (bot.currentLabels().isEmpty() && !(manuallyAdded.isEmpty() && manuallyRemoved.isEmpty())) {
-                return List.of();
-            }
 
             // Add all labels not already set that are not manually removed
             var labelsToAdd = newLabels.stream()
