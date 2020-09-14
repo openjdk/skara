@@ -38,6 +38,7 @@ class IssueNotifierBuilder {
     private JbsVault vault = null;
     private String securityLevel = null;
     private boolean prOnly = true;
+    private String buildName = null;
 
     IssueNotifierBuilder issueProject(IssueProject issueProject) {
         this.issueProject = issueProject;
@@ -90,9 +91,14 @@ class IssueNotifierBuilder {
         return this;
     }
 
+    public IssueNotifierBuilder buildName(String buildName) {
+        this.buildName = buildName;
+        return this;
+    }
+
     IssueNotifier build() {
         var jbsBackport = new JbsBackport(issueProject.webUrl(), vault, securityLevel);
         return new IssueNotifier(issueProject, reviewLink, reviewIcon, commitLink, commitIcon,
-                                 setFixVersion, fixVersions, jbsBackport, prOnly);
+                                 setFixVersion, fixVersions, jbsBackport, prOnly, buildName);
     }
 }
