@@ -260,12 +260,7 @@ class JCheckTests {
             repo.add(readme);
             var first = repo.commit("Add README", "duke", "duke@openjdk.java.net");
 
-            var censusPath = dir.path().resolve("census");
-            Files.createDirectories(censusPath);
-            CensusCreator.populateCensusDirectory(censusPath);
-            var census = Census.parse(censusPath);
-
-            var checks = JCheck.checksFor(repo, census, first);
+            var checks = JCheck.checksFor(repo, first);
             var checkNames = checks.stream()
                                    .map(Check::name)
                                    .collect(Collectors.toSet());

@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.jcheck;
 
+import org.openjdk.skara.census.Census;
 import org.openjdk.skara.vcs.Commit;
 import org.openjdk.skara.vcs.openjdk.CommitMessage;
 
@@ -32,7 +33,7 @@ public class AuthorCheck extends CommitCheck {
     private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck.author");
 
     @Override
-    Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf) {
+    Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf, Census census) {
         var metadata = CommitIssue.metadata(commit, message, conf, this);
 
         var author = commit.author();

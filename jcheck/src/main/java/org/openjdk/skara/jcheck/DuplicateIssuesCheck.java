@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.jcheck;
 
+import org.openjdk.skara.census.Census;
 import org.openjdk.skara.vcs.Commit;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.ReadOnlyRepository;
@@ -60,7 +61,7 @@ public class DuplicateIssuesCheck extends CommitCheck {
     }
 
     @Override
-    Iterator<org.openjdk.skara.jcheck.Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf) {
+    Iterator<org.openjdk.skara.jcheck.Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf, Census census) {
         try {
             if (issuesToHashes == null) {
                 populateIssuesToHashesMap();

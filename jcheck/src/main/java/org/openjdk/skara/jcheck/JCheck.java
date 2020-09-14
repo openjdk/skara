@@ -28,6 +28,7 @@ import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParser;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 
+import java.net.URI;
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.*;
@@ -37,39 +38,40 @@ import java.util.logging.Logger;
 
 public class JCheck {
     private final ReadOnlyRepository repository;
-    private final Census census;
     private final CommitMessageParser parser;
     private final String revisionRange;
     private final List<CommitCheck> commitChecks;
     private final List<RepositoryCheck> repositoryChecks;
     private final List<String> additionalConfiguration;
     private final JCheckConfiguration overridingConfiguration;
+    private final Census overridingCensus;
+    private final Map<URI, Census> censuses = new HashMap<URI, Census>();
     private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck");
 
     JCheck(ReadOnlyRepository repository,
-           Census census,
            CommitMessageParser parser,
            String revisionRange,
            Pattern allowedBranches,
            Pattern allowedTags,
            List<String> additionalConfiguration,
-           JCheckConfiguration overridingConfiguration) throws IOException {
+           JCheckConfiguration overridingConfiguration,
+           Census overridingCensus) throws IOException {
         this.repository = repository;
-        this.census = census;
         this.parser = parser;
         this.revisionRange = revisionRange;
         this.additionalConfiguration = additionalConfiguration;
         this.overridingConfiguration = overridingConfiguration;
+        this.overridingCensus = overridingCensus;
 
         var utils = new Utilities();
         commitChecks = List.of(
             new AuthorCheck(),
-            new CommitterCheck(census),
+            new CommitterCheck(),
             new WhitespaceCheck(),
             new MergeMessageCheck(),
             new HgTagCommitCheck(utils),
             new DuplicateIssuesCheck(repository),
-            new ReviewersCheck(census, utils),
+            new ReviewersCheck(utils),
             new MessageCheck(utils),
             new IssuesCheck(utils),
             new ExecutableCheck(),
@@ -116,11 +118,24 @@ public class JCheck {
         }
 
         var conf = configuration.get();
+        var census = overridingCensus;
+        if (census == null) {
+            var uri = conf.census().url();
+            if (!censuses.containsKey(uri)) {
+                try {
+                    censuses.put(uri, Census.from(uri));
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            }
+            census = censuses.get(uri);
+        }
+        var finalCensus = census;
         var message = parser.parse(commit);
         var enabled = conf.checks().enabled(commitChecks);
         var iterator = new MapIterator<CommitCheck, Iterator<Issue>>(enabled.iterator(), c -> {
             log.finer("Running commit check '" + c.name() + "' for " + commit.hash().hex());
-            return c.check(commit, message, conf);
+            return c.check(commit, message, conf, finalCensus);
         });
         return new FlatMapIterator<Issue>(iterator);
     }
@@ -202,13 +217,13 @@ public class JCheck {
     }
 
     private static Issues check(ReadOnlyRepository repository,
-                                Census census,
                                 CommitMessageParser parser,
                                 String branchRegex,
                                 String tagRegex,
                                 String revisionRange,
                                 List<String> additionalConfiguration,
-                                JCheckConfiguration configuration) throws IOException {
+                                JCheckConfiguration configuration,
+                                Census census) throws IOException {
 
         var defaultBranchRegex = "|" + repository.defaultBranch().name();
         var allowedBranches = Pattern.compile("^(?:" + branchRegex + defaultBranchRegex + ")$");
@@ -217,7 +232,7 @@ public class JCheck {
         var defaultTagRegex = defaultTag.isPresent() ? "|" + defaultTag.get().name() : "";
         var allowedTags = Pattern.compile("^(?:" + tagRegex + defaultTagRegex + ")$");
 
-        var jcheck = new JCheck(repository, census, parser, revisionRange, allowedBranches, allowedTags, additionalConfiguration, configuration);
+        var jcheck = new JCheck(repository, parser, revisionRange, allowedBranches, allowedTags, additionalConfiguration, configuration, census);
         return jcheck.issues();
     }
 
@@ -233,7 +248,7 @@ public class JCheck {
         var branchRegex = configuration.repository().branches();
         var tagRegex = configuration.repository().tags();
 
-        return check(repository, census, parser, branchRegex, tagRegex, repository.range(toCheck), List.of(), configuration);
+        return check(repository, parser, branchRegex, tagRegex, repository.range(toCheck), List.of(), configuration, census);
     }
 
     public static Issues check(ReadOnlyRepository repository,
@@ -253,17 +268,17 @@ public class JCheck {
         var branchRegex = conf.isPresent() ? conf.get().repository().branches() : ".*";
         var tagRegex = conf.isPresent() ? conf.get().repository().tags() : ".*";
 
-        return check(repository, census, parser, branchRegex, tagRegex, revisionRange, List.of(), null);
+        return check(repository, parser, branchRegex, tagRegex, revisionRange, List.of(), null, census);
     }
 
-    public static Set<Check> checksFor(ReadOnlyRepository repository, Census census, Hash hash) throws IOException {
+    public static Set<Check> checksFor(ReadOnlyRepository repository, Hash hash) throws IOException {
         var jcheck = new JCheck(repository,
-                                census,
                                 CommitMessageParsers.v1,
                                 repository.range(hash),
                                 Pattern.compile(".*"),
                                 Pattern.compile(".*"),
                                 List.of(),
+                                null,
                                 null);
         return jcheck.checksForRange();
     }

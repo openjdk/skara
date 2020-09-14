@@ -37,11 +37,9 @@ import java.util.logging.Logger;
 
 public class ReviewersCheck extends CommitCheck {
     private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck.reviewers");
-    private final Census census;
     private final Utilities utils;
 
-    ReviewersCheck(Census census, Utilities utils) {
-        this.census = census;
+    ReviewersCheck(Utilities utils) {
         this.utils = utils;
     }
 
@@ -67,7 +65,7 @@ public class ReviewersCheck extends CommitCheck {
     }
 
     @Override
-    Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf) {
+    Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf, Census census) {
         if (commit.isMerge() || utils.addsHgTag(commit)) {
             return iterator();
         }

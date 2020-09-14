@@ -732,7 +732,7 @@ class CheckRun {
                 additionalErrors = List.of(e.getMessage());
                 localHash = baseHash;
             }
-            PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor(localHash, censusInstance);
+            PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor(localHash);
             if (!localHash.equals(baseHash)) {
                 // Determine current status
                 var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), comments);
