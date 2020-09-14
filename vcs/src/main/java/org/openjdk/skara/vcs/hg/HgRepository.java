@@ -1251,17 +1251,18 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public void pull() throws IOException {
-        pull(null, null);
+    public void pull(boolean includeTags) throws IOException {
+        pull(null, null, includeTags);
     }
 
     @Override
-    public void pull(String remote) throws IOException {
-        pull(remote, null);
+    public void pull(String remote, boolean includeTags) throws IOException {
+        pull(remote, null, includeTags);
     }
 
     @Override
-    public void pull(String remote, String refspec) throws IOException {
+    public void pull(String remote, String refspec, boolean includeTags) throws IOException {
+        // ignore includeTags, hg always pulls tags
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("hg", "pull", "--update"));
         if (refspec != null) {

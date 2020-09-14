@@ -2690,4 +2690,40 @@ public class RepositoryTests {
             assertTrue(hashes.contains(fourth));
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testPull(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var upstream = Repository.init(dir.path(), vcs);
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            upstream.add(readme);
+            var head = upstream.commit("Add README", "duke", "duke@openjdk.java.net");
+            upstream.tag(head, "1.0", "Added tag 1.0", "duke", "duke@openjdk.java.net");
+
+            try (var dir2 = new TemporaryDirectory()) {
+                var downstream = Repository.init(dir2.path(), vcs);
+
+                 // note: forcing unix path separators for URI
+                var upstreamURI = URI.create("file:///" + dir.toString().replace('\\', '/'));
+                if (vcs == VCS.GIT) {
+                    downstream.addRemote("origin", upstreamURI.toString());
+                    downstream.pull("origin", "master");
+                    assertEquals(1, downstream.commitMetadata().size());
+                    assertEquals(head, downstream.commitMetadata().get(0).hash());
+                    assertEquals(List.of(), downstream.tags());
+                    downstream.pull("origin", "master", true);
+                    assertEquals(List.of(new Tag("1.0")), downstream.tags());
+                } else {
+                    downstream.addRemote("default", upstreamURI.toString());
+                    downstream.pull("default");
+                    assertEquals(2, downstream.commitMetadata().size());
+                    assertEquals(head, downstream.commitMetadata().get(1).hash());
+                    assertEquals(List.of(new Tag("tip"), new Tag("1.0")), downstream.tags());
+                }
+            }
+        }
+    }
 }
