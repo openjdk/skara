@@ -81,7 +81,7 @@ class BinaryCheckTests {
         var commit = commit(textualParentDiffs("README", "100644"));
         var message = message(commit);
         var check = new BinaryCheck();
-        var issues = toList(check.check(commit, message, conf));
+        var issues = toList(check.check(commit, message, conf, null));
         assertEquals(0, issues.size());
     }
 
@@ -95,7 +95,7 @@ class BinaryCheckTests {
         var commit = commit(List.of(diff));
         var message = message(commit);
         var check = new BinaryCheck();
-        var issues = toList(check.check(commit, message, conf));
+        var issues = toList(check.check(commit, message, conf, null));
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof BinaryIssue);
         var issue = (BinaryIssue) issues.get(0);

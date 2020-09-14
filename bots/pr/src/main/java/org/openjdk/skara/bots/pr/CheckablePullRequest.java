@@ -146,8 +146,8 @@ public class CheckablePullRequest {
         }
     }
 
-    PullRequestCheckIssueVisitor createVisitor(Hash localHash, CensusInstance censusInstance) throws IOException {
-        var checks = JCheck.checksFor(localRepo, censusInstance.census(), pr.targetHash());
+    PullRequestCheckIssueVisitor createVisitor(Hash localHash) throws IOException {
+        var checks = JCheck.checksFor(localRepo, pr.targetHash());
         return new PullRequestCheckIssueVisitor(checks);
     }
 

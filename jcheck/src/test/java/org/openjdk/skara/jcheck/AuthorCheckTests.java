@@ -69,7 +69,7 @@ class AuthorCheckTests {
         var author = new Author("Foo", "foo@localhost");
         var commit = commit(author);
         var check = new AuthorCheck();
-        var issues = toList(check.check(commit, message(commit), conf));
+        var issues = toList(check.check(commit, message(commit), conf, null));
         assertEquals(0, issues.size());
     }
 
@@ -79,7 +79,7 @@ class AuthorCheckTests {
         var commit = commit(author);
         var message = message(commit);
         var check = new AuthorCheck();
-        var issues = toList(check.check(commit, message, conf));
+        var issues = toList(check.check(commit, message, conf, null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof AuthorNameIssue);
@@ -96,7 +96,7 @@ class AuthorCheckTests {
         var commit = commit(author);
         var message = message(commit);
         var check = new AuthorCheck();
-        var issues = toList(check.check(commit, message, conf));
+        var issues = toList(check.check(commit, message, conf, null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof AuthorNameIssue);
@@ -113,7 +113,7 @@ class AuthorCheckTests {
         var commit = commit(author);
         var message = message(commit);
         var check = new AuthorCheck();
-        var issues = toList(check.check(commit, message, conf));
+        var issues = toList(check.check(commit, message, conf, null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof AuthorEmailIssue);
@@ -130,7 +130,7 @@ class AuthorCheckTests {
         var commit = commit(author);
         var message = message(commit);
         var check = new AuthorCheck();
-        var issues = toList(check.check(commit, message, conf));
+        var issues = toList(check.check(commit, message, conf, null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof AuthorEmailIssue);

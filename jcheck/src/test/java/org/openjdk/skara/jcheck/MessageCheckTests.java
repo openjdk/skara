@@ -77,7 +77,7 @@ class MessageCheckTests {
     void titleOnlyMessageShouldPass() {
         var commit = commit(List.of("Bugfix"));
         var check = new MessageCheck(utils);
-        var issues = toList(check.check(commit, message(commit), conf()));
+        var issues = toList(check.check(commit, message(commit), conf(), null));
         assertEquals(0, issues.size());
     }
 
@@ -86,7 +86,7 @@ class MessageCheckTests {
         var commit = commit(new ArrayList<String>());
         var message = message(commit);
         var check = new MessageCheck(utils);
-        var issues = toList(check.check(commit, message, conf()));
+        var issues = toList(check.check(commit, message, conf(), null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof MessageIssue);
@@ -102,7 +102,7 @@ class MessageCheckTests {
         var commit = commit(List.of("Bugfix", "Additional"));
         var message = message(commit);
         var check = new MessageCheck(utils);
-        var issues = toList(check.check(commit, message, conf()));
+        var issues = toList(check.check(commit, message, conf(), null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof MessageIssue);
@@ -118,7 +118,7 @@ class MessageCheckTests {
         var commit = commit(List.of("\tBugfix"));
         var message = message(commit);
         var check = new MessageCheck(utils);
-        var issues = toList(check.check(commit, message, conf()));
+        var issues = toList(check.check(commit, message, conf(), null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof MessageWhitespaceIssue);
@@ -132,7 +132,7 @@ class MessageCheckTests {
         var commit = commit(List.of("Bugfix\r"));
         var message = message(commit);
         var check = new MessageCheck(utils);
-        var issues = toList(check.check(commit, message, conf()));
+        var issues = toList(check.check(commit, message, conf(), null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof MessageWhitespaceIssue);
@@ -146,7 +146,7 @@ class MessageCheckTests {
         var commit = commit(List.of("Bugfix "));
         var message = message(commit);
         var check = new MessageCheck(utils);
-        var issues = toList(check.check(commit, message, conf()));
+        var issues = toList(check.check(commit, message, conf(), null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof MessageWhitespaceIssue);

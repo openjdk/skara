@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.jcheck;
 
+import org.openjdk.skara.census.Census;
 import org.openjdk.skara.vcs.Commit;
 import org.openjdk.skara.vcs.openjdk.CommitMessage;
 
@@ -38,7 +39,7 @@ public class MessageCheck extends CommitCheck {
     }
 
     @Override
-    Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf) {
+    Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf, Census census) {
         var issues = new ArrayList<Issue>();
         if (commit.isMerge() || utils.addsHgTag(commit)) {
             return issues.iterator();

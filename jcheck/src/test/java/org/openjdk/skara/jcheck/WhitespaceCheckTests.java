@@ -89,7 +89,7 @@ class WhitespaceCheckTests {
         var commit = commit(parentDiffs("README.md", "An additional line"));
         var conf = configuration("README\\.md");
         var check = new WhitespaceCheck();
-        var issues = toList(check.check(commit, message(commit), conf));
+        var issues = toList(check.check(commit, message(commit), conf, null));
 
         assertEquals(0, issues.size());
     }
@@ -102,7 +102,7 @@ class WhitespaceCheckTests {
         var conf = configuration("README\\.md");
         var message = message(commit);
         var check = new WhitespaceCheck();
-        var issues = toList(check.check(commit, message, conf));
+        var issues = toList(check.check(commit, message, conf, null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof WhitespaceIssue);
@@ -126,7 +126,7 @@ class WhitespaceCheckTests {
         var conf = configuration("README\\.md");
         var message = message(commit);
         var check = new WhitespaceCheck();
-        var issues = toList(check.check(commit, message, conf));
+        var issues = toList(check.check(commit, message, conf, null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof WhitespaceIssue);
@@ -150,7 +150,7 @@ class WhitespaceCheckTests {
         var conf = configuration("README\\.md");
         var message = message(commit);
         var check = new WhitespaceCheck();
-        var issues = toList(check.check(commit, message, conf));
+        var issues = toList(check.check(commit, message, conf, null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof WhitespaceIssue);

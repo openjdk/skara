@@ -103,7 +103,7 @@ class IssuesCheckTests {
         var commit = commit(List.of("Bugfix"));
         var message = message(commit);
         var check = new IssuesCheck(utils);
-        var issues = toList(check.check(commit, message, conf()));
+        var issues = toList(check.check(commit, message, conf(), null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof IssuesIssue);
@@ -118,7 +118,7 @@ class IssuesCheckTests {
     void singleIssueReferenceShouldPass() {
         var commit = commit(List.of("1234570: A bug"));
         var check = new IssuesCheck(utils);
-        var issues = toList(check.check(commit, message(commit), conf()));
+        var issues = toList(check.check(commit, message(commit), conf(), null));
         assertEquals(0, issues.size());
     }
 
@@ -127,7 +127,7 @@ class IssuesCheckTests {
         var commit = commit(List.of("1234570: A bug", "1234567: Another bug"));
         var message = message(commit);
         var check = new IssuesCheck(utils);
-        var issues = toList(check.check(commit, message, conf()));
+        var issues = toList(check.check(commit, message, conf(), null));
         assertEquals(0, issues.size());
     }
 
@@ -136,7 +136,7 @@ class IssuesCheckTests {
         var commit = commit(List.of("0123456: A bug"));
         var message = message(commit);
         var check = new IssuesCheck(utils);
-        var issues = toList(check.check(commit, message, conf()));
+        var issues = toList(check.check(commit, message, conf(), null));
 
         assertEquals(0, issues.size());
     }
@@ -146,7 +146,7 @@ class IssuesCheckTests {
         var commit = commit(List.of("123456: A bug"));
         var message = message(commit);
         var check = new IssuesCheck(utils);
-        var issues = toList(check.check(commit, message, conf()));
+        var issues = toList(check.check(commit, message, conf(), null));
 
         assertEquals(0, issues.size());
     }
@@ -156,7 +156,7 @@ class IssuesCheckTests {
         var commit = commit(List.of("12345678: A bug"));
         var message = message(commit);
         var check = new IssuesCheck(utils);
-        var issues = toList(check.check(commit, message, conf()));
+        var issues = toList(check.check(commit, message, conf(), null));
 
         assertEquals(0, issues.size());
     }
@@ -166,7 +166,7 @@ class IssuesCheckTests {
         var commit = commit(List.of("JDK-7654321: A bug"));
         var message = message(commit);
         var check = new IssuesCheck(utils);
-        var issues = toList(check.check(commit, message, conf()));
+        var issues = toList(check.check(commit, message, conf(), null));
 
         assertEquals(0, issues.size());
     }
@@ -176,7 +176,7 @@ class IssuesCheckTests {
         var commit = commit(List.of("PROJ-1234567: A bug"));
         var message = message(commit);
         var check = new IssuesCheck(utils);
-        var issues = toList(check.check(commit, message, conf2()));
+        var issues = toList(check.check(commit, message, conf2(), null));
 
         assertEquals(0, issues.size());
     }
@@ -186,7 +186,7 @@ class IssuesCheckTests {
         var commit = commit(List.of("1234567: A bug"));
         var message = message(commit);
         var check = new IssuesCheck(utils);
-        var issues = toList(check.check(commit, message, conf2()));
+        var issues = toList(check.check(commit, message, conf2(), null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof IssuesIssue);
@@ -202,7 +202,7 @@ class IssuesCheckTests {
         var commit = commit(List.of("JDK-1234567: A bug"));
         var message = message(commit);
         var check = new IssuesCheck(utils);
-        var issues = toList(check.check(commit, message, conf2()));
+        var issues = toList(check.check(commit, message, conf2(), null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof IssuesIssue);
@@ -217,7 +217,7 @@ class IssuesCheckTests {
     void singleIssueReferenceConf3ShouldPass() {
         var commit = commit(List.of("1234570: A bug"));
         var check = new IssuesCheck(utils);
-        var issues = toList(check.check(commit, message(commit), conf3()));
+        var issues = toList(check.check(commit, message(commit), conf3(), null));
         assertEquals(0, issues.size());
     }
 
@@ -226,7 +226,7 @@ class IssuesCheckTests {
         var commit = commit(List.of("1234570: A bug", "1234567: Another bug"));
         var message = message(commit);
         var check = new IssuesCheck(utils);
-        var issues = toList(check.check(commit, message, conf3()));
+        var issues = toList(check.check(commit, message, conf3(), null));
         assertEquals(0, issues.size());
     }
 
@@ -235,7 +235,7 @@ class IssuesCheckTests {
         var commit = commit(List.of("0123456: A bug"));
         var message = message(commit);
         var check = new IssuesCheck(utils);
-        var issues = toList(check.check(commit, message, conf3()));
+        var issues = toList(check.check(commit, message, conf3(), null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof IssuesIssue);
@@ -251,7 +251,7 @@ class IssuesCheckTests {
         var commit = commit(List.of("9876543: A bug"));
         var message = message(commit);
         var check = new IssuesCheck(utils);
-        var issues = toList(check.check(commit, message, conf3()));
+        var issues = toList(check.check(commit, message, conf3(), null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof IssuesIssue);
@@ -267,7 +267,7 @@ class IssuesCheckTests {
         var commit = commit(List.of("123456: A bug"));
         var message = message(commit);
         var check = new IssuesCheck(utils);
-        var issues = toList(check.check(commit, message, conf3()));
+        var issues = toList(check.check(commit, message, conf3(), null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof IssuesIssue);
@@ -283,7 +283,7 @@ class IssuesCheckTests {
         var commit = commit(List.of("12345678: A bug"));
         var message = message(commit);
         var check = new IssuesCheck(utils);
-        var issues = toList(check.check(commit, message, conf3()));
+        var issues = toList(check.check(commit, message, conf3(), null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof IssuesIssue);
@@ -299,7 +299,7 @@ class IssuesCheckTests {
         var commit = commit(List.of("JDK-7654321: A bug"));
         var message = message(commit);
         var check = new IssuesCheck(utils);
-        var issues = toList(check.check(commit, message, conf3()));
+        var issues = toList(check.check(commit, message, conf3(), null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof IssuesIssue);
@@ -315,7 +315,7 @@ class IssuesCheckTests {
         var commit = commit(List.of("12345: A bug", "1234567: Another bug"));
         var message = message(commit);
         var check = new IssuesCheck(utils);
-        var issues = toList(check.check(commit, message, conf3()));
+        var issues = toList(check.check(commit, message, conf3(), null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof IssuesIssue);
@@ -331,7 +331,7 @@ class IssuesCheckTests {
         var commit = commit(List.of("1234567: A bug", "012: Another bug"));
         var message = message(commit);
         var check = new IssuesCheck(utils);
-        var issues = toList(check.check(commit, message, conf3()));
+        var issues = toList(check.check(commit, message, conf3(), null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof IssuesIssue);

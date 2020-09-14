@@ -117,8 +117,8 @@ class CommitterCheckTests {
     void authorIsLeadShouldPass() throws IOException {
         var author = new Author("Foo", "foo@localhost");
         var commit = commit(author, author);
-        var check = new CommitterCheck(census());
-        var issues = toList(check.check(commit, message(commit), conf()));
+        var check = new CommitterCheck();
+        var issues = toList(check.check(commit, message(commit), conf(), census()));
         assertEquals(0, issues.size());
     }
 
@@ -126,8 +126,8 @@ class CommitterCheckTests {
     void authorIsCommitterShouldPass() throws IOException {
         var author = new Author("Bar", "bar@localhost");
         var commit = commit(author, author);
-        var check = new CommitterCheck(census());
-        var issues = toList(check.check(commit, message(commit), conf()));
+        var check = new CommitterCheck();
+        var issues = toList(check.check(commit, message(commit), conf(), census()));
         assertEquals(0, issues.size());
     }
 
@@ -136,8 +136,8 @@ class CommitterCheckTests {
         var author = new Author("Baz", "baz@localhost");
         var commit = commit(author, author);
         var message = message(commit);
-        var check = new CommitterCheck(census());
-        var issues = toList(check.check(commit, message, conf()));
+        var check = new CommitterCheck();
+        var issues = toList(check.check(commit, message, conf(), census()));
 
         assertEquals(1, issues.size());
         var issue = issues.get(0);
@@ -156,8 +156,8 @@ class CommitterCheckTests {
         var committer = new Author("Bar", "bar@host.org");
         var commit = commit(author, committer);
         var message = message(commit);
-        var check = new CommitterCheck(census());
-        var issues = toList(check.check(commit, message, conf()));
+        var check = new CommitterCheck();
+        var issues = toList(check.check(commit, message, conf(), census()));
 
         assertEquals(1, issues.size());
         var issue = issues.get(0);
@@ -176,8 +176,8 @@ class CommitterCheckTests {
         var committer = new Author("bar", "bar@localhost");
         var commit = commit(author, committer);
         var message = message(commit);
-        var check = new CommitterCheck(census());
-        var issues = toList(check.check(commit, message, conf()));
+        var check = new CommitterCheck();
+        var issues = toList(check.check(commit, message, conf(), census()));
         assertEquals(0, issues.size());
     }
 
@@ -187,8 +187,8 @@ class CommitterCheckTests {
         var committer = new Author("Baz", "baz@localhost");
         var commit = commit(author, committer);
         var message = message(commit);
-        var check = new CommitterCheck(census());
-        var issues = toList(check.check(commit, message, conf()));
+        var check = new CommitterCheck();
+        var issues = toList(check.check(commit, message, conf(), census()));
 
         assertEquals(1, issues.size());
         var issue = issues.get(0);
@@ -207,8 +207,8 @@ class CommitterCheckTests {
         var committer = new Author("", "baz@localhost");
         var commit = commit(author, committer);
         var message = message(commit);
-        var check = new CommitterCheck(census());
-        var issues = toList(check.check(commit, message, conf()));
+        var check = new CommitterCheck();
+        var issues = toList(check.check(commit, message, conf(), census()));
 
         assertEquals(2, issues.size());
         assertTrue(issues.get(0) instanceof CommitterNameIssue);
@@ -225,8 +225,8 @@ class CommitterCheckTests {
         var committer = new Author("Baz", "");
         var commit = commit(author, committer);
         var message = message(commit);
-        var check = new CommitterCheck(census());
-        var issues = toList(check.check(commit, message, conf()));
+        var check = new CommitterCheck();
+        var issues = toList(check.check(commit, message, conf(), census()));
 
         assertEquals(2, issues.size());
         assertTrue(issues.get(0) instanceof CommitterEmailIssue);
@@ -243,17 +243,17 @@ class CommitterCheckTests {
         var committer = new Author("baz", "baz@localhost");
         var commit = mergeCommit(author, committer);
         var message = message(commit);
-        var check = new CommitterCheck(census());
-        var issues = toList(check.check(commit, message, conf()));
+        var check = new CommitterCheck();
+        var issues = toList(check.check(commit, message, conf(), census()));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof CommitterIssue);
 
-        check = new CommitterCheck(census());
+        check = new CommitterCheck();
         var text = new ArrayList<>(CONFIGURATION);
         text.addAll(List.of("[checks \"committer\"]", "allowed-to-merge=baz"));
         var conf = JCheckConfiguration.parse(text);
-        issues = toList(check.check(commit, message, conf));
+        issues = toList(check.check(commit, message, conf, census()));
         assertEquals(List.of(), issues);
     }
 
@@ -263,11 +263,11 @@ class CommitterCheckTests {
         var committer = new Author("baz", "baz@localhost");
         var commit = commit(author, committer);
         var message = message(commit);
-        var check = new CommitterCheck(census());
+        var check = new CommitterCheck();
         var text = new ArrayList<>(CONFIGURATION);
         text.addAll(List.of("[checks \"committer\"]", "allowed-to-merge=baz"));
         var conf = JCheckConfiguration.parse(text);
-        var issues = toList(check.check(commit, message, conf));
+        var issues = toList(check.check(commit, message, conf, census()));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof CommitterIssue);

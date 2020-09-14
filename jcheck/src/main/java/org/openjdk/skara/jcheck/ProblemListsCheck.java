@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.jcheck;
 
+import org.openjdk.skara.census.Census;
 import org.openjdk.skara.vcs.Commit;
 import org.openjdk.skara.vcs.FileEntry;
 import org.openjdk.skara.vcs.Hash;
@@ -66,7 +67,7 @@ public class ProblemListsCheck extends CommitCheck {
     }
 
     @Override
-    Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf) {
+    Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf, Census census) {
         var problemListed = new HashMap<String, List<Path>>();
         var checkConf = conf.checks().problemlists();
         var dirs = checkConf.dirs();

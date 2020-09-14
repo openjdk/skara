@@ -174,7 +174,7 @@ class ProblemListsCheckTests {
         var commit = commit(0, "Bugfix");
         var message = message(commit);
         var check = new ProblemListsCheck(REPOSITORY);
-        var issues = toList(check.check(commit, message, conf));
+        var issues = toList(check.check(commit, message, conf, null));
 
         assertEquals(0, issues.size());
     }
@@ -184,7 +184,7 @@ class ProblemListsCheckTests {
         var commit = commit(0, "4: Bugfix");
         var message = message(commit);
         var check = new ProblemListsCheck(REPOSITORY);
-        var issues = toList(check.check(commit, message, conf));
+        var issues = toList(check.check(commit, message, conf, null));
 
         assertEquals(0, issues.size());
     }
@@ -194,7 +194,7 @@ class ProblemListsCheckTests {
         var commit = commit(0, "PROJ-1: Bugfix");
         var message = message(commit);
         var check = new ProblemListsCheck(REPOSITORY);
-        var issues = toList(check.check(commit, message, conf));
+        var issues = toList(check.check(commit, message, conf, null));
 
         assertEquals(0, issues.size());
     }
@@ -204,7 +204,7 @@ class ProblemListsCheckTests {
         var commit = commit(0, "4: Bugfix", "5: Bugfix2");
         var message = message(commit);
         var check = new ProblemListsCheck(REPOSITORY);
-        var issues = toList(check.check(commit, message, conf));
+        var issues = toList(check.check(commit, message, conf, null));
 
         assertEquals(0, issues.size());
     }
@@ -214,7 +214,7 @@ class ProblemListsCheckTests {
         var commit = commit(0, "3: Bugfix");
         var message = message(commit);
         var check = new ProblemListsCheck(REPOSITORY);
-        var issues = toList(check.check(commit, message, conf));
+        var issues = toList(check.check(commit, message, conf, null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof ProblemListsIssue);
@@ -228,7 +228,7 @@ class ProblemListsCheckTests {
         var commit = commit(1, "1: Bugfix");
         var message = message(commit);
         var check = new ProblemListsCheck(REPOSITORY);
-        var issues = toList(check.check(commit, message, conf));
+        var issues = toList(check.check(commit, message, conf, null));
 
         assertEquals(0, issues.size());
     }
@@ -240,7 +240,7 @@ class ProblemListsCheckTests {
         {
             var commit = commit(1, "2: Bugfix");
             var message = message(commit);
-            var issues = toList(check.check(commit, message, conf));
+            var issues = toList(check.check(commit, message, conf, null));
 
             assertEquals(1, issues.size());
             assertTrue(issues.get(0) instanceof ProblemListsIssue);
@@ -253,7 +253,7 @@ class ProblemListsCheckTests {
         {
             var commit = commit(2, "2: Bugfix");
             var message = message(commit);
-            var issues = toList(check.check(commit, message, conf));
+            var issues = toList(check.check(commit, message, conf, null));
 
             assertEquals(1, issues.size());
             assertTrue(issues.get(0) instanceof ProblemListsIssue);
@@ -269,7 +269,7 @@ class ProblemListsCheckTests {
         var commit = commit(0, "2: Bugfix", "3: Bugfix2");
         var message = message(commit);
         var check = new ProblemListsCheck(REPOSITORY);
-        var issues = toList(check.check(commit, message, conf));
+        var issues = toList(check.check(commit, message, conf, null));
 
         assertEquals(2, issues.size());
         // assume that issues are in the same order as messages
@@ -288,7 +288,7 @@ class ProblemListsCheckTests {
         var commit = commit(0, "4: Bugfix", "3: Bugfix2");
         var message = message(commit);
         var check = new ProblemListsCheck(REPOSITORY);
-        var issues = toList(check.check(commit, message, conf));
+        var issues = toList(check.check(commit, message, conf, null));
 
         assertEquals(1, issues.size());
         // assume that issues are in the same order as messages
@@ -303,7 +303,7 @@ class ProblemListsCheckTests {
         var commit = commit(0, "PROJ-4: Bugfix");
         var message = message(commit);
         var check = new ProblemListsCheck(REPOSITORY);
-        var issues = toList(check.check(commit, message, conf2));
+        var issues = toList(check.check(commit, message, conf2, null));
 
         assertEquals(0, issues.size());
     }
@@ -313,7 +313,7 @@ class ProblemListsCheckTests {
         var commit = commit(0, "1: Bugfix");
         var message = message(commit);
         var check = new ProblemListsCheck(REPOSITORY);
-        var issues = toList(check.check(commit, message, conf2));
+        var issues = toList(check.check(commit, message, conf2, null));
 
         assertEquals(0, issues.size());
     }
@@ -323,7 +323,7 @@ class ProblemListsCheckTests {
         var commit = commit(0, "PROJ-3: Bugfix");
         var message = message(commit);
         var check = new ProblemListsCheck(REPOSITORY);
-        var issues = toList(check.check(commit, message, conf2));
+        var issues = toList(check.check(commit, message, conf2, null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof ProblemListsIssue);
@@ -337,7 +337,7 @@ class ProblemListsCheckTests {
         var commit = commit(1, "PROJ-1: Bugfix");
         var message = message(commit);
         var check = new ProblemListsCheck(REPOSITORY);
-        var issues = toList(check.check(commit, message, conf2));
+        var issues = toList(check.check(commit, message, conf2, null));
 
         assertEquals(0, issues.size());
     }
@@ -349,7 +349,7 @@ class ProblemListsCheckTests {
         {
             var commit = commit(1, "2: Bugfix");
             var message = message(commit);
-            var issues = toList(check.check(commit, message, conf3));
+            var issues = toList(check.check(commit, message, conf3, null));
 
             assertEquals(1, issues.size());
             assertTrue(issues.get(0) instanceof ProblemListsIssue);
@@ -365,7 +365,7 @@ class ProblemListsCheckTests {
         {
             var commit = commit(2, "2: Bugfix");
             var message = message(commit);
-            var issues = toList(check.check(commit, message, conf3));
+            var issues = toList(check.check(commit, message, conf3, null));
 
             assertEquals(1, issues.size());
             assertTrue(issues.get(0) instanceof ProblemListsIssue);
@@ -385,7 +385,7 @@ class ProblemListsCheckTests {
 
         var commit = commit(0, "PROJ-2: Bugfix");
         var message = message(commit);
-        var issues = toList(check.check(commit, message, conf4));
+        var issues = toList(check.check(commit, message, conf4, null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof ProblemListsIssue);

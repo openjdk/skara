@@ -82,7 +82,7 @@ class ExecutableCheckTests {
         var commit = commit(parentDiffs("README", "100644"));
         var message = message(commit);
         var check = new ExecutableCheck();
-        var issues = toList(check.check(commit, message, conf));
+        var issues = toList(check.check(commit, message, conf, null));
         assertEquals(0, issues.size());
     }
 
@@ -91,7 +91,7 @@ class ExecutableCheckTests {
         var commit = commit(parentDiffs("README", "100755"));
         var message = message(commit);
         var check = new ExecutableCheck();
-        var issues = toList(check.check(commit, message, conf));
+        var issues = toList(check.check(commit, message, conf, null));
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof ExecutableIssue);
         var issue = (ExecutableIssue) issues.get(0);

@@ -126,7 +126,7 @@ public class IntegrateCommand implements CommandHandler {
 
             var localHash = checkablePr.commit(rebasedHash.get(), censusInstance.namespace(), censusInstance.configuration().census().domain(), null);
 
-            var issues = checkablePr.createVisitor(localHash, censusInstance);
+            var issues = checkablePr.createVisitor(localHash);
             var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), allComments);
             checkablePr.executeChecks(localHash, censusInstance, issues, additionalConfiguration);
             if (!issues.messages().isEmpty()) {

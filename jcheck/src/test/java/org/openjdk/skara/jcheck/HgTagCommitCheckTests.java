@@ -96,7 +96,7 @@ class HgTagCommitCheckTests {
         var lines = List.of("Added tag " + tag + " for changeset " + targetHash);
         var commit = commit(new Hash(commitHash), lines, diffs);
         var check = new HgTagCommitCheck(new Utilities());
-        var issues = toList(check.check(commit, message(commit), conf));
+        var issues = toList(check.check(commit, message(commit), conf, null));
         assertEquals(0, issues.size());
     }
 
@@ -104,7 +104,7 @@ class HgTagCommitCheckTests {
     void commitThatDoesNotAddTagShouldPass() {
         var commit = commit(Hash.zero(), List.of(), List.of());
         var check = new HgTagCommitCheck(new Utilities());
-        var issues = toList(check.check(commit, message(commit), conf));
+        var issues = toList(check.check(commit, message(commit), conf, null));
         assertEquals(0, issues.size());
     }
 
@@ -112,7 +112,7 @@ class HgTagCommitCheckTests {
     void mergeCommitShouldPass() {
         var commit = mergeCommit();
         var check = new HgTagCommitCheck(new Utilities());
-        var issues = toList(check.check(commit, message(commit), conf));
+        var issues = toList(check.check(commit, message(commit), conf, null));
         assertEquals(0, issues.size());
     }
 
@@ -125,7 +125,7 @@ class HgTagCommitCheckTests {
         var lines = List.of("Added tag " + tag + " for changeset " + targetHash, "Another line");
         var commit = commit(new Hash(commitHash), lines, diffs);
         var check = new HgTagCommitCheck(new Utilities());
-        var issues = toList(check.check(commit, message(commit), conf));
+        var issues = toList(check.check(commit, message(commit), conf, null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof HgTagCommitIssue);
@@ -145,7 +145,7 @@ class HgTagCommitCheckTests {
         var lines = List.of("I want tag " + tag + " for commit " + targetHash);
         var commit = commit(new Hash(commitHash), lines, diffs);
         var check = new HgTagCommitCheck(new Utilities());
-        var issues = toList(check.check(commit, message(commit), conf));
+        var issues = toList(check.check(commit, message(commit), conf, null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof HgTagCommitIssue);
@@ -179,7 +179,7 @@ class HgTagCommitCheckTests {
         var commit = commit(new Hash(commitHash), lines, diffs);
 
         var check = new HgTagCommitCheck(new Utilities());
-        var issues = toList(check.check(commit, message(commit), conf));
+        var issues = toList(check.check(commit, message(commit), conf, null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof HgTagCommitIssue);
@@ -210,7 +210,7 @@ class HgTagCommitCheckTests {
         var commit = commit(new Hash(commitHash), lines, diffs);
 
         var check = new HgTagCommitCheck(new Utilities());
-        var issues = toList(check.check(commit, message(commit), conf));
+        var issues = toList(check.check(commit, message(commit), conf, null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof HgTagCommitIssue);
@@ -230,7 +230,7 @@ class HgTagCommitCheckTests {
         var lines = List.of("Added tag skara-11+23 for changeset " + targetHash);
         var commit = commit(new Hash(commitHash), lines, diffs);
         var check = new HgTagCommitCheck(new Utilities());
-        var issues = toList(check.check(commit, message(commit), conf));
+        var issues = toList(check.check(commit, message(commit), conf, null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof HgTagCommitIssue);

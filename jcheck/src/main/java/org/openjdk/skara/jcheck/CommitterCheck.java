@@ -33,13 +33,8 @@ import java.util.logging.Logger;
 
 public class CommitterCheck extends CommitCheck {
     private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck.committer");
-    private final Census census;
 
-    CommitterCheck(Census census) {
-        this.census = census;
-    }
-
-    private boolean hasRole(Project project, String role, String username, int version) {
+    private boolean hasRole(Census census, Project project, String role, String username, int version) {
         switch (role) {
             case "lead":
                 return project.isLead(username, version);
@@ -58,7 +53,7 @@ public class CommitterCheck extends CommitCheck {
 
 
     @Override
-    Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf) {
+    Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf, Census census) {
         var issues = new ArrayList<Issue>();
         var project = census.project(conf.general().project());
         var version = conf.census().version();
@@ -81,7 +76,7 @@ public class CommitterCheck extends CommitCheck {
                 committer.name() : committer.email().split("@")[0];
             var allowedToMerge = conf.checks().committer().allowedToMerge();
             if (!commit.isMerge() || !allowedToMerge.contains(username)) {
-                if (!hasRole(project, role, username, version)) {
+                if (!hasRole(census, project, role, username, version)) {
                     log.finer("issue: committer does not have role " + role);
                     issues.add(new CommitterIssue(project, metadata));
                 }

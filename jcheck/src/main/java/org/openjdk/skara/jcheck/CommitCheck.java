@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.jcheck;
 
+import org.openjdk.skara.census.Census;
 import org.openjdk.skara.vcs.openjdk.CommitMessage;
 import org.openjdk.skara.vcs.Commit;
 
@@ -29,7 +30,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 
 abstract class CommitCheck implements Check {
-    abstract Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf);
+    abstract Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf, Census census);
 
     protected Iterator<Issue> iterator(Issue... issues) {
         return Arrays.asList(issues).iterator();

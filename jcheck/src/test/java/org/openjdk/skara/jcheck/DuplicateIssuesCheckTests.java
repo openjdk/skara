@@ -77,7 +77,7 @@ class DuplicateIssuesCheckTests {
             var check = new DuplicateIssuesCheck(r);
 
             var commit = r.lookup(third).orElseThrow();
-            var issues = toList(check.check(commit, message(commit), conf()));
+            var issues = toList(check.check(commit, message(commit), conf(), null));
             assertEquals(List.of(), issues);
         }
     }
@@ -103,7 +103,7 @@ class DuplicateIssuesCheckTests {
             var check = new DuplicateIssuesCheck(r);
 
             var commit = r.lookup(third).orElseThrow();
-            var issues = toList(check.check(commit, message(commit), conf()));
+            var issues = toList(check.check(commit, message(commit), conf(), null));
             assertEquals(2, issues.size());
             assertTrue(issues.get(0) instanceof DuplicateIssuesIssue);
             var issue = (DuplicateIssuesIssue) issues.get(0);
@@ -132,7 +132,7 @@ class DuplicateIssuesCheckTests {
 
             var check = new DuplicateIssuesCheck(r);
             var commit = r.lookup(third).orElseThrow();
-            var issues = toList(check.check(commit, message(commit), conf()));
+            var issues = toList(check.check(commit, message(commit), conf(), null));
             assertEquals(1, issues.size());
             assertTrue(issues.get(0) instanceof DuplicateIssuesIssue);
             var issue = (DuplicateIssuesIssue) issues.get(0);

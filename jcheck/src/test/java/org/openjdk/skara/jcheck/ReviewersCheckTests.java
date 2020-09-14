@@ -159,24 +159,24 @@ class ReviewersCheckTests {
     @Test
     void singleReviewerShouldPass() throws IOException {
         var commit = commit(List.of("bar"));
-        var check = new ReviewersCheck(census(), utils);
-        var issues = toList(check.check(commit, message(commit), conf(1)));
+        var check = new ReviewersCheck(utils);
+        var issues = toList(check.check(commit, message(commit), conf(1), census()));
         assertEquals(0, issues.size());
     }
 
     @Test
     void leadAsReviewerShouldPass() throws IOException {
         var commit = commit(List.of("foo"));
-        var check = new ReviewersCheck(census(), utils);
-        var issues = toList(check.check(commit, message(commit), conf(1)));
+        var check = new ReviewersCheck(utils);
+        var issues = toList(check.check(commit, message(commit), conf(1), census()));
         assertEquals(0, issues.size());
     }
 
     @Test
     void committerAsReviewerShouldFail() throws IOException {
         var commit = commit(List.of("baz"));
-        var check = new ReviewersCheck(census(), utils);
-        var issues = toList(check.check(commit, message(commit), conf(1)));
+        var check = new ReviewersCheck(utils);
+        var issues = toList(check.check(commit, message(commit), conf(1), census()));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof TooFewReviewersIssue);
@@ -192,8 +192,8 @@ class ReviewersCheckTests {
     @Test
     void authorAsReviewerShouldFail() throws IOException {
         var commit = commit(List.of("qux"));
-        var check = new ReviewersCheck(census(), utils);
-        var issues = toList(check.check(commit, message(commit), conf(1)));
+        var check = new ReviewersCheck(utils);
+        var issues = toList(check.check(commit, message(commit), conf(1), census()));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof TooFewReviewersIssue);
@@ -209,8 +209,8 @@ class ReviewersCheckTests {
     @Test
     void noReviewersShouldFail() throws IOException {
         var commit = commit(List.of());
-        var check = new ReviewersCheck(census(), utils);
-        var issues = toList(check.check(commit, message(commit), conf(1)));
+        var check = new ReviewersCheck(utils);
+        var issues = toList(check.check(commit, message(commit), conf(1), census()));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof TooFewReviewersIssue);
@@ -226,8 +226,8 @@ class ReviewersCheckTests {
     @Test
     void multipleInvalidReviewersShouldFail() throws IOException {
         var commit = commit(List.of("qux", "baz"));
-        var check = new ReviewersCheck(census(), utils);
-        var issues = toList(check.check(commit, message(commit), conf(1)));
+        var check = new ReviewersCheck(utils);
+        var issues = toList(check.check(commit, message(commit), conf(1), census()));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof TooFewReviewersIssue);
@@ -243,8 +243,8 @@ class ReviewersCheckTests {
     @Test
     void uknownReviewersShouldFail() throws IOException {
         var commit = commit(List.of("unknown", "user"));
-        var check = new ReviewersCheck(census(), utils);
-        var issues = toList(check.check(commit, message(commit), conf(1)));
+        var check = new ReviewersCheck(utils);
+        var issues = toList(check.check(commit, message(commit), conf(1), census()));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof InvalidReviewersIssue);
@@ -258,8 +258,8 @@ class ReviewersCheckTests {
     @Test
     void oneReviewerAndMultipleInvalidReviewersShouldPass() throws IOException {
         var commit = commit(List.of("bar", "baz", "qux"));
-        var check = new ReviewersCheck(census(), utils);
-        var issues = toList(check.check(commit, message(commit), conf(1)));
+        var check = new ReviewersCheck(utils);
+        var issues = toList(check.check(commit, message(commit), conf(1), census()));
 
         assertEquals(0, issues.size());
     }
@@ -267,8 +267,8 @@ class ReviewersCheckTests {
     @Test
     void oneReviewerAndUknownReviewerShouldFail() throws IOException {
         var commit = commit(List.of("bar", "unknown"));
-        var check = new ReviewersCheck(census(), utils);
-        var issues = toList(check.check(commit, message(commit), conf(1)));
+        var check = new ReviewersCheck(utils);
+        var issues = toList(check.check(commit, message(commit), conf(1), census()));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof InvalidReviewersIssue);
@@ -282,8 +282,8 @@ class ReviewersCheckTests {
     @Test
     void zeroReviewersConfigurationShouldPass() throws IOException {
         var commit = commit(new ArrayList<String>());
-        var check = new ReviewersCheck(census(), utils);
-        var issues = toList(check.check(commit, message(commit), conf(0)));
+        var check = new ReviewersCheck(utils);
+        var issues = toList(check.check(commit, message(commit), conf(0), census()));
 
         assertEquals(0, issues.size());
     }
@@ -291,8 +291,8 @@ class ReviewersCheckTests {
     @Test
     void selfReviewShouldNotPass() throws IOException {
         var commit = commit(new Author("bar", "bar@localhost"), List.of("bar"));
-        var check = new ReviewersCheck(census(), utils);
-        var issues = toList(check.check(commit, message(commit), conf(1)));
+        var check = new ReviewersCheck(utils);
+        var issues = toList(check.check(commit, message(commit), conf(1), census()));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof SelfReviewIssue);
@@ -306,8 +306,8 @@ class ReviewersCheckTests {
     void ignoredReviewersShouldBeExcluded() throws IOException {
         var ignored = List.of("foo", "bar");
         var commit = commit(ignored);
-        var check = new ReviewersCheck(census(), utils);
-        var issues = toList(check.check(commit, message(commit), conf(1, ignored)));
+        var check = new ReviewersCheck(utils);
+        var issues = toList(check.check(commit, message(commit), conf(1, ignored), census()));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof TooFewReviewersIssue);
@@ -316,8 +316,8 @@ class ReviewersCheckTests {
     @Test
     void requiringCommitterAndReviwerShouldPass() throws IOException {
         var commit = commit(List.of("bar", "baz"));
-        var check = new ReviewersCheck(census(), utils);
-        var issues = toList(check.check(commit, message(commit), conf(1, 1)));
+        var check = new ReviewersCheck(utils);
+        var issues = toList(check.check(commit, message(commit), conf(1, 1), census()));
 
         assertEquals(0, issues.size());
     }
@@ -325,8 +325,8 @@ class ReviewersCheckTests {
     @Test
     void missingRoleShouldFail() throws IOException {
         var commit = commit(List.of("bar", "qux"));
-        var check = new ReviewersCheck(census(), utils);
-        var issues = toList(check.check(commit, message(commit), conf(1, 1)));
+        var check = new ReviewersCheck(utils);
+        var issues = toList(check.check(commit, message(commit), conf(1, 1), census()));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof TooFewReviewersIssue);
@@ -342,8 +342,8 @@ class ReviewersCheckTests {
     @Test
     void relaxedRoleShouldPass() throws IOException {
         var commit = commit(List.of("bar", "qux"));
-        var check = new ReviewersCheck(census(), utils);
-        var issues = toList(check.check(commit, message(commit), conf(0, 1, 1)));
+        var check = new ReviewersCheck(utils);
+        var issues = toList(check.check(commit, message(commit), conf(0, 1, 1), census()));
 
         assertEquals(0, issues.size());
     }
@@ -351,8 +351,8 @@ class ReviewersCheckTests {
     @Test
     void relaxedRoleAndMissingRoleShouldFail() throws IOException {
         var commit = commit(List.of("bar", "contributor"));
-        var check = new ReviewersCheck(census(), utils);
-        var issues = toList(check.check(commit, message(commit), conf(0, 1, 1)));
+        var check = new ReviewersCheck(utils);
+        var issues = toList(check.check(commit, message(commit), conf(0, 1, 1), census()));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof TooFewReviewersIssue);
@@ -368,22 +368,22 @@ class ReviewersCheckTests {
     @Test
     void legacyConfigurationShouldWork() throws IOException {
         var commit = commit(List.of("bar"));
-        var check = new ReviewersCheck(census(), utils);
+        var check = new ReviewersCheck(utils);
         var legacyConf = new ArrayList<>(CONFIGURATION);
         legacyConf.add("minimum = 1");
         legacyConf.add("role = reviewer");
-        var issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(legacyConf)));
+        var issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(legacyConf), census()));
         assertEquals(0, issues.size());
     }
 
     @Test
     void legacyConfigurationShouldAcceptRole() throws IOException {
         var commit = commit(List.of("baz"));
-        var check = new ReviewersCheck(census(), utils);
+        var check = new ReviewersCheck(utils);
         var legacyConf = new ArrayList<>(CONFIGURATION);
         legacyConf.add("minimum = 1");
         legacyConf.add("role = reviewer");
-        var issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(legacyConf)));
+        var issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(legacyConf), census()));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof TooFewReviewersIssue);
@@ -399,24 +399,24 @@ class ReviewersCheckTests {
     @Test
     void legacyConfigurationShouldAcceptCommitterRole() throws IOException {
         var commit = commit(List.of("foo"));
-        var check = new ReviewersCheck(census(), utils);
+        var check = new ReviewersCheck(utils);
         var legacyConf = new ArrayList<>(CONFIGURATION);
         legacyConf.add("minimum = 1");
         legacyConf.add("role = committer");
 
-        var issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(legacyConf)));
+        var issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(legacyConf), census()));
         assertEquals(0, issues.size());
 
         commit = commit(List.of("bar"));
-        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(legacyConf)));
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(legacyConf), census()));
         assertEquals(0, issues.size());
 
         commit = commit(List.of("baz"));
-        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(legacyConf)));
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(legacyConf), census()));
         assertEquals(0, issues.size());
 
         commit = commit(List.of("qux"));
-        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(legacyConf)));
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(legacyConf), census()));
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof TooFewReviewersIssue);
         var issue = (TooFewReviewersIssue) issues.get(0);
@@ -431,23 +431,23 @@ class ReviewersCheckTests {
     @Test
     void modernConfigurationShouldAcceptCommitterRole() throws IOException {
         var commit = commit(List.of("foo"));
-        var check = new ReviewersCheck(census(), utils);
+        var check = new ReviewersCheck(utils);
         var modernConf = new ArrayList<>(CONFIGURATION);
         modernConf.add("committers = 1");
 
-        var issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(modernConf)));
+        var issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(modernConf), census()));
         assertEquals(0, issues.size());
 
         commit = commit(List.of("bar"));
-        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(modernConf)));
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(modernConf), census()));
         assertEquals(0, issues.size());
 
         commit = commit(List.of("baz"));
-        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(modernConf)));
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(modernConf), census()));
         assertEquals(0, issues.size());
 
         commit = commit(List.of("qux"));
-        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(modernConf)));
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(modernConf), census()));
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof TooFewReviewersIssue);
         var issue = (TooFewReviewersIssue) issues.get(0);
@@ -462,32 +462,32 @@ class ReviewersCheckTests {
     @Test
     void oldJDKConfigurationShouldRequireContributor() throws IOException {
         var commit = commit(List.of("foo"));
-        var check = new ReviewersCheck(census(), utils);
+        var check = new ReviewersCheck(utils);
         var oldJDKConf = new ArrayList<String>();
         oldJDKConf.add("project=jdk");
         oldJDKConf.add("bugids=dup");
 
-        var issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf)));
+        var issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf), census()));
         assertEquals(0, issues.size());
 
         commit = commit(List.of("bar"));
-        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf)));
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf), census()));
         assertEquals(0, issues.size());
 
         commit = commit(List.of("baz"));
-        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf)));
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf), census()));
         assertEquals(0, issues.size());
 
         commit = commit(List.of("qux"));
-        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf)));
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf), census()));
         assertEquals(0, issues.size());
 
         commit = commit(List.of("contributor"));
-        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf)));
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf), census()));
         assertEquals(0, issues.size());
 
         commit = commit(List.of());
-        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf)));
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf), census()));
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof TooFewReviewersIssue);
         var issue = (TooFewReviewersIssue) issues.get(0);
@@ -499,7 +499,7 @@ class ReviewersCheckTests {
         assertEquals(check, issue.check());
 
         commit = commit(List.of("unknown"));
-        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf)));
+        issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(oldJDKConf), census()));
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof InvalidReviewersIssue);
         var invalidIssue = (InvalidReviewersIssue) issues.get(0);

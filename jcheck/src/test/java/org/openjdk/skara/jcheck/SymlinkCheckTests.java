@@ -101,7 +101,7 @@ class SymlinkCheckTests {
         var commit = commitWithSymlink("symlink");
         var message = message(commit);
         var check = new SymlinkCheck();
-        var issues = toList(check.check(commit, message, conf()));
+        var issues = toList(check.check(commit, message, conf(), null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof SymlinkIssue);
@@ -114,7 +114,7 @@ class SymlinkCheckTests {
         var commit = commitWithRegularFile("README.txt", "Hello, world");
         var message = message(commit);
         var check = new SymlinkCheck();
-        var issues = toList(check.check(commit, message, conf()));
+        var issues = toList(check.check(commit, message, conf(), null));
         assertEquals(List.of(), issues);
     }
 }

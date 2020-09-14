@@ -78,7 +78,7 @@ class MergeMessageCheckTests {
         var commit = commit(List.of("Merge"));
         var message = message(commit);
         var check = new MergeMessageCheck();
-        var issues = toList(check.check(commit, message, conf()));
+        var issues = toList(check.check(commit, message, conf(), null));
         assertEquals(0, issues.size());
     }
 
@@ -87,7 +87,7 @@ class MergeMessageCheckTests {
         var commit = commit(List.of("Work"));
         var message = message(commit);
         var check = new MergeMessageCheck();
-        var issues = toList(check.check(commit, message, conf()));
+        var issues = toList(check.check(commit, message, conf(), null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof MergeMessageIssue);
@@ -98,7 +98,7 @@ class MergeMessageCheckTests {
         var commit = commit(List.of("Merge", "", "This is a summary"));
         var message = message(commit);
         var check = new MergeMessageCheck();
-        var issues = toList(check.check(commit, message, conf()));
+        var issues = toList(check.check(commit, message, conf(), null));
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0) instanceof MergeMessageIssue);
@@ -111,7 +111,7 @@ class MergeMessageCheckTests {
         var check = new MergeMessageCheck();
         var conf = new ArrayList<>(CONFIGURATION);
         conf.set(conf.size() - 1, "message = Merge \\'[a-z]+\\' into \\'[a-z]+\\'");
-        var issues = toList(check.check(commit, message, JCheckConfiguration.parse(conf)));
+        var issues = toList(check.check(commit, message, JCheckConfiguration.parse(conf), null));
 
         assertEquals(List.of(), issues);
     }
