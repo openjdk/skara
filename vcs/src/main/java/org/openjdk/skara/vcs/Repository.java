@@ -66,9 +66,22 @@ public interface Repository extends ReadOnlyRepository {
     default void remove(Path... files) throws IOException {
         remove(Arrays.asList(files));
     }
-    void pull() throws IOException;
-    void pull(String remote) throws IOException;
-    void pull(String remote, String refspec) throws IOException;
+
+    void pull(boolean includeTags) throws IOException;
+    default void pull() throws IOException {
+        pull(false);
+    }
+
+    void pull(String remote, boolean includeTags) throws IOException;
+    default void pull(String remote) throws IOException {
+        pull(remote, false);
+    }
+
+    void pull(String remote, String refspec, boolean includeTags) throws IOException;
+    default void pull(String remote, String refspec) throws IOException {
+        pull(remote, refspec, false);
+    }
+
     void addremove() throws IOException;
     void config(String section, String key, String value, boolean global) throws IOException;
     default void config(String section, String key, String value) throws IOException {

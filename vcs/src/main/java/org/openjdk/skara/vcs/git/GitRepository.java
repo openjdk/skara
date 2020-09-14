@@ -1311,22 +1311,27 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public void pull() throws IOException {
-        pull(null, null);
+    public void pull(boolean includeTags) throws IOException {
+        pull(null, null, includeTags);
     }
 
     @Override
-    public void pull(String remote) throws IOException {
-        pull(remote, null);
+    public void pull(String remote, boolean includeTags) throws IOException {
+        pull(remote, null, includeTags);
     }
 
 
     @Override
-    public void pull(String remote, String refspec) throws IOException {
+    public void pull(String remote, String refspec, boolean includeTags) throws IOException {
         var cmd = new ArrayList<String>();
         cmd.add("git");
         cmd.add("pull");
         cmd.add("--recurse-submodules");
+        if (includeTags) {
+            cmd.add("--tags");
+        } else {
+            cmd.add("--no-tags");
+        }
         if (remote != null) {
             cmd.add(remote);
         }

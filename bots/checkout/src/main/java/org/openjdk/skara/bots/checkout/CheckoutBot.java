@@ -96,7 +96,7 @@ public class CheckoutBot implements Bot, WorkItem {
                     new IllegalStateException("Git repository vanished from " + fromDir));
             }
             fromRepo.checkout(branch);
-            fromRepo.pull("origin", branch.name());
+            fromRepo.pull("origin", branch.name(), true);
 
             var repoName = Path.of(from.getPath()).getFileName().toString();
             var marksDir = scratch.resolve("checkout").resolve("marks").resolve(repoName);
