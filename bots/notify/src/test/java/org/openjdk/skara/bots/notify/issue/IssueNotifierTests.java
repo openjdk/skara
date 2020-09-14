@@ -28,6 +28,7 @@ import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.test.*;
+import org.openjdk.skara.vcs.Branch;
 
 import java.io.IOException;
 import java.net.URI;
@@ -407,6 +408,161 @@ public class IssueNotifierTests {
             // The issue should be assigned and resolved
             assertEquals(RESOLVED, updatedIssue.state());
             assertEquals(List.of(issueProject.issueTracker().currentUser()), updatedIssue.assignees());
+        }
+    }
+
+    @Test
+    void testIssueBuildAfterMerge(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var issueProject = credentials.getIssueProject();
+            var storageFolder = tempFolder.path().resolve("storage");
+            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object())
+                                        .put("buildname", "team");
+            var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
+            var jbsNotifierConfig2 = JSON.object().put("fixversions", JSON.object())
+                                        .put("buildname", "main");
+            var notifyBot2 = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig2).create("notify", JSON.object());
+            var jbsNotifierConfig3 = JSON.object().put("fixversions", JSON.object())
+                                         .put("buildname", "b04");
+            var notifyBot3 = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig3).create("notify", JSON.object());
+            var jbsNotifierConfig4 = JSON.object().put("fixversions", JSON.object())
+                                         .put("buildname", "b02");
+            var notifyBot4 = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig4).create("notify", JSON.object());
+            var jbsNotifierConfig5 = JSON.object().put("fixversions", JSON.object())
+                                         .put("buildname", "b03");
+            var notifyBot5 = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig5).create("notify", JSON.object());
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+            var blankHistory = repo.branchHash("history");
+
+            // Create an issue and commit a fix
+            var authorEmailAddress = issueProject.issueTracker().currentUser().userName() + "@openjdk.org";
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
+            localRepo.push(editHash, repo.url(), "master");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The changeset should be reflected in a comment
+            var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+
+            var comments = updatedIssue.comments();
+            assertEquals(1, comments.size());
+            var comment = comments.get(0);
+            assertTrue(comment.body().contains(editHash.abbreviate()));
+
+            // As well as a fixVersion and a resolved in build
+            assertEquals(Set.of("0.1"), fixVersions(updatedIssue));
+            assertEquals("team", updatedIssue.properties().get("customfield_10006").asString());
+
+            // The issue should be assigned and resolved
+            assertEquals(RESOLVED, updatedIssue.state());
+            assertEquals(List.of(issueProject.issueTracker().currentUser()), updatedIssue.assignees());
+
+            // Restore the history to simulate looking at another repository
+            localRepo.fetch(repo.url(), "history");
+            localRepo.push(blankHistory, repo.url(), "history", true);
+
+            // When the second notifier sees it, it should upgrade the build name
+            TestBotRunner.runPeriodicItems(notifyBot2);
+
+            updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            assertEquals("main", updatedIssue.properties().get("customfield_10006").asString());
+
+            // Restore the history to simulate looking at another repository
+            localRepo.fetch(repo.url(), "history");
+            localRepo.push(blankHistory, repo.url(), "history", true);
+
+            // When the third notifier sees it, it should switch to a build number
+            TestBotRunner.runPeriodicItems(notifyBot3);
+
+            updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            assertEquals("b04", updatedIssue.properties().get("customfield_10006").asString());
+
+            // Restore the history to simulate looking at another repository
+            localRepo.fetch(repo.url(), "history");
+            localRepo.push(blankHistory, repo.url(), "history", true);
+
+            // When the fourth notifier sees it, it should switch to a lower build number
+            TestBotRunner.runPeriodicItems(notifyBot4);
+
+            updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            assertEquals("b02", updatedIssue.properties().get("customfield_10006").asString());
+
+            // Restore the history to simulate looking at another repository
+            localRepo.fetch(repo.url(), "history");
+            localRepo.push(blankHistory, repo.url(), "history", true);
+
+            // When the fifth notifier sees it, it should NOT switch to a higher build number
+            TestBotRunner.runPeriodicItems(notifyBot5);
+
+            updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            assertEquals("b02", updatedIssue.properties().get("customfield_10006").asString());
+        }
+    }
+
+    @Test
+    void testIssueBuildAfterTag(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var issueProject = credentials.getIssueProject();
+            var storageFolder = tempFolder.path().resolve("storage");
+            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object())
+                                        .put("buildname", "team");
+            var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
+
+            // Initialize history
+            var current = localRepo.resolve("master").orElseThrow();
+            localRepo.tag(current, "jdk-16+9", "First tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and commit a fix
+            var authorEmailAddress = issueProject.issueTracker().currentUser().userName() + "@openjdk.org";
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
+            localRepo.push(editHash, repo.url(), "master");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The changeset should be reflected in a comment
+            var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+
+            var comments = updatedIssue.comments();
+            assertEquals(1, comments.size());
+            var comment = comments.get(0);
+            assertTrue(comment.body().contains(editHash.abbreviate()));
+
+            // As well as a fixVersion and a resolved in build
+            assertEquals(Set.of("0.1"), fixVersions(updatedIssue));
+            assertEquals("team", updatedIssue.properties().get("customfield_10006").asString());
+
+            // The issue should be assigned and resolved
+            assertEquals(RESOLVED, updatedIssue.state());
+            assertEquals(List.of(issueProject.issueTracker().currentUser()), updatedIssue.assignees());
+
+            // Tag it
+            localRepo.tag(editHash, "jdk-16+10", "Second tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The build should now be updated
+            updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            assertEquals("b10", updatedIssue.properties().get("customfield_10006").asString());
         }
     }
 
