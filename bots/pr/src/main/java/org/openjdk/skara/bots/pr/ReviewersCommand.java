@@ -110,19 +110,15 @@ public class ReviewersCommand implements CommandHandler {
 
         if (pr.author().equals(command.user()) && !censusInstance.isReviewer(command.user())) {
             var user = pr.repository().forge().currentUser();
-
-            // If the command is in the PR body there cannot be any previous commands
-            if (!command.isInBody()) {
-                var previous = ReviewersTracker.additionalRequiredReviewers(user, allComments, command.comment().get());
-                if (previous.isPresent()) {
-                    if (roleIsLower(role, previous.get().role())) {
-                        reply.println("Cannot lower the role for additional reviewers");
-                        return;
-                    }
-                    if (numReviewers < previous.get().number()) {
-                        reply.println("Cannot decrease the number of required reviewers");
-                        return;
-                    }
+            var previous = ReviewersTracker.additionalRequiredReviewers(user, allComments);
+            if (previous.isPresent()) {
+                if (roleIsLower(role, previous.get().role())) {
+                    reply.println("Cannot lower the role for additional reviewers");
+                    return;
+                }
+                if (numReviewers < previous.get().number()) {
+                    reply.println("Cannot decrease the number of required reviewers");
+                    return;
                 }
             }
         }

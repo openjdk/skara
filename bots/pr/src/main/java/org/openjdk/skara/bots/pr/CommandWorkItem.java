@@ -118,7 +118,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
         }
     }
 
-    private List<CommandInvocation> extractCommands(String text, String baseId, HostUser user, Comment c) {
+    private List<CommandInvocation> extractCommands(String text, String baseId, HostUser user) {
         var ret = new ArrayList<CommandInvocation>();
         CommandHandler multiLineHandler = null;
         List<String> multiLineBuffer = null;
@@ -128,7 +128,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
             var commandMatcher = commandPattern.matcher(line);
             if (commandMatcher.matches()) {
                 if (multiLineHandler != null) {
-                    ret.add(new CommandInvocation(formatId(baseId, subId++), user, multiLineHandler, multiLineCommand, String.join("\n", multiLineBuffer), c));
+                    ret.add(new CommandInvocation(formatId(baseId, subId++), user, multiLineHandler, multiLineCommand, String.join("\n", multiLineBuffer)));
                     multiLineHandler = null;
                 }
                 var command = commandMatcher.group(1).toLowerCase();
@@ -144,7 +144,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
                     }
                     multiLineCommand = command;
                 } else {
-                    ret.add(new CommandInvocation(formatId(baseId, subId++), user, handler, command, commandMatcher.group(2), c));
+                    ret.add(new CommandInvocation(formatId(baseId, subId++), user, handler, command, commandMatcher.group(2)));
                 }
             } else {
                 if (multiLineHandler != null) {
@@ -153,17 +153,17 @@ public class CommandWorkItem extends PullRequestWorkItem {
             }
         }
         if (multiLineHandler != null) {
-            ret.add(new CommandInvocation(formatId(baseId, subId), user, multiLineHandler, multiLineCommand, String.join("\n", multiLineBuffer), c));
+            ret.add(new CommandInvocation(formatId(baseId, subId), user, multiLineHandler, multiLineCommand, String.join("\n", multiLineBuffer)));
         }
         return ret;
     }
 
     private Optional<CommandInvocation> nextCommand(PullRequest pr, List<Comment> comments) {
         var self = pr.repository().forge().currentUser();
-        var allCommands = Stream.concat(extractCommands(pr.body(), "body", pr.author(), null).stream(),
+        var allCommands = Stream.concat(extractCommands(pr.body(), "body", pr.author()).stream(),
                                         comments.stream()
                                                 .filter(comment -> !comment.author().equals(self) || comment.body().endsWith(selfCommandMarker))
-                                                .flatMap(c -> extractCommands(c.body(), c.id(), c.author(), c).stream()))
+                                                .flatMap(c -> extractCommands(c.body(), c.id(), c.author()).stream()))
                                 .collect(Collectors.toList());
 
         var handled = comments.stream()

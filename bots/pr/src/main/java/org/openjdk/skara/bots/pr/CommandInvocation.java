@@ -11,15 +11,13 @@ class CommandInvocation {
     private final CommandHandler handler;
     private final String name;
     private final String args;
-    private final Comment comment;
 
-    CommandInvocation(String id, HostUser user, CommandHandler handler, String name, String args, Comment comment) {
+    CommandInvocation(String id, HostUser user, CommandHandler handler, String name, String args) {
         this.id = id;
         this.user = user;
         this.handler = handler;
         this.name = name;
         this.args = args != null ? args.strip() : "";
-        this.comment = comment;
     }
 
     String id() {
@@ -40,17 +38,5 @@ class CommandInvocation {
 
     String args() {
         return args;
-    }
-
-    Optional<Comment> comment() {
-        return Optional.ofNullable(comment);
-    }
-
-    boolean isInBody() {
-        return comment == null;
-    }
-
-    boolean isInComment() {
-        return comment != null;
     }
 }

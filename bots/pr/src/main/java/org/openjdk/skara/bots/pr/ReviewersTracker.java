@@ -99,14 +99,9 @@ class ReviewersTracker {
     }
 
     static Optional<AdditionalRequiredReviewers> additionalRequiredReviewers(HostUser botUser, List<Comment> comments) {
-        return additionalRequiredReviewers(botUser, comments, null);
-    }
-
-    static Optional<AdditionalRequiredReviewers> additionalRequiredReviewers(HostUser botUser, List<Comment> comments, Comment exclude) {
         var ret = new HashMap<String, Integer>();
         var reviewersActions = comments.stream()
                                        .filter(comment -> comment.author().equals(botUser))
-                                       .filter(comment -> exclude == null || !comment.id().equals(exclude.id()))
                                        .map(comment -> reviewersMarkerPattern.matcher(comment.body()))
                                        .filter(Matcher::find)
                                        .collect(Collectors.toList());
