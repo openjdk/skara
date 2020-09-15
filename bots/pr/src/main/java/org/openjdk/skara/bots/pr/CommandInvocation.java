@@ -1,6 +1,7 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.host.HostUser;
+import org.openjdk.skara.issuetracker.Comment;
 
 import java.util.Optional;
 
