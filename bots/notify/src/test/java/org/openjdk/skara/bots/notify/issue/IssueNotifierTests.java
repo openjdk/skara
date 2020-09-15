@@ -428,7 +428,7 @@ public class IssueNotifierTests {
                                         .put("buildname", "team");
             var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
             var jbsNotifierConfig2 = JSON.object().put("fixversions", JSON.object())
-                                        .put("buildname", "main");
+                                        .put("buildname", "master");
             var notifyBot2 = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig2).create("notify", JSON.object());
             var jbsNotifierConfig3 = JSON.object().put("fixversions", JSON.object())
                                          .put("buildname", "b04");
@@ -475,7 +475,7 @@ public class IssueNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot2);
 
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
-            assertEquals("main", updatedIssue.properties().get("customfield_10006").asString());
+            assertEquals("master", updatedIssue.properties().get("customfield_10006").asString());
 
             // Restore the history to simulate looking at another repository
             localRepo.fetch(repo.url(), "history");
@@ -586,7 +586,7 @@ public class IssueNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Create an issue and commit a fix
-            var authorEmailAddress = issueProject.issueTracker().currentUser().userName() + "@otherjdk.org";
+            var authorEmailAddress = issueProject.issueTracker().currentUser().email().orElse(issueProject.issueTracker().currentUser().userName() + "@otherjdk.org");
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
             localRepo.push(editHash, repo.url(), "master");
@@ -744,7 +744,7 @@ public class IssueNotifierTests {
 
             var storageFolder = tempFolder.path().resolve("storage");
             var issueProject = credentials.getIssueProject();
-            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object().put("master", "12u14"));
+            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object().put("master", "12.0.1"));
             var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
 
             // Initialize history
@@ -752,14 +752,14 @@ public class IssueNotifierTests {
 
             // Create an issue and commit a fix
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
-            issue.setProperty("fixVersions", JSON.array().add("12-pool").add("tbd13").add("unknown"));
+            issue.setProperty("fixVersions", JSON.array().add("12-pool").add("tbd_major").add("unknown"));
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
             localRepo.push(editHash, repo.url(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The fixVersion should have been updated
-            assertEquals(Set.of("12u14"), fixVersions(issue));
+            assertEquals(Set.of("12.0.1"), fixVersions(issue));
         }
     }
 
@@ -775,7 +775,7 @@ public class IssueNotifierTests {
 
             var storageFolder = tempFolder.path().resolve("storage");
             var issueProject = credentials.getIssueProject();
-            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object().put("master", "12u14"));
+            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object().put("master", "12.0.1"));
             var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
 
             // Initialize history
@@ -783,14 +783,14 @@ public class IssueNotifierTests {
 
             // Create an issue and commit a fix
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
-            issue.setProperty("fixVersions", JSON.array().add("12-pool").add("tbd13").add("unknown"));
+            issue.setProperty("fixVersions", JSON.array().add("12-pool").add("tbd_major").add("unknown"));
 
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
             localRepo.push(editHash, repo.url(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The fixVersion should have been updated
-            assertEquals(Set.of("12u14"), fixVersions(issue));
+            assertEquals(Set.of("12.0.1"), fixVersions(issue));
         }
     }
 

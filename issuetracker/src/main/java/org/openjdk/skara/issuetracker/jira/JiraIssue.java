@@ -534,7 +534,8 @@ public class JiraIssue implements Issue {
             log.warning("Ignoring unknown property: " + name);
             return;
         }
-        var query = JSON.object().put("fields", JSON.object().put(name, encoded.get()));
+        var customEncoded = jiraProject.encodeCustomFields(name, encoded.get(), properties(), id());
+        var query = JSON.object().put("fields", JSON.object().put(name, customEncoded));
         request.put("").body(query).execute();
     }
 

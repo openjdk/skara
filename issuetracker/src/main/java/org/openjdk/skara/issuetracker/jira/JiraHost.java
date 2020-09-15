@@ -36,6 +36,8 @@ public class JiraHost implements IssueTracker {
     private final String securityLevel;
     private final RestRequest request;
 
+    private HostUser currentUser;
+
     JiraHost(URI uri) {
         this.uri = uri;
         this.visibilityRole = null;
@@ -110,11 +112,14 @@ public class JiraHost implements IssueTracker {
 
     @Override
     public HostUser currentUser() {
-        var data = request.get("myself").execute();
-        var user = new HostUser(data.get("name").asString(),
-                                data.get("name").asString(),
-                                data.get("displayName").asString());
-        return user;
+        if (currentUser == null) {
+            var data = request.get("myself").execute();
+            currentUser = new HostUser(data.get("name").asString(),
+                                       data.get("name").asString(),
+                                       data.get("displayName").asString(),
+                                       data.get("emailAddress").asString());
+        }
+        return currentUser;
     }
 
     @Override
