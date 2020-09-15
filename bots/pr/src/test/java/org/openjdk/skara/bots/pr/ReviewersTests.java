@@ -282,7 +282,54 @@ public class ReviewersTests {
 
             // The bot should reply with a success message
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(authorPR,"The number of required reviews for this PR is now set to 2 (with at least 1 of role reviewers).");
+            assertLastCommentContains(authorPR, "The number of required reviews for this PR is now set to 2 (with at least 1 of role reviewers).");
+        }
+    }
+
+    @Test
+    void prAuthorShouldNotBeAllowedToDecrease(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(integrator.forge().currentUser().id())
+                                           .addAuthor(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(bot).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
+
+            var authorPR = author.pullRequest(pr.id());
+
+            // The author deems that two reviewers are required
+            authorPR.addComment("/reviewers 2");
+
+            // The bot should reply with a success message
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(authorPR, "The number of required reviews for this PR is now set to 2 (with at least 1 of role reviewers).");
+
+            // The author should not be allowed to decrease even its own /reviewers command
+            authorPR.addComment("/reviewers 1");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(authorPR, "Cannot decrease the number of required reviewers");
+
+            // Reviewer should be allowed to decrease
+            var reviewerPr = integrator.pullRequest(pr.id());
+            reviewerPr.addComment("/reviewers 1");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(authorPR, "The number of required reviews for this PR is now set to 1");
         }
     }
 }

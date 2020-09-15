@@ -38,13 +38,38 @@ public class ReviewersCommand implements CommandHandler {
             "committers", "committers",
             "committer", "committers",
             "authors", "authors",
-            "author", "author",
+            "author", "authors",
             "contributors", "contributors",
             "contributor", "contributors");
 
     private void showHelp(PrintWriter reply) {
         reply.println("Usage: `/reviewers <n> [<role>]` where `<n>` is the number of required reviewers. " +
                               "If role is set, the reviewers need to have that project role. If omitted, role defaults to `authors`.");
+    }
+
+    private static boolean roleIsLower(String updated, String existing) {
+        if (existing.equals("lead")) {
+            return !updated.equals("lead");
+        }
+        if (existing.equals("reviewers")) {
+            return !updated.equals("lead") &&
+                   !updated.equals("reviewers");
+        }
+        if (existing.equals("committers")) {
+            return !updated.equals("lead") &&
+                   !updated.equals("reviewers") &&
+                   !updated.equals("committers");
+        }
+        if (existing.equals("authors")) {
+            return !updated.equals("lead") &&
+                   !updated.equals("reviewers") &&
+                   !updated.equals("committers") &&
+                   !updated.equals("authors");
+        }
+        if (existing.equals("contributors")) {
+            return false;
+        }
+        throw new IllegalArgumentException("Unexpected existing role: " + existing);
     }
 
     @Override
@@ -81,6 +106,25 @@ public class ReviewersCommand implements CommandHandler {
                 return;
             }
             role = roleMappings.get(splitArgs[1].toLowerCase());
+        }
+
+        if (pr.author().equals(command.user()) && !censusInstance.isReviewer(command.user())) {
+            var user = pr.repository().forge().currentUser();
+
+            // If the command is in the PR body there cannot be any previous commands
+            if (!command.isInBody()) {
+                var previous = ReviewersTracker.additionalRequiredReviewers(user, allComments, command.comment().get());
+                if (previous.isPresent()) {
+                    if (roleIsLower(role, previous.get().role())) {
+                        reply.println("Cannot lower the role for additional reviewers");
+                        return;
+                    }
+                    if (numReviewers < previous.get().number()) {
+                        reply.println("Cannot decrease the number of required reviewers");
+                        return;
+                    }
+                }
+            }
         }
 
         var updatedLimits = ReviewersTracker.updatedRoleLimits(censusInstance.configuration(), numReviewers, role);
