@@ -37,7 +37,7 @@ public class BuildCompare {
         }
     }
 
-    // Notable values for rib are 'team', 'master', and numbered builds
+    // Notable values for "Resolved in Build" are 'team', 'master', and numbered builds
     // (b22).  'team' should not overwrite any value; 'master' should only
     // overwrite 'team'; numbered builds (b22) should only be overwritten by
     // lower numbered builds.

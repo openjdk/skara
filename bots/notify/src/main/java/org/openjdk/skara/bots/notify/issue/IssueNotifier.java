@@ -293,7 +293,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
             for (var commitIssue : commitMessage.issues()) {
                 var optionalIssue = issueProject.issue(commitIssue.shortId());
                 if (optionalIssue.isEmpty()) {
-                    log.severe("Cannot update RIB for issue " + commitIssue.id()
+                    log.severe("Cannot update \"Resolved in Build\" for issue " + commitIssue.id()
                                        + " - issue not found in issue project");
                     continue;
                 }
