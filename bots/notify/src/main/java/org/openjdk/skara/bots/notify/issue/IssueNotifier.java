@@ -26,12 +26,13 @@ import org.openjdk.skara.bots.notify.*;
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.*;
+import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
+import org.openjdk.skara.vcs.openjdk.*;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.*;
@@ -104,7 +105,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     @Override
     public void attachTo(Emitter e) {
         e.registerPullRequestListener(this);
-        if (!prOnly) {
+        if (!prOnly || buildName != null) {
             e.registerRepositoryListener(this);
         }
     }
@@ -260,13 +261,96 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 }
 
                 if (setFixVersion) {
-                    if (buildName != null) {
-                        issue.setProperty("customfield_10006", JSON.of(buildName));
-                    }
                     if (requestedVersion != null) {
+                        if (buildName != null) {
+                            // Check if the build name should be updated
+                            var oldBuild = issue.properties().getOrDefault("customfield_10006", JSON.of());
+                            if (BuildCompare.shouldReplace(buildName, oldBuild.asString())) {
+                                issue.setProperty("customfield_10006", JSON.of(buildName));
+                            } else {
+                                log.info("Not replacing build " + oldBuild.asString() + " with " + buildName + " for issue " + issue.id());
+                            }
+                        }
                         issue.setProperty("fixVersions", JSON.of(requestedVersion));
                         Backports.labelReleaseStreamDuplicates(issue, "hgupdate-sync");
                     }
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onNewOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) throws NonRetriableException {
+        if (!setFixVersion) {
+            return;
+        }
+        if (buildName == null) {
+            return;
+        }
+
+        for (var commit : commits) {
+            var commitMessage = CommitMessageParsers.v1.parse(commit);
+            for (var commitIssue : commitMessage.issues()) {
+                var optionalIssue = issueProject.issue(commitIssue.shortId());
+                if (optionalIssue.isEmpty()) {
+                    log.severe("Cannot update \"Resolved in Build\" for issue " + commitIssue.id()
+                                       + " - issue not found in issue project");
+                    continue;
+                }
+                var issue = optionalIssue.get();
+
+                // Determine which branch this tag belongs to
+                String tagBranch = null;
+                try {
+                    for (var branch : repository.branches()) {
+                        var hash = localRepository.resolve(tag.tag()).orElseThrow();
+                        if (localRepository.isAncestor(hash, branch.hash())) {
+                            if (tagBranch == null) {
+                                tagBranch = branch.name();
+                            } else {
+                                throw new RuntimeException("Tag " + tag.tag().name() + " found in both " + tagBranch + " and " + branch.name());
+                            }
+                        }
+                    }
+                    if (tagBranch == null) {
+                        throw new RuntimeException("Cannot find any branch containing the tag " + tag.tag().name());
+                    }
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+
+                // The actual issue to be updated can change depending on the fix version
+                var requestedVersion = fixVersions != null ? fixVersions.getOrDefault(tagBranch, null) : null;
+                if (requestedVersion == null) {
+                    try {
+                        var conf = localRepository.lines(Path.of(".jcheck/conf"), commit.hash());
+                        if (conf.isPresent()) {
+                            var parsed = JCheckConfiguration.parse(conf.get());
+                            var version = parsed.general().version();
+                            requestedVersion = version.orElse(null);
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                if (requestedVersion == null) {
+                    throw new RuntimeException("Failed to determine requested fixVersion for " + issue.id());
+                }
+                var fixVersion = JdkVersion.parse(requestedVersion);
+                var existing = Backports.findIssue(issue, fixVersion);
+                if (existing.isEmpty()) {
+                    throw new RuntimeException("Cannot find a properly resolved issue for: " + issue.id());
+                } else {
+                    issue = existing.get();
+                }
+
+                // Check if the build name should be updated
+                var oldBuild = issue.properties().getOrDefault("customfield_10006", JSON.of());
+                var newBuild = "b" + tag.buildNum();
+                if (BuildCompare.shouldReplace(newBuild, oldBuild.asString())) {
+                    issue.setProperty("customfield_10006", JSON.of(newBuild));
+                } else {
+                    log.info("Not replacing build " + oldBuild.asString() + " with " + newBuild + " for issue " + issue.id());
                 }
             }
         }

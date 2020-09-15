@@ -40,6 +40,7 @@ public class JiraProject implements IssueProject {
     private JSONObject projectMetadataCache = null;
     private List<JiraLinkType> linkTypes = null;
     private JSONObject createMetaCache = null;
+    private JSONObject editMetaCache = null;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.issuetracker.jira");
 
@@ -65,6 +66,15 @@ public class JiraProject implements IssueProject {
                                      .asObject();
         }
         return createMetaCache;
+    }
+
+    private JSONObject editMeta(String issueId) {
+        if (editMetaCache == null) {
+            editMetaCache = request.get("issue/" + issueId + "/editmeta")
+                                     .execute()
+                                     .asObject();
+        }
+        return editMetaCache;
     }
 
     private Map<String, String> issueTypes() {
@@ -183,7 +193,12 @@ public class JiraProject implements IssueProject {
                 return Optional.of(new JSONArray(value.stream()
                                                       .map(obj -> obj.get("name"))
                                                       .collect(Collectors.toList())));
-            case "customfield_10008": // fall-through
+            case "customfield_10006":
+                return Optional.of(JSON.of(value.get("value").asString()));
+            case "customfield_10008":
+                if (value.isString()) {
+                    return Optional.of(value);
+                } // fall-through
             case "issuetype":
                 return Optional.of(JSON.of(value.get("name").asString()));
             case "priority":
@@ -219,9 +234,17 @@ public class JiraProject implements IssueProject {
         }
     }
 
-    JSONValue encodeCustomFields(String name, JSONValue value, Map<String, JSONValue> allProperties) {
+    JSONValue encodeCustomFields(String name, JSONValue value, Map<String, JSONValue> allProperties, String forIssue) {
         if (!name.startsWith("customfield_")) {
             return value;
+        }
+
+        if (name.equals("customfield_10006")) {
+            var editMeta = editMeta(forIssue);
+            var valueToId = editMeta.get("fields").get(name).get("allowedValues").stream()
+                                    .collect(Collectors.toMap(o -> o.get("value").asString(),
+                                                              o -> o.get("id")));
+            return JSON.object().put("id", valueToId.get(value.asString()));
         }
 
         if (!name.equals("customfield_10008")) {
@@ -252,6 +275,9 @@ public class JiraProject implements IssueProject {
                                         .map(c -> c.get("id").asString())
                                         .map(Integer::parseInt)
                                         .collect(Collectors.toSet());
+        if (!field.contains("allowedValues")) {
+             return value.get("name");
+        }
         var allowed = field.get("allowedValues").stream()
                            .filter(c -> componentIds.contains(c.get("id").asInt()))
                            .flatMap(c -> c.get("subComponents").stream())
@@ -324,7 +350,8 @@ public class JiraProject implements IssueProject {
                        .filter(entry -> isInitialField(issueType, entry.getKey(), entry.getValue()))
                        .forEach(entry -> fields.put(entry.getKey(), encodeCustomFields(entry.getKey(),
                                                                                        entry.getValue(),
-                                                                                       finalProperties)));
+                                                                                       finalProperties,
+                                                                                       null)));
         query.put("fields", fields);
         jiraHost.securityLevel().ifPresent(securityLevel -> fields.put("security", JSON.object()
                                                                                        .put("id", securityLevel)));
@@ -333,18 +360,19 @@ public class JiraProject implements IssueProject {
                           .execute();
 
         // Apply fields that have to be set later (if any)
+        var id = data.get("key").asString();
+        if (id.indexOf('-') < 0) {
+            id = projectName.toUpperCase() + "-" + id;
+        }
+        var finalId = id;
         var editFields = JSON.object();
         finalProperties.entrySet().stream()
                        .filter(entry -> !isInitialField(issueType, entry.getKey(), entry.getValue()))
                        .forEach(entry -> editFields.put(entry.getKey(), encodeCustomFields(entry.getKey(),
                                                                                            entry.getValue(),
-                                                                                           finalProperties)));
-
+                                                                                           finalProperties,
+                                                                                           finalId)));
         if (editFields.fields().size() > 0) {
-            var id = data.get("key").asString();
-            if (id.indexOf('-') < 0) {
-                id = projectName.toUpperCase() + "-" + id;
-            }
             var updateQuery = JSON.object().put("fields", editFields);
             request.put("issue/" + id)
                    .body(updateQuery)
@@ -397,7 +425,11 @@ public class JiraProject implements IssueProject {
         if (!user.isArray()) {
             return Optional.empty();
         }
-        if (user.asArray().size() != 1) {
+        if (user.asArray().size() == 0) {
+            log.info("No results returned for user query: " + findBy);
+            return Optional.empty();
+        }
+        if (user.asArray().size() > 1) {
             log.severe("Multiple results returned for user query: " + findBy);
             return Optional.empty();
         }
@@ -405,6 +437,6 @@ public class JiraProject implements IssueProject {
         return Optional.of(new HostUser(data.get("name").asString(),
                                         data.get("name").asString(),
                                         data.get("displayName").asString(),
-                                        data.get("emailAddresss").asString()));
+                                        data.get("emailAddress").asString()));
     }
 }
