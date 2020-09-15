@@ -57,23 +57,30 @@ public class CSRCommand implements CommandHandler {
 
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
-        if (!censusInstance.isReviewer(command.user())) {
-            reply.println("only [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed require a CSR.");
+        if (!pr.author().equals(command.user()) && !censusInstance.isReviewer(command.user())) {
+            reply.println("only the pull request author and [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to require a CSR.");
             return;
         }
 
         var labels = pr.labels();
 
         var cmd = command.args().trim().toLowerCase();
+        if (!cmd.isEmpty() && !(cmd.equals("needed") || cmd.equals("unneeded") || cmd.equals("uneeded"))) {
+            showHelp(reply);
+            return;
+        }
+
         if (cmd.equals("unneeded") || cmd.equals("uneeded")) {
+            if (pr.author().equals(command.user()) && !censusInstance.isReviewer(command.user())) {
+                reply.println("only [Reviewers](https://openjdk.java.net/bylaws#reviewer) can determine that a CSR is not needed.");
+                return;
+            }
+
             if (labels.contains(CSR_LABEL)) {
                 pr.removeLabel(CSR_LABEL);
             }
             reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
-                          "is no longer needed for this pull request.");
-            return;
-        } else if (!cmd.isEmpty() && !cmd.equals("needed")) {
-            showHelp(reply);
+                          "is not needed for this pull request.");
             return;
         }
 
