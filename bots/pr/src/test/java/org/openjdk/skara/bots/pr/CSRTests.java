@@ -84,7 +84,7 @@ class CSRTests {
 
             // The bot should reply with a message that a CSR is no longer needed
             assertLastCommentContains(pr, "determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
-                                          "is no longer needed for this pull request.");
+                                          "is not needed for this pull request.");
             assertFalse(pr.labels().contains("csr"));
 
             // Require CSR again with long form
@@ -212,9 +212,18 @@ class CSRTests {
             pr.addComment("/csr");
             TestBotRunner.runPeriodicItems(prBot);
 
-            // The bot should reply with a message that only reviewers can require a CSR
-            assertLastCommentContains(pr, "only [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed require a CSR.");
-            assertFalse(pr.labels().contains("csr"));
+            // The bot should reply with a message that a CSR is needed
+            assertLastCommentContains(pr, "has indicated that a " +
+                                          "[compatibility and specification](https://wiki.openjdk.java.net/display/csr/Main) (CSR) request " +
+                                          "is needed for this pull request.");
+            assertTrue(pr.labels().contains("csr"));
+
+            // Stating that a CSR is not needed should not work
+            pr.addComment("/csr unneeded");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(pr, "only [Reviewers]");
+            assertLastCommentContains(pr, "can determine that a CSR is not needed.");
+            assertTrue(pr.labels().contains("csr"));
         }
     }
 
