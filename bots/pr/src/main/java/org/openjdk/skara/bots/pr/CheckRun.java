@@ -467,7 +467,7 @@ class CheckRun {
         if (originalBody.isBlank()) {
             originalBody = emptyPrBodyMarker;
         }
-        var newBody = originalBody + "\n" + progressMarker + "\n" + message;
+        var newBody = originalBody + "\n\n" + progressMarker + "\n" + message;
 
         // TODO? Retrieve the body again here to lower the chance of concurrent updates
         pr.setBody(newBody);
