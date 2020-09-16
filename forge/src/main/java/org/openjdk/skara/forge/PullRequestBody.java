@@ -31,8 +31,6 @@ public class PullRequestBody {
     private final List<URI> issues;
     private final List<String> contributors;
 
-    private static final Pattern cutoffPattern = Pattern.compile("^<!-- Anything below this marker will be .*? -->$");
-
     private PullRequestBody(String bodyText, List<URI> issues, List<String> contributors) {
         this.bodyText = bodyText;
         this.issues = issues;

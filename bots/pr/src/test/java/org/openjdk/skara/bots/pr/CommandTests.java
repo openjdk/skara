@@ -27,6 +27,7 @@ import org.openjdk.skara.test.*;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
@@ -305,6 +306,50 @@ class CommandTests {
             assertLastCommentContains(pr, "@user1 Available commands:");
             assertLastCommentContains(pr, " * help - shows this text");
             assertLastCommentContains(pr, " * external - Help for external command");
+        }
+    }
+
+    @Test
+    void summaryCommandInBodyWithBotComment(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request", List.of(
+                "/summary",
+                "This is a multi-line summary",
+                "",
+                "With multiple paragraphs",
+                "",
+                "Even a final one at the end"
+            ));
+
+            // Run the bot
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with some help
+            assertLastCommentContains(pr, "Setting summary to:\n\n" +
+                                          "```\n" +
+                                          "This is a multi-line summary\n" +
+                                          "\n" +
+                                          "With multiple paragraphs\n" +
+                                          "\n" +
+                                          "Even a final one at the end\n" +
+                                          "```\n");
         }
     }
 }

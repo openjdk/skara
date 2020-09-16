@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.forge.PullRequestBody;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
 
@@ -160,7 +161,8 @@ public class CommandWorkItem extends PullRequestWorkItem {
 
     private Optional<CommandInvocation> nextCommand(PullRequest pr, List<Comment> comments) {
         var self = pr.repository().forge().currentUser();
-        var allCommands = Stream.concat(extractCommands(pr.body(), "body", pr.author()).stream(),
+        var body = PullRequestBody.parse(pr).bodyText();
+        var allCommands = Stream.concat(extractCommands(body, "body", pr.author()).stream(),
                                         comments.stream()
                                                 .filter(comment -> !comment.author().equals(self) || comment.body().endsWith(selfCommandMarker))
                                                 .flatMap(c -> extractCommands(c.body(), c.id(), c.author()).stream()))
