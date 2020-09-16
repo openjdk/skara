@@ -106,6 +106,6 @@ public class PullRequestBody {
             }
         }
 
-        return new PullRequestBody(bodyText.toString(), issues, contributors);
+        return new PullRequestBody(bodyText.toString().trim(), issues, contributors);
     }
 }
