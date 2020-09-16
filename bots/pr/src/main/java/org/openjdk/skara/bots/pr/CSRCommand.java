@@ -147,4 +147,9 @@ public class CSRCommand implements CommandHandler {
     public String description() {
         return "require a compatibility and specification request (CSR) for this pull request";
     }
+
+    @Override
+    public boolean allowedInBody() {
+        return true;
+    }
 }
