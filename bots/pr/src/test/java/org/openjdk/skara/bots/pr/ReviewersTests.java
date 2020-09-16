@@ -332,4 +332,34 @@ public class ReviewersTests {
             assertLastCommentContains(authorPR, "The number of required reviews for this PR is now set to 1");
         }
     }
+
+    @Test
+    void commandInPRBody(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(bot).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request", List.of("/reviewers 2"));
+
+            TestBotRunner.runPeriodicItems(prBot);
+
+            var authorPR = author.pullRequest(pr.id());
+            assertLastCommentContains(authorPR,"The number of required reviews for this PR is now set to 2 (with at least 1 of role reviewers).");
+        }
+    }
 }

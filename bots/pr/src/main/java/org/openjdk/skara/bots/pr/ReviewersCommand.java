@@ -151,4 +151,9 @@ public class ReviewersCommand implements CommandHandler {
     public String description() {
         return "set the number of additional required reviewers for this PR";
     }
+
+    @Override
+    public boolean allowedInBody() {
+        return true;
+    }
 }
