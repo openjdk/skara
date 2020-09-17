@@ -170,7 +170,7 @@ public class GitSync {
         }
 
         var fromPullPath = remotes.contains(from) ?
-            Remote.toURI(repo.pullPath(from)) : URI.create(from);
+            Remote.toURI(repo.pullPath(from)) : Remote.toURI(from);
 
         String to = null;
         if (arguments.contains("to")) {
@@ -193,7 +193,7 @@ public class GitSync {
         }
 
         var toPushPath = remotes.contains(to) ?
-            Remote.toURI(repo.pullPath(to)) : URI.create(to);
+            Remote.toURI(repo.pullPath(to)) : Remote.toURI(to);
 
         var toScheme = toPushPath.getScheme();
         if (toScheme.equals("https") || toScheme.equals("http")) {
