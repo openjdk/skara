@@ -405,7 +405,7 @@ class ArchiveMessages {
             result.append("Committer: ").append(commit.committer().name()).append(" <").append(commit.committer().email()).append(">\n");
         }
         result.append("URL:       ").append(pr.repository().webUrl(commit.hash())).append("\n");
-        result.append("Stats:     ").append(stats(localRepo, commit.hash(), commit.parents().get(0))).append("\n");
+        result.append("Stats:     ").append(stats(localRepo, commit.parents().get(0), commit.hash())).append("\n");
         result.append("\n");
         result.append(String.join("\n", commit.message()));
 
