@@ -511,43 +511,44 @@ class CheckRun {
         var message = new StringBuilder();
         message.append("@");
         message.append(pr.author().userName());
-        message.append(" This change now passes all automated pre-integration checks");
+        message.append(" This change now passes all *automated* pre-integration checks.");
 
         try {
             var hasContributingFile =
                 !localRepo.files(pr.targetHash(), Path.of("CONTRIBUTING.md")).isEmpty();
             if (hasContributingFile) {
-                message.append(". In addition to the automated checks, the change must also fulfill all ");
-                message.append("[project specific requirements](https://github.com/");
+                message.append("\n\nℹ️ This project also has non-automated pre-integration requirements. Please see the file ");
+                message.append("[CONTRIBUTING.md](https://github.com/");
                 message.append(pr.repository().name());
                 message.append("/blob/");
                 message.append(pr.targetRef());
-                message.append("/CONTRIBUTING.md)");
+                message.append("/CONTRIBUTING.md) for more details.");
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
 
         message.append("\n\n");
-        message.append("After integration, the commit message will be:\n");
+        message.append("After integration, the commit message for the final commit will be:\n");
         message.append("```\n");
         message.append(commitMessage);
         message.append("\n```\n");
 
-        message.append("- If you would like to add a summary, use the `/summary` command.\n");
-        message.append("- To credit additional contributors, use the `/contributor` command.\n");
-        message.append("- To add additional solved issues, use the `/issue` command.\n");
+        message.append("You can use [pull request commands](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands) ");
+        message.append("such as [/summary](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands#PullRequestCommands-/summary), ");
+        message.append("[/contributor](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands#PullRequestCommands-/contributor) and ");
+        message.append("[/issue](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands#PullRequestCommands-/issue) to adjust it as needed.");
+        message.append("\n\n");
 
         var divergingCommits = checkablePullRequest.divergingCommits();
         if (divergingCommits.size() > 0) {
             message.append("\n");
-            message.append("Since the source branch of this PR was last updated there ");
+            message.append("At the time when this comment was updated there had been ");
             if (divergingCommits.size() == 1) {
-                message.append("has been 1 commit ");
+                message.append("1 new commit ");
             } else {
-                message.append("have been ");
                 message.append(divergingCommits.size());
-                message.append(" commits ");
+                message.append(" new commits ");
             }
             message.append("pushed to the `");
             message.append(pr.targetRef());
@@ -558,27 +559,29 @@ class CheckRun {
             if (divergingCommits.size() > 10) {
                 message.append(" * ... and ").append(divergingCommits.size() - 10).append(" more: ")
                        .append(pr.repository().webUrl(baseHash.hex(), pr.targetRef())).append("\n");
+            } else {
+                message.append("\n");
+                message.append("Please see [this link](");
+                message.append(pr.repository().webUrl(baseHash.hex(), pr.targetRef()));
+                message.append(") for an up-to-date comparison between the source branch of this pull request and the `");
+                message.append(pr.targetRef());
+                message.append("` branch.");
             }
 
             message.append("\n");
             message.append("As there are no conflicts, your changes will automatically be rebased on top of ");
-            message.append("these commits when integrating. If you prefer to avoid automatic rebasing, please merge `");
-            message.append(pr.targetRef());
-            message.append("` into your branch, and then specify the current head hash when integrating, like this: ");
-            message.append("`/integrate ");
-            message.append(pr.targetHash());
-            message.append("`.\n");
+            message.append("these commits when integrating. If you prefer to avoid this automatic rebasing");
         } else {
             message.append("\n");
-            message.append("There are currently no new commits on the `");
+            message.append("At the time when this comment was updated there had been no new commits pushed to the `");
             message.append(pr.targetRef());
-            message.append("` branch since the last update of the source branch of this PR. If another commit should be pushed before ");
-            message.append("you perform the `/integrate` command, your PR will be automatically rebased. If you would like to avoid ");
-            message.append("potential automatic rebasing, specify the current head hash when integrating, like this: ");
-            message.append("`/integrate ");
-            message.append(pr.targetHash());
-            message.append("`.\n");
+            message.append("` branch. If another commit should be pushed before ");
+            message.append("you perform the `/integrate` command, your PR will be automatically rebased. If you prefer to avoid ");
+            message.append("any potential automatic rebasing");
         }
+        message.append(", please check the documentation for the ");
+        message.append("[/integrate](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) ");
+        message.append("command for further details.\n");
 
         if (!censusInstance.isCommitter(pr.author())) {
             message.append("\n");
@@ -586,8 +589,7 @@ class CheckRun {
             message.append("As you do not have [Committer](https://openjdk.java.net/bylaws#committer) status in ");
             message.append("[this project](https://openjdk.java.net/census#");
             message.append(censusInstance.project().name());
-            message.append(")");
-            message.append("an existing Committer must agree to ");
+            message.append(") an existing Committer must agree to ");
             message.append("[sponsor](https://openjdk.java.net/sponsor/) your change. ");
             var candidates = reviews.stream()
                                     .filter(review -> censusInstance.isCommitter(review.reviewer()))
@@ -604,8 +606,9 @@ class CheckRun {
             message.append("`/sponsor` in a new comment to perform the integration).\n");
         } else {
             message.append("\n");
-            message.append("➡️ To integrate this PR with the above commit message to the `" + pr.targetRef() + "` branch, type ");
-            message.append("`/integrate` in a new comment.\n");
+            message.append("➡️ To integrate this PR with the above commit message to the `").append(pr.targetRef()).append("` branch, type ");
+            message.append("[/integrate](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) ");
+            message.append("in a new comment.\n");
         }
         message.append(mergeReadyMarker);
         return message.toString();
