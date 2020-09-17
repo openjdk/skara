@@ -74,8 +74,7 @@ class IntegrateTests {
             var integrateComments = pr.comments()
                                       .stream()
                                       .filter(c -> c.body().contains("To integrate this PR with the above commit message to the `master` branch"))
-                                      .filter(c -> c.body().contains("If you would like to avoid potential automatic rebasing"))
-                                      .filter(c -> c.body().contains("`/integrate " + masterHash.hex() + "`"))
+                                      .filter(c -> c.body().contains("If you prefer to avoid any potential automatic rebasing"))
                                       .count();
             assertEquals(1, integrateComments);
 
@@ -364,7 +363,7 @@ class IntegrateTests {
 
             // The bot should reply with an instructional message (and only one)
             var pushed = pr.comments().stream()
-                           .filter(comment -> comment.body().contains("change now passes all automated"))
+                           .filter(comment -> comment.body().contains("change now passes all *automated*"))
                            .filter(comment -> comment.body().contains("Reviewed-by: integrationreviewer3"))
                            .count();
             assertEquals(1, pushed);
@@ -391,7 +390,7 @@ class IntegrateTests {
 
             // The instructional message should have been updated
             pushed = pr.comments().stream()
-                       .filter(comment -> comment.body().contains("change now passes all automated"))
+                       .filter(comment -> comment.body().contains("change now passes all *automated*"))
                        .filter(comment -> comment.body().contains("Reviewed-by: integrationreviewer3"))
                        .count();
             assertEquals(1, pushed);
@@ -403,7 +402,7 @@ class IntegrateTests {
 
             // The instructional message should have been updated
             pushed = pr.comments().stream()
-                       .filter(comment -> comment.body().contains("change now passes all automated"))
+                       .filter(comment -> comment.body().contains("change now passes all *automated*"))
                        .filter(comment -> comment.body().contains("Reviewed-by: integrationreviewer3, integrationreviewer2"))
                        .count();
             assertEquals(1, pushed);
