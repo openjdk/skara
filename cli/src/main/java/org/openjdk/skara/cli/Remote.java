@@ -85,6 +85,10 @@ public class Remote {
     }
 
     public static URI toURI(String remotePath) throws IOException {
+        return toURI(remotePath, false);
+    }
+
+    public static URI toURI(String remotePath, boolean canonicalize) throws IOException {
         if (remotePath.startsWith("git+")) {
             remotePath = remotePath.substring("git+".length());
         }
@@ -101,7 +105,7 @@ public class Remote {
         if (indexOfColon != -1) {
             if (indexOfSlash == -1 || indexOfColon < indexOfSlash) {
                 var uri = URI.create("ssh://" + remotePath.replace(":", "/"));
-                return sshCanonicalize(uri);
+                return canonicalize ? sshCanonicalize(uri) : uri;
             }
         }
 
