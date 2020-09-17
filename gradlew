@@ -188,6 +188,7 @@ if [ "${OS}" = "Linux" ]; then
     export LC_ALL=en_US.UTF-8
     export LANG=en_US.UTF-8
     export LANGUAGE=en_US.UTF-8
+    export TERM=${TERM:-dumb}
 fi
 
 exec "${GRADLE_LAUNCHER}" "$@"
