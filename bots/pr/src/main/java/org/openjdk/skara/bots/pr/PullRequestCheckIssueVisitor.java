@@ -128,7 +128,16 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     @Override
     public void visit(MergeMessageIssue e) {
         var message = String.join("\n", e.commit().message());
-        addFailureMessage(e.check(), "Merge commit message is not " + e.expected() + ", but: " + message);
+        var desc = "Merge commit message is not `" + e.expected() + "`, but:";
+        if (e.commit().message().size() == 1) {
+            desc += " `" + message + "`";
+        } else {
+            desc += "\n" +
+                    "```\n" +
+                    message +
+                    "```";
+        }
+        addFailureMessage(e.check(), desc);
     }
 
     @Override
