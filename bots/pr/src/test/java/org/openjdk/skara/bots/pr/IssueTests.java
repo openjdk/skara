@@ -127,7 +127,7 @@ class IssueTests {
 
             // The commit message preview should contain the additional issues
             var preview = pr.comments().stream()
-                            .filter(comment -> comment.body().contains("the commit message will be"))
+                            .filter(comment -> comment.body().contains("the commit message for the final commit will be"))
                             .map(Comment::body)
                             .findFirst()
                             .orElseThrow();
@@ -227,7 +227,7 @@ class IssueTests {
 
             // The commit message preview should contain the additional issues
             var preview = pr.comments().stream()
-                            .filter(comment -> comment.body().contains("the commit message will be"))
+                            .filter(comment -> comment.body().contains("the commit message for the final commit will be"))
                             .map(Comment::body)
                             .findFirst()
                             .orElseThrow();

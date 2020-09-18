@@ -107,7 +107,7 @@ class ContributorTests {
             assertEquals("Co-authored-by: Test Person <test@test.test>", creditLine);
 
             var pushed = pr.comments().stream()
-                           .filter(comment -> comment.body().contains("change now passes all automated"))
+                           .filter(comment -> comment.body().contains("change now passes all *automated*"))
                            .count();
             assertEquals(1, pushed);
 
