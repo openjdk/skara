@@ -115,7 +115,6 @@ public class CheckablePullRequest {
                 throw new CommitFailure("Merge PRs can only be created by known OpenJDK authors.");
             }
 
-            // Use the information contained in the head commit - jcheck has verified that it contains sane values
             var headCommit = localRepo.commitMetadata(pr.headHash().hex() + "^.." + pr.headHash().hex()).get(0);
             author = headCommit.author();
         } else {

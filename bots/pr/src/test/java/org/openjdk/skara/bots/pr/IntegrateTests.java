@@ -783,4 +783,45 @@ class IntegrateTests {
             assertTrue(lastComment.body().contains("CONTRIBUTING.md"));
         }
     }
+
+    @Test
+    void contributorMissingEmail(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var pushedFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var committer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(committer.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(reviewer).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR with an empty e-mail
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Content", "A commit", "Duke", "");
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Run the bot
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should respond with a failure about missing e-mail
+            pr = author.pullRequest(pr.id());
+            assertFalse(pr.labels().contains("ready"));
+            var checks = pr.checks(pr.headHash());
+            assertTrue(checks.containsKey("jcheck"));
+            var jcheck = checks.get("jcheck");
+            assertEquals(CheckStatus.FAILURE, jcheck.status());
+            assertTrue(jcheck.summary().isPresent());
+            var summary = jcheck.summary().get();
+            assertTrue(summary.contains("Pull request's HEAD commit must contain a valid e-mail"));
+        }
+    }
 }
