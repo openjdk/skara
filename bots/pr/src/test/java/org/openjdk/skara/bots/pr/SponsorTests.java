@@ -524,7 +524,7 @@ class SponsorTests {
 
             // The bot should reply with an error message
             var error = pr.comments().stream()
-                          .filter(comment -> comment.body().contains("merge request cannot be fulfilled at this time"))
+                          .filter(comment -> comment.body().contains("integration request cannot be fulfilled at this time"))
                           .filter(comment -> comment.body().contains("failed the final jcheck"))
                           .count();
             assertEquals(1, error);
