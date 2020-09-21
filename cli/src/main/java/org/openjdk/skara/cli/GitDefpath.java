@@ -208,7 +208,7 @@ public class GitDefpath {
         var cwd = Path.of("").toAbsolutePath();
         var repository = Repository.get(cwd);
         if (!repository.isPresent()) {
-            die(String.format("error: %s is not a hg repository", cwd.toString()));
+            die(String.format("error: %s is not a repository", cwd.toString()));
         }
         var repo = repository.get();
 
