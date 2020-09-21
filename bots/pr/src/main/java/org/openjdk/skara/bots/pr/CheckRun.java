@@ -759,7 +759,10 @@ class CheckRun {
             var amendedHash = checkablePullRequest.amendManualReviewers(localHash, censusInstance.namespace());
             var commit = localRepo.lookup(amendedHash).orElseThrow();
             var commitMessage = String.join("\n", commit.message());
-            var readyForIntegration = visitor.messages().isEmpty() && additionalErrors.isEmpty();
+            var readyForIntegration = visitor.messages().isEmpty() &&
+                                      additionalErrors.isEmpty() &&
+                                      labels.stream().noneMatch(l -> workItem.bot.blockingReadyLabels().contains(l));
+
             updateMergeReadyComment(readyForIntegration, commitMessage, comments, activeReviews, rebasePossible);
             if (readyForIntegration && rebasePossible) {
                 newLabels.add("ready");
