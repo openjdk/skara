@@ -347,7 +347,7 @@ class MergeBot implements Bot, WorkItem {
                                     // and if we should add the `/integrate` command again
                                     var lastReply = replies.get(replies.size() - 1);
                                     var lines = lastReply.body().split("\n");
-                                    var errorPrefix = "@openjdk-bot Your merge request cannot be fulfilled at this time";
+                                    var errorPrefix = "@openjdk-bot Your integration request cannot be fulfilled at this time";
                                     if (lines.length > 1 && lines[1].startsWith(errorPrefix)) {
                                         // Try again
                                         pr.addComment(integrationCommand);
@@ -568,7 +568,7 @@ class MergeBot implements Bot, WorkItem {
 
                     var project = JCheckConfiguration.from(repo, head).map(conf -> conf.general().project());
                     if (project.isPresent()) {
-                        message.add("All Committers in this [project](https://openjdk.java.net/census#" + project + ") " +
+                        message.add("All Committers in this [project](https://openjdk.java.net/census#" + project.get() + ") " +
                                     "have access to my [personal fork](" + fork.nonTransformedWebUrl() + ") and can " +
                                     "therefore help resolve these merge conflicts (you may want to coordinate " +
                                     "who should do this).");
@@ -587,10 +587,10 @@ class MergeBot implements Bot, WorkItem {
                     message.add("```bash");
                     message.add("# Ensure target branch is up to date");
                     message.add("$ git checkout " + toBranch.name());
-                    message.add("$ git pull " + target.nonTransformedWebUrl() + " " + toBranch.name());
+                    message.add("$ git pull " + target.nonTransformedWebUrl() + ".git " + toBranch.name());
                     message.add("");
                     message.add("# Fetch and checkout the branch for this pull request");
-                    message.add("$ git fetch " + fork.nonTransformedWebUrl() + " +" + branchDesc + ":" + localBranchName);
+                    message.add("$ git fetch " + fork.nonTransformedWebUrl() + ".git +" + branchDesc + ":" + localBranchName);
                     message.add("$ git checkout " + localBranchName);
                     message.add("");
                     message.add("# Merge the target branch");
@@ -610,7 +610,7 @@ class MergeBot implements Bot, WorkItem {
                                 "to this pull request:");
                     message.add("");
                     message.add("```bash");
-                    message.add("$ git push " + fork.nonTransformedWebUrl() + " " + localBranchName + ":" + branchDesc);
+                    message.add("$ git push " + fork.nonTransformedWebUrl() + ".git " + localBranchName + ":" + branchDesc);
                     message.add("```");
                     message.add("");
                     message.add("_Note_: if you are using SSH to push commits to GitHub, then change the URL in the above `git push` command accordingly.");
