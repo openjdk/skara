@@ -474,4 +474,59 @@ class CSRTests {
             assertTrue(pr.labels().contains("csr"));
         }
     }
+
+    @Test
+    void csrLabelShouldBlockReadyLabel(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(reviewer.forge().currentUser().id())
+                                           .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Just a patch");
+
+            // Approve the PR
+            var prAsReviewer = reviewer.pullRequest(pr.id());
+            prAsReviewer.addReview(Review.Verdict.APPROVED, "Looks good");
+
+            // Run bot
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // PR should be ready
+            var prAsAuthor = author.pullRequest(pr.id());
+            assertTrue(prAsAuthor.labels().contains("ready"));
+
+            // Require CSR
+            prAsReviewer = reviewer.pullRequest(pr.id());
+            prAsReviewer.addComment("/csr");
+
+            // Run bot
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a message that a CSR is needed
+            assertLastCommentContains(pr, "has indicated that a " +
+                                          "[compatibility and specification](https://wiki.openjdk.java.net/display/csr/Main) (CSR) request " +
+                                          "is needed for this pull request.");
+            assertTrue(pr.labels().contains("csr"));
+
+            // PR should not be ready
+            prAsAuthor = author.pullRequest(pr.id());
+            assertFalse(prAsAuthor.labels().contains("ready"));
+        }
+    }
 }
