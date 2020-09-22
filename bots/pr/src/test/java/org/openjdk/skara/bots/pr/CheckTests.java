@@ -299,57 +299,6 @@ class CheckTests {
     }
 
     @Test
-    void multipleCommitters(TestInfo testInfo) throws IOException {
-        try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory()) {
-            var author = credentials.getHostedRepository();
-            var reviewer = credentials.getHostedRepository();
-
-            var censusBuilder = credentials.getCensusBuilder()
-                                           .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).build();
-
-            // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
-            var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-
-            // Make two changes with different authors
-            CheckableRepository.appendAndCommit(localRepo, "First edit", "Edit by number 1",
-                                                "number1", "number1@none.none");
-            var editHash = CheckableRepository.appendAndCommit(localRepo, "Second edit", "Edit by number 2",
-                                                               "number2", "number2@none.none");
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
-
-            // Check the status
-            TestBotRunner.runPeriodicItems(checkBot);
-
-            // Verify that the check failed
-            var checks = pr.checks(editHash);
-            assertEquals(1, checks.size());
-            var check = checks.get("jcheck");
-            assertEquals(CheckStatus.FAILURE, check.status());
-
-            // Approve it as another user
-            var approvalPr = reviewer.pullRequest(pr.id());
-            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
-
-            // Check the status again
-            TestBotRunner.runPeriodicItems(checkBot);
-
-            // The check should still be failing
-            checks = pr.checks(editHash);
-            assertEquals(1, checks.size());
-            check = checks.get("jcheck");
-            assertEquals(CheckStatus.FAILURE, check.status());
-
-            // The PR should not be flagged as ready for review, as multiple committers is a problem
-            assertFalse(pr.labels().contains("rfr"));
-        }
-    }
-
-    @Test
     void updatedContentFailsCheck(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {

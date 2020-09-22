@@ -162,12 +162,16 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     @Override
     public void visit(AuthorNameIssue issue) {
-        throw new IllegalStateException("Invalid author name: " + issue.commit().author());
+        // We only get here for contributors without an OpenJDK username
+        addFailureMessage(issue.check(), "Pull request's HEAD commit must contain a full name");
+        readyForReview = false;
     }
 
     @Override
     public void visit(AuthorEmailIssue issue) {
-        throw new IllegalStateException("Invalid author email: " + issue.commit().author());
+        // We only get here for contributors without an OpenJDK username
+        addFailureMessage(issue.check(), "Pull request's HEAD commit must contain a valid e-mail");
+        readyForReview = false;
     }
 
     @Override
