@@ -116,7 +116,7 @@ public class SponsorCommand implements CommandHandler {
             var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), allComments);
             checkablePr.executeChecks(localHash, censusInstance, issues, additionalConfiguration);
             if (!issues.messages().isEmpty()) {
-                reply.print("Your merge request cannot be fulfilled at this time, as ");
+                reply.print("Your integration request cannot be fulfilled at this time, as ");
                 reply.println("your changes failed the final jcheck:");
                 issues.messages().stream()
                       .map(line -> " * " + line)

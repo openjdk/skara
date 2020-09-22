@@ -193,7 +193,7 @@ class IntegrateTests {
 
             // The bot should reply with an error message
             var error = pr.comments().stream()
-                          .filter(comment -> comment.body().contains("merge request cannot be fulfilled at this time"))
+                          .filter(comment -> comment.body().contains("integration request cannot be fulfilled at this time"))
                           .filter(comment -> comment.body().contains("status check"))
                           .filter(comment -> comment.body().contains("has not been performed on commit"))
                           .count();
@@ -236,7 +236,7 @@ class IntegrateTests {
 
             // The bot should reply with an error message
             var error = pr.comments().stream()
-                          .filter(comment -> comment.body().contains("merge request cannot be fulfilled at this time"))
+                          .filter(comment -> comment.body().contains("integration request cannot be fulfilled at this time"))
                           .filter(comment -> comment.body().contains("failed the final jcheck"))
                           .count();
             assertEquals(1, error, pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n---\n")));
@@ -270,7 +270,7 @@ class IntegrateTests {
 
             // The bot should reply with an error message
             var error = pr.comments().stream()
-                          .filter(comment -> comment.body().contains("merge request cannot be fulfilled at this time"))
+                          .filter(comment -> comment.body().contains("integration request cannot be fulfilled at this time"))
                           .filter(comment -> comment.body().contains("status check"))
                           .filter(comment -> comment.body().contains("did not complete successfully"))
                           .count();
@@ -320,7 +320,7 @@ class IntegrateTests {
 
             // The bot should reply with an error message
             var error = pr.comments().stream()
-                          .filter(comment -> comment.body().contains("merge request cannot be fulfilled at this time"))
+                          .filter(comment -> comment.body().contains("integration request cannot be fulfilled at this time"))
                           .filter(comment -> comment.body().contains("status check"))
                           .filter(comment -> comment.body().contains("has not been performed on commit"))
                           .count();
