@@ -139,24 +139,6 @@ class CheckRun {
                  .collect(Collectors.toList());
     }
 
-    // For unknown contributors, check that all commits have the same name and email
-    private boolean checkCommitAuthor(List<CommitMetadata> commits) throws IOException {
-        var author = censusInstance.namespace().get(pr.author().id());
-        if (author != null) {
-            return true;
-        }
-
-        var names = new HashSet<String>();
-        var emails = new HashSet<String>();
-
-        for (var commit : commits) {
-            names.add(commit.author().name());
-            emails.add(commit.author().email());
-        }
-
-        return ((names.size() == 1) && emails.size() == 1);
-    }
-
     // Additional bot-specific checks that are not handled by JCheck
     private List<String> botSpecificChecks(Hash finalHash) throws IOException {
         var ret = new ArrayList<String>();
@@ -190,13 +172,6 @@ class CheckRun {
 
         var headHash = pr.headHash();
         var originalCommits = localRepo.commitMetadata(baseHash, headHash);
-
-        if (!checkCommitAuthor(originalCommits)) {
-            var error = "For contributors who are not existing OpenJDK Authors, commit attribution will be taken from " +
-                    "the commits in the PR. However, the commits in this PR have inconsistent user names and/or " +
-                    "email addresses. Please amend the commits.";
-            ret.add(error);
-        }
 
         for (var blocker : workItem.bot.blockingCheckLabels().entrySet()) {
             if (labels.contains(blocker.getKey())) {
