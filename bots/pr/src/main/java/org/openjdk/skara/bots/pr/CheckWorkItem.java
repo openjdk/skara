@@ -188,6 +188,9 @@ class CheckWorkItem extends PullRequestWorkItem {
                 throw new UncheckedIOException(e);
             }
         }
-        return List.of(new CommandWorkItem(bot, pr, errorHandler));
+
+        // Must re-fetch PR after executing CheckRun
+        var updatedPR = pr.repository().pullRequest(pr.id());
+        return List.of(new CommandWorkItem(bot, updatedPR, errorHandler));
     }
 }
