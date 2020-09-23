@@ -129,7 +129,7 @@ public class LabelConfigurationJson implements LabelConfiguration {
         }
 
         var ret = new HashSet<>(labels);
-        // If the current labels matches at least two members of a group, use the group instead
+        // If the current labels matches at least two members of a group, use the group
         for (var group : groups.entrySet()) {
             var count = 0;
             for (var groupEntry : group.getValue()) {
@@ -137,12 +137,20 @@ public class LabelConfigurationJson implements LabelConfiguration {
                     count++;
                     if (count == 2) {
                         ret.add(group.getKey());
-                        ret.removeAll(group.getValue());
                         break;
                     }
                 }
             }
         }
+
+        // Finally remove all group members for any group that has been matched (note that a group can
+        // also have individual rules and be matched in the first step).
+        for (var group : groups.entrySet()) {
+            if (ret.contains(group.getKey())) {
+                ret.removeAll(group.getValue());
+            }
+        }
+
         return ret;
     }
 

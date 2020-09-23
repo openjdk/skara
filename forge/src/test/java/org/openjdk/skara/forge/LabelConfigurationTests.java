@@ -59,4 +59,20 @@ public class LabelConfigurationTests {
         assertEquals(Set.of("2"), config.label(Set.of(Path.of("a.hpp"))));
         assertEquals(Set.of("both"), config.label(Set.of(Path.of("a.cpp"), Path.of("a.hpp"))));
     }
+
+    @Test
+    void groupAndSingle() {
+        var config = LabelConfigurationJson.builder()
+                                           .addMatchers("1", List.of(Pattern.compile("cpp$")))
+                                           .addMatchers("both", List.of(Pattern.compile("hpp$")))
+                                           .addGroup("both", List.of("1", "2"))
+                                           .build();
+
+        assertEquals(Set.of("1", "both"), config.allowed());
+
+        assertEquals(Set.of("1"), config.label(Set.of(Path.of("a.cpp"))));
+        assertEquals(Set.of("both"), config.label(Set.of(Path.of("a.hpp"))));
+        assertEquals(Set.of("both"), config.label(Set.of(Path.of("a.cpp"), Path.of("a.hpp"))));
+
+    }
 }
