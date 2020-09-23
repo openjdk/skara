@@ -58,7 +58,9 @@ class SponsorTests {
             localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
-            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            var authorFullName = author.forge().currentUser().fullName();
+            var authorEmail = "ta@none.none";
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "This is a new line", "Append commit", authorFullName, authorEmail);
             localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
@@ -106,8 +108,8 @@ class SponsorTests {
                 assertEquals("Generated Author 2", headCommit.author().name());
                 assertEquals("integrationauthor2@openjdk.java.net", headCommit.author().email());
             } else {
-                assertEquals("testauthor", headCommit.author().name());
-                assertEquals("ta@none.none", headCommit.author().email());
+                assertEquals(authorFullName, headCommit.author().name());
+                assertEquals(authorEmail, headCommit.author().email());
             }
 
             assertEquals("Generated Reviewer 1", headCommit.committer().name());
@@ -252,7 +254,8 @@ class SponsorTests {
             localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
-            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            var authorFullName = author.forge().currentUser().fullName();
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "This is a new line", "Append commit", authorFullName, "ta@none.none");
             localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
@@ -276,7 +279,7 @@ class SponsorTests {
             assertTrue(pr.labels().contains("sponsor"));
 
             // Push another change
-            var updateHash = CheckableRepository.appendAndCommit(localRepo,"Yet more stuff");
+            var updateHash = CheckableRepository.appendAndCommit(localRepo, "Yet more stuff", "Append commit", authorFullName, "ta@none.none");
             localRepo.push(updateHash, author.url(), "edit");
 
             // Make sure that the push registered
@@ -487,7 +490,8 @@ class SponsorTests {
             localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR
-            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            var authorFullName = author.forge().currentUser().fullName();
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "This is a new line", "Append commit", authorFullName, "ta@none.none");
             localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 

@@ -170,9 +170,6 @@ class CheckRun {
             ret.add(error);
         }
 
-        var headHash = pr.headHash();
-        var originalCommits = localRepo.commitMetadata(baseHash, headHash);
-
         for (var blocker : workItem.bot.blockingCheckLabels().entrySet()) {
             if (labels.contains(blocker.getKey())) {
                 ret.add(blocker.getValue());

@@ -115,8 +115,18 @@ public class CheckablePullRequest {
                 throw new CommitFailure("Merge PRs can only be created by known OpenJDK authors.");
             }
 
-            var headCommit = localRepo.commitMetadata(pr.headHash().hex() + "^.." + pr.headHash().hex()).get(0);
-            author = headCommit.author();
+            var headHash = pr.headHash();
+            var headCommit = localRepo.lookup(headHash).get();
+            var headAuthor = headCommit.author();
+            var prAuthor = pr.author();
+            if (!prAuthor.fullName().equals(prAuthor.userName())) {
+                if (!headAuthor.name().equals(prAuthor.fullName())) {
+                    throw new CommitFailure("The HEAD commit of this pull request, " + headHash.abbreviate() +
+                                            ", has a different author, `" + headAuthor.name() + "`" +
+                                            ", than the author of this pull request: `" + prAuthor.fullName() + "`");
+                }
+            }
+            author = headAuthor;
         } else {
             author = new Author(contributor.fullName().orElseThrow(), contributor.username() + "@" + censusDomain);
         }

@@ -805,7 +805,8 @@ class IntegrateTests {
             localRepo.push(masterHash, author.url(), "master", true);
 
             // Make a change with a corresponding PR with an empty e-mail
-            var editHash = CheckableRepository.appendAndCommit(localRepo, "Content", "A commit", "Duke", "");
+            var authorFullName = author.forge().currentUser().fullName();
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Content", "A commit", authorFullName, "");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
