@@ -500,6 +500,14 @@ class CheckRun {
             throw new UncheckedIOException(e);
         }
 
+        if (labels.stream().anyMatch(label -> workItem.bot.twoReviewersLabels().contains(label))) {
+            message.append("\n\n");
+            message.append(":mag: One or more changes in this pull request modifies files in areas of ");
+            message.append("the source code that often require two reviewers. Please consider if this is ");
+            message.append("the case for this pull request, and if so, await a second reviewer to approve ");
+            message.append("this pull request before you integrate it.");
+        }
+
         message.append("\n\n");
         message.append("After integration, the commit message for the final commit will be:\n");
         message.append("```\n");
