@@ -44,6 +44,7 @@ class PullRequestBot implements Bot {
     private final Map<String, String> externalCommands;
     private final Map<String, String> blockingCheckLabels;
     private final Set<String> readyLabels;
+    private final Set<String> twoReviewersLabels;
     private final Map<String, Pattern> readyComments;
     private final IssueProject issueProject;
     private final boolean ignoreStaleReviews;
@@ -61,10 +62,10 @@ class PullRequestBot implements Bot {
     PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef,
                    LabelConfiguration labelConfiguration, Map<String, String> externalCommands,
                    Map<String, String> blockingCheckLabels, Set<String> readyLabels,
-                   Map<String, Pattern> readyComments, IssueProject issueProject, boolean ignoreStaleReviews,
-                   Set<String> allowedIssueTypes, Pattern allowedTargetBranches, Path seedStorage,
-                   HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef,
-                   String censusLink) {
+                   Set<String> twoReviewersLabels, Map<String, Pattern> readyComments, IssueProject issueProject,
+                   boolean ignoreStaleReviews, Set<String> allowedIssueTypes, Pattern allowedTargetBranches,
+                   Path seedStorage, HostedRepository confOverrideRepo, String confOverrideName,
+                   String confOverrideRef, String censusLink) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -72,6 +73,7 @@ class PullRequestBot implements Bot {
         this.externalCommands = externalCommands;
         this.blockingCheckLabels = blockingCheckLabels;
         this.readyLabels = readyLabels;
+        this.twoReviewersLabels = twoReviewersLabels;
         this.issueProject = issueProject;
         this.readyComments = readyComments;
         this.ignoreStaleReviews = ignoreStaleReviews;
@@ -170,6 +172,10 @@ class PullRequestBot implements Bot {
 
     Map<String, String> blockingCheckLabels() {
         return blockingCheckLabels;
+    }
+
+    Set<String> twoReviewersLabels() {
+        return twoReviewersLabels;
     }
 
     IssueProject issueProject() {

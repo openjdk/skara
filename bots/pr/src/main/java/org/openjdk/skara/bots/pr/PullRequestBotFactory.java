@@ -97,6 +97,13 @@ public class PullRequestBotFactory implements BotFactory {
                 }
                 botBuilder.labelConfiguration(labelConfigurations.get(labelGroup));
             }
+            if (repo.value().contains("two-reviewers")) {
+                var labels = repo.value().get("two-reviewers")
+                                         .stream()
+                                         .map(label -> label.asString())
+                                         .collect(Collectors.toSet());
+                botBuilder.twoReviewersLabels(labels);
+            }
             if (repo.value().contains("issues")) {
                 botBuilder.issueProject(configuration.issueProject(repo.value().get("issues").asString()));
             }

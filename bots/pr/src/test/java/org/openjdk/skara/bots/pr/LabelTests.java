@@ -356,4 +356,58 @@ public class LabelTests {
             assertLastCommentContains(pr,"The `group` label was successfully added.");
         }
     }
+
+    @Test
+    void twoReviewersLabels(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(integrator.forge().currentUser().id())
+                                           .addCommitter(author.forge().currentUser().id());
+            var labelConfiguration = LabelConfigurationJson.builder()
+                                                       .addMatchers("1", List.of(Pattern.compile("cpp$")))
+                                                       .addMatchers("2", List.of(Pattern.compile("hpp$")))
+                                                       .addGroup("group", List.of("1", "2"))
+                                                       .addExtra("extra")
+                                                       .build();
+            var prBot = PullRequestBot.newBuilder()
+                                      .repo(integrator)
+                                      .censusRepo(censusBuilder.build())
+                                      .twoReviewersLabels(Set.of("1"))
+                                      .labelConfiguration(labelConfiguration)
+                                      .build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
+
+            // Add a label with -dev suffix
+            pr.addComment("/label add 1");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr,"The `1` label was successfully added.");
+
+            // Review the PR
+            var prAsReviewer = integrator.pullRequest(pr.id());
+            prAsReviewer.addReview(Review.Verdict.APPROVED, "Looks good!");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a integration message
+            assertLastCommentContains(pr,"This change now passes all *automated* pre-integration checks");
+            assertLastCommentContains(pr,":mag: One or more changes in this pull request modifies files");
+            assertLastCommentContains(pr,"in areas of the source code that often require two reviewers.");
+        }
+    }
 }

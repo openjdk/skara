@@ -39,6 +39,7 @@ public class PullRequestBotBuilder {
     private Map<String, String> externalCommands = Map.of();
     private Map<String, String> blockingCheckLabels = Map.of();
     private Set<String> readyLabels = Set.of();
+    private Set<String> twoReviewersLabels = Set.of();
     private Map<String, Pattern> readyComments = Map.of();
     private IssueProject issueProject = null;
     private boolean ignoreStaleReviews = false;
@@ -85,6 +86,11 @@ public class PullRequestBotBuilder {
 
     public PullRequestBotBuilder readyLabels(Set<String> readyLabels) {
         this.readyLabels = readyLabels;
+        return this;
+    }
+
+    public PullRequestBotBuilder twoReviewersLabels(Set<String> twoReviewersLabels) {
+        this.twoReviewersLabels = twoReviewersLabels;
         return this;
     }
 
@@ -140,7 +146,7 @@ public class PullRequestBotBuilder {
 
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration, externalCommands,
-                                  blockingCheckLabels, readyLabels, readyComments, issueProject,
+                                  blockingCheckLabels, readyLabels, twoReviewersLabels, readyComments, issueProject,
                                   ignoreStaleReviews, allowedIssueTypes, allowedTargetBranches,
                                   seedStorage, confOverrideRepo, confOverrideName, confOverrideRef,
                                   censusLink);
