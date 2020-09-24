@@ -60,11 +60,9 @@ public class SponsorCommand implements CommandHandler {
         }
 
         var labels = new HashSet<>(pr.labels());
-        for (var blocker : bot.blockingIntegrationLabels().entrySet()) {
-            if (labels.contains(blocker.getKey())) {
-                reply.println(blocker.getValue());
-                return;
-            }
+        if (!labels.contains("ready")) {
+            reply.println("This PR has not yet been marked as ready for integration.");
+            return;
         }
 
         // Notify the author as well

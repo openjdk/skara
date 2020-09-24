@@ -22,15 +22,11 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.forge.Review;
-import org.openjdk.skara.issuetracker.Comment;
-import org.openjdk.skara.issuetracker.Link;
-import org.openjdk.skara.issuetracker.Issue;
-import org.openjdk.skara.test.*;
-import org.openjdk.skara.vcs.Repository;
-import org.openjdk.skara.json.JSON;
-
 import org.junit.jupiter.api.*;
+import org.openjdk.skara.forge.Review;
+import org.openjdk.skara.issuetracker.*;
+import org.openjdk.skara.json.JSON;
+import org.openjdk.skara.test.*;
 
 import java.io.IOException;
 import java.util.*;
@@ -527,6 +523,9 @@ class CSRTests {
             // PR should not be ready
             prAsAuthor = author.pullRequest(pr.id());
             assertFalse(prAsAuthor.labels().contains("ready"));
+
+            // The body should contain a note about why
+            assertTrue(pr.body().contains("change requires a CSR request to be approved"));
         }
     }
 }
