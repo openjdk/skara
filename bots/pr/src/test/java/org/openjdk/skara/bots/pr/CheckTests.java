@@ -935,6 +935,7 @@ class CheckTests {
 
             // The PR title does not match the issue title
             assertTrue(pr.body().contains("Title mismatch"));
+            assertTrue(pr.body().contains("Integration blocker"));
 
             // Correct it
             pr.setTitle(issue2.id() + " - " + issue2.title());
@@ -942,6 +943,7 @@ class CheckTests {
             // Check the status again - it should now match
             TestBotRunner.runPeriodicItems(checkBot);
             assertFalse(pr.body().contains("Title mismatch"));
+            assertFalse(pr.body().contains("Integration blocker"));
 
             // Use an invalid issue key
             var issueKey = issue1.id().replace("TEST", "BADPROJECT");

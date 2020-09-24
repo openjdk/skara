@@ -179,6 +179,41 @@ class CheckRun {
         return ret;
     }
 
+    private Map<String, String> blockingIntegrationLabels() {
+        return Map.of("rejected", "The change is currently blocked from integration by a rejection.",
+                      "csr", "The change requires a CSR request to be approved.");
+    }
+
+    private List<String> botSpecificIntegrationBlockers() {
+        var ret = new ArrayList<String>();
+
+        var issues = issues();
+        var issueProject = issueProject();
+        if (issueProject != null) {
+            for (var currentIssue : issues) {
+                try {
+                    var iss = issueProject.issue(currentIssue.shortId());
+                    if (iss.isPresent()) {
+                        if (!relaxedEquals(iss.get().title(), currentIssue.description())) {
+                            var issueString = "[" + iss.get().id() + "](" + iss.get().webUrl() + ")";
+                            ret.add("Title mismatch between PR and JBS for issue " + issueString);
+                        }
+                    } else {
+                        log.warning("Failed to retrieve information on issue " + currentIssue.id());
+                    }
+                } catch (RuntimeException e) {
+                    log.warning("Temporary failure when trying to retrieve information on issue " + currentIssue.id());
+                }
+            }
+        }
+
+        labels.stream()
+              .filter(l -> blockingIntegrationLabels().containsKey(l))
+              .forEach(l -> ret.add(blockingIntegrationLabels().get(l)));
+
+        return ret;
+    }
+
     private void updateCheckBuilder(CheckBuilder checkBuilder, PullRequestCheckIssueVisitor visitor, List<String> additionalErrors) {
         if (visitor.isReadyForReview() && additionalErrors.isEmpty()) {
             checkBuilder.complete(true);
@@ -263,7 +298,7 @@ class CheckRun {
                       .collect(Collectors.joining("\n"));
     }
 
-    private String getAdditionalErrorsList(List<String> additionalErrors) {
+    private String warningListToText(List<String> additionalErrors) {
         return additionalErrors.stream()
                                .sorted()
                                .map(err -> "&nbsp;⚠️ " + err)
@@ -334,7 +369,8 @@ class CheckRun {
     }
 
 
-    private String getStatusMessage(List<Comment> comments, List<Review> reviews, PullRequestCheckIssueVisitor visitor, List<String> additionalErrors) {
+    private String getStatusMessage(List<Comment> comments, List<Review> reviews, PullRequestCheckIssueVisitor visitor,
+                                    List<String> additionalErrors, List<String> integrationBlockers) {
         var progressBody = new StringBuilder();
         progressBody.append("---------\n");
         progressBody.append("### Progress\n");
@@ -349,7 +385,16 @@ class CheckRun {
                 progressBody.append("s");
             }
             progressBody.append("\n");
-            progressBody.append(getAdditionalErrorsList(allAdditionalErrors));
+            progressBody.append(warningListToText(allAdditionalErrors));
+        }
+
+        if (!integrationBlockers.isEmpty()) {
+            progressBody.append("\n\n### Integration blocker");
+            if (integrationBlockers.size() > 1) {
+                progressBody.append("s");
+            }
+            progressBody.append("\n");
+            progressBody.append(warningListToText(integrationBlockers));
         }
 
         var issues = issues();
@@ -729,8 +774,10 @@ class CheckRun {
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
             updateReadyForReview(visitor, additionalErrors);
 
+            var integrationBlockers = botSpecificIntegrationBlockers();
+
             // Calculate and update the status message if needed
-            var statusMessage = getStatusMessage(comments, activeReviews, visitor, additionalErrors);
+            var statusMessage = getStatusMessage(comments, activeReviews, visitor, additionalErrors, integrationBlockers);
             var updatedBody = updateStatusMessage(statusMessage);
             var title = pr.title();
 
@@ -744,7 +791,7 @@ class CheckRun {
             var commitMessage = String.join("\n", commit.message());
             var readyForIntegration = visitor.messages().isEmpty() &&
                                       additionalErrors.isEmpty() &&
-                                      labels.stream().noneMatch(l -> workItem.bot.blockingReadyLabels().contains(l));
+                                      integrationBlockers.isEmpty();
 
             updateMergeReadyComment(readyForIntegration, commitMessage, comments, activeReviews, rebasePossible);
             if (readyForIntegration && rebasePossible) {
