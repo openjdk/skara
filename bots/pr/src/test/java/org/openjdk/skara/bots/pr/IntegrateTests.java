@@ -22,18 +22,15 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Repository;
-
-import org.junit.jupiter.api.*;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
@@ -235,11 +232,7 @@ class IntegrateTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an error message
-            var error = pr.comments().stream()
-                          .filter(comment -> comment.body().contains("integration request cannot be fulfilled at this time"))
-                          .filter(comment -> comment.body().contains("failed the final jcheck"))
-                          .count();
-            assertEquals(1, error, pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n---\n")));
+            assertLastCommentContains(pr, "PR has not yet been marked as ready for integration");
         }
     }
 
@@ -639,16 +632,20 @@ class IntegrateTests {
             var conflictingHash = CheckableRepository.appendAndCommit(localRepo, "This looks like a conflict");
             localRepo.push(conflictingHash, author.url(), "master");
 
+            // Trigger a new check run
+            pr.setBody(pr.body() + " recheck");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an error message
+            assertLastCommentContains(pr, "this pull request can not be integrated");
+
             // Attempt an integration
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an error message
-            var error = pr.comments().stream()
-                          .filter(comment -> comment.body().contains("It was not possible to rebase your changes automatically."))
-                          .filter(comment -> comment.body().contains("Please merge `master`"))
-                          .count();
-            assertEquals(1, error);
+            TestBotRunner.runPeriodicItems(mergeBot);
+            assertLastCommentContains(pr, "PR has not yet been marked as ready for integration");
         }
     }
 

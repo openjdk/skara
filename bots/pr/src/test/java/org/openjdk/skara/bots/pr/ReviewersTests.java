@@ -179,7 +179,7 @@ public class ReviewersTests {
             // It should not be possible to integrate yet
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(reviewerPr,"Too few reviewers with at least role author found (have 0, need at least 1)");
+            assertLastCommentContains(reviewerPr,"PR has not yet been marked as ready for integration");
 
             // Relax the requirement
             reviewerPr.addComment("/reviewers 1");
@@ -239,7 +239,7 @@ public class ReviewersTests {
             // It should not be possible to sponsor
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(reviewerPr,"Too few reviewers with at least role author found (have 0, need at least 1)");
+            assertLastCommentContains(reviewerPr,"PR has not yet been marked as ready for integration");
 
             // Relax the requirement
             reviewerPr.addComment("/reviewers 1");
