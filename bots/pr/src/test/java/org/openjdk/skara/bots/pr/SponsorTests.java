@@ -527,11 +527,7 @@ class SponsorTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an error message
-            var error = pr.comments().stream()
-                          .filter(comment -> comment.body().contains("integration request cannot be fulfilled at this time"))
-                          .filter(comment -> comment.body().contains("failed the final jcheck"))
-                          .count();
-            assertEquals(1, error);
+            assertLastCommentContains(pr, "PR has not yet been marked as ready for integration");
 
             // Make it ready for integration again
             approvalPr.addReview(Review.Verdict.APPROVED, "Sorry, wrong button");
@@ -604,17 +600,20 @@ class SponsorTests {
             var conflictingHash = CheckableRepository.appendAndCommit(localRepo, "This looks like a conflict");
             localRepo.push(conflictingHash, author.url(), "master");
 
-            // Reviewer now agrees to sponsor
-            var reviewerPr = reviewer.pullRequest(pr.id());
-            reviewerPr.addComment("/sponsor");
+            // Trigger a new check run
+            pr.setBody(pr.body() + " recheck");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an error message
-            var error = pr.comments().stream()
-                          .filter(comment -> comment.body().contains("It was not possible to rebase your changes automatically."))
-                          .filter(comment -> comment.body().contains("Please merge `master`"))
-                          .count();
-            assertEquals(1, error);
+            assertLastCommentContains(pr, "this pull request can not be integrated");
+
+            // Reviewer now agrees to sponsor
+            var reviewerPr = reviewer.pullRequest(pr.id());
+            reviewerPr.addComment("/sponsor");
+
+            // The bot should reply with an error message
+            TestBotRunner.runPeriodicItems(mergeBot);
+            assertLastCommentContains(pr, "PR has not yet been marked as ready for integration");
         }
     }
 

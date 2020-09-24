@@ -172,22 +172,6 @@ class PullRequestBot implements Bot {
         return blockingCheckLabels;
     }
 
-    Set<String> blockingReadyLabels() {
-        return Set.of("csr");
-    }
-
-    Map<String, String> blockingIntegrationLabels() {
-        return Map.of("rejected", "The change is currently blocked from integration by a rejection.");
-    }
-
-    Set<String> readyLabels() {
-        return readyLabels;
-    }
-
-    Map<String, Pattern> readyComments() {
-        return readyComments;
-    }
-
     IssueProject issueProject() {
         return issueProject;
     }
