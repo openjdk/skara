@@ -222,4 +222,9 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     public URI diffUrl() {
         return URI.create(webUrl().toString() + ".diff");
     }
+
+    @Override
+    public Optional<ZonedDateTime> labelAddedAt(String label) {
+        return Optional.ofNullable(data.labels.get(label));
+    }
 }

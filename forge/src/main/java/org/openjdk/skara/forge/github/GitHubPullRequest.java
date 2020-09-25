@@ -641,4 +641,17 @@ public class GitHubPullRequest implements PullRequest {
     public URI diffUrl() {
         return URI.create(webUrl() + ".diff");
     }
+
+    @Override
+    public Optional<ZonedDateTime> labelAddedAt(String label) {
+        return request.get("issues/" + json.get("number").toString() + "/timeline")
+                      .execute()
+                      .stream()
+                      .map(JSONValue::asObject)
+                      .filter(obj -> obj.contains("event"))
+                      .filter(obj -> obj.get("event").asString().equals("labeled"))
+                      .filter(obj -> obj.get("label").get("name").asString().equals(label))
+                      .map(o -> ZonedDateTime.parse(o.get("created_at").asString()))
+                      .findFirst();
+    }
 }
