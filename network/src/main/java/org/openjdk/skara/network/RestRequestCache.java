@@ -36,10 +36,12 @@ enum RestRequestCache {
     private static class RequestContext {
         private final String authId;
         private final HttpRequest unauthenticatedRequest;
+        private final Instant created;
 
         private RequestContext(String authId, HttpRequest unauthenticatedRequest) {
             this.authId = authId;
             this.unauthenticatedRequest = unauthenticatedRequest;
+            created = Instant.now();
         }
 
         @Override
@@ -58,6 +60,10 @@ enum RestRequestCache {
         public int hashCode() {
             return Objects.hash(authId, unauthenticatedRequest);
         }
+
+        public Duration age() {
+            return Duration.between(created, Instant.now());
+        }
     }
 
     private final Map<RequestContext, HttpResponse<String>> cachedResponses = new ConcurrentHashMap<>();
@@ -65,6 +71,16 @@ enum RestRequestCache {
     private final Logger log = Logger.getLogger("org.openjdk.skara.network");
     private final Map<String, Lock> authLocks = new HashMap<>();
     private final Map<String, Instant> lastUpdates = new ConcurrentHashMap<>();
+    private final Map<RequestContext, Instant> cachedUpdated = new ConcurrentHashMap<>();
+
+    private Duration maxAllowedAge(RequestContext requestContext) {
+        // Known stable caches can afford a longer timeout - others expire faster
+        if (requestContext.unauthenticatedRequest.uri().toString().contains("github.com")) {
+            return Duration.ofMinutes(30);
+        } else {
+            return Duration.ofMinutes(5);
+        }
+    }
 
     HttpResponse<String> send(String authId, HttpRequest.Builder requestBuilder) throws IOException, InterruptedException {
         if (authId == null) {
@@ -81,8 +97,13 @@ enum RestRequestCache {
         if (unauthenticatedRequest.method().equals("GET")) {
             var cached = cachedResponses.get(requestContext);
             if (cached != null) {
-                var tag = cached.headers().firstValue("ETag");
-                tag.ifPresent(value -> requestBuilder.header("If-None-Match", value));
+                var created = cachedUpdated.get(requestContext);
+                if (Instant.now().minus(maxAllowedAge(requestContext)).isBefore(created)) {
+                    var tag = cached.headers().firstValue("ETag");
+                    tag.ifPresent(value -> requestBuilder.header("If-None-Match", value));
+                } else {
+                    log.finer("Expired response cache for " + requestContext.unauthenticatedRequest.uri() + " (" + requestContext.authId + ")");
+                }
             }
             var finalRequest = requestBuilder.build();
             HttpResponse<String> response;
@@ -98,6 +119,7 @@ enum RestRequestCache {
                 return cached;
             } else {
                 cachedResponses.put(requestContext, response);
+                cachedUpdated.put(requestContext, Instant.now());
                 log.finer("Updating response cache for " + finalRequest + " (" + authId + ")");
                 return response;
             }
