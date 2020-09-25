@@ -212,6 +212,20 @@ public class BackportsTests {
             }
             assertEquals(labels, labeledIssues);
         }
+
+        void assertNotLabeled(String... labeledVersions) {
+            Backports.labelReleaseStreamDuplicates(issues.get(0), "hgupdate-sync");
+
+            var labels = new HashSet<>(Arrays.asList(labeledVersions));
+            var unLabeledIssues = new HashSet<String>();
+            for (var issue : issues) {
+                var version = issue.properties().get("fixVersions").get(0).asString();
+                if (!issue.labels().contains("hgupdate-sync")) {
+                    unLabeledIssues.add(version);
+                }
+            }
+            assertEquals(labels, unLabeledIssues);
+        }
     }
 
     @Test
@@ -246,7 +260,7 @@ public class BackportsTests {
             backports.assertLabeled("14.0.1", "14.0.2");
 
             backports.addBackports("15", "15.0.1", "15.0.2");
-            backports.assertLabeled("14.0.1", "14.0.2", "15.0.1", "15.0.2");
+            backports.assertLabeled("14.0.1", "14.0.2", "15", "15.0.1", "15.0.2");
         }
     }
 
@@ -263,6 +277,19 @@ public class BackportsTests {
             backports.assertLabeled("11.0.1", "11.0.2", "11.0.3", "11.0.3-oracle");
         }
     }
+
+    @Test
+    void labelSeparateOpenJdkUpdateReleaseStream(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "11.0.3");
+            backports.assertLabeled();
+
+            backports.addBackports("11.0.3-oracle", "11.0.4", "11.0.4-oracle");
+            backports.assertLabeled("11.0.4", "11.0.4-oracle");
+            backports.assertNotLabeled("11.0.3-oracle", "11.0.3");
+        }
+    }
+
 
     @Test
     void labelBprStream8(TestInfo testInfo) throws IOException {
