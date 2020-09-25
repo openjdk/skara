@@ -227,4 +227,9 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     public Optional<ZonedDateTime> labelAddedAt(String label) {
         return Optional.ofNullable(data.labels.get(label));
     }
+
+    @Override
+    public URI headUrl() {
+        return URI.create(webUrl().toString() + "/commits/" + headHash().hex());
+    }
 }
