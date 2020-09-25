@@ -22,22 +22,22 @@
  */
 package org.openjdk.skara.bots.notify.issue;
 
-import org.openjdk.skara.network.RestRequest;
+import org.openjdk.skara.json.JSON;
+import org.openjdk.skara.network.*;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
-import java.time.*;
 import java.util.*;
 import java.util.logging.Logger;
 
 public class JbsVault {
     private final RestRequest request;
     private final String authId;
+    private final URI authProbe;
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
     private String cookie;
-    private Instant expires;
 
     private String checksum(String body) {
         try {
@@ -49,20 +49,29 @@ public class JbsVault {
         }
     }
 
-    JbsVault(URI vaultUri, String vaultToken) {
+    JbsVault(URI vaultUri, String vaultToken, URI jiraUri) {
         authId = checksum(vaultToken);
         request = new RestRequest(vaultUri, authId, () -> Arrays.asList(
                 "X-Vault-Token", vaultToken
         ));
+        this.authProbe = URIBuilder.base(jiraUri).setPath("/rest/api/2/myself").build();
     }
 
     String getCookie() {
-        if ((cookie == null) || Instant.now().isAfter(expires)) {
-            var result = request.get("").execute();
-            cookie = result.get("data").get("cookie.name").asString() + "=" + result.get("data").get("cookie.value").asString();
-            expires = Instant.now().plus(Duration.ofSeconds(result.get("lease_duration").asInt()).dividedBy(2));
-            log.info("Renewed Jira token (" + cookie + ") - expires " + expires);
+        if (cookie != null) {
+            var authProbeRequest = new RestRequest(authProbe, authId, () -> Arrays.asList("Cookie", cookie));
+            var res = authProbeRequest.get()
+                                      .onError(error -> error.statusCode() >= 400 ? Optional.of(JSON.of("AUTH_ERROR")) : Optional.empty())
+                                      .execute();
+            if (res.isObject() && !res.contains("AUTH_ERROR")) {
+                return cookie;
+            }
         }
+
+        // Renewal time
+        var result = request.get("").execute();
+        cookie = result.get("data").get("cookie.name").asString() + "=" + result.get("data").get("cookie.value").asString();
+        log.info("Renewed Jira token (" + cookie + ")");
         return cookie;
     }
 
