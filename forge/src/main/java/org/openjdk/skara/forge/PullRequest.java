@@ -26,6 +26,7 @@ import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.vcs.Hash;
 
 import java.net.URI;
+import java.time.ZonedDateTime;
 import java.util.*;
 
 public interface PullRequest extends Issue {
@@ -141,4 +142,6 @@ public interface PullRequest extends Issue {
      */
     boolean isDraft();
     void makeNotDraft();
+
+    Optional<ZonedDateTime> labelAddedAt(String label);
 }

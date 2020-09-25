@@ -151,8 +151,9 @@ public class TestIssue implements Issue {
 
     @Override
     public void addLabel(String label) {
-        data.labels.add(label);
-        data.lastUpdate = ZonedDateTime.now();
+        var now = ZonedDateTime.now();
+        data.labels.put(label, now);
+        data.lastUpdate = now;
     }
 
     @Override
@@ -163,7 +164,7 @@ public class TestIssue implements Issue {
 
     @Override
     public List<String> labels() {
-        return new ArrayList<>(data.labels);
+        return new ArrayList<>(data.labels.keySet());
     }
 
     @Override

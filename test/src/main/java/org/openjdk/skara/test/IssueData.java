@@ -34,7 +34,7 @@ class IssueData {
     String body = "";
     String title = "";
     final List<Comment> comments = new ArrayList<>();
-    final Set<String> labels = new HashSet<>();
+    final Map<String, ZonedDateTime> labels = new HashMap<>();
     final List<HostUser> assignees = new ArrayList<>();
     final List<Link> links = new ArrayList<>();
     final Map<String, JSONValue> properties = new HashMap<>();

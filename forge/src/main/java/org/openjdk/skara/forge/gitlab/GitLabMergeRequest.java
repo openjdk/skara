@@ -718,4 +718,17 @@ public class GitLabMergeRequest implements PullRequest {
     public URI diffUrl() {
         return URI.create(webUrl() + ".diff");
     }
+
+    @Override
+    public Optional<ZonedDateTime> labelAddedAt(String label) {
+        return request.get("resource_label_events")
+                      .execute()
+                      .stream()
+                      .map(JSONValue::asObject)
+                      .filter(obj -> obj.contains("action"))
+                      .filter(obj -> obj.get("action").asString().equals("add"))
+                      .filter(obj -> obj.get("label").get("name").asString().equals(label))
+                      .map(o -> ZonedDateTime.parse(o.get("created_at").asString()))
+                      .findFirst();
+    }
 }

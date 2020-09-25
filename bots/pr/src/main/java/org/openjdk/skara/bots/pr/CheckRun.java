@@ -32,6 +32,7 @@ import org.openjdk.skara.vcs.openjdk.Issue;
 import java.io.*;
 import java.nio.file.Path;
 import java.util.*;
+import java.time.ZonedDateTime;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.stream.*;
@@ -551,6 +552,16 @@ class CheckRun {
             message.append("the source code that often require two reviewers. Please consider if this is ");
             message.append("the case for this pull request, and if so, await a second reviewer to approve ");
             message.append("this pull request before you integrate it.");
+        }
+
+        if (labels.stream().anyMatch(label -> workItem.bot.twentyFourHoursLabels().contains(label))) {
+            var rfrAt = pr.labelAddedAt("rfr");
+            if (rfrAt.isPresent() && ZonedDateTime.now().minusHours(24).isBefore(rfrAt.get())) {
+                message.append("\n\n");
+                message.append(":earth_americas: Applicable reviewers for one or more changes in this pull request are spread across ");
+                message.append("multiple different time zones. Please consider waiting with integrating this pull request until it has ");
+                message.append("been out for review for at least 24 hours to give all reviewers a chance to review the pull request.");
+            }
         }
 
         message.append("\n\n");
