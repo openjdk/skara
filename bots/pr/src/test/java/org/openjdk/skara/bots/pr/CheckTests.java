@@ -482,6 +482,7 @@ class CheckTests {
             localRepo.push(unrelatedHash, author.url(), "master");
 
             // Let the bot see the changes
+            pr.setBody(pr.body() + "recheck");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an ok message
@@ -532,6 +533,7 @@ class CheckTests {
             localRepo.push(conflictingHash, author.url(), "master");
 
             // Let the bot see the changes
+            pr.setBody(pr.body() + "recheck");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should not yet post the ready for integration message
@@ -560,6 +562,7 @@ class CheckTests {
             localRepo.push(masterHash, author.url(), "master", true);
 
             // Let the bot see the changes
+            pr.setBody(pr.body() + "recheck");
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should now post an integration message

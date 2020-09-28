@@ -877,8 +877,7 @@ class CheckRun {
             }
 
             // Calculate current metadata to avoid unnecessary future checks
-            var metadata = workItem.getMetadata(title, updatedBody, pr.comments(), activeReviews, newLabels,
-                                                censusInstance, pr.targetHash(), pr.isDraft());
+            var metadata = workItem.getMetadata(censusInstance, title, updatedBody, pr.comments(), activeReviews, newLabels, pr.isDraft());
             checkBuilder.metadata(metadata);
         } catch (Exception e) {
             log.throwing("CommitChecker", "checkStatus", e);

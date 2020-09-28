@@ -24,9 +24,8 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.host.*;
-import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.vcs.Hash;
+import org.openjdk.skara.host.HostUser;
+import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -64,8 +63,8 @@ class CheckWorkItem extends PullRequestWorkItem {
         }
     }
 
-    String getMetadata(String title, String body, List<Comment> comments, List<Review> reviews, Set<String> labels,
-                       CensusInstance censusInstance, Hash target, boolean isDraft) {
+    String getMetadata(CensusInstance censusInstance, String title, String body, List<Comment> comments,
+                       List<Review> reviews, Set<String> labels, boolean isDraft) {
         try {
             var approverString = reviews.stream()
                                         .filter(review -> review.verdict() == Review.Verdict.APPROVED)
@@ -86,7 +85,6 @@ class CheckWorkItem extends PullRequestWorkItem {
             digest.update(approverString.getBytes(StandardCharsets.UTF_8));
             digest.update(commentString.getBytes(StandardCharsets.UTF_8));
             digest.update(labelString.getBytes(StandardCharsets.UTF_8));
-            digest.update(target.hex().getBytes(StandardCharsets.UTF_8));
             digest.update(isDraft ? (byte)0 : (byte)1);
 
             return Base64.getUrlEncoder().encodeToString(digest.digest());
@@ -97,8 +95,7 @@ class CheckWorkItem extends PullRequestWorkItem {
 
     private boolean currentCheckValid(CensusInstance censusInstance, List<Comment> comments, List<Review> reviews, Set<String> labels) {
         var hash = pr.headHash();
-        var targetHash = pr.targetHash();
-        var metadata = getMetadata(pr.title(), pr.body(), comments, reviews, labels, censusInstance, targetHash, pr.isDraft());
+        var metadata = getMetadata(censusInstance, pr.title(), pr.body(), comments, reviews, labels, pr.isDraft());
         var currentChecks = pr.checks(hash);
 
         if (currentChecks.containsKey("jcheck")) {
