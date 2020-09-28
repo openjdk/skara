@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 
 public class CommitMessageSyntax {
         private static final String OPENJDK_USERNAME_REGEX = "[-.a-z0-9]+";
-        public static final String EMAIL_ADDR_REGEX = "[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]+";
+        public static final String EMAIL_ADDR_REGEX = "[A-Za-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]+";
         public static final String REAL_NAME_REGEX = "[^<>@]+";
         private static final String REAL_NAME_AND_EMAIL_ATTR_REGEX = REAL_NAME_REGEX + " +<" + EMAIL_ADDR_REGEX + ">";
         private static final String ATTR_REGEX = "(?:(?:" + EMAIL_ADDR_REGEX + ")|(?:" + REAL_NAME_AND_EMAIL_ATTR_REGEX + "))";
