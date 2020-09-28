@@ -242,4 +242,22 @@ public class CommitMessageParsersTests {
         assertEquals(List.of(), message.summaries());
         assertEquals(List.of(), message.additional());
     }
+
+    @Test
+    void capitalLetterInEmail() {
+        var text = List.of("01234567: An issue",
+                           "",
+                           "Co-authored-by: Just An Example <JustAn@example.com>",
+                           "Reviewed-by: ab, cd, ef");
+
+        var message = CommitMessageParsers.v1.parse(text);
+
+        assertEquals("01234567: An issue", message.title());
+        assertEquals(List.of(new Issue("01234567", "An issue")), message.issues());
+        assertEquals(List.of("ab", "cd", "ef"), message.reviewers());
+        assertEquals(List.of(new Author("Just An Example", "JustAn@example.com")),
+                     message.contributors());
+        assertEquals(List.of(), message.summaries());
+        assertEquals(List.of(), message.additional());
+    }
 }
