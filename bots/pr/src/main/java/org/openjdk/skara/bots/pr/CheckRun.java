@@ -59,6 +59,7 @@ class CheckRun {
     private static final String mergeCommitWarningMarker = "<!-- PullRequestBot merge commit warning comment -->";
     private static final String emptyPrBodyMarker = "<!--\nReplace this text with a description of your pull request (also remove the surrounding HTML comment markers).\n" +
             "If in doubt, feel free to delete everything in this edit box first, the bot will restore the progress section as needed.\n-->";
+    private static final String fullNameWarningMarker = "<!-- PullRequestBot full name warning comment -->";
     private final Set<String> newLabels;
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
@@ -659,9 +660,44 @@ class CheckRun {
         return message.toString();
     }
 
+    private void addFullNameWarningComment() {
+        var existing = findComment(comments, fullNameWarningMarker);
+        if (existing.isPresent()) {
+            // Only warn once
+            return;
+        }
+
+        if (censusInstance.namespace().get(pr.author().id()) != null) {
+            // Known OpenJDK user
+            return;
+        }
+
+        var head = pr.repository().commitMetadata(pr.headHash()).orElseThrow(
+            () -> new IllegalStateException("Cannot lookup HEAD hash for PR " + pr.id())
+        );
+        if (!pr.author().fullName().equals(pr.author().userName()) &&
+            !pr.author().fullName().equals(head.author().name())) {
+            var headUrl = pr.headUrl().toString();
+            var message = ":warning: @" + pr.author().userName() + " the full name on your profile does not match " +
+                "the author name in this pull requests' [HEAD](" + headUrl + ") commit. " +
+                          "If this pull request gets integrated then the author name from this pull requests' " +
+                          "[HEAD](" + headUrl + ") commit will be used for the resulting commit. " +
+                          "If you wish to push a new commit with a different author name, " +
+                          "then please run the following commands in a local repository of your personal fork:" +
+                          "\n\n" +
+                          "```\n" +
+                          "$ git checkout " + pr.sourceRef() + "\n" +
+                          "$ git commit -c user.name='Preferred Full Name' --allow-empty -m 'Update full name'\n" +
+                          "$ git push\n" +
+                          "```\n";
+            pr.addComment(fullNameWarningMarker + "\n" + message);
+        }
+    }
+
     private void updateMergeReadyComment(boolean isReady, String commitMessage, List<Comment> comments, List<Review> reviews, boolean rebasePossible) {
         var existing = findComment(comments, mergeReadyMarker);
         if (isReady && rebasePossible) {
+            addFullNameWarningComment();
             var message = getMergeReadyComment(commitMessage, reviews);
             if (existing.isEmpty()) {
                 pr.addComment(message);

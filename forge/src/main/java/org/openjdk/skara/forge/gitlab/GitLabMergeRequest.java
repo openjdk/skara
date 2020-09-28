@@ -731,4 +731,9 @@ public class GitLabMergeRequest implements PullRequest {
                       .map(o -> ZonedDateTime.parse(o.get("created_at").asString()))
                       .findFirst();
     }
+
+    @Override
+    public URI headUrl() {
+        return URI.create(webUrl() + "/diffs?commit_id=" + headHash().hex());
+    }
 }

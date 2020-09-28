@@ -74,6 +74,12 @@ public interface PullRequest extends Issue {
     Hash headHash();
 
     /**
+     * URI to the current head of the request.
+     * @return
+     */
+    URI headUrl();
+
+    /**
      * Returns the name of the ref used for fetching the pull request.
      * @return
      */

@@ -654,4 +654,9 @@ public class GitHubPullRequest implements PullRequest {
                       .map(o -> ZonedDateTime.parse(o.get("created_at").asString()))
                       .findFirst();
     }
+
+    @Override
+    public URI headUrl() {
+        return URI.create(webUrl() + "/commits/" + headHash().hex());
+    }
 }

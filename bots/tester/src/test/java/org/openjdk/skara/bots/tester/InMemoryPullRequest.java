@@ -290,4 +290,9 @@ class InMemoryPullRequest implements PullRequest {
     public Optional<ZonedDateTime> labelAddedAt(String label) {
         return null;
     }
+
+    @Override
+    public URI headUrl() {
+        return null;
+    }
 }

@@ -1658,15 +1658,24 @@ class CheckTests {
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
-            // Run the bot
+            // Approve the PR
+            var prAsReviewer = reviewer.pullRequest(pr.id());
+            prAsReviewer.addReview(Review.Verdict.APPROVED, "Looks good");
             TestBotRunner.runPeriodicItems(mergeBot);
 
-            // The bot should respond with a failure about different authors
+            // The bot should respond with an integration message and a warning about different authors
             pr = author.pullRequest(pr.id());
-            assertFalse(pr.labels().contains("rfr"));
-            assertTrue(pr.body().contains("The HEAD commit of this pull request"));
-            assertTrue(pr.body().contains("has a different author"));
-            assertTrue(pr.body().contains("than the author of this pull request"));
+            var comments = pr.comments();
+            var numComments = comments.size();
+            var lastComment = comments.get(comments.size() - 1).body();
+            assertTrue(lastComment.contains("This change now passes all *automated* pre-integration checks."));
+            var nextToLastComment = comments.get(comments.size() - 2).body();
+            assertTrue(nextToLastComment.contains("the full name on your profile does not match the author name"));
+
+            // Run the bot again, should not result in any new comments
+            TestBotRunner.runPeriodicItems(mergeBot);
+            pr = author.pullRequest(pr.id());
+            assertEquals(numComments, pr.comments().size());
         }
     }
 }
