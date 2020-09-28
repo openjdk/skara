@@ -22,24 +22,24 @@
  */
 package org.openjdk.skara.bots.tester;
 
-import org.openjdk.skara.ci.ContinuousIntegration;
-import org.openjdk.skara.ci.Job;
 import org.openjdk.skara.bot.*;
-import org.openjdk.skara.forge.*;
 import org.openjdk.skara.census.Census;
+import org.openjdk.skara.ci.*;
+import org.openjdk.skara.forge.*;
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.host.HostUser;
 
 import java.io.*;
-import java.nio.file.*;
+import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import java.util.function.Predicate;
 
 public class TestBot implements Bot {
-    private static class Observation {
+    static class Observation {
         Job.State nextToLast;
         Job.State last;
 
@@ -59,7 +59,7 @@ public class TestBot implements Bot {
     private final Path storage;
     private final HostedRepository repo;
     private final PullRequestUpdateCache cache;
-    private final Map<String, Observation> states;
+    private final ConcurrentHashMap<String, Observation> states;
     private final HostedRepository censusRemote;
     private final Path censusDir;
     private final boolean checkCommitterStatus;
@@ -84,7 +84,7 @@ public class TestBot implements Bot {
         this.storage = storage;
         this.repo = repo;
         this.cache = new PullRequestUpdateCache();
-        this.states = new HashMap<>();
+        this.states = new ConcurrentHashMap<>();
         this.censusRemote = censusRemote;
         this.censusDir = censusDir;
         this.checkCommitterStatus = checkCommitterStatus;
@@ -120,58 +120,19 @@ public class TestBot implements Bot {
         var host = repo.webUrl().getHost();
         var repoId = Long.toString(repo.id());
         for (var pr : repo.pullRequests()) {
+            var workItem = new TestWorkItem(ci,
+                                            approversGroupId,
+                                            allowlist,
+                                            availableJobs,
+                                            defaultJobs,
+                                            name,
+                                            storage,
+                                            pr,
+                                            isCommitter);
             if (cache.needsUpdate(pr)) {
-                ret.add(new TestWorkItem(ci,
-                                         approversGroupId,
-                                         allowlist,
-                                         availableJobs,
-                                         defaultJobs,
-                                         name,
-                                         storage,
-                                         pr,
-                                         isCommitter));
+                ret.add(workItem);
             } else {
-                // is there a job running for this PR?
-                var desc = pr.repository().name() + "#" + pr.id();
-                List<Job> jobs = List.of();
-                try {
-                    log.info("Getting test jobs for " + desc);
-                    jobs = ci.jobsFor(pr);
-                } catch (IOException e) {
-                    log.info("Could not retrieve test jobs for PR: " + desc);
-                    log.throwing("TestBot", "getPeriodicItems", e);
-                }
-
-                if (!jobs.isEmpty()) {
-                    var shouldUpdate = false;
-                    for (var job : jobs) {
-                        if (!states.containsKey(job.id())) {
-                            shouldUpdate = true;
-                            states.put(job.id(), new Observation(job.state(), job.state()));
-                        } else {
-                            var observed = states.get(job.id());
-
-                            if (!observed.last.equals(Job.State.COMPLETED) ||
-                                !observed.nextToLast.equals(Job.State.COMPLETED)) {
-                                shouldUpdate = true;
-                            }
-
-                            observed.nextToLast = observed.last;
-                            observed.last = job.state();
-                        }
-                    }
-                    if (shouldUpdate) {
-                        ret.add(new TestWorkItem(ci,
-                                                 approversGroupId,
-                                                 allowlist,
-                                                 availableJobs,
-                                                 defaultJobs,
-                                                 name,
-                                                 storage,
-                                                 pr,
-                                                 isCommitter));
-                    }
-                }
+                ret.add(new TestUpdateNeededWorkItem(pr, ci, states, workItem));
             }
         }
 
