@@ -32,6 +32,7 @@ import org.openjdk.skara.vcs.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.net.URI;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -151,6 +152,23 @@ public class TestHost implements Forge, IssueTracker {
     @Override
     public boolean isMemberOf(String groupId, HostUser user) {
         return false;
+    }
+
+    @Override
+    public Optional<HostedCommitMetadata> search(Hash hash) {
+        for (var key : data.repositories.keySet()) {
+            var repo = data.repositories.get(key);
+            try {
+                var commit = repo.lookup(hash);
+                if (commit.isPresent()) {
+                    var url = URI.create("file://" + repo.root() + "/commits/" + hash.hex());
+                    return Optional.of(new HostedCommitMetadata(commit.get().metadata(), url));
+                }
+            } catch (IOException e) {
+                return Optional.empty();
+            }
+        }
+        return Optional.empty();
     }
 
     void close() {

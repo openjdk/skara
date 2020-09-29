@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.tester;
 
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
+import org.openjdk.skara.vcs.Hash;
 
 import java.util.*;
 
@@ -64,5 +65,10 @@ class InMemoryHost implements Forge {
     @Override
     public boolean isMemberOf(String groupId, HostUser user) {
         return groups.get(groupId).contains(user);
+    }
+
+    @Override
+    public Optional<HostedCommitMetadata> search(Hash hash) {
+        return Optional.empty();
     }
 }

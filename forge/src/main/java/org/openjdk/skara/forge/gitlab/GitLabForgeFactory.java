@@ -3,9 +3,12 @@ package org.openjdk.skara.forge.gitlab;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.json.JSONObject;
+import org.openjdk.skara.json.JSONValue;
 
 import java.net.URI;
+import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class GitLabForgeFactory implements ForgeFactory {
     @Override
@@ -24,10 +27,17 @@ public class GitLabForgeFactory implements ForgeFactory {
         if (configuration != null && configuration.contains("name")) {
             name = configuration.get("name").asString();
         }
+        Set<String> groups = new HashSet<String>();
+        if (configuration != null && configuration.contains("groups")) {
+            groups = configuration.get("groups")
+                                  .stream()
+                                  .map(JSONValue::asString)
+                                  .collect(Collectors.toSet());
+        }
         if (credential != null) {
-            return new GitLabHost(name, uri, credential);
+            return new GitLabHost(name, uri, credential, groups);
         } else {
-            return new GitLabHost(name, uri);
+            return new GitLabHost(name, uri, groups);
         }
     }
 }

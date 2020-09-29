@@ -3,10 +3,13 @@ package org.openjdk.skara.forge.github;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.json.JSONObject;
+import org.openjdk.skara.json.JSONValue;
 
 import java.net.URI;
 import java.util.Set;
+import java.util.HashSet;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class GitHubForgeFactory implements ForgeFactory {
     @Override
@@ -28,18 +31,26 @@ public class GitHubForgeFactory implements ForgeFactory {
             webUriReplacement = configuration.get("weburl").get("replacement").asString();
         }
 
+        Set<String> orgs = new HashSet<String>();
+        if (configuration != null && configuration.contains("orgs")) {
+            orgs = configuration.get("orgs")
+                                .stream()
+                                .map(JSONValue::asString)
+                                .collect(Collectors.toSet());
+        }
+
         if (credential != null) {
             if (credential.username().contains(";")) {
                 var separator = credential.username().indexOf(";");
                 var id = credential.username().substring(0, separator);
                 var installation = credential.username().substring(separator + 1);
                 var app = new GitHubApplication(credential.password(), id, installation);
-                return new GitHubHost(uri, app, webUriPattern, webUriReplacement);
+                return new GitHubHost(uri, app, webUriPattern, webUriReplacement, orgs);
             } else {
-                return new GitHubHost(uri, credential, webUriPattern, webUriReplacement);
+                return new GitHubHost(uri, credential, webUriPattern, webUriReplacement, orgs);
             }
         } else {
-            return new GitHubHost(uri, webUriPattern, webUriReplacement);
+            return new GitHubHost(uri, webUriPattern, webUriReplacement, orgs);
         }
     }
 }
