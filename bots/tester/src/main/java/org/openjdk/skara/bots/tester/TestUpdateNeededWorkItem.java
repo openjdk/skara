@@ -49,7 +49,14 @@ public class TestUpdateNeededWorkItem implements WorkItem {
 
     @Override
     public boolean concurrentWith(WorkItem other) {
-        return false;
+        if (!(other instanceof TestUpdateNeededWorkItem)) {
+            return true;
+        }
+        var o = (TestUpdateNeededWorkItem) other;
+        if (!pr.repository().url().equals(o.pr.repository().url())) {
+            return true;
+        }
+        return !pr.id().equals(o.pr.id());
     }
 
     @Override
@@ -89,4 +96,10 @@ public class TestUpdateNeededWorkItem implements WorkItem {
         }
         return List.of();
     }
+
+    @Override
+    public String toString() {
+        return "TestUpdateNeededWorkItem@" + pr.repository().name() + "#" + pr.id();
+    }
+
 }
