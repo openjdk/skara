@@ -36,4 +36,5 @@ public class CommitMessageSyntax {
         public static final Pattern REVIEWED_BY_PATTERN = Pattern.compile("Reviewed-by: ((?:" + OPENJDK_USERNAME_REGEX + ")(?:, " + OPENJDK_USERNAME_REGEX + ")*)$");
         public static final Pattern CONTRIBUTED_BY_PATTERN = Pattern.compile("Contributed-by: (" + ATTR_REGEX + "(?:, " + ATTR_REGEX + ")*)$");
         public static final Pattern CO_AUTHOR_PATTERN = Pattern.compile("Co-authored-by: ((?:" + REAL_NAME_AND_EMAIL_ATTR_REGEX + ")(?:, " + REAL_NAME_AND_EMAIL_ATTR_REGEX + ")*)$");
+        public static final Pattern BACKPORT_OF_PATTERN = Pattern.compile("^Backport-of: ([0-9a-z]{40})$");
 }

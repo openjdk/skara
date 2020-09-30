@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.openjdk.skara.vcs.Author;
+import org.openjdk.skara.vcs.Hash;
 
 public class CommitMessageFormattersTests {
     private CommitMessageFormatter v0() {
@@ -145,6 +146,24 @@ public class CommitMessageFormattersTests {
                              "Co-authored-by: Baz Bar <baz@bar.org>",
                              "Co-authored-by: Foo Bar <foo@bar.org>",
                              "Reviewed-by: foo"),
+                     lines);
+    }
+
+    @Test
+    void formatVersion1WithOriginal() {
+        var lines = CommitMessage.title("01234567: A bug")
+                                 .summary("A summary")
+                                 .reviewer("foo")
+                                 .contributors(new Author("Baz Bar", "baz@bar.org"))
+                                 .original(new Hash("0123456789012345678901234567890123456789"))
+                                 .format(v1());
+        assertEquals(List.of("01234567: A bug",
+                             "",
+                             "A summary",
+                             "",
+                             "Co-authored-by: Baz Bar <baz@bar.org>",
+                             "Reviewed-by: foo",
+                             "Backport-of: 0123456789012345678901234567890123456789"),
                      lines);
     }
 }
