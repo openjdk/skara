@@ -313,13 +313,12 @@ public class Backports {
         allIssues.addAll(related);
 
         for (var streamIssues : groupByReleaseStream(allIssues)) {
-            // First entry should not have the label
-            var first = streamIssues.get(0);
-            if (first.labels().contains(label)) {
-                first.removeLabel(label);
-            }
-
-            // But all the following ones should
+            // The first issue may have the label if it was part of another
+            // stream. (e.g. feature release has 14 & 15 where update release
+            // has 15, 15.0.1 & 15.0.2. In this case the label should be
+            // applied to 15, which is the first releases in the 15u stream)
+            // This means we ignore the first issue for the purposes of adding
+            // the label.
             if (streamIssues.size() > 1) {
                 var rest = streamIssues.subList(1, streamIssues.size());
                 for (var i : rest) {
