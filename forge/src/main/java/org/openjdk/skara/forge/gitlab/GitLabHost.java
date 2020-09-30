@@ -26,12 +26,15 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
+import org.openjdk.skara.vcs.*;
 
 import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.logging.Logger;
+import java.time.ZonedDateTime;
 
 public class GitLabHost implements Forge {
     private final String name;
@@ -39,13 +42,15 @@ public class GitLabHost implements Forge {
     private final Credential pat;
     private final RestRequest request;
     private final Logger log = Logger.getLogger("org.openjdk.skara.forge.gitlab");
+    private final Set<String> groups;
 
     private HostUser cachedCurrentUser = null;
 
-    GitLabHost(String name, URI uri, Credential pat) {
+    GitLabHost(String name, URI uri, Credential pat, Set<String> groups) {
         this.name = name;
         this.uri = uri;
         this.pat = pat;
+        this.groups = groups;
 
         var baseApi = URIBuilder.base(uri)
                                 .setPath("/api/v4/")
@@ -53,10 +58,11 @@ public class GitLabHost implements Forge {
         request = new RestRequest(baseApi, pat.username(), () -> Arrays.asList("Private-Token", pat.password()));
     }
 
-    GitLabHost(String name, URI uri) {
+    GitLabHost(String name, URI uri, Set<String> groups) {
         this.name = name;
         this.uri = uri;
         this.pat = null;
+        this.groups = groups;
 
         var baseApi = URIBuilder.base(uri)
                                 .setPath("/api/v4/")
@@ -209,5 +215,45 @@ public class GitLabHost implements Forge {
                              .onError(r -> Optional.of(JSON.of()))
                              .execute();
         return !details.isNull();
+    }
+
+    CommitMetadata toCommitMetadata(JSONValue o) {
+        var hash = new Hash(o.get("id").asString());
+        var parents = o.get("parent_ids").stream()
+                                      .map(JSONValue::asString)
+                                      .map(Hash::new)
+                                      .collect(Collectors.toList());
+        var author = new Author(o.get("author_name").asString(),
+                                o.get("author_email").asString());
+        var authored = ZonedDateTime.parse(o.get("authored_date").asString());
+        var committer = new Author(o.get("committer_name").asString(),
+                                   o.get("committer_email").asString());
+        var committed = ZonedDateTime.parse(o.get("committed_date").asString());
+        var message = Arrays.asList(o.get("message").asString().split("\n"));
+        return new CommitMetadata(hash, parents, author, authored, committer, committed, message);
+    }
+
+    @Override
+    public Optional<HostedCommitMetadata> search(Hash hash) {
+        var hex = hash.hex();
+        for (var group : groups) {
+            var projects = request.get("groups/" + group + "/projects")
+                                  .execute()
+                                  .stream()
+                                  .map(o -> o.get("id").asString())
+                                  .collect(Collectors.toList());
+            for (var project : projects) {
+                var c = request.get("projects/" + project + "/repository/commits/" + hex)
+                               .onError(r -> Optional.of(JSON.of()))
+                               .execute();
+                if (!c.isNull()) {
+                    var url = URI.create(c.get("web_url").asString());
+                    var metadata = toCommitMetadata(c);
+                    return Optional.of(new HostedCommitMetadata(metadata, url));
+                }
+            }
+        }
+
+        return Optional.empty();
     }
 }

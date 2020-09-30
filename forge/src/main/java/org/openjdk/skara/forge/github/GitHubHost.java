@@ -26,12 +26,14 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
+import org.openjdk.skara.vcs.*;
 
 import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.time.*;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
@@ -47,13 +49,15 @@ public class GitHubHost implements Forge {
     private HostUser currentUser;
     private volatile Instant lastSearch = Instant.now();
     private final Logger log = Logger.getLogger("org.openjdk.skara.forge.github");
+    private final Set<String> orgs;
 
-    public GitHubHost(URI uri, GitHubApplication application, Pattern webUriPattern, String webUriReplacement) {
+    public GitHubHost(URI uri, GitHubApplication application, Pattern webUriPattern, String webUriReplacement, Set<String> orgs) {
         this.uri = uri;
         this.webUriPattern = webUriPattern;
         this.webUriReplacement = webUriReplacement;
         this.application = application;
         this.pat = null;
+        this.orgs = orgs;
         searchInterval = Duration.ofSeconds(3);
 
         var baseApi = URIBuilder.base(uri)
@@ -86,12 +90,13 @@ public class GitHubHost implements Forge {
         return graphQL;
     }
 
-    public GitHubHost(URI uri, Credential pat, Pattern webUriPattern, String webUriReplacement) {
+    public GitHubHost(URI uri, Credential pat, Pattern webUriPattern, String webUriReplacement, Set<String> orgs) {
         this.uri = uri;
         this.webUriPattern = webUriPattern;
         this.webUriReplacement = webUriReplacement;
         this.pat = pat;
         this.application = null;
+        this.orgs = orgs;
         searchInterval = Duration.ofSeconds(3);
 
         var baseApi = URIBuilder.base(uri)
@@ -115,12 +120,13 @@ public class GitHubHost implements Forge {
         ));
     }
 
-    GitHubHost(URI uri, Pattern webUriPattern, String webUriReplacement) {
+    GitHubHost(URI uri, Pattern webUriPattern, String webUriReplacement, Set<String> orgs) {
         this.uri = uri;
         this.webUriPattern = webUriPattern;
         this.webUriReplacement = webUriReplacement;
         this.pat = null;
         this.application = null;
+        this.orgs = orgs;
         searchInterval = Duration.ofSeconds(10);
 
         var baseApi = URIBuilder.base(uri)
@@ -225,7 +231,7 @@ public class GitHubHost implements Forge {
         return project.asObject();
     }
 
-    JSONObject runSearch(String query) {
+    JSONObject runSearch(String category, String query) {
         // Searches on GitHub uses a special rate limit, so make sure to wait between consecutive searches
         while (true) {
             synchronized (this) {
@@ -240,7 +246,7 @@ public class GitHubHost implements Forge {
             } catch (InterruptedException ignored) {
             }
         }
-        var result = request.get("search/issues")
+        var result = request.get("search/" + category)
                             .param("q", query)
                             .execute();
         return result.asObject();
@@ -322,5 +328,38 @@ public class GitHubHost implements Forge {
         }
 
         return false;
+    }
+
+    CommitMetadata toCommitMetadata(JSONValue o) {
+        var hash = new Hash(o.get("sha").asString());
+        var parents = o.get("parents").stream()
+                                      .map(p -> new Hash(p.get("sha").asString()))
+                                      .collect(Collectors.toList());
+        var commit = o.get("commit").asObject();
+        var author = new Author(commit.get("author").get("name").asString(),
+                                commit.get("author").get("email").asString());
+        var authored = ZonedDateTime.parse(commit.get("author").get("date").asString());
+        var committer = new Author(commit.get("committer").get("name").asString(),
+                                   commit.get("committer").get("email").asString());
+        var committed = ZonedDateTime.parse(commit.get("committer").get("date").asString());
+        var message = Arrays.asList(commit.get("message").asString().split("\n"));
+        return new CommitMetadata(hash, parents, author, authored, committer, committed, message);
+    }
+
+    @Override
+    public Optional<HostedCommitMetadata> search(Hash hash) {
+        var orgsToSearch = orgs.stream().map(o -> "org:" + o).collect(Collectors.joining("+"));
+        if (!orgsToSearch.isEmpty()) {
+            orgsToSearch = "+" + orgsToSearch;
+        }
+        var result = runSearch("commits", "hash:" + hash.hex() + orgsToSearch);
+        var items = result.get("items").asArray();
+        if (items.isEmpty()) {
+            return Optional.empty();
+        }
+        var first = items.get(0);
+        var metadata = toCommitMetadata(first);
+        var url = URI.create(first.get("url").asString());
+        return Optional.of(new HostedCommitMetadata(metadata, url));
     }
 }

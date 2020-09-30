@@ -151,7 +151,7 @@ public class GitHubRepository implements HostedRepository {
         if (author != null) {
             query += " commenter:" + author;
         }
-        var result = gitHubHost.runSearch(query);
+        var result = gitHubHost.runSearch("issues", query);
         return result.get("items").stream()
                      .map(jsonValue -> jsonValue.get("number").asInt())
                      .map(id -> pullRequest(id.toString()))
@@ -299,17 +299,6 @@ public class GitHubRepository implements HostedRepository {
         if (o.isNull()) {
             return Optional.empty();
         }
-        var parents = o.get("parents").stream()
-                                      .map(p -> new Hash(p.get("sha").asString()))
-                                      .collect(Collectors.toList());
-        var commit = o.get("commit").asObject();
-        var author = new Author(commit.get("author").get("name").asString(),
-                                commit.get("author").get("email").asString());
-        var authored = ZonedDateTime.parse(commit.get("author").get("date").asString());
-        var committer = new Author(commit.get("committer").get("name").asString(),
-                                   commit.get("committer").get("email").asString());
-        var committed = ZonedDateTime.parse(commit.get("committer").get("date").asString());
-        var message = Arrays.asList(commit.get("message").asString().split("\n"));
-        return Optional.of(new CommitMetadata(hash, parents, author, authored, committer, committed, message));
+        return Optional.of(gitHubHost.toCommitMetadata(o));
     }
 }

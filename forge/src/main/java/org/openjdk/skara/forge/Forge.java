@@ -24,6 +24,7 @@ package org.openjdk.skara.forge;
 
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.json.JSONObject;
+import org.openjdk.skara.vcs.Hash;
 
 import java.net.URI;
 import java.util.*;
@@ -33,6 +34,7 @@ public interface Forge extends Host {
     String name();
     Optional<HostedRepository> repository(String name);
     boolean supportsReviewBody();
+    Optional<HostedCommitMetadata> search(Hash hash);
 
     static Forge from(String name, URI uri, Credential credential, JSONObject configuration) {
         var factory = ForgeFactory.getForgeFactories().stream()

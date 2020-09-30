@@ -131,6 +131,10 @@ public class JSONArray implements JSONValue, Iterable<JSONValue> {
         return values.size();
     }
 
+    public boolean isEmpty() {
+        return values.isEmpty();
+    }
+
     @Override
     public String toString() {
         var builder = new StringBuilder();

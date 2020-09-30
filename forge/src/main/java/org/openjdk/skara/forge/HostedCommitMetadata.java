@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,19 +20,22 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.vcs;
+package org.openjdk.skara.forge;
 
+import org.openjdk.skara.vcs.*;
+
+import java.net.URI;
+import java.util.*;
 import java.time.*;
 import java.time.format.*;
-import java.util.*;
 
-public class Commit {
+public class HostedCommitMetadata {
     private final CommitMetadata metadata;
-    private final List<Diff> parentDiffs;
+    private final URI url;
 
-    public Commit(CommitMetadata metadata, List<Diff> parentDiffs) {
+    public HostedCommitMetadata(CommitMetadata metadata, URI url) {
         this.metadata = metadata;
-        this.parentDiffs = parentDiffs;
+        this.url = url;
     }
 
     public Hash hash() {
@@ -55,20 +58,16 @@ public class Commit {
         return metadata.parents();
     }
 
-    public List<Diff> parentDiffs() {
-        return parentDiffs;
-    }
-
-    public boolean isInitialCommit() {
-        return metadata.isInitialCommit();
-    }
-
     public ZonedDateTime authored() {
         return metadata.authored();
     }
 
     public ZonedDateTime committed() {
         return metadata.committed();
+    }
+
+    public boolean isInitialCommit() {
+        return metadata.isInitialCommit();
     }
 
     public boolean isMerge() {
@@ -79,27 +78,28 @@ public class Commit {
         return metadata.numParents();
     }
 
-    public CommitMetadata metadata() {
-        return metadata;
+    public URI url() {
+        return url;
     }
 
     @Override
     public String toString() {
-        return metadata.toString();
+        return url.toString();
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(metadata, parentDiffs);
+        return Objects.hash(metadata, url);
     }
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof Commit)) {
+        if (!(o instanceof HostedCommitMetadata)) {
             return false;
         }
 
-        var other = (Commit) o;
-        return Objects.equals(metadata, other.metadata) && Objects.equals(parentDiffs, other.parentDiffs);
+        var other = (HostedCommitMetadata) o;
+        return Objects.equals(metadata, other.metadata) &&
+               Objects.equals(url, other.url);
     }
 }

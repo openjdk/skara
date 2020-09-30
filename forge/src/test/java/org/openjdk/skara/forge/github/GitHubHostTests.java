@@ -29,6 +29,7 @@ import org.openjdk.skara.test.TemporaryDirectory;
 import java.io.IOException;
 import java.net.*;
 import java.util.regex.Pattern;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -37,7 +38,8 @@ class GitHubHostTests {
     void webUriPatternReplacement() throws IOException, URISyntaxException {
         try (var tempFolder = new TemporaryDirectory()) {
             var host = new GitHubHost(URIBuilder.base("http://www.example.com").build(),
-                                      Pattern.compile("^(http://www.example.com)/test/(.*)$"), "$1/another/$2");
+                                      Pattern.compile("^(http://www.example.com)/test/(.*)$"), "$1/another/$2",
+                                      Set.of());
             assertEquals(new URI("http://www.example.com/another/hello"), host.getWebURI("/test/hello"));
         }
     }
@@ -46,7 +48,8 @@ class GitHubHostTests {
     void nonTransformedWebUrl() throws IOException, URISyntaxException {
         try (var tempFolder = new TemporaryDirectory()) {
             var host = new GitHubHost(URIBuilder.base("http://www.example.com").build(),
-                                      Pattern.compile("^(http://www.example.com)/test/(.*)$"), "$1/another/$2");
+                                      Pattern.compile("^(http://www.example.com)/test/(.*)$"), "$1/another/$2",
+                                      Set.of());
             assertEquals(new URI("http://www.example.com/another/hello"), host.getWebURI("/test/hello"));
             assertEquals(new URI("http://www.example.com/test/hello"), host.getWebURI("/test/hello", false));
         }
