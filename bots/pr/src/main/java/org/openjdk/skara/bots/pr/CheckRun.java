@@ -809,7 +809,7 @@ class CheckRun {
             List<String> additionalErrors = List.of();
             Hash localHash;
             try {
-                localHash = checkablePullRequest.commit(commitHash, censusInstance.namespace(), censusDomain, null);
+                localHash = checkablePullRequest.commit(commitHash, censusInstance.namespace(), censusDomain, null, null);
             } catch (CommitFailure e) {
                 additionalErrors = List.of(e.getMessage());
                 localHash = baseHash;

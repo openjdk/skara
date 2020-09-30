@@ -40,6 +40,10 @@ class Reviewers {
         return String.format(addMarker, contributor.username());
     }
 
+    static String addReviewerMarker(String username) {
+        return String.format(addMarker, username);
+    }
+
     static String removeReviewerMarker(Contributor contributor) {
         return String.format(removeMarker, contributor.username());
     }

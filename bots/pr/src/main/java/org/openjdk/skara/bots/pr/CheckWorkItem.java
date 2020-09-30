@@ -26,6 +26,8 @@ import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.vcs.Hash;
+import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -37,11 +39,13 @@ import java.util.function.Consumer;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 class CheckWorkItem extends PullRequestWorkItem {
     private final Pattern metadataComments = Pattern.compile("<!-- (?:(add|remove) (?:contributor|reviewer))|(?:summary: ')|(?:solves: ')|(?:additional required reviewers)");
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     static final Pattern ISSUE_ID_PATTERN = Pattern.compile("^(?:[A-Za-z][A-Za-z0-9]+-)?([0-9]+)$");
+    private static final Pattern BACKPORT_TITLE_PATTERN = Pattern.compile("^Backport ([0-9a-z]{40})$");
 
     CheckWorkItem(PullRequestBot bot, PullRequest pr, Consumer<RuntimeException> errorHandler) {
         super(bot, pr, errorHandler);
@@ -167,6 +171,55 @@ class CheckWorkItem extends PullRequestWorkItem {
             if (labels.contains("integrated")) {
                 log.info("Skipping check of integrated PR");
                 return List.of();
+            }
+
+            var m = BACKPORT_TITLE_PATTERN.matcher(pr.title());
+            if (m.matches()) {
+                var hash = new Hash(m.group(1));
+                var metadata = pr.repository().forge().search(hash);
+                if (metadata.isPresent()) {
+                    var message = CommitMessageParsers.v1.parse(metadata.get().message());
+                    var issues = message.issues();
+                    if (!issues.isEmpty()) {
+                        pr.setTitle(issues.get(0).toString());
+                    }
+
+                    var comment = new ArrayList<String>();
+                    comment.add("<!-- backport " + hash.hex() + " -->\n");
+                    for (var issue : issues.subList(1, issues.size())) {
+                        comment.add(SolvesTracker.setSolvesMarker(issue));
+                    }
+                    var summary = message.summaries();
+                    if (!summary.isEmpty()) {
+                        comment.add(Summary.setSummaryMarker(String.join("\n", summary)));
+                    }
+
+                    var text = "This backport pull request has now been updated with issue";
+                    if (issues.size() > 1) {
+                        text += "s";
+                    }
+                    if (!summary.isEmpty()) {
+                        text += " and summary";
+                    }
+                    text += " from the original [commit](" + metadata.get().url() + ").";
+                    comment.add(text);
+                    pr.addComment(String.join("\n", comment));
+                    return List.of(new CheckWorkItem(bot, pr.repository().pullRequest(pr.id()), errorHandler));
+                } else {
+                    var botUser = pr.repository().forge().currentUser();
+                    var isErrorPresent = pr.comments()
+                                           .stream()
+                                           .filter(c -> c.author().equals(botUser))
+                                           .flatMap(c -> Stream.of(c.body().split("\n")))
+                                           .anyMatch(l -> l.equals("<!-- backport error -->"));
+                    if (!isErrorPresent) {
+                        var text = "<!-- backport error -->\n" +
+                                   ":warning: @" + pr.author().userName() + " could not find any commit with hash `" +
+                                   hash.hex() + "`. Please update the title with the hash for an existing commit.";
+                        pr.addComment(text);
+                    }
+                    return List.of();
+                }
             }
 
             // If the title needs updating, we run the check again
