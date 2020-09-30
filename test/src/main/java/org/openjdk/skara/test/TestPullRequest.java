@@ -40,7 +40,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     private final TestHostedRepository sourceRepository;
     private final String targetRef;
     private final String sourceRef;
-    private final PullRequestData data;
+    final PullRequestData data;
 
     private TestPullRequest(TestHostedRepository targetRepository, TestHostedRepository sourceRepository, String id, HostUser author, HostUser user, String targetRef, String sourceRef, PullRequestData data) {
         super(targetRepository, id, author, user, data);
@@ -170,7 +170,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     @Override
     public void createCheck(Check check) {
         var existing = data.checks.stream()
-                                  .filter(c -> check.name().equals(check.name()))
+                                  .filter(c -> c.name().equals(check.name()))
                                   .findAny();
         existing.ifPresent(data.checks::remove);
         data.checks.add(check);

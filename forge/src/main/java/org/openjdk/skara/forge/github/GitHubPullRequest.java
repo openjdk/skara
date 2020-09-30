@@ -395,6 +395,9 @@ public class GitHubPullRequest implements PullRequest {
                                     checkBuilder.summary(output.get("summary").asString());
                                 }
                             }
+                            if (c.contains("details_url")) {
+                                checkBuilder.details(URI.create(c.get("details_url").asString()));
+                            }
 
                             return checkBuilder.build();
                         }, (a, b) -> b));

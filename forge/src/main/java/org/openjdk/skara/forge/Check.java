@@ -24,6 +24,7 @@ package org.openjdk.skara.forge;
 
 import org.openjdk.skara.vcs.Hash;
 
+import java.net.URI;
 import java.time.ZonedDateTime;
 import java.util.*;
 
@@ -37,8 +38,10 @@ public class Check {
     private final String summary;
     private final List<CheckAnnotation> annotations;
     private final String name;
+    private final URI details;
 
-    Check(String name, Hash hash, CheckStatus status, ZonedDateTime startedAt, ZonedDateTime completedAt, String metadata, String title, String summary, List<CheckAnnotation> annotations) {
+    Check(String name, Hash hash, CheckStatus status, ZonedDateTime startedAt, ZonedDateTime completedAt,
+          String metadata, String title, String summary, List<CheckAnnotation> annotations, URI details) {
         this.name = name;
         this.hash = hash;
         this.status = status;
@@ -48,6 +51,7 @@ public class Check {
         this.title = title;
         this.summary = summary;
         this.annotations = annotations;
+        this.details = details;
     }
 
     public String name() {
@@ -84,5 +88,9 @@ public class Check {
 
     public List<CheckAnnotation> annotations() {
         return annotations;
+    }
+
+    public Optional<URI> details() {
+        return Optional.ofNullable(details);
     }
 }

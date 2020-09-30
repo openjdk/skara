@@ -344,4 +344,9 @@ public class GitLabRepository implements HostedRepository {
         var message = Arrays.asList(c.get("message").asString().split("\n"));
         return Optional.of(new CommitMetadata(hash, parents, author, authored, committer, committed, message));
     }
+
+    @Override
+    public List<Check> allChecks(Hash hash) {
+        return List.of();
+    }
 }
