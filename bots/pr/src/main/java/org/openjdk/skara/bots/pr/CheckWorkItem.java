@@ -80,8 +80,8 @@ class CheckWorkItem extends PullRequestWorkItem {
                                     .sorted()
                                     .collect(Collectors.joining());
             var digest = MessageDigest.getInstance("SHA-256");
-            digest.update(title.getBytes(StandardCharsets.UTF_8));
-            digest.update(body.getBytes(StandardCharsets.UTF_8));
+            digest.update(title.strip().getBytes(StandardCharsets.UTF_8));
+            digest.update(body.strip().getBytes(StandardCharsets.UTF_8));
             digest.update(approverString.getBytes(StandardCharsets.UTF_8));
             digest.update(commentString.getBytes(StandardCharsets.UTF_8));
             digest.update(labelString.getBytes(StandardCharsets.UTF_8));
