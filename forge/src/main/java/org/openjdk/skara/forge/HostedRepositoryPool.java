@@ -79,16 +79,8 @@ public class HostedRepositoryPool {
         }
 
         private void removeOldClone(Path path, String reason) {
-            if (!Files.exists(seed)) {
-                try {
-                    Files.createDirectories(seed.getParent());
-                } catch (IOException e) {
-                    log.severe("Failed to create seed parent folder: " + seed.getParent());
-                    log.throwing("HostedRepositoryInstance", "preserveOldClone", e);
-                }
-            }
             if (Files.exists(path)) {
-                var preserved = seed.resolveSibling(seed.getFileName().toString() + "-" + reason + "-" + UUID.randomUUID());
+                var preserved = path.resolveSibling(seed.getFileName().toString() + "-" + reason + "-" + UUID.randomUUID());
                 log.severe("Invalid local repository detected (" + reason + ") - preserved in: " + preserved);
                 try {
                     Files.move(path, preserved);
