@@ -122,7 +122,7 @@ public class TestResults {
                         resultsBody.append(" (").append(failureCount).append("/").append(total).append(" failed) |");
                     } else if (pendingCount > 0) {
                         resultsBody.append(" ⏳");
-                        resultsBody.append(" (").append(pendingCount).append("/").append(total).append(" in progress) |");
+                        resultsBody.append(" (").append(pendingCount).append("/").append(total).append(" running) |");
                     } else {
                         resultsBody.append(" ✔️");
                         resultsBody.append(" (").append(successCount).append("/").append(total).append(" passed) |");

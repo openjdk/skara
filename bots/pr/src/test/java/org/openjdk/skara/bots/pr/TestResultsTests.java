@@ -156,7 +156,7 @@ public class TestResultsTests {
                              "\n" +
                              "|     | Linux x64 | Windows x64 |\n" +
                              "| --- | ----- | ----- |\n" +
-                             "| Build / test | ✔️ (1/1 passed) | ⏳ (1/1 in progress) |", summary.get().strip());
+                             "| Build / test | ✔️ (1/1 passed) | ⏳ (1/1 running) |", summary.get().strip());
     }
 
     @Test
