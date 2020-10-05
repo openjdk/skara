@@ -1724,10 +1724,11 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The body should contain the issue title
-            assertTrue(pr.body().contains("Pre-submit test results"));
-            assertTrue(pr.body().contains("1 job completed successfully"));
-            assertTrue(pr.body().contains("The job [ps3](https://www.example.com) failed"));
-            assertTrue(pr.body().contains("The job `ps2` failed"));
+            assertTrue(pr.body().contains("Successful test task"));
+            assertTrue(pr.body().contains("|     | ps1 | ps2 | ps3 |"));
+            assertTrue(pr.body().contains("**Failed test tasks**"));
+            assertTrue(pr.body().contains("- [ps3](https://www.example.com)"));
+            assertTrue(pr.body().contains("- `ps2`"));
         }
     }
 }

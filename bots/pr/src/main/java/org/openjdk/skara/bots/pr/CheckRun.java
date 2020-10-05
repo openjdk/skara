@@ -31,9 +31,8 @@ import org.openjdk.skara.vcs.openjdk.Issue;
 
 import java.io.*;
 import java.nio.file.Path;
-import java.util.*;
 import java.time.ZonedDateTime;
-import java.util.function.Function;
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.stream.*;
@@ -371,54 +370,6 @@ class CheckRun {
                                      .replaceAll("\\s+", " "));
     }
 
-    private List<String> preSubmitResults() {
-        var ret = new ArrayList<String>();
-
-        if (pr.sourceRepository().isEmpty()) {
-            return ret;
-        }
-
-        var sourceRepo = pr.sourceRepository().get();
-        var checks = sourceRepo.allChecks(pr.headHash());
-        var successCount = 0;
-        var inProgressCount = 0;
-
-        // Retain only the latest when there are multiple checks with the same name
-        var latestChecks = checks.stream()
-                                 .filter(check -> !check.name().equals("jcheck"))
-                                 .sorted(Comparator.comparing(Check::startedAt, ZonedDateTime::compareTo))
-                                 .collect(Collectors.toMap(Check::name, Function.identity(), (a, b) -> b, LinkedHashMap::new));
-
-        for (var check : latestChecks.values()) {
-            switch (check.status()) {
-                case SUCCESS:
-                    successCount++;
-                    break;
-                case IN_PROGRESS:
-                    inProgressCount++;
-                    break;
-                case CANCELLED:
-                    break;
-                case FAILURE:
-                    if (check.details().isPresent()) {
-                        ret.add("⚠️ The job [" + check.name() + "](" + check.details().get().toString() + ") failed.");
-                    } else {
-                        ret.add("⚠️ The job `" + check.name() + "` failed.");
-                    }
-                    break;
-            }
-        }
-
-        if (inProgressCount > 0) {
-            ret.add(0, "⏳ " + inProgressCount + " job" + (inProgressCount > 1 ? "s" : "") + " still in progress...");
-        }
-        if (successCount > 0) {
-            ret.add(0, "✅ " + successCount + " job" + (successCount > 1 ? "s" : "") + " completed successfully!");
-        }
-
-        return ret;
-    }
-
     private String getStatusMessage(List<Comment> comments, List<Review> reviews, PullRequestCheckIssueVisitor visitor,
                                     List<String> additionalErrors, List<String> integrationBlockers) {
         var progressBody = new StringBuilder();
@@ -438,15 +389,12 @@ class CheckRun {
             progressBody.append(warningListToText(allAdditionalErrors));
         }
 
-        var preSubmitResults = preSubmitResults();
-        if (!preSubmitResults.isEmpty()) {
-            progressBody.append("\n\n### Pre-submit test result");
-            if (preSubmitResults.size() > 1) {
-                progressBody.append("s");
-            }
-            progressBody.append("\n");
-            progressBody.append(String.join("\n", preSubmitResults));
+        if (pr.sourceRepository().isPresent()) {
+            var sourceRepo = pr.sourceRepository().get();
+            var checks = sourceRepo.allChecks(pr.headHash());
 
+            var resultSummary = TestResults.summarize(checks);
+            resultSummary.ifPresent(progressBody::append);
         }
 
         if (!integrationBlockers.isEmpty()) {
