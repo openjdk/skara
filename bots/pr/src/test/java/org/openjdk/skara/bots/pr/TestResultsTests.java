@@ -38,13 +38,11 @@ public class TestResultsTests {
                                 .complete(true)
                                 .build();
         var summary = TestResults.summarize(List.of(check));
-        assertEquals("\n" +
-                             "\n" +
-                             "### Successful test tasks\n" +
+        assertEquals("### Successful test tasks\n" +
                              "\n" +
                              "|     | Test |\n" +
-                             "| --- | :-----: |\n" +
-                             "| Build / test | ✔️ (1/1) |", summary.get());
+                             "| --- | ----- |\n" +
+                             "| Build / test | ✔️ (1/1 passed) |", summary.get().strip());
     }
 
     @Test
@@ -56,13 +54,11 @@ public class TestResultsTests {
                                  .complete(true)
                                  .build();
         var summary = TestResults.summarize(List.of(check1, check2));
-        assertEquals("\n" +
-                             "\n" +
-                             "### Successful test tasks\n" +
+        assertEquals("### Successful test tasks\n" +
                              "\n" +
                              "|     | Linux x64 | Windows x64 |\n" +
-                             "| --- | :-----: | :-----: |\n" +
-                             "| Build / test | ✔️ (1/1) | ✔️ (1/1) |", summary.get());
+                             "| --- | ----- | ----- |\n" +
+                             "| Build / test | ✔️ (1/1 passed) | ✔️ (1/1 passed) |", summary.get().strip());
     }
 
     @Test
@@ -74,14 +70,12 @@ public class TestResultsTests {
                                  .complete(true)
                                  .build();
         var summary = TestResults.summarize(List.of(check1, check2));
-        assertEquals("\n" +
-                             "\n" +
-                             "### Successful test tasks\n" +
+        assertEquals("### Successful test tasks\n" +
                              "\n" +
                              "|     | Linux x64 |\n" +
-                             "| --- | :-----: |\n" +
-                             "| Build | ✔️ (1/1) |\n" +
-                             "| Test (tier1) | ✔️ (1/1) |", summary.get());
+                             "| --- | ----- |\n" +
+                             "| Build | ✔️ (1/1 passed) |\n" +
+                             "| Test (tier1) | ✔️ (1/1 passed) |", summary.get().strip());
     }
 
     @Test
@@ -99,14 +93,12 @@ public class TestResultsTests {
                                  .complete(true)
                                  .build();
         var summary = TestResults.summarize(List.of(check1, check2, check3, check4));
-        assertEquals("\n" +
-                             "\n" +
-                             "### Successful test tasks\n" +
+        assertEquals("### Successful test tasks\n" +
                              "\n" +
                              "|     | Linux x64 | Windows x64 |\n" +
-                             "| --- | :-----: | :-----: |\n" +
-                             "| Build | ✔️ (1/1) | ✔️ (1/1) |\n" +
-                             "| Test (tier1) | ✔️ (1/1) | ✔️ (1/1) |", summary.get());
+                             "| --- | ----- | ----- |\n" +
+                             "| Build | ✔️ (1/1 passed) | ✔️ (1/1 passed) |\n" +
+                             "| Test (tier1) | ✔️ (1/1 passed) | ✔️ (1/1 passed) |", summary.get().strip());
     }
 
     @Test
@@ -124,14 +116,12 @@ public class TestResultsTests {
                                  .complete(true)
                                  .build();
         var summary = TestResults.summarize(List.of(check1, check2, check3, check4));
-        assertEquals("\n" +
-                             "\n" +
-                             "### Successful test tasks\n" +
+        assertEquals("### Successful test tasks\n" +
                              "\n" +
                              "|     | Linux x64 | Windows x64 | macOS x64 |\n" +
-                             "| --- | :-----: | :-----: | :-----: |\n" +
-                             "| Build | ✔️ (1/1) | ✔️ (1/1) | ✔️ (1/1) |\n" +
-                             "| Test (tier1) | ✔️ (1/1) |    |     | ", summary.get());
+                             "| --- | ----- | ----- | ----- |\n" +
+                             "| Build | ✔️ (1/1 passed) | ✔️ (1/1 passed) | ✔️ (1/1 passed) |\n" +
+                             "| Test (tier1) | ✔️ (1/1 passed) |    |     |", summary.get().strip());
     }
 
     @Test
@@ -144,16 +134,14 @@ public class TestResultsTests {
                                  .details(URI.create("www.example.com"))
                                  .build();
         var summary = TestResults.summarize(List.of(check1, check2));
-        assertEquals("\n" +
-                             "\n" +
-                             "### Successful test tasks\n" +
+        assertEquals("### Successful test tasks\n" +
                              "\n" +
                              "|     | Linux x64 | Windows x64 |\n" +
-                             "| --- | :-----: | :-----: |\n" +
-                             "| Build / test | ✔️ (1/1) | ❌ (0/1) |\n" +
+                             "| --- | ----- | ----- |\n" +
+                             "| Build / test | ✔️ (1/1 passed) | ❌ (1/1 failed) |\n" +
                              "\n" +
                              "**Failed test task**\n" +
-                             "- [Windows x64 (test)](www.example.com)", summary.get());
+                             "- [Windows x64 (test)](www.example.com)", summary.get().strip());
     }
 
     @Test
@@ -164,13 +152,11 @@ public class TestResultsTests {
         var check2 = CheckBuilder.create("Windows x64 (test)", Hash.zero())
                                  .build();
         var summary = TestResults.summarize(List.of(check1, check2));
-        assertEquals("\n" +
-                             "\n" +
-                             "### Successful test tasks\n" +
+        assertEquals("### Successful test tasks\n" +
                              "\n" +
                              "|     | Linux x64 | Windows x64 |\n" +
-                             "| --- | :-----: | :-----: |\n" +
-                             "| Build / test | ✔️ (1/1) | ⏳ (0/1) |", summary.get());
+                             "| --- | ----- | ----- |\n" +
+                             "| Build / test | ✔️ (1/1 passed) | ⏳ (1/1 in progress) |", summary.get().strip());
     }
 
     @Test
@@ -199,13 +185,11 @@ public class TestResultsTests {
                                  .complete(true)
                                  .build();
         var summary = TestResults.summarize(List.of(check1, check2, check3, check4));
-        assertEquals("\n" +
-                             "\n" +
-                             "### Successful test tasks\n" +
+        assertEquals("### Successful test tasks\n" +
                              "\n" +
                              "|     | Linux x64 |\n" +
-                             "| --- | :-----: |\n" +
-                             "| Build | ✔️ (1/1) |\n" +
-                             "| Test (tier1) | ✔️ (1/1) |", summary.get());
+                             "| --- | ----- |\n" +
+                             "| Build | ✔️ (1/1 passed) |\n" +
+                             "| Test (tier1) | ✔️ (1/1 passed) |", summary.get().strip());
     }
 }

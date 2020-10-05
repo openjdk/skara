@@ -93,7 +93,7 @@ public class TestResults {
         resultsBody.append("|     |");
         platforms.forEach(platform -> resultsBody.append(" ").append(platform).append(" |"));
         resultsBody.append("\n| --- |");
-        platforms.forEach(platform -> resultsBody.append(" :-----: |"));
+        platforms.forEach(platform -> resultsBody.append(" ----- |"));
         for (var flavor : flavors) {
             resultsBody.append("\n| ").append(flavor).append(" |");
             for (var platform : platforms) {
@@ -119,12 +119,14 @@ public class TestResults {
                     int total = failureCount + pendingCount + successCount;
                     if (failureCount > 0) {
                         resultsBody.append(" ❌");
+                        resultsBody.append(" (").append(failureCount).append("/").append(total).append(" failed) |");
                     } else if (pendingCount > 0) {
                         resultsBody.append(" ⏳");
+                        resultsBody.append(" (").append(pendingCount).append("/").append(total).append(" in progress) |");
                     } else {
                         resultsBody.append(" ✔️");
+                        resultsBody.append(" (").append(successCount).append("/").append(total).append(" passed) |");
                     }
-                    resultsBody.append(" (").append(successCount).append("/").append(total).append(") |");
 
                 } else {
                     resultsBody.append("    | ");
