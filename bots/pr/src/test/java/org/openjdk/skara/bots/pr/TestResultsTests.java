@@ -38,7 +38,7 @@ public class TestResultsTests {
                                 .complete(true)
                                 .build();
         var summary = TestResults.summarize(List.of(check));
-        assertEquals("### Successful test tasks\n" +
+        assertEquals("### Testing\n" +
                              "\n" +
                              "|     | Test |\n" +
                              "| --- | ----- |\n" +
@@ -54,7 +54,7 @@ public class TestResultsTests {
                                  .complete(true)
                                  .build();
         var summary = TestResults.summarize(List.of(check1, check2));
-        assertEquals("### Successful test tasks\n" +
+        assertEquals("### Testing\n" +
                              "\n" +
                              "|     | Linux x64 | Windows x64 |\n" +
                              "| --- | ----- | ----- |\n" +
@@ -70,7 +70,7 @@ public class TestResultsTests {
                                  .complete(true)
                                  .build();
         var summary = TestResults.summarize(List.of(check1, check2));
-        assertEquals("### Successful test tasks\n" +
+        assertEquals("### Testing\n" +
                              "\n" +
                              "|     | Linux x64 |\n" +
                              "| --- | ----- |\n" +
@@ -93,7 +93,7 @@ public class TestResultsTests {
                                  .complete(true)
                                  .build();
         var summary = TestResults.summarize(List.of(check1, check2, check3, check4));
-        assertEquals("### Successful test tasks\n" +
+        assertEquals("### Testing\n" +
                              "\n" +
                              "|     | Linux x64 | Windows x64 |\n" +
                              "| --- | ----- | ----- |\n" +
@@ -116,7 +116,7 @@ public class TestResultsTests {
                                  .complete(true)
                                  .build();
         var summary = TestResults.summarize(List.of(check1, check2, check3, check4));
-        assertEquals("### Successful test tasks\n" +
+        assertEquals("### Testing\n" +
                              "\n" +
                              "|     | Linux x64 | Windows x64 | macOS x64 |\n" +
                              "| --- | ----- | ----- | ----- |\n" +
@@ -134,7 +134,7 @@ public class TestResultsTests {
                                  .details(URI.create("www.example.com"))
                                  .build();
         var summary = TestResults.summarize(List.of(check1, check2));
-        assertEquals("### Successful test tasks\n" +
+        assertEquals("### Testing\n" +
                              "\n" +
                              "|     | Linux x64 | Windows x64 |\n" +
                              "| --- | ----- | ----- |\n" +
@@ -152,11 +152,11 @@ public class TestResultsTests {
         var check2 = CheckBuilder.create("Windows x64 (test)", Hash.zero())
                                  .build();
         var summary = TestResults.summarize(List.of(check1, check2));
-        assertEquals("### Successful test tasks\n" +
+        assertEquals("### Testing\n" +
                              "\n" +
                              "|     | Linux x64 | Windows x64 |\n" +
                              "| --- | ----- | ----- |\n" +
-                             "| Build / test | ✔️ (1/1 passed) | ⏳ (1/1 in progress) |", summary.get().strip());
+                             "| Build / test | ✔️ (1/1 passed) | ⏳ (1/1 running) |", summary.get().strip());
     }
 
     @Test
@@ -185,7 +185,7 @@ public class TestResultsTests {
                                  .complete(true)
                                  .build();
         var summary = TestResults.summarize(List.of(check1, check2, check3, check4));
-        assertEquals("### Successful test tasks\n" +
+        assertEquals("### Testing\n" +
                              "\n" +
                              "|     | Linux x64 |\n" +
                              "| --- | ----- |\n" +

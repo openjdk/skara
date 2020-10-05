@@ -89,7 +89,7 @@ public class TestResults {
                                                                                   .collect(Collectors.groupingBy(check -> flavorFromName(check.name())))));
 
         var resultsBody = new StringBuilder();
-        resultsBody.append("\n\n### Successful test tasks\n\n");
+        resultsBody.append("\n\n### Testing\n\n");
         resultsBody.append("|     |");
         platforms.forEach(platform -> resultsBody.append(" ").append(platform).append(" |"));
         resultsBody.append("\n| --- |");
@@ -122,7 +122,7 @@ public class TestResults {
                         resultsBody.append(" (").append(failureCount).append("/").append(total).append(" failed) |");
                     } else if (pendingCount > 0) {
                         resultsBody.append(" ⏳");
-                        resultsBody.append(" (").append(pendingCount).append("/").append(total).append(" in progress) |");
+                        resultsBody.append(" (").append(pendingCount).append("/").append(total).append(" running) |");
                     } else {
                         resultsBody.append(" ✔️");
                         resultsBody.append(" (").append(successCount).append("/").append(total).append(" passed) |");
