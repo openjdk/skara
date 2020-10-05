@@ -24,11 +24,11 @@ package org.openjdk.skara.forge;
 
 import org.openjdk.skara.vcs.Hash;
 
+import java.net.URI;
 import java.time.*;
 import java.util.*;
 
 public class CheckBuilder {
-
     private final String name;
     private final Hash hash;
 
@@ -39,6 +39,7 @@ public class CheckBuilder {
     private ZonedDateTime completedAt;
     private String title;
     private String summary;
+    private URI details;
 
     private CheckBuilder(String name, Hash hash) {
         this.name = name;
@@ -124,7 +125,12 @@ public class CheckBuilder {
         return this;
     }
 
+    public CheckBuilder details(URI details) {
+        this.details = details;
+        return this;
+    }
+
     public Check build() {
-        return new Check(name, hash, status, startedAt, completedAt, metadata, title, summary, annotations);
+        return new Check(name, hash, status, startedAt, completedAt, metadata, title, summary, annotations, details);
     }
 }

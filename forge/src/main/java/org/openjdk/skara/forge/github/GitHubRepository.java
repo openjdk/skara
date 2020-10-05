@@ -301,4 +301,54 @@ public class GitHubRepository implements HostedRepository {
         }
         return Optional.of(gitHubHost.toCommitMetadata(o));
     }
+
+    @Override
+    public List<Check> allChecks(Hash hash) {
+        var checks = request.get("commits/" + hash.hex() + "/check-runs").execute();
+
+        return checks.get("check_runs").stream()
+                     .map(c -> {
+                         var checkBuilder = CheckBuilder.create(c.get("name").asString(), new Hash(c.get("head_sha").asString()));
+                         checkBuilder.startedAt(ZonedDateTime.parse(c.get("started_at").asString()));
+
+                         var completed = c.get("status").asString().equals("completed");
+                         if (completed) {
+                             var conclusion = c.get("conclusion").asString();
+                             var completedAt = ZonedDateTime.parse(c.get("completed_at").asString());
+                             switch (conclusion) {
+                                 case "cancelled":
+                                     checkBuilder.cancel(completedAt);
+                                     break;
+                                 case "success":
+                                     checkBuilder.complete(true, completedAt);
+                                     break;
+                                 case "failure":
+                                     // fallthrough
+                                 case "neutral":
+                                     checkBuilder.complete(false, completedAt);
+                                     break;
+                                 default:
+                                     throw new IllegalStateException("Unexpected conclusion: " + conclusion);
+                             }
+                         }
+                         if (c.contains("external_id")) {
+                             checkBuilder.metadata(c.get("external_id").asString());
+                         }
+                         if (c.contains("output")) {
+                             var output = c.get("output").asObject();
+                             if (output.contains("title")) {
+                                 checkBuilder.title(output.get("title").asString());
+                             }
+                             if (output.contains("summary")) {
+                                 checkBuilder.summary(output.get("summary").asString());
+                             }
+                         }
+                         if (c.contains("details_url")) {
+                             checkBuilder.details(URI.create(c.get("details_url").asString()));
+                         }
+
+                         return checkBuilder.build(); }
+                     )
+                     .collect(Collectors.toList());
+    }
 }

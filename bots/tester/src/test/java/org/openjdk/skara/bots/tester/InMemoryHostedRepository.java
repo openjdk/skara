@@ -164,4 +164,9 @@ class InMemoryHostedRepository implements HostedRepository {
     public Optional<CommitMetadata> commitMetadata(Hash commit) {
         return Optional.empty();
     }
+
+    @Override
+    public List<Check> allChecks(Hash hash) {
+        return List.of();
+    }
 }

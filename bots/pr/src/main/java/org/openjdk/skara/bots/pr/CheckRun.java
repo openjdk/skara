@@ -31,8 +31,8 @@ import org.openjdk.skara.vcs.openjdk.Issue;
 
 import java.io.*;
 import java.nio.file.Path;
-import java.util.*;
 import java.time.ZonedDateTime;
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.stream.*;
@@ -370,7 +370,6 @@ class CheckRun {
                                      .replaceAll("\\s+", " "));
     }
 
-
     private String getStatusMessage(List<Comment> comments, List<Review> reviews, PullRequestCheckIssueVisitor visitor,
                                     List<String> additionalErrors, List<String> integrationBlockers) {
         var progressBody = new StringBuilder();
@@ -388,6 +387,14 @@ class CheckRun {
             }
             progressBody.append("\n");
             progressBody.append(warningListToText(allAdditionalErrors));
+        }
+
+        if (pr.sourceRepository().isPresent()) {
+            var sourceRepo = pr.sourceRepository().get();
+            var checks = sourceRepo.allChecks(pr.headHash());
+
+            var resultSummary = TestResults.summarize(checks);
+            resultSummary.ifPresent(progressBody::append);
         }
 
         if (!integrationBlockers.isEmpty()) {
@@ -541,7 +548,7 @@ class CheckRun {
                 message.append(pr.repository().name());
                 message.append("/blob/");
                 message.append(pr.targetRef());
-                message.append("/CONTRIBUTING.md) for more details.");
+                message.append("/CONTRIBUTING.md) for details.");
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);

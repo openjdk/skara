@@ -330,4 +330,9 @@ public class GitLabRepository implements HostedRepository {
                        .execute();
         return c.isNull()? Optional.empty() : Optional.of(gitLabHost.toCommitMetadata(c));
     }
+
+    @Override
+    public List<Check> allChecks(Hash hash) {
+        return List.of();
+    }
 }

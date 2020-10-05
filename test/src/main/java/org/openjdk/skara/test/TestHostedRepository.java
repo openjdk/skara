@@ -233,6 +233,15 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
         }
     }
 
+    @Override
+    public List<Check> allChecks(Hash hash) {
+        return host.getPullRequests(this).stream()
+                   .map(pr -> (TestPullRequest)pr)
+                   .flatMap(testPr -> testPr.data.checks.stream())
+                   .filter(check -> check.hash().equals(hash))
+                   .collect(Collectors.toList());
+    }
+
     Repository localRepository() {
         return localRepository;
     }

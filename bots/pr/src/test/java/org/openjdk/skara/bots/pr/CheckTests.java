@@ -28,6 +28,7 @@ import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.*;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.PosixFilePermission;
@@ -1679,6 +1680,55 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(mergeBot);
             pr = author.pullRequest(pr.id());
             assertEquals(numComments, pr.comments().size());
+        }
+    }
+
+    @Test
+    void preSubmitInSummary(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).issueProject(issues).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
+                                                     Set.of("issues"), null);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a draft PR where we can add some checks
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "preedit", true);
+            var draftPr = credentials.createPullRequest(author, "master", "preedit", "This is a pull request", true);
+            var check1 = CheckBuilder.create("ps1", editHash).title("PS1");
+            draftPr.createCheck(check1.build());
+            draftPr.updateCheck(check1.complete(true).build());
+            var check2 = CheckBuilder.create("ps2", editHash).title("PS2");
+            draftPr.createCheck(check2.build());
+            draftPr.updateCheck(check2.complete(false).build());
+            var check3 = CheckBuilder.create("ps3", editHash).title("PS3");
+            draftPr.createCheck(check3.build());
+            draftPr.updateCheck(check3.details(URI.create("https://www.example.com")).complete(false).build());
+
+            // Now make an actual PR
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The body should contain the issue title
+            assertTrue(pr.body().contains("Successful test task"));
+            assertTrue(pr.body().contains("|     | ps1 | ps2 | ps3 |"));
+            assertTrue(pr.body().contains("**Failed test tasks**"));
+            assertTrue(pr.body().contains("- [ps3](https://www.example.com)"));
+            assertTrue(pr.body().contains("- `ps2`"));
         }
     }
 }
