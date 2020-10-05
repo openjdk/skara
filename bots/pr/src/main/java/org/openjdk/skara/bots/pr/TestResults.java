@@ -89,7 +89,7 @@ public class TestResults {
                                                                                   .collect(Collectors.groupingBy(check -> flavorFromName(check.name())))));
 
         var resultsBody = new StringBuilder();
-        resultsBody.append("\n\n### Successful test tasks\n\n");
+        resultsBody.append("\n\n### Testing\n\n");
         resultsBody.append("|     |");
         platforms.forEach(platform -> resultsBody.append(" ").append(platform).append(" |"));
         resultsBody.append("\n| --- |");
