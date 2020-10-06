@@ -31,7 +31,7 @@ import org.openjdk.skara.vcs.openjdk.Issue;
 
 import java.io.*;
 import java.nio.file.Path;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -198,13 +198,16 @@ class CheckRun {
                     if (iss.isPresent()) {
                         if (!relaxedEquals(iss.get().title(), currentIssue.description())) {
                             var issueString = "[" + iss.get().id() + "](" + iss.get().webUrl() + ")";
-                            ret.add("Title mismatch between PR and JBS for issue " + issueString);
+                            ret.add("Title mismatch between PR and JBS for issue " + issueString +
+                                            ExpirationTracker.expiresAfterMarker(Duration.ofMinutes(1)));
                         }
                     } else {
-                        log.warning("Failed to retrieve information on issue " + currentIssue.id());
+                        log.warning("Failed to retrieve information on issue " + currentIssue.id() +
+                                            ExpirationTracker.expiresAfterMarker(Duration.ofMinutes(10)));
                     }
                 } catch (RuntimeException e) {
-                    log.warning("Temporary failure when trying to retrieve information on issue " + currentIssue.id());
+                    log.warning("Temporary failure when trying to retrieve information on issue " + currentIssue.id() +
+                                        ExpirationTracker.expiresAfterMarker(Duration.ofMinutes(30)));
                 }
             }
         }
@@ -435,16 +438,21 @@ class CheckRun {
                             if (!relaxedEquals(iss.get().title(), currentIssue.description())) {
                                 progressBody.append(" ⚠️ Title mismatch between PR and JBS.");
                             }
+                            progressBody.append(ExpirationTracker.expiresAfterMarker(Duration.ofMinutes(1)));
                             progressBody.append("\n");
                         } else {
                             progressBody.append("⚠️ Failed to retrieve information on issue `");
                             progressBody.append(currentIssue.id());
-                            progressBody.append("`.\n");
+                            progressBody.append("`.");
+                            progressBody.append(ExpirationTracker.expiresAfterMarker(Duration.ofMinutes(10)));
+                            progressBody.append("\n");
                         }
                     } catch (RuntimeException e) {
                         progressBody.append("⚠️ Temporary failure when trying to retrieve information on issue `");
                         progressBody.append(currentIssue.id());
-                        progressBody.append("`.\n");
+                        progressBody.append("`.");
+                        progressBody.append(ExpirationTracker.expiresAfterMarker(Duration.ofMinutes(30)));
+                        progressBody.append("\n");
                     }
                 }
             }

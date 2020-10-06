@@ -136,7 +136,7 @@ class PullRequestBot implements Bot {
         var ret = new LinkedList<WorkItem>();
 
         for (var pr : pullRequests) {
-            if (updateCache.needsUpdate(pr, Duration.ofMinutes(5))) {
+            if (ExpirationTracker.hasExpired(pr.body()) || updateCache.needsUpdate(pr, Duration.ofMinutes(5))) {
                 if (!isReady(pr)) {
                     continue;
                 }
