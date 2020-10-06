@@ -24,7 +24,7 @@ package org.openjdk.skara.forge;
 
 import org.openjdk.skara.forge.gitlab.GitLabMergeRequest;
 
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -33,6 +33,10 @@ public class PullRequestUpdateCache {
     private final Logger log = Logger.getLogger("org.openjdk.skara.host");
 
     public synchronized boolean needsUpdate(PullRequest pr) {
+        return needsUpdate(pr, Duration.ofHours(1));
+    }
+
+    public synchronized boolean needsUpdate(PullRequest pr, Duration maxAge) {
         // GitLab CE does not update this field on events such as adding an award
         if (pr instanceof GitLabMergeRequest) {
             return true;
@@ -42,11 +46,18 @@ public class PullRequestUpdateCache {
         var update = pr.updatedAt();
 
         if (!lastUpdates.containsKey(uniqueId)) {
+            log.info("Pull request not found in update cache - needs update " + pr.repository().name() + "#" + pr.id());
             lastUpdates.put(uniqueId, update);
             return true;
         }
         var lastUpdate = lastUpdates.get(uniqueId);
         if (lastUpdate.isBefore(update)) {
+            log.info("Pull request has been updated - needs update " + pr.repository().name() + "#" + pr.id());
+            lastUpdates.put(uniqueId, update);
+            return true;
+        }
+        if (lastUpdate.plus(maxAge).isBefore(ZonedDateTime.now())) {
+            log.info("Pull request update cache entry has expired - needs update " + pr.repository().name() + "#" + pr.id());
             lastUpdates.put(uniqueId, update);
             return true;
         }
