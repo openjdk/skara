@@ -23,12 +23,14 @@
 package org.openjdk.skara.vcs.openjdk;
 
 import org.openjdk.skara.vcs.Author;
+import org.openjdk.skara.vcs.Hash;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class CommitMessageBuilder {
     private String title = null;
+    private Hash original = null;
     private List<Issue> issues = new ArrayList<>();
     private List<String> summaries = new ArrayList<>();
     private List<String> reviewers = new ArrayList<>();
@@ -105,13 +107,18 @@ public class CommitMessageBuilder {
         return this;
     }
 
+    public CommitMessageBuilder original(Hash original) {
+        this.original = original;
+        return this;
+    }
+
     public CommitMessageBuilder contributor(Author contributor) {
         contributors.add(contributor);
         return this;
     }
 
     public CommitMessage create() {
-        return new CommitMessage(title, issues, reviewers, contributors, summaries, List.of());
+        return new CommitMessage(title, issues, reviewers, contributors, summaries, original, List.of());
     }
 
     public List<String> format(CommitMessageFormatter formatter) {

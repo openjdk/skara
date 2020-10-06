@@ -23,11 +23,13 @@
 package org.openjdk.skara.vcs.openjdk;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.openjdk.skara.vcs.Author;
+import org.openjdk.skara.vcs.Hash;
 
 public class CommitMessageParsersTests {
     @Test
@@ -259,5 +261,40 @@ public class CommitMessageParsersTests {
                      message.contributors());
         assertEquals(List.of(), message.summaries());
         assertEquals(List.of(), message.additional());
+    }
+
+    @Test
+    void backportOfTrailer() {
+        var text = List.of("01234567: An issue",
+                           "",
+                           "Reviewed-by: ab",
+                           "Backport-of: 0123456789012345678901234567890123456789");
+
+        var message = CommitMessageParsers.v1.parse(text);
+
+        assertEquals("01234567: An issue", message.title());
+        assertEquals(List.of(new Issue("01234567", "An issue")), message.issues());
+        assertEquals(List.of("ab"), message.reviewers());
+        assertEquals(List.of(), message.contributors());
+        assertEquals(List.of(), message.summaries());
+        assertEquals(List.of(), message.additional());
+        assertEquals(Optional.of(new Hash("0123456789012345678901234567890123456789")), message.original());
+    }
+
+    @Test
+    void onlyBackportOfTrailer() {
+        var text = List.of("01234567: An issue",
+                           "",
+                           "Backport-of: 0123456789012345678901234567890123456789");
+
+        var message = CommitMessageParsers.v1.parse(text);
+
+        assertEquals("01234567: An issue", message.title());
+        assertEquals(List.of(new Issue("01234567", "An issue")), message.issues());
+        assertEquals(List.of(), message.reviewers());
+        assertEquals(List.of(), message.contributors());
+        assertEquals(List.of(), message.summaries());
+        assertEquals(List.of(), message.additional());
+        assertEquals(Optional.of(new Hash("0123456789012345678901234567890123456789")), message.original());
     }
 }

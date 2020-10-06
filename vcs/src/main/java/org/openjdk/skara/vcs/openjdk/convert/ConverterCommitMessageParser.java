@@ -78,6 +78,6 @@ public class ConverterCommitMessageParser implements CommitMessageParser {
             additional.add(line);
         }
 
-        return new CommitMessage(null, issues, reviewers, contributors, summaries, additional);
+        return new CommitMessage(null, issues, reviewers, contributors, summaries, null, additional);
     }
 }

@@ -79,7 +79,8 @@ public class CommitMessageFormatters {
                 }
             }
 
-            if ((message.reviewers().size() + message.contributors().size()) > 0) {
+            if (((message.reviewers().size() + message.contributors().size()) > 0) ||
+                 message.original().isPresent()) {
                 lines.add("");
                 if (message.contributors().size() > 0) {
                     for (var contributor : message.contributors()) {
@@ -88,6 +89,9 @@ public class CommitMessageFormatters {
                 }
                 if (message.reviewers().size() > 0) {
                     lines.add("Reviewed-by: " + String.join(", ", message.reviewers()));
+                }
+                if (message.original().isPresent()) {
+                    lines.add("Backport-of: " + message.original().get().hex());
                 }
             }
 

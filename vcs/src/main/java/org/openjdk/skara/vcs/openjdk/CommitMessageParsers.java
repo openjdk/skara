@@ -23,6 +23,7 @@
 package org.openjdk.skara.vcs.openjdk;
 
 import org.openjdk.skara.vcs.Author;
+import org.openjdk.skara.vcs.Hash;
 
 import java.util.*;
 import java.util.regex.*;
@@ -82,7 +83,7 @@ public class CommitMessageParsers {
             }
 
             var additional = lines.subList(i, lines.size());
-            return new CommitMessage(null, issues, reviewers, contributors, summaries, additional);
+            return new CommitMessage(null, issues, reviewers, contributors, summaries, null, additional);
         }
     }
 
@@ -112,11 +113,13 @@ public class CommitMessageParsers {
             var summaries = new ArrayList<String>();
             var coAuthors = new ArrayList<Author>();
             var reviewers = new ArrayList<String>();
+            Hash original = null;
             while (i < lines.size() && lines.get(i).equals("")) {
                 i++;
 
                 if (lines.get(i).startsWith("Co-authored-by:") ||
-                    lines.get(i).startsWith("Reviewed-by:")) {
+                    lines.get(i).startsWith("Reviewed-by:") ||
+                    lines.get(i).startsWith("Backport-of:")) {
                     // "trailers" section
 
                     while ((m = matcher(CO_AUTHOR_PATTERN, lines, i)) != null) {
@@ -130,6 +133,11 @@ public class CommitMessageParsers {
                         for (var name : m.group(1).split(", ")) {
                             reviewers.add(name);
                         }
+                        i++;
+                    }
+
+                    if ((m = matcher(BACKPORT_OF_PATTERN, lines, i)) != null) {
+                        original = new Hash(m.group(1));
                         i++;
                     }
 
@@ -148,7 +156,7 @@ public class CommitMessageParsers {
             }
 
             var additional = lines.subList(i, lines.size());
-            return new CommitMessage(title, issues, reviewers, coAuthors, summaries, additional);
+            return new CommitMessage(title, issues, reviewers, coAuthors, summaries, original, additional);
         }
     }
 

@@ -23,8 +23,10 @@
 package org.openjdk.skara.vcs.openjdk;
 
 import org.openjdk.skara.vcs.Author;
+import org.openjdk.skara.vcs.Hash;
 
 import java.util.List;
+import java.util.Optional;
 
 public class CommitMessage {
     private final String title;
@@ -32,6 +34,7 @@ public class CommitMessage {
     private final List<String> reviewers;
     private final List<Author> contributors;
     private final List<String> summaries;
+    private final Hash original;
     private final List<String> additional;
 
     public CommitMessage(String title,
@@ -39,12 +42,14 @@ public class CommitMessage {
                          List<String> reviewers,
                          List<Author> contributors,
                          List<String> summaries,
+                         Hash original,
                          List<String> additional) {
         this.title = title;
         this.issues = issues;
         this.reviewers = reviewers;
         this.contributors = contributors;
         this.summaries = summaries;
+        this.original = original;
         this.additional = additional;
     }
 
@@ -70,6 +75,10 @@ public class CommitMessage {
 
     public List<String> summaries() {
         return summaries;
+    }
+
+    public Optional<Hash> original() {
+        return Optional.ofNullable(original);
     }
 
     public List<String> additional() {
