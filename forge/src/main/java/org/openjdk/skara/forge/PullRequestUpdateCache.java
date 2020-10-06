@@ -30,10 +30,16 @@ import java.util.logging.Logger;
 
 public class PullRequestUpdateCache {
     private final Map<String, ZonedDateTime> lastUpdates = new HashMap<>();
+    private final Map<String, ZonedDateTime> expirations = new HashMap<>();
     private final Logger log = Logger.getLogger("org.openjdk.skara.host");
 
     public synchronized boolean needsUpdate(PullRequest pr) {
         return needsUpdate(pr, Duration.ofHours(1));
+    }
+
+    private synchronized void updateCacheEntry(String uniqueId, ZonedDateTime lastPrUpdate, Duration maxAge) {
+        lastUpdates.put(uniqueId, lastPrUpdate);
+        expirations.put(uniqueId, ZonedDateTime.now().plus(maxAge));
     }
 
     public synchronized boolean needsUpdate(PullRequest pr, Duration maxAge) {
@@ -47,18 +53,19 @@ public class PullRequestUpdateCache {
 
         if (!lastUpdates.containsKey(uniqueId)) {
             log.info("Pull request not found in update cache - needs update " + pr.repository().name() + "#" + pr.id());
-            lastUpdates.put(uniqueId, update);
+            updateCacheEntry(uniqueId, update, maxAge);
             return true;
         }
         var lastUpdate = lastUpdates.get(uniqueId);
         if (lastUpdate.isBefore(update)) {
             log.info("Pull request has been updated - needs update " + pr.repository().name() + "#" + pr.id());
-            lastUpdates.put(uniqueId, update);
+            updateCacheEntry(uniqueId, update, maxAge);
             return true;
         }
-        if (lastUpdate.plus(maxAge).isBefore(ZonedDateTime.now())) {
+        var expiresAt = expirations.get(uniqueId);
+        if (expiresAt.isBefore(ZonedDateTime.now())) {
             log.info("Pull request update cache entry has expired - needs update " + pr.repository().name() + "#" + pr.id());
-            lastUpdates.put(uniqueId, update);
+            updateCacheEntry(uniqueId, update, maxAge);
             return true;
         }
         log.info("Skipping update for " + pr.repository().name() + "#" + pr.id());
