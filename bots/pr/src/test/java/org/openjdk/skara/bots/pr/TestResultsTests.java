@@ -152,11 +152,12 @@ public class TestResultsTests {
         var check2 = CheckBuilder.create("Windows x64 (test)", Hash.zero())
                                  .build();
         var summary = TestResults.summarize(List.of(check1, check2));
-        assertEquals("### Testing\n" +
+        assertTrue(summary.get().strip().startsWith("### Testing\n" +
                              "\n" +
                              "|     | Linux x64 | Windows x64 |\n" +
                              "| --- | ----- | ----- |\n" +
-                             "| Build / test | ✔️ (1/1 passed) | ⏳ (1/1 running) |", summary.get().strip());
+                             "| Build / test | ✔️ (1/1 passed) | ⏳ (1/1 running) |"));
+        assertTrue(summary.get().strip().contains("<!-- Data expires"));
     }
 
     @Test

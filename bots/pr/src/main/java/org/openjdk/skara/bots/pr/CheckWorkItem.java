@@ -66,6 +66,11 @@ class CheckWorkItem extends PullRequestWorkItem {
     String getMetadata(CensusInstance censusInstance, String title, String body, List<Comment> comments,
                        List<Review> reviews, Set<String> labels, boolean isDraft) {
         try {
+            var hasExpired = ExpirationTracker.hasExpired(body);
+            if (hasExpired) {
+                return Base64.getUrlEncoder().encodeToString(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+            }
+
             var approverString = reviews.stream()
                                         .filter(review -> review.verdict() == Review.Verdict.APPROVED)
                                         .map(review -> encodeReviewer(review.reviewer(), censusInstance) + review.hash().hex())

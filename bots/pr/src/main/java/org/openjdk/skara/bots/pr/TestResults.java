@@ -24,7 +24,7 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.*;
 
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -158,6 +158,14 @@ public class TestResults {
                     resultsBody.append("`");
                 }
             }
+        }
+
+        var needRefresh = latestChecks.values().stream()
+                .filter(check -> check.status() == CheckStatus.IN_PROGRESS)
+                .findAny();
+        if (needRefresh.isPresent()) {
+            resultsBody.append("\n");
+            resultsBody.append(ExpirationTracker.expiresAfterMarker(Duration.ofSeconds(30)));
         }
 
         return Optional.of(resultsBody.toString());
