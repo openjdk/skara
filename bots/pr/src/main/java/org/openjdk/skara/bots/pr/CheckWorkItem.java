@@ -68,7 +68,7 @@ class CheckWorkItem extends PullRequestWorkItem {
         try {
             var hasExpired = ExpirationTracker.hasExpired(body);
             if (hasExpired) {
-                return Base64.getUrlEncoder().encodeToString(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+                return String.valueOf(Math.random());
             }
 
             var approverString = reviews.stream()
