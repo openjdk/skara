@@ -31,6 +31,7 @@ import org.openjdk.skara.vcs.Hash;
 
 import java.net.URI;
 import java.nio.file.Path;
+import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
@@ -60,6 +61,8 @@ class PullRequestBot implements Bot {
     private final PullRequestUpdateCache updateCache;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
+    private Instant lastFullUpdate;
+
     PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef,
                    LabelConfiguration labelConfiguration, Map<String, String> externalCommands,
                    Map<String, String> blockingCheckLabels, Set<String> readyLabels,
@@ -88,8 +91,11 @@ class PullRequestBot implements Bot {
         this.confOverrideRef = confOverrideRef;
         this.censusLink = censusLink;
 
-        this.currentLabels = new ConcurrentHashMap<>();
-        this.updateCache = new PullRequestUpdateCache();
+        currentLabels = new ConcurrentHashMap<>();
+        updateCache = new PullRequestUpdateCache();
+
+        // Only check recently updated when starting up to avoid congestion
+        lastFullUpdate = Instant.now();
     }
 
     static PullRequestBotBuilder newBuilder() {
@@ -130,7 +136,7 @@ class PullRequestBot implements Bot {
         var ret = new LinkedList<WorkItem>();
 
         for (var pr : pullRequests) {
-            if (updateCache.needsUpdate(pr)) {
+            if (updateCache.needsUpdate(pr, Duration.ofMinutes(5))) {
                 if (!isReady(pr)) {
                     continue;
                 }
@@ -144,7 +150,19 @@ class PullRequestBot implements Bot {
 
     @Override
     public List<WorkItem> getPeriodicItems() {
-        return getWorkItems(remoteRepo.pullRequests());
+        List<PullRequest> prs;
+
+        if (lastFullUpdate == null || lastFullUpdate.isBefore(Instant.now().minus(Duration.ofMinutes(10)))) {
+            lastFullUpdate = Instant.now();
+            log.info("Fetching all open pull requests");
+            prs = remoteRepo.pullRequests();
+        } else {
+            log.info("Fetching recently updated pull requests (open and closed)");
+            prs = remoteRepo.pullRequests(ZonedDateTime.now().minus(Duration.ofDays(1)));
+        }
+
+
+        return getWorkItems(prs);
     }
 
     @Override
