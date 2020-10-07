@@ -160,7 +160,7 @@ class PullRequestBot implements Bot {
             if (pr.state() != Issue.State.OPEN) {
                 continue;
             }
-            if (updateCache.needsUpdate(pr, Duration.ofMinutes(5)) || checkHasExpired(pr)) {
+            if (updateCache.needsUpdate(pr) || checkHasExpired(pr)) {
                 if (!isReady(pr)) {
                     continue;
                 }
