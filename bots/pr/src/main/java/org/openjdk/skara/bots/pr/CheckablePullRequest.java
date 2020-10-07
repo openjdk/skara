@@ -54,6 +54,9 @@ public class CheckablePullRequest {
     }
 
     private String commitMessage(List<Review> activeReviews, Namespace namespace, boolean manualReviewers) throws IOException {
+        return commitMessage(activeReviews, namespace, manualReviewers, null);
+    }
+    private String commitMessage(List<Review> activeReviews, Namespace namespace, boolean manualReviewers, Hash original) throws IOException {
         var eligibleReviews = activeReviews.stream()
                                            .filter(review -> !ignoreStaleReviews || review.hash().equals(pr.headHash()))
                                            .filter(review -> review.verdict() == Review.Verdict.APPROVED)
@@ -86,6 +89,9 @@ public class CheckablePullRequest {
         }
         commitMessageBuilder.contributors(additionalContributors)
                             .reviewers(new ArrayList<>(reviewers));
+        if (original != null) {
+            commitMessageBuilder.original(original);
+        }
         summary.ifPresent(commitMessageBuilder::summary);
 
         return String.join("\n", commitMessageBuilder.format(CommitMessageFormatters.v1));
@@ -105,7 +111,7 @@ public class CheckablePullRequest {
         return new ArrayList<>(reviewPerUser.values());
     }
 
-    Hash commit(Hash finalHead, Namespace namespace, String censusDomain, String sponsorId) throws IOException, CommitFailure {
+    Hash commit(Hash finalHead, Namespace namespace, String censusDomain, String sponsorId, Hash original) throws IOException, CommitFailure {
         Author committer;
         Author author;
         var contributor = namespace.get(pr.author().id());
@@ -129,7 +135,7 @@ public class CheckablePullRequest {
         }
 
         var activeReviews = filterActiveReviews(pr.reviews());
-        var commitMessage = commitMessage(activeReviews, namespace, false);
+        var commitMessage = commitMessage(activeReviews, namespace, false, original);
         return PullRequestUtils.createCommit(pr, localRepo, finalHead, author, committer, commitMessage);
     }
 

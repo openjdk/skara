@@ -30,10 +30,15 @@ import java.io.*;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
+import java.util.stream.Stream;
+import java.util.stream.Collectors;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 public class IntegrateCommand implements CommandHandler {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
+    private static final Pattern BACKPORT_PATTERN = Pattern.compile("<!-- backport ([0-9a-z]{40}) -->");
 
     private Optional<String> checkProblem(Map<String, Check> performedChecks, String checkName, PullRequest pr) {
         final var failure = "the status check `" + checkName + "` did not complete successfully";
@@ -122,7 +127,16 @@ public class IntegrateCommand implements CommandHandler {
                 return;
             }
 
-            var localHash = checkablePr.commit(rebasedHash.get(), censusInstance.namespace(), censusInstance.configuration().census().domain(), null);
+            var botUser = pr.repository().forge().currentUser();
+            var backportLines = pr.comments()
+                                  .stream()
+                                  .filter(c -> c.author().equals(botUser))
+                                  .flatMap(c -> Stream.of(c.body().split("\n")))
+                                  .map(l -> BACKPORT_PATTERN.matcher(l))
+                                  .filter(Matcher::find)
+                                  .collect(Collectors.toList());
+            var original = backportLines.isEmpty() ? null : new Hash(backportLines.get(0).group(1));
+            var localHash = checkablePr.commit(rebasedHash.get(), censusInstance.namespace(), censusInstance.configuration().census().domain(), null, original);
 
             var issues = checkablePr.createVisitor(localHash);
             var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), allComments);
