@@ -58,6 +58,7 @@ class PullRequestBot implements Bot {
     private final String confOverrideRef;
     private final String censusLink;
     private final ConcurrentMap<Hash, Boolean> currentLabels;
+    private final ConcurrentHashMap<String, Instant> scheduledRechecks;
     private final PullRequestUpdateCache updateCache;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
@@ -92,6 +93,7 @@ class PullRequestBot implements Bot {
         this.censusLink = censusLink;
 
         currentLabels = new ConcurrentHashMap<>();
+        scheduledRechecks = new ConcurrentHashMap<>();
         updateCache = new PullRequestUpdateCache();
 
         // Only check recently updated when starting up to avoid congestion
@@ -133,24 +135,16 @@ class PullRequestBot implements Bot {
     }
 
     private boolean checkHasExpired(PullRequest pr) {
-        var hash = pr.headHash();
-        var currentChecks = pr.checks(hash);
-
-        if (currentChecks.containsKey("jcheck")) {
-            var check = currentChecks.get("jcheck");
-            if (check.metadata().isPresent()) {
-                var metadata = check.metadata().get();
-                if (metadata.contains(":")) {
-                    var expirationString = metadata.substring(metadata.lastIndexOf(":") + 1);
-                    var expiresAt = Instant.ofEpochSecond(Long.parseLong(expirationString));
-                    if (expiresAt.isBefore(Instant.now())) {
-                        log.info("Check metadata has expired (expired at: " + expiresAt + ")");
-                        return true;
-                    }
-                }
-            }
+        var expiresAt = scheduledRechecks.get(pr.webUrl().toString());
+        if (expiresAt != null && Instant.now().isAfter(expiresAt)) {
+            log.info("Check metadata has expired (expired at: " + expiresAt + ")");
+            return true;
         }
         return false;
+    }
+
+    void scheduleRecheckAt(PullRequest pr, Instant expiresAt) {
+        scheduledRechecks.put(pr.webUrl().toString(), expiresAt);
     }
 
     private List<WorkItem> getWorkItems(List<PullRequest> pullRequests) {

@@ -32,6 +32,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.PosixFilePermission;
+import java.time.*;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -1047,6 +1048,7 @@ class CheckTests {
             assertTrue(pr.body().contains("Integration blocker"));
 
             // Ensure the check cache expires
+            checkBot.scheduleRecheckAt(pr, Instant.now().minus(Duration.ofDays(1)));
             var currentCheck = pr.checks(editHash).get("jcheck");
             assertTrue(currentCheck.metadata().orElseThrow().contains(":"));
             var outdatedMeta = currentCheck.metadata().orElseThrow().replaceAll(":\\d+", ":100");

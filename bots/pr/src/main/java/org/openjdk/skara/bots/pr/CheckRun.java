@@ -85,11 +85,16 @@ class CheckRun {
                                                         workItem.bot.confOverrideRef());
     }
 
-    static void execute(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
+    static Optional<Instant> execute(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                         List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance,
                         boolean ignoreStaleReviews) throws IOException {
         var run = new CheckRun(workItem, pr, localRepo, comments, allReviews, activeReviews, labels, censusInstance, ignoreStaleReviews);
         run.checkStatus();
+        if (run.expiresIn != null) {
+            return Optional.of(Instant.now().plus(run.expiresIn));
+        } else {
+            return Optional.empty();
+        }
     }
 
     private boolean isTargetBranchAllowed() {
