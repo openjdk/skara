@@ -25,7 +25,7 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.census.Contributor;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.issuetracker.IssueProject;
+import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.Hash;
 
@@ -157,6 +157,9 @@ class PullRequestBot implements Bot {
         var ret = new LinkedList<WorkItem>();
 
         for (var pr : pullRequests) {
+            if (pr.state() != Issue.State.OPEN) {
+                continue;
+            }
             if (updateCache.needsUpdate(pr, Duration.ofMinutes(5)) || checkHasExpired(pr)) {
                 if (!isReady(pr)) {
                     continue;

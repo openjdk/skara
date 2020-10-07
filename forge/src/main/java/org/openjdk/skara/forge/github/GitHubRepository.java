@@ -317,6 +317,7 @@ public class GitHubRepository implements HostedRepository {
                              var completedAt = ZonedDateTime.parse(c.get("completed_at").asString());
                              switch (conclusion) {
                                  case "cancelled":
+                                 case "skipped":
                                      checkBuilder.cancel(completedAt);
                                      break;
                                  case "success":
