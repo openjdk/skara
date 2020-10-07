@@ -64,13 +64,8 @@ class CheckWorkItem extends PullRequestWorkItem {
     }
 
     String getMetadata(CensusInstance censusInstance, String title, String body, List<Comment> comments,
-                       List<Review> reviews, Set<String> labels, boolean isDraft) {
+                       List<Review> reviews, Set<String> labels, boolean isDraft, Duration expiresIn) {
         try {
-            var hasExpired = ExpirationTracker.hasExpired(body);
-            if (hasExpired) {
-                return String.valueOf(Math.random());
-            }
-
             var approverString = reviews.stream()
                                         .filter(review -> review.verdict() == Review.Verdict.APPROVED)
                                         .map(review -> encodeReviewer(review.reviewer(), censusInstance) + review.hash().hex())
@@ -92,7 +87,11 @@ class CheckWorkItem extends PullRequestWorkItem {
             digest.update(labelString.getBytes(StandardCharsets.UTF_8));
             digest.update(isDraft ? (byte)0 : (byte)1);
 
-            return Base64.getUrlEncoder().encodeToString(digest.digest());
+            var ret = Base64.getUrlEncoder().encodeToString(digest.digest());
+            if (expiresIn != null) {
+                ret += ":" + Instant.now().plus(expiresIn).getEpochSecond();
+            }
+            return ret;
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Cannot find SHA-256");
         }
@@ -100,7 +99,7 @@ class CheckWorkItem extends PullRequestWorkItem {
 
     private boolean currentCheckValid(CensusInstance censusInstance, List<Comment> comments, List<Review> reviews, Set<String> labels) {
         var hash = pr.headHash();
-        var metadata = getMetadata(censusInstance, pr.title(), pr.body(), comments, reviews, labels, pr.isDraft());
+        var metadata = getMetadata(censusInstance, pr.title(), pr.body(), comments, reviews, labels, pr.isDraft(), null);
         var currentChecks = pr.checks(hash);
 
         if (currentChecks.containsKey("jcheck")) {
@@ -115,14 +114,26 @@ class CheckWorkItem extends PullRequestWorkItem {
                     return true;
                 }
             } else {
-                if (check.metadata().isPresent() && check.metadata().get().equals(metadata)) {
-                    log.finer("No activity since last check, not checking again");
-                    return true;
-                } else {
-                    log.info("PR updated after last check, checking again");
-                    if (check.metadata().isPresent() && (!check.metadata().get().equals(metadata))) {
-                        log.fine("Previous metadata: " + check.metadata().get() + " - current: " + metadata);
+                if (check.metadata().isPresent()) {
+                    var previousMetadata = check.metadata().get();
+                    if (previousMetadata.contains(":")) {
+                        var splitIndex = previousMetadata.lastIndexOf(":");
+                        var stableMetadata = previousMetadata.substring(0, splitIndex);
+                        var expiresAt = Instant.ofEpochSecond(Long.parseLong(previousMetadata.substring(splitIndex + 1)));
+                        if (stableMetadata.equals(metadata) && expiresAt.isAfter(Instant.now())) {
+                            log.finer("Metadata with expiration time is still valid, not checking again");
+                            return true;
+                        }
+                    } else {
+                        if (previousMetadata.equals(metadata)) {
+                            log.finer("No activity since last check, not checking again");
+                            return true;
+                        }
                     }
+                }
+                log.info("PR updated after last check, checking again");
+                if (check.metadata().isPresent() && (!check.metadata().get().equals(metadata))) {
+                    log.fine("Previous metadata: " + check.metadata().get() + " - current: " + metadata);
                 }
             }
         }

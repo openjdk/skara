@@ -132,11 +132,32 @@ class PullRequestBot implements Bot {
         return true;
     }
 
+    private boolean checkHasExpired(PullRequest pr) {
+        var hash = pr.headHash();
+        var currentChecks = pr.checks(hash);
+
+        if (currentChecks.containsKey("jcheck")) {
+            var check = currentChecks.get("jcheck");
+            if (check.metadata().isPresent()) {
+                var metadata = check.metadata().get();
+                if (metadata.contains(":")) {
+                    var expirationString = metadata.substring(metadata.lastIndexOf(":") + 1);
+                    var expiresAt = Instant.ofEpochSecond(Long.parseLong(expirationString));
+                    if (expiresAt.isBefore(Instant.now())) {
+                        log.info("Check metadata has expired (expired at: " + expiresAt + ")");
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     private List<WorkItem> getWorkItems(List<PullRequest> pullRequests) {
         var ret = new LinkedList<WorkItem>();
 
         for (var pr : pullRequests) {
-            if (ExpirationTracker.hasExpired(pr.body()) || updateCache.needsUpdate(pr, Duration.ofMinutes(5))) {
+            if (updateCache.needsUpdate(pr, Duration.ofMinutes(5)) || checkHasExpired(pr)) {
                 if (!isReady(pr)) {
                     continue;
                 }
