@@ -174,7 +174,7 @@ public class TestResults {
                                       .filter(check -> check.status() == CheckStatus.IN_PROGRESS)
                                       .findAny();
         if (needRefresh.isPresent()) {
-            return Optional.of(Duration.ofSeconds(30));
+            return Optional.of(Duration.ofMinutes(5));
         } else {
             return Optional.empty();
         }
