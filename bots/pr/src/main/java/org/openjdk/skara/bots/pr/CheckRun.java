@@ -62,6 +62,8 @@ class CheckRun {
     private static final String fullNameWarningMarker = "<!-- PullRequestBot full name warning comment -->";
     private final Set<String> newLabels;
 
+    private Duration expiresIn;
+
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
                      CensusInstance censusInstance, boolean ignoreStaleReviews) throws IOException {
@@ -181,6 +183,13 @@ class CheckRun {
         return ret;
     }
 
+    private void setExpiration(Duration expiresIn) {
+        // Use the shortest expiration
+        if (this.expiresIn == null || this.expiresIn.compareTo(expiresIn) > 0) {
+            this.expiresIn = expiresIn;
+        }
+    }
+
     private Map<String, String> blockingIntegrationLabels() {
         return Map.of("rejected", "The change is currently blocked from integration by a rejection.",
                       "csr", "The change requires a CSR request to be approved.");
@@ -198,16 +207,16 @@ class CheckRun {
                     if (iss.isPresent()) {
                         if (!relaxedEquals(iss.get().title(), currentIssue.description())) {
                             var issueString = "[" + iss.get().id() + "](" + iss.get().webUrl() + ")";
-                            ret.add("Title mismatch between PR and JBS for issue " + issueString +
-                                            ExpirationTracker.expiresAfterMarker(Duration.ofMinutes(1)));
+                            ret.add("Title mismatch between PR and JBS for issue " + issueString);
+                            setExpiration(Duration.ofMinutes(1));
                         }
                     } else {
-                        log.warning("Failed to retrieve information on issue " + currentIssue.id() +
-                                            ExpirationTracker.expiresAfterMarker(Duration.ofMinutes(10)));
+                        log.warning("Failed to retrieve information on issue " + currentIssue.id());
+                        setExpiration(Duration.ofMinutes(10));
                     }
                 } catch (RuntimeException e) {
-                    log.warning("Temporary failure when trying to retrieve information on issue " + currentIssue.id() +
-                                        ExpirationTracker.expiresAfterMarker(Duration.ofMinutes(30)));
+                    log.warning("Temporary failure when trying to retrieve information on issue " + currentIssue.id());
+                    setExpiration(Duration.ofMinutes(30));
                 }
             }
         }
@@ -397,7 +406,11 @@ class CheckRun {
             var checks = sourceRepo.allChecks(pr.headHash());
 
             var resultSummary = TestResults.summarize(checks);
-            resultSummary.ifPresent(progressBody::append);
+            if (resultSummary.isPresent()) {
+                progressBody.append(resultSummary.get());
+                var expiration = TestResults.expiresIn(checks);
+                expiration.ifPresent(this::setExpiration);
+            }
         }
 
         if (!integrationBlockers.isEmpty()) {
@@ -437,21 +450,21 @@ class CheckRun {
                             progressBody.append(iss.get().title());
                             if (!relaxedEquals(iss.get().title(), currentIssue.description())) {
                                 progressBody.append(" ⚠️ Title mismatch between PR and JBS.");
+                                setExpiration(Duration.ofMinutes(1));
                             }
-                            progressBody.append(ExpirationTracker.expiresAfterMarker(Duration.ofMinutes(1)));
                             progressBody.append("\n");
                         } else {
                             progressBody.append("⚠️ Failed to retrieve information on issue `");
                             progressBody.append(currentIssue.id());
                             progressBody.append("`.");
-                            progressBody.append(ExpirationTracker.expiresAfterMarker(Duration.ofMinutes(10)));
+                            setExpiration(Duration.ofMinutes(10));
                             progressBody.append("\n");
                         }
                     } catch (RuntimeException e) {
                         progressBody.append("⚠️ Temporary failure when trying to retrieve information on issue `");
                         progressBody.append(currentIssue.id());
                         progressBody.append("`.");
-                        progressBody.append(ExpirationTracker.expiresAfterMarker(Duration.ofMinutes(30)));
+                        setExpiration(Duration.ofMinutes(30));
                         progressBody.append("\n");
                     }
                 }
@@ -892,7 +905,8 @@ class CheckRun {
             }
 
             // Calculate current metadata to avoid unnecessary future checks
-            var metadata = workItem.getMetadata(censusInstance, title, updatedBody, pr.comments(), activeReviews, newLabels, pr.isDraft());
+            var metadata = workItem.getMetadata(censusInstance, title, updatedBody, pr.comments(), activeReviews,
+                                                newLabels, pr.isDraft(), expiresIn);
             checkBuilder.metadata(metadata);
         } catch (Exception e) {
             log.throwing("CommitChecker", "checkStatus", e);

@@ -986,6 +986,83 @@ class CheckTests {
     }
 
     @Test
+    void issueInSummaryExternalUpdate(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).issueProject(issues).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
+                                                     Set.of("issues"), null);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            var issue1 = issues.createIssue("My first issue", List.of("Hello"), Map.of());
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue1.id() + ": This is a pull request");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The check should be successful
+            var checks = pr.checks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            assertEquals(CheckStatus.SUCCESS, check.status());
+
+            // And the body should contain the issue title
+            assertTrue(pr.body().contains("My first issue"));
+
+            // Change the issue
+            var issue2 = issues.createIssue("My second issue", List.of("Body"), Map.of());
+            pr.setTitle(issue2.id() + ": This is a pull request");
+
+            // Check the status again
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The body should contain the updated issue title
+            assertFalse(pr.body().contains("My first issue"));
+            assertTrue(pr.body().contains("My second issue"));
+
+            // The PR title does not match the issue title
+            assertTrue(pr.body().contains("Title mismatch"));
+            assertTrue(pr.body().contains("Integration blocker"));
+
+            // Correct it
+            issue2.setTitle("This is a pull request");
+
+            // Check the status again - it should still not match due to caching
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertTrue(pr.body().contains("Title mismatch"));
+            assertTrue(pr.body().contains("Integration blocker"));
+
+            // Ensure the check cache expires
+            var currentCheck = pr.checks(editHash).get("jcheck");
+            assertTrue(currentCheck.metadata().orElseThrow().contains(":"));
+            var outdatedMeta = currentCheck.metadata().orElseThrow().replaceAll(":\\d+", ":100");
+            var updatedCheck = CheckBuilder.from(currentCheck)
+                                           .metadata(outdatedMeta)
+                                           .build();
+            pr.updateCheck(updatedCheck);
+
+            // Check the status again - now it should be fine
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertFalse(pr.body().contains("Title mismatch"));
+            assertFalse(pr.body().contains("Integration blocker"));
+        }
+    }
+
+    @Test
     void cancelCheck(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {

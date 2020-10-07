@@ -43,6 +43,7 @@ public class TestResultsTests {
                              "|     | Test |\n" +
                              "| --- | ----- |\n" +
                              "| Build / test | ✔️ (1/1 passed) |", summary.get().strip());
+        assertTrue(TestResults.expiresIn(List.of(check)).isEmpty());
     }
 
     @Test
@@ -152,12 +153,12 @@ public class TestResultsTests {
         var check2 = CheckBuilder.create("Windows x64 (test)", Hash.zero())
                                  .build();
         var summary = TestResults.summarize(List.of(check1, check2));
-        assertTrue(summary.get().strip().startsWith("### Testing\n" +
+        assertEquals("### Testing\n" +
                              "\n" +
                              "|     | Linux x64 | Windows x64 |\n" +
                              "| --- | ----- | ----- |\n" +
-                             "| Build / test | ✔️ (1/1 passed) | ⏳ (1/1 running) |"));
-        assertTrue(summary.get().strip().contains("<!-- Data expires"));
+                             "| Build / test | ✔️ (1/1 passed) | ⏳ (1/1 running) |", summary.get().strip());
+        assertTrue(TestResults.expiresIn(List.of(check1, check2)).isPresent());
     }
 
     @Test

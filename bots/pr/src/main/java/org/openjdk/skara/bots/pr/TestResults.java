@@ -62,27 +62,32 @@ public class TestResults {
         return lcName.contains("jcheck") || lcName.contains("prerequisites") || lcName.contains("post-process");
     }
 
-    static Optional<String> summarize(List<Check> checks) {
-        // Retain only the latest when there are multiple checks with the same name
+    // Retain only the latest when there are multiple checks with the same name
+    private static Collection<Check> latestChecks(List<Check> checks) {
         var latestChecks = checks.stream()
                                  .filter(check -> !ignoredCheck(check.name()))
                                  .sorted(Comparator.comparing(Check::startedAt, ZonedDateTime::compareTo))
                                  .collect(Collectors.toMap(Check::name, Function.identity(), (a, b) -> b, LinkedHashMap::new));
+        return latestChecks.values();
+    }
+
+    static Optional<String> summarize(List<Check> checks) {
+        var latestChecks = latestChecks(checks);
         if (latestChecks.isEmpty()) {
             return Optional.empty();
         }
 
-        var platforms = latestChecks.values().stream()
+        var platforms = latestChecks.stream()
                                     .map(check -> platformFromName(check.name()))
                                     .collect(Collectors.toCollection(TreeSet::new));
-        var flavors = latestChecks.values().stream()
+        var flavors = latestChecks.stream()
                                   .map(check -> flavorFromName(check.name()))
                                   .collect(Collectors.toCollection(TreeSet::new));
         if (platforms.isEmpty() || flavors.isEmpty()) {
             return Optional.empty();
         }
 
-        var platformFlavors = latestChecks.values().stream()
+        var platformFlavors = latestChecks.stream()
                                           .collect(Collectors.groupingBy(check -> platformFromName(check.name()))).entrySet().stream()
                                           .collect(Collectors.toMap(Map.Entry::getKey,
                                                                     entry -> entry.getValue().stream()
@@ -134,7 +139,7 @@ public class TestResults {
             }
         }
 
-        var failedChecks = latestChecks.values().stream()
+        var failedChecks = latestChecks.stream()
                                        .filter(check -> check.status() == CheckStatus.FAILURE)
                                        .sorted(Comparator.comparing(Check::name))
                                        .collect(Collectors.toList());
@@ -160,14 +165,18 @@ public class TestResults {
             }
         }
 
-        var needRefresh = latestChecks.values().stream()
-                .filter(check -> check.status() == CheckStatus.IN_PROGRESS)
-                .findAny();
-        if (needRefresh.isPresent()) {
-            resultsBody.append("\n");
-            resultsBody.append(ExpirationTracker.expiresAfterMarker(Duration.ofSeconds(30)));
-        }
-
         return Optional.of(resultsBody.toString());
+    }
+
+    static Optional<Duration> expiresIn(List<Check> checks) {
+        var latestChecks = latestChecks(checks);
+        var needRefresh = latestChecks.stream()
+                                      .filter(check -> check.status() == CheckStatus.IN_PROGRESS)
+                                      .findAny();
+        if (needRefresh.isPresent()) {
+            return Optional.of(Duration.ofSeconds(30));
+        } else {
+            return Optional.empty();
+        }
     }
 }
