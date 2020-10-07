@@ -213,7 +213,7 @@ class CheckRun {
                         if (!relaxedEquals(iss.get().title(), currentIssue.description())) {
                             var issueString = "[" + iss.get().id() + "](" + iss.get().webUrl() + ")";
                             ret.add("Title mismatch between PR and JBS for issue " + issueString);
-                            setExpiration(Duration.ofMinutes(1));
+                            setExpiration(Duration.ofMinutes(10));
                         }
                     } else {
                         log.warning("Failed to retrieve information on issue " + currentIssue.id());
@@ -455,7 +455,7 @@ class CheckRun {
                             progressBody.append(iss.get().title());
                             if (!relaxedEquals(iss.get().title(), currentIssue.description())) {
                                 progressBody.append(" ⚠️ Title mismatch between PR and JBS.");
-                                setExpiration(Duration.ofMinutes(1));
+                                setExpiration(Duration.ofMinutes(10));
                             }
                             progressBody.append("\n");
                         } else {
