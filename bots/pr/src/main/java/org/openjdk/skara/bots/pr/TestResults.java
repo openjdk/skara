@@ -66,6 +66,7 @@ public class TestResults {
     private static Collection<Check> latestChecks(List<Check> checks) {
         var latestChecks = checks.stream()
                                  .filter(check -> !ignoredCheck(check.name()))
+                                 .filter(check -> check.status() != CheckStatus.CANCELLED)
                                  .sorted(Comparator.comparing(Check::startedAt, ZonedDateTime::compareTo))
                                  .collect(Collectors.toMap(Check::name, Function.identity(), (a, b) -> b, LinkedHashMap::new));
         return latestChecks.values();

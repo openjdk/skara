@@ -173,6 +173,20 @@ public class TestResultsTests {
     }
 
     @Test
+    void ignoredAndCancelled() {
+        var check1 = CheckBuilder.create("Prerequisites", Hash.zero())
+                                 .complete(true)
+                                 .build();
+        var check2 = CheckBuilder.create("Post-process artifacts", Hash.zero())
+                                 .build();
+        var check3 = CheckBuilder.create("Linux x64", Hash.zero())
+                                 .cancel()
+                                 .build();
+        var summary = TestResults.summarize(List.of(check1, check2, check3));
+        assertTrue(summary.isEmpty());
+    }
+
+    @Test
     void mixed() {
         var check1 = CheckBuilder.create("Linux x64 (Build)", Hash.zero())
                                  .complete(true)
