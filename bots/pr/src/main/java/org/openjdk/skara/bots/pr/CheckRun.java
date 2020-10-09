@@ -415,6 +415,17 @@ class CheckRun {
                 progressBody.append(resultSummary.get());
                 var expiration = TestResults.expiresIn(checks);
                 expiration.ifPresent(this::setExpiration);
+            } else {
+                try {
+                    var headCommit = localRepo.commitMetadata(pr.headHash());
+                    if (headCommit.isPresent()) {
+                        // If the commit is recent, perhaps test results will appear soon
+                        if (headCommit.get().committed().isAfter(ZonedDateTime.now().minus(Duration.ofDays(1)))) {
+                            setExpiration(Duration.ofMinutes(10));
+                        }
+                    }
+                } catch (IOException ignored) {
+                }
             }
         }
 
