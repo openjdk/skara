@@ -66,12 +66,9 @@ class CensusInstance {
         return namespace;
     }
 
-    private static JCheckConfiguration configuration(HostedRepositoryPool hostedRepositoryPool, HostedRepository remoteRepo, String name, String ref, Path folder) throws IOException {
-        var repoName = remoteRepo.url().getHost() + "/" + remoteRepo.name();
-        var repoFolder = folder.resolve(URLEncoder.encode(repoName, StandardCharsets.UTF_8));
-        hostedRepositoryPool.checkoutAllowStale(remoteRepo, ref, repoFolder);
-
-        var confFile = Files.readAllLines(repoFolder.resolve(name));
+    private static JCheckConfiguration configuration(HostedRepositoryPool hostedRepositoryPool, HostedRepository remoteRepo, String name, String ref) throws IOException {
+        var confFile = hostedRepositoryPool.lines(remoteRepo, Path.of(name), ref).orElseThrow(
+                () -> new IOException("Failed to read jcheck configuration from " + name + ":" + ref));
         return JCheckConfiguration.parse(confFile);
     }
 
@@ -88,9 +85,9 @@ class CensusInstance {
         try {
             JCheckConfiguration configuration;
             if (confOverrideRepo == null) {
-                configuration = configuration(hostedRepositoryPool, pr.repository(), ".jcheck/conf", pr.targetRef(), folder);
+                configuration = configuration(hostedRepositoryPool, pr.repository(), ".jcheck/conf", pr.targetRef());
             } else {
-                configuration = configuration(hostedRepositoryPool, confOverrideRepo, confOverrideName, confOverrideRef, folder);
+                configuration = configuration(hostedRepositoryPool, confOverrideRepo, confOverrideName, confOverrideRef);
             }
             var census = Census.parse(repoFolder);
             var project = project(configuration, census);
