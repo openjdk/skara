@@ -66,6 +66,7 @@ public class HostedRepositoryPool {
                 try {
                     Files.move(tmpSeedFolder, seed);
                     log.info("Seeded repository " + hostedRepository.name() + " into " + seed);
+                    return;
                 } catch (IOException e) {
                     log.info("Failed to populate seed folder " + seed + " - perhaps due to a benign race. Ignoring..");
                     clearDirectory(tmpSeedFolder);
