@@ -68,11 +68,11 @@ class HgCommitIterator implements Iterator<Commit> {
 
             List<Diff> parentDiffs = null;
             if (metadata.parents().size() == 1) {
-                var patches = UnifiedDiffParser.parseGitRaw(reader, commitDelimiter);
+                var patches = GitRawDiffParser.parse(reader, commitDelimiter);
                 parentDiffs = List.of(new Diff(parents.get(0), hash, patches));
             } else {
-                var p0 = UnifiedDiffParser.parseGitRaw(reader, commitDelimiter);
-                var p1 = UnifiedDiffParser.parseGitRaw(reader, commitDelimiter);
+                var p0 = GitRawDiffParser.parse(reader, commitDelimiter);
+                var p1 = GitRawDiffParser.parse(reader, commitDelimiter);
                 parentDiffs = List.of(new Diff(parents.get(0), hash, p0),
                                       new Diff(parents.get(1), hash, p1));
             }

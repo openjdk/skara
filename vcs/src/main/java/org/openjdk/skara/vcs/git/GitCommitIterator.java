@@ -80,7 +80,7 @@ class GitCommitIterator implements Iterator<Commit> {
 
             List<Diff> parentDiffs = null;
             if (parents.size() == 1) {
-                var patches = UnifiedDiffParser.parseGitRaw(reader, commitDelimiter);
+                var patches = GitRawDiffParser.parse(reader, commitDelimiter);
                 parentDiffs = List.of(new Diff(parents.get(0), hash, patches));
             } else {
                 parentDiffs = new GitCombinedDiffParser(parents, hash, commitDelimiter).parse(reader);

@@ -31,7 +31,7 @@ import java.util.*;
 import java.util.zip.Inflater;
 import java.util.zip.DataFormatException;
 
-public class UnifiedDiffParser {
+public class GitRawDiffParser {
     private static class Hunks {
         private final List<Hunk> textual;
         private final List<BinaryHunk> binary;
@@ -65,7 +65,7 @@ public class UnifiedDiffParser {
     private final String delimiter;
     private String line = null;
 
-    private UnifiedDiffParser(String delimiter) {
+    private GitRawDiffParser(String delimiter) {
         this.delimiter = delimiter;
     }
 
@@ -118,7 +118,6 @@ public class UnifiedDiffParser {
             if (!words[0].startsWith("@@")) {
                 throw new IllegalStateException("Unexpected diff line: " + line);
             }
-
             var sourceRange = words[1].substring(1); // skip initial '-'
             var targetRange = words[2].substring(1); // skip initial '+'
 
@@ -149,8 +148,8 @@ public class UnifiedDiffParser {
                     throw new IllegalStateException("Unexpected diff line: " + line);
                 }
             }
-            hunks.add(new Hunk(GitRange.fromString(sourceRange), sourceLines, sourceHasNewlineAtEndOfFile,
-                               GitRange.fromString(targetRange), targetLines, targetHasNewlineAtEndOfFile));
+            hunks.add(new Hunk(Range.fromString(sourceRange), sourceLines, sourceHasNewlineAtEndOfFile,
+                               Range.fromString(targetRange), targetLines, targetHasNewlineAtEndOfFile));
         }
 
         return Hunks.ofTextual(hunks);
@@ -191,20 +190,20 @@ public class UnifiedDiffParser {
         return hunks;
     }
 
-    public static List<Patch> parseGitRaw(InputStream stream) throws IOException {
-        return parseGitRaw(new UnixStreamReader(stream));
+    public static List<Patch> parse(InputStream stream) throws IOException {
+        return parse(new UnixStreamReader(stream));
     }
 
-    public static List<Patch> parseGitRaw(InputStream stream, String delimiter) throws IOException {
-        return parseGitRaw(new UnixStreamReader(stream), delimiter);
+    public static List<Patch> parse(InputStream stream, String delimiter) throws IOException {
+        return parse(new UnixStreamReader(stream), delimiter);
     }
 
-    public static List<Patch> parseGitRaw(UnixStreamReader reader) throws IOException {
-        return parseGitRaw(reader, null);
+    public static List<Patch> parse(UnixStreamReader reader) throws IOException {
+        return parse(reader, null);
     }
 
-    public static List<Patch> parseGitRaw(UnixStreamReader reader, String delimiter) throws IOException {
-        var parser = new UnifiedDiffParser(delimiter);
+    public static List<Patch> parse(UnixStreamReader reader, String delimiter) throws IOException {
+        var parser = new GitRawDiffParser(delimiter);
 
         var headers = parser.parseRawLines(reader);
         var hunks = parser.parseHunks(reader);
@@ -230,59 +229,5 @@ public class UnifiedDiffParser {
         }
 
         return patches;
-    }
-
-    public static List<Hunk> splitDiffWithContext(Range from, Range to, List<String> lines) {
-        var hunks = new ArrayList<Hunk>();
-
-        var sourceStart = from.start();
-        var targetStart = to.start();
-
-        var sourceLines = new ArrayList<String>();
-        var targetLines = new ArrayList<String>();
-
-        int i = 0;
-        while (i < lines.size() && lines.get(i).startsWith(" ")) {
-            i++;
-            sourceStart++;
-            targetStart++;
-        }
-
-        while (i < lines.size()) {
-            var line = lines.get(i);
-            if (line.startsWith("-")) {
-                sourceLines.add(line.substring(1));
-                i++;
-                continue;
-            } else if (line.startsWith("+")) {
-                targetLines.add(line.substring(1));
-                i++;
-                continue;
-            }
-
-            if (line.startsWith(" ")) {
-                hunks.add(new Hunk(new Range(sourceStart, sourceLines.size()), sourceLines,
-                                   new Range(targetStart, targetLines.size()), targetLines));
-
-                sourceStart += sourceLines.size();
-                targetStart += targetLines.size();
-
-                sourceLines = new ArrayList<String>();
-                targetLines = new ArrayList<String>();
-
-                while (i < lines.size() && lines.get(i).startsWith(" ")) {
-                    i++;
-                    sourceStart++;
-                    targetStart++;
-                }
-            }
-        }
-
-        if (sourceLines.size() > 0 || targetLines.size() > 0) {
-            hunks.add(new Hunk(new Range(sourceStart, sourceLines.size()), sourceLines,
-                               new Range(targetStart, targetLines.size()), targetLines));
-        }
-
-        return hunks;
     }
 }
