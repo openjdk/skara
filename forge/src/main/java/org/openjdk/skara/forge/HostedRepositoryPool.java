@@ -26,6 +26,7 @@ import org.openjdk.skara.vcs.*;
 
 import java.io.*;
 import java.nio.file.*;
+import java.time.*;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -57,7 +58,7 @@ public class HostedRepositoryPool {
             }
         }
 
-        private void initializeSeed() throws IOException {
+        private void refreshSeed(boolean allowStale) throws IOException {
             if (!Files.exists(seed)) {
                 Files.createDirectories(seed.getParent());
                 var tmpSeedFolder = seed.resolveSibling(seed.getFileName().toString() + "-" + UUID.randomUUID());
@@ -70,10 +71,28 @@ public class HostedRepositoryPool {
                     clearDirectory(tmpSeedFolder);
                 }
             }
+
+            var seedRepo = Repository.get(seed).orElseThrow(() -> new IOException("Existing seed is corrupt?"));
+            try {
+                var lastFetch = Files.getLastModifiedTime(seed.resolve("FETCH_HEAD"));
+                if (lastFetch.toInstant().isAfter(Instant.now().minus(Duration.ofMinutes(1)))) {
+                    log.info("Seed should be up to date, skipping fetch");
+                    return;
+                }
+            } catch (IOException ignored) {
+            }
+            log.info("Seed is potentially stale, time to refresh it");
+            try {
+                seedRepo.fetchAll();
+            } catch (IOException e) {
+                if (!allowStale) {
+                    throw e;
+                }
+            }
         }
 
-        private Repository cloneSeeded(Path path) throws IOException {
-            initializeSeed();
+        private Repository cloneSeeded(Path path, boolean allowStale) throws IOException {
+            refreshSeed(allowStale);
             log.info("Using seed folder " + seed + " when cloning into " + path);
             return Repository.clone(hostedRepository.url(), path, false, seed);
         }
@@ -95,23 +114,25 @@ public class HostedRepositoryPool {
             }
         }
 
-        private Repository materializeClone(Path path) throws IOException {
+        private Repository materializeClone(Path path, boolean allowStale) throws IOException {
             var localRepo = Repository.get(path);
             if (localRepo.isEmpty()) {
                 removeOldClone(path, "norepo");
-                return cloneSeeded(path);
+                return cloneSeeded(path, allowStale);
             } else {
                 var localRepoInstance = localRepo.get();
                 if (!localRepoInstance.isHealthy()) {
                     removeOldClone(path, "unhealthy");
-                    return cloneSeeded(path);
+                    return cloneSeeded(path, allowStale);
                 } else {
                     try {
+                        refreshSeed(allowStale);
                         localRepoInstance.clean();
+                        localRepoInstance.fetchAll();
                         return localRepoInstance;
                     } catch (IOException e) {
                         removeOldClone(path, "uncleanable");
-                        return cloneSeeded(path);
+                        return cloneSeeded(path, allowStale);
                     }
                 }
             }
@@ -120,47 +141,30 @@ public class HostedRepositoryPool {
 
     public Repository materialize(HostedRepository hostedRepository, Path path) throws IOException {
         var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository);
-        return hostedRepositoryInstance.materializeClone(path);
+        return hostedRepositoryInstance.materializeClone(path, false);
     }
 
-    private static class NewClone {
-        private final Repository repository;
-        private final Hash fetchHead;
-
-        NewClone(Repository repository, Hash fetchHead) {
-            this.repository = repository;
-            this.fetchHead = fetchHead;
-        }
-
-        Repository repository() {
-            return repository;
-        }
-
-        Hash fetchHead() {
-            return fetchHead;
-        }
-    }
-
-    private NewClone fetchRef(HostedRepository hostedRepository, Repository repository, String ref) throws IOException {
-        var fetchHead = repository.fetch(hostedRepository.url(), "+" + ref + ":hostedrepositorypool");
-        return new NewClone(repository, fetchHead);
-    }
-
-    public Repository checkout(HostedRepository hostedRepository, String ref, Path path) throws IOException {
+    private Repository checkout(HostedRepository hostedRepository, String ref, Path path, boolean allowStale) throws IOException {
         var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository);
-        var clone = fetchRef(hostedRepository, hostedRepositoryInstance.materializeClone(path), ref);
-        var localRepo = clone.repository();
+        var localClone = hostedRepositoryInstance.materializeClone(path, allowStale);
         try {
-            localRepo.checkout(clone.fetchHead(), true);
+            localClone.checkout(new Branch(ref), true);
         } catch (IOException e) {
             var preserveUnchecked = hostedRepositoryInstance.seed.resolveSibling(
                     hostedRepositoryInstance.seed.getFileName().toString() + "-unchecked-" + UUID.randomUUID());
             log.severe("Uncheckoutable local repository detected - preserved in: " + preserveUnchecked);
-            Files.move(localRepo.root(), preserveUnchecked);
-            clone = fetchRef(hostedRepository, hostedRepositoryInstance.cloneSeeded(path), ref);
-            localRepo = clone.repository();
-            localRepo.checkout(clone.fetchHead(), true);
+            Files.move(localClone.root(), preserveUnchecked);
+            localClone = hostedRepositoryInstance.materializeClone(path, allowStale);
+            localClone.checkout(new Branch(ref), true);
         }
-        return localRepo;
+        return localClone;
+    }
+
+    public Repository checkout(HostedRepository hostedRepository, String ref, Path path) throws IOException {
+        return checkout(hostedRepository, ref, path, false);
+    }
+
+    public Repository checkoutAllowStale(HostedRepository hostedRepository, String ref, Path path) throws IOException {
+        return checkout(hostedRepository, ref, path, true);
     }
 }

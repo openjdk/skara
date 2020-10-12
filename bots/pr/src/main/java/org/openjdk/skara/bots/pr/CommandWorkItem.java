@@ -23,8 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.bot.WorkItem;
-import org.openjdk.skara.forge.PullRequest;
-import org.openjdk.skara.forge.PullRequestBody;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
 
@@ -222,7 +221,10 @@ public class CommandWorkItem extends PullRequestWorkItem {
             return List.of(new LabelerWorkItem(bot, updatedPR, errorHandler));
         }
 
-        var census = CensusInstance.create(bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
+        var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
+        var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
+
+        var census = CensusInstance.create(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
                                            bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef());
         var command = nextCommand.get();
         log.info("Processing command: " + command.id() + " - " + command.name());

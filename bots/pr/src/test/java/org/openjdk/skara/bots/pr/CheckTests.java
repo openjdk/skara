@@ -50,10 +50,12 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
             var checkBot = PullRequestBot.newBuilder()
                                          .repo(author)
                                          .censusRepo(censusBuilder.build())
                                          .censusLink("https://census.com/{{contributor}}-profile")
+                                         .seedStorage(seedFolder)
                                          .build();
 
             // Populate the projects repository
