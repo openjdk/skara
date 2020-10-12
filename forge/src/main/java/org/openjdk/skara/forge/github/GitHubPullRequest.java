@@ -27,6 +27,7 @@ import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
+import org.openjdk.skara.vcs.Diff;
 import org.openjdk.skara.vcs.Hash;
 
 import java.net.URI;
@@ -661,5 +662,11 @@ public class GitHubPullRequest implements PullRequest {
     @Override
     public URI headUrl() {
         return URI.create(webUrl() + "/commits/" + headHash().hex());
+    }
+
+    @Override
+    public Diff diff() {
+        var files = request.get("pulls/" + json.get("number").toString() + "/files").execute();
+        return host.toDiff(targetHash(), headHash(), files);
     }
 }

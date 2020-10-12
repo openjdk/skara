@@ -26,6 +26,7 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.network.URIBuilder;
+import org.openjdk.skara.vcs.Diff;
 import org.openjdk.skara.vcs.Hash;
 
 import java.io.*;
@@ -231,5 +232,23 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     @Override
     public URI headUrl() {
         return URI.create(webUrl().toString() + "/commits/" + headHash().hex());
+    }
+
+    @Override
+    public Diff diff() {
+        try {
+            var targetLocalRepository = targetRepository.localRepository();
+            var sourceLocalRepository = sourceRepository.localRepository();
+            if (targetLocalRepository.root().equals(sourceLocalRepository.root())) {
+                // same target and source repo, must contain both commits
+                return targetLocalRepository.diff(targetHash(), headHash());
+            } else {
+                var uri = URI.create("file://" + sourceLocalRepository.root().toString());
+                var fetchHead = targetLocalRepository.fetch(uri, sourceRef);
+                return targetLocalRepository.diff(targetHash(), fetchHead);
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

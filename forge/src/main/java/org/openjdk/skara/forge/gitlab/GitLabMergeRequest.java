@@ -27,6 +27,7 @@ import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
+import org.openjdk.skara.vcs.Diff;
 import org.openjdk.skara.vcs.Hash;
 
 import java.net.URI;
@@ -42,12 +43,14 @@ public class GitLabMergeRequest implements PullRequest {
     private final RestRequest request;
     private final Logger log = Logger.getLogger("org.openjdk.skara.host");;
     private final GitLabRepository repository;
+    private final GitLabHost host;
 
     private Hash targetHash = null;
     private List<String> labels;
 
-    GitLabMergeRequest(GitLabRepository repository, JSONValue jsonValue, RestRequest request) {
+    GitLabMergeRequest(GitLabRepository repository, GitLabHost host, JSONValue jsonValue, RestRequest request) {
         this.repository = repository;
+        this.host = host;
         this.json = jsonValue;
         this.request = request.restrict("merge_requests/" + json.get("iid").toString() + "/");
 
@@ -735,5 +738,11 @@ public class GitLabMergeRequest implements PullRequest {
     @Override
     public URI headUrl() {
         return URI.create(webUrl() + "/diffs?commit_id=" + headHash().hex());
+    }
+
+    @Override
+    public Diff diff() {
+        var changes = request.get("changes").execute();
+        return host.toDiff(targetHash(), headHash(), changes.get("changes"));
     }
 }
