@@ -74,15 +74,19 @@ public class HostedRepositoryPool {
             }
 
             var seedRepo = Repository.get(seed).orElseThrow(() -> new IOException("Existing seed is corrupt?"));
-            try {
-                var lastFetch = Files.getLastModifiedTime(seed.resolve("FETCH_HEAD"));
-                if (lastFetch.toInstant().isAfter(Instant.now().minus(Duration.ofMinutes(1)))) {
-                    log.info("Seed should be up to date, skipping fetch");
-                    return;
+            if (allowStale) {
+                try {
+                    var lastFetch = Files.getLastModifiedTime(seed.resolve("FETCH_HEAD"));
+                    if (lastFetch.toInstant().isAfter(Instant.now().minus(Duration.ofMinutes(1)))) {
+                        log.info("Seed should be up to date, skipping fetch");
+                        return;
+                    }
+                } catch (IOException ignored) {
                 }
-            } catch (IOException ignored) {
+                log.info("Seed is potentially stale, time to fetch the latest upstream changes");
+            } else {
+                log.info("Fetching latest upstream changes into the seed");
             }
-            log.info("Seed is potentially stale, time to refresh it");
             try {
                 seedRepo.fetchAll();
             } catch (IOException e) {
