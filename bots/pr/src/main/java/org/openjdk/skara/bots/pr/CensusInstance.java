@@ -26,14 +26,12 @@ import org.openjdk.skara.census.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
-import org.openjdk.skara.vcs.Repository;
 
 import java.io.*;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 class CensusInstance {
     private final Census census;
@@ -46,14 +44,6 @@ class CensusInstance {
         this.configuration = configuration;
         this.project = project;
         this.namespace = namespace;
-    }
-
-    private static Repository initialize(HostedRepository repo, String ref, Path folder) {
-        try {
-            return Repository.materialize(folder, repo.url(), "+" + ref + ":pr_census_" + repo.name());
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to retrieve census to " + folder, e);
-        }
     }
 
     private static Project project(JCheckConfiguration configuration, Census census) {
@@ -76,31 +66,31 @@ class CensusInstance {
         return namespace;
     }
 
-    private static JCheckConfiguration configuration(HostedRepository remoteRepo, String name, String ref) {
-        var confFile = remoteRepo.fileContents(name, ref);
-        return JCheckConfiguration.parse(confFile.lines().collect(Collectors.toList()));
+    private static JCheckConfiguration configuration(HostedRepositoryPool hostedRepositoryPool, HostedRepository remoteRepo, String name, String ref, Path folder) throws IOException {
+        var repoName = remoteRepo.url().getHost() + "/" + remoteRepo.name();
+        var repoFolder = folder.resolve(URLEncoder.encode(repoName, StandardCharsets.UTF_8));
+        hostedRepositoryPool.checkoutAllowStale(remoteRepo, ref, repoFolder);
+
+        var confFile = Files.readAllLines(repoFolder.resolve(name));
+        return JCheckConfiguration.parse(confFile);
     }
 
-    static CensusInstance create(HostedRepository censusRepo, String censusRef, Path folder, PullRequest pr,
+    static CensusInstance create(HostedRepositoryPool hostedRepositoryPool, HostedRepository censusRepo, String censusRef, Path folder, PullRequest pr,
                                  HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef) {
         var repoName = censusRepo.url().getHost() + "/" + censusRepo.name();
         var repoFolder = folder.resolve(URLEncoder.encode(repoName, StandardCharsets.UTF_8));
         try {
-            var localRepo = Repository.get(repoFolder)
-                                      .or(() -> Optional.of(initialize(censusRepo, censusRef, repoFolder)))
-                                      .orElseThrow();
-            var hash = localRepo.fetch(censusRepo.url(), censusRef, false);
-            localRepo.checkout(hash, true);
+            hostedRepositoryPool.checkoutAllowStale(censusRepo, censusRef, repoFolder);
         } catch (IOException e) {
-            initialize(censusRepo, censusRef, repoFolder);
+            throw new UncheckedIOException("Cannot materialize census to " + repoFolder, e);
         }
 
         try {
             JCheckConfiguration configuration;
             if (confOverrideRepo == null) {
-                configuration = configuration(pr.repository(), ".jcheck/conf", pr.targetRef());
+                configuration = configuration(hostedRepositoryPool, pr.repository(), ".jcheck/conf", pr.targetRef(), folder);
             } else {
-                configuration = configuration(confOverrideRepo, confOverrideName, confOverrideRef);
+                configuration = configuration(hostedRepositoryPool, confOverrideRepo, confOverrideName, confOverrideRef, folder);
             }
             var census = Census.parse(repoFolder);
             var project = project(configuration, census);
