@@ -31,6 +31,7 @@ import org.openjdk.skara.vcs.*;
 import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.logging.Logger;
@@ -233,8 +234,38 @@ public class GitLabHost implements Forge {
         return new CommitMetadata(hash, parents, author, authored, committer, committed, message);
     }
 
+    Diff toDiff(Hash from, Hash to, JSONValue o) {
+        var patches = new ArrayList<Patch>();
+
+        for (var file : o.asArray()) {
+            var sourcePath = Path.of(file.get("old_path").asString());
+            var sourceFileType = FileType.fromOctal(file.get("a_mode").asString());
+
+            var targetPath = Path.of(file.get("new_path").asString());
+            var targetFileType = FileType.fromOctal(file.get("b_mode").asString());
+
+            var status = Status.from('M');
+            if (file.get("new_file").asBoolean()) {
+                status = Status.from('A');
+            } else if (file.get("renamed_file").asBoolean()) {
+                status = Status.from('R');
+            } else if (file.get("deleted_file").asBoolean()) {
+                status = Status.from('D');
+            }
+
+            var diff = file.get("diff").asString().split("\n");
+            var hunks = UnifiedDiffParser.parseSingleFileDiff(diff);
+
+            patches.add(new TextualPatch(sourcePath, sourceFileType, Hash.zero(),
+                                         targetPath, targetFileType, Hash.zero(),
+                                         status, hunks));
+        }
+
+        return new Diff(from, to, patches);
+    }
+
     @Override
-    public Optional<HostedCommitMetadata> search(Hash hash) {
+    public Optional<HostedCommit> search(Hash hash) {
         var hex = hash.hex();
         for (var group : groups) {
             var projects = request.get("groups/" + group + "/projects")
@@ -249,7 +280,14 @@ public class GitLabHost implements Forge {
                 if (!c.isNull()) {
                     var url = URI.create(c.get("web_url").asString());
                     var metadata = toCommitMetadata(c);
-                    return Optional.of(new HostedCommitMetadata(metadata, url));
+                    var diff = request.get("projects/" + project + "/repository/commits/" + hex + "/diff")
+                                   .onError(r -> Optional.of(JSON.of()))
+                                   .execute();
+                    var parentDiffs = new ArrayList<Diff>();
+                    if (!diff.isNull()) {
+                        parentDiffs.add(toDiff(metadata.parents().get(0), hash, diff));
+                    }
+                    return Optional.of(new HostedCommit(metadata, parentDiffs, url));
                 }
             }
         }
