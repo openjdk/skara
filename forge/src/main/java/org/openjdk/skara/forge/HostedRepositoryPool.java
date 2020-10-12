@@ -160,8 +160,7 @@ public class HostedRepositoryPool {
         try {
             localClone.checkout(new Branch(ref), true);
         } catch (IOException e) {
-            var preserveUnchecked = hostedRepositoryInstance.seed.resolveSibling(
-                    hostedRepositoryInstance.seed.getFileName().toString() + "-unchecked-" + UUID.randomUUID());
+            var preserveUnchecked = path.resolveSibling(hostedRepositoryInstance.seed.getFileName().toString() + "-unchecked-" + UUID.randomUUID());
             log.severe("Uncheckoutable local repository detected - preserved in: " + preserveUnchecked);
             Files.move(localClone.root(), preserveUnchecked);
             localClone = hostedRepositoryInstance.materializeClone(path, allowStale);
