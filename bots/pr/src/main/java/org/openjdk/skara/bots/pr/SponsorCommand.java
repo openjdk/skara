@@ -38,7 +38,7 @@ import java.util.regex.Matcher;
 
 public class SponsorCommand implements CommandHandler {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
-    private static final Pattern BACKPORT_PATTERN = Pattern.compile("<-- backport ([0-9a-z]{40}) -->");
+    private static final Pattern BACKPORT_PATTERN = Pattern.compile("<!-- backport ([0-9a-z]{40}) -->");
 
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
@@ -137,7 +137,7 @@ public class SponsorCommand implements CommandHandler {
             }
 
             if (!localHash.equals(pr.targetHash())) {
-                var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace());
+                var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
                 var finalRebaseMessage = rebaseMessage.toString();
                 if (!finalRebaseMessage.isBlank()) {
                     reply.println(rebaseMessage.toString());
