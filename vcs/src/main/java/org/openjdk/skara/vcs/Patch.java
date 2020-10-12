@@ -224,4 +224,19 @@ public abstract class Patch {
     public static String pathWithUnixSeps(Path p) {
         return p.toString().replace('\\', '/');
     }
+
+    @Override
+    public String toString() {
+        var desc = "";
+        if (status.isRenamed() || status.isCopied()) {
+            desc = source.path().get().toString() + " -> " + target.path().get().toString();
+        } else if (status.isModified() || status.isDeleted()) {
+            desc = source.path().get().toString();
+        } else if (status.isAdded() || status.isUnmerged()) {
+            desc = target.path().get().toString();
+        } else {
+            throw new IllegalStateException("Unexpected status: " + status);
+        }
+        return status.toString() + " " + desc;
+    }
 }
