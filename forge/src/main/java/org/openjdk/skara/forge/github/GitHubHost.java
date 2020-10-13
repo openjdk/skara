@@ -31,6 +31,7 @@ import org.openjdk.skara.vcs.*;
 import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -346,8 +347,30 @@ public class GitHubHost implements Forge {
         return new CommitMetadata(hash, parents, author, authored, committer, committed, message);
     }
 
+    Diff toDiff(Hash from, Hash to, JSONValue files) {
+        var patches = new ArrayList<Patch>();
+
+        for (var file : files.asArray()) {
+            var status = Status.from(file.get("status").asString().toUpperCase().charAt(0));
+            var targetPath = Path.of(file.get("filename").asString());
+            var sourcePath = status.isRenamed() || status.isCopied() ?
+                Path.of(file.get("previous_filename").asString()) :
+                targetPath;
+            var filetype = FileType.fromOctal("100644");
+
+            var diff = file.get("patch").asString().split("\n");
+            var hunks = UnifiedDiffParser.parseSingleFileDiff(diff);
+
+            patches.add(new TextualPatch(sourcePath, filetype, Hash.zero(),
+                                         targetPath, filetype, Hash.zero(),
+                                         status, hunks));
+        }
+
+        return new Diff(from, to, patches);
+    }
+
     @Override
-    public Optional<HostedCommitMetadata> search(Hash hash) {
+    public Optional<HostedCommit> search(Hash hash) {
         var orgsToSearch = orgs.stream().map(o -> "org:" + o).collect(Collectors.joining("+"));
         if (!orgsToSearch.isEmpty()) {
             orgsToSearch = "+" + orgsToSearch;
@@ -359,7 +382,8 @@ public class GitHubHost implements Forge {
         }
         var first = items.get(0);
         var metadata = toCommitMetadata(first);
+        var diff = toDiff(metadata.parents().get(0), hash, first.get("files"));
         var url = URI.create(first.get("url").asString());
-        return Optional.of(new HostedCommitMetadata(metadata, url));
+        return Optional.of(new HostedCommit(metadata, List.of(diff), url));
     }
 }

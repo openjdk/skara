@@ -68,7 +68,7 @@ class InMemoryHost implements Forge {
     }
 
     @Override
-    public Optional<HostedCommitMetadata> search(Hash hash) {
+    public Optional<HostedCommit> search(Hash hash) {
         return Optional.empty();
     }
 }

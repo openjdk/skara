@@ -29,12 +29,14 @@ import java.util.*;
 import java.time.*;
 import java.time.format.*;
 
-public class HostedCommitMetadata {
+public class HostedCommit {
     private final CommitMetadata metadata;
+    private final List<Diff> parentDiffs;
     private final URI url;
 
-    public HostedCommitMetadata(CommitMetadata metadata, URI url) {
+    public HostedCommit(CommitMetadata metadata, List<Diff> parentDiffs, URI url) {
         this.metadata = metadata;
+        this.parentDiffs = parentDiffs;
         this.url = url;
     }
 
@@ -78,6 +80,10 @@ public class HostedCommitMetadata {
         return metadata.numParents();
     }
 
+    public List<Diff> parentDiffs() {
+        return parentDiffs;
+    }
+
     public URI url() {
         return url;
     }
@@ -94,12 +100,13 @@ public class HostedCommitMetadata {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof HostedCommitMetadata)) {
+        if (!(o instanceof HostedCommit)) {
             return false;
         }
 
-        var other = (HostedCommitMetadata) o;
+        var other = (HostedCommit) o;
         return Objects.equals(metadata, other.metadata) &&
+               Objects.equals(parentDiffs, other.parentDiffs) &&
                Objects.equals(url, other.url);
     }
 }

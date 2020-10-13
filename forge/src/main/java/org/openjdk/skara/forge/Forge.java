@@ -34,7 +34,7 @@ public interface Forge extends Host {
     String name();
     Optional<HostedRepository> repository(String name);
     boolean supportsReviewBody();
-    Optional<HostedCommitMetadata> search(Hash hash);
+    Optional<HostedCommit> search(Hash hash);
 
     static Forge from(String name, URI uri, Credential credential, JSONObject configuration) {
         var factory = ForgeFactory.getForgeFactories().stream()
