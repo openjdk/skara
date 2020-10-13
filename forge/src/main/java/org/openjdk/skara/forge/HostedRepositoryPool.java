@@ -74,20 +74,16 @@ public class HostedRepositoryPool {
             }
 
             var seedRepo = Repository.get(seed).orElseThrow(() -> new IOException("Existing seed is corrupt?"));
-            if (allowStale) {
-                try {
-                    var lastFetch = Files.getLastModifiedTime(seed.resolve("FETCH_HEAD"));
-                    if (lastFetch.toInstant().isAfter(Instant.now().minus(Duration.ofMinutes(1)))) {
-                        log.info("Seed should be up to date, skipping fetch");
-                        return;
-                    }
-                } catch (IOException ignored) {
+            try {
+                var lastFetch = Files.getLastModifiedTime(seed.resolve("FETCH_HEAD"));
+                if (lastFetch.toInstant().isAfter(Instant.now().minus(Duration.ofMinutes(1)))) {
+                    log.info("Seed should be up to date, skipping fetch");
+                    return;
                 }
-                log.info("Seed is potentially stale, time to fetch the latest upstream changes");
-            } else {
-                log.info("Fetching latest upstream changes into the seed");
+            } catch (IOException ignored) {
             }
             try {
+                log.info("Seed is potentially stale, time to fetch the latest upstream changes");
                 seedRepo.fetchAll();
             } catch (IOException e) {
                 if (!allowStale) {
@@ -160,8 +156,7 @@ public class HostedRepositoryPool {
         try {
             localClone.checkout(new Branch(ref), true);
         } catch (IOException e) {
-            var preserveUnchecked = hostedRepositoryInstance.seed.resolveSibling(
-                    hostedRepositoryInstance.seed.getFileName().toString() + "-unchecked-" + UUID.randomUUID());
+            var preserveUnchecked = path.resolveSibling(hostedRepositoryInstance.seed.getFileName().toString() + "-unchecked-" + UUID.randomUUID());
             log.severe("Uncheckoutable local repository detected - preserved in: " + preserveUnchecked);
             Files.move(localClone.root(), preserveUnchecked);
             localClone = hostedRepositoryInstance.materializeClone(path, allowStale);
