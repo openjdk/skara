@@ -1098,7 +1098,7 @@ public class GitRepository implements Repository {
 
         var p = start(cmd);
         try {
-            var patches = UnifiedDiffParser.parseGitRaw(p.getInputStream());
+            var patches = GitRawDiffParser.parse(p.getInputStream());
             await(p);
             return new Diff(from, to, patches);
         } catch (Throwable t) {
