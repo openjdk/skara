@@ -134,7 +134,6 @@ public class HostedRepositoryPool {
                     try {
                         refreshSeed(allowStale);
                         localRepoInstance.clean();
-                        localRepoInstance.fetchAll();
                         return localRepoInstance;
                     } catch (IOException e) {
                         removeOldClone(path, "uncleanable");
@@ -153,8 +152,11 @@ public class HostedRepositoryPool {
     private Repository checkout(HostedRepository hostedRepository, String ref, Path path, boolean allowStale) throws IOException {
         var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository);
         var localClone = hostedRepositoryInstance.materializeClone(path, allowStale);
+        var remote = allowStale ? hostedRepositoryInstance.seed.toUri() : hostedRepository.url();
         try {
-            localClone.checkout(new Branch(ref), true);
+            log.info("Updating local repository from: " + remote);
+            var refHash = localClone.fetch(remote, "+" + ref + ":hostedrepositorypool");
+            localClone.checkout(refHash, true);
         } catch (IOException e) {
             var preserveUnchecked = path.resolveSibling(hostedRepositoryInstance.seed.getFileName().toString() + "-unchecked-" + UUID.randomUUID());
             log.severe("Uncheckoutable local repository detected - preserved in: " + preserveUnchecked);

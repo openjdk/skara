@@ -74,4 +74,56 @@ public class HostedRepositoryPoolTests {
             assertFalse(CheckableRepository.hasBeenEdited(clone));
         }
     }
+
+    @Test
+    void partialExisting(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var sourceFolder = new TemporaryDirectory();
+             var seedFolder = new TemporaryDirectory();
+             var cloneFolder = new TemporaryDirectory()) {
+            var source = credentials.getHostedRepository();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(sourceFolder.path(), source.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, source.url(), "master", true);
+
+            var pool = new HostedRepositoryPool(seedFolder.path());
+            var clone = pool.checkout(source, "master", cloneFolder.path());
+            assertFalse(CheckableRepository.hasBeenEdited(clone));
+
+            // Push something else
+            var hash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(hash, source.url(), "master");
+
+            var updatedClone = pool.checkout(source, "master", cloneFolder.path());
+            assertTrue(CheckableRepository.hasBeenEdited(updatedClone));
+        }
+    }
+
+    @Test
+    void partialExistingAllowStale(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var sourceFolder = new TemporaryDirectory();
+             var seedFolder = new TemporaryDirectory();
+             var cloneFolder = new TemporaryDirectory()) {
+            var source = credentials.getHostedRepository();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(sourceFolder.path(), source.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, source.url(), "master", true);
+
+            var pool = new HostedRepositoryPool(seedFolder.path());
+            var clone = pool.checkout(source, "master", cloneFolder.path());
+            assertFalse(CheckableRepository.hasBeenEdited(clone));
+
+            // Push something else
+            var hash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(hash, source.url(), "master");
+
+            var updatedClone = pool.checkoutAllowStale(source, "master", cloneFolder.path());
+            assertFalse(CheckableRepository.hasBeenEdited(updatedClone));
+        }
+    }
 }
