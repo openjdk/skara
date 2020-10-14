@@ -23,6 +23,7 @@
 package org.openjdk.skara.forge;
 
 import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.vcs.Diff;
 import org.openjdk.skara.vcs.Hash;
 
 import java.net.URI;
@@ -119,6 +120,11 @@ public interface PullRequest extends Issue {
      * @return
      */
     URI diffUrl();
+
+    /** Returns a diff of the changes between PR HEAD and target branch.
+     * @return
+     */
+    Diff diff();
 
     /**
      * Creates a new check.

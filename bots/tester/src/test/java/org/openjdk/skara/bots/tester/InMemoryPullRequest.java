@@ -295,4 +295,9 @@ class InMemoryPullRequest implements PullRequest {
     public URI headUrl() {
         return null;
     }
+
+    @Override
+    public Diff diff() {
+        return null;
+    }
 }

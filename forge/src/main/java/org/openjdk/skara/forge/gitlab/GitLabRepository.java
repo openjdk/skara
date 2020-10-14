@@ -104,13 +104,13 @@ public class GitLabRepository implements HostedRepository {
                         .execute();
 
         var targetRepo = (GitLabRepository) target;
-        return new GitLabMergeRequest(targetRepo, pr, targetRepo.request);
+        return new GitLabMergeRequest(targetRepo, gitLabHost, pr, targetRepo.request);
     }
 
     @Override
     public PullRequest pullRequest(String id) {
         var pr = request.get("merge_requests/" + id).execute();
-        return new GitLabMergeRequest(this, pr, request);
+        return new GitLabMergeRequest(this, gitLabHost, pr, request);
     }
 
     @Override
@@ -118,7 +118,7 @@ public class GitLabRepository implements HostedRepository {
         return request.get("merge_requests")
                       .param("state", "opened")
                       .execute().stream()
-                      .map(value -> new GitLabMergeRequest(this, value, request))
+                      .map(value -> new GitLabMergeRequest(this, gitLabHost, value, request))
                       .collect(Collectors.toList());
     }
 
@@ -128,7 +128,7 @@ public class GitLabRepository implements HostedRepository {
                       .param("order_by", "updated_at")
                       .param("updated_after", updatedAfter.format(DateTimeFormatter.ISO_DATE_TIME))
                       .execute().stream()
-                      .map(value -> new GitLabMergeRequest(this, value, request))
+                      .map(value -> new GitLabMergeRequest(this, gitLabHost, value, request))
                       .collect(Collectors.toList());
     }
 
