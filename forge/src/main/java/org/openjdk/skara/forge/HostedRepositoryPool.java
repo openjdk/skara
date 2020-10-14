@@ -84,7 +84,7 @@ public class HostedRepositoryPool {
             }
             try {
                 log.info("Seed is potentially stale, time to fetch the latest upstream changes");
-                seedRepo.fetchAll();
+                seedRepo.fetch(hostedRepository.url(), "+*:*", true);
             } catch (IOException e) {
                 if (!allowStale) {
                     throw e;
