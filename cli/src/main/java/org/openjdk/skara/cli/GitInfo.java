@@ -106,6 +106,10 @@ public class GitInfo {
                   .helptext("Show contributors")
                   .optional(),
             Switch.shortcut("")
+                  .fullname("upstream")
+                  .helptext("Show upstream commit hash")
+                  .optional(),
+            Switch.shortcut("")
                   .fullname("verbose")
                   .helptext("Turn on verbose output")
                   .optional(),
@@ -159,9 +163,10 @@ public class GitInfo {
         var showSummary = getSwitch("summary", arguments, repo);
         var showIssues = getSwitch("issues", arguments, repo);
         var showTitle = getSwitch("title", arguments, repo);
+        var showUpstream = getSwitch("upstream", arguments, repo);
 
         if (!showSponsor && !showAuthors && !showReviewers &&
-            !showReview && !showSummary && !showIssues && !showTitle) {
+            !showReview && !showSummary && !showIssues && !showTitle && !showUpstream) {
             // no switches or configuration provided, show everything by default
             showSponsor = true;
             showAuthors = true;
@@ -170,6 +175,7 @@ public class GitInfo {
             showSummary = true;
             showIssues = true;
             showTitle = true;
+            showUpstream = true;
         }
 
         var message = useMercurial ?
@@ -224,6 +230,12 @@ public class GitInfo {
             System.out.println(decoration + String.join(", ", message.reviewers()));
         }
 
+        if (showUpstream) {
+            if (message.original().isPresent()) {
+                var decoration = useDecoration ? "Upstream: " : "";
+                System.out.println(decoration + message.original().get().hex());
+            }
+        }
 
         if (showReview) {
             var decoration = useDecoration? "Review: " : "";
