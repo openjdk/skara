@@ -92,11 +92,14 @@ public class HostedRepositoryPoolTests {
             var clone = pool.checkout(source, "master", cloneFolder.path());
             assertFalse(CheckableRepository.hasBeenEdited(clone));
 
+            var updatedClone = pool.checkout(source, "master", cloneFolder.path());
+            assertFalse(CheckableRepository.hasBeenEdited(updatedClone));
+
             // Push something else
             var hash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(hash, source.url(), "master");
 
-            var updatedClone = pool.checkout(source, "master", cloneFolder.path());
+            updatedClone = pool.checkout(source, "master", cloneFolder.path());
             assertTrue(CheckableRepository.hasBeenEdited(updatedClone));
         }
     }
@@ -118,11 +121,14 @@ public class HostedRepositoryPoolTests {
             var clone = pool.checkout(source, "master", cloneFolder.path());
             assertFalse(CheckableRepository.hasBeenEdited(clone));
 
+            var updatedClone = pool.checkoutAllowStale(source, "master", cloneFolder.path());
+            assertFalse(CheckableRepository.hasBeenEdited(updatedClone));
+
             // Push something else
             var hash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(hash, source.url(), "master");
 
-            var updatedClone = pool.checkoutAllowStale(source, "master", cloneFolder.path());
+            updatedClone = pool.checkoutAllowStale(source, "master", cloneFolder.path());
             assertFalse(CheckableRepository.hasBeenEdited(updatedClone));
         }
     }
