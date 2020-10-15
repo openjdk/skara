@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class ReviewersConfiguration {
-    static final ReviewersConfiguration DEFAULT = new ReviewersConfiguration(0, 1, 0, 0, 0, List.of("duke"));
+    static final ReviewersConfiguration DEFAULT = new ReviewersConfiguration(0, 1, 0, 0, 0, List.of("duke"), false);
 
     private final int lead;
     private final int reviewers;
@@ -36,14 +36,16 @@ public class ReviewersConfiguration {
     private final int authors;
     private final int contributors;
     private final List<String> ignore;
+    private final boolean shouldCheckBackports;
 
-    ReviewersConfiguration(int lead, int reviewers, int committers, int authors, int contributors, List<String> ignore) {
+    ReviewersConfiguration(int lead, int reviewers, int committers, int authors, int contributors, List<String> ignore, boolean shouldCheckBackports) {
         this.lead = lead;
         this.reviewers = reviewers;
         this.committers = committers;
         this.authors = authors;
         this.contributors = contributors;
         this.ignore = ignore;
+        this.shouldCheckBackports = shouldCheckBackports;
     }
 
     public int lead() {
@@ -68,6 +70,10 @@ public class ReviewersConfiguration {
 
     public List<String> ignore() {
         return ignore;
+    }
+
+    public boolean shouldCheckBackports() {
+        return shouldCheckBackports;
     }
 
     static String name() {
@@ -115,7 +121,8 @@ public class ReviewersConfiguration {
         }
 
         var ignore = s.get("ignore", DEFAULT.ignore());
+        var shouldCheckBackports = s.get("backports", "ignore").equals("check");
 
-        return new ReviewersConfiguration(lead, reviewers, committers, authors, contributors, ignore);
+        return new ReviewersConfiguration(lead, reviewers, committers, authors, contributors, ignore, shouldCheckBackports);
     }
 }

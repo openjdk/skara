@@ -135,12 +135,15 @@ public class ReviewersCheck extends CommitCheck {
             }
         }
 
-        for (var role : missing.keySet()) {
-            int required = requirements.get(role);
-            int n = missing.get(role);
-            if (n > 0) {
-                log.finer("issue: too few reviewers with role " + role + " found");
-                return iterator(new TooFewReviewersIssue(required - n, required, role, metadata));
+        var isBackport = message.original().isPresent();
+        if (!isBackport || conf.checks().reviewers().shouldCheckBackports()) {
+            for (var role : missing.keySet()) {
+                int required = requirements.get(role);
+                int n = missing.get(role);
+                if (n > 0) {
+                    log.finer("issue: too few reviewers with role " + role + " found");
+                    return iterator(new TooFewReviewersIssue(required - n, required, role, metadata));
+                }
             }
         }
 

@@ -29,6 +29,7 @@ import org.openjdk.skara.vcs.CommitMetadata;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.openjdk.CommitMessage;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
+import org.openjdk.skara.vcs.openjdk.CommitMessageFormatters;
 
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -99,15 +100,21 @@ class ReviewersCheckTests {
     }
 
     private static Commit commit(Author author, List<String> reviewers) {
+        return commit(author, reviewers, null);
+    }
+
+    private static Commit commit(Author author, List<String> reviewers, Hash original) {
         var hash = new Hash("0123456789012345678901234567890123456789");
         var parents = List.of(new Hash("12345789012345789012345678901234567890"));
         var authored = ZonedDateTime.now();
-        var message = new ArrayList<String>();
-        message.addAll(List.of("Initial commit"));
-        if (!reviewers.isEmpty()) {
-            message.addAll(List.of("", "Reviewed-by: " + String.join(", ", reviewers)));
+
+        var message = CommitMessage.title("Initial commit");
+        message.reviewers(reviewers);
+        if (original != null) {
+            message.original(original);
         }
-        var metadata = new CommitMetadata(hash, parents, author, authored, author, authored, message);
+        var desc = message.format(CommitMessageFormatters.v1);
+        var metadata = new CommitMetadata(hash, parents, author, authored, author, authored, desc);
         return new Commit(metadata, List.of());
     }
 
@@ -507,5 +514,47 @@ class ReviewersCheckTests {
         assertEquals(commit, invalidIssue.commit());
         assertEquals(Severity.ERROR, invalidIssue.severity());
         assertEquals(check, invalidIssue.check());
+    }
+
+    @Test
+    void backportCommitWithoutReviewersIsFine() throws IOException {
+        var original = new Hash("0123456789012345678901234567890123456789");
+        var commit = commit(new Author("user", "user@host.org"), List.of(), original);
+        var check = new ReviewersCheck(utils);
+        var issues = toList(check.check(commit, message(commit), conf(1), census()));
+        assertEquals(List.of(), issues);
+    }
+
+    @Test
+    void backportCommitWithoutReviewersWithIgnoredCheckIsFine() throws IOException {
+        var conf = new ArrayList<>(CONFIGURATION);
+        conf.add("reviewers = 1");
+        conf.add("backports = ignore");
+        var original = new Hash("0123456789012345678901234567890123456789");
+        var commit = commit(new Author("user", "user@host.org"), List.of(), original);
+        var check = new ReviewersCheck(utils);
+        var issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(conf), census()));
+        assertEquals(List.of(), issues);
+    }
+
+    @Test
+    void backportCommitWithoutReviewersWithStrictCheckingIsError() throws IOException {
+        var conf = new ArrayList<>(CONFIGURATION);
+        conf.add("reviewers = 1");
+        conf.add("backports = check");
+        var original = new Hash("0123456789012345678901234567890123456789");
+        var commit = commit(new Author("user", "user@host.org"), List.of(), original);
+        var check = new ReviewersCheck(utils);
+        var issues = toList(check.check(commit, message(commit), JCheckConfiguration.parse(conf), census()));
+
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0) instanceof TooFewReviewersIssue);
+        var issue = (TooFewReviewersIssue) issues.get(0);
+        assertEquals(0, issue.numActual());
+        assertEquals(1, issue.numRequired());
+        assertEquals("reviewer", issue.role());
+        assertEquals(commit, issue.commit());
+        assertEquals(Severity.ERROR, issue.severity());
+        assertEquals(check, issue.check());
     }
 }
