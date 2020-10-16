@@ -29,6 +29,7 @@ import java.util.*;
 
 class PullRequestData extends IssueData {
     Hash headHash;
+    String targetRef;
     final List<ReviewComment> reviewComments = new ArrayList<>();
     final Set<Check> checks = new HashSet<>();
     final List<Review> reviews = new ArrayList<>();

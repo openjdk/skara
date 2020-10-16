@@ -89,6 +89,7 @@ public class IntegrateCommand implements CommandHandler {
         }
 
         // Run a final jcheck to ensure the change has been properly reviewed
+        var success = false;
         try (var integrationLock = IntegrationLock.create(pr, Duration.ofMinutes(10))) {
             if (!integrationLock.isLocked()) {
                 log.severe("Unable to acquire the integration lock for " + pr.webUrl());
@@ -172,6 +173,7 @@ public class IntegrateCommand implements CommandHandler {
                 reply.println();
                 reply.println(":bulb: You may see a message that your pull request was closed with unmerged commits. This can be safely ignored.");
                 localRepo.push(amendedHash, pr.repository().url(), pr.targetRef());
+                success = true;
                 pr.setState(PullRequest.State.CLOSED);
                 pr.addLabel("integrated");
                 pr.removeLabel("ready");
@@ -186,6 +188,11 @@ public class IntegrateCommand implements CommandHandler {
             reply.println("An unexpected error occurred during integration. No push attempt will be made. " +
                                   "The error has been logged and will be investigated. It is possible that this error " +
                                   "is caused by a transient issue; feel free to retry the operation.");
+        }
+
+        // Additional cleanup outside of the integration lock
+        if (success) {
+            PreIntegrations.retargetDependencies(pr);
         }
     }
 

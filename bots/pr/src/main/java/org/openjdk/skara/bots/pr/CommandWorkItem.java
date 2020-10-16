@@ -55,7 +55,8 @@ public class CommandWorkItem extends PullRequestWorkItem {
             Map.entry("csr", new CSRCommand()),
             Map.entry("reviewer", new ReviewerCommand()),
             Map.entry("label", new LabelCommand()),
-            Map.entry("cc", new LabelCommand("cc"))
+            Map.entry("cc", new LabelCommand("cc")),
+            Map.entry("preintegrate", new PreIntegrateCommand())
     );
 
     static class HelpCommand implements CommandHandler {

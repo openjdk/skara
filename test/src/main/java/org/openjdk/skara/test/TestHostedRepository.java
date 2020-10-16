@@ -195,7 +195,9 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
         try {
             var result = new ArrayList<HostedBranch>();
             for (var b : localRepository.branches()) {
-                result.add(new HostedBranch(b.name(), localRepository.resolve(b).orElseThrow()));
+                if (!PreIntegrations.isPreintegrationBranch(b.name())) {
+                    result.add(new HostedBranch(b.name(), localRepository.resolve(b).orElseThrow()));
+                }
             }
             return result;
         } catch (IOException e) {

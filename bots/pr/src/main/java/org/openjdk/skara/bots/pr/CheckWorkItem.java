@@ -68,7 +68,7 @@ class CheckWorkItem extends PullRequestWorkItem {
     }
 
     String getMetadata(CensusInstance censusInstance, String title, String body, List<Comment> comments,
-                       List<Review> reviews, Set<String> labels, boolean isDraft, Duration expiresIn) {
+                       List<Review> reviews, Set<String> labels, String targetRef, boolean isDraft, Duration expiresIn) {
         try {
             var approverString = reviews.stream()
                                         .filter(review -> review.verdict() == Review.Verdict.APPROVED)
@@ -89,6 +89,7 @@ class CheckWorkItem extends PullRequestWorkItem {
             digest.update(approverString.getBytes(StandardCharsets.UTF_8));
             digest.update(commentString.getBytes(StandardCharsets.UTF_8));
             digest.update(labelString.getBytes(StandardCharsets.UTF_8));
+            digest.update(targetRef.getBytes(StandardCharsets.UTF_8));
             digest.update(isDraft ? (byte)0 : (byte)1);
 
             var ret = Base64.getUrlEncoder().encodeToString(digest.digest());
@@ -103,7 +104,7 @@ class CheckWorkItem extends PullRequestWorkItem {
 
     private boolean currentCheckValid(CensusInstance censusInstance, List<Comment> comments, List<Review> reviews, Set<String> labels) {
         var hash = pr.headHash();
-        var metadata = getMetadata(censusInstance, pr.title(), pr.body(), comments, reviews, labels, pr.isDraft(), null);
+        var metadata = getMetadata(censusInstance, pr.title(), pr.body(), comments, reviews, labels, pr.targetRef(), pr.isDraft(), null);
         var currentChecks = pr.checks(hash);
 
         if (currentChecks.containsKey("jcheck")) {

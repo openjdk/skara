@@ -736,6 +736,13 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
+    public void setTargetRef(String targetRef) {
+        request.put("")
+               .body("target_branch", targetRef)
+               .execute();
+    }
+
+    @Override
     public URI headUrl() {
         return URI.create(webUrl() + "/diffs?commit_id=" + headHash().hex());
     }

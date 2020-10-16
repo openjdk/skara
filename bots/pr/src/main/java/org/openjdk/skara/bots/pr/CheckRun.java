@@ -98,6 +98,9 @@ class CheckRun {
     }
 
     private boolean isTargetBranchAllowed() {
+        if (PreIntegrations.isPreintegrationBranch(pr.targetRef())) {
+            return true;
+        }
         var matcher = workItem.bot.allowedTargetBranches().matcher(pr.targetRef());
         return matcher.matches();
     }
@@ -229,6 +232,9 @@ class CheckRun {
         labels.stream()
               .filter(l -> blockingIntegrationLabels().containsKey(l))
               .forEach(l -> ret.add(blockingIntegrationLabels().get(l)));
+
+        var dep = PreIntegrations.dependentPullRequestId(pr);
+        dep.ifPresent(s -> ret.add("Dependency #" + s + " must be integrated first"));
 
         return ret;
     }
@@ -922,7 +928,7 @@ class CheckRun {
 
             // Calculate current metadata to avoid unnecessary future checks
             var metadata = workItem.getMetadata(censusInstance, title, updatedBody, pr.comments(), activeReviews,
-                                                newLabels, pr.isDraft(), expiresIn);
+                                                newLabels, pr.targetRef(), pr.isDraft(), expiresIn);
             checkBuilder.metadata(metadata);
         } catch (Exception e) {
             log.throwing("CommitChecker", "checkStatus", e);

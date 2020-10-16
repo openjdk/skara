@@ -292,6 +292,11 @@ class InMemoryPullRequest implements PullRequest {
     }
 
     @Override
+    public void setTargetRef(String targetRef) {
+
+    }
+
+    @Override
     public URI headUrl() {
         return null;
     }
