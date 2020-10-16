@@ -959,7 +959,7 @@ class CheckRun {
             Hash localHash;
             try {
                 // Do not pass eventual original commit even for backports since it will cause
-                // the reviwer check to be ignored.
+                // the reviewer check to be ignored.
                 localHash = checkablePullRequest.commit(commitHash, censusInstance.namespace(), censusDomain, null, null);
             } catch (CommitFailure e) {
                 additionalErrors = List.of(e.getMessage());
