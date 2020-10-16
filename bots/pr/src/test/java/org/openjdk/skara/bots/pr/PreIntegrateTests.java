@@ -25,7 +25,6 @@ package org.openjdk.skara.bots.pr;
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.test.*;
-import org.openjdk.skara.vcs.Repository;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -35,64 +34,10 @@ import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentCont
 
 public class PreIntegrateTests {
     @Test
-    void simple(TestInfo testInfo) throws IOException {
-        try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var masterFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
-
-            var author = credentials.getHostedRepository();
-            var integrator = credentials.getHostedRepository();
-            var reviewer = credentials.getHostedRepository();
-            var censusBuilder = credentials.getCensusBuilder()
-                                           .addCommitter(author.forge().currentUser().id())
-                                           .addReviewer(integrator.forge().currentUser().id())
-                                           .addReviewer(reviewer.forge().currentUser().id());
-            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
-
-            // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
-            var masterHash = localRepo.resolve("master").orElseThrow();
-            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
-            localRepo.push(masterHash, author.url(), "master", true);
-
-            // Make a change with a corresponding PR
-            var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
-
-            // Approve it as another user
-            var approvalPr = integrator.pullRequest(pr.id());
-            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
-
-            // The bot should reply with integration message
-            TestBotRunner.runPeriodicItems(mergeBot);
-            assertLastCommentContains(pr, "To integrate this PR with the above commit message to the `master` branch");
-
-            // Attempt a merge (the bot should only process the first one)
-            pr.addComment("/preintegrate");
-            TestBotRunner.runPeriodicItems(mergeBot);
-
-            // The bot should reply with an ok message
-            assertLastCommentContains(pr, "The current content of this pull request has been pre-integrated into the branch");
-
-            // The change should not be present on the master branch
-            var masterRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
-            assertFalse(CheckableRepository.hasBeenEdited(masterRepo));
-
-            // But it should appear in a new branch
-            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), PreIntegrations.preIntegrateBranch(pr));
-            assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
-        }
-    }
-
-    @Test
     void integrateFollowup(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
-             var seedFolder = new TemporaryDirectory();
-             var masterFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var seedFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -122,19 +67,12 @@ public class PreIntegrateTests {
             var approvalPr = integrator.pullRequest(pr.id());
             approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
 
-            var r = pr.reviews();
-
-
             // The bot should reply with integration message
             TestBotRunner.runPeriodicItems(mergeBot);
             assertLastCommentContains(pr, "To integrate this PR with the above commit message to the `master` branch");
 
-            // Attempt a merge (the bot should only process the first one)
-            pr.addComment("/preintegrate");
-            TestBotRunner.runPeriodicItems(mergeBot);
-
-            // The bot should reply with an ok message
-            assertLastCommentContains(pr, "The current content of this pull request has been pre-integrated into the branch");
+            // Simulate population of the pr branch
+            localRepo.push(editHash, author.url(), PreIntegrations.preIntegrateBranch(pr), true);
 
             // Create follow-up work
             var followUp = CheckableRepository.appendAndCommit(localRepo, "Follow-up work", "Follow-up change");

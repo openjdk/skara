@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.vcs.Hash;
 
 import java.util.*;
@@ -31,17 +32,23 @@ class PullRequestState {
     private final String prId;
     private final Set<String> issueIds;
     private final Hash commitId;
+    private final Hash head;
+    private final Issue.State state;
 
-    PullRequestState(PullRequest pr, Set<String> issueIds, Hash commitId) {
+    PullRequestState(PullRequest pr, Set<String> issueIds, Hash commitId, Hash head, Issue.State state) {
         this.prId = pr.repository().id() + ":" + pr.id();
         this.issueIds = issueIds;
         this.commitId = commitId;
+        this.head = head;
+        this.state = state;
     }
 
-    PullRequestState(String prId, Set<String> issueIds, Hash commitId) {
+    PullRequestState(String prId, Set<String> issueIds, Hash commitId, Hash head, Issue.State state) {
         this.prId = prId;
         this.issueIds = issueIds;
         this.commitId = commitId;
+        this.head = head;
+        this.state = state;
     }
 
     public String prId() {
@@ -56,12 +63,22 @@ class PullRequestState {
         return Optional.ofNullable(commitId);
     }
 
+    public Hash head() {
+        return head;
+    }
+
+    public Issue.State state() {
+        return state;
+    }
+
     @Override
     public String toString() {
         return "PullRequestState{" +
                 "prId='" + prId + '\'' +
                 ", issueIds=" + issueIds +
                 ", commitId=" + commitId +
+                ", head=" + head +
+                ", state=" + state +
                 '}';
     }
 
@@ -76,11 +93,13 @@ class PullRequestState {
         var that = (PullRequestState) o;
         return prId.equals(that.prId) &&
                 issueIds.equals(that.issueIds) &&
-                Objects.equals(commitId, that.commitId);
+                Objects.equals(commitId, that.commitId) &&
+                Objects.equals(head, that.head) &&
+                Objects.equals(state, that.state);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(prId, issueIds, commitId);
+        return Objects.hash(prId, issueIds, commitId, head);
     }
 }

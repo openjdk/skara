@@ -17,7 +17,7 @@ public class PreIntegrations {
     }
 
     public static String preIntegrateBranch(PullRequest pr) {
-        return "pr/" + pr.author().userName().replaceAll("[^\\w]", "_") + "/" + pr.id();
+        return "pr/" + pr.id();
     }
 
     public static void retargetDependencies(PullRequest pr) {

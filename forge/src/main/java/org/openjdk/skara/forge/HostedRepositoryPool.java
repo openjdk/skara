@@ -94,9 +94,9 @@ public class HostedRepositoryPool {
             }
         }
 
-        private ReadOnlyRepository seedRepository(boolean allowStale) throws IOException {
+        private Repository seedRepository(boolean allowStale) throws IOException {
             refreshSeed(allowStale);
-            return ReadOnlyRepository.get(seed).orElseThrow(() -> new IOException("Existing seed is corrupt?"));
+            return Repository.get(seed).orElseThrow(() -> new IOException("Existing seed is corrupt?"));
         }
 
         private Repository cloneSeeded(Path path, boolean allowStale) throws IOException {
@@ -189,5 +189,10 @@ public class HostedRepositoryPool {
 
         var hash = refHash.orElseThrow(() -> new IOException("Ref not found: " + ref));
         return seedRepo.lines(p, hash);
+    }
+
+    public Repository seedRepository(HostedRepository hostedRepository, boolean allowStale) throws IOException {
+        var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository);
+        return hostedRepositoryInstance.seedRepository(false);
     }
 }

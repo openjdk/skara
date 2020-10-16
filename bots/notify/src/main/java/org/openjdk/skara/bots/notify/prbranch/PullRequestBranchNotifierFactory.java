@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,23 +20,22 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.bots.notify;
+package org.openjdk.skara.bots.notify.prbranch;
 
-import org.openjdk.skara.forge.PullRequest;
-import org.openjdk.skara.vcs.Hash;
-import org.openjdk.skara.vcs.openjdk.Issue;
+import org.openjdk.skara.bot.BotConfiguration;
+import org.openjdk.skara.bots.notify.*;
+import org.openjdk.skara.json.JSONObject;
 
-public interface PullRequestListener {
-    default void onNewIssue(PullRequest pr, Issue issue) {
+public class PullRequestBranchNotifierFactory implements NotifierFactory {
+    @Override
+    public String name() {
+        return "prbranch";
     }
-    default void onRemovedIssue(PullRequest pr, Issue issue) {
+
+    @Override
+    public Notifier create(BotConfiguration botConfiguration, JSONObject notifierConfiguration) {
+        var seedFolder = botConfiguration.storageFolder();
+        return new PullRequestBranchNotifier(seedFolder.resolve("seeds"));
     }
-    default void onNewPullRequest(PullRequest pr) {
-    }
-    default void onIntegratedPullRequest(PullRequest pr, Hash hash) {
-    }
-    default void onHeadChange(PullRequest pr, Hash oldHead) {
-    }
-    default void onStateChange(PullRequest pr, org.openjdk.skara.issuetracker.Issue.State oldState) {
-    }
+
 }
