@@ -139,10 +139,10 @@ public class CheckablePullRequest {
         return PullRequestUtils.createCommit(pr, localRepo, finalHead, author, committer, commitMessage);
     }
 
-    Hash amendManualReviewers(Hash commit, Namespace namespace) throws IOException {
+    Hash amendManualReviewers(Hash commit, Namespace namespace, Hash original) throws IOException {
         var activeReviews = filterActiveReviews(pr.reviews());
-        var originalCommitMessage = commitMessage(activeReviews, namespace, false);
-        var amendedCommitMessage = commitMessage(activeReviews, namespace, true);
+        var originalCommitMessage = commitMessage(activeReviews, namespace, false, original);
+        var amendedCommitMessage = commitMessage(activeReviews, namespace, true, original);
 
         if (originalCommitMessage.equals(amendedCommitMessage)) {
             return commit;

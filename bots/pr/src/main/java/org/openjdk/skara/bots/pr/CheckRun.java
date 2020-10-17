@@ -35,6 +35,7 @@ import java.time.*;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.*;
 
 class CheckRun {
@@ -60,6 +61,7 @@ class CheckRun {
     private static final String emptyPrBodyMarker = "<!--\nReplace this text with a description of your pull request (also remove the surrounding HTML comment markers).\n" +
             "If in doubt, feel free to delete everything in this edit box first, the bot will restore the progress section as needed.\n-->";
     private static final String fullNameWarningMarker = "<!-- PullRequestBot full name warning comment -->";
+    private static final Pattern BACKPORT_PATTERN = Pattern.compile("<!-- backport ([0-9a-z]{40}) -->");
     private final Set<String> newLabels;
 
     private Duration expiresIn;
@@ -269,6 +271,116 @@ class CheckRun {
         } else {
             newLabels.remove("rfr");
         }
+    }
+
+    private boolean updateClean(Hash hash) {
+        var result = pr.repository().forge().search(hash);
+        if (result.isEmpty()) {
+            throw new IllegalStateException("Backport comment for PR " + pr.id() + " contains bad hash: " + hash.hex());
+        }
+
+        var hasCleanLabel = labels.contains("clean");
+
+        var commit = result.get();
+        var originalPatches = new HashMap<String, Patch>();
+        for (var patch : commit.parentDiffs().get(0).patches()) {
+            originalPatches.put(patch.toString(), patch);
+        }
+        var prPatches = new HashMap<String, Patch>();
+        for (var patch : pr.diff().patches()) {
+            prPatches.put(patch.toString(), patch);
+        }
+
+        if (originalPatches.size() != prPatches.size()) {
+            if (hasCleanLabel) {
+                pr.removeLabel("clean");
+            }
+            return false;
+        }
+
+        var descriptions = new HashSet<>(originalPatches.keySet());
+        descriptions.removeAll(prPatches.keySet());
+        if (!descriptions.isEmpty()) {
+            if (hasCleanLabel) {
+                pr.removeLabel("clean");
+            }
+            return false;
+        }
+
+        for (var desc : originalPatches.keySet()) {
+            var original = originalPatches.get(desc).asTextualPatch();
+            var backport = prPatches.get(desc).asTextualPatch();
+            if (original.hunks().size() != backport.hunks().size()) {
+                if (hasCleanLabel) {
+                    pr.removeLabel("clean");
+                }
+                return false;
+            }
+            if (original.additions() != backport.additions()) {
+                if (hasCleanLabel) {
+                    pr.removeLabel("clean");
+                }
+                return false;
+            }
+            if (original.deletions() != backport.deletions()) {
+                if (hasCleanLabel) {
+                    pr.removeLabel("clean");
+                }
+                return false;
+            }
+            for (var i = 0; i < original.hunks().size(); i++) {
+                var originalHunk = original.hunks().get(i);
+                var backportHunk = backport.hunks().get(i);
+
+                if (originalHunk.source().lines().size() != backportHunk.source().lines().size()) {
+                    if (hasCleanLabel) {
+                        pr.removeLabel("clean");
+                    }
+                    return false;
+                }
+                var sourceLines = new HashSet<>(originalHunk.source().lines());
+                sourceLines.removeAll(backportHunk.source().lines());
+                if (!sourceLines.isEmpty()) {
+                    if (hasCleanLabel) {
+                        pr.removeLabel("clean");
+                    }
+                    return false;
+                }
+
+                if (originalHunk.target().lines().size() != backportHunk.target().lines().size()) {
+                    if (hasCleanLabel) {
+                        pr.removeLabel("clean");
+                    }
+                    return false;
+                }
+                var targetLines = new HashSet<>(originalHunk.target().lines());
+                targetLines.removeAll(backportHunk.target().lines());
+                if (!targetLines.isEmpty()) {
+                    if (hasCleanLabel) {
+                        pr.removeLabel("clean");
+                    }
+                    return false;
+                }
+            }
+        }
+
+        if (!hasCleanLabel) {
+            pr.addLabel("clean");
+        }
+        return true;
+    }
+
+    private Optional<Hash> backportedFrom() {
+        var botUser = pr.repository().forge().currentUser();
+        var backportLines = pr.comments()
+                              .stream()
+                              .filter(c -> c.author().equals(botUser))
+                              .flatMap(c -> Stream.of(c.body().split("\n")))
+                              .map(l -> BACKPORT_PATTERN.matcher(l))
+                              .filter(Matcher::find)
+                              .collect(Collectors.toList());
+        return backportLines.isEmpty()?
+            Optional.empty() : Optional.of(new Hash(backportLines.get(0).group(1)));
     }
 
     private String getRole(String username) {
@@ -846,6 +958,8 @@ class CheckRun {
             List<String> additionalErrors = List.of();
             Hash localHash;
             try {
+                // Do not pass eventual original commit even for backports since it will cause
+                // the reviewer check to be ignored.
                 localHash = checkablePullRequest.commit(commitHash, censusInstance.namespace(), censusDomain, null, null);
             } catch (CommitFailure e) {
                 additionalErrors = List.of(e.getMessage());
@@ -864,6 +978,11 @@ class CheckRun {
             }
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
             updateReadyForReview(visitor, additionalErrors);
+            var original = backportedFrom();
+            var isCleanBackport = false;
+            if (original.isPresent()) {
+                isCleanBackport = updateClean(original.get());
+            }
 
             var integrationBlockers = botSpecificIntegrationBlockers();
 
@@ -877,12 +996,18 @@ class CheckRun {
                 updateReviewedMessages(comments, allReviews);
             }
 
-            var amendedHash = checkablePullRequest.amendManualReviewers(localHash, censusInstance.namespace());
+            var amendedHash = checkablePullRequest.amendManualReviewers(localHash, censusInstance.namespace(), original.orElse(null));
             var commit = localRepo.lookup(amendedHash).orElseThrow();
             var commitMessage = String.join("\n", commit.message());
             var readyForIntegration = visitor.messages().isEmpty() &&
                                       additionalErrors.isEmpty() &&
                                       integrationBlockers.isEmpty();
+            if (isCleanBackport) {
+                // Reviews are not needed for clean backports
+                readyForIntegration = visitor.isReadyForReview() &&
+                                      additionalErrors.isEmpty() &&
+                                      integrationBlockers.isEmpty();
+            }
 
             updateMergeReadyComment(readyForIntegration, commitMessage, comments, activeReviews, rebasePossible);
             if (readyForIntegration && rebasePossible) {

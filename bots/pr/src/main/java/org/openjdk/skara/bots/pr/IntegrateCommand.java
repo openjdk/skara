@@ -163,7 +163,7 @@ public class IntegrateCommand implements CommandHandler {
 
             // Rebase and push it!
             if (!localHash.equals(pr.targetHash())) {
-                var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace());
+                var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
                 var finalRebaseMessage = rebaseMessage.toString();
                 if (!finalRebaseMessage.isBlank()) {
                     reply.println(rebaseMessage.toString());
