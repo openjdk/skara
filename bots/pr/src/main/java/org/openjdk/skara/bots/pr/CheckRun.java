@@ -408,7 +408,7 @@ class CheckRun {
         var namespace = censusInstance.namespace();
         var contributor = namespace.get(reviewer.id());
         if (contributor == null) {
-            return "@" + reviewer.userName() + " (no known " + namespace.name() + " user name / role)";
+            return "@" + reviewer.username() + " (no known " + namespace.name() + " user name / role)";
         } else {
             var ret = new StringBuilder();
             var censusLink = workItem.bot.censusLink(contributor);
@@ -422,7 +422,7 @@ class CheckRun {
                 ret.append(")");
             }
             ret.append(" (@");
-            ret.append(reviewer.userName());
+            ret.append(reviewer.username());
             ret.append(" - ");
             ret.append(getRole(contributor.username()));
             ret.append(")");
@@ -692,7 +692,7 @@ class CheckRun {
     private String getMergeReadyComment(String commitMessage, List<Review> reviews) {
         var message = new StringBuilder();
         message.append("@");
-        message.append(pr.author().userName());
+        message.append(pr.author().username());
         message.append(" This change now passes all *automated* pre-integration checks.");
 
         try {
@@ -793,7 +793,7 @@ class CheckRun {
             message.append("[sponsor](https://openjdk.java.net/sponsor/) your change. ");
             var candidates = reviews.stream()
                                     .filter(review -> censusInstance.isCommitter(review.reviewer()))
-                                    .map(review -> "@" + review.reviewer().userName())
+                                    .map(review -> "@" + review.reviewer().username())
                                     .collect(Collectors.joining(", "));
             if (candidates.length() > 0) {
                 message.append("Possible candidates are the reviewers of this PR (");
@@ -817,7 +817,7 @@ class CheckRun {
     private String getMergeNoLongerReadyComment() {
         var message = new StringBuilder();
         message.append("@");
-        message.append(pr.author().userName());
+        message.append(pr.author().username());
         message.append(" This change is no longer ready for integration - check the PR body for details.\n");
         message.append(mergeReadyMarker);
         return message.toString();
@@ -838,10 +838,10 @@ class CheckRun {
         var head = pr.repository().commitMetadata(pr.headHash()).orElseThrow(
             () -> new IllegalStateException("Cannot lookup HEAD hash for PR " + pr.id())
         );
-        if (!pr.author().fullName().equals(pr.author().userName()) &&
+        if (!pr.author().fullName().equals(pr.author().username()) &&
             !pr.author().fullName().equals(head.author().name())) {
             var headUrl = pr.headUrl().toString();
-            var message = ":warning: @" + pr.author().userName() + " the full name on your profile does not match " +
+            var message = ":warning: @" + pr.author().username() + " the full name on your profile does not match " +
                 "the author name in this pull requests' [HEAD](" + headUrl + ") commit. " +
                           "If this pull request gets integrated then the author name from this pull requests' " +
                           "[HEAD](" + headUrl + ") commit will be used for the resulting commit. " +
@@ -879,7 +879,7 @@ class CheckRun {
             return;
         }
         var branch = pr.sourceRef();
-        var message = ":warning: @" + pr.author().userName() + " " +
+        var message = ":warning: @" + pr.author().username() + " " +
             "a branch with the same name as the source branch for this pull request (`" + branch + "`) " +
             "is present in the [target repository](" + pr.repository().nonTransformedWebUrl() + "). " +
             "If you eventually integrate this pull request then the branch `" + branch + "` " +
@@ -909,7 +909,7 @@ class CheckRun {
             // Only add the comment once per PR
             return;
         }
-        var message = "@" + pr.author().userName() + " this pull request can not be integrated into " +
+        var message = "@" + pr.author().username() + " this pull request can not be integrated into " +
                 "`" + pr.targetRef() + "` due to one or more merge conflicts. To resolve these merge conflicts " +
                 "and update this pull request you can run the following commands in the local repository for your personal fork:\n" +
                 "```bash\n" +
@@ -932,7 +932,7 @@ class CheckRun {
         }
 
         var defaultBranch = Branch.defaultFor(VCS.GIT);
-        var message = "⚠️  @" + pr.author().userName() +
+        var message = "⚠️  @" + pr.author().username() +
                       " This pull request contains merges that bring in commits not present in the target repository." +
                       " Since this is not a \"merge style\" pull request, these changes will be squashed when this pull request in integrated." +
                       " If this is your intention, then please ignore this message. If you want to preserve the commit structure, you must change" +

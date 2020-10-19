@@ -177,13 +177,13 @@ public class GitPrList {
                 continue;
             }
 
-            var prAuthor = pr.author().userName();
+            var prAuthor = pr.author().username();
             if (!filterAuthors.isEmpty() && !filterAuthors.contains(prAuthor)) {
                 continue;
             }
 
             var prAssignees = pr.assignees().stream()
-                                .map(HostUser::userName)
+                                .map(HostUser::username)
                                 .collect(Collectors.toSet());
             if (!filterAssignees.isEmpty() && !filterAssignees.stream().anyMatch(prAssignees::contains)) {
                 continue;

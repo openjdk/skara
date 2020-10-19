@@ -110,7 +110,7 @@ class ArchiveWorkItem implements WorkItem {
         if (pr.repository().forge().currentUser().equals(author)) {
             return true;
         }
-        if (bot.ignoredUsers().contains(author.userName())) {
+        if (bot.ignoredUsers().contains(author.username())) {
             return true;
         }
         // Check if this comment only contains command lines
@@ -180,7 +180,7 @@ class ArchiveWorkItem implements WorkItem {
         if (contributor == null) {
             return EmailAddress.from(originalAuthor.fullName(),
                                      censusInstance.namespace().name() + "+" +
-                                             originalAuthor.id() + "+" + originalAuthor.userName() + "@" +
+                                             originalAuthor.id() + "+" + originalAuthor.username() + "@" +
                                              censusInstance.configuration().census().domain());
         } else {
             return EmailAddress.from(contributor.fullName().orElse(originalAuthor.fullName()),
@@ -188,10 +188,10 @@ class ArchiveWorkItem implements WorkItem {
         }
     }
 
-    private String getAuthorUserName(CensusInstance censusInstance, HostUser originalAuthor) {
+    private String getAuthorUsername(CensusInstance censusInstance, HostUser originalAuthor) {
         var contributor = censusInstance.namespace().get(originalAuthor.id());
-        var userName = contributor != null ? contributor.username() : originalAuthor.userName() + "@" + censusInstance.namespace().name();
-        return userName;
+        var username = contributor != null ? contributor.username() : originalAuthor.username() + "@" + censusInstance.namespace().name();
+        return username;
     }
 
     private String getAuthorRole(CensusInstance censusInstance, HostUser originalAuthor) {
@@ -267,7 +267,7 @@ class ArchiveWorkItem implements WorkItem {
             for (var readyComment : bot.readyComments().entrySet()) {
                 var commentFound = false;
                 for (var comment : comments) {
-                    if (comment.author().userName().equals(readyComment.getKey())) {
+                    if (comment.author().username().equals(readyComment.getKey())) {
                         var matcher = readyComment.getValue().matcher(comment.body());
                         if (matcher.find()) {
                             commentFound = true;
@@ -353,7 +353,7 @@ class ArchiveWorkItem implements WorkItem {
             var newMails = archiver.generateNewEmails(sentMails, bot.cooldown(), localRepo, bot.issueTracker(), jbs.toUpperCase(), webrevGenerator,
                                                       (index, webrevs) -> updateWebrevComment(comments, index, webrevs),
                                                       user -> getAuthorAddress(census, user),
-                                                      user -> getAuthorUserName(census, user),
+                                                      user -> getAuthorUsername(census, user),
                                                       user -> getAuthorRole(census, user),
                                                       subjectPrefix(),
                                                       retryConsumer

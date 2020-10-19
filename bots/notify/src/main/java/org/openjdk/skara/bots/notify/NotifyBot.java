@@ -77,7 +77,7 @@ public class NotifyBot implements Bot, Emitter {
         for (var readyComment : readyComments.entrySet()) {
             var commentFound = false;
             for (var comment : comments) {
-                if (comment.author().userName().equals(readyComment.getKey())) {
+                if (comment.author().username().equals(readyComment.getKey())) {
                     var matcher = readyComment.getValue().matcher(comment.body());
                     if (matcher.find()) {
                         commentFound = true;

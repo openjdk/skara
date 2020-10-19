@@ -193,8 +193,8 @@ public class GitHubHost implements Forge {
         return Optional.empty();
     }
 
-    private String getFullName(String userName) {
-        var details = user(userName);
+    private String getFullName(String username) {
+        var details = user(username);
         return details.get().fullName();
     }
 
@@ -320,7 +320,7 @@ public class GitHubHost implements Forge {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("Group id is not a number: " + groupId);
         }
-        var username = URLEncoder.encode(user.userName(), StandardCharsets.UTF_8);
+        var username = URLEncoder.encode(user.username(), StandardCharsets.UTF_8);
         var orgs = request.get("users/" + username + "/orgs").execute().asArray();
         for (var org : orgs) {
             if (org.get("id").asLong() == gid) {

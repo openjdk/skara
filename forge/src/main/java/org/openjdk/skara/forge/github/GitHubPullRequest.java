@@ -585,7 +585,7 @@ public class GitHubPullRequest implements PullRequest {
     public void setAssignees(List<HostUser> assignees) {
         var assignee_ids = JSON.array();
         for (var assignee : assignees) {
-            assignee_ids.add(assignee.userName());
+            assignee_ids.add(assignee.username());
         }
         var param = JSON.object().put("assignees", assignee_ids);
         request.patch("issues/" + json.get("number").toString()).body(param).execute();

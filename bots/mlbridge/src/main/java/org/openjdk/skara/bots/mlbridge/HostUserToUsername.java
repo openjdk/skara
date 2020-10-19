@@ -25,6 +25,6 @@ package org.openjdk.skara.bots.mlbridge;
 import org.openjdk.skara.host.HostUser;
 
 @FunctionalInterface
-interface HostUserToUserName {
-    String userName(HostUser user);
+interface HostUserToUsername {
+    String username(HostUser user);
 }

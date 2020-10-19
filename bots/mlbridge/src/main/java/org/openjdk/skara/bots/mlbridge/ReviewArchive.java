@@ -75,7 +75,7 @@ class ReviewArchive {
         return commit.authored().isBefore(ZonedDateTime.of(2020, 4, 28, 14, 0, 0, 0, ZoneId.of("UTC")));
     }
 
-    private List<ArchiveItem> generateArchiveItems(List<Email> sentEmails, Repository localRepo, URI issueTracker, String issuePrefix, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, String subjectPrefix) throws IOException {
+    private List<ArchiveItem> generateArchiveItems(List<Email> sentEmails, Repository localRepo, URI issueTracker, String issuePrefix, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUsername hostUserToUsername, HostUserToRole hostUserToRole, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, String subjectPrefix) throws IOException {
         var generated = new ArrayList<ArchiveItem>();
         Hash lastBase = null;
         Hash lastHead = null;
@@ -128,7 +128,7 @@ class ReviewArchive {
         // A review always have a revision mail as parent, so start with these
         for (var review : reviews) {
             var parent = ArchiveItem.findParent(generated, review);
-            var reply = ArchiveItem.from(pr, review, hostUserToEmailAuthor, hostUserToUserName, hostUserToRole, parent);
+            var reply = ArchiveItem.from(pr, review, hostUserToEmailAuthor, hostUserToUsername, hostUserToRole, parent);
             generated.add(reply);
         }
         // Comments have either a comment or a review as parent, the eligible ones have been generated at this point
@@ -269,9 +269,9 @@ class ReviewArchive {
         return uniqueMessageId.localPart().split("\\.")[0];
     }
 
-    List<Email> generateNewEmails(List<Email> sentEmails, Duration cooldown, Repository localRepo, URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, String subjectPrefix, Consumer<Instant> retryConsumer) throws IOException {
+    List<Email> generateNewEmails(List<Email> sentEmails, Duration cooldown, Repository localRepo, URI issueTracker, String issuePrefix, WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUsername hostUserToUsername, HostUserToRole hostUserToRole, String subjectPrefix, Consumer<Instant> retryConsumer) throws IOException {
         var ret = new ArrayList<Email>();
-        var allItems = generateArchiveItems(sentEmails, localRepo, issueTracker, issuePrefix, hostUserToEmailAuthor, hostUserToUserName, hostUserToRole, webrevGenerator, webrevNotification, subjectPrefix);
+        var allItems = generateArchiveItems(sentEmails, localRepo, issueTracker, issuePrefix, hostUserToEmailAuthor, hostUserToUsername, hostUserToRole, webrevGenerator, webrevNotification, subjectPrefix);
         var sentItemIds = sentItemIds(sentEmails);
         var unsentItems = allItems.stream()
                                   .filter(item -> !sentItemIds.contains(getStableMessageId(getUniqueMessageId(item.id()))))

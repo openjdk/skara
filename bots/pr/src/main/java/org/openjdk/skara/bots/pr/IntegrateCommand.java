@@ -61,7 +61,7 @@ public class IntegrateCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (!command.user().equals(pr.author())) {
-            reply.print("Only the author (@" + pr.author().userName() + ") is allowed to issue the `integrate` command.");
+            reply.print("Only the author (@" + pr.author().username() + ") is allowed to issue the `integrate` command.");
 
             // If the command author is allowed to sponsor this change, suggest that command
             var readyHash = ReadyForSponsorTracker.latestReadyForSponsor(pr.repository().forge().currentUser(), allComments);

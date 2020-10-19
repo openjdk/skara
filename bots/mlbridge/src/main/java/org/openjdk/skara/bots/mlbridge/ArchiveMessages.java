@@ -350,7 +350,7 @@ class ArchiveMessages {
         return body.toString();
     }
 
-    private static String composeReviewVerdict(Review review, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole) {
+    private static String composeReviewVerdict(Review review, HostUserToUsername hostUserToUsername, HostUserToRole hostUserToRole) {
         var result = new StringBuilder();
         if (review.verdict() != Review.Verdict.NONE) {
             if (review.verdict() == Review.Verdict.APPROVED) {
@@ -359,7 +359,7 @@ class ArchiveMessages {
                 result.append("Changes requested");
             }
             result.append(" by ");
-            result.append(hostUserToUserName.userName(review.reviewer()));
+            result.append(hostUserToUsername.username(review.reviewer()));
             result.append(" (");
             result.append(hostUserToRole.role(review.reviewer()));
             result.append(").");
@@ -367,18 +367,18 @@ class ArchiveMessages {
         return result.toString();
     }
 
-    static String composeReview(PullRequest pr, Review review, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole) {
+    static String composeReview(PullRequest pr, Review review, HostUserToUsername hostUserToUsername, HostUserToRole hostUserToRole) {
         if (review.body().isPresent() && !review.body().get().isBlank()) {
             return filterCommentsAndCommands(review.body().get());
         } else {
-            return composeReviewVerdict(review, hostUserToUserName, hostUserToRole);
+            return composeReviewVerdict(review, hostUserToUsername, hostUserToRole);
         }
     }
 
-    static String composeReviewFooter(PullRequest pr, Review review, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole) {
+    static String composeReviewFooter(PullRequest pr, Review review, HostUserToUsername hostUserToUsername, HostUserToRole hostUserToRole) {
         var result = new StringBuilder();
         if (review.body().isPresent() && !review.body().get().isBlank()) {
-            var verdict = composeReviewVerdict(review, hostUserToUserName, hostUserToRole);
+            var verdict = composeReviewVerdict(review, hostUserToUsername, hostUserToRole);
             if (!verdict.isBlank()) {
                 result.append(verdict);
                 result.append("\n\n");

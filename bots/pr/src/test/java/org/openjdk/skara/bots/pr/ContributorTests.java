@@ -260,7 +260,7 @@ class ContributorTests {
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Use a platform name
-            pr.addComment("/contributor add @" + author.forge().currentUser().userName());
+            pr.addComment("/contributor add @" + author.forge().currentUser().username());
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply

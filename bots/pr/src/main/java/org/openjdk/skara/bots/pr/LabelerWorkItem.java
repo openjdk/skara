@@ -67,7 +67,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
 
         var message = new StringBuilder();
         message.append("@");
-        message.append(pr.author().userName());
+        message.append(pr.author().username());
         message.append(" ");
 
         if (newLabels.isEmpty()) {

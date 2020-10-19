@@ -147,7 +147,7 @@ public class GitLabMergeRequest implements PullRequest {
                             .filter(obj -> obj.get("name").asString().equals("thumbsup") ||
                                     obj.get("name").asString().equals("thumbsdown") ||
                                     obj.get("name").asString().equals("question"))
-                            .filter(obj -> obj.get("user").get("username").asString().equals(repository.forge().currentUser().userName()))
+                            .filter(obj -> obj.get("user").get("username").asString().equals(repository.forge().currentUser().username()))
                             .map(obj -> obj.get("id").toString())
                             .collect(Collectors.toList());
         for (var award : awards) {
@@ -670,7 +670,7 @@ public class GitLabMergeRequest implements PullRequest {
         if (assignees.size() > 1) {
             var rest = assignees.subList(1, assignees.size());
             var usernames = rest.stream()
-                                .map(HostUser::userName)
+                                .map(HostUser::username)
                                 .map(username -> "@" + username)
                                 .collect(Collectors.joining(" "));
             var comment = usernames + " can you have a look at this merge request?";

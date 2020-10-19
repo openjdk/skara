@@ -211,7 +211,7 @@ public class GitPrInfo {
             if (showDecoration) {
                 System.out.format(fmt, "Author:");
             }
-            System.out.println(pr.author().userName());
+            System.out.println(pr.author().username());
         }
 
         if (showAll || showBranch) {
@@ -232,7 +232,7 @@ public class GitPrInfo {
             if (showDecoration) {
                 System.out.format(fmt, "Assignees:");
             }
-            var usernames = pr.assignees().stream().map(u -> u.userName()).collect(Collectors.toList());
+            var usernames = pr.assignees().stream().map(u -> u.username()).collect(Collectors.toList());
             if (usernames.isEmpty()) {
                 System.out.println("-");
             } else {
@@ -244,7 +244,7 @@ public class GitPrInfo {
             if (showDecoration) {
                 System.out.format(fmt, "Reviewers:");
             }
-            var usernames = pr.reviews().stream().map(u -> u.reviewer().userName()).collect(Collectors.toList());
+            var usernames = pr.reviews().stream().map(u -> u.reviewer().username()).collect(Collectors.toList());
             if (usernames.isEmpty()) {
                 System.out.println("-");
             } else {

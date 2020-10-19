@@ -90,7 +90,7 @@ public class HostUser {
         return id;
     }
 
-    public String userName() {
+    public String username() {
         return username;
     }
 

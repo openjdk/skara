@@ -92,7 +92,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     public List<PullRequest> findPullRequestsWithComment(String author, String body) {
         return pullRequests().stream()
                              .filter(pr -> pr.comments().stream()
-                                                .filter(comment -> author == null || comment.author().userName().equals(author))
+                                                .filter(comment -> author == null || comment.author().username().equals(author))
                                                 .filter(comment -> comment == null ||comment.body().contains(body))
                                                 .count() > 0
                                 )
