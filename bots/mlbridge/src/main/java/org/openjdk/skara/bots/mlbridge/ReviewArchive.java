@@ -326,7 +326,7 @@ class ReviewArchive {
             var header = firstItem.header();
 
             var combined = (header.isBlank() ? "" : header +  "\n\n") +
-                    WordWrap.wrapBody(body.toString(), 120) +
+                    body.toString().strip() +
                     (footer.length() == 0 ? "" : "\n\n-------------\n\n" + footer.toString());
 
             var emailBuilder = Email.create(firstItem.subject(), combined);
