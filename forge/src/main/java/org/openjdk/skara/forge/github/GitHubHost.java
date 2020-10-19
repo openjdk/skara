@@ -193,19 +193,17 @@ public class GitHubHost implements Forge {
         return Optional.empty();
     }
 
-    private String getFullName(String username) {
-        var details = user(username);
-        return details.get().fullName();
-    }
-
     // Most GitHub API's return user information in this format
     HostUser parseUserField(JSONValue json) {
         return parseUserObject(json.get("user"));
     }
 
     HostUser parseUserObject(JSONValue json) {
-        return HostUser.create(json.get("id").asInt(), json.get("login").asString(),
-                               () -> getFullName(json.get("login").asString()));
+        return HostUser.builder()
+                       .id(json.get("id").asInt())
+                       .username(json.get("login").asString())
+                       .supplier(() -> user(json.get("login").asString()).orElseThrow())
+                       .build();
     }
 
     @Override
@@ -284,7 +282,12 @@ public class GitHubHost implements Forge {
             name = login;
         }
         var email = details.get("email").asString();
-        return HostUser.create(id, login, name, email);
+        return HostUser.builder()
+                       .id(id)
+                       .username(login)
+                       .fullName(name)
+                       .email(email)
+                       .build();
     }
 
     @Override
