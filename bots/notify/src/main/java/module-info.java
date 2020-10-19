@@ -41,5 +41,6 @@ module org.openjdk.skara.bots.notify {
             org.openjdk.skara.bots.notify.json.JsonNotifierFactory,
             org.openjdk.skara.bots.notify.mailinglist.MailingListNotifierFactory,
             org.openjdk.skara.bots.notify.slack.SlackNotifierFactory,
-            org.openjdk.skara.bots.notify.comment.CommitCommentNotifierFactory;
+            org.openjdk.skara.bots.notify.comment.CommitCommentNotifierFactory,
+            org.openjdk.skara.bots.notify.prbranch.PullRequestBranchNotifierFactory;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,18 +20,22 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.test;
+package org.openjdk.skara.bots.notify.prbranch;
 
-import org.openjdk.skara.forge.*;
-import org.openjdk.skara.vcs.Hash;
+import org.openjdk.skara.bot.BotConfiguration;
+import org.openjdk.skara.bots.notify.*;
+import org.openjdk.skara.json.JSONObject;
 
-import java.util.*;
+public class PullRequestBranchNotifierFactory implements NotifierFactory {
+    @Override
+    public String name() {
+        return "prbranch";
+    }
 
-class PullRequestData extends IssueData {
-    Hash headHash;
-    String targetRef;
-    final List<ReviewComment> reviewComments = new ArrayList<>();
-    final Set<Check> checks = new HashSet<>();
-    final List<Review> reviews = new ArrayList<>();
-    boolean draft;
+    @Override
+    public Notifier create(BotConfiguration botConfiguration, JSONObject notifierConfiguration) {
+        var seedFolder = botConfiguration.storageFolder();
+        return new PullRequestBranchNotifier(seedFolder.resolve("seeds"));
+    }
+
 }

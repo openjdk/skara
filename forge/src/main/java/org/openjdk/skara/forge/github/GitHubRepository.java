@@ -42,6 +42,7 @@ public class GitHubRepository implements HostedRepository {
     private final Pattern pullRequestPattern;
 
     private JSONValue cachedJSON;
+    private List<HostedBranch> branches;
 
     GitHubRepository(GitHubHost gitHubHost, String repository) {
         this.gitHubHost = gitHubHost;
@@ -76,6 +77,13 @@ public class GitHubRepository implements HostedRepository {
             cachedJSON = gitHubHost.getProjectInfo(repository);
         }
         return cachedJSON;
+    }
+
+    boolean multipleBranches() {
+        if (branches == null) {
+            branches = branches();
+        }
+        return branches.size() > 1;
     }
 
     @Override

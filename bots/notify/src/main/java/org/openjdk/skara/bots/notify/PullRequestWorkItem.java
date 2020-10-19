@@ -85,11 +85,19 @@ public class PullRequestWorkItem implements WorkItem {
                        if (!obj.contains("commit")) {
                            obj.put("commit", Hash.zero().hex());
                        }
+                       if (!obj.contains("head")) {
+                           obj.put("head", Hash.zero().hex());
+                       }
+                       if (!obj.contains("state")) {
+                           obj.put("state", JSON.of());
+                       }
 
                        var commit = obj.get("commit").isNull() ?
                            null : new Hash(obj.get("commit").asString());
+                       var state = obj.get("state").isNull() ?
+                               null : org.openjdk.skara.issuetracker.Issue.State.valueOf(obj.get("state").asString());
 
-                       return new PullRequestState(id, issues, commit);
+                       return new PullRequestState(id, issues, commit, new Hash(obj.get("head").asString()), state);
                    })
                    .collect(Collectors.toSet());
     }
@@ -118,6 +126,12 @@ public class PullRequestWorkItem implements WorkItem {
                                     }
                                 } else {
                                     ret.putNull("commit");
+                                }
+                                ret.put("head", JSON.of(pr.head().hex()));
+                                if (pr.state() != null) {
+                                    ret.put("state", JSON.of(pr.state().toString()));
+                                } else {
+                                    ret.putNull("state");
                                 }
                                 return ret;
                             })
@@ -171,6 +185,14 @@ public class PullRequestWorkItem implements WorkItem {
         listeners.forEach(c -> c.onIntegratedPullRequest(pr, hash));
     }
 
+    private void notifyHeadChange(PullRequest pr, Hash oldHead) {
+        listeners.forEach(c -> c.onHeadChange(pr, oldHead));
+    }
+
+    private void notifyStateChange(org.openjdk.skara.issuetracker.Issue.State oldState) {
+        listeners.forEach(c -> c.onStateChange(pr, oldState));
+    }
+
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
         var historyPath = scratchPath.resolve("notify").resolve("history");
@@ -181,7 +203,7 @@ public class PullRequestWorkItem implements WorkItem {
 
         var issues = parseIssues();
         var commit = resultingCommitHash();
-        var state = new PullRequestState(pr, issues, commit);
+        var state = new PullRequestState(pr, issues, commit, pr.headHash(), pr.state());
         var stored = storage.current();
         if (stored.contains(state)) {
             // Already up to date
@@ -193,10 +215,20 @@ public class PullRequestWorkItem implements WorkItem {
                 .filter(ss -> ss.prId().equals(state.prId()))
                 .findAny();
         // The stored entry could be old and be missing commit information - if so, upgrade it
-        if (storedState.isPresent() && storedState.get().commitId().equals(Optional.of(Hash.zero()))) {
-            var hash = resultingCommitHash();
-            storedState = Optional.of(new PullRequestState(pr, storedState.get().issueIds(), hash));
-            storage.put(storedState.get());
+        if (storedState.isPresent()) {
+            if (storedState.get().commitId().equals(Optional.of(Hash.zero()))) {
+                var hash = resultingCommitHash();
+                storedState = Optional.of(new PullRequestState(pr, storedState.get().issueIds(), hash, pr.headHash(), pr.state()));
+                storage.put(storedState.get());
+            }
+            if (storedState.get().head().equals(Hash.zero())) {
+                storedState = Optional.of(new PullRequestState(pr, storedState.get().issueIds(), storedState.get().commitId().orElse(null), pr.headHash(), pr.state()));
+                storage.put(storedState.get());
+            }
+            if (storedState.get().state() == null) {
+                storedState = Optional.of(new PullRequestState(pr, storedState.get().issueIds(), storedState.get().commitId().orElse(null), pr.headHash(), pr.state()));
+                storage.put(storedState.get());
+            }
         }
 
         if (storedState.isPresent()) {
@@ -208,9 +240,15 @@ public class PullRequestWorkItem implements WorkItem {
                   .filter(issue -> !storedIssues.contains(issue))
                   .forEach(this::notifyNewIssue);
 
+            if (!storedState.get().head().equals(state.head())) {
+                notifyHeadChange(pr, storedState.get().head());
+            }
             var storedCommit = storedState.get().commitId();
-            if (!storedCommit.isPresent() && state.commitId().isPresent()) {
+            if (storedCommit.isEmpty() && state.commitId().isPresent()) {
                 notifyIntegratedPr(pr, state.commitId().get());
+            }
+            if (!storedState.get().state().equals(state.state())) {
+                notifyStateChange(storedState.get().state());
             }
         } else {
             notifyNewPr(pr);

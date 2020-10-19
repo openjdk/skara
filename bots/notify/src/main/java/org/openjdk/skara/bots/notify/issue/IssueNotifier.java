@@ -303,6 +303,9 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 String tagBranch = null;
                 try {
                     for (var branch : repository.branches()) {
+                        if (PreIntegrations.isPreintegrationBranch(branch.name())) {
+                            continue;
+                        }
                         var hash = localRepository.resolve(tag.tag()).orElseThrow();
                         if (localRepository.isAncestor(hash, branch.hash())) {
                             if (tagBranch == null) {

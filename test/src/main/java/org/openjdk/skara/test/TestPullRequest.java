@@ -39,7 +39,6 @@ import java.util.stream.Collectors;
 public class TestPullRequest extends TestIssue implements PullRequest {
     private final TestHostedRepository targetRepository;
     private final TestHostedRepository sourceRepository;
-    private final String targetRef;
     private final String sourceRef;
     final PullRequestData data;
 
@@ -47,8 +46,8 @@ public class TestPullRequest extends TestIssue implements PullRequest {
         super(targetRepository, id, author, user, data);
         this.targetRepository = targetRepository;
         this.sourceRepository = sourceRepository;
-        this.targetRef = targetRef;
         this.sourceRef = sourceRef;
+        data.targetRef = targetRef;
         this.data = data;
 
         try {
@@ -72,7 +71,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     }
 
     static TestPullRequest createFrom(TestHostedRepository repository, TestPullRequest other) {
-        var pr = new TestPullRequest(repository, other.sourceRepository, other.id, other.author, repository.forge().currentUser(), other.targetRef, other.sourceRef, other.data);
+        var pr = new TestPullRequest(repository, other.sourceRepository, other.id, other.author, repository.forge().currentUser(), other.data.targetRef, other.sourceRef, other.data);
         return pr;
     }
 
@@ -153,12 +152,12 @@ public class TestPullRequest extends TestIssue implements PullRequest {
 
     @Override
     public String targetRef() {
-        return targetRef;
+        return data.targetRef;
     }
 
     @Override
     public Hash targetHash() {
-        return targetRepository.branchHash(targetRef);
+        return targetRepository.branchHash(data.targetRef);
     }
 
     @Override
@@ -227,6 +226,12 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     @Override
     public Optional<ZonedDateTime> labelAddedAt(String label) {
         return Optional.ofNullable(data.labels.get(label));
+    }
+
+    @Override
+    public void setTargetRef(String targetRef) {
+        data.targetRef = targetRef;
+        data.lastUpdate = ZonedDateTime.now();
     }
 
     @Override

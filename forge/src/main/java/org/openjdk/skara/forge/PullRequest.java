@@ -156,4 +156,10 @@ public interface PullRequest extends Issue {
     void makeNotDraft();
 
     Optional<ZonedDateTime> labelAddedAt(String label);
+
+    /**
+     * Update the ref the request is intended to be merged into.
+     * @return
+     */
+    void setTargetRef(String targetRef);
 }

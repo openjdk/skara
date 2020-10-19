@@ -35,4 +35,8 @@ public interface PullRequestListener {
     }
     default void onIntegratedPullRequest(PullRequest pr, Hash hash) {
     }
+    default void onHeadChange(PullRequest pr, Hash oldHead) {
+    }
+    default void onStateChange(PullRequest pr, org.openjdk.skara.issuetracker.Issue.State oldState) {
+    }
 }

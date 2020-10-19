@@ -217,8 +217,15 @@ public class CheckablePullRequest {
 
             try {
                 localRepo.checkout(pr.headHash(), true);
-                localRepo.merge(pr.targetHash());
-                var hash = localRepo.commit("Automatic merge with latest target", "duke", "duke@openjdk.org");
+                Hash hash;
+                try {
+                    localRepo.merge(pr.targetHash());
+                    hash = localRepo.commit("Automatic merge with latest target", "duke", "duke@openjdk.org");
+                } catch (IOException e) {
+                    localRepo.abortMerge();
+                    localRepo.rebase(pr.targetHash(), "duke", "duke@openjdk.org");
+                    hash = localRepo.head();
+                }
                 reply.println();
                 reply.println("Your commit was automatically rebased without conflicts.");
                 return Optional.of(hash);

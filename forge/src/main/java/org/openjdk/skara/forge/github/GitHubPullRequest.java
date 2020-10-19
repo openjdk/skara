@@ -81,15 +81,6 @@ public class GitHubPullRequest implements PullRequest {
         return host.parseUserField(json);
     }
 
-    private Optional<ZonedDateTime> lastBaseRefChange() {
-        return request.get("issues/" + json.get("number").toString() + "/timeline").execute().stream()
-                      .map(JSONValue::asObject)
-                      .filter(obj -> obj.contains("event"))
-                      .filter(obj -> obj.get("event").asString().equals("base_ref_changed"))
-                      .map(o -> ZonedDateTime.parse(o.get("created_at").asString()))
-                      .max(Comparator.comparing(Function.identity()));
-    }
-
     @Override
     public List<Review> reviews() {
         var reviews = request.get("pulls/" + json.get("number").toString() + "/reviews").execute().stream()
@@ -117,8 +108,44 @@ public class GitHubPullRequest implements PullRequest {
                              })
                              .collect(Collectors.toList());
 
-        // In the unlikely event that the base ref has changed after a review, we treat those as invalid
-        var lastBaseRefChange = lastBaseRefChange();
+        // The base ref cannot change for repos only using a single branch
+        if (!repository.multipleBranches()) {
+            return reviews;
+        }
+
+        // If the base ref has changed after a review, we treat those as invalid - unless it was a PreIntegration ref
+        var parts = repository.name().split("/");
+        var owner = parts[0];
+        var name = parts[1];
+        var number = id();
+
+        var query = "{\n" +
+                "  repository(owner: \"" + owner + "\", name: \"" + name + "\") {\n" +
+                "    pullRequest(number: " + number + ") {\n" +
+                "      timelineItems(itemTypes: BASE_REF_CHANGED_EVENT, last: 10) {\n" +
+                "        nodes {\n" +
+                "          __typename\n" +
+                "          ... on BaseRefChangedEvent {\n" +
+                "            currentRefName,\n" +
+                "            previousRefName,\n" +
+                "            createdAt\n" +
+                "          }\n" +
+                "        }\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
+        var data = host.graphQL()
+                       .post()
+                       .body(JSON.object().put("query", query))
+                       .execute()
+                       .get("data");
+        var lastBaseRefChange = data.get("repository").get("pullRequest").get("timelineItems").get("nodes").stream()
+                                    .map(JSONValue::asObject)
+                                    .filter(obj -> !PreIntegrations.isPreintegrationBranch(obj.get("currentRefName").asString()))
+                                    .filter(obj -> !PreIntegrations.isPreintegrationBranch(obj.get("previousRefName").asString()))
+                                    .map(obj -> ZonedDateTime.parse(obj.get("createdAt").asString()))
+                                    .max(Comparator.comparing(Function.identity()));
         if (lastBaseRefChange.isPresent()) {
             reviews = reviews.stream()
                              .filter(r -> r.createdAt().isAfter(lastBaseRefChange.get()))
@@ -657,6 +684,13 @@ public class GitHubPullRequest implements PullRequest {
                       .filter(obj -> obj.get("label").get("name").asString().equals(label))
                       .map(o -> ZonedDateTime.parse(o.get("created_at").asString()))
                       .findFirst();
+    }
+
+    @Override
+    public void setTargetRef(String targetRef) {
+        request.patch("pulls/" + json.get("number").toString())
+               .body("base", targetRef)
+               .execute();
     }
 
     @Override

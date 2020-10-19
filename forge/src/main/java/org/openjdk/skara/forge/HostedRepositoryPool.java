@@ -74,13 +74,15 @@ public class HostedRepositoryPool {
             }
 
             var seedRepo = Repository.get(seed).orElseThrow(() -> new IOException("Existing seed is corrupt?"));
-            try {
-                var lastFetch = Files.getLastModifiedTime(seed.resolve("FETCH_HEAD"));
-                if (lastFetch.toInstant().isAfter(Instant.now().minus(Duration.ofMinutes(1)))) {
-                    log.info("Seed should be up to date, skipping fetch");
-                    return;
+            if (allowStale) {
+                try {
+                    var lastFetch = Files.getLastModifiedTime(seed.resolve("FETCH_HEAD"));
+                    if (lastFetch.toInstant().isAfter(Instant.now().minus(Duration.ofMinutes(1)))) {
+                        log.info("Seed should be up to date, skipping fetch");
+                        return;
+                    }
+                } catch (IOException ignored) {
                 }
-            } catch (IOException ignored) {
             }
             try {
                 log.info("Seed is potentially stale, time to fetch the latest upstream changes");
@@ -92,9 +94,9 @@ public class HostedRepositoryPool {
             }
         }
 
-        private ReadOnlyRepository seedRepository(boolean allowStale) throws IOException {
+        private Repository seedRepository(boolean allowStale) throws IOException {
             refreshSeed(allowStale);
-            return ReadOnlyRepository.get(seed).orElseThrow(() -> new IOException("Existing seed is corrupt?"));
+            return Repository.get(seed).orElseThrow(() -> new IOException("Existing seed is corrupt?"));
         }
 
         private Repository cloneSeeded(Path path, boolean allowStale) throws IOException {
@@ -178,8 +180,19 @@ public class HostedRepositoryPool {
     public Optional<List<String>> lines(HostedRepository hostedRepository, Path p, String ref) throws IOException {
         var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository);
         var seedRepo = hostedRepositoryInstance.seedRepository(true);
-        var refHash = seedRepo.resolve(ref).orElseThrow(() -> new IOException("Ref not found: " + ref));
+        var refHash = seedRepo.resolve(ref);
+        if (refHash.isEmpty()) {
+            // It may fail because the seed is stale - need to refresh it now
+            seedRepo = hostedRepositoryInstance.seedRepository(false);
+            refHash = seedRepo.resolve(ref);
+        }
 
-        return seedRepo.lines(p, refHash);
+        var hash = refHash.orElseThrow(() -> new IOException("Ref not found: " + ref));
+        return seedRepo.lines(p, hash);
+    }
+
+    public Repository seedRepository(HostedRepository hostedRepository, boolean allowStale) throws IOException {
+        var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository);
+        return hostedRepositoryInstance.seedRepository(false);
     }
 }
