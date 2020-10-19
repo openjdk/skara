@@ -104,9 +104,9 @@ public class JiraHost implements IssueTracker {
             return Optional.empty();
         }
 
-        var user = new HostUser(data.get("name").asString(),
-                                data.get("name").asString(),
-                                data.get("displayName").asString());
+        var user = HostUser.create(data.get("name").asString(),
+                                   data.get("name").asString(),
+                                   data.get("displayName").asString());
         return Optional.of(user);
     }
 
@@ -114,10 +114,10 @@ public class JiraHost implements IssueTracker {
     public HostUser currentUser() {
         if (currentUser == null) {
             var data = request.get("myself").execute();
-            currentUser = new HostUser(data.get("name").asString(),
-                                       data.get("name").asString(),
-                                       data.get("displayName").asString(),
-                                       data.get("emailAddress").asString());
+            currentUser = HostUser.create(data.get("name").asString(),
+                                          data.get("name").asString(),
+                                          data.get("displayName").asString(),
+                                          data.get("emailAddress").asString());
         }
         return currentUser;
     }

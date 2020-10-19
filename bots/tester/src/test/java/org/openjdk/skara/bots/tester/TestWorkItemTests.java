@@ -50,7 +50,7 @@ class TestWorkItemTests {
             var storage = tmp.path().resolve("storage");
             var scratch = tmp.path().resolve("storage");
 
-            var bot = new HostUser(1, "bot", "openjdk [bot]");
+            var bot = HostUser.create(1, "bot", "openjdk [bot]");
             var host = new InMemoryHost();
             host.currentUserDetails = bot;
 
@@ -60,7 +60,7 @@ class TestWorkItemTests {
             var pr = new InMemoryPullRequest();
             pr.repository = repo;
 
-            var duke = new HostUser(0, "duke", "Duke");
+            var duke = HostUser.create(0, "duke", "Duke");
             pr.author = duke;
             pr.comments = List.of();
 
@@ -84,7 +84,7 @@ class TestWorkItemTests {
             var storage = tmp.path().resolve("storage");
             var scratch = tmp.path().resolve("storage");
 
-            var bot = new HostUser(1, "bot", "openjdk [bot]");
+            var bot = HostUser.create(1, "bot", "openjdk [bot]");
             var host = new InMemoryHost();
             host.currentUserDetails = bot;
 
@@ -94,7 +94,7 @@ class TestWorkItemTests {
             var pr = new InMemoryPullRequest();
             pr.repository = repo;
 
-            var duke = new HostUser(0, "duke", "Duke");
+            var duke = HostUser.create(0, "duke", "Duke");
             var now = ZonedDateTime.now();
             pr.author = duke;
             var testApproveComment = new Comment("0", "/test approve", duke, now, now);
@@ -121,7 +121,7 @@ class TestWorkItemTests {
             var storage = tmp.path().resolve("storage");
             var scratch = tmp.path().resolve("storage");
 
-            var bot = new HostUser(1, "bot", "openjdk [bot]");
+            var bot = HostUser.create(1, "bot", "openjdk [bot]");
             var host = new InMemoryHost();
             host.currentUserDetails = bot;
 
@@ -131,7 +131,7 @@ class TestWorkItemTests {
             var pr = new InMemoryPullRequest();
             pr.repository = repo;
 
-            var duke = new HostUser(0, "duke", "Duke");
+            var duke = HostUser.create(0, "duke", "Duke");
             var now = ZonedDateTime.now();
             pr.author = duke;
             var testApproveComment = new Comment("0", "/test cancel", duke, now, now);
@@ -158,7 +158,7 @@ class TestWorkItemTests {
             var storage = tmp.path().resolve("storage");
             var scratch = tmp.path().resolve("storage");
 
-            var bot = new HostUser(1, "bot", "openjdk [bot]");
+            var bot = HostUser.create(1, "bot", "openjdk [bot]");
             var host = new InMemoryHost();
             host.currentUserDetails = bot;
             host.groups = Map.of("0", Set.of());
@@ -169,7 +169,7 @@ class TestWorkItemTests {
             var pr = new InMemoryPullRequest();
             pr.repository = repo;
 
-            var duke = new HostUser(0, "duke", "Duke");
+            var duke = HostUser.create(0, "duke", "Duke");
             pr.author = duke;
 
             var now = ZonedDateTime.now();
@@ -205,7 +205,7 @@ class TestWorkItemTests {
             var storage = tmp.path().resolve("storage");
             var scratch = tmp.path().resolve("storage");
 
-            var bot = new HostUser(1, "bot", "openjdk [bot]");
+            var bot = HostUser.create(1, "bot", "openjdk [bot]");
             var host = new InMemoryHost();
             host.currentUserDetails = bot;
             host.groups = Map.of("0", Set.of());
@@ -216,7 +216,7 @@ class TestWorkItemTests {
             var pr = new InMemoryPullRequest();
             pr.repository = repo;
 
-            var duke = new HostUser(0, "duke", "Duke");
+            var duke = HostUser.create(0, "duke", "Duke");
             pr.author = duke;
             pr.headHash = new Hash("01234567890123456789012345789012345789");
 
@@ -286,7 +286,7 @@ class TestWorkItemTests {
             var storage = tmp.path().resolve("storage");
             var scratch = tmp.path().resolve("storage");
 
-            var bot = new HostUser(1, "bot", "openjdk [bot]");
+            var bot = HostUser.create(1, "bot", "openjdk [bot]");
             var host = new InMemoryHost();
             host.currentUserDetails = bot;
             host.groups = Map.of("0", Set.of());
@@ -297,7 +297,7 @@ class TestWorkItemTests {
             var pr = new InMemoryPullRequest();
             pr.repository = repo;
 
-            var duke = new HostUser(0, "duke", "Duke");
+            var duke = HostUser.create(0, "duke", "Duke");
             pr.author = duke;
             pr.headHash = new Hash("01234567890123456789012345789012345789");
 
@@ -329,7 +329,7 @@ class TestWorkItemTests {
             var storage = tmp.path().resolve("storage");
             var scratch = tmp.path().resolve("storage");
 
-            var bot = new HostUser(1, "bot", "openjdk [bot]");
+            var bot = HostUser.create(1, "bot", "openjdk [bot]");
             var host = new InMemoryHost();
             host.currentUserDetails = bot;
             host.groups = Map.of(approvers, Set.of());
@@ -340,7 +340,7 @@ class TestWorkItemTests {
             var pr = new InMemoryPullRequest();
             pr.repository = repo;
 
-            var duke = new HostUser(0, "duke", "Duke");
+            var duke = HostUser.create(0, "duke", "Duke");
             pr.author = duke;
             pr.headHash = new Hash("01234567890123456789012345789012345789");
 
@@ -387,7 +387,7 @@ class TestWorkItemTests {
             assertEquals(cancelComment, comments.get(2));
 
             // Approving the test should not start a job, it has already been cancelled
-            var member = new HostUser(3, "foo", "Foo Bar");
+            var member = HostUser.create(3, "foo", "Foo Bar");
             host.groups = Map.of(approvers, Set.of(member));
             var approveComment = new Comment("3", "/test approve", member, now, now);
             pr.comments.add(approveComment);
@@ -414,7 +414,7 @@ class TestWorkItemTests {
             var storage = tmp.path().resolve("storage");
             var scratch = tmp.path().resolve("storage");
 
-            var bot = new HostUser(1, "bot", "openjdk [bot]");
+            var bot = HostUser.create(1, "bot", "openjdk [bot]");
             var host = new InMemoryHost();
             host.currentUserDetails = bot;
             host.groups = Map.of(approvers, Set.of());
@@ -425,7 +425,7 @@ class TestWorkItemTests {
             var pr = new InMemoryPullRequest();
             pr.repository = repo;
 
-            var duke = new HostUser(0, "duke", "Duke");
+            var duke = HostUser.create(0, "duke", "Duke");
             pr.author = duke;
             pr.headHash = new Hash("01234567890123456789012345789012345789");
 
@@ -460,7 +460,7 @@ class TestWorkItemTests {
             assertEquals(secondComment, comments.get(1));
 
             // Approve the request
-            var member = new HostUser(2, "foo", "Foo Bar");
+            var member = HostUser.create(2, "foo", "Foo Bar");
             host.groups = Map.of(approvers, Set.of(member));
             var approveComment = new Comment("2", "/test approve", member, now, now);
             pr.comments.add(approveComment);
@@ -498,7 +498,7 @@ class TestWorkItemTests {
             var storage = tmp.path().resolve("storage");
             var scratch = tmp.path().resolve("storage");
 
-            var bot = new HostUser(1, "bot", "openjdk [bot]");
+            var bot = HostUser.create(1, "bot", "openjdk [bot]");
             var host = new InMemoryHost();
             host.currentUserDetails = bot;
             host.groups = Map.of(approvers, Set.of());
@@ -513,7 +513,7 @@ class TestWorkItemTests {
             pr.repository = repo;
             pr.id = "17";
 
-            var duke = new HostUser(0, "duke", "Duke");
+            var duke = HostUser.create(0, "duke", "Duke");
             pr.author = duke;
             pr.headHash = head;
 
@@ -548,7 +548,7 @@ class TestWorkItemTests {
             assertEquals(secondComment, comments.get(1));
 
             // Approve the request
-            var member = new HostUser(2, "foo", "Foo Bar");
+            var member = HostUser.create(2, "foo", "Foo Bar");
             host.groups = Map.of(approvers, Set.of(member));
             var approveComment = new Comment("2", "/test approve", member, now, now);
             pr.comments.add(approveComment);
@@ -607,7 +607,7 @@ class TestWorkItemTests {
             var storage = tmp.path().resolve("storage");
             var scratch = tmp.path().resolve("storage");
 
-            var bot = new HostUser(1, "bot", "openjdk [bot]");
+            var bot = HostUser.create(1, "bot", "openjdk [bot]");
             var host = new InMemoryHost();
             host.currentUserDetails = bot;
             host.groups = Map.of(approvers, Set.of());
@@ -623,7 +623,7 @@ class TestWorkItemTests {
             pr.id = "17";
             pr.headHash = head;
 
-            var duke = new HostUser(0, "duke", "Duke");
+            var duke = HostUser.create(0, "duke", "Duke");
             pr.author = duke;
 
             var now = ZonedDateTime.now();
@@ -657,7 +657,7 @@ class TestWorkItemTests {
             assertEquals(secondComment, comments.get(1));
 
             // Approve the request
-            var member = new HostUser(2, "foo", "Foo Bar");
+            var member = HostUser.create(2, "foo", "Foo Bar");
             host.groups = Map.of(approvers, Set.of(member));
             var approveComment = new Comment("2", "/test approve", member, now, now);
             pr.comments.add(approveComment);
@@ -733,7 +733,7 @@ class TestWorkItemTests {
             var storage = tmp.path().resolve("storage");
             var scratch = tmp.path().resolve("storage");
 
-            var bot = new HostUser(1, "bot", "openjdk [bot]");
+            var bot = HostUser.create(1, "bot", "openjdk [bot]");
             var host = new InMemoryHost();
             host.currentUserDetails = bot;
             host.groups = Map.of(approvers, Set.of());
@@ -749,7 +749,7 @@ class TestWorkItemTests {
             pr.id = "17";
             pr.headHash = head;
 
-            var duke = new HostUser(0, "duke", "Duke");
+            var duke = HostUser.create(0, "duke", "Duke");
             pr.author = duke;
 
             var now = ZonedDateTime.now();
@@ -783,7 +783,7 @@ class TestWorkItemTests {
             assertEquals(secondComment, comments.get(1));
 
             // Approve the request
-            var member = new HostUser(2, "foo", "Foo Bar");
+            var member = HostUser.create(2, "foo", "Foo Bar");
             host.groups = Map.of(approvers, Set.of(member));
             var approveComment = new Comment("2", "/test approve", member, now, now);
             pr.comments.add(approveComment);
@@ -822,7 +822,7 @@ class TestWorkItemTests {
             var storage = tmp.path().resolve("storage");
             var scratch = tmp.path().resolve("storage");
 
-            var bot = new HostUser(1, "bot", "openjdk [bot]");
+            var bot = HostUser.create(1, "bot", "openjdk [bot]");
             var host = new InMemoryHost();
             host.currentUserDetails = bot;
             host.groups = Map.of(approvers, Set.of());
@@ -838,7 +838,7 @@ class TestWorkItemTests {
             pr.id = "17";
             pr.headHash = head;
 
-            var duke = new HostUser(0, "duke", "Duke");
+            var duke = HostUser.create(0, "duke", "Duke");
             pr.author = duke;
 
             var now = ZonedDateTime.now();
@@ -872,7 +872,7 @@ class TestWorkItemTests {
             assertEquals(secondComment, comments.get(1));
 
             // Approve the request
-            var member = new HostUser(2, "foo", "Foo Bar");
+            var member = HostUser.create(2, "foo", "Foo Bar");
             host.groups = Map.of(approvers, Set.of(member));
             var approveComment = new Comment("2", "/test approve", member, now, now);
             pr.comments.add(approveComment);
@@ -976,7 +976,7 @@ class TestWorkItemTests {
             var storage = tmp.path().resolve("storage");
             var scratch = tmp.path().resolve("storage");
 
-            var bot = new HostUser(1, "bot", "openjdk [bot]");
+            var bot = HostUser.create(1, "bot", "openjdk [bot]");
             var host = new InMemoryHost();
             host.currentUserDetails = bot;
             host.groups = Map.of(approvers, Set.of());
@@ -991,7 +991,7 @@ class TestWorkItemTests {
             pr.repository = repo;
             pr.id = "17";
 
-            var duke = new HostUser(0, "duke", "Duke");
+            var duke = HostUser.create(0, "duke", "Duke");
             pr.author = duke;
             pr.headHash = head;
 
@@ -1048,7 +1048,7 @@ class TestWorkItemTests {
             var storage = tmp.path().resolve("storage");
             var scratch = tmp.path().resolve("storage");
 
-            var bot = new HostUser(1, "bot", "openjdk [bot]");
+            var bot = HostUser.create(1, "bot", "openjdk [bot]");
             var host = new InMemoryHost();
             host.currentUserDetails = bot;
 
@@ -1058,7 +1058,7 @@ class TestWorkItemTests {
             var pr = new InMemoryPullRequest();
             pr.repository = repo;
 
-            var duke = new HostUser(0, "duke", "Duke");
+            var duke = HostUser.create(0, "duke", "Duke");
             host.groups = Map.of(approvers, Set.of(duke));
             pr.author = duke;
             pr.headHash = new Hash("01234567890123456789012345789012345789");
@@ -1129,7 +1129,7 @@ class TestWorkItemTests {
             var storage = tmp.path().resolve("storage");
             var scratch = tmp.path().resolve("storage");
 
-            var bot = new HostUser(1, "bot", "openjdk [bot]");
+            var bot = HostUser.create(1, "bot", "openjdk [bot]");
             var host = new InMemoryHost();
             host.currentUserDetails = bot;
 
@@ -1139,7 +1139,7 @@ class TestWorkItemTests {
             var pr = new InMemoryPullRequest();
             pr.repository = repo;
 
-            var duke = new HostUser(0, "duke", "Duke");
+            var duke = HostUser.create(0, "duke", "Duke");
             host.groups = Map.of(approvers, Set.of(duke));
             pr.author = duke;
             pr.headHash = new Hash("01234567890123456789012345789012345789");

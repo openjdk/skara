@@ -33,39 +33,48 @@ public class HostUser {
     private String name;
     private String email;
 
-    public HostUser(String id, String username, Supplier<String> nameSupplier, String email) {
-        this.id = id;
+    private HostUser(String id, String username, String name) {
+        this.id = id ;
+        this.username = username;
+        this.nameSupplier = null;
+        this.name = name;
+        this.email = null;
+    }
+
+    private HostUser(String id, String username, Supplier<String> nameSupplier) {
+        this.id = id ;
         this.username = username;
         this.nameSupplier = nameSupplier;
+        this.name = null;
+        this.email = null;
+    }
+
+    private HostUser(String id, String username, String name, String email) {
+        this.id = id ;
+        this.username = username;
+        this.nameSupplier = null;
+        this.name = name;
         this.email = email;
     }
 
-    public HostUser(String id, String username, Supplier<String> nameSupplier) {
-        this(id, username, nameSupplier, null);
+    public static HostUser create(int id, String username, Supplier<String> nameSupplier) {
+        return new HostUser(String.valueOf(id), username, nameSupplier);
     }
 
-    public HostUser(String id, String username, String name) {
-        this(id, username, () -> name);
+    public static HostUser create(int id, String username, String name, String email) {
+        return new HostUser(String.valueOf(id), username, name, email);
     }
 
-    public HostUser(String id, String username, String name, String email) {
-        this(id, username, () -> name, email);
+    public static HostUser create(String id, String username, String name, String email) {
+        return new HostUser(id, username, name, email);
     }
 
-    public HostUser(int id, String username, String name) {
-        this(String.valueOf(id), username, name);
+    public static HostUser create(String id, String username, String name) {
+        return new HostUser(id, username, name);
     }
 
-    public HostUser(int id, String username, String name, String email) {
-        this(String.valueOf(id), username, name, email);
-    }
-
-    public HostUser(int id, String username, Supplier<String> nameSupplier) {
-        this(String.valueOf(id), username, nameSupplier);
-    }
-
-    public HostUser(int id, String username, Supplier<String> nameSupplier, String email) {
-        this(String.valueOf(id), username, nameSupplier, email);
+    public static HostUser create(int id, String username, String name) {
+        return new HostUser(String.valueOf(id), username, name);
     }
 
     @Override

@@ -194,9 +194,9 @@ public class GitLabMergeRequest implements PullRequest {
                                         line,
                                         note.get("id").toString(),
                                         note.get("body").asString(),
-                                        new HostUser(note.get("author").get("id").asInt(),
-                                                     note.get("author").get("username").asString(),
-                                                     note.get("author").get("name").asString()),
+                                        HostUser.create(note.get("author").get("id").asInt(),
+                                                        note.get("author").get("username").asString(),
+                                                        note.get("author").get("name").asString()),
                                         ZonedDateTime.parse(note.get("created_at").asString()),
                                         ZonedDateTime.parse(note.get("updated_at").asString()));
         return comment;
@@ -340,9 +340,9 @@ public class GitLabMergeRequest implements PullRequest {
     private Comment parseComment(JSONValue comment) {
         var ret = new Comment(comment.get("id").toString(),
                               comment.get("body").asString(),
-                              new HostUser(comment.get("author").get("id").asInt(),
-                                           comment.get("author").get("username").asString(),
-                                           comment.get("author").get("name").asString()),
+                              HostUser.create(comment.get("author").get("id").asInt(),
+                                              comment.get("author").get("username").asString(),
+                                              comment.get("author").get("name").asString()),
                               ZonedDateTime.parse(comment.get("created_at").asString()),
                               ZonedDateTime.parse(comment.get("updated_at").asString()));
         return ret;

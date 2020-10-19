@@ -43,7 +43,7 @@ class TopologicalBotTests {
     @Test
     void testTopoMerge() throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var repo = Repository.init(fromDir, VCS.GIT);
@@ -113,7 +113,7 @@ class TopologicalBotTests {
     @Test
     void testTopoMergeFailure() throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var repo = Repository.init(fromDir, VCS.GIT);

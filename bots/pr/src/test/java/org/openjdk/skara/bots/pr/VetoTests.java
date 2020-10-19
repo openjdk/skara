@@ -37,9 +37,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class VetoTests {
     private static HostUser createUser(int id) {
-        return new HostUser(id,
-                            String.format("noname_%d", id),
-                            String.format("No Name %d", id));
+        return HostUser.create(id,
+                               String.format("noname_%d", id),
+                               String.format("No Name %d", id));
     }
 
     private static class Comments {

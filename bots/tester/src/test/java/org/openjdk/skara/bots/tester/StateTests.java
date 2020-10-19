@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class StateTests {
     @Test
     void noCommentsShouldEqualNA() {
-        var bot = new HostUser(1, "bot", "openjdk [bot]");
+        var bot = HostUser.create(1, "bot", "openjdk [bot]");
         var host = new InMemoryHost();
         host.currentUserDetails = bot;
 
@@ -44,7 +44,7 @@ class StateTests {
         var pr = new InMemoryPullRequest();
         pr.repository = repo;
 
-        var duke = new HostUser(0, "duke", "Duke");
+        var duke = HostUser.create(0, "duke", "Duke");
         pr.author = duke;
         pr.comments = List.of();
 
@@ -57,7 +57,7 @@ class StateTests {
 
     @Test
     void testCommentFromNotApprovedUserShouldEqualRequested() {
-        var bot = new HostUser(1, "bot", "openjdk [bot]");
+        var bot = HostUser.create(1, "bot", "openjdk [bot]");
 
         var host = new InMemoryHost();
         host.currentUserDetails = bot;
@@ -68,7 +68,7 @@ class StateTests {
         var pr = new InMemoryPullRequest();
         pr.repository = repo;
 
-        var duke = new HostUser(0, "duke", "Duke");
+        var duke = HostUser.create(0, "duke", "Duke");
         pr.author = duke;
 
         var now = ZonedDateTime.now();
@@ -87,7 +87,7 @@ class StateTests {
 
     @Test
     void testCommentFromApprovedUserShouldEqualApproved() {
-        var bot = new HostUser(1, "bot", "openjdk [bot]");
+        var bot = HostUser.create(1, "bot", "openjdk [bot]");
 
         var host = new InMemoryHost();
         host.currentUserDetails = bot;
@@ -98,7 +98,7 @@ class StateTests {
         var pr = new InMemoryPullRequest();
         pr.repository = repo;
 
-        var duke = new HostUser(0, "duke", "Duke");
+        var duke = HostUser.create(0, "duke", "Duke");
         pr.author = duke;
 
         var now = ZonedDateTime.now();
@@ -117,7 +117,7 @@ class StateTests {
 
     @Test
     void testApprovalNeededCommentShouldResultInPending() {
-        var bot = new HostUser(1, "bot", "openjdk [bot]");
+        var bot = HostUser.create(1, "bot", "openjdk [bot]");
 
         var host = new InMemoryHost();
         host.currentUserDetails = bot;
@@ -128,7 +128,7 @@ class StateTests {
         var pr = new InMemoryPullRequest();
         pr.repository = repo;
 
-        var duke = new HostUser(0, "duke", "Duke");
+        var duke = HostUser.create(0, "duke", "Duke");
         pr.author = duke;
 
         var now = ZonedDateTime.now();
@@ -152,7 +152,7 @@ class StateTests {
 
     @Test
     void testStartedCommentShouldResultInRunning() {
-        var bot = new HostUser(1, "bot", "openjdk [bot]");
+        var bot = HostUser.create(1, "bot", "openjdk [bot]");
 
         var host = new InMemoryHost();
         host.currentUserDetails = bot;
@@ -163,7 +163,7 @@ class StateTests {
         var pr = new InMemoryPullRequest();
         pr.repository = repo;
 
-        var duke = new HostUser(0, "duke", "Duke");
+        var duke = HostUser.create(0, "duke", "Duke");
         pr.author = duke;
 
         var now = ZonedDateTime.now();
@@ -176,7 +176,7 @@ class StateTests {
         );
         var pendingComment = new Comment("1", String.join("\n", pendingBody), bot, now, now);
 
-        var member = new HostUser(2, "foo", "Foo Bar");
+        var member = HostUser.create(2, "foo", "Foo Bar");
         var approveComment = new Comment("2", "/test approve", member, now, now);
 
         var startedBody = List.of(
@@ -200,7 +200,7 @@ class StateTests {
 
     @Test
     void cancelCommentFromAuthorShouldEqualCancelled() {
-        var bot = new HostUser(1, "bot", "openjdk [bot]");
+        var bot = HostUser.create(1, "bot", "openjdk [bot]");
 
         var host = new InMemoryHost();
         host.currentUserDetails = bot;
@@ -211,7 +211,7 @@ class StateTests {
         var pr = new InMemoryPullRequest();
         pr.repository = repo;
 
-        var duke = new HostUser(0, "duke", "Duke");
+        var duke = HostUser.create(0, "duke", "Duke");
         pr.author = duke;
 
         var now = ZonedDateTime.now();
@@ -232,7 +232,7 @@ class StateTests {
 
     @Test
     void cancelCommentFromAnotherUserShouldHaveNoEffect() {
-        var bot = new HostUser(1, "bot", "openjdk [bot]");
+        var bot = HostUser.create(1, "bot", "openjdk [bot]");
 
         var host = new InMemoryHost();
         host.currentUserDetails = bot;
@@ -243,10 +243,10 @@ class StateTests {
         var pr = new InMemoryPullRequest();
         pr.repository = repo;
 
-        var duke = new HostUser(0, "duke", "Duke");
+        var duke = HostUser.create(0, "duke", "Duke");
         pr.author = duke;
 
-        var user = new HostUser(0, "foo", "Foo Bar");
+        var user = HostUser.create(0, "foo", "Foo Bar");
 
         var now = ZonedDateTime.now();
         var testComment = new Comment("0", "/test tier1", duke, now, now);
@@ -266,7 +266,7 @@ class StateTests {
 
     @Test
     void multipleTestCommentsShouldOnlyCareAboutLast() {
-        var bot = new HostUser(1, "bot", "openjdk [bot]");
+        var bot = HostUser.create(1, "bot", "openjdk [bot]");
 
         var host = new InMemoryHost();
         host.currentUserDetails = bot;
@@ -277,7 +277,7 @@ class StateTests {
         var pr = new InMemoryPullRequest();
         pr.repository = repo;
 
-        var duke = new HostUser(0, "duke", "Duke");
+        var duke = HostUser.create(0, "duke", "Duke");
         pr.author = duke;
 
         var now = ZonedDateTime.now();
@@ -299,7 +299,7 @@ class StateTests {
 
     @Test
     void errorAfterRequestedShouldBeError() {
-        var bot = new HostUser(1, "bot", "openjdk [bot]");
+        var bot = HostUser.create(1, "bot", "openjdk [bot]");
 
         var host = new InMemoryHost();
         host.currentUserDetails = bot;
@@ -310,7 +310,7 @@ class StateTests {
         var pr = new InMemoryPullRequest();
         pr.repository = repo;
 
-        var duke = new HostUser(0, "duke", "Duke");
+        var duke = HostUser.create(0, "duke", "Duke");
         pr.author = duke;
 
         var now = ZonedDateTime.now();
@@ -335,7 +335,7 @@ class StateTests {
 
     @Test
     void testFinishedCommentShouldResultInFinished() {
-        var bot = new HostUser(1, "bot", "openjdk [bot]");
+        var bot = HostUser.create(1, "bot", "openjdk [bot]");
 
         var host = new InMemoryHost();
         host.currentUserDetails = bot;
@@ -346,7 +346,7 @@ class StateTests {
         var pr = new InMemoryPullRequest();
         pr.repository = repo;
 
-        var duke = new HostUser(0, "duke", "Duke");
+        var duke = HostUser.create(0, "duke", "Duke");
         pr.author = duke;
 
         var now = ZonedDateTime.now();
@@ -359,7 +359,7 @@ class StateTests {
         );
         var pendingComment = new Comment("1", String.join("\n", pendingBody), bot, now, now);
 
-        var member = new HostUser(2, "foo", "Foo Bar");
+        var member = HostUser.create(2, "foo", "Foo Bar");
         var approveComment = new Comment("2", "/test approve", member, now, now);
 
         var startedBody = List.of(

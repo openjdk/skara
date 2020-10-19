@@ -434,9 +434,9 @@ public class JiraProject implements IssueProject {
             return Optional.empty();
         }
         var data = user.asArray().get(0);
-        return Optional.of(new HostUser(data.get("name").asString(),
-                                        data.get("name").asString(),
-                                        data.get("displayName").asString(),
-                                        data.get("emailAddress").asString()));
+        return Optional.of(HostUser.create(data.get("name").asString(),
+                                           data.get("name").asString(),
+                                           data.get("displayName").asString(),
+                                           data.get("emailAddress").asString()));
     }
 }
