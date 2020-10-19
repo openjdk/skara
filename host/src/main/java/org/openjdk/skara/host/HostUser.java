@@ -27,67 +27,85 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 public class HostUser {
-    private final String id;
-    private final String username;
-    private final Supplier<String> nameSupplier;
-    private String name;
+    private String id;
+    private String username;
+    private String fullName;
     private String email;
+    private final Supplier<HostUser> supplier;
 
-    private HostUser(String id, String username, String name) {
-        this.id = id ;
-        this.username = username;
-        this.nameSupplier = null;
-        this.name = name;
-        this.email = null;
+    public static class Builder {
+        private String id;
+        private String username;
+        private String fullName;
+        private String email;
+        private Supplier<HostUser> supplier;
+
+        public Builder id(int id) {
+            this.id = String.valueOf(id);
+            return this;
+        }
+
+        public Builder id(String id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder username(String username) {
+            this.username = username;
+            return this;
+        }
+
+        public Builder fullName(String fullName) {
+            this.fullName = fullName;
+            return this;
+        }
+
+        public Builder email(String email) {
+            this.email = email;
+            return this;
+        }
+
+        public Builder supplier(Supplier<HostUser> supplier) {
+            this.supplier = supplier;
+            return this;
+        }
+
+        public HostUser build() {
+            return new HostUser(id, username, fullName, email, supplier);
+        }
     }
 
-    private HostUser(String id, String username, Supplier<String> nameSupplier) {
-        this.id = id ;
+    private HostUser(String id, String username, String fullName, String email, Supplier<HostUser> supplier) {
+        this.id = id;
         this.username = username;
-        this.nameSupplier = nameSupplier;
-        this.name = null;
-        this.email = null;
-    }
-
-    private HostUser(String id, String username, String name, String email) {
-        this.id = id ;
-        this.username = username;
-        this.nameSupplier = null;
-        this.name = name;
+        this.fullName = fullName;
         this.email = email;
+        this.supplier = supplier;
     }
 
-    public static HostUser create(int id, String username, Supplier<String> nameSupplier) {
-        return new HostUser(String.valueOf(id), username, nameSupplier);
+    public static Builder builder() {
+        return new Builder();
     }
 
-    public static HostUser create(int id, String username, String name, String email) {
-        return new HostUser(String.valueOf(id), username, name, email);
+    public static HostUser create(String id, String username, String fullName) {
+        return builder().id(id).username(username).fullName(fullName).build();
     }
 
-    public static HostUser create(String id, String username, String name, String email) {
-        return new HostUser(id, username, name, email);
-    }
-
-    public static HostUser create(String id, String username, String name) {
-        return new HostUser(id, username, name);
-    }
-
-    public static HostUser create(int id, String username, String name) {
-        return new HostUser(String.valueOf(id), username, name);
+    public static HostUser create(int id, String username, String fullName) {
+        return builder().id(id).username(username).fullName(fullName).build();
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
+    public boolean equals(Object other) {
+        if (this == other) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (other == null || getClass() != other.getClass()) {
             return false;
         }
-        HostUser that = (HostUser) o;
-        return id.equals(that.id) &&
-                Objects.equals(username, that.username);
+        HostUser o = (HostUser) other;
+        return Objects.equals(id(), o.id()) &&
+               Objects.equals(username(), o.username());
     }
 
     @Override
@@ -95,22 +113,39 @@ public class HostUser {
         return Objects.hash(id, username);
     }
 
+    private void update() {
+        var result = supplier.get();
+        id = result.id;
+        username = result.username;
+        fullName = result.fullName;
+        email = result.email;
+    }
+
     public String id() {
+        if (id == null) {
+            update();
+        }
         return id;
     }
 
     public String username() {
+        if (username == null) {
+            update();
+        }
         return username;
     }
 
     public String fullName() {
-        if (name == null) {
-            name = nameSupplier.get();
+        if (fullName == null) {
+            update();
         }
-        return name;
+        return fullName;
     }
 
     public Optional<String> email() {
+        if (id == null || username == null || fullName == null) {
+            update();
+        }
         return Optional.ofNullable(email);
     }
 
@@ -119,7 +154,7 @@ public class HostUser {
         return "HostUserDetails{" +
                 "id=" + id +
                 ", username='" + username + '\'' +
-                ", name='" + name + '\'' +
+                ", fullName='" + fullName + '\'' +
                 '}';
     }
 }

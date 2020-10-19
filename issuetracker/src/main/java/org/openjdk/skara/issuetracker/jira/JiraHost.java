@@ -114,10 +114,12 @@ public class JiraHost implements IssueTracker {
     public HostUser currentUser() {
         if (currentUser == null) {
             var data = request.get("myself").execute();
-            currentUser = HostUser.create(data.get("name").asString(),
-                                          data.get("name").asString(),
-                                          data.get("displayName").asString(),
-                                          data.get("emailAddress").asString());
+            currentUser = HostUser.builder()
+                                  .id(data.get("name").asString())
+                                  .username(data.get("name").asString())
+                                  .fullName(data.get("displayName").asString())
+                                  .email(data.get("emailAddress").asString())
+                                  .build();
         }
         return currentUser;
     }
