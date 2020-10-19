@@ -50,7 +50,7 @@ public class RejectCommand implements CommandHandler {
         }
 
         // Notify the author as well
-        reply.print("@" + pr.author().userName() + " ");
+        reply.print("@" + pr.author().username() + " ");
 
         reply.println("This change cannot be integrated while the rejection is in place. To lift the rejection, ");
         reply.println("issue an allow command: `/allow`");

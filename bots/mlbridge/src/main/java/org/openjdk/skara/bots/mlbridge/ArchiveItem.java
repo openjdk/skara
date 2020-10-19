@@ -198,12 +198,12 @@ class ArchiveItem {
                                () -> ArchiveMessages.composeReplyFooter(pr));
     }
 
-    static ArchiveItem from(PullRequest pr, Review review, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUserName hostUserToUserName, HostUserToRole hostUserToRole, ArchiveItem parent) {
+    static ArchiveItem from(PullRequest pr, Review review, HostUserToEmailAuthor hostUserToEmailAuthor, HostUserToUsername hostUserToUsername, HostUserToRole hostUserToRole, ArchiveItem parent) {
         return new ArchiveItem(parent, "rv" + review.id(), review.createdAt(), review.createdAt(), review.reviewer(), Map.of(),
                                () -> ArchiveMessages.composeReplySubject(parent.subject()),
                                () -> ArchiveMessages.composeReplyHeader(parent.createdAt(), hostUserToEmailAuthor.author(parent.author())),
-                               () -> ArchiveMessages.composeReview(pr, review, hostUserToUserName, hostUserToRole),
-                               () -> ArchiveMessages.composeReviewFooter(pr, review, hostUserToUserName, hostUserToRole));
+                               () -> ArchiveMessages.composeReview(pr, review, hostUserToUsername, hostUserToRole),
+                               () -> ArchiveMessages.composeReviewFooter(pr, review, hostUserToUsername, hostUserToRole));
     }
 
     static ArchiveItem from(PullRequest pr, ReviewComment reviewComment, HostUserToEmailAuthor hostUserToEmailAuthor, ArchiveItem parent) {
@@ -237,7 +237,7 @@ class ArchiveItem {
         if (mentionMatcher.matches()) {
             var username = mentionMatcher.group(1);
             for (int i = eligibleParents.size() - 1; i != 0; --i) {
-                if (eligibleParents.get(i).author.userName().equals(username)) {
+                if (eligibleParents.get(i).author.username().equals(username)) {
                     return Optional.of(eligibleParents.get(i));
                 }
             }

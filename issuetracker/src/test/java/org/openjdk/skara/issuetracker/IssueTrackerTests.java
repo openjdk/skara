@@ -48,9 +48,9 @@ class IssueTrackerTests {
         try (var credentials = new HostCredentials(info)) {
             var project = credentials.getIssueProject();
 
-            var userName = project.issueTracker().currentUser().userName();
-            var user = project.issueTracker().user(userName);
-            assertEquals(userName, user.get().userName());
+            var username = project.issueTracker().currentUser().username();
+            var user = project.issueTracker().user(username);
+            assertEquals(username, user.get().username());
 
             var issue = credentials.createIssue(project, "Test issue");
             issue.setTitle("Updated title");
@@ -82,9 +82,9 @@ class IssueTrackerTests {
         try (var credentials = new HostCredentials(info)) {
             var project = credentials.getIssueProject();
 
-            var userName = project.issueTracker().currentUser().userName();
-            var user = project.issueTracker().user(userName);
-            assertEquals(userName, user.get().userName());
+            var username = project.issueTracker().currentUser().username();
+            var user = project.issueTracker().user(username);
+            assertEquals(username, user.get().username());
 
             var issue = credentials.createIssue(project, "Test issue");
             issue.setBody("This is now the body");
@@ -114,9 +114,9 @@ class IssueTrackerTests {
         try (var credentials = new HostCredentials(info)) {
             var project = credentials.getIssueProject();
 
-            var userName = project.issueTracker().currentUser().userName();
-            var user = project.issueTracker().user(userName);
-            assertEquals(userName, user.get().userName());
+            var username = project.issueTracker().currentUser().username();
+            var user = project.issueTracker().user(username);
+            assertEquals(username, user.get().username());
 
             var issue1 = credentials.createIssue(project, "Test issue");
             issue1.setBody("This is now the body");

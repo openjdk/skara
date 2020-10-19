@@ -44,13 +44,13 @@ public class CSRCommand implements CommandHandler {
     }
 
     private static void jbsReply(PullRequest pr, PrintWriter writer) {
-        writer.println("@" + pr.author().userName() + " this pull request must refer to an issue in " +
+        writer.println("@" + pr.author().username() + " this pull request must refer to an issue in " +
                       "[JBS](https://bugs.openjdk.java.net) to be able to link it to a CSR request. To refer this pull request to " +
                       "an issue in JBS, please use the `/issue` command in a comment in this pull request.");
     }
 
     private static void linkReply(PullRequest pr, Issue issue, PrintWriter writer) {
-        writer.println("@" + pr.author().userName() + " please create a CSR request and add link to it in " +
+        writer.println("@" + pr.author().username() + " please create a CSR request and add link to it in " +
                       "[" + issue.id() + "](" + issue.webUrl() + "). This pull request cannot be integrated until " +
                       "the CSR request is approved.");
     }

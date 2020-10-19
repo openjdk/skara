@@ -127,15 +127,15 @@ public class TestHost implements Forge, IssueTracker {
     @Override
     public Optional<HostUser> user(String username) {
         return data.users.stream()
-                         .filter(user -> user.userName().equals(username))
+                         .filter(user -> user.username().equals(username))
                          .findAny();
     }
 
     Optional<HostUser> findUser(String findBy) {
         var findByLocalPart = EmailAddress.parse(findBy).localPart();
         return data.users.stream()
-                         .filter(user -> user.userName().equals(findBy) ||
-                                 user.userName().equals(findByLocalPart))
+                         .filter(user -> user.username().equals(findBy) ||
+                                 user.username().equals(findByLocalPart))
                          .findAny();
     }
 

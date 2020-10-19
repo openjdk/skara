@@ -186,7 +186,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
 
         printer.println(String.format(commandReplyMarker, command.id()));
         printer.print("@");
-        printer.print(command.user().userName());
+        printer.print(command.user().username());
         printer.print(" ");
 
         var handler = command.handler();

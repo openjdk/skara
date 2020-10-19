@@ -84,7 +84,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         } else {
             var user = issueProject.findUser(authorEmail.address());
             if (user.isPresent()) {
-                return Optional.of(user.get().userName());
+                return Optional.of(user.get().username());
             }
         }
 
@@ -94,7 +94,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         } else {
             var user = issueProject.findUser(committerEmail.address());
             if (user.isPresent()) {
-                return Optional.of(user.get().userName());
+                return Optional.of(user.get().username());
             }
 
             log.severe("Cannot determine issue tracker user name from committer email: " + committerEmail);

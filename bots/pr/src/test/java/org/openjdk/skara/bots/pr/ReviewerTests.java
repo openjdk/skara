@@ -68,21 +68,21 @@ class ReviewerTests {
             assertLastCommentContains(pr,"Syntax");
 
             // Add a reviewer
-            pr.addComment("/reviewer credit @" + integrator.forge().currentUser().userName());
+            pr.addComment("/reviewer credit @" + integrator.forge().currentUser().username());
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should not yet consider the PR ready
             assertFalse(pr.labels().contains("ready"));
 
             // Remove it again
-            pr.addComment("/reviewer remove @" + integrator.forge().currentUser().userName());
+            pr.addComment("/reviewer remove @" + integrator.forge().currentUser().username());
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
             assertLastCommentContains(pr,"successfully removed");
 
             // Remove something that isn't there
-            pr.addComment("/reviewer remove @" + integrator.forge().currentUser().userName());
+            pr.addComment("/reviewer remove @" + integrator.forge().currentUser().username());
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with an error message
@@ -254,7 +254,7 @@ class ReviewerTests {
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Use a platform name
-            pr.addComment("/reviewer credit @" + author.forge().currentUser().userName());
+            pr.addComment("/reviewer credit @" + author.forge().currentUser().username());
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply

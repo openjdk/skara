@@ -104,7 +104,7 @@ public class GitHubRepository implements HostedRepository {
         }
 
         var upstream = (GitHubRepository) target;
-        var user = forge().currentUser().userName();
+        var user = forge().currentUser().username();
         var namespace = user.endsWith("[bot]") ? "" : user + ":";
         var params = JSON.object()
                          .put("title", title)

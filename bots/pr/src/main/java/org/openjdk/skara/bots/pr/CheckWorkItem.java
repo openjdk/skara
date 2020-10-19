@@ -60,10 +60,10 @@ class CheckWorkItem extends PullRequestWorkItem {
             return "unknown-" + reviewer.id();
         } else {
             var censusVersion = census.version().format();
-            var userName = contributor.username();
-            return contributor.username() + project.isLead(userName, censusVersion) +
-                    project.isReviewer(userName, censusVersion) + project.isCommitter(userName, censusVersion) +
-                    project.isAuthor(userName, censusVersion);
+            var username = contributor.username();
+            return contributor.username() + project.isLead(username, censusVersion) +
+                    project.isReviewer(username, censusVersion) + project.isCommitter(username, censusVersion) +
+                    project.isAuthor(username, censusVersion);
         }
     }
 
@@ -233,7 +233,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                                            .anyMatch(l -> l.equals("<!-- backport error -->"));
                     if (!isErrorPresent) {
                         var text = "<!-- backport error -->\n" +
-                                   ":warning: @" + pr.author().userName() + " could not find any commit with hash `" +
+                                   ":warning: @" + pr.author().username() + " could not find any commit with hash `" +
                                    hash.hex() + "`. Please update the title with the hash for an existing commit.";
                         pr.addComment(text);
                     }

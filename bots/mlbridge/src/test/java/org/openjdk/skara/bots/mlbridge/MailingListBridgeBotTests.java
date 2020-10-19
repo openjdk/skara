@@ -99,7 +99,7 @@ class MailingListBridgeBotTests {
 
     private String noreplyAddress(HostedRepository repository) {
         return "test+" + repository.forge().currentUser().id() + "+" +
-                repository.forge().currentUser().userName() +
+                repository.forge().currentUser().username() +
                 "@openjdk.java.net";
     }
 
@@ -124,7 +124,7 @@ class MailingListBridgeBotTests {
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
-                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().username()))
                                             .ignoredComments(Set.of())
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
@@ -133,7 +133,7 @@ class MailingListBridgeBotTests {
                                             .webrevStorageBase(Path.of("test"))
                                             .webrevStorageBaseUri(webrevServer.uri())
                                             .readyLabels(Set.of("rfr"))
-                                            .readyComments(Map.of(ignored.forge().currentUser().userName(), Pattern.compile("ready")))
+                                            .readyComments(Map.of(ignored.forge().currentUser().username(), Pattern.compile("ready")))
                                             .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
                                             .headers(Map.of("Extra1", "val1", "Extra2", "val2"))
                                             .sendInterval(Duration.ZERO)
@@ -292,7 +292,7 @@ class MailingListBridgeBotTests {
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
-                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().username()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageHTMLRepository(archive)
@@ -366,7 +366,7 @@ class MailingListBridgeBotTests {
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
-                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().username()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageHTMLRepository(archive)
@@ -440,7 +440,7 @@ class MailingListBridgeBotTests {
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
-                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().username()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageHTMLRepository(archive)
@@ -519,7 +519,7 @@ class MailingListBridgeBotTests {
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
-                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().username()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageHTMLRepository(archive)
@@ -596,7 +596,7 @@ class MailingListBridgeBotTests {
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
-                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().username()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageHTMLRepository(archive)
@@ -679,7 +679,7 @@ class MailingListBridgeBotTests {
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
-                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().username()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageHTMLRepository(archive)
@@ -733,7 +733,7 @@ class MailingListBridgeBotTests {
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
-                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().username()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageHTMLRepository(archive)
@@ -1147,7 +1147,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
 
-            pr.addComment("@" + reviewer.forge().currentUser().userName() + " reply to first");
+            pr.addComment("@" + reviewer.forge().currentUser().username() + " reply to first");
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
 
@@ -1212,7 +1212,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
 
-            pr.addReviewCommentReply(comment, "@" + reviewer.forge().currentUser().userName() + " reply to first");
+            pr.addReviewCommentReply(comment, "@" + reviewer.forge().currentUser().username() + " reply to first");
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
 
@@ -2057,7 +2057,7 @@ class MailingListBridgeBotTests {
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
-                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().username()))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
                                             .webrevStorageHTMLRepository(archive)
@@ -2227,7 +2227,7 @@ class MailingListBridgeBotTests {
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
-                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().username()))
                                             .ignoredComments(Set.of(Pattern.compile("ignore this comment", Pattern.MULTILINE | Pattern.DOTALL)))
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
@@ -2351,7 +2351,7 @@ class MailingListBridgeBotTests {
             var mlBotBuilder = MailingListBridgeBot.newBuilder()
                                                    .from(from)
                                                    .repo(bot)
-                                                   .ignoredUsers(Set.of(bot.forge().currentUser().userName()))
+                                                   .ignoredUsers(Set.of(bot.forge().currentUser().username()))
                                                    .archive(archive)
                                                    .censusRepo(censusBuilder.build())
                                                    .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
@@ -2416,7 +2416,7 @@ class MailingListBridgeBotTests {
             var mlBotBuilder = MailingListBridgeBot.newBuilder()
                                                    .from(from)
                                                    .repo(bot)
-                                                   .ignoredUsers(Set.of(bot.forge().currentUser().userName()))
+                                                   .ignoredUsers(Set.of(bot.forge().currentUser().username()))
                                                    .archive(archive)
                                                    .censusRepo(censusBuilder.build())
                                                    .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
@@ -2483,7 +2483,7 @@ class MailingListBridgeBotTests {
             var mlBotBuilder = MailingListBridgeBot.newBuilder()
                                                    .from(from)
                                                    .repo(bot)
-                                                   .ignoredUsers(Set.of(bot.forge().currentUser().userName()))
+                                                   .ignoredUsers(Set.of(bot.forge().currentUser().username()))
                                                    .archive(archive)
                                                    .censusRepo(censusBuilder.build())
                                                    .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
@@ -2747,7 +2747,7 @@ class MailingListBridgeBotTests {
             var mlBotBuilder = MailingListBridgeBot.newBuilder()
                                                    .from(from)
                                                    .repo(bot)
-                                                   .ignoredUsers(Set.of(bot.forge().currentUser().userName()))
+                                                   .ignoredUsers(Set.of(bot.forge().currentUser().username()))
                                                    .archive(archive)
                                                    .censusRepo(censusBuilder.build())
                                                    .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
@@ -2921,7 +2921,7 @@ class MailingListBridgeBotTests {
                                             .archive(archive)
                                             .censusRepo(censusBuilder.build())
                                             .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
-                                            .ignoredUsers(Set.of(ignored.forge().currentUser().userName()))
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().username()))
                                             .ignoredComments(Set.of())
                                             .listArchive(listServer.getArchive())
                                             .smtpServer(listServer.getSMTP())
@@ -2932,7 +2932,7 @@ class MailingListBridgeBotTests {
                                             .webrevGenerateHTML(false)
                                             .webrevGenerateJSON(true)
                                             .readyLabels(Set.of("rfr"))
-                                            .readyComments(Map.of(ignored.forge().currentUser().userName(), Pattern.compile("ready")))
+                                            .readyComments(Map.of(ignored.forge().currentUser().username(), Pattern.compile("ready")))
                                             .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
                                             .headers(Map.of("Extra1", "val1", "Extra2", "val2"))
                                             .sendInterval(Duration.ZERO)

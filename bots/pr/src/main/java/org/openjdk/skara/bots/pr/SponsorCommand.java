@@ -53,13 +53,13 @@ public class SponsorCommand implements CommandHandler {
 
         var readyHash = ReadyForSponsorTracker.latestReadyForSponsor(pr.repository().forge().currentUser(), allComments);
         if (readyHash.isEmpty()) {
-            reply.println("The change author (@" + pr.author().userName() + ") must issue an `integrate` command before the integration can be sponsored.");
+            reply.println("The change author (@" + pr.author().username() + ") must issue an `integrate` command before the integration can be sponsored.");
             return;
         }
 
         var acceptedHash = readyHash.get();
         if (!pr.headHash().equals(acceptedHash)) {
-            reply.print("The PR has been updated since the change author (@" + pr.author().userName() + ") ");
+            reply.print("The PR has been updated since the change author (@" + pr.author().username() + ") ");
             reply.println("issued the `integrate` command - the author must perform this command again.");
             return;
         }
@@ -71,7 +71,7 @@ public class SponsorCommand implements CommandHandler {
         }
 
         // Notify the author as well
-        reply.print("@" + pr.author().userName() + " ");
+        reply.print("@" + pr.author().username() + " ");
 
         // Execute merge
         try (var integrationLock = IntegrationLock.create(pr, Duration.ofMinutes(10))) {

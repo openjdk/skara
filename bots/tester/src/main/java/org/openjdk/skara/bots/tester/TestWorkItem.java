@@ -284,7 +284,7 @@ public class TestWorkItem implements WorkItem {
                                 var success = job.result().numFailed() == 0 &&
                                               job.result().numSkipped() == 0;
                                 builder = builder.complete(success);
-                                var requestor = state.requested().author().userName();
+                                var requestor = state.requested().author().username();
                                 var commentLines = List.of(
                                         "<!-- TEST FINISHED -->",
                                         "<!-- " + jobId + " -->",
@@ -341,7 +341,7 @@ public class TestWorkItem implements WorkItem {
                 var wording = nonExistingJobs.size() == 1 ? "group " : "groups ";
                 var lines = List.of(
                    "<!-- TEST ERROR -->",
-                   "@" + state.requested().author().userName() + " the test " + wording + String.join(",", nonExistingJobs) + " does not exist"
+                   "@" + state.requested().author().username() + " the test " + wording + String.join(",", nonExistingJobs) + " does not exist"
                 );
                 pr.addComment(String.join("\n", lines));
             } else {
@@ -350,7 +350,7 @@ public class TestWorkItem implements WorkItem {
                         "<!-- TEST PENDING -->",
                         "<!-- " + head.hex() + " -->",
                         "<!-- " + String.join(",", trimmedJobs) + " -->",
-                        "@" + state.requested().author().userName() + " you need to get approval to run the tests in " +
+                        "@" + state.requested().author().username() + " you need to get approval to run the tests in " +
                         String.join(",", trimmedJobs) + " for commits up until " + head.abbreviate()
                 );
                 pr.addComment(String.join("\n", lines));
@@ -387,7 +387,7 @@ public class TestWorkItem implements WorkItem {
                     var wording = nonExistingJobs.size() == 1 ? "group " : "groups ";
                     var lines = List.of(
                        "<!-- TEST ERROR -->",
-                       "@" + state.requested().author().userName() + " the test " + wording + String.join(",", nonExistingJobs) + " does not exist"
+                       "@" + state.requested().author().username() + " the test " + wording + String.join(",", nonExistingJobs) + " does not exist"
                     );
                     pr.addComment(String.join("\n", lines));
                     return List.of();

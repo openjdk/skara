@@ -274,7 +274,7 @@ public class IssueCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (!command.user().equals(pr.author())) {
-            reply.println("Only the author (@" + pr.author().userName() + ") is allowed to issue the `/" + name + "` command.");
+            reply.println("Only the author (@" + pr.author().username() + ") is allowed to issue the `/" + name + "` command.");
             return;
         }
         var args = command.args();

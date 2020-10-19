@@ -169,7 +169,7 @@ public class IssueNotifierTests {
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
                                      .prStateStorageBuilder(prStateStorage)
-                                     .readyComments(Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("This is now ready")))
+                                     .readyComments(Map.of(reviewer.forge().currentUser().username(), Pattern.compile("This is now ready")))
                                      .build();
             var updater = IssueNotifier.newBuilder()
                                       .issueProject(issueProject)
@@ -269,7 +269,7 @@ public class IssueNotifierTests {
                                      .tagStorageBuilder(tagStorage)
                                      .branchStorageBuilder(branchStorage)
                                      .prStateStorageBuilder(prStateStorage)
-                                     .readyComments(Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("This is now ready")))
+                                     .readyComments(Map.of(reviewer.forge().currentUser().username(), Pattern.compile("This is now ready")))
                                      .build();
             var updater = IssueNotifier.newBuilder()
                                       .issueProject(issueProject)
@@ -387,7 +387,7 @@ public class IssueNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Create an issue and commit a fix
-            var authorEmailAddress = issueProject.issueTracker().currentUser().userName() + "@openjdk.org";
+            var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
             localRepo.push(editHash, repo.url(), "master");
@@ -445,7 +445,7 @@ public class IssueNotifierTests {
             var blankHistory = repo.branchHash("history");
 
             // Create an issue and commit a fix
-            var authorEmailAddress = issueProject.issueTracker().currentUser().userName() + "@openjdk.org";
+            var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
             localRepo.push(editHash, repo.url(), "master");
@@ -533,7 +533,7 @@ public class IssueNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Create an issue and commit a fix
-            var authorEmailAddress = issueProject.issueTracker().currentUser().userName() + "@openjdk.org";
+            var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
             localRepo.push(editHash, repo.url(), "master");
@@ -586,7 +586,7 @@ public class IssueNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Create an issue and commit a fix
-            var authorEmailAddress = issueProject.issueTracker().currentUser().email().orElse(issueProject.issueTracker().currentUser().userName() + "@otherjdk.org");
+            var authorEmailAddress = issueProject.issueTracker().currentUser().email().orElse(issueProject.issueTracker().currentUser().username() + "@otherjdk.org");
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
             localRepo.push(editHash, repo.url(), "master");
@@ -829,7 +829,7 @@ public class IssueNotifierTests {
             issue.setProperty("fixVersions", JSON.array().add("13.0.1"));
             issue.setProperty("priority", JSON.of("1"));
 
-            var authorEmailAddress = issueProject.issueTracker().currentUser().userName() + "@openjdk.org";
+            var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
             localRepo.push(editHash, repo.url(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);

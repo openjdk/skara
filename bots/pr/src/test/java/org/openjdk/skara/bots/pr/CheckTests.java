@@ -255,7 +255,7 @@ class CheckTests {
             assertFalse(authorPr.body().contains("Note"));
 
             // No census link is set
-            var reviewerString = "Generated Reviewer 2 (@" + reviewer.forge().currentUser().userName() + " - **Reviewer**)";
+            var reviewerString = "Generated Reviewer 2 (@" + reviewer.forge().currentUser().username() + " - **Reviewer**)";
             assertTrue(authorPr.body().contains(reviewerString));
         }
     }
@@ -423,7 +423,7 @@ class CheckTests {
             comments = pr.comments();
             assertEquals(commentCount + 2, comments.size());
             var comment = comments.get(commentCount);
-            assertTrue(comment.body().contains(reviewer.forge().currentUser().userName()));
+            assertTrue(comment.body().contains(reviewer.forge().currentUser().username()));
             assertTrue(comment.body().contains("approved"));
 
             // Drop the review
@@ -436,7 +436,7 @@ class CheckTests {
             comments = pr.comments();
             assertEquals(commentCount + 3, comments.size());
             comment = comments.get(commentCount + 2);
-            assertTrue(comment.body().contains(reviewer.forge().currentUser().userName()));
+            assertTrue(comment.body().contains(reviewer.forge().currentUser().username()));
             assertTrue(comment.body().contains("comment"));
 
             // No changes should not generate additional comments
@@ -813,7 +813,7 @@ class CheckTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).readyComments(Map.of(reviewer.forge().currentUser().userName(), Pattern.compile("proceed"))).build();
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).readyComments(Map.of(reviewer.forge().currentUser().username(), Pattern.compile("proceed"))).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());

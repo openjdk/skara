@@ -252,7 +252,7 @@ public class GitLabRepository implements HostedRepository {
 
     @Override
     public HostedRepository fork() {
-        var namespace = gitLabHost.currentUser().userName();
+        var namespace = gitLabHost.currentUser().username();
         request.post("fork")
                .body("namespace", namespace)
                .onError(r -> r.statusCode() == 409 ? Optional.of(JSON.object().put("exists", true)) : Optional.empty())
