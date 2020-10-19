@@ -285,7 +285,6 @@ public class GitLabRepository implements HostedRepository {
     public List<HostedBranch> branches() {
         var branches = request.get("repository/branches").execute();
         return branches.stream()
-                       .filter(b -> !PreIntegrations.isPreintegrationBranch(b.get("name").asString()))
                        .map(b -> new HostedBranch(b.get("name").asString(),
                                                   new Hash(b.get("commit").get("id").asString())))
                        .collect(Collectors.toList());

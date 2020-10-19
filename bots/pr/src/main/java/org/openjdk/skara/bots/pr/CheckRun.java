@@ -145,6 +145,7 @@ class CheckRun {
                  .branches()
                  .stream()
                  .map(HostedBranch::name)
+                 .filter(name -> !PreIntegrations.isPreintegrationBranch(name))
                  .map(name -> workItem.bot.allowedTargetBranches().matcher(name))
                  .filter(Matcher::matches)
                  .map(Matcher::group)
