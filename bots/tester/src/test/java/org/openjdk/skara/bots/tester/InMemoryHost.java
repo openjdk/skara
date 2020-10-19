@@ -29,7 +29,7 @@ import org.openjdk.skara.vcs.Hash;
 import java.util.*;
 
 class InMemoryHost implements Forge {
-    HostUser currentUserDetails = new HostUser(0, "openjdk", "openjdk [bot]");
+    HostUser currentUserDetails = HostUser.create(0, "openjdk", "openjdk [bot]");
     Map<String, Set<HostUser>> groups;
 
     @Override

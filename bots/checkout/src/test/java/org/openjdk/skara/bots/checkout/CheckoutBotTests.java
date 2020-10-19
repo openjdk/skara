@@ -58,7 +58,7 @@ class CheckoutBotTests {
     @Test
     void simpleConversion(TestInfo testInfo) throws IOException {
         try (var tmp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
             var marksLocalDir = tmp.path().resolve("marks.git");
             Files.createDirectories(marksLocalDir);
             var marksLocalRepo = Repository.init(marksLocalDir, VCS.GIT);
@@ -90,7 +90,7 @@ class CheckoutBotTests {
     @Test
     void update(TestInfo testInfo) throws IOException {
         try (var tmp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
             var marksLocalDir = tmp.path().resolve("marks.git");
             Files.createDirectories(marksLocalDir);
             var marksLocalRepo = Repository.init(marksLocalDir, VCS.GIT);

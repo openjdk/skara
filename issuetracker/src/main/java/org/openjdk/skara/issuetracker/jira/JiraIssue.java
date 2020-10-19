@@ -65,9 +65,9 @@ public class JiraIssue implements Issue {
 
     @Override
     public HostUser author() {
-        return new HostUser(json.get("fields").get("creator").get("key").asString(),
-                            json.get("fields").get("creator").get("name").asString(),
-                            json.get("fields").get("creator").get("displayName").asString());
+        return HostUser.create(json.get("fields").get("creator").get("key").asString(),
+                               json.get("fields").get("creator").get("name").asString(),
+                               json.get("fields").get("creator").get("displayName").asString());
     }
 
     @Override
@@ -111,9 +111,9 @@ public class JiraIssue implements Issue {
     private Comment parseComment(JSONValue json) {
         return new Comment(json.get("id").asString(),
                            json.get("body").asString(),
-                           new HostUser(json.get("author").get("name").asString(),
-                                        json.get("author").get("name").asString(),
-                                        json.get("author").get("displayName").asString()),
+                           HostUser.create(json.get("author").get("name").asString(),
+                                           json.get("author").get("name").asString(),
+                                           json.get("author").get("displayName").asString()),
                            ZonedDateTime.parse(json.get("created").asString(), dateFormat),
                            ZonedDateTime.parse(json.get("updated").asString(), dateFormat));
     }
@@ -275,9 +275,9 @@ public class JiraIssue implements Issue {
             return List.of();
         }
 
-        var user = new HostUser(assignee.get("name").asString(),
-                                assignee.get("name").asString(),
-                                assignee.get("displayName").asString());
+        var user = HostUser.create(assignee.get("name").asString(),
+                                   assignee.get("name").asString(),
+                                   assignee.get("displayName").asString());
         return List.of(user);
     }
 

@@ -42,7 +42,7 @@ class MergeBotTests {
     @Test
     void mergeMasterBranch(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
@@ -117,7 +117,7 @@ class MergeBotTests {
     @Test
     void successfulDependency(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory(false)) {
-            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
@@ -206,7 +206,7 @@ class MergeBotTests {
     @Test
     void failedDependency(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory(false)) {
-            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
@@ -298,7 +298,7 @@ class MergeBotTests {
     @Test
     void failingMergeTest(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
@@ -369,7 +369,7 @@ class MergeBotTests {
     @Test
     void failingPrerequisite(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
@@ -438,7 +438,7 @@ class MergeBotTests {
             var fromLocalRepo2 = Repository.init(fromDir2, VCS.GIT);
             var fromHostedRepo2 = new TestHostedRepository(host, "test-2", fromLocalRepo2);
 
-            var host2 = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+            var host2 = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
             var toDir2 = temp.path().resolve("to2.git");
             var toLocalRepo2 = Repository.init(toDir2, VCS.GIT);
             var toGitConfig2 = toDir2.resolve(".git").resolve("config");
@@ -501,7 +501,7 @@ class MergeBotTests {
     @Test
     void failingMergeShouldResultInOnlyOnePR(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
@@ -572,7 +572,7 @@ class MergeBotTests {
     @Test
     void resolvedMergeConflictShouldResultInIntegrateCommand(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
@@ -684,7 +684,7 @@ class MergeBotTests {
     @Test
     void testMergeHourly(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
@@ -799,7 +799,7 @@ class MergeBotTests {
     @Test
     void testMergeDaily(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
@@ -920,7 +920,7 @@ class MergeBotTests {
     @Test
     void testMergeWeekly(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
@@ -1041,7 +1041,7 @@ class MergeBotTests {
     @Test
     void testMergeMonthly(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
@@ -1162,7 +1162,7 @@ class MergeBotTests {
     @Test
     void testMergeYearly(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
@@ -1289,7 +1289,7 @@ class MergeBotTests {
     @Test
     void mergeAfterDivergedStorage(TestInfo testInfo) throws IOException {
         try (var temp = new TemporaryDirectory()) {
-            var host = TestHost.createNew(List.of(new HostUser(0, "duke", "J. Duke")));
+            var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
             var fromLocalRepo = Repository.init(fromDir, VCS.GIT);

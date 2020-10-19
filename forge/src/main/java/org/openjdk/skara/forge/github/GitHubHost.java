@@ -204,8 +204,8 @@ public class GitHubHost implements Forge {
     }
 
     HostUser parseUserObject(JSONValue json) {
-        return new HostUser(json.get("id").asInt(), json.get("login").asString(),
-                            () -> getFullName(json.get("login").asString()));
+        return HostUser.create(json.get("id").asInt(), json.get("login").asString(),
+                               () -> getFullName(json.get("login").asString()));
     }
 
     @Override
@@ -284,7 +284,7 @@ public class GitHubHost implements Forge {
             name = login;
         }
         var email = details.get("email").asString();
-        return new HostUser(id, login, name, email);
+        return HostUser.create(id, login, name, email);
     }
 
     @Override
