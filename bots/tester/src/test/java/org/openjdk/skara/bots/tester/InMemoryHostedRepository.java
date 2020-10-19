@@ -169,4 +169,9 @@ class InMemoryHostedRepository implements HostedRepository {
     public List<Check> allChecks(Hash hash) {
         return List.of();
     }
+
+    @Override
+    public List<CommitComment> recentCommitComments() {
+        return List.of();
+    }
 }

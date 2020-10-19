@@ -199,10 +199,21 @@ public class GitHubHost implements Forge {
     }
 
     HostUser parseUserObject(JSONValue json) {
+        return hostUser(json.get("id").asInt(), json.get("login").asString());
+    }
+
+    HostUser hostUser(int id, String username) {
         return HostUser.builder()
-                       .id(json.get("id").asInt())
-                       .username(json.get("login").asString())
-                       .supplier(() -> user(json.get("login").asString()).orElseThrow())
+                       .id(id)
+                       .username(username)
+                       .supplier(() -> user(username).orElseThrow())
+                       .build();
+    }
+
+    HostUser hostUser(String username) {
+        return HostUser.builder()
+                       .username(username)
+                       .supplier(() -> user(username).orElseThrow())
                        .build();
     }
 
@@ -269,10 +280,10 @@ public class GitHubHost implements Forge {
             return Optional.empty();
         }
 
-        return Optional.of(asHostUser(details.asObject()));
+        return Optional.of(toHostUser(details.asObject()));
     }
 
-    private static HostUser asHostUser(JSONObject details) {
+    private HostUser toHostUser(JSONObject details) {
         // Always present
         var login = details.get("login").asString();
         var id = details.get("id").asInt();
@@ -302,7 +313,7 @@ public class GitHubHost implements Forge {
                 // on Windows always return "PersonalAccessToken" as username.
                 // Query GitHub for the username instead.
                 var details = request.get("user").execute().asObject();
-                currentUser = asHostUser(details);
+                currentUser = toHostUser(details);
             } else {
                 throw new IllegalStateException("No credentials present");
             }

@@ -212,6 +212,14 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
+    public List<CommitComment> recentCommitComments() {
+        return commitComments.values()
+                             .stream()
+                             .flatMap(e -> e.stream())
+                             .collect(Collectors.toList());
+    }
+
+    @Override
     public void addCommitComment(Hash hash, String body) {
         var id = nextCommitCommentId;
         nextCommitCommentId += 1;

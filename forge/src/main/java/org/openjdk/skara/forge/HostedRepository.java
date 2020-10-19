@@ -68,6 +68,7 @@ public interface HostedRepository {
     Hash branchHash(String ref);
     List<HostedBranch> branches();
     List<CommitComment> commitComments(Hash hash);
+    List<CommitComment> recentCommitComments();
     void addCommitComment(Hash hash, String body);
     Optional<CommitMetadata> commitMetadata(Hash hash);
     List<Check> allChecks(Hash hash);

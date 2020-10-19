@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.forge.gitlab;
 
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
@@ -33,6 +34,7 @@ import java.nio.file.Path;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -290,27 +292,90 @@ public class GitLabRepository implements HostedRepository {
                        .collect(Collectors.toList());
     }
 
+    private CommitComment toCommitComment(Hash hash, JSONValue o) {
+       var line = o.get("line").isNull()? -1 : o.get("line").asInt();
+       var path = o.get("path").isNull()? null : Path.of(o.get("path").asString());
+       // GitLab does not offer updated_at for commit comments
+       var createdAt = ZonedDateTime.parse(o.get("created_at").asString());
+       // GitLab does not offer an id for commit comments
+       var id = "";
+       return new CommitComment(hash,
+                                path,
+                                line,
+                                id,
+                                o.get("note").asString(),
+                                gitLabHost.parseAuthorField(o),
+                                createdAt,
+                                createdAt);
+    }
+
     @Override
     public List<CommitComment> commitComments(Hash hash) {
         return request.get("repository/commits/" + hash.hex() + "/comments")
                       .execute()
                       .stream()
-                      .map(JSONValue::asObject)
+                      .map(o -> toCommitComment(hash, o))
+                      .collect(Collectors.toList());
+    }
+
+    private Hash commitWithComment(String commitTitle,
+                                   String commentBody,
+                                   ZonedDateTime commentCreatedAt,
+                                   HostUser author) {
+        var result = request.get("search")
+                            .param("scope", "commits")
+                            .param("search", commitTitle)
+                            .execute()
+                            .stream()
+                            .filter(o -> o.get("title").asString().equals(commitTitle))
+                            .map(o -> new Hash(o.get("id").asString()))
+                            .collect(Collectors.toList());
+        if (result.isEmpty()) {
+            throw new IllegalArgumentException("No commit with title: " + commitTitle);
+        }
+        if (result.size() > 1) {
+            var filtered = result.stream()
+                                 .flatMap(hash -> commitComments(hash).stream()
+                                                                      .filter(c -> c.body().equals(commentBody))
+                                                                      .filter(c -> c.createdAt().equals(commentCreatedAt))
+                                                                      .filter(c -> c.author().equals(author)))
+                                 .map(c -> c.commit())
+                                 .collect(Collectors.toList());
+            if (filtered.isEmpty()) {
+                throw new IllegalStateException("No commit with title '" + commitTitle +
+                                                "' and comment '" + commentBody + "'");
+            }
+            if (filtered.size() > 1) {
+                var hashes = filtered.stream().map(Hash::hex).collect(Collectors.toList());
+                throw new IllegalStateException("Multiple commits with identical comment '" + commentBody + "': "
+                                                 + String.join(",", hashes));
+            }
+            return filtered.get(0);
+        }
+        return result.get(0);
+    }
+
+    @Override
+    public List<CommitComment> recentCommitComments() {
+        var twoDaysAgo = ZonedDateTime.now().minusDays(2);
+        var formatter = DateTimeFormatter.ofPattern("yyyy-MM-DD");
+        return request.get("events")
+                      .param("after", twoDaysAgo.format(formatter))
+                      .execute()
+                      .stream()
+                      .filter(o -> o.contains("note") &&
+                                   o.get("note").contains("noteable_type") &&
+                                   o.get("note").get("noteable_type").asString().equals("Commit"))
                       .map(o -> {
-                           var line = o.get("line").isNull()? -1 : o.get("line").asInt();
-                           var path = o.get("path").isNull()? null : Path.of(o.get("path").asString());
-                           // GitLab does not offer updated_at for commit comments
-                           var createdAt = ZonedDateTime.parse(o.get("created_at").asString());
-                           // GitLab does not offer an id for commit comments
-                           var id = "";
-                           return new CommitComment(hash,
-                                                    path,
-                                                    line,
-                                                    id,
-                                                    o.get("note").asString(),
-                                                    gitLabHost.parseAuthorField(o),
-                                                    createdAt,
-                                                    createdAt);
+                          var createdAt = ZonedDateTime.parse(o.get("note").get("created_at").asString());
+                          var body = o.get("note").get("body").asString();
+                          var user = gitLabHost.parseAuthorField(o);
+                          var id = o.get("note").get("id").asString();
+                          Supplier<Hash> hash = () -> commitWithComment(o.get("target_title").asString(),
+                                                                        body,
+                                                                        createdAt,
+                                                                        user);
+                          return new CommitComment(hash, null, -1, id, body, user, createdAt, createdAt);
                       })
                       .collect(Collectors.toList());
     }
