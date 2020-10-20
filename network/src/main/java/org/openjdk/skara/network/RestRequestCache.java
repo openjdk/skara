@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.net.http.*;
 import java.time.*;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.*;
 import java.util.logging.Logger;
 
@@ -69,9 +69,33 @@ enum RestRequestCache {
     private final Map<RequestContext, HttpResponse<String>> cachedResponses = new ConcurrentHashMap<>();
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final Logger log = Logger.getLogger("org.openjdk.skara.network");
-    private final Map<String, Lock> authLocks = new HashMap<>();
-    private final Map<String, Instant> lastUpdates = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Lock> authLocks = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Instant> lastUpdates = new ConcurrentHashMap<>();
     private final Map<RequestContext, Instant> cachedUpdated = new ConcurrentHashMap<>();
+
+    private static class LockWithTimeout implements AutoCloseable {
+        private final Lock lock;
+
+        LockWithTimeout(Lock lock) {
+            this.lock = lock;
+            while (true) {
+                try {
+                    var locked = lock.tryLock(10, TimeUnit.MINUTES);
+                    if (!locked) {
+                        System.out.println("Unable to grab lock in 10 minutes - exiting...");
+                        System.exit(1);
+                    }
+                    return;
+                } catch (InterruptedException ignored) {
+                }
+            }
+        }
+
+        @Override
+        public void close() {
+            lock.unlock();
+        }
+    }
 
     private Duration maxAllowedAge(RequestContext requestContext) {
         // Known stable caches can afford a longer timeout - others expire faster
@@ -88,11 +112,7 @@ enum RestRequestCache {
         }
         var unauthenticatedRequest = requestBuilder.build();
         var requestContext = new RequestContext(authId, unauthenticatedRequest);
-        synchronized (authLocks) {
-            if (!authLocks.containsKey(authId)) {
-                authLocks.put(authId, new ReentrantLock());
-            }
-        }
+        authLocks.computeIfAbsent(authId, id -> new ReentrantLock());
         var authLock = authLocks.get(authId);
         if (unauthenticatedRequest.method().equals("GET")) {
             var cached = cachedResponses.get(requestContext);
@@ -107,12 +127,9 @@ enum RestRequestCache {
             }
             var finalRequest = requestBuilder.build();
             HttpResponse<String> response;
-            try {
+            try (var ignored = new LockWithTimeout(authLock)){
                 // Perform requests using a certain account serially
-                authLock.lock();
                 response = client.send(finalRequest, HttpResponse.BodyHandlers.ofString());
-            } finally {
-                authLock.unlock();
             }
             if (response.statusCode() == 304) {
                 log.finer("Using cached response for " + finalRequest + " (" + authId + ")");
@@ -127,12 +144,9 @@ enum RestRequestCache {
             var finalRequest = requestBuilder.build();
             log.finer("Not using response cache for " + finalRequest + " (" + authId + ")");
             Instant lastUpdate;
-            try {
-                authLock.lock();
+            try (var ignored = new LockWithTimeout(authLock)) {
                 lastUpdate = lastUpdates.getOrDefault(authId, Instant.now().minus(Duration.ofDays(1)));
                 lastUpdates.put(authId, Instant.now());
-            } finally {
-                authLock.unlock();
             }
             // Perform at most one update per second
             var requiredDelay = Duration.between(Instant.now().minus(Duration.ofSeconds(1)), lastUpdate);
@@ -142,11 +156,8 @@ enum RestRequestCache {
                 } catch (InterruptedException ignored) {
                 }
             }
-            try {
-                authLock.lock();
+            try (var ignored = new LockWithTimeout(authLock)) {
                 return client.send(finalRequest, HttpResponse.BodyHandlers.ofString());
-            } finally {
-                authLock.unlock();
             }
         }
     }
