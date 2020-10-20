@@ -24,9 +24,10 @@ package org.openjdk.skara.bots.notify.prbranch;
 
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.json.*;
+import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.*;
+import org.openjdk.skara.vcs.Branch;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -135,6 +136,44 @@ public class PullRequestBranchNotifierTests {
             // The branch should have been updated
             hash = localRepo.fetch(repo.url(), PreIntegrations.preIntegrateBranch(pr));
             assertEquals(updatedHash, hash);
+        }
+    }
+
+    @Test
+    void branchMissing(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var storageFolder = tempFolder.path().resolve("storage");
+            var notifyBot = testBotBuilder(repo, storageFolder).create("notify", JSON.object());
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create a PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line");
+            localRepo.push(editHash, repo.url(), "source", true);
+            var pr = credentials.createPullRequest(repo, "master", "source", "This is a PR", false);
+            pr.addLabel("rfr");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The target repo should now contain the new branch
+            var hash = localRepo.fetch(repo.url(), PreIntegrations.preIntegrateBranch(pr));
+            assertEquals(editHash, hash);
+            try {
+                localRepo.prune(new Branch(PreIntegrations.preIntegrateBranch(pr)), repo.url().toString());
+            } catch (IOException ignored) {
+            }
+
+            // Now close it - no exception should be raised
+            pr.setState(Issue.State.CLOSED);
+            TestBotRunner.runPeriodicItems(notifyBot);
         }
     }
 }
