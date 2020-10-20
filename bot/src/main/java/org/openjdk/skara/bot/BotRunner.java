@@ -194,6 +194,7 @@ public class BotRunner {
     private final List<Bot> bots;
     private final ScheduledThreadPoolExecutor executor;
     private final Logger log;
+    private final BotWatchdog botWatchdog;
 
     public BotRunner(BotRunnerConfiguration config, List<Bot> bots) {
         this.config = config;
@@ -209,6 +210,7 @@ public class BotRunner {
         }
 
         executor = new ScheduledThreadPoolExecutor(config.concurrency());
+        botWatchdog = new BotWatchdog(Duration.ofMinutes(10));
         log = Logger.getLogger("org.openjdk.skara.bot");
     }
 
@@ -229,7 +231,7 @@ public class BotRunner {
         }
     }
 
-    private void watchdog() {
+    private void itemWatchdog() {
         synchronized (executor) {
             for (var activeItem : active.entrySet()) {
                 var activeDuration = Duration.between(activeItem.getValue(), Instant.now());
@@ -240,6 +242,8 @@ public class BotRunner {
                     activeItem.setValue(Instant.now());
                 }
             }
+            // Inform the global watchdog that the scheduler is still executing items
+            botWatchdog.ping();
         }
     }
 
@@ -280,7 +284,7 @@ public class BotRunner {
             }
         }
 
-        executor.scheduleAtFixedRate(this::watchdog, 0,
+        executor.scheduleAtFixedRate(this::itemWatchdog, 0,
                                      config.scheduledExecutionPeriod().toMillis(), TimeUnit.MILLISECONDS);
         executor.scheduleAtFixedRate(this::checkPeriodicItems, 0,
                                      config.scheduledExecutionPeriod().toMillis(), TimeUnit.MILLISECONDS);
