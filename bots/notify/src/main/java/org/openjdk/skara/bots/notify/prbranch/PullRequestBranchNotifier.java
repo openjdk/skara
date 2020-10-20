@@ -29,9 +29,11 @@ import org.openjdk.skara.vcs.*;
 
 import java.io.*;
 import java.nio.file.Path;
+import java.util.logging.Logger;
 
 public class PullRequestBranchNotifier implements Notifier, PullRequestListener {
     private final Path seedFolder;
+    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
     public PullRequestBranchNotifier(Path seedFolder) {
         this.seedFolder = seedFolder;
@@ -53,6 +55,14 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
     }
 
     private void deleteBranch(PullRequest pr) {
+        var branchExists = pr.repository().branches().stream()
+                         .map(HostedBranch::name)
+                         .anyMatch(name -> name.equals(PreIntegrations.preIntegrateBranch(pr)));
+        if (!branchExists) {
+            log.info("Pull request pre-integration branch " + PreIntegrations.preIntegrateBranch(pr) + " doesn't exist on remote - ignoring");
+            return;
+        }
+
         var hostedRepositoryPool = new HostedRepositoryPool(seedFolder);
         try {
             var seedRepo = hostedRepositoryPool.seedRepository(pr.repository(), false);
