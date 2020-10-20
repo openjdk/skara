@@ -25,6 +25,7 @@ package org.openjdk.skara.storage;
 import org.openjdk.skara.vcs.Repository;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.util.*;
 
 class RepositoryStorage<T> implements Storage<T> {
@@ -74,8 +75,13 @@ class RepositoryStorage<T> implements Storage<T> {
         }
         current = updated;
         try {
-            repository.add(repository.root().resolve(fileName));
+            var filePath = repository.root().resolve(fileName);
+            repository.add(filePath);
             repository.commit(message, authorName, authorEmail);
+
+            if (Files.size(filePath) == 0) {
+                throw new IllegalStateException("Storage file is empty: " + filePath);
+            }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
