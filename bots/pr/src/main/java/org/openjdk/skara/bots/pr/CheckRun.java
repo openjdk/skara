@@ -835,7 +835,7 @@ class CheckRun {
             return;
         }
 
-        var head = pr.repository().commitMetadata(pr.headHash()).orElseThrow(
+        var head = pr.repository().commit(pr.headHash()).orElseThrow(
             () -> new IllegalStateException("Cannot lookup HEAD hash for PR " + pr.id())
         );
         if (!pr.author().fullName().equals(pr.author().username()) &&

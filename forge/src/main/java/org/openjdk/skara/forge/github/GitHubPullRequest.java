@@ -701,6 +701,6 @@ public class GitHubPullRequest implements PullRequest {
     @Override
     public Diff diff() {
         var files = request.get("pulls/" + json.get("number").toString() + "/files").execute();
-        return host.toDiff(targetHash(), headHash(), files);
+        return repository.toDiff(targetHash(), headHash(), files);
     }
 }

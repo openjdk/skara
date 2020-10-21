@@ -70,7 +70,7 @@ public interface HostedRepository {
     List<CommitComment> commitComments(Hash hash);
     List<CommitComment> recentCommitComments();
     void addCommitComment(Hash hash, String body);
-    Optional<CommitMetadata> commitMetadata(Hash hash);
+    Optional<HostedCommit> commit(Hash hash);
     List<Check> allChecks(Hash hash);
 
     default PullRequest createPullRequest(HostedRepository target,

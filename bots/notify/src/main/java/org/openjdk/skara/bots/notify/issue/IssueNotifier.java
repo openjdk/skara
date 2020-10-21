@@ -72,12 +72,6 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     }
 
     private Optional<String> findIssueUsername(Commit commit) {
-        return findIssueUsername(new CommitMetadata(commit.hash(), commit.parents(), commit.author(),
-                                                    commit.authored(), commit.committer(), commit.committed(),
-                                                    commit.message()));
-    }
-
-    private Optional<String> findIssueUsername(CommitMetadata commit) {
         var authorEmail = EmailAddress.from(commit.author().email());
         if (authorEmail.domain().equals("openjdk.org")) {
             return Optional.of(authorEmail.localPart());
@@ -113,7 +107,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     @Override
     public void onIntegratedPullRequest(PullRequest pr, Hash hash)  {
         var repository = pr.repository();
-        var commit = repository.commitMetadata(hash).orElseThrow(() ->
+        var commit = repository.commit(hash).orElseThrow(() ->
                 new IllegalStateException("Integrated commit " + hash +
                                           " not present in repository " + repository.webUrl())
         );

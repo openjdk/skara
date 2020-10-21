@@ -750,6 +750,6 @@ public class GitLabMergeRequest implements PullRequest {
     @Override
     public Diff diff() {
         var changes = request.get("changes").execute();
-        return host.toDiff(targetHash(), headHash(), changes.get("changes"));
+        return repository.toDiff(targetHash(), headHash(), changes.get("changes"));
     }
 }

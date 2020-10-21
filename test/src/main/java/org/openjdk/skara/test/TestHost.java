@@ -157,15 +157,10 @@ public class TestHost implements Forge, IssueTracker {
     @Override
     public Optional<HostedCommit> search(Hash hash) {
         for (var key : data.repositories.keySet()) {
-            var repo = data.repositories.get(key);
-            try {
-                var commit = repo.lookup(hash);
-                if (commit.isPresent()) {
-                    var url = URI.create("file://" + repo.root() + "/commits/" + hash.hex());
-                    return Optional.of(new HostedCommit(commit.get().metadata(), commit.get().parentDiffs(), url));
-                }
-            } catch (IOException e) {
-                return Optional.empty();
+            var repo = repository(key).orElseThrow();
+            var commit = repo.commit(hash);
+            if (commit.isPresent()) {
+                return commit;
             }
         }
         return Optional.empty();

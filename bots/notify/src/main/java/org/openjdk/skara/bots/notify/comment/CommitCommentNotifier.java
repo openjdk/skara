@@ -56,7 +56,7 @@ class CommitCommentNotifier implements Notifier, PullRequestListener {
     @Override
     public void onIntegratedPullRequest(PullRequest pr, Hash hash)  {
         var repository = pr.repository();
-        var commit = repository.commitMetadata(hash).orElseThrow(() ->
+        var commit = repository.commit(hash).orElseThrow(() ->
                 new IllegalStateException("Integrated commit " + hash +
                                           " not present in repository " + repository.webUrl())
         );
@@ -67,7 +67,7 @@ class CommitCommentNotifier implements Notifier, PullRequestListener {
             "",
             "- [" + pr.repository().name() + "/" + pr.id() + "](" + pr.webUrl() + ")"
         ));
-        var issues = issues(commit);
+        var issues = issues(commit.metadata());
         if (issues.size() > 0) {
             comment.add("");
             comment.add("### Issues");

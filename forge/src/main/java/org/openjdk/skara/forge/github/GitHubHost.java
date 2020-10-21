@@ -351,44 +351,6 @@ public class GitHubHost implements Forge {
         return false;
     }
 
-    CommitMetadata toCommitMetadata(JSONValue o) {
-        var hash = new Hash(o.get("sha").asString());
-        var parents = o.get("parents").stream()
-                                      .map(p -> new Hash(p.get("sha").asString()))
-                                      .collect(Collectors.toList());
-        var commit = o.get("commit").asObject();
-        var author = new Author(commit.get("author").get("name").asString(),
-                                commit.get("author").get("email").asString());
-        var authored = ZonedDateTime.parse(commit.get("author").get("date").asString());
-        var committer = new Author(commit.get("committer").get("name").asString(),
-                                   commit.get("committer").get("email").asString());
-        var committed = ZonedDateTime.parse(commit.get("committer").get("date").asString());
-        var message = Arrays.asList(commit.get("message").asString().split("\n"));
-        return new CommitMetadata(hash, parents, author, authored, committer, committed, message);
-    }
-
-    Diff toDiff(Hash from, Hash to, JSONValue files) {
-        var patches = new ArrayList<Patch>();
-
-        for (var file : files.asArray()) {
-            var status = Status.from(file.get("status").asString().toUpperCase().charAt(0));
-            var targetPath = Path.of(file.get("filename").asString());
-            var sourcePath = status.isRenamed() || status.isCopied() ?
-                Path.of(file.get("previous_filename").asString()) :
-                targetPath;
-            var filetype = FileType.fromOctal("100644");
-
-            var diff = file.get("patch").asString().split("\n");
-            var hunks = UnifiedDiffParser.parseSingleFileDiff(diff);
-
-            patches.add(new TextualPatch(sourcePath, filetype, Hash.zero(),
-                                         targetPath, filetype, Hash.zero(),
-                                         status, hunks));
-        }
-
-        return new Diff(from, to, patches);
-    }
-
     @Override
     public Optional<HostedCommit> search(Hash hash) {
         var orgsToSearch = orgs.stream().map(o -> "org:" + o).collect(Collectors.joining("+"));
@@ -401,9 +363,7 @@ public class GitHubHost implements Forge {
             return Optional.empty();
         }
         var first = items.get(0);
-        var metadata = toCommitMetadata(first);
-        var diff = toDiff(metadata.parents().get(0), hash, first.get("files"));
-        var url = URI.create(first.get("url").asString());
-        return Optional.of(new HostedCommit(metadata, List.of(diff), url));
+        var repo = repository(first.get("repository").get("full_name").asString());
+        return repo.get().commit(hash);
     }
 }

@@ -233,9 +233,14 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public Optional<CommitMetadata> commitMetadata(Hash hash) {
+    public Optional<HostedCommit> commit(Hash hash) {
         try {
-            return localRepository.commitMetadata(hash);
+            var commit = localRepository.lookup(hash);
+            if (!commit.isPresent()) {
+                return Optional.empty();
+            }
+            var url = URI.create("file://" + localRepository.root() + "/commits/" + hash.hex());
+            return Optional.of(new HostedCommit(commit.get().metadata(), commit.get().parentDiffs(), url));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
