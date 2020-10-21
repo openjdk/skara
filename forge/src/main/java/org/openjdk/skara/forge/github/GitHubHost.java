@@ -216,13 +216,6 @@ public class GitHubHost implements Forge {
                        .build();
     }
 
-    HostUser hostUser(String username) {
-        return HostUser.builder()
-                       .username(username)
-                       .supplier(() -> user(username).orElseThrow())
-                       .build();
-    }
-
     @Override
     public boolean isValid() {
         try {
