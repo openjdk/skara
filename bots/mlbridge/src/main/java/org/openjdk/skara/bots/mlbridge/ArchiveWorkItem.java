@@ -28,7 +28,7 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.mailinglist.*;
-import org.openjdk.skara.vcs.Repository;
+import org.openjdk.skara.vcs.*;
 
 import java.io.*;
 import java.nio.file.Path;
@@ -75,20 +75,29 @@ class ArchiveWorkItem implements WorkItem {
 
     private void pushMbox(Repository localRepo, String message) {
         IOException lastException = null;
+        Hash hash;
+        try {
+            localRepo.add(localRepo.root().resolve("."));
+            hash = localRepo.commit(message, bot.emailAddress().fullName().orElseThrow(), bot.emailAddress().address());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+
         for (int counter = 0; counter < 3; ++counter) {
             try {
-                var localHead = localRepo.head();
-                localRepo.add(localRepo.root().resolve("."));
-                var hash = localRepo.commit(message, bot.emailAddress().fullName().orElseThrow(), bot.emailAddress().address());
-                var remoteHead = localRepo.fetch(bot.archiveRepo().url(), bot.archiveRef(), false);
-                if (!localHead.equals(remoteHead)) {
-                    log.info("Remote head has changed - attempting a rebase");
-                    localRepo.rebase(remoteHead, bot.emailAddress().fullName().orElseThrow(), bot.emailAddress().address());
-                    hash = localRepo.head();
-                }
                 localRepo.push(hash, bot.archiveRepo().url(), bot.archiveRef());
                 return;
             } catch (IOException e) {
+                log.info("Push to archive failed: " + e);
+                try {
+                    var remoteHead = localRepo.fetch(bot.archiveRepo().url(), bot.archiveRef(), false);
+                    localRepo.rebase(remoteHead, bot.emailAddress().fullName().orElseThrow(), bot.emailAddress().address());
+                    hash = localRepo.head();
+                    log.info("Rebase successful -  new hash: " + hash);
+                } catch (IOException e2) {
+                    throw new UncheckedIOException(e2);
+                }
+
                 lastException = e;
             }
         }

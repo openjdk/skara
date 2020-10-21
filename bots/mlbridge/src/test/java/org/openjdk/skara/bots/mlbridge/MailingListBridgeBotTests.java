@@ -33,7 +33,7 @@ import org.openjdk.skara.json.JSON;
 
 import org.junit.jupiter.api.*;
 
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.*;
@@ -3098,6 +3098,95 @@ class MailingListBridgeBotTests {
                 assertEquals(listAddress, newMail.sender());
             }
             assertTrue(conversations.get(0).allMessages().get(2).body().contains("This is a comment 😄"));
+        }
+    }
+
+    @Test
+    void rebaseOnRetry(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var archiveFolder = new TemporaryDirectory();
+             var webrevFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
+            var author = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+            var ignored = credentials.getHostedRepository();
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var from = EmailAddress.from("test", "test@test.mail");
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
+                                            .ignoredUsers(Set.of(ignored.forge().currentUser().username()))
+                                            .ignoredComments(Set.of())
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageHTMLRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .readyLabels(Set.of("rfr"))
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .headers(Map.of("Extra1", "val1", "Extra2", "val2"))
+                                            .sendInterval(Duration.ZERO)
+                                            .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
+                                                               "Change msg\n\nWith several lines");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "master", "edit", "1234: This is a pull request");
+
+            // Flag it as ready for review
+            pr.setBody("This should now be ready");
+            pr.addLabel("rfr");
+
+            // The archive should not yet contain an entry
+            var archiveRepo = Repository.materialize(archiveFolder.path(), archive.url(), "master");
+
+            // Interfere while creating
+            webrevServer.setHandleCallback(uri -> {
+                try {
+                    var unrelatedFile = archiveRepo.root().resolve("unrelated.txt");
+                    if (!Files.exists(unrelatedFile)) {
+                        Files.writeString(unrelatedFile, "Unrelated");
+                        archiveRepo.add(unrelatedFile);
+                        var unrelatedHash = archiveRepo.commit("Unrelated", "duke", "duke@openjdk.org");
+                        archiveRepo.push(unrelatedHash, archive.url(), "master");
+                    }
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            });
+
+            // Run another archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // The archive should now contain an entry
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertTrue(archiveContains(archiveFolder.path(), "This is a pull request"));
+            assertTrue(archiveContains(archiveFolder.path(), "This should now be ready"));
+            assertTrue(archiveContains(archiveFolder.path(), "Patch:"));
+            assertTrue(archiveContains(archiveFolder.path(), "Changes:"));
+            assertTrue(archiveContains(archiveFolder.path(), "Webrev:"));
+            assertTrue(archiveContains(archiveFolder.path(), webrevServer.uri().toString()));
+            assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/00"));
+            assertTrue(archiveContains(archiveFolder.path(), "Issue:"));
+            assertTrue(archiveContains(archiveFolder.path(), "http://issues.test/browse/TSTPRJ-1234"));
+            assertTrue(archiveContains(archiveFolder.path(), "Fetch:"));
+            assertTrue(archiveContains(archiveFolder.path(), "^ - Change msg"));
+            assertFalse(archiveContains(archiveFolder.path(), "With several lines"));
         }
     }
 }

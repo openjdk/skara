@@ -28,16 +28,22 @@ import org.openjdk.skara.network.URIBuilder;
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.util.function.Consumer;
 
 public class TestWebrevServer implements AutoCloseable {
     private final HttpServer httpServer;
     private boolean checked = false;
     private boolean redirectFollowed = true;
+    private Consumer<URI> handleCallback = null;
 
     private class Handler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             checked = true;
+            if (handleCallback != null) {
+                handleCallback.accept(exchange.getRequestURI());
+            }
+
             var response = "ok!";
             var responseBytes = response.getBytes(StandardCharsets.UTF_8);
             if (!exchange.getRequestURI().toString().contains("final=true")) {
@@ -71,6 +77,13 @@ public class TestWebrevServer implements AutoCloseable {
 
     public boolean isRedirectFollowed() {
         return redirectFollowed;
+    }
+
+    public void setHandleCallback(Consumer<URI> callback) {
+        if (handleCallback != null) {
+            throw new IllegalStateException("Can only set callback once");
+        }
+        handleCallback = callback;
     }
 
     @Override
