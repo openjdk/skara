@@ -31,6 +31,7 @@ public class HostUser {
     private String username;
     private String fullName;
     private String email;
+    private boolean hasUpdated;
     private final Supplier<HostUser> supplier;
 
     public static class Builder {
@@ -80,6 +81,7 @@ public class HostUser {
         this.username = username;
         this.fullName = fullName;
         this.email = email;
+        this.hasUpdated = false;
         this.supplier = supplier;
     }
 
@@ -114,11 +116,15 @@ public class HostUser {
     }
 
     private void update() {
+        if (hasUpdated) {
+            return;
+        }
         var result = supplier.get();
         id = result.id;
         username = result.username;
         fullName = result.fullName;
         email = result.email;
+        hasUpdated = true;
     }
 
     public String id() {
