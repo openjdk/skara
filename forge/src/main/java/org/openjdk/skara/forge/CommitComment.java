@@ -29,9 +29,11 @@ import org.openjdk.skara.vcs.Hash;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.function.Supplier;
 
 public class CommitComment extends Comment {
-    private final Hash commit;
+    private Hash commit;
+    private final Supplier<Hash> commitSupplier;
     private final Path path;
     private final int line;
 
@@ -39,6 +41,16 @@ public class CommitComment extends Comment {
         super(id, body, author, createdAt, updatedAt);
 
         this.commit = commit;
+        this.commitSupplier = null;
+        this.path = path;
+        this.line = line;
+    }
+
+    public CommitComment(Supplier<Hash> commitSupplier, Path path, int line, String id, String body, HostUser author, ZonedDateTime createdAt, ZonedDateTime updatedAt) {
+        super(id, body, author, createdAt, updatedAt);
+
+        this.commit = null;
+        this.commitSupplier = commitSupplier;
         this.path = path;
         this.line = line;
     }
@@ -47,6 +59,9 @@ public class CommitComment extends Comment {
      * Returns the hash of the commit.
      */
     public Hash commit() {
+        if (commit == null) {
+            commit = commitSupplier.get();
+        }
         return commit;
     }
 

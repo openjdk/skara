@@ -268,27 +268,78 @@ public class GitHubRepository implements HostedRepository {
                        .collect(Collectors.toList());
     }
 
+    private CommitComment toCommitComment(JSONValue o) {
+        var hash = new Hash(o.get("commit_id").asString());
+        var line = o.get("line").isNull()? -1 : o.get("line").asInt();
+        var path = o.get("path").isNull()? null : Path.of(o.get("path").asString());
+        return new CommitComment(hash,
+                                 path,
+                                 line,
+                                 o.get("id").toString(),
+                                 o.get("body").asString(),
+                                 gitHubHost.parseUserField(o),
+                                 ZonedDateTime.parse(o.get("created_at").asString()),
+                                 ZonedDateTime.parse(o.get("updated_at").asString()));
+    }
+
     @Override
     public List<CommitComment> commitComments(Hash hash) {
         return request.get("commits/" + hash.hex() + "/comments")
                       .execute()
                       .stream()
-                      .map(JSONValue::asObject)
-                      .map(o -> {
-                           var line = o.get("line").isNull()? -1 : o.get("line").asInt();
-                           var path = o.get("path").isNull()? null : Path.of(o.get("path").asString());
-                           return new CommitComment(hash,
-                                                    path,
-                                                    line,
-                                                    o.get("id").toString(),
-                                                    o.get("body").asString(),
-                                                    gitHubHost.parseUserField(o),
-                                                    ZonedDateTime.parse(o.get("created_at").asString()),
-                                                    ZonedDateTime.parse(o.get("updated_at").asString()));
-
-
-                      })
+                      .map(this::toCommitComment)
                       .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<CommitComment> recentCommitComments() {
+        var parts = name().split("/");
+        var owner = parts[0];
+        var name = parts[1];
+
+        var query = String.join("\n", List.of(
+            "query {",
+            "    repository(owner: \"" + owner + "\", name: \"" + name + "\") {",
+            "        commitComments(last: 200) {",
+            "            nodes {",
+            "                createdAt",
+            "                updatedAt",
+            "                author { login }",
+            "                databaseId",
+            "                commit { oid }",
+            "                body",
+            "            }",
+            "        }",
+            "    }",
+            "}"
+        ));
+
+        var data = gitHubHost.graphQL()
+                             .post()
+                             .body(JSON.object().put("query", query))
+                             .execute()
+                             .get("data");
+        return data.get("repository")
+                   .get("commitComments")
+                   .get("nodes")
+                   .stream()
+                   .map(o -> {
+                       var hash = new Hash(o.get("commit").get("oid").asString());
+                       var createdAt = ZonedDateTime.parse(o.get("createdAt").asString());
+                       var updatedAt = ZonedDateTime.parse(o.get("updatedAt").asString());
+                       var id = o.get("databaseId").asString();
+                       var body = o.get("body").asString();
+                       var user = gitHubHost.hostUser(o.get("login").asString());
+                       return new CommitComment(hash,
+                                                null,
+                                                -1,
+                                                id,
+                                                body,
+                                                user,
+                                                createdAt,
+                                                updatedAt);
+                   })
+                   .collect(Collectors.toList());
     }
 
     @Override
