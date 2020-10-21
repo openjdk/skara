@@ -2726,4 +2726,21 @@ public class RepositoryTests {
             }
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testNonExistingLookup(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.isClean());
+
+            var readme = dir.path().resolve("README.md");
+            Files.writeString(readme, "Hello world\n");
+            r.add(readme);
+            var hash = r.commit("Added readme", "duke", "duke@openjdk.java.net");
+
+            var nonExisting = r.lookup(new Hash("0123456789012345678901234567890123456789"));
+            assertEquals(Optional.empty(), nonExisting);
+        }
+    }
 }
