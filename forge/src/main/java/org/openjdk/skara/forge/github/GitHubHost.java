@@ -69,7 +69,9 @@ public class GitHubHost implements Forge {
         request = new RestRequest(baseApi, application.authId(), () -> Arrays.asList(
                 "Authorization", "token " + getInstallationToken().orElseThrow(),
                 "Accept", "application/vnd.github.machine-man-preview+json",
-                "Accept", "application/vnd.github.antiope-preview+json"));
+                "Accept", "application/vnd.github.antiope-preview+json",
+                "Accept", "application/vnd.github.cloak-preview+json"
+        ));
 
         var graphQLAPI = URIBuilder.base(uri)
                 .appendSubDomain("api")
@@ -106,7 +108,11 @@ public class GitHubHost implements Forge {
                                 .build();
 
         request = new RestRequest(baseApi, pat.username(), () -> Arrays.asList(
-                "Authorization", "token " + getInstallationToken().orElseThrow()));
+                "Authorization", "token " + getInstallationToken().orElseThrow(),
+                "Accept", "application/vnd.github.machine-man-preview+json",
+                "Accept", "application/vnd.github.antiope-preview+json",
+                "Accept", "application/vnd.github.cloak-preview+json"
+        ));
 
         var graphQLAPI = URIBuilder.base(uri)
                 .appendSubDomain("api")
