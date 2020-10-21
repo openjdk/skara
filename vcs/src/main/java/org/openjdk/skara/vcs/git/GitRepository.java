@@ -469,7 +469,19 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public void fetchAll(boolean includeTags) throws IOException {
+    public void fetchAll(URI uri, boolean includeTags) throws IOException {
+        var cmd = new ArrayList<>(List.of("git", "fetch", "--recurse-submodules=on-demand", "--prune", uri.toString()));
+        cmd.add("+refs/heads/*:refs/heads/*");
+        if (includeTags) {
+            cmd.add("+refs/tags/*:refs/tags/*");
+        }
+        try (var p = capture(cmd)) {
+            await(p);
+        }
+    }
+
+    @Override
+    public void fetchAllRemotes(boolean includeTags) throws IOException {
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("git", "fetch", "--recurse-submodules=on-demand"));
         cmd.add("--prune");

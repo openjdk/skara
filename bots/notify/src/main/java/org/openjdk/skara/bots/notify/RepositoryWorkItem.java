@@ -265,7 +265,7 @@ public class RepositoryWorkItem implements WorkItem {
                                      .stream()
                                      .filter(ref -> branches.matcher(ref.name()).matches())
                                      .collect(Collectors.toList());
-            localRepo.fetchAll(true);
+            localRepo.fetchAll(repository.url(), true);
 
             var history = UpdateHistory.create(tagStorageBuilder, historyPath.resolve("tags"), branchStorageBuilder, historyPath.resolve("branches"));
             var errors = new ArrayList<Throwable>();

@@ -45,10 +45,14 @@ public interface Repository extends ReadOnlyRepository {
         return fetch(uri, refspec, true);
     }
     Hash fetch(URI uri, String refspec, boolean includeTags) throws IOException;
-    default void fetchAll() throws IOException {
-        fetchAll(false);
+    default void fetchAll(URI uri) throws IOException {
+        fetchAll(uri, true);
     }
-    void fetchAll(boolean includeTags) throws IOException;
+    void fetchAll(URI uri, boolean includeTags) throws IOException;
+    default void fetchAllRemotes() throws IOException {
+        fetchAllRemotes(false);
+    }
+    void fetchAllRemotes(boolean includeTags) throws IOException;
     void fetchRemote(String remote) throws IOException;
     void pushAll(URI uri) throws IOException;
     void push(Hash hash, URI uri, String ref, boolean force) throws IOException;

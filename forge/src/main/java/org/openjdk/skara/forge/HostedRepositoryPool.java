@@ -95,7 +95,7 @@ public class HostedRepositoryPool {
             IOException lastException = null;
             for (int counter = 0; counter < 5; counter++) {
                 try {
-                    seedRepo.fetch(hostedRepository.url(), "+*:*", true);
+                    seedRepo.fetchAll(hostedRepository.url(), true);
                 } catch (IOException e) {
                     if (!allowStale) {
                         lastException = e;

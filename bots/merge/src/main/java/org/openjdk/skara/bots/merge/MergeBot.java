@@ -269,7 +269,7 @@ class MergeBot implements Bot, WorkItem {
         }
 
         // Must fetch once to update refs/heads
-        repo.fetchAll(false);
+        repo.fetchAllRemotes(false);
 
         return repo;
     }
