@@ -223,80 +223,23 @@ public class GitLabHost implements Forge {
         return !details.isNull();
     }
 
-    CommitMetadata toCommitMetadata(JSONValue o) {
-        var hash = new Hash(o.get("id").asString());
-        var parents = o.get("parent_ids").stream()
-                                      .map(JSONValue::asString)
-                                      .map(Hash::new)
-                                      .collect(Collectors.toList());
-        var author = new Author(o.get("author_name").asString(),
-                                o.get("author_email").asString());
-        var authored = ZonedDateTime.parse(o.get("authored_date").asString());
-        var committer = new Author(o.get("committer_name").asString(),
-                                   o.get("committer_email").asString());
-        var committed = ZonedDateTime.parse(o.get("committed_date").asString());
-        var message = Arrays.asList(o.get("message").asString().split("\n"));
-        return new CommitMetadata(hash, parents, author, authored, committer, committed, message);
-    }
-
-    Diff toDiff(Hash from, Hash to, JSONValue o) {
-        var patches = new ArrayList<Patch>();
-
-        for (var file : o.asArray()) {
-            var sourcePath = Path.of(file.get("old_path").asString());
-            var sourceFileType = FileType.fromOctal(file.get("a_mode").asString());
-
-            var targetPath = Path.of(file.get("new_path").asString());
-            var targetFileType = FileType.fromOctal(file.get("b_mode").asString());
-
-            var status = Status.from('M');
-            if (file.get("new_file").asBoolean()) {
-                status = Status.from('A');
-            } else if (file.get("renamed_file").asBoolean()) {
-                status = Status.from('R');
-            } else if (file.get("deleted_file").asBoolean()) {
-                status = Status.from('D');
-            }
-
-            var diff = file.get("diff").asString().split("\n");
-            var hunks = UnifiedDiffParser.parseSingleFileDiff(diff);
-
-            patches.add(new TextualPatch(sourcePath, sourceFileType, Hash.zero(),
-                                         targetPath, targetFileType, Hash.zero(),
-                                         status, hunks));
-        }
-
-        return new Diff(from, to, patches);
-    }
-
     @Override
     public Optional<HostedCommit> search(Hash hash) {
         var hex = hash.hex();
         for (var group : groups) {
-            var projects = request.get("groups/" + group + "/projects")
+            var ids = request.get("groups/" + group + "/projects")
                                   .execute()
                                   .stream()
                                   .map(o -> o.get("id").asString())
                                   .collect(Collectors.toList());
-            for (var project : projects) {
-                var c = request.get("projects/" + project + "/repository/commits/" + hex)
-                               .onError(r -> Optional.of(JSON.of()))
-                               .execute();
-                if (!c.isNull()) {
-                    var url = URI.create(c.get("web_url").asString());
-                    var metadata = toCommitMetadata(c);
-                    var diff = request.get("projects/" + project + "/repository/commits/" + hex + "/diff")
-                                   .onError(r -> Optional.of(JSON.of()))
-                                   .execute();
-                    var parentDiffs = new ArrayList<Diff>();
-                    if (!diff.isNull()) {
-                        parentDiffs.add(toDiff(metadata.parents().get(0), hash, diff));
-                    }
-                    return Optional.of(new HostedCommit(metadata, parentDiffs, url));
+            for (var id : ids) {
+                var project = repository(id);
+                var commit = project.get().commit(hash);
+                if (commit.isPresent()) {
+                    return commit;
                 }
             }
         }
-
         return Optional.empty();
     }
 }

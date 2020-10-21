@@ -350,15 +350,56 @@ public class GitHubRepository implements HostedRepository {
                .execute();
     }
 
+    private CommitMetadata toCommitMetadata(JSONValue o) {
+        var hash = new Hash(o.get("sha").asString());
+        var parents = o.get("parents").stream()
+                                      .map(p -> new Hash(p.get("sha").asString()))
+                                      .collect(Collectors.toList());
+        var commit = o.get("commit").asObject();
+        var author = new Author(commit.get("author").get("name").asString(),
+                                commit.get("author").get("email").asString());
+        var authored = ZonedDateTime.parse(commit.get("author").get("date").asString());
+        var committer = new Author(commit.get("committer").get("name").asString(),
+                                   commit.get("committer").get("email").asString());
+        var committed = ZonedDateTime.parse(commit.get("committer").get("date").asString());
+        var message = Arrays.asList(commit.get("message").asString().split("\n"));
+        return new CommitMetadata(hash, parents, author, authored, committer, committed, message);
+    }
+
+    Diff toDiff(Hash from, Hash to, JSONValue files) {
+        var patches = new ArrayList<Patch>();
+
+        for (var file : files.asArray()) {
+            var status = Status.from(file.get("status").asString().toUpperCase().charAt(0));
+            var targetPath = Path.of(file.get("filename").asString());
+            var sourcePath = status.isRenamed() || status.isCopied() ?
+                Path.of(file.get("previous_filename").asString()) :
+                targetPath;
+            var filetype = FileType.fromOctal("100644");
+
+            var diff = file.get("patch").asString().split("\n");
+            var hunks = UnifiedDiffParser.parseSingleFileDiff(diff);
+
+            patches.add(new TextualPatch(sourcePath, filetype, Hash.zero(),
+                                         targetPath, filetype, Hash.zero(),
+                                         status, hunks));
+        }
+
+        return new Diff(from, to, patches);
+    }
+
     @Override
-    public Optional<CommitMetadata> commitMetadata(Hash hash) {
+    public Optional<HostedCommit> commit(Hash hash) {
         var o = request.get("commits/" + hash.hex())
                        .onError(r -> Optional.of(JSON.of()))
                        .execute();
         if (o.isNull()) {
             return Optional.empty();
         }
-        return Optional.of(gitHubHost.toCommitMetadata(o));
+
+        var metadata = toCommitMetadata(o);
+        var diffs = toDiff(metadata.parents().get(0), hash, o.get("files"));
+        return Optional.of(new HostedCommit(metadata, List.of(diffs), URI.create(o.get("html_url").asString())));
     }
 
     @Override
