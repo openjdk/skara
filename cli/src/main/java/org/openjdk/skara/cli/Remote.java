@@ -111,4 +111,11 @@ public class Remote {
 
         throw new IOException("Cannot construct URI for " + remotePath);
     }
+
+    public static URI canonicalize(URI uri) throws IOException {
+        if (uri.getScheme().equals("ssh")) {
+            return sshCanonicalize(uri);
+        }
+        return uri;
+    }
 }
