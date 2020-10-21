@@ -29,59 +29,12 @@ import java.util.*;
 import java.time.*;
 import java.time.format.*;
 
-public class HostedCommit {
-    private final CommitMetadata metadata;
-    private final List<Diff> parentDiffs;
+public class HostedCommit extends Commit {
     private final URI url;
 
     public HostedCommit(CommitMetadata metadata, List<Diff> parentDiffs, URI url) {
-        this.metadata = metadata;
-        this.parentDiffs = parentDiffs;
+        super(metadata, parentDiffs);
         this.url = url;
-    }
-
-    public Hash hash() {
-        return metadata.hash();
-    }
-
-    public Author author() {
-        return metadata.author();
-    }
-
-    public Author committer() {
-        return metadata.committer();
-    }
-
-    public List<String> message() {
-        return metadata.message();
-    }
-
-    public List<Hash> parents() {
-        return metadata.parents();
-    }
-
-    public ZonedDateTime authored() {
-        return metadata.authored();
-    }
-
-    public ZonedDateTime committed() {
-        return metadata.committed();
-    }
-
-    public boolean isInitialCommit() {
-        return metadata.isInitialCommit();
-    }
-
-    public boolean isMerge() {
-        return metadata.isMerge();
-    }
-
-    public int numParents() {
-        return metadata.numParents();
-    }
-
-    public List<Diff> parentDiffs() {
-        return parentDiffs;
     }
 
     public URI url() {
@@ -95,7 +48,7 @@ public class HostedCommit {
 
     @Override
     public int hashCode() {
-        return Objects.hash(metadata, url);
+        return Objects.hash(url);
     }
 
     @Override
@@ -105,8 +58,6 @@ public class HostedCommit {
         }
 
         var other = (HostedCommit) o;
-        return Objects.equals(metadata, other.metadata) &&
-               Objects.equals(parentDiffs, other.parentDiffs) &&
-               Objects.equals(url, other.url);
+        return Objects.equals(url, other.url);
     }
 }
