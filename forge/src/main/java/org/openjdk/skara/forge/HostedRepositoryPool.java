@@ -25,6 +25,7 @@ package org.openjdk.skara.forge;
 import org.openjdk.skara.vcs.*;
 
 import java.io.*;
+import java.net.URI;
 import java.nio.file.*;
 import java.time.*;
 import java.util.*;
@@ -44,7 +45,7 @@ public class HostedRepositoryPool {
 
         private HostedRepositoryInstance(HostedRepository hostedRepository) {
             this.hostedRepository = hostedRepository;
-            this.seed = seedStorage.resolve(hostedRepository.name());
+            this.seed = seedStorage.resolve(hostedRepository.name() + (hostedRepository.repositoryType() == VCS.GIT ? ".git" : ""));
         }
 
         private void clearDirectory(Path directory) {
@@ -56,6 +57,11 @@ public class HostedRepositoryPool {
             } catch (IOException io) {
                 throw new RuntimeException(io);
             }
+        }
+
+        private URI seedUri() {
+            var uri = seed.toUri().toString().replaceAll(".git[/\\\\]$", ".git");
+            return URI.create(uri);
         }
 
         private void refreshSeed(boolean allowStale) throws IOException {
@@ -80,17 +86,32 @@ public class HostedRepositoryPool {
                     if (lastFetch.toInstant().isAfter(Instant.now().minus(Duration.ofMinutes(1)))) {
                         log.info("Seed should be up to date, skipping fetch");
                         return;
+                    } else {
+                        log.info("Seed is potentially stale, time to fetch the latest upstream changes");
                     }
                 } catch (IOException ignored) {
                 }
             }
-            try {
-                log.info("Seed is potentially stale, time to fetch the latest upstream changes");
-                seedRepo.fetch(hostedRepository.url(), "+*:*", true);
-            } catch (IOException e) {
-                if (!allowStale) {
-                    throw e;
+            IOException lastException = null;
+            for (int counter = 0; counter < 5; counter++) {
+                try {
+                    seedRepo.fetch(hostedRepository.url(), "+*:*", true);
+                } catch (IOException e) {
+                    if (!allowStale) {
+                        lastException = e;
+                        try {
+                            Thread.sleep(Duration.ofSeconds(1).toMillis());
+                        } catch (InterruptedException ignored) {
+                        }
+                    } else {
+                        log.info("Failed to refresh seed - ignoring");
+                        return;
+                    }
                 }
+            }
+            if (lastException != null) {
+                log.info("Failed to refresh stale seed - giving up");
+                throw lastException;
             }
         }
 
@@ -100,9 +121,10 @@ public class HostedRepositoryPool {
         }
 
         private Repository cloneSeeded(Path path, boolean allowStale) throws IOException {
-            refreshSeed(allowStale);
-            log.info("Using seed folder " + seed + " when cloning into " + path);
-            return Repository.clone(hostedRepository.url(), path, false, seed);
+            refreshSeed(true);
+            var remote = allowStale ? seedUri() : hostedRepository.url();
+            log.info("Using seed folder " + seed + " when cloning into " + path + " from " + remote);
+            return Repository.clone(remote, path, false, seed);
         }
 
         private void removeOldClone(Path path, String reason) {
@@ -134,7 +156,6 @@ public class HostedRepositoryPool {
                     return cloneSeeded(path, allowStale);
                 } else {
                     try {
-                        refreshSeed(allowStale);
                         localRepoInstance.clean();
                         return localRepoInstance;
                     } catch (IOException e) {
@@ -153,17 +174,17 @@ public class HostedRepositoryPool {
 
     private Repository checkout(HostedRepository hostedRepository, String ref, Path path, boolean allowStale) throws IOException {
         var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository);
-        var localClone = hostedRepositoryInstance.materializeClone(path, allowStale);
-        var remote = allowStale ? hostedRepositoryInstance.seed.toUri() : hostedRepository.url();
+        var localClone = hostedRepositoryInstance.materializeClone(path, true);
+        var remote = allowStale ? hostedRepositoryInstance.seedUri() : hostedRepository.url();
+        log.info("Updating local repository from: " + remote);
+        var refHash = localClone.fetch(remote, "+" + ref + ":hostedrepositorypool");
         try {
-            log.info("Updating local repository from: " + remote);
-            var refHash = localClone.fetch(remote, "+" + ref + ":hostedrepositorypool");
             localClone.checkout(refHash, true);
         } catch (IOException e) {
             var preserveUnchecked = path.resolveSibling(hostedRepositoryInstance.seed.getFileName().toString() + "-unchecked-" + UUID.randomUUID());
             log.severe("Uncheckoutable local repository detected - preserved in: " + preserveUnchecked);
             Files.move(localClone.root(), preserveUnchecked);
-            localClone = hostedRepositoryInstance.materializeClone(path, allowStale);
+            localClone = hostedRepositoryInstance.materializeClone(path, false);
             localClone.checkout(new Branch(ref), true);
         }
         return localClone;
@@ -193,6 +214,6 @@ public class HostedRepositoryPool {
 
     public Repository seedRepository(HostedRepository hostedRepository, boolean allowStale) throws IOException {
         var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository);
-        return hostedRepositoryInstance.seedRepository(false);
+        return hostedRepositoryInstance.seedRepository(allowStale);
     }
 }
