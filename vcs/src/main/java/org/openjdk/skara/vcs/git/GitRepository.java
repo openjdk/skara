@@ -179,8 +179,19 @@ public class GitRepository implements Repository {
         return new GitCommits(dir, range, reverse, n);
     }
 
+    private boolean exists(Hash h) throws IOException {
+        try (var p = capture("git", "cat-file", "-e", h.hex())) {
+            var res = p.await();
+            return res.status() == 0;
+        }
+    }
+
     @Override
     public Optional<Commit> lookup(Hash h) throws IOException {
+        if (!exists(h)) {
+            return Optional.empty();
+        }
+
         var commits = commits(h.hex(), 1).asList();
         if (commits.size() != 1) {
             return Optional.empty();
