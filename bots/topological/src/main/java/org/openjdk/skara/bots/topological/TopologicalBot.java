@@ -80,7 +80,7 @@ class TopologicalBot implements Bot, WorkItem {
                         .orElseThrow(() -> new RuntimeException("Repository in " + dir + " has vanished"));
             }
 
-            repo.fetchAll(hostedRepo.url(), false);
+            repo.fetchAllRemotes(false);
             var depsFile = repo.root().resolve(depsFileName);
 
             var orderedBranches = orderedBranches(repo, depsFile);
