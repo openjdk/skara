@@ -120,11 +120,11 @@ public class HostedRepositoryPool {
             return Repository.get(seed).orElseThrow(() -> new IOException("Existing seed is corrupt?"));
         }
 
-        private Repository cloneSeeded(Path path, boolean allowStale) throws IOException {
+        private Repository cloneSeeded(Path path, boolean allowStale, boolean bare) throws IOException {
             refreshSeed(true);
             var remote = allowStale ? seedUri() : hostedRepository.url();
-            log.info("Using seed folder " + seed + " when cloning into " + path + " from " + remote);
-            return Repository.clone(remote, path, false, seed);
+            log.info("Using seed folder " + seed + " when cloning into " + path + " from " + remote + (bare ? " (bare)" : ""));
+            return Repository.clone(remote, path, bare, seed);
         }
 
         private void removeOldClone(Path path, String reason) {
@@ -144,23 +144,23 @@ public class HostedRepositoryPool {
             }
         }
 
-        private Repository materializeClone(Path path, boolean allowStale) throws IOException {
+        private Repository materializeClone(Path path, boolean allowStale, boolean bare) throws IOException {
             var localRepo = Repository.get(path);
             if (localRepo.isEmpty()) {
                 removeOldClone(path, "norepo");
-                return cloneSeeded(path, allowStale);
+                return cloneSeeded(path, allowStale, bare);
             } else {
                 var localRepoInstance = localRepo.get();
                 if (!localRepoInstance.isHealthy()) {
                     removeOldClone(path, "unhealthy");
-                    return cloneSeeded(path, allowStale);
+                    return cloneSeeded(path, allowStale, bare);
                 } else {
                     try {
                         localRepoInstance.clean();
                         return localRepoInstance;
                     } catch (IOException e) {
                         removeOldClone(path, "uncleanable");
-                        return cloneSeeded(path, allowStale);
+                        return cloneSeeded(path, allowStale, bare);
                     }
                 }
             }
@@ -169,12 +169,17 @@ public class HostedRepositoryPool {
 
     public Repository materialize(HostedRepository hostedRepository, Path path) throws IOException {
         var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository);
-        return hostedRepositoryInstance.materializeClone(path, false);
+        return hostedRepositoryInstance.materializeClone(path, false, false);
+    }
+
+    public Repository materializeBare(HostedRepository hostedRepository, Path path) throws IOException {
+        var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository);
+        return hostedRepositoryInstance.materializeClone(path, false, true);
     }
 
     private Repository checkout(HostedRepository hostedRepository, String ref, Path path, boolean allowStale) throws IOException {
         var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository);
-        var localClone = hostedRepositoryInstance.materializeClone(path, true);
+        var localClone = hostedRepositoryInstance.materializeClone(path, true, false);
         var remote = allowStale ? hostedRepositoryInstance.seedUri() : hostedRepository.url();
         log.info("Updating local repository from: " + remote);
         var refHash = localClone.fetch(remote, "+" + ref + ":hostedrepositorypool");
@@ -184,7 +189,7 @@ public class HostedRepositoryPool {
             var preserveUnchecked = path.resolveSibling(hostedRepositoryInstance.seed.getFileName().toString() + "-unchecked-" + UUID.randomUUID());
             log.severe("Uncheckoutable local repository detected - preserved in: " + preserveUnchecked);
             Files.move(localClone.root(), preserveUnchecked);
-            localClone = hostedRepositoryInstance.materializeClone(path, false);
+            localClone = hostedRepositoryInstance.materializeClone(path, false, false);
             localClone.checkout(new Branch(ref), true);
         }
         return localClone;

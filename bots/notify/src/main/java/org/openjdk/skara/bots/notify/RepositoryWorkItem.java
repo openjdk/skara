@@ -260,7 +260,7 @@ public class RepositoryWorkItem implements WorkItem {
         var repositoryPool = new HostedRepositoryPool(storagePath.resolve("seeds"));
 
         try {
-            var localRepo = repositoryPool.materialize(repository, scratchPath.resolve("notify").resolve("repowi").resolve(repository.name()));
+            var localRepo = repositoryPool.materializeBare(repository, scratchPath.resolve("notify").resolve("repowi").resolve(repository.name()));
             var knownRefs = localRepo.remoteBranches(repository.url().toString())
                                      .stream()
                                      .filter(ref -> branches.matcher(ref.name()).matches())
