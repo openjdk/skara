@@ -24,8 +24,8 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.host.HostUser;
-import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.issuetracker.*;
+import org.openjdk.skara.vcs.Hash;
 
 import java.io.*;
 import java.nio.file.Path;
@@ -38,10 +38,10 @@ import java.util.stream.*;
 public class CommandWorkItem extends PullRequestWorkItem {
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
-    private static final Pattern commandPattern = Pattern.compile("^\\s*/([A-Za-z]+)(?:\\s+(.*))?");
     private static final String commandReplyMarker = "<!-- Jmerge command reply message (%s) -->";
     private static final Pattern commandReplyPattern = Pattern.compile("<!-- Jmerge command reply message \\((\\S+)\\) -->");
     private static final String selfCommandMarker = "<!-- Valid self-command -->";
+    private final static Pattern pushedPattern = Pattern.compile("Pushed as commit ([a-f0-9]{40})\\.");
 
     private static final Map<String, CommandHandler> commandHandlers = Map.ofEntries(
             Map.entry("help", new HelpCommand()),
@@ -64,6 +64,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
             reply.println("Available commands:");
             Stream.concat(
                     commandHandlers.entrySet().stream()
+                                   .filter(entry -> entry.getValue().allowedInPullRequest())
                                    .map(entry -> entry.getKey() + " - " + entry.getValue().description()),
                     bot.externalCommands().entrySet().stream()
                                           .map(entry -> entry.getKey() + " - " + entry.getValue())
@@ -71,39 +72,30 @@ public class CommandWorkItem extends PullRequestWorkItem {
         }
 
         @Override
+        public void handleCommit(PullRequestBot bot, Hash hash, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+            reply.println("Available commands:");
+            Stream.concat(
+                    commandHandlers.entrySet().stream()
+                                   .filter(entry -> entry.getValue().allowedInCommit())
+                                   .map(entry -> entry.getKey() + " - " + entry.getValue().description()),
+                    bot.externalCommands().entrySet().stream()
+                       .map(entry -> entry.getKey() + " - " + entry.getValue())
+            ).sorted().forEachOrdered(c -> reply.println(" * " + c));
+        }
+
+        @Override
         public String description() {
             return "shows this text";
+        }
+
+        @Override
+        public boolean allowedInCommit() {
+            return true;
         }
     }
 
     CommandWorkItem(PullRequestBot bot, PullRequest pr, Consumer<RuntimeException> errorHandler) {
         super(bot, pr, errorHandler);
-    }
-
-    private List<AbstractMap.SimpleEntry<String, Comment>> findCommandComments(List<Comment> comments) {
-        var self = pr.repository().forge().currentUser();
-        var handled = comments.stream()
-                              .filter(comment -> comment.author().equals(self))
-                              .map(comment -> commandReplyPattern.matcher(comment.body()))
-                              .filter(Matcher::find)
-                              .map(matcher -> matcher.group(1))
-                              .collect(Collectors.toSet());
-
-        return comments.stream()
-                       .filter(comment -> !comment.author().equals(self) || comment.body().endsWith(selfCommandMarker))
-                       .map(comment -> new AbstractMap.SimpleEntry<>(comment, commandPattern.matcher(comment.body())))
-                       .filter(entry -> entry.getValue().find())
-                       .filter(entry -> !handled.contains(entry.getKey().id()))
-                       .map(entry -> new AbstractMap.SimpleEntry<>(entry.getValue().group(1), entry.getKey()))
-                       .collect(Collectors.toList());
-    }
-
-    private String formatId(String baseId, int subId) {
-        if (subId > 0) {
-            return String.format("%s:%d", baseId, subId);
-        } else {
-            return baseId;
-        }
     }
 
     private static class InvalidBodyCommandHandler implements CommandHandler {
@@ -118,53 +110,13 @@ public class CommandWorkItem extends PullRequestWorkItem {
         }
     }
 
-    private List<CommandInvocation> extractCommands(String text, String baseId, HostUser user) {
-        var ret = new ArrayList<CommandInvocation>();
-        CommandHandler multiLineHandler = null;
-        List<String> multiLineBuffer = null;
-        String multiLineCommand = null;
-        int subId = 0;
-        for (var line : text.split("\\R")) {
-            var commandMatcher = commandPattern.matcher(line);
-            if (commandMatcher.matches()) {
-                if (multiLineHandler != null) {
-                    ret.add(new CommandInvocation(formatId(baseId, subId++), user, multiLineHandler, multiLineCommand, String.join("\n", multiLineBuffer)));
-                    multiLineHandler = null;
-                }
-                var command = commandMatcher.group(1).toLowerCase();
-                var handler = commandHandlers.get(command);
-                if (handler != null && baseId.equals("body") && !handler.allowedInBody()) {
-                    handler = new InvalidBodyCommandHandler();
-                }
-                if (handler != null && handler.multiLine()) {
-                    multiLineHandler = handler;
-                    multiLineBuffer = new ArrayList<>();
-                    if (commandMatcher.group(2) != null) {
-                        multiLineBuffer.add(commandMatcher.group(2));
-                    }
-                    multiLineCommand = command;
-                } else {
-                    ret.add(new CommandInvocation(formatId(baseId, subId++), user, handler, command, commandMatcher.group(2)));
-                }
-            } else {
-                if (multiLineHandler != null) {
-                    multiLineBuffer.add(line);
-                }
-            }
-        }
-        if (multiLineHandler != null) {
-            ret.add(new CommandInvocation(formatId(baseId, subId), user, multiLineHandler, multiLineCommand, String.join("\n", multiLineBuffer)));
-        }
-        return ret;
-    }
-
     private Optional<CommandInvocation> nextCommand(PullRequest pr, List<Comment> comments) {
         var self = pr.repository().forge().currentUser();
         var body = PullRequestBody.parse(pr).bodyText();
-        var allCommands = Stream.concat(extractCommands(body, "body", pr.author()).stream(),
+        var allCommands = Stream.concat(CommandExtractor.extractCommands(commandHandlers, body, "body", pr.author()).stream(),
                                         comments.stream()
                                                 .filter(comment -> !comment.author().equals(self) || comment.body().endsWith(selfCommandMarker))
-                                                .flatMap(c -> extractCommands(c.body(), c.id(), c.author()).stream()))
+                                                .flatMap(c -> CommandExtractor.extractCommands(commandHandlers, c.body(), c.id(), c.author()).stream()))
                                 .collect(Collectors.toList());
 
         var handled = comments.stream()
@@ -180,7 +132,19 @@ public class CommandWorkItem extends PullRequestWorkItem {
                           .findFirst();
     }
 
-    private void processCommand(PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments) {
+    private Optional<Hash> resultingCommitHash(List<Comment> allComments) {
+        return allComments.stream()
+                 .filter(comment -> comment.author().id().equals(pr.repository().forge().currentUser().id()))
+                 .map(Comment::body)
+                 .map(pushedPattern::matcher)
+                 .filter(Matcher::find)
+                 .map(m -> m.group(1))
+                 .map(Hash::new)
+                 .findAny();
+    }
+
+    private void processCommand(PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments,
+                                boolean isCommit) {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
@@ -191,7 +155,33 @@ public class CommandWorkItem extends PullRequestWorkItem {
 
         var handler = command.handler();
         if (handler.isPresent()) {
-            handler.get().handle(bot, pr, censusInstance, scratchPath, command, allComments, printer);
+            if (isCommit) {
+                if (handler.get().allowedInCommit()) {
+                    var hash = resultingCommitHash(allComments);
+                    if (hash.isPresent()) {
+                        handler.get().handleCommit(bot, hash.get(), scratchPath, command, allComments, printer);
+                    } else {
+                        printer.print("The command `");
+                        printer.print(command.name());
+                        printer.println("` can only be used in a pull request that has been integrated.");
+                    }
+                } else {
+                    printer.print("The command `");
+                    printer.print(command.name());
+                    printer.println("` can only be used in open pull requests.");
+                }
+            } else {
+                if (handler.get().allowedInPullRequest()) {
+                    if (command.id().startsWith("body") && !handler.get().allowedInBody()) {
+                        handler = Optional.of(new CommandWorkItem.InvalidBodyCommandHandler());
+                    }
+                    handler.get().handle(bot, pr, censusInstance, scratchPath, command, allComments, printer);
+                } else {
+                    printer.print("The command `");
+                    printer.print(command.name());
+                    printer.println("` can only be used in a pull request that has not yet been integrated.");
+                }
+            }
         } else {
             printer.print("Unknown command `");
             printer.print(command.name());
@@ -200,25 +190,26 @@ public class CommandWorkItem extends PullRequestWorkItem {
 
         pr.addComment(writer.toString());
     }
-
+    
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
         log.info("Looking for PR commands");
 
-        if (pr.labels().contains("integrated")) {
-            log.info("Skip checking for commands in integrated PR");
-            return List.of();
-        }
-
         var comments = pr.comments();
         var nextCommand = nextCommand(pr, comments);
+
         if (nextCommand.isEmpty()) {
             log.info("No new non-external PR commands found, stopping further processing");
             // When all commands are processed, it's time to check labels
             // Must re-fetch PR after running the command, the command might have updated the PR
             var updatedPR = pr.repository().pullRequest(pr.id());
 
-            return List.of(new LabelerWorkItem(bot, updatedPR, errorHandler));
+            if (!pr.labels().contains("integrated")) {
+                return List.of(new LabelerWorkItem(bot, updatedPR, errorHandler));
+            } else {
+                log.info("Skip updating labels in integrated PR");
+                return List.of();
+            }
         }
 
         var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
@@ -228,13 +219,18 @@ public class CommandWorkItem extends PullRequestWorkItem {
                                            bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef());
         var command = nextCommand.get();
         log.info("Processing command: " + command.id() + " - " + command.name());
-        processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), command, comments);
 
-        // Must re-fetch PR after running the command, the command might have updated the PR
-        var updatedPR = pr.repository().pullRequest(pr.id());
+        if (!pr.labels().contains("integrated")) {
+            processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), command, comments, false);
+            // Must re-fetch PR after running the command, the command might have updated the PR
+            var updatedPR = pr.repository().pullRequest(pr.id());
 
-        // Run another check to reflect potential changes from commands
-        return List.of(new CheckWorkItem(bot, updatedPR, errorHandler));
+            // Run another check to reflect potential changes from commands
+            return List.of(new CheckWorkItem(bot, updatedPR, errorHandler));
+        } else {
+            processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), command, comments, true);
+            return List.of();
+        }
     }
 
     @Override

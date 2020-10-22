@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.VCS;
 import org.openjdk.skara.forge.*;
@@ -51,6 +52,7 @@ public class PullRequestBotBuilder {
     private String confOverrideName = ".conf/jcheck";
     private String confOverrideRef = Branch.defaultFor(VCS.GIT).name();
     private String censusLink = null;
+    private List<HostUser> commitCommandUsers = List.of();
 
     PullRequestBotBuilder() {
     }
@@ -150,11 +152,16 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder commitCommandUsers(List<HostUser> commitCommandUsers) {
+        this.commitCommandUsers = commitCommandUsers;
+        return this;
+    }
+
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration, externalCommands,
                                   blockingCheckLabels, readyLabels, twoReviewersLabels, twentyFourHoursLabels,
                                   readyComments, issueProject, ignoreStaleReviews, allowedIssueTypes,
                                   allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,
-                                  confOverrideRef, censusLink);
+                                  confOverrideRef, censusLink, commitCommandUsers);
     }
 }

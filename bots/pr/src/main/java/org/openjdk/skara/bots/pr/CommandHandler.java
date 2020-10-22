@@ -24,19 +24,31 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.vcs.*;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.List;
 
 interface CommandHandler {
-    void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply);
     String description();
+
+    default void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply)
+    {
+    }
+    default void handleCommit(PullRequestBot bot, Hash hash, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+    }
 
     default boolean multiLine() {
         return false;
     }
     default boolean allowedInBody() {
         return false;
+    }
+    default boolean allowedInCommit() {
+        return false;
+    }
+    default boolean allowedInPullRequest() {
+        return true;
     }
 }

@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.forge.*;
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.json.*;
 
 import java.util.*;
@@ -135,6 +136,14 @@ public class PullRequestBotFactory implements BotFactory {
             }
             if (repo.value().contains("censuslink")) {
                 botBuilder.censusLink(repo.value().get("censuslink").asString());
+            }
+
+            if (repo.value().contains("commitcommanders")) {
+                var allowed = repo.value().get("commitcommanders").stream()
+                                  .map(JSONValue::asString)
+                                  .map(s -> HostUser.builder().id(s).build())
+                                  .collect(Collectors.toList());
+                botBuilder.commitCommandUsers(allowed);
             }
 
             ret.add(botBuilder.build());

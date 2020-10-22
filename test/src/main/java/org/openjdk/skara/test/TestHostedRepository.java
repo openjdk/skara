@@ -49,7 +49,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
         this.projectName = projectName;
         this.localRepository = localRepository;
         pullRequestPattern = Pattern.compile(url().toString() + "/pr/" + "(\\d+)");
-        commitComments = new HashMap<Hash, List<CommitComment>>();
+        commitComments = new HashMap<>();
         nextCommitCommentId = 0;
     }
 
