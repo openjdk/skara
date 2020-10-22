@@ -27,6 +27,7 @@ import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.*;
 
 import java.io.IOException;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -51,6 +52,38 @@ public class HostedRepositoryPoolTests {
             var pool = new HostedRepositoryPool(seedFolder.path());
             var clone = pool.checkout(source, hash.hex(), cloneFolder.path());
             assertTrue(CheckableRepository.hasBeenEdited(clone));
+        }
+    }
+
+    @Test
+    void simpleBare(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var sourceFolder = new TemporaryDirectory();
+             var seedFolder = new TemporaryDirectory();
+             var cloneFolder = new TemporaryDirectory()) {
+            var source = credentials.getHostedRepository();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(sourceFolder.path(), source.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, source.url(), "master", true);
+
+            var pool = new HostedRepositoryPool(seedFolder.path());
+            var bareClone = pool.materializeBare(source, cloneFolder.path());
+
+            // Push something else
+            var hash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(hash, source.url(), "master");
+
+            // The commit should not appear from this
+            bareClone = pool.materializeBare(source, cloneFolder.path());
+            var bareCommit = bareClone.lookup(hash);
+            assertEquals(Optional.empty(), bareCommit);
+
+            // But should be possible to fetch
+            bareClone.fetchAll(source.url());
+            bareCommit = bareClone.lookup(hash);
+            assertEquals(bareCommit.get().hash(), hash);
         }
     }
 

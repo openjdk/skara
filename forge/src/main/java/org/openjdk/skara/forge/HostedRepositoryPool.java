@@ -156,7 +156,9 @@ public class HostedRepositoryPool {
                     return cloneSeeded(path, allowStale, bare);
                 } else {
                     try {
-                        localRepoInstance.clean();
+                        if (!bare) {
+                            localRepoInstance.clean();
+                        }
                         return localRepoInstance;
                     } catch (IOException e) {
                         removeOldClone(path, "uncleanable");
