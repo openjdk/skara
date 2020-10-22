@@ -32,6 +32,7 @@ import java.io.*;
 import java.net.*;
 import java.nio.file.*;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.logging.*;
 
 public class GitSync {
@@ -87,6 +88,11 @@ public class GitSync {
                   .fullname("branches")
                   .describe("BRANCHES")
                   .helptext("Comma separated list of branches to sync")
+                  .optional(),
+            Option.shortcut("")
+                  .fullname("ignore")
+                  .describe("PATTERN")
+                  .helptext("Regular expression of branches to ignore")
                   .optional(),
             Option.shortcut("u")
                   .fullname("username")
@@ -234,10 +240,26 @@ public class GitSync {
             }
         }
 
+        var ignore = Pattern.compile("pr/.*");
+        if (arguments.contains("ignore")) {
+            ignore = Pattern.compile(arguments.get("ignore").asString());
+        } else {
+            var lines = repo.config("sync.ignore");
+            if (lines.size() == 1) {
+                ignore = Pattern.compile(lines.get(0));
+            }
+        }
+
         var remoteBranches = repo.remoteBranches(from);
         for (var branch : remoteBranches) {
             var name = branch.name();
             if (!branches.isEmpty() && !branches.contains(name)) {
+                if (arguments.contains("verbose") || arguments.contains("debug")) {
+                    System.out.println("Skipping branch " + name);
+                }
+                continue;
+            }
+            if (ignore.matcher(name).matches()) {
                 if (arguments.contains("verbose") || arguments.contains("debug")) {
                     System.out.println("Skipping branch " + name);
                 }
