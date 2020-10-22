@@ -201,6 +201,13 @@ public class GitSync {
         var toPushPath = remotes.contains(to) ?
             Remote.toURI(repo.pullPath(to)) : Remote.toURI(to);
 
+        var canonicalPushPath = Remote.toWebURI(Remote.canonicalize(toPushPath).toString());
+        var canonicalPullPath = Remote.toWebURI(Remote.canonicalize(fromPullPath).toString());
+        if (canonicalPushPath.equals(canonicalPullPath)) {
+            System.err.println("error: --from and --to refer to the same repository: " + canonicalPushPath.toString());
+            System.exit(1);
+        }
+
         var toScheme = toPushPath.getScheme();
         if (toScheme.equals("https") || toScheme.equals("http")) {
             var token = System.getenv("GIT_TOKEN");
