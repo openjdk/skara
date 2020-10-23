@@ -111,21 +111,25 @@ public class UnifiedDiffParser {
             targetStart++;
         }
 
+        var targetHasNewlineAtEndOfFile = true;
+        var sourceHasNewlineAtEndOfFile = true;
+        var previousLineType = "";
         while (i < hunkLines.size()) {
             var line = hunkLines.get(i);
             if (line.startsWith("-")) {
+                previousLineType = "-";
                 sourceLines.add(line.substring(1));
                 i++;
                 continue;
             } else if (line.startsWith("+")) {
+                previousLineType = "+";
                 targetLines.add(line.substring(1));
                 i++;
                 continue;
-            }
-
-            if (line.startsWith(" ")) {
-                hunks.add(new Hunk(new Range(sourceStart, sourceLines.size()), sourceLines,
-                                   new Range(targetStart, targetLines.size()), targetLines));
+            } else if (line.startsWith(" ")) {
+                previousLineType = " ";
+                hunks.add(new Hunk(new Range(sourceStart, sourceLines.size()), sourceLines, sourceHasNewlineAtEndOfFile,
+                                   new Range(targetStart, targetLines.size()), targetLines, targetHasNewlineAtEndOfFile));
 
                 sourceStart += sourceLines.size();
                 targetStart += targetLines.size();
@@ -133,17 +137,29 @@ public class UnifiedDiffParser {
                 sourceLines = new ArrayList<String>();
                 targetLines = new ArrayList<String>();
 
+                targetHasNewlineAtEndOfFile = true;
+                sourceHasNewlineAtEndOfFile = true;
+
                 while (i < hunkLines.size() && hunkLines.get(i).startsWith(" ")) {
                     i++;
                     sourceStart++;
                     targetStart++;
                 }
+            } else if (line.equals("\\ No newline at end of file")) {
+                if (previousLineType.equals("+")) {
+                    targetHasNewlineAtEndOfFile = false;
+                } else if (previousLineType.equals("-")) {
+                    sourceHasNewlineAtEndOfFile = false;
+                }
+                i++;
+            } else {
+                throw new IllegalStateException("Unexpected diff line: " + line);
             }
         }
 
         if (sourceLines.size() > 0 || targetLines.size() > 0) {
-            hunks.add(new Hunk(new Range(sourceStart, sourceLines.size()), sourceLines,
-                               new Range(targetStart, targetLines.size()), targetLines));
+            hunks.add(new Hunk(new Range(sourceStart, sourceLines.size()), sourceLines, sourceHasNewlineAtEndOfFile,
+                               new Range(targetStart, targetLines.size()), targetLines, targetHasNewlineAtEndOfFile));
         }
 
         return hunks;

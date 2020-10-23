@@ -398,4 +398,27 @@ public class UnifiedDiffParserTests {
             assertFalse(hunks.isEmpty());
         }
     }
+
+    @Test
+    public void noNewline() {
+        var diff =
+            "diff --git a/test/src/main/java/org/openjdk/skara/test/TestHostedRepository.java b/test/src/main/java/org/openjdk/skara/test/TestHostedRepository.java\n" +
+            "index 489f49ef..e777f0f8 100644\n" +
+            "--- a/test/src/main/java/org/openjdk/skara/test/TestHostedRepository.java\n" +
+            "+++ b/test/src/main/java/org/openjdk/skara/test/TestHostedRepository.java\n" +
+            "@@ -211,6 +211,14 @@ public Hash branchHash(String ref) {\n" +
+            "+    static class CustomSelectorProviderImpl extends SelectorProvider {\n" +
+            "+        @Override public DatagramChannel openDatagramChannel() { return null; }\n" +
+            "+        @Override public DatagramChannel openDatagramChannel(ProtocolFamily family) { return null; }\n" +
+            "+        @Override public Pipe openPipe() { return null; }\n" +
+            "+        @Override public AbstractSelector openSelector() { return null; }\n" +
+            "+        @Override public ServerSocketChannel openServerSocketChannel() { return null; }\n" +
+            "+        @Override public SocketChannel openSocketChannel() { return null; }\n" +
+            "+    }\n" +
+            "+}\n" +
+            "\\ No newline at end of file\n";
+        var hunks = UnifiedDiffParser.parseSingleFileDiff(diff.split("\n"));
+        assertEquals(1, hunks.size());
+        assertFalse(hunks.get(0).target().hasNewlineAtEndOfFile());
+    }
 }
