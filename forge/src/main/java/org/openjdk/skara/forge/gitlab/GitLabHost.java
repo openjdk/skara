@@ -230,11 +230,11 @@ public class GitLabHost implements Forge {
             var ids = request.get("groups/" + group + "/projects")
                                   .execute()
                                   .stream()
-                                  .map(o -> o.get("id").asString())
+                                  .map(o -> o.get("id").asInt())
                                   .collect(Collectors.toList());
             for (var id : ids) {
-                var project = repository(id);
-                var commit = project.get().commit(hash);
+                var project = new GitLabRepository(this, id);
+                var commit = project.commit(hash);
                 if (commit.isPresent()) {
                     return commit;
                 }
