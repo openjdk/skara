@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,33 +22,16 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.forge.PullRequest;
-import org.openjdk.skara.issuetracker.Comment;
-import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.forge.CommitComment;
 
-import java.io.PrintWriter;
-import java.nio.file.Path;
 import java.util.List;
 
-interface CommandHandler {
-    String description();
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-    default void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply)
-    {
-    }
-    default void handleCommit(PullRequestBot bot, Hash hash, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
-    }
-
-    default boolean multiLine() {
-        return false;
-    }
-    default boolean allowedInBody() {
-        return false;
-    }
-    default boolean allowedInCommit() {
-        return false;
-    }
-    default boolean allowedInPullRequest() {
-        return true;
+public class CommitCommandAsserts {
+    public static void assertLastCommentContains(List<CommitComment> comments, String contains) {
+        assertTrue(!comments.isEmpty());
+        var lastComment = comments.get(comments.size() - 1);
+        assertTrue(lastComment.body().contains(contains), lastComment.body());
     }
 }

@@ -25,6 +25,7 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.census.Contributor;
 import org.openjdk.skara.forge.*;
+import org.openjdk.skara.host.*;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.Hash;
@@ -36,6 +37,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 class PullRequestBot implements Bot {
     private final HostedRepository remoteRepo;
@@ -57,12 +59,14 @@ class PullRequestBot implements Bot {
     private final String confOverrideName;
     private final String confOverrideRef;
     private final String censusLink;
+    private final Set<String> commitCommandUsers;
     private final ConcurrentMap<Hash, Boolean> currentLabels;
     private final ConcurrentHashMap<String, Instant> scheduledRechecks;
     private final PullRequestUpdateCache updateCache;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     private Instant lastFullUpdate;
+    private final Set<String> processedCommitComments;
 
     PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef,
                    LabelConfiguration labelConfiguration, Map<String, String> externalCommands,
@@ -71,7 +75,7 @@ class PullRequestBot implements Bot {
                    Map<String, Pattern> readyComments, IssueProject issueProject,
                    boolean ignoreStaleReviews, Set<String> allowedIssueTypes, Pattern allowedTargetBranches,
                    Path seedStorage, HostedRepository confOverrideRepo, String confOverrideName,
-                   String confOverrideRef, String censusLink) {
+                   String confOverrideRef, String censusLink, List<HostUser> commitCommandUsers) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -92,12 +96,17 @@ class PullRequestBot implements Bot {
         this.confOverrideRef = confOverrideRef;
         this.censusLink = censusLink;
 
+        this.commitCommandUsers = commitCommandUsers.stream()
+                                                    .map(HostUser::id)
+                                                    .collect(Collectors.toSet());
+
         currentLabels = new ConcurrentHashMap<>();
         scheduledRechecks = new ConcurrentHashMap<>();
         updateCache = new PullRequestUpdateCache();
 
         // Only check recently updated when starting up to avoid congestion
         lastFullUpdate = Instant.now();
+        processedCommitComments = new HashSet<>();
     }
 
     static PullRequestBotBuilder newBuilder() {
@@ -147,20 +156,25 @@ class PullRequestBot implements Bot {
         scheduledRechecks.put(pr.webUrl().toString(), expiresAt);
     }
 
-    private List<WorkItem> getWorkItems(List<PullRequest> pullRequests) {
+    private List<WorkItem> getWorkItems(List<PullRequest> pullRequests, List<CommitComment> commitComments) {
         var ret = new LinkedList<WorkItem>();
 
         for (var pr : pullRequests) {
-            if (pr.state() != Issue.State.OPEN) {
-                continue;
-            }
             if (updateCache.needsUpdate(pr) || checkHasExpired(pr)) {
                 if (!isReady(pr)) {
                     continue;
                 }
-
-                ret.add(new CheckWorkItem(this, pr, e -> updateCache.invalidate(pr)));
+                if (pr.state() == Issue.State.OPEN) {
+                    ret.add(new CheckWorkItem(this, pr, e -> updateCache.invalidate(pr)));
+                } else {
+                    // Closed PR's do not need to be checked
+                    ret.add(new CommandWorkItem(this, pr, e -> updateCache.invalidate(pr)));
+                }
             }
+        }
+
+        for (var commitComment : commitComments) {
+            ret.add(new CommitCommandWorkItem(this, commitComment));
         }
 
         return ret;
@@ -169,6 +183,7 @@ class PullRequestBot implements Bot {
     @Override
     public List<WorkItem> getPeriodicItems() {
         List<PullRequest> prs;
+        List<CommitComment> commitComments = List.of();
 
         if (lastFullUpdate == null || lastFullUpdate.isBefore(Instant.now().minus(Duration.ofMinutes(10)))) {
             lastFullUpdate = Instant.now();
@@ -179,8 +194,19 @@ class PullRequestBot implements Bot {
             prs = remoteRepo.pullRequests(ZonedDateTime.now().minus(Duration.ofDays(1)));
         }
 
+        if (!commitCommandUsers.isEmpty()) {
+            commitComments = remoteRepo.recentCommitComments().stream()
+                                       .filter(cc -> !processedCommitComments.contains(cc.id()))
+                                       .filter(cc -> commitCommandUsers.contains(cc.author().id()))
+                                       .collect(Collectors.toList());
+            if (!commitComments.isEmpty()) {
+                processedCommitComments.addAll(commitComments.stream()
+                                                             .map(Comment::id)
+                                                             .collect(Collectors.toList()));
+            }
+        }
 
-        return getWorkItems(prs);
+        return getWorkItems(prs, commitComments);
     }
 
     @Override
@@ -190,7 +216,11 @@ class PullRequestBot implements Bot {
             return new ArrayList<>();
         }
 
-        return getWorkItems(webHook.get().updatedPullRequests());
+        return getWorkItems(webHook.get().updatedPullRequests(), List.of());
+    }
+
+    HostedRepository repo() {
+        return remoteRepo;
     }
 
     HostedRepository censusRepo() {
