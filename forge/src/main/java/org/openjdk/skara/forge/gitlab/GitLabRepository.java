@@ -358,7 +358,7 @@ public class GitLabRepository implements HostedRepository {
     @Override
     public List<CommitComment> recentCommitComments() {
         var twoDaysAgo = ZonedDateTime.now().minusDays(2);
-        var formatter = DateTimeFormatter.ofPattern("yyyy-MM-DD");
+        var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         return request.get("events")
                       .param("after", twoDaysAgo.format(formatter))
                       .execute()
@@ -370,12 +370,12 @@ public class GitLabRepository implements HostedRepository {
                           var createdAt = ZonedDateTime.parse(o.get("note").get("created_at").asString());
                           var body = o.get("note").get("body").asString();
                           var user = gitLabHost.parseAuthorField(o);
-                          var id = o.get("note").get("id").asString();
+                          var id = o.get("note").get("id").asInt();
                           Supplier<Hash> hash = () -> commitWithComment(o.get("target_title").asString(),
                                                                         body,
                                                                         createdAt,
                                                                         user);
-                          return new CommitComment(hash, null, -1, id, body, user, createdAt, createdAt);
+                          return new CommitComment(hash, null, -1, String.valueOf(id), body, user, createdAt, createdAt);
                       })
                       .collect(Collectors.toList());
     }
