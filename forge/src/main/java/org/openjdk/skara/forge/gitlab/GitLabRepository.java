@@ -439,7 +439,7 @@ public class GitLabRepository implements HostedRepository {
         var c = request.get("repository/commits/" + hash.hex())
                        .onError(r -> Optional.of(JSON.of()))
                        .execute();
-        if (!c.isNull()) {
+        if (c.isNull()) {
             return Optional.empty();
         }
         var url = URI.create(c.get("web_url").asString());
