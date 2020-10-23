@@ -165,7 +165,7 @@ public class GitSkara {
             System.out.println("Rebuilding ...");
             var cmd = new ArrayList<String>();
             if (System.getProperty("os.name").toLowerCase().startsWith("win")) {
-                cmd.add("gradlew.bat");
+                cmd.add(parent.resolve("gradlew.bat").toString());
             } else {
                 cmd.addAll(List.of("sh", "gradlew"));
             }
