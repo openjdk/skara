@@ -190,7 +190,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
 
         pr.addComment(writer.toString());
     }
-    
+
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
         log.info("Looking for PR commands");
