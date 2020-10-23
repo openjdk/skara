@@ -394,8 +394,11 @@ public class GitHubRepository implements HostedRepository {
                 targetPath;
             var filetype = FileType.fromOctal("100644");
 
-            var diff = file.get("patch").asString().split("\n");
-            var hunks = UnifiedDiffParser.parseSingleFileDiff(diff);
+            var hunks = List.<Hunk>of();
+            if (file.contains("patch")) {
+                var diff = file.get("patch").asString().split("\n");
+                hunks = UnifiedDiffParser.parseSingleFileDiff(diff);
+            }
 
             patches.add(new TextualPatch(sourcePath, filetype, Hash.zero(),
                                          targetPath, filetype, Hash.zero(),
