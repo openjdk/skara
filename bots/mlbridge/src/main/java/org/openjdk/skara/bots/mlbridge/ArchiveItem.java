@@ -87,8 +87,8 @@ class ArchiveItem {
                             WebrevNotification webrevNotification, ZonedDateTime created, ZonedDateTime updated,
                             Hash base, Hash head, String subjectPrefix, String threadPrefix) {
         return new ArchiveItem(null, "fc", created, updated, pr.author(), Map.of("PR-Head-Hash", head.hex(),
-                                                                                              "PR-Base-Hash", base.hex(),
-                                                                                              "PR-Thread-Prefix", threadPrefix),
+                                                                                 "PR-Base-Hash", base.hex(),
+                                                                                 "PR-Thread-Prefix", threadPrefix),
                                () -> subjectPrefix + threadPrefix + (threadPrefix.isEmpty() ? "" : ": ") + pr.title(),
                                () -> "",
                                () -> ArchiveMessages.composeConversation(pr),
@@ -155,7 +155,7 @@ class ArchiveItem {
                             WebrevStorage.WebrevGenerator webrevGenerator, WebrevNotification webrevNotification,
                             ZonedDateTime created, ZonedDateTime updated, Hash lastBase, Hash lastHead, Hash base,
                             Hash head, int index, ArchiveItem parent, String subjectPrefix, String threadPrefix) {
-        return new ArchiveItem(parent,"ha" + head.hex(), created, updated, pr.author(), Map.of("PR-Head-Hash", head.hex(), "PR-Base-Hash", base.hex()),
+        return new ArchiveItem(parent, "ha" + head.hex(), created, updated, pr.author(), Map.of("PR-Head-Hash", head.hex(), "PR-Base-Hash", base.hex()),
                                () -> String.format("Re: %s%s%s [v%d]", subjectPrefix, threadPrefix + (threadPrefix.isEmpty() ? "" : ": "), pr.title(), index + 1),
                                () -> "",
                                () -> {
@@ -210,7 +210,7 @@ class ArchiveItem {
         return new ArchiveItem(parent, "rc" + reviewComment.id(), reviewComment.createdAt(), reviewComment.updatedAt(), reviewComment.author(), Map.of(),
                                () -> ArchiveMessages.composeReplySubject(parent.subject()),
                                () -> ArchiveMessages.composeReplyHeader(parent.createdAt(), hostUserToEmailAuthor.author(parent.author())),
-                               () -> ArchiveMessages.composeReviewComment(pr, reviewComment) ,
+                               () -> ArchiveMessages.composeReviewComment(pr, reviewComment),
                                () -> ArchiveMessages.composeReplyFooter(pr));
     }
 
@@ -230,13 +230,17 @@ class ArchiveItem {
                                () -> ArchiveMessages.composeReplyFooter(pr));
     }
 
-    private static Pattern mentionPattern = Pattern.compile("^@([\\w-]+).*");
+    private static final Pattern mentionPattern = Pattern.compile("@([\\w-]+)");
 
     private static Optional<ArchiveItem> findLastMention(String commentText, List<ArchiveItem> eligibleParents) {
-        var mentionMatcher = mentionPattern.matcher(commentText);
-        if (mentionMatcher.matches()) {
+        var firstLine = commentText.lines().findFirst();
+        if (firstLine.isEmpty()) {
+            return Optional.empty();
+        }
+        var mentionMatcher = mentionPattern.matcher(firstLine.get());
+        if (mentionMatcher.find()) {
             var username = mentionMatcher.group(1);
-            for (int i = eligibleParents.size() - 1; i != 0; --i) {
+            for (int i = eligibleParents.size() - 1; i >= 0; --i) {
                 if (eligibleParents.get(i).author.username().equals(username)) {
                     return Optional.of(eligibleParents.get(i));
                 }
@@ -247,6 +251,8 @@ class ArchiveItem {
 
     static boolean containsQuote(String quote, String body) {
         var compactQuote = quote.lines()
+                                .map(String::strip)
+                                .filter(line -> !line.isBlank())
                                 .takeWhile(line -> line.startsWith(">"))
                                 .map(line -> line.replaceAll("\\W", ""))
                                 .collect(Collectors.joining());
@@ -259,7 +265,7 @@ class ArchiveItem {
     }
 
     private static Optional<ArchiveItem> findLastQuoted(String commentText, List<ArchiveItem> eligibleParents) {
-        for (int i = eligibleParents.size() - 1; i != 0; --i) {
+        for (int i = eligibleParents.size() - 1; i >= 0; --i) {
             if (containsQuote(commentText, eligibleParents.get(i).body())) {
                 return Optional.of(eligibleParents.get(i));
             }
@@ -386,5 +392,10 @@ class ArchiveItem {
 
     String footer() {
         return footer.get();
+    }
+
+    @Override
+    public String toString() {
+        return "ArchiveItem From: " + author + " Body: " + body.get();
     }
 }
