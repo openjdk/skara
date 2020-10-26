@@ -383,11 +383,28 @@ public class GitHubRepository implements HostedRepository {
         return new CommitMetadata(hash, parents, author, authored, committer, committed, message);
     }
 
+    private Status toStatus(String status) {
+        switch (status) {
+            case "modified":
+                return Status.from('M');
+            case "removed":
+                return Status.from('D');
+            case "added":
+                return Status.from('A');
+            case "renamed":
+                return Status.from('R');
+            case "copied":
+                return Status.from('C');
+            default:
+                throw new IllegalArgumentException("Unexpected status: " + status);
+        }
+    }
+
     Diff toDiff(Hash from, Hash to, JSONValue files) {
         var patches = new ArrayList<Patch>();
 
         for (var file : files.asArray()) {
-            var status = Status.from(file.get("status").asString().toUpperCase().charAt(0));
+            var status = toStatus(file.get("status").asString());
             var targetPath = Path.of(file.get("filename").asString());
             var sourcePath = status.isRenamed() || status.isCopied() ?
                 Path.of(file.get("previous_filename").asString()) :
