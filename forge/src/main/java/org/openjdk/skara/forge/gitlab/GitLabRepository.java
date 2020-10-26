@@ -408,19 +408,32 @@ public class GitLabRepository implements HostedRepository {
         var patches = new ArrayList<Patch>();
 
         for (var file : o.asArray()) {
-            var sourcePath = Path.of(file.get("old_path").asString());
-            var sourceFileType = FileType.fromOctal(file.get("a_mode").asString());
+            Path sourcePath = null;
+            FileType sourceFileType = null;
+            Path targetPath = null;
+            FileType targetFileType = null;
+            Status status = null;
 
-            var targetPath = Path.of(file.get("new_path").asString());
-            var targetFileType = FileType.fromOctal(file.get("b_mode").asString());
-
-            var status = Status.from('M');
             if (file.get("new_file").asBoolean()) {
                 status = Status.from('A');
+                targetPath = Path.of(file.get("new_path").asString());
+                targetFileType = FileType.fromOctal(file.get("b_mode").asString());
             } else if (file.get("renamed_file").asBoolean()) {
                 status = Status.from('R');
+                sourcePath = Path.of(file.get("old_path").asString());
+                sourceFileType = FileType.fromOctal(file.get("a_mode").asString());
+                targetPath = Path.of(file.get("new_path").asString());
+                targetFileType = FileType.fromOctal(file.get("b_mode").asString());
             } else if (file.get("deleted_file").asBoolean()) {
                 status = Status.from('D');
+                sourcePath = Path.of(file.get("old_path").asString());
+                sourceFileType = FileType.fromOctal(file.get("a_mode").asString());
+            } else {
+                status = Status.from('M');
+                sourcePath = Path.of(file.get("old_path").asString());
+                sourceFileType = FileType.fromOctal(file.get("a_mode").asString());
+                targetPath = Path.of(file.get("new_path").asString());
+                targetFileType = FileType.fromOctal(file.get("b_mode").asString());
             }
 
             var diff = file.get("diff").asString().split("\n");
