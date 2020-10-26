@@ -216,6 +216,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
         return commitComments.values()
                              .stream()
                              .flatMap(e -> e.stream())
+                             .sorted((c1, c2) -> c2.updatedAt().compareTo(c1.updatedAt()))
                              .collect(Collectors.toList());
     }
 

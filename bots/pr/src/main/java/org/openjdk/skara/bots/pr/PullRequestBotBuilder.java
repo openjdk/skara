@@ -52,6 +52,7 @@ public class PullRequestBotBuilder {
     private String confOverrideRef = Branch.defaultFor(VCS.GIT).name();
     private String censusLink = null;
     private List<HostUser> commitCommandUsers = List.of();
+    private Map<String, HostedRepository> forks = Map.of();
 
     PullRequestBotBuilder() {
     }
@@ -151,11 +152,16 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder forks(Map<String, HostedRepository> forks) {
+        this.forks = forks;
+        return this;
+    }
+
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration, externalCommands,
                                   blockingCheckLabels, readyLabels, twoReviewersLabels, twentyFourHoursLabels,
                                   readyComments, issueProject, ignoreStaleReviews,
                                   allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,
-                                  confOverrideRef, censusLink, commitCommandUsers);
+                                  confOverrideRef, censusLink, commitCommandUsers, forks);
     }
 }

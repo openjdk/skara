@@ -43,7 +43,8 @@ public class CommitCommandWorkItem implements WorkItem {
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     private static final Map<String, CommandHandler> commandHandlers = Map.ofEntries(
-            Map.entry("help", new HelpCommand())
+            Map.entry("help", new HelpCommand()),
+            Map.entry("backport", new BackportCommand())
     );
 
     static class HelpCommand implements CommandHandler {
