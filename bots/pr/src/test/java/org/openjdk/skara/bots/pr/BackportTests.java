@@ -93,6 +93,7 @@ class BackportTests {
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
             assertEquals(issue1Number + ": An issue", pr.title());
+            assertTrue(pr.labels().contains("backport"));
 
             // Approve PR and re-run bot
             var prAsReviewer = reviewer.pullRequest(pr.id());
@@ -194,6 +195,7 @@ class BackportTests {
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
             assertEquals(issue1Number + ": An issue", pr.title());
+            assertTrue(pr.labels().contains("backport"));
 
             // Approve PR and re-run bot
             var prAsReviewer = reviewer.pullRequest(pr.id());
@@ -297,6 +299,7 @@ class BackportTests {
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
             assertEquals(issue1Number + ": An issue", pr.title());
+            assertTrue(pr.labels().contains("backport"));
 
             // Approve PR and re-run bot
             var prAsReviewer = reviewer.pullRequest(pr.id());
@@ -376,6 +379,7 @@ class BackportTests {
             assertLastCommentContains(pr, "<!-- backport error -->");
             assertLastCommentContains(pr, ":warning:");
             assertLastCommentContains(pr, "could not find any commit with hash `0123456789012345678901234567890123456789`");
+            assertTrue(pr.labels().contains("backport"));
 
             // Re-running the bot should not cause any more error comments
             TestBotRunner.runPeriodicItems(bot);
@@ -439,6 +443,7 @@ class BackportTests {
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
             assertEquals(issue1Number + ": An issue", pr.title());
+            assertTrue(pr.labels().contains("backport"));
 
             // The bot should have added the "clean" label
             assertTrue(pr.labels().contains("clean"));
@@ -509,6 +514,7 @@ class BackportTests {
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + upstreamHash.hex() + " -->"));
             assertEquals(issue2Number + ": Another issue", pr.title());
+            assertTrue(pr.labels().contains("backport"));
 
             // The bot should have added the "clean" label
             assertTrue(pr.labels().contains("clean"));
@@ -579,6 +585,7 @@ class BackportTests {
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + upstreamHash.hex() + " -->"));
             assertEquals(issue2Number + ": Another issue", pr.title());
+            assertTrue(pr.labels().contains("backport"));
 
             // The bot should not have added the "clean" label
             assertFalse(pr.labels().contains("clean"));
@@ -652,6 +659,7 @@ class BackportTests {
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + upstreamHash.hex() + " -->"));
             assertEquals(issue2Number + ": Another issue", pr.title());
+            assertTrue(pr.labels().contains("backport"));
 
             // The bot should not have added the "clean" label
             assertFalse(pr.labels().contains("clean"));
@@ -717,6 +725,7 @@ class BackportTests {
             assertTrue(pr.labels().contains("ready"));
             assertTrue(pr.labels().contains("rfr"));
             assertTrue(pr.labels().contains("clean"));
+            assertTrue(pr.labels().contains("backport"));
 
             // Integrate
             var prAsCommitter = author.pullRequest(pr.id());
@@ -814,6 +823,7 @@ class BackportTests {
             assertTrue(pr.labels().contains("rfr"));
             assertTrue(pr.labels().contains("clean"));
             assertFalse(pr.labels().contains("sponsor"));
+            assertTrue(pr.labels().contains("backport"));
 
             // Integrate
             var prAsAuthor = author.pullRequest(pr.id());

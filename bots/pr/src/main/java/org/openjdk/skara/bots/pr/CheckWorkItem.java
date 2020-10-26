@@ -195,6 +195,7 @@ class CheckWorkItem extends PullRequestWorkItem {
 
             var m = BACKPORT_TITLE_PATTERN.matcher(pr.title());
             if (m.matches()) {
+                pr.addLabel("backport");
                 var hash = new Hash(m.group(1));
                 var metadata = pr.repository().forge().search(hash);
                 if (metadata.isPresent()) {
