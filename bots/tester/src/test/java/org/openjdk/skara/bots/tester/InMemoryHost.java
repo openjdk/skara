@@ -43,6 +43,11 @@ class InMemoryHost implements Forge {
     }
 
     @Override
+    public String hostname() {
+        return "in.memory";
+    }
+
+    @Override
     public Optional<HostedRepository> repository(String name) {
         return Optional.empty();
     }

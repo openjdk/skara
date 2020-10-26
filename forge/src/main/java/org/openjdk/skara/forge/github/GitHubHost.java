@@ -154,6 +154,11 @@ public class GitHubHost implements Forge {
         return "GitHub";
     }
 
+    @Override
+    public String hostname() {
+        return uri.getHost();
+    }
+
     URI getWebURI(String endpoint) {
         return getWebURI(endpoint, true);
     }

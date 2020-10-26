@@ -242,4 +242,9 @@ public class GitLabHost implements Forge {
         }
         return Optional.empty();
     }
+
+    @Override
+    public String hostname() {
+        return uri.getHost();
+    }
 }
