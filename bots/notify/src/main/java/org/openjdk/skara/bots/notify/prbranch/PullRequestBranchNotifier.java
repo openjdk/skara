@@ -48,6 +48,7 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
         var hostedRepositoryPool = new HostedRepositoryPool(seedFolder);
         try {
             var seedRepo = hostedRepositoryPool.seedRepository(pr.repository(), false);
+            seedRepo.fetch(pr.repository().url(), pr.headHash().hex());
             seedRepo.push(pr.headHash(), pr.repository().url(), PreIntegrations.preIntegrateBranch(pr), true);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
