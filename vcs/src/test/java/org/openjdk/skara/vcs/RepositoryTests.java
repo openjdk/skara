@@ -2743,4 +2743,85 @@ public class RepositoryTests {
             assertEquals(Optional.empty(), nonExisting);
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testSuccessfulCherryPicking(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.isClean());
+
+            var readme = dir.path().resolve("README.md");
+            Files.writeString(readme, "Hello world\n");
+            r.add(readme);
+            var initial = r.commit("Added readme", "duke", "duke@openjdk.java.net");
+
+            Files.writeString(readme, "Hello world\nAgain");
+            r.add(readme);
+            var second = r.commit("Updated readme", "duke", "duke@openjdk.java.net");
+
+            var otherBranch = r.branch(initial, "other");
+            r.checkout(otherBranch);
+            var contributing = dir.path().resolve("CONTRIBUTING.md");
+            Files.writeString(contributing, "Patches welcome!\n");
+            r.add(contributing);
+            var otherCommit = r.commit("Added contributing", "duke", "duke@openjdk.java.net");
+
+            if (vcs == VCS.HG) {
+                r.checkout(second);
+            } else {
+                r.checkout(r.defaultBranch());
+            }
+            var result = r.cherryPick(otherCommit);
+            assertTrue(result);
+
+            var diff = r.diff(second);
+            assertEquals(1, diff.patches().size());
+            var patch = diff.patches().get(0);
+            assertTrue(patch.status().isAdded());
+            assertEquals(Path.of("CONTRIBUTING.md"), patch.target().path().get());
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testFailingCherryPicking(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory(false)) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.isClean());
+
+            var readme = dir.path().resolve("README.md");
+            Files.writeString(readme, "Hello world\n");
+            r.add(readme);
+            var initial = r.commit("Added readme", "duke", "duke@openjdk.java.net");
+
+            Files.writeString(readme, "Hello world\nAgain");
+            r.add(readme);
+            var second = r.commit("Updated readme", "duke", "duke@openjdk.java.net");
+
+            r.checkout(initial);
+            var otherBranch = r.branch(initial, "other");
+            r.checkout(otherBranch);
+            Files.writeString(readme, "Hello world\nOne more time!");
+            r.add(readme);
+            var otherCommit = r.commit("Modified readme", "duke", "duke@openjdk.java.net");
+
+            if (vcs == VCS.HG) {
+                r.checkout(second);
+            } else {
+                r.checkout(r.defaultBranch());
+            }
+            var result = r.cherryPick(otherCommit);
+            assertFalse(result);
+
+            var diff = r.diff(second);
+            assertEquals(1, diff.patches().size());
+            var patch = diff.patches().get(0);
+            assertTrue(patch.status().isModified());
+            assertEquals(Path.of("README.md"), patch.target().path().get());
+
+            r.revert(second);
+            assertEquals(List.of(), r.diff(second).patches());
+        }
+    }
 }

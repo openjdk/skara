@@ -1549,4 +1549,15 @@ public class GitRepository implements Repository {
     public String rangeExclusive(Hash from, Hash to) {
         return from.hex() + ".." + to.hex();
     }
+
+    @Override
+    public boolean cherryPick(Hash hash) throws IOException {
+        try (var p = capture("git", "cherry-pick", "--no-commit",
+                                                   "--keep-redundant-commits",
+                                                   "--strategy=recursive",
+                                                   "--strategy-option=patience",
+                                                   hash.hex())) {
+            return p.await().status() == 0;
+        }
+    }
 }
