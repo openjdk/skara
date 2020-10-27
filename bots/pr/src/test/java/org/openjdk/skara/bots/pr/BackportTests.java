@@ -379,7 +379,7 @@ class BackportTests {
             assertLastCommentContains(pr, "<!-- backport error -->");
             assertLastCommentContains(pr, ":warning:");
             assertLastCommentContains(pr, "could not find any commit with hash `0123456789012345678901234567890123456789`");
-            assertTrue(pr.labels().contains("backport"));
+            assertFalse(pr.labels().contains("backport"));
 
             // Re-running the bot should not cause any more error comments
             TestBotRunner.runPeriodicItems(bot);

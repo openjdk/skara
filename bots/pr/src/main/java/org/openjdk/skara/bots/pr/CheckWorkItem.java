@@ -195,7 +195,6 @@ class CheckWorkItem extends PullRequestWorkItem {
 
             var m = BACKPORT_TITLE_PATTERN.matcher(pr.title());
             if (m.matches()) {
-                pr.addLabel("backport");
                 var hash = new Hash(m.group(1));
                 var metadata = pr.repository().forge().search(hash);
                 if (metadata.isPresent()) {
@@ -225,6 +224,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     text += " from the original [commit](" + metadata.get().url() + ").";
                     comment.add(text);
                     pr.addComment(String.join("\n", comment));
+                    pr.addLabel("backport");
                     return List.of(new CheckWorkItem(bot, pr.repository().pullRequest(pr.id()), errorHandler));
                 } else {
                     var botUser = pr.repository().forge().currentUser();
