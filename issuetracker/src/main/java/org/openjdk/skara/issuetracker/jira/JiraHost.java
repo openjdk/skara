@@ -137,4 +137,9 @@ public class JiraHost implements IssueTracker {
         }
         return false;
     }
+
+    @Override
+    public String hostname() {
+        return uri.getHost();
+    }
 }

@@ -29,4 +29,5 @@ public interface Host {
     Optional<HostUser> user(String username);
     HostUser currentUser();
     boolean isMemberOf(String groupId, HostUser user);
+    String hostname();
 }
