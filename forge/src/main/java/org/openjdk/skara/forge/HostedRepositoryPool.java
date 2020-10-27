@@ -79,39 +79,26 @@ public class HostedRepositoryPool {
                 }
             }
 
+            // If a stale materialization isn't allowed, we will always clone directly from the source and thus do not
+            // need to refresh the seed folder
+            if (!allowStale) {
+                return;
+            }
             var seedRepo = Repository.get(seed).orElseThrow(() -> new IOException("Existing seed is corrupt?"));
-            if (allowStale) {
-                try {
-                    var lastFetch = Files.getLastModifiedTime(seed.resolve("FETCH_HEAD"));
-                    if (lastFetch.toInstant().isAfter(Instant.now().minus(Duration.ofMinutes(1)))) {
-                        log.info("Seed should be up to date, skipping fetch");
-                        return;
-                    } else {
-                        log.info("Seed is potentially stale, time to fetch the latest upstream changes");
-                    }
-                } catch (IOException ignored) {
+            try {
+                var lastFetch = Files.getLastModifiedTime(seed.resolve("FETCH_HEAD"));
+                if (lastFetch.toInstant().isAfter(Instant.now().minus(Duration.ofMinutes(1)))) {
+                    log.info("Seed should be up to date, skipping fetch");
+                    return;
+                } else {
+                    log.info("Seed is potentially stale, time to fetch the latest upstream changes");
                 }
+            } catch (IOException ignored) {
             }
-            IOException lastException = null;
-            for (int counter = 0; counter < 5; counter++) {
-                try {
-                    seedRepo.fetchAll(hostedRepository.url(), true);
-                } catch (IOException e) {
-                    if (!allowStale) {
-                        lastException = e;
-                        try {
-                            Thread.sleep(Duration.ofSeconds(1).toMillis());
-                        } catch (InterruptedException ignored) {
-                        }
-                    } else {
-                        log.info("Failed to refresh seed - ignoring");
-                        return;
-                    }
-                }
-            }
-            if (lastException != null) {
-                log.info("Failed to refresh stale seed - giving up");
-                throw lastException;
+            try {
+                seedRepo.fetchAll(hostedRepository.url(), true);
+            } catch (IOException e) {
+                log.info("Failed to refresh seed - ignoring");
             }
         }
 
@@ -156,6 +143,7 @@ public class HostedRepositoryPool {
                     return cloneSeeded(path, allowStale, bare);
                 } else {
                     try {
+                        refreshSeed(allowStale);
                         if (!bare) {
                             localRepoInstance.clean();
                         }
