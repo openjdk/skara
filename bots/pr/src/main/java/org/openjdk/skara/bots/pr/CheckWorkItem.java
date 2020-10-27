@@ -224,6 +224,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     text += " from the original [commit](" + metadata.get().url() + ").";
                     comment.add(text);
                     pr.addComment(String.join("\n", comment));
+                    pr.addLabel("backport");
                     return List.of(new CheckWorkItem(bot, pr.repository().pullRequest(pr.id()), errorHandler));
                 } else {
                     var botUser = pr.repository().forge().currentUser();
