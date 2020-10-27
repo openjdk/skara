@@ -199,7 +199,7 @@ public class HostedRepositoryPool {
         var refHash = seedRepo.resolve(ref);
         if (refHash.isEmpty()) {
             // It may fail because the seed is stale - need to refresh it now
-            seedRepo = hostedRepositoryInstance.seedRepository(false);
+            seedRepo.fetchAll(hostedRepository.url(), true);
             refHash = seedRepo.resolve(ref);
         }
 
