@@ -1454,4 +1454,11 @@ public class HgRepository implements Repository {
     public String rangeExclusive(Hash from, Hash to) {
         return from.hex() + ":" + to.hex() + "-" + from.hex();
     }
+
+    @Override
+    public boolean cherryPick(Hash hash) throws IOException {
+        try (var p = capture("hg", "graft", "--no-commit", "--force", hash.hex())) {
+            return p.await().status() == 0;
+        }
+    }
 }
