@@ -358,8 +358,20 @@ public class GitHubPullRequest implements PullRequest {
     @Override
     public Comment updateComment(String id, String body) {
         var comment = request.patch("issues/comments/" + id)
-                .body("body", body)
-                .execute();
+                             .body("body", body)
+                             .onError(r -> {
+                                 if (r.statusCode() == 404) {
+                                     return Optional.of(JSON.object().put("NOT_FOUND", true));
+                                 }
+                                 throw new RuntimeException("Invalid response");
+                             })
+                             .execute();
+        if (comment.contains("NOT_FOUND")) {
+            var reviewComment = request.patch("pulls/comments/" + id)
+                                       .body("body", body)
+                                       .execute();
+            return parseReviewComment(null, reviewComment.asObject());
+        }
         return parseComment(comment);
     }
 
