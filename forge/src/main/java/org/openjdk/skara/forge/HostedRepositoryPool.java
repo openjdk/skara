@@ -209,6 +209,10 @@ public class HostedRepositoryPool {
 
     public Repository seedRepository(HostedRepository hostedRepository, boolean allowStale) throws IOException {
         var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository);
-        return hostedRepositoryInstance.seedRepository(allowStale);
+        var repo = hostedRepositoryInstance.seedRepository(allowStale);
+        if (!allowStale) {
+            repo.fetchAll(hostedRepository.url(), true);
+        }
+        return repo;
     }
 }
