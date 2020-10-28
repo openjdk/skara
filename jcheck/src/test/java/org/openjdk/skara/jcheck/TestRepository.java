@@ -329,4 +329,8 @@ class TestRepository implements ReadOnlyRepository {
     public List<CommitMetadata> follow(Path path, Hash from, Hash to) {
         return List.of();
     }
+
+    public boolean contains(Hash h) {
+        return false;
+    }
 }

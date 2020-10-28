@@ -2824,4 +2824,21 @@ public class RepositoryTests {
             assertEquals(List.of(), r.diff(second).patches());
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testRepositoryContains(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), vcs);
+            assertTrue(r.isClean());
+
+            var readme = dir.path().resolve("README.md");
+            Files.writeString(readme, "Hello world\n");
+            r.add(readme);
+            var hash = r.commit("Added readme", "duke", "duke@openjdk.java.net");
+
+            assertTrue(r.contains(hash));
+            assertFalse(r.contains(new Hash("0123456789012345678901234567890123456789")));
+        }
+    }
 }

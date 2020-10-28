@@ -179,7 +179,8 @@ public class GitRepository implements Repository {
         return new GitCommits(dir, range, reverse, n);
     }
 
-    private boolean exists(Hash h) throws IOException {
+    @Override
+    public boolean contains(Hash h) throws IOException {
         try (var p = capture("git", "cat-file", "-e", h.hex())) {
             var res = p.await();
             return res.status() == 0;
@@ -188,7 +189,7 @@ public class GitRepository implements Repository {
 
     @Override
     public Optional<Commit> lookup(Hash h) throws IOException {
-        if (!exists(h)) {
+        if (!contains(h)) {
             return Optional.empty();
         }
 

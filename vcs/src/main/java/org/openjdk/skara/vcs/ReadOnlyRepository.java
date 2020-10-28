@@ -88,6 +88,7 @@ public interface ReadOnlyRepository {
         return resolve(b.name());
     }
     boolean contains(Branch b, Hash h) throws IOException;
+    boolean contains(Hash h) throws IOException;
     Optional<String> username() throws IOException;
     Optional<byte[]> show(Path p, Hash h) throws IOException;
     default Optional<List<String>> lines(Path p, Hash h) throws IOException {
