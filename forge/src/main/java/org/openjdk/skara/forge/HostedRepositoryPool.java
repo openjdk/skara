@@ -193,17 +193,13 @@ public class HostedRepositoryPool {
         return checkout(hostedRepository, ref, path, true);
     }
 
-    public Optional<List<String>> lines(HostedRepository hostedRepository, Path p, String ref) throws IOException {
+    public Optional<List<String>> lines(HostedRepository hostedRepository, Path p, Hash hash) throws IOException {
         var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository);
         var seedRepo = hostedRepositoryInstance.seedRepository(true);
-        var refHash = seedRepo.resolve(ref);
-        if (refHash.isEmpty()) {
+        if (!seedRepo.contains(hash)) {
             // It may fail because the seed is stale - need to refresh it now
             seedRepo.fetchAll(hostedRepository.url(), true);
-            refHash = seedRepo.resolve(ref);
         }
-
-        var hash = refHash.orElseThrow(() -> new IOException("Ref not found: " + ref));
         return seedRepo.lines(p, hash);
     }
 

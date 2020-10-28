@@ -49,7 +49,7 @@ public class CommitCommandWorkItem implements WorkItem {
 
     static class HelpCommand implements CommandHandler {
         @Override
-        public void handleCommit(PullRequestBot bot, Hash hash, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+        public void handle(PullRequestBot bot, HostedCommit commit, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
             reply.println("Available commands:");
             Stream.concat(
                     commandHandlers.entrySet().stream()
@@ -112,7 +112,7 @@ public class CommitCommandWorkItem implements WorkItem {
         }
     }
 
-    private void processCommand(Path scratchPath, CommandInvocation command, List<CommitComment> allComments) {
+    private void processCommand(Path scratchPath, HostedCommit commit, CensusInstance censusInstance, CommandInvocation command, List<CommitComment> allComments) {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
@@ -124,7 +124,7 @@ public class CommitCommandWorkItem implements WorkItem {
                 var comments = allComments.stream()
                                           .map(cc -> (Comment)cc)
                                           .collect(Collectors.toList());
-                handler.get().handleCommit(bot, commitComment.commit(), scratchPath, command, comments, printer);
+                handler.get().handle(bot, commit, censusInstance, scratchPath, command, comments, printer);
             } else {
                 printer.print("The command `");
                 printer.print(command.name());
@@ -142,13 +142,22 @@ public class CommitCommandWorkItem implements WorkItem {
     public Collection<WorkItem> run(Path scratchPath) {
         log.info("Looking for commit comment commands");
 
-        var allComments = bot.repo().commitComments(commitComment.commit());
+        var commit = bot.repo().commit(commitComment.commit()).orElseThrow(() ->
+            new IllegalStateException("Commit with hash " + commitComment.commit() + " missing"));
+        var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
+        var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
+        var census = CensusInstance.create(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(),
+                                           scratchPath.resolve("census"), bot.repo(), commit.hash(),
+                                           bot.confOverrideRepository().orElse(null),
+                                           bot.confOverrideName(),
+                                           bot.confOverrideRef());
+        var allComments = bot.repo().commitComments(commit.hash());
         var nextCommand = nextCommand(allComments);
 
         if (nextCommand.isEmpty()) {
             log.info("No new commit comments found, stopping further processing");
         } else {
-            processCommand(scratchPath, nextCommand.get(), allComments);
+            processCommand(scratchPath, commit, census, nextCommand.get(), allComments);
         }
 
         return List.of();
