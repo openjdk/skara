@@ -235,7 +235,8 @@ public class HgRepository implements Repository {
         return new HgCommits(dir, range, ext, reverse, n);
     }
 
-    private boolean exists(Hash h) throws IOException {
+    @Override
+    public boolean contains(Hash h) throws IOException {
         try (var p = capture("hg", "log", "--rev=" + h.hex(), "--template={node}\n")) {
             var res = p.await();
             return res.status() == 0;
@@ -244,7 +245,7 @@ public class HgRepository implements Repository {
 
     @Override
     public Optional<Commit> lookup(Hash h) throws IOException {
-        if (!exists(h)) {
+        if (!contains(h)) {
             return Optional.empty();
         }
         var commits = commits(h.hex()).asList();
