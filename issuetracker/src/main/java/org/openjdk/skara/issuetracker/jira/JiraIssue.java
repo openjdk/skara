@@ -234,10 +234,6 @@ public class JiraIssue implements Issue {
 
     @Override
     public void addLabel(String label) {
-        if (needSecurity) {
-            log.warning("Issue label does not support setting a security level - ignoring");
-            return;
-        }
         var query = JSON.object()
                         .put("update", JSON.object()
                                            .put("labels", JSON.array().add(JSON.object()
