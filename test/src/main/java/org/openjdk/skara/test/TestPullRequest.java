@@ -107,6 +107,11 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     }
 
     @Override
+    public void updateReview(int id, String body) {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
     public ReviewComment addReviewComment(Hash base, Hash hash, String path, int line, String body) {
         var comment = new ReviewComment(null, String.valueOf(data.reviewComments.size()), hash, path, line, String.valueOf(data.reviewComments.size()), body, user, ZonedDateTime.now(), ZonedDateTime.now());
         data.reviewComments.add(comment);

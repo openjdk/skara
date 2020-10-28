@@ -67,6 +67,10 @@ class InMemoryPullRequest implements PullRequest {
     }
 
     @Override
+    public void updateReview(int id, String body) {
+    }
+
+    @Override
     public ReviewComment addReviewComment(Hash base, Hash hash, String path, int line, String body) {
         return null;
     }

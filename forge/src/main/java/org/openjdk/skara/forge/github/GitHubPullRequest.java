@@ -179,6 +179,13 @@ public class GitHubPullRequest implements PullRequest {
                .execute();
     }
 
+    @Override
+    public void updateReview(int id, String body) {
+        request.put("pulls/" + json.get("number").toString() + "/reviews/" + id)
+               .body("body", body)
+               .execute();
+    }
+
     private ReviewComment parseReviewComment(ReviewComment parent, JSONObject json) {
         var author = host.parseUserField(json);
         var threadId = parent == null ? json.get("id").toString() : parent.threadId();

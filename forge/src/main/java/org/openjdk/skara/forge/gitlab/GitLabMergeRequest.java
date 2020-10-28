@@ -171,6 +171,11 @@ public class GitLabMergeRequest implements PullRequest {
                .execute();
     }
 
+    @Override
+    public void updateReview(int id, String body) {
+        throw new RuntimeException("not implemented yet");
+    }
+
     private ReviewComment parseReviewComment(String discussionId, ReviewComment parent, JSONObject note) {
         int line;
         String path;
