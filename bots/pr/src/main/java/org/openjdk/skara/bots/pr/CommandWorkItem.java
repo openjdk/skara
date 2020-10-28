@@ -72,7 +72,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
         }
 
         @Override
-        public void handleCommit(PullRequestBot bot, Hash hash, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+        public void handle(PullRequestBot bot, HostedCommit hash, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
             reply.println("Available commands:");
             Stream.concat(
                     commandHandlers.entrySet().stream()
@@ -159,7 +159,8 @@ public class CommandWorkItem extends PullRequestWorkItem {
                 if (handler.get().allowedInCommit()) {
                     var hash = resultingCommitHash(allComments);
                     if (hash.isPresent()) {
-                        handler.get().handleCommit(bot, hash.get(), scratchPath, command, allComments, printer);
+                        var commit = pr.repository().commit(hash.get()).orElseThrow();
+                        handler.get().handle(bot, commit, censusInstance, scratchPath, command, allComments, printer);
                     } else {
                         printer.print("The command `");
                         printer.print(command.name());
