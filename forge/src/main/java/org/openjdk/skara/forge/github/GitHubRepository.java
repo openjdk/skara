@@ -367,6 +367,14 @@ public class GitHubRepository implements HostedRepository {
                .execute();
     }
 
+    @Override
+    public void updateCommitComment(String id, String body) {
+        var query = JSON.object().put("body", body);
+        request.patch("comments/" + id)
+               .body(query)
+               .execute();
+    }
+
     private CommitMetadata toCommitMetadata(JSONValue o) {
         var hash = new Hash(o.get("sha").asString());
         var parents = o.get("parents").stream()
