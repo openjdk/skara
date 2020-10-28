@@ -161,6 +161,10 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
+    public void updateCommitComment(String id, String body) {
+    }
+
+    @Override
     public Optional<HostedCommit> commit(Hash commit) {
         return Optional.empty();
     }

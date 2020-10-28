@@ -233,6 +233,11 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
+    public void updateCommitComment(String id, String body) {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
     public Optional<HostedCommit> commit(Hash hash) {
         try {
             var commit = localRepository.lookup(hash);

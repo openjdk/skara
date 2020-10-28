@@ -179,6 +179,13 @@ public class GitHubPullRequest implements PullRequest {
                .execute();
     }
 
+    @Override
+    public void updateReview(int id, String body) {
+        request.put("pulls/" + json.get("number").toString() + "/reviews/" + id)
+               .body("body", body)
+               .execute();
+    }
+
     private ReviewComment parseReviewComment(ReviewComment parent, JSONObject json) {
         var author = host.parseUserField(json);
         var threadId = parent == null ? json.get("id").toString() : parent.threadId();
@@ -358,8 +365,20 @@ public class GitHubPullRequest implements PullRequest {
     @Override
     public Comment updateComment(String id, String body) {
         var comment = request.patch("issues/comments/" + id)
-                .body("body", body)
-                .execute();
+                             .body("body", body)
+                             .onError(r -> {
+                                 if (r.statusCode() == 404) {
+                                     return Optional.of(JSON.object().put("NOT_FOUND", true));
+                                 }
+                                 throw new RuntimeException("Invalid response");
+                             })
+                             .execute();
+        if (comment.contains("NOT_FOUND")) {
+            var reviewComment = request.patch("pulls/comments/" + id)
+                                       .body("body", body)
+                                       .execute();
+            return parseReviewComment(null, reviewComment.asObject());
+        }
         return parseComment(comment);
     }
 

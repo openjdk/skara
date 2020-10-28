@@ -45,6 +45,11 @@ public interface PullRequest extends Issue {
     void addReview(Review.Verdict verdict, String body);
 
     /**
+     * Updates the comment body of a review.
+     */
+    void updateReview(int id, String body);
+
+    /**
      * Add a file specific comment.
      * @param hash
      * @param path

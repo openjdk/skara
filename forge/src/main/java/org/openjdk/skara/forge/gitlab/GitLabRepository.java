@@ -388,6 +388,11 @@ public class GitLabRepository implements HostedRepository {
                .execute();
     }
 
+    @Override
+    public void updateCommitComment(String id, String body) {
+        throw new RuntimeException("not implemented yet");
+    }
+
     private CommitMetadata toCommitMetadata(JSONValue o) {
         var hash = new Hash(o.get("id").asString());
         var parents = o.get("parent_ids").stream()
