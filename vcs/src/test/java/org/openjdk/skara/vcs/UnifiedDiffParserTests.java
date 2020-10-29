@@ -421,4 +421,15 @@ public class UnifiedDiffParserTests {
         assertEquals(1, hunks.size());
         assertFalse(hunks.get(0).target().hasNewlineAtEndOfFile());
     }
+
+    @Test
+    public void binaryFile() {
+        var diff =
+            "diff --git a/file.bin b/file.bin\n" +
+            "new file mode 100644\n" +
+            "index 0000000000000000000000000000000000000000..2020dd2b626d1bcf60351a2be801548eb65c53cd\n" +
+            "Binary files /dev/null and b/file.bin differ";
+        var hunks = UnifiedDiffParser.parseSingleFileDiff(diff.split("\n"));
+        assertEquals(List.of(), hunks);
+    }
 }

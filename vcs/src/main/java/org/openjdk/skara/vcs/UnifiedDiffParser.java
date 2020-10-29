@@ -70,6 +70,10 @@ public class UnifiedDiffParser {
 
         var hunks = new ArrayList<Hunk>();
         while (i < lines.size()) {
+            if (lines.get(i).startsWith("Binary files ") && lines.get(i).endsWith(" differ")) {
+                i++;
+                continue;
+            }
             var words = lines.get(i).split("\\s");
             if (!words[0].startsWith("@@")) {
                 throw new IllegalStateException("Unexpected diff line at index " + i + ": " + lines.get(i));
@@ -151,6 +155,8 @@ public class UnifiedDiffParser {
                 } else if (previousLineType.equals("-")) {
                     sourceHasNewlineAtEndOfFile = false;
                 }
+                i++;
+            } else if (line.startsWith("Binary files") && line.endsWith("differ")) {
                 i++;
             } else {
                 throw new IllegalStateException("Unexpected diff line: " + line);
