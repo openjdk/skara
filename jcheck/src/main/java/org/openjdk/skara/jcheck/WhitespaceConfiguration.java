@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,22 +24,24 @@ package org.openjdk.skara.jcheck;
 
 import org.openjdk.skara.ini.Section;
 
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 public class WhitespaceConfiguration {
     static final WhitespaceConfiguration DEFAULT =
-        new WhitespaceConfiguration(".*\\.cpp|.*\\.hpp|.*\\.c|.*\\.h|.*\\.java");
+        new WhitespaceConfiguration(".*\\.cpp|.*\\.hpp|.*\\.c|.*\\.h|.*\\.java", "");
 
     private final String files;
+    private final String tabfiles;
 
-    WhitespaceConfiguration(String files) {
+    WhitespaceConfiguration(String files, String tabfiles) {
         this.files = files;
+        this.tabfiles = tabfiles;
     }
 
     public String files() {
         return files;
+    }
+
+    public String tabfiles() {
+        return tabfiles;
     }
 
     static String name() {
@@ -52,6 +54,7 @@ public class WhitespaceConfiguration {
         }
 
         var files = s.get("files", DEFAULT.files());
-        return new WhitespaceConfiguration(files);
+        var tabfiles = s.get("tabfiles", DEFAULT.tabfiles());
+        return new WhitespaceConfiguration(files, tabfiles);
     }
 }
