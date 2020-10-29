@@ -436,8 +436,10 @@ public class GitLabRepository implements HostedRepository {
                 targetFileType = FileType.fromOctal(file.get("b_mode").asString());
             }
 
-            var diff = file.get("diff").asString().split("\n");
-            var hunks = UnifiedDiffParser.parseSingleFileDiff(diff);
+            var diff = file.get("diff").asString();
+            var hunks = diff.isEmpty() ?
+                new ArrayList<Hunk>() :
+                UnifiedDiffParser.parseSingleFileDiff(diff.split("\n"));
 
             patches.add(new TextualPatch(sourcePath, sourceFileType, Hash.zero(),
                                          targetPath, targetFileType, Hash.zero(),
