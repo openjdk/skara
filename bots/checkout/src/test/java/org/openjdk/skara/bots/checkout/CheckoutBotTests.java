@@ -78,7 +78,7 @@ class CheckoutBotTests {
             populate(gitLocalRepo);
             var gitHostedRepo = new TestHostedRepository(host, "from", gitLocalRepo);
 
-            var bot = new CheckoutBot(gitHostedRepo.url(), gitLocalRepo.defaultBranch(), hgDir, storage, marksStorage);
+            var bot = new CheckoutBot(gitHostedRepo, gitLocalRepo.defaultBranch(), hgDir, storage, marksStorage);
             var runner = new TestBotRunner();
             runner.runPeriodicItems(bot);
 
@@ -111,7 +111,7 @@ class CheckoutBotTests {
             populate(gitLocalRepo);
             var gitHostedRepo = new TestHostedRepository(host, "from", gitLocalRepo);
 
-            var bot = new CheckoutBot(gitHostedRepo.url(), gitLocalRepo.defaultBranch(), hgDir, storage, marksStorage);
+            var bot = new CheckoutBot(gitHostedRepo, gitLocalRepo.defaultBranch(), hgDir, storage, marksStorage);
             runner.runPeriodicItems(bot);
 
             var hgRepo = Repository.get(hgDir).orElseThrow();
