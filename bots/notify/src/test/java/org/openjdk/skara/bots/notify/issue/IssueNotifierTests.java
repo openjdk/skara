@@ -556,13 +556,32 @@ public class IssueNotifierTests {
             assertEquals(List.of(issueProject.issueTracker().currentUser()), updatedIssue.assignees());
 
             // Tag it
-            localRepo.tag(editHash, "jdk-16+10", "Second tag", "duke", "duke@openjdk.org");
+            localRepo.tag(editHash, "jdk-16+110", "Second tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The build should now be updated
+            updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            assertEquals("b110", updatedIssue.properties().get("customfield_10006").asString());
+
+            // Tag it again
+            localRepo.tag(editHash, "jdk-16+10", "Third tag", "duke", "duke@openjdk.org");
             localRepo.push(new Branch(repo.url().toString()), "--tags", false);
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The build should now be updated
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
             assertEquals("b10", updatedIssue.properties().get("customfield_10006").asString());
+
+            // Tag it once again
+            localRepo.tag(editHash, "jdk-16+8", "Fourth tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The build should now be updated
+            updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            assertEquals("b08", updatedIssue.properties().get("customfield_10006").asString());
+
         }
     }
 

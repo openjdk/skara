@@ -343,7 +343,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
 
                 // Check if the build name should be updated
                 var oldBuild = issue.properties().getOrDefault("customfield_10006", JSON.of());
-                var newBuild = "b" + tag.buildNum();
+                var newBuild = "b" + String.format("%02d", tag.buildNum());
                 if (BuildCompare.shouldReplace(newBuild, oldBuild.asString())) {
                     issue.setProperty("customfield_10006", JSON.of(newBuild));
                 } else {
