@@ -28,6 +28,7 @@ import org.openjdk.skara.vcs.*;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
+import java.util.logging.Logger;
 
 class HostedRepositoryStorage<T> implements Storage<T> {
     private final HostedRepository hostedRepository;
@@ -42,6 +43,7 @@ class HostedRepositoryStorage<T> implements Storage<T> {
 
     private RepositoryStorage<T> repositoryStorage;
     private Set<T> current;
+    private final static Logger log = Logger.getLogger("org.openjdk.skara.storage");
 
     HostedRepositoryStorage(HostedRepository repository, Path localStorage, String ref, String fileName, String authorName, String authorEmail, String message, StorageSerializer<T> serializer, StorageDeserializer<T> deserializer) {
         this.hostedRepository = repository;
@@ -66,9 +68,19 @@ class HostedRepositoryStorage<T> implements Storage<T> {
             try {
                 try {
                     return Repository.materialize(localStorage, repository.url(), "+" + ref + ":storage");
-                } catch (IOException ignored) {
+                } catch (IOException e2) {
                     // The remote ref may not yet exist
                     Repository localRepository = Repository.init(localStorage, repository.repositoryType());
+                    if (!localRepository.isEmpty()) {
+                        // If the materialization failed but the local repository already contains data, do not initialize the ref
+                        log.warning("Materialization into existing local repository failed");
+                        log.throwing("HostedRepositoryStorage", "tryMaterialize", e2);
+                        lastException = e2;
+                        retryCount++;
+                        continue;
+                    }
+
+                    log.info("Creating initial storage for: " + ref);
                     var file = localStorage.resolve(fileName);
                     Files.createDirectories(file.getParent());
                     var storage = Files.writeString(localStorage.resolve(fileName), "");
