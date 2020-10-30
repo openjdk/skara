@@ -24,6 +24,7 @@
 package org.openjdk.skara.bots.checkout;
 
 import org.openjdk.skara.bot.*;
+import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.convert.*;
 import org.openjdk.skara.storage.StorageBuilder;
@@ -40,13 +41,13 @@ import java.util.logging.Logger;
 
 public class CheckoutBot implements Bot, WorkItem {
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
-    private final URI from;
+    private final HostedRepository from;
     private final Branch branch;
     private final Path to;
     private final Path storage;
     private final StorageBuilder<Mark> marksStorage;
 
-    CheckoutBot(URI from, Branch branch, Path to, Path storage, StorageBuilder<Mark> marksStorage) {
+    CheckoutBot(HostedRepository from, Branch branch, Path to, Path storage, StorageBuilder<Mark> marksStorage) {
         this.from = from;
         this.branch = branch;
         this.to = to;
@@ -62,6 +63,24 @@ public class CheckoutBot implements Bot, WorkItem {
         return URLEncoder.encode(uri.toString(), StandardCharsets.UTF_8);
     }
 
+    private URI webURI() {
+        var webURI = from.webUrl().toString();
+        if (!webURI.endsWith(".git")) {
+            webURI += ".git";
+        }
+
+        return URI.create(webURI);
+    }
+
+    private URI uri() {
+        var uri = from.url().toString();
+        if (!uri.endsWith(".git")) {
+            uri += ".git";
+        }
+
+        return URI.create(uri);
+    }
+
     @Override
     public boolean concurrentWith(WorkItem other) {
         if (!(other instanceof CheckoutBot)) {
@@ -73,7 +92,7 @@ public class CheckoutBot implements Bot, WorkItem {
 
     @Override
     public String toString() {
-        return "CheckoutBot(" + from + ":" + branch.name() + ", " + to + ")";
+        return "CheckoutBot(" + from.name() + ":" + branch.name() + ", " + to + ")";
     }
 
     @Override
@@ -84,12 +103,12 @@ public class CheckoutBot implements Bot, WorkItem {
     @Override
     public Collection<WorkItem> run(Path scratch) {
         try {
-            var fromDir = storage.resolve(urlEncode(from));
+            var fromDir = storage.resolve(urlEncode(webURI()));
             Repository fromRepo = null;
             if (!Files.exists(fromDir)) {
                 Files.createDirectories(fromDir);
                 log.info("Cloning Git repo " + from + " to " + fromDir);
-                fromRepo = Repository.clone(from, fromDir);
+                fromRepo = Repository.clone(uri(), fromDir);
             } else {
                 log.info("Getting existing Git repo repository from " + fromDir);
                 fromRepo = Repository.get(fromDir).orElseThrow(() ->
@@ -98,7 +117,7 @@ public class CheckoutBot implements Bot, WorkItem {
             fromRepo.checkout(branch);
             fromRepo.pull("origin", branch.name(), true);
 
-            var repoName = Path.of(from.getPath()).getFileName().toString();
+            var repoName = Path.of(webURI().getPath()).getFileName().toString();
             var marksDir = scratch.resolve("checkout").resolve("marks").resolve(repoName);
             Files.createDirectories(marksDir);
             var marks = marksStorage.materialize(marksDir);
