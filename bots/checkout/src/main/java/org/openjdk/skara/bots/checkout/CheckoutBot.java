@@ -115,7 +115,7 @@ public class CheckoutBot implements Bot, WorkItem {
                     log.info("Found existing Hg repository at: " + to);
                     var toRepo = Repository.get(to).orElseThrow(() ->
                         new IllegalStateException("Repository vanished from " + to));
-                    var existing = new ArrayList<Mark>(marks.current());
+                    var existing = new ArrayList<>(marks.current());
                     log.info("Found " + existing.size() + " existing marks");
 
                     var convertedGitHashes = existing.stream().map(Mark::git).collect(Collectors.toSet());

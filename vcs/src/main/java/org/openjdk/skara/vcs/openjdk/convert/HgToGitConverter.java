@@ -115,8 +115,8 @@ public class HgToGitConverter implements Converter {
 
     private final CommitMessageParser parser = new ConverterCommitMessageParser();
     private int currentMark = 0;
-    private final Map<Hash, Integer> hgHashesToMarks = new HashMap<Hash, Integer>();
-    private final Map<Integer, Hash> marksToHgHashes = new HashMap<Integer, Hash>();
+    private final Map<Hash, Integer> hgHashesToMarks = new HashMap<>();
+    private final Map<Integer, Hash> marksToHgHashes = new HashMap<>();
 
     public HgToGitConverter(Map<Hash, List<String>> replacements,
                             Map<Hash, Map<String, String>> corrections,
@@ -181,7 +181,7 @@ public class HgToGitConverter implements Converter {
 
     private Attribution attribute(List<Author> contributorsFromCommit, Author hgAuthor) {
         var isSponsored = false;
-        var contributors = new ArrayList<Author>(contributorsFromCommit);
+        var contributors = new ArrayList<>(contributorsFromCommit);
         if (contributors.size() == 1) {
             isSponsored = true;
         } else if (contributors.size() > 1) {
@@ -244,7 +244,7 @@ public class HgToGitConverter implements Converter {
     }
 
     private String toGitCommitMessage(Hash hash, List<Issue> issues, List<String> summaries, List<Author> contributors, List<String> reviewers, List<String> others) {
-        List<String> body = new ArrayList<String>();
+        List<String> body = new ArrayList<>();
         body.addAll(summaries.stream().map(HgToGitConverter::capitalize).collect(Collectors.toList()));
         body.addAll(others);
 
@@ -353,7 +353,7 @@ public class HgToGitConverter implements Converter {
                                      .map(Hash::new)
                                      .collect(Collectors.toList());
             if (parentHashes.size() == 1 && parentHashes.get(0).equals(Hash.zero())) {
-                parentHashes = new ArrayList<Hash>();
+                parentHashes = new ArrayList<>();
             }
             pipe.readln(); // skip parent revisions
 

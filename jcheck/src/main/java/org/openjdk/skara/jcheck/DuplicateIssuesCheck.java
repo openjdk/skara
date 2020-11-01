@@ -44,7 +44,7 @@ public class DuplicateIssuesCheck extends CommitCheck {
     }
 
     private void populateIssuesToHashesMap() throws IOException {
-        issuesToHashes = new HashMap<String, List<Hash>>();
+        issuesToHashes = new HashMap<>();
 
         for (var metadata : repo.commitMetadata()) {
             for (var line : metadata.message()) {
@@ -52,7 +52,7 @@ public class DuplicateIssuesCheck extends CommitCheck {
                 if (issue.isPresent()) {
                     var id = issue.get().id();
                     if (!issuesToHashes.containsKey(id)) {
-                        issuesToHashes.put(id, new ArrayList<Hash>());
+                        issuesToHashes.put(id, new ArrayList<>());
                     }
                     issuesToHashes.get(id).add(metadata.hash());
                 }

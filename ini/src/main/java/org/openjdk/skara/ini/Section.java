@@ -54,8 +54,8 @@ public class Section {
 
     public Section(String name) {
         this.name = name;
-        this.entries = new HashMap<String, INI.Value>();
-        this.subsections = new HashMap<String, Section>();
+        this.entries = new HashMap<>();
+        this.subsections = new HashMap<>();
     }
 
     public String name() {

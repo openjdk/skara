@@ -43,8 +43,8 @@ class Utilities {
                 if (patch.target().path().get().endsWith(".hgtags") ||
                     patch.target().path().get().endsWith(".hgtags-top-repo")) {
                     for (var hunk : patch.asTextualPatch().hunks()) {
-                        var removed = new HashSet<String>(hunk.source().lines());
-                        var added = new HashSet<String>(hunk.target().lines());
+                        var removed = new HashSet<>(hunk.source().lines());
+                        var added = new HashSet<>(hunk.target().lines());
                         added.removeAll(removed);
                         if (added.size() > 0) {
                             addsHgTagCache.add(commit.hash());

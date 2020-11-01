@@ -47,11 +47,11 @@ public class JSONObject implements JSONValue {
     private final Map<String, JSONValue> value;
 
     public JSONObject() {
-        this.value = new HashMap<String, JSONValue>();
+        this.value = new HashMap<>();
     }
 
     public JSONObject(Map<String, JSONValue> map) {
-        this.value = new HashMap<String, JSONValue>(map);
+        this.value = new HashMap<>(map);
     }
 
     @Override

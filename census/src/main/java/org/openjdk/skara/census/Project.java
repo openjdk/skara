@@ -32,10 +32,10 @@ public class Project {
     private final String fullName;
     private final Group sponsor;
 
-    private final Map<String, Member> leaders = new HashMap<String, Member>();
-    private final Map<String, Member> reviewers = new HashMap<String, Member>();
-    private final Map<String, Member> committers = new HashMap<String, Member>();
-    private final Map<String, Member> authors = new HashMap<String, Member>();
+    private final Map<String, Member> leaders = new HashMap<>();
+    private final Map<String, Member> reviewers = new HashMap<>();
+    private final Map<String, Member> committers = new HashMap<>();
+    private final Map<String, Member> authors = new HashMap<>();
 
     private void populate(Map<String, Member> category, List<Member> members) {
         for (var member : members) {

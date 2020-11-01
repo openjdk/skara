@@ -52,14 +52,14 @@ public class GitVerifyImport {
 
     private static <T> void diff(Set<T> hg, Set<T> git, String description) throws IOException {
         System.err.println("The following " + description + " are in the git repostiory but not in the hg repository");
-        var diff = new TreeSet<T>(git);
+        var diff = new TreeSet<>(git);
         diff.removeAll(hg);
         for (var e : diff) {
             System.err.println("      " + e.toString());
         }
 
         System.err.println("The following " + description + " are in the hg repository but not in the git repository");
-        diff = new TreeSet<T>(hg);
+        diff = new TreeSet<>(hg);
         diff.removeAll(git);
         for (var e : diff) {
             System.err.println("      " + e.toString());

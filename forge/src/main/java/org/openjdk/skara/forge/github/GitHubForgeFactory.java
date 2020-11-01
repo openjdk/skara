@@ -31,7 +31,7 @@ public class GitHubForgeFactory implements ForgeFactory {
             webUriReplacement = configuration.get("weburl").get("replacement").asString();
         }
 
-        Set<String> orgs = new HashSet<String>();
+        Set<String> orgs = new HashSet<>();
         if (configuration != null && configuration.contains("orgs")) {
             orgs = configuration.get("orgs")
                                 .stream()

@@ -31,7 +31,7 @@ public class Group {
     private final String name;
     private final String fullName;
     private final Contributor lead;
-    private final Map<String, Contributor> members = new HashMap<String, Contributor>();
+    private final Map<String, Contributor> members = new HashMap<>();
 
     Group(String name, String fullName, Contributor lead, List<Contributor> members) {
         this.name = name;

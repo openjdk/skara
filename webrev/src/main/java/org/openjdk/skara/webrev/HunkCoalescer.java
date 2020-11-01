@@ -292,7 +292,7 @@ class HunkCoalescer {
     public List<HunkGroup> coalesce(List<Hunk> originalHunks) {
         var groups = new ArrayList<HunkGroup>();
 
-        var worklist = new LinkedList<Hunk>(originalHunks);
+        var worklist = new LinkedList<>(originalHunks);
         while (!worklist.isEmpty()) {
             var hunkGroup = nextGroup(worklist);
 

@@ -80,7 +80,7 @@ class GitCombinedDiffParser {
 
         var hunksPerParent = new ArrayList<List<Hunk>>(numParents);
         for (int i = 0; i < numParents; i++) {
-            hunksPerParent.add(new ArrayList<Hunk>());
+            hunksPerParent.add(new ArrayList<>());
         }
 
         while (line != null && line.startsWith("@@@")) {
@@ -103,7 +103,7 @@ class GitCombinedDiffParser {
 
             var linesPerParent = new ArrayList<List<String>>(numParents);
             for (int i = 0; i < numParents; i++) {
-                linesPerParent.add(new ArrayList<String>());
+                linesPerParent.add(new ArrayList<>());
             }
 
             while ((line = reader.readLine()) != null &&
@@ -206,14 +206,14 @@ class GitCombinedDiffParser {
             // Not all merge commits contains non-trivial changes
             var diffsPerParent = new ArrayList<Diff>(numParents);
             for (int i = 0; i < numParents; i++) {
-                diffsPerParent.add(new Diff(bases.get(i), head, new ArrayList<Patch>()));
+                diffsPerParent.add(new Diff(bases.get(i), head, new ArrayList<>()));
             }
             return diffsPerParent;
         }
 
         var headersPerParent = new ArrayList<List<PatchHeader>>(numParents);
         for (int i = 0; i < numParents; i++) {
-            headersPerParent.add(new ArrayList<PatchHeader>());
+            headersPerParent.add(new ArrayList<>());
         }
 
         var headersForFiles = new ArrayList<List<PatchHeader>>();
@@ -241,7 +241,7 @@ class GitCombinedDiffParser {
 
         var hunksPerFilePerParent = new ArrayList<List<List<Hunk>>>(numParents);
         for (int i = 0; i < numParents; i++) {
-            hunksPerFilePerParent.add(new ArrayList<List<Hunk>>());
+            hunksPerFilePerParent.add(new ArrayList<>());
         }
 
         int headerIndex = 0;

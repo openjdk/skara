@@ -40,7 +40,7 @@ public class ModuleExtension {
 
         public void to(String moduleName) {
             if (!map.containsKey(packageName)) {
-                map.put(packageName, new ArrayList<String>());
+                map.put(packageName, new ArrayList<>());
             }
 
             map.get(packageName).add(moduleName);
@@ -49,8 +49,8 @@ public class ModuleExtension {
 
     private final Property<String> name;
 
-    private final List<String> requires = new ArrayList<String>();
-    private final Map<String, List<String>> opens = new TreeMap<String, List<String>>();
+    private final List<String> requires = new ArrayList<>();
+    private final Map<String, List<String>> opens = new TreeMap<>();
 
     public ModuleExtension(Project project) {
         name = project.getObjects().property(String.class);

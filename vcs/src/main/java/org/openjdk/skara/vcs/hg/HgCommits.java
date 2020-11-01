@@ -32,8 +32,8 @@ import java.nio.file.Path;
 import java.util.logging.Logger;
 
 class HgCommits implements Commits, AutoCloseable {
-    private final List<Process> processes = new ArrayList<Process>();
-    private final List<List<String>> commands = new ArrayList<List<String>>();;
+    private final List<Process> processes = new ArrayList<>();
+    private final List<List<String>> commands = new ArrayList<>();;
     private final Path dir;
     private final String range;
     private final String ext;

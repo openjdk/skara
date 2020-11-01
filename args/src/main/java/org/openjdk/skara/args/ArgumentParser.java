@@ -30,7 +30,7 @@ public class ArgumentParser {
     private final String programName;
     private final List<Flag> flags;
     private final List<Input> inputs;
-    private final Map<String, Flag> names = new HashMap<String, Flag>();
+    private final Map<String, Flag> names = new HashMap<>();
     private final boolean shouldShowHelp;
 
     public ArgumentParser(String programName, List<Flag> flags) {
@@ -39,7 +39,7 @@ public class ArgumentParser {
 
     public ArgumentParser(String programName, List<Flag> flags, List<Input> inputs) {
         this.programName = programName;
-        this.flags = new ArrayList<Flag>(flags);
+        this.flags = new ArrayList<>(flags);
         this.inputs = inputs;
 
         if (!flags.stream().anyMatch(f -> f.shortcut().equals("h") && f.fullname().equals("help"))) {

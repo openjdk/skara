@@ -41,7 +41,7 @@ public class SkaraDebugHelp {
         }
 
         static <T3, T4> Pair<T3, T4> of(T3 e1, T4 e2) {
-            return new Pair<T3, T4>(e1, e2);
+            return new Pair<>(e1, e2);
         }
 
         T1 first() {
@@ -67,7 +67,7 @@ public class SkaraDebugHelp {
     }
 
     private static<T> TreeSet<T> sorted(Set<T> s) {
-        return new TreeSet<T>(s);
+        return new TreeSet<>(s);
     }
 
     private static void showHelpFor(String command, int indentation) {

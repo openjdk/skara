@@ -49,7 +49,7 @@ public class ModulePlugin implements Plugin<Project> {
             for (var task : project.getTasksByName("compileJava", false)) {
                 if (task instanceof JavaCompile) {
                     var compileJavaTask = (JavaCompile) task;
-                    compileJavaTask.doFirst(new Action<Task>() {
+                    compileJavaTask.doFirst(new Action<>() {
                         @Override
                         public void execute(Task at) {
                             var t = (JavaCompile) at;
@@ -64,7 +64,7 @@ public class ModulePlugin implements Plugin<Project> {
             for (var task : project.getTasksByName("compileTestJava", false)) {
                 if (task instanceof JavaCompile) {
                     var compileTestJavaTask = (JavaCompile) task;
-                    compileTestJavaTask.doFirst(new Action<Task>() {
+                    compileTestJavaTask.doFirst(new Action<>() {
                         @Override
                         public void execute(Task at) {
                             var t = (JavaCompile) at;
@@ -77,7 +77,7 @@ public class ModulePlugin implements Plugin<Project> {
                             var testSourceDirs = testSourceSet.getAllJava().getSrcDirs().stream().map(File::toString).collect(Collectors.joining(":"));
                             var classpath = compileTestJavaTask.getClasspath().getAsPath();
 
-                            var opts = new ArrayList<String>(compileTestJavaTask.getOptions().getCompilerArgs());
+                            var opts = new ArrayList<>(compileTestJavaTask.getOptions().getCompilerArgs());
                             opts.addAll(List.of(
                                     "--module-path", classpath,
                                     "--patch-module", moduleName + "=" + testSourceDirs
@@ -100,7 +100,7 @@ public class ModulePlugin implements Plugin<Project> {
             for (var task : project.getTasksByName("test", false)) {
                 if (task instanceof Test) {
                     var testTask = (Test) task;
-                    testTask.doFirst(new Action<Task>() {
+                    testTask.doFirst(new Action<>() {
                         @Override
                         public void execute(Task at) {
                             var t = (Test) at;
@@ -113,7 +113,7 @@ public class ModulePlugin implements Plugin<Project> {
                             var outputDir = testSourceSet.getJava().getOutputDir().toString();
                             var classpath = testTask.getClasspath().getAsPath();
 
-                            var jvmArgs = new ArrayList<String>(testTask.getJvmArgs());
+                            var jvmArgs = new ArrayList<>(testTask.getJvmArgs());
                             jvmArgs.addAll(List.of(
                                     "-Djunit.jupiter.extensions.autodetection.enabled=true",
                                     "--module-path", classpath,

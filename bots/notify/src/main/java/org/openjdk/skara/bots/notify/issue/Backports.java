@@ -273,7 +273,7 @@ public class Backports {
             var streams = releaseStreams(fixVersion.get());
             for (var stream : streams) {
                 if (!streamIssues.containsKey(stream)) {
-                    streamIssues.put(stream, new ArrayList<Issue>());
+                    streamIssues.put(stream, new ArrayList<>());
                 }
                 streamIssues.get(stream).add(issue);
             }
