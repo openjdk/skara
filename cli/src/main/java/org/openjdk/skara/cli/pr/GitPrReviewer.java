@@ -23,8 +23,6 @@
 package org.openjdk.skara.cli.pr;
 
 import org.openjdk.skara.args.*;
-import org.openjdk.skara.issuetracker.Comment;
-import org.openjdk.skara.forge.PullRequest;
 
 import static org.openjdk.skara.cli.pr.Utils.*;
 
@@ -34,7 +32,7 @@ import java.util.*;
 public class GitPrReviewer {
     static final List<Flag> flags = List.of(
         Option.shortcut("")
-              .fullname("add")
+              .fullname("credit")
               .describe("USERNAME")
               .helptext("Consider pull request reviewed by this user")
               .optional(),
@@ -73,16 +71,16 @@ public class GitPrReviewer {
         var id = pullRequestIdArgument(repo, arguments);
         var pr = getPullRequest(uri, repo, host, id);
 
-        if (arguments.contains("add")) {
-            var username = arguments.get("add").asString();
-            var comment = pr.addComment("/reviewer add" + " " + username);
+        if (arguments.contains("credit")) {
+            var username = arguments.get("credit").asString();
+            var comment = pr.addComment("/reviewer credit" + " " + username);
             showReply(awaitReplyTo(pr, comment));
         } else if (arguments.contains("remove")) {
             var username = arguments.get("remove").asString();
             var comment = pr.addComment("/reviewer remove" + " " + username);
             showReply(awaitReplyTo(pr, comment));
         } else {
-            System.err.println("error: must use either --add or --remove");
+            System.err.println("error: must use either --credit or --remove");
             System.exit(1);
         }
     }
