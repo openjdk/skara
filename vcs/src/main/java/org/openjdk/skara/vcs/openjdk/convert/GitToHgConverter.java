@@ -36,7 +36,7 @@ import java.util.logging.Logger;
 public class GitToHgConverter implements Converter {
     private final static Logger log = Logger.getLogger("org.openjdk.skara.vcs.openjdk.convert");
     private final Branch branch;
-    private final List<Mark> marks = new ArrayList<Mark>();
+    private final List<Mark> marks = new ArrayList<>();
 
     public GitToHgConverter() {
         this(Branch.defaultFor(VCS.GIT));
@@ -184,7 +184,7 @@ public class GitToHgConverter implements Converter {
         for (var tag : hgRepo.tags()) {
             hgTags.add(tag.name());
         }
-        var missing = new TreeSet<String>(gitTags);
+        var missing = new TreeSet<>(gitTags);
         missing.removeAll(hgTags);
         for (var name : missing) {
             var gitHash = gitRepo.resolve(name).orElseThrow(() ->

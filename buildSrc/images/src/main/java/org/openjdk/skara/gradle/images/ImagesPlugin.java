@@ -78,7 +78,7 @@ public class ImagesPlugin implements Plugin<Project> {
     @Override
     public void apply(Project project) {
         NamedDomainObjectContainer<ImageEnvironment> imageEnvironmentContainer =
-            project.container(ImageEnvironment.class, new NamedDomainObjectFactory<ImageEnvironment>() {
+            project.container(ImageEnvironment.class, new NamedDomainObjectFactory<>() {
                 public ImageEnvironment create(String name) {
                     return new ImageEnvironment(name, project.getObjects());
                 }
@@ -90,7 +90,7 @@ public class ImagesPlugin implements Plugin<Project> {
         var rootDir = project.getRootDir().toPath().toAbsolutePath();
         var buildDir = project.getBuildDir().toPath().toAbsolutePath();
 
-        imageEnvironmentContainer.all(new Action<ImageEnvironment>() {
+        imageEnvironmentContainer.all(new Action<>() {
             public void execute(ImageEnvironment env) {
                 var parts = env.getName().split("_");;
                 var isLocal = parts.length == 1 && parts[0].equals("local");

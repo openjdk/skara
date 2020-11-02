@@ -226,7 +226,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
         var createdAt = ZonedDateTime.now();
 
         if (!commitComments.containsKey(hash)) {
-            commitComments.put(hash, new ArrayList<CommitComment>());
+            commitComments.put(hash, new ArrayList<>());
         }
         var comments = commitComments.get(hash);
         comments.add(new CommitComment(hash, null, -1, Integer.toString(id), body, host.currentUser(), createdAt, createdAt));

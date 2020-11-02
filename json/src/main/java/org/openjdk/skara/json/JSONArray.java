@@ -29,18 +29,18 @@ public class JSONArray implements JSONValue, Iterable<JSONValue> {
     private final List<JSONValue> values;
 
     public JSONArray() {
-        this.values = new ArrayList<JSONValue>();
+        this.values = new ArrayList<>();
     }
 
     public JSONArray(JSONValue[] array) {
-        this.values = new ArrayList<JSONValue>(array.length);
+        this.values = new ArrayList<>(array.length);
         for (var v : array) {
             values.add(v);
         }
     }
 
     public JSONArray(List<JSONValue> values) {
-        this.values = new ArrayList<JSONValue>(values);
+        this.values = new ArrayList<>(values);
     }
 
     @Override

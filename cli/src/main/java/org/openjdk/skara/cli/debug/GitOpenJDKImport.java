@@ -138,7 +138,7 @@ public class GitOpenJDKImport {
                 var json = JSON.parse(Files.readString(f));
                 for (var field : json.fields()) {
                     var hash = new Hash(field.name());
-                    corrections.put(hash, new HashMap<String, String>());
+                    corrections.put(hash, new HashMap<>());
 
                     for (var entry : field.value().fields()) {
                         var from = entry.name();

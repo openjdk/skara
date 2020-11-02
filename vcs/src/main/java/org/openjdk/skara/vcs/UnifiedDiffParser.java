@@ -138,8 +138,8 @@ public class UnifiedDiffParser {
                 sourceStart += sourceLines.size();
                 targetStart += targetLines.size();
 
-                sourceLines = new ArrayList<String>();
-                targetLines = new ArrayList<String>();
+                sourceLines = new ArrayList<>();
+                targetLines = new ArrayList<>();
 
                 targetHasNewlineAtEndOfFile = true;
                 sourceHasNewlineAtEndOfFile = true;

@@ -27,7 +27,7 @@ public class GitLabForgeFactory implements ForgeFactory {
         if (configuration != null && configuration.contains("name")) {
             name = configuration.get("name").asString();
         }
-        Set<String> groups = new HashSet<String>();
+        Set<String> groups = new HashSet<>();
         if (configuration != null && configuration.contains("groups")) {
             groups = configuration.get("groups")
                                   .stream()

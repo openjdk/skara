@@ -45,7 +45,7 @@ public class JCheck {
     private final List<String> additionalConfiguration;
     private final JCheckConfiguration overridingConfiguration;
     private final Census overridingCensus;
-    private final Map<URI, Census> censuses = new HashMap<URI, Census>();
+    private final Map<URI, Census> censuses = new HashMap<>();
     private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck");
 
     JCheck(ReadOnlyRepository repository,
@@ -133,11 +133,11 @@ public class JCheck {
         var finalCensus = census;
         var message = parser.parse(commit);
         var enabled = conf.checks().enabled(commitChecks);
-        var iterator = new MapIterator<CommitCheck, Iterator<Issue>>(enabled.iterator(), c -> {
+        var iterator = new MapIterator<>(enabled.iterator(), c -> {
             log.finer("Running commit check '" + c.name() + "' for " + commit.hash().hex());
             return c.check(commit, message, conf, finalCensus);
         });
-        return new FlatMapIterator<Issue>(iterator);
+        return new FlatMapIterator<>(iterator);
     }
 
     private Set<CommitCheck> checksForCommit(Commit c) {
@@ -194,16 +194,16 @@ public class JCheck {
     }
 
     private Iterator<Issue> commitIssues(Commits commits) {
-        return new FlatMapIterator<Issue>(
-                new MapIterator<Commit, Iterator<Issue>>(commits.iterator(), this::checkCommit));
+        return new FlatMapIterator<>(
+                new MapIterator<>(commits.iterator(), this::checkCommit));
     }
 
     private Iterator<Issue> repositoryIssues() {
-        var iterator = new MapIterator<RepositoryCheck, Iterator<Issue>>(repositoryChecks.iterator(), c -> {
+        var iterator = new MapIterator<>(repositoryChecks.iterator(), c -> {
             log.finer("Running repository check '" + c.name() + "'");
             return c.check(repository);
         });
-        return new FlatMapIterator<Issue>(iterator);
+        return new FlatMapIterator<>(iterator);
     }
 
     private Issues issues() throws IOException {
@@ -212,7 +212,7 @@ public class JCheck {
         var repositoryIssues = repositoryIssues();
         var commitIssues = commitIssues(commits);
 
-        var errors = new ConcatIterator<Issue>(repositoryIssues, commitIssues);
+        var errors = new ConcatIterator<>(repositoryIssues, commitIssues);
         return new Issues(errors, commits);
     }
 

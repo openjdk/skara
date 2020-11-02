@@ -156,7 +156,7 @@ class IndexView implements View {
                      Path patchFile,
                      Stats stats) {
         this.files = files;
-        map = new HashMap<String, String>(); 
+        map = new HashMap<>();
 
         if (user != null) {
             map.put("${USER}", user);

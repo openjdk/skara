@@ -288,7 +288,7 @@ public class Webrev {
                     repository.follow(filename, tailEnd, head);
                 for (var commit : commits) {
                     if (!pathsPerCommit.containsKey(commit.hash())) {
-                        pathsPerCommit.put(commit.hash(), new ArrayList<Path>());
+                        pathsPerCommit.put(commit.hash(), new ArrayList<>());
                     }
                     pathsPerCommit.get(commit.hash()).add(filename);
                 }

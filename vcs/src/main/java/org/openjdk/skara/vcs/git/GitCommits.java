@@ -40,8 +40,8 @@ class GitCommits implements Commits, AutoCloseable {
     private final int num;
     private final String format;
 
-    private final List<Process> processes = new ArrayList<Process>();
-    private final List<List<String>> commands = new ArrayList<List<String>>();
+    private final List<Process> processes = new ArrayList<>();
+    private final List<List<String>> commands = new ArrayList<>();
     private boolean closed = false;
 
     public GitCommits(Path dir, String range, boolean reverse, int num) throws IOException {

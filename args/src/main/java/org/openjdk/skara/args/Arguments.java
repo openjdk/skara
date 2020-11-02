@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 
 public class Arguments {
     private final List<String> positionals;
-    private final Map<String, FlagValue> names = new HashMap<String, FlagValue>();
+    private final Map<String, FlagValue> names = new HashMap<>();
 
     public Arguments(List<FlagValue> flags, List<String> positionals) {
         this.positionals = positionals;

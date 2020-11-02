@@ -462,7 +462,7 @@ public class HgRepository implements Repository {
     }
 
     private Hash fetch(String from, String refspec) throws IOException {
-        var oldHeads = new HashSet<Hash>(heads());
+        var oldHeads = new HashSet<>(heads());
 
         var cmd = new ArrayList<String>();
         cmd.add("hg");
@@ -478,7 +478,7 @@ public class HgRepository implements Repository {
             await(p);
         }
 
-        var newHeads = new HashSet<Hash>(heads());
+        var newHeads = new HashSet<>(heads());
         newHeads.removeAll(oldHeads);
 
         if (newHeads.size() > 1) {

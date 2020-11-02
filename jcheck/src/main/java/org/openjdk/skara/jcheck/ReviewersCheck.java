@@ -122,7 +122,7 @@ public class ReviewersCheck extends CommitCheck {
             roles.put(reviewer, role);
         }
 
-        var missing = new HashMap<String, Integer>(requirements);
+        var missing = new HashMap<>(requirements);
         for (var reviewer : reviewers) {
             var role = roles.get(reviewer);
             if (missing.get(role) == 0) {

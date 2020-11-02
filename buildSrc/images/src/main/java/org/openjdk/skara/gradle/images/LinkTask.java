@@ -152,7 +152,7 @@ public class LinkTask extends DefaultTask {
             uniqueModules.add(entry.substring(0, firstSlash));
         }
         uniqueModules.addAll(modules.get());
-        var allModules = new ArrayList<String>(uniqueModules);
+        var allModules = new ArrayList<>(uniqueModules);
 
         Files.createDirectories(toDir.get());
         var dest = toDir.get().resolve(os.get() + "-" + cpu.get());

@@ -367,7 +367,7 @@ class MergeBot implements Bot, WorkItem {
                     var freq = spec.frequency().get();
                     if (freq.isHourly()) {
                         if (!hourly.containsKey(desc)) {
-                            hourly.put(desc, new HashSet<Integer>());
+                            hourly.put(desc, new HashSet<>());
                         }
                         var minute = now.getMinute();
                         var hour = now.getHour();
@@ -378,7 +378,7 @@ class MergeBot implements Bot, WorkItem {
                         }
                     } else if (freq.isDaily()) {
                         if (!daily.containsKey(desc)) {
-                            daily.put(desc, new HashSet<Integer>());
+                            daily.put(desc, new HashSet<>());
                         }
                         var hour = now.getHour();
                         var day = now.getDayOfYear();
@@ -389,7 +389,7 @@ class MergeBot implements Bot, WorkItem {
                         }
                     } else if (freq.isWeekly()) {
                         if (!weekly.containsKey(desc)) {
-                            weekly.put(desc, new HashSet<Integer>());
+                            weekly.put(desc, new HashSet<>());
                         }
                         var weekOfYear = now.get(WeekFields.ISO.weekOfYear());
                         var weekday = now.getDayOfWeek();
@@ -403,7 +403,7 @@ class MergeBot implements Bot, WorkItem {
                         }
                     } else if (freq.isMonthly()) {
                         if (!monthly.containsKey(desc)) {
-                            monthly.put(desc, new HashSet<Month>());
+                            monthly.put(desc, new HashSet<>());
                         }
                         var day = now.getDayOfMonth();
                         var hour = now.getHour();
@@ -416,7 +416,7 @@ class MergeBot implements Bot, WorkItem {
                         }
                     } else if (freq.isYearly()) {
                         if (!yearly.containsKey(desc)) {
-                            yearly.put(desc, new HashSet<Integer>());
+                            yearly.put(desc, new HashSet<>());
                         }
                         var month = now.getMonth();
                         var day = now.getDayOfMonth();

@@ -164,7 +164,7 @@ public class TestWorkItem implements WorkItem {
             var osAndArch = osDisplayName(build.os()) + " " + cpuDisplayName(build.cpu());
             var debugLevel = debugLevelDisplayName(build.debugLevel());
             if (!perOSandArch.containsKey(osAndArch)) {
-                perOSandArch.put(osAndArch, new ArrayList<String>());
+                perOSandArch.put(osAndArch, new ArrayList<>());
             }
             perOSandArch.get(osAndArch).add(debugLevel);
         }

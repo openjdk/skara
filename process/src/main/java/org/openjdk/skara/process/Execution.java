@@ -155,7 +155,7 @@ public class Execution implements AutoCloseable {
                 throw new UncheckedIOException(e);
             }
         }
-        return new ArrayList<String>();
+        return new ArrayList<>();
     }
 
     private Result createResult() {
