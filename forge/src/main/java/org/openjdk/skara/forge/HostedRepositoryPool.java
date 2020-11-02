@@ -193,12 +193,26 @@ public class HostedRepositoryPool {
         return checkout(hostedRepository, ref, path, true);
     }
 
+    private void fetchWithRetry(Repository repo, URI url) throws IOException {
+        IOException lastException = null;
+        for (int count = 0; count < 10; ++count) {
+            try {
+                repo.fetchAll(url, true);
+                return;
+            } catch (IOException e) {
+                lastException = e;
+            }
+        }
+
+        throw lastException;
+    }
+
     public Optional<List<String>> lines(HostedRepository hostedRepository, Path p, Hash hash) throws IOException {
         var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository);
         var seedRepo = hostedRepositoryInstance.seedRepository(true);
         if (!seedRepo.contains(hash)) {
             // It may fail because the seed is stale - need to refresh it now
-            seedRepo.fetchAll(hostedRepository.url(), true);
+            fetchWithRetry(seedRepo, hostedRepository.url());
         }
         return seedRepo.lines(p, hash);
     }
@@ -207,7 +221,7 @@ public class HostedRepositoryPool {
         var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository);
         var repo = hostedRepositoryInstance.seedRepository(allowStale);
         if (!allowStale) {
-            repo.fetchAll(hostedRepository.url(), true);
+            fetchWithRetry(repo, hostedRepository.url());
         }
         return repo;
     }
