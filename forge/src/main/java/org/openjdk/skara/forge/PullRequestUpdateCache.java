@@ -22,8 +22,6 @@
  */
 package org.openjdk.skara.forge;
 
-import org.openjdk.skara.forge.gitlab.GitLabMergeRequest;
-
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.logging.Logger;
@@ -33,11 +31,6 @@ public class PullRequestUpdateCache {
     private final Logger log = Logger.getLogger("org.openjdk.skara.host");
 
     public synchronized boolean needsUpdate(PullRequest pr) {
-        // GitLab CE does not update this field on events such as adding an award
-        if (pr instanceof GitLabMergeRequest) {
-            return true;
-        }
-
         var uniqueId = pr.webUrl().toString();
         var update = pr.updatedAt();
 

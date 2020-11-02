@@ -33,7 +33,6 @@ import java.util.stream.Collectors;
 public interface Forge extends Host {
     String name();
     Optional<HostedRepository> repository(String name);
-    boolean supportsReviewBody();
     Optional<HostedCommit> search(Hash hash);
 
     static Forge from(String name, URI uri, Credential credential, JSONObject configuration) {

@@ -26,16 +26,14 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
-import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.vcs.Hash;
 
 import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.logging.Logger;
-import java.time.ZonedDateTime;
+import java.util.stream.Collectors;
 
 public class GitLabHost implements Forge {
     private final String name;
@@ -184,12 +182,6 @@ public class GitLabHost implements Forge {
         var details = request.get("user").execute().asObject();
         cachedCurrentUser = parseAuthorObject(details);
         return cachedCurrentUser;
-    }
-
-    @Override
-    public boolean supportsReviewBody() {
-        // GitLab CE does not support this
-        return false;
     }
 
     boolean isProjectForkComplete(String name) {

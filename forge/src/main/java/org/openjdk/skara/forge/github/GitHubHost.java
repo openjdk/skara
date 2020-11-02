@@ -26,17 +26,16 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
-import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.vcs.Hash;
 
 import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.time.*;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class GitHubHost implements Forge {
     private final URI uri;
@@ -323,11 +322,6 @@ public class GitHubHost implements Forge {
             }
         }
         return currentUser;
-    }
-
-    @Override
-    public boolean supportsReviewBody() {
-        return true;
     }
 
     @Override

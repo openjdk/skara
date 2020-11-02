@@ -669,18 +669,6 @@ class CheckRun {
         }
     }
 
-    private void updateReviewedMessages(List<Comment> comments, List<Review> reviews) {
-        var reviewTracker = new ReviewTracker(comments, reviews);
-
-        for (var added : reviewTracker.newReviews().entrySet()) {
-            var body = added.getValue() + "\n" +
-                    "This PR has been reviewed by " +
-                    formatReviewer(added.getKey().reviewer()) + " - " +
-                    verdictToString(added.getKey().verdict()) + ".";
-            pr.addComment(body);
-        }
-    }
-
     private Optional<Comment> findComment(List<Comment> comments, String marker) {
         var self = pr.repository().forge().currentUser();
         return comments.stream()
@@ -997,11 +985,6 @@ class CheckRun {
             var statusMessage = getStatusMessage(comments, activeReviews, visitor, additionalErrors, integrationBlockers);
             var updatedBody = updateStatusMessage(statusMessage);
             var title = pr.title();
-
-            // Post / update approval messages (only needed if the review itself can't contain a body)
-            if (!pr.repository().forge().supportsReviewBody()) {
-                updateReviewedMessages(comments, allReviews);
-            }
 
             var amendedHash = checkablePullRequest.amendManualReviewers(localHash, censusInstance.namespace(), original.orElse(null));
             var commit = localRepo.lookup(amendedHash).orElseThrow();

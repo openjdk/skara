@@ -24,15 +24,14 @@ package org.openjdk.skara.test;
 
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
-import java.net.URI;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -147,11 +146,6 @@ public class TestHost implements Forge, IssueTracker {
     @Override
     public HostUser currentUser() {
         return data.users.get(currentUser);
-    }
-
-    @Override
-    public boolean supportsReviewBody() {
-        return true;
     }
 
     @Override

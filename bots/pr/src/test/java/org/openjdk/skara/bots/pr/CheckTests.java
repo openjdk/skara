@@ -37,7 +37,6 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class CheckTests {
     @Test
@@ -379,70 +378,6 @@ class CheckTests {
             assertEquals(1, checks.size());
             check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
-        }
-    }
-
-    @Test
-    void individualReviewComments(TestInfo testInfo) throws IOException {
-        try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory()) {
-            var author = credentials.getHostedRepository();
-            var reviewer = credentials.getHostedRepository();
-
-            // This test is only relevant on hosts not supporting proper review comment bodies
-            assumeTrue(!author.forge().supportsReviewBody());
-
-            var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.forge().currentUser().id())
-                                           .addReviewer(reviewer.forge().currentUser().id());
-            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).build();
-
-            // Populate the projects repository
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
-            var masterHash = localRepo.resolve("master").orElseThrow();
-            localRepo.push(masterHash, author.url(), "master", true);
-
-            // Make a change with a corresponding PR
-            var editHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
-
-            // Check the status
-            TestBotRunner.runPeriodicItems(checkBot);
-            var comments = pr.comments();
-            var commentCount = comments.size();
-
-            // Approve it as another user
-            var approvalPr = reviewer.pullRequest(pr.id());
-            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
-
-            // Check the status again
-            TestBotRunner.runPeriodicItems(checkBot);
-
-            // There should now be two additional comments
-            comments = pr.comments();
-            assertEquals(commentCount + 2, comments.size());
-            var comment = comments.get(commentCount);
-            assertTrue(comment.body().contains(reviewer.forge().currentUser().username()));
-            assertTrue(comment.body().contains("approved"));
-
-            // Drop the review
-            approvalPr.addReview(Review.Verdict.NONE, "Unreviewed");
-
-            // Check the status again
-            TestBotRunner.runPeriodicItems(checkBot);
-
-            // There should now be yet another comment
-            comments = pr.comments();
-            assertEquals(commentCount + 3, comments.size());
-            comment = comments.get(commentCount + 2);
-            assertTrue(comment.body().contains(reviewer.forge().currentUser().username()));
-            assertTrue(comment.body().contains("comment"));
-
-            // No changes should not generate additional comments
-            TestBotRunner.runPeriodicItems(checkBot);
-            comments = pr.comments();
-            assertEquals(commentCount + 3, comments.size());
         }
     }
 
