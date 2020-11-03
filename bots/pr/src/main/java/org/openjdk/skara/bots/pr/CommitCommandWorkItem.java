@@ -25,7 +25,6 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Comment;
-import org.openjdk.skara.vcs.Hash;
 
 import java.io.*;
 import java.nio.file.Path;
@@ -147,7 +146,7 @@ public class CommitCommandWorkItem implements WorkItem {
         var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
         var census = CensusInstance.create(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(),
-                                           scratchPath.resolve("census"), bot.repo(), commit.hash(),
+                                           scratchPath.resolve("census"), bot.repo(), commit.hash().hex(),
                                            bot.confOverrideRepository().orElse(null),
                                            bot.confOverrideName(),
                                            bot.confOverrideRef());

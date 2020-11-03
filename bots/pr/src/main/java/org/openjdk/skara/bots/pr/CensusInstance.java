@@ -24,14 +24,13 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.census.*;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
 
 import java.io.*;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
+import java.nio.file.Path;
 import java.util.Optional;
 
 class CensusInstance {
@@ -67,21 +66,21 @@ class CensusInstance {
         return namespace;
     }
 
-    private static JCheckConfiguration configuration(HostedRepositoryPool hostedRepositoryPool, HostedRepository remoteRepo, String name, Hash hash) throws IOException {
-        var confFile = hostedRepositoryPool.lines(remoteRepo, Path.of(name), hash).orElseThrow(
-                () -> new IOException("Failed to read jcheck configuration from " + name + ":" + hash.hex()));
+    private static JCheckConfiguration configuration(HostedRepositoryPool hostedRepositoryPool, HostedRepository remoteRepo, String name, String ref) throws IOException {
+        var confFile = hostedRepositoryPool.lines(remoteRepo, Path.of(name), ref).orElseThrow(
+                () -> new IOException("Failed to read jcheck configuration from " + name + ":" + ref));
         return JCheckConfiguration.parse(confFile);
     }
 
     static CensusInstance create(HostedRepositoryPool hostedRepositoryPool,
                                  HostedRepository censusRepo, String censusRef, Path folder, PullRequest pr,
                                  HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef) {
-        return create(hostedRepositoryPool, censusRepo, censusRef, folder, pr.repository(), pr.targetHash(),
+        return create(hostedRepositoryPool, censusRepo, censusRef, folder, pr.repository(), pr.targetRef(),
                       confOverrideRepo, confOverrideName, confOverrideRef);
     }
 
     static CensusInstance create(HostedRepositoryPool hostedRepositoryPool,
-                                 HostedRepository censusRepo, String censusRef, Path folder, HostedRepository repository, Hash hash,
+                                 HostedRepository censusRepo, String censusRef, Path folder, HostedRepository repository, String ref,
                                  HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef) {
         var repoName = censusRepo.url().getHost() + "/" + censusRepo.name();
         var repoFolder = folder.resolve(URLEncoder.encode(repoName, StandardCharsets.UTF_8));
@@ -94,13 +93,12 @@ class CensusInstance {
         try {
             JCheckConfiguration configuration;
             if (confOverrideRepo == null) {
-                configuration = configuration(hostedRepositoryPool, repository, ".jcheck/conf", hash);
+                configuration = configuration(hostedRepositoryPool, repository, ".jcheck/conf", ref);
             } else {
-                var confOverrideHash = confOverrideRepo.branchHash(confOverrideRef);
                 configuration = configuration(hostedRepositoryPool,
                                               confOverrideRepo,
                                               confOverrideName,
-                                              confOverrideHash);
+                                              confOverrideRef);
             }
             var census = Census.parse(repoFolder);
             var project = project(configuration, census);

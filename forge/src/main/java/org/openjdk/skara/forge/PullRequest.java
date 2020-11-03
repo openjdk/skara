@@ -110,12 +110,6 @@ public interface PullRequest extends Issue {
     String targetRef();
 
     /**
-     * Returns the current head of the ref the request is intended to be merged into.
-     * @return
-     */
-    Hash targetHash();
-
-    /**
      * List of completed checks on the given hash.
      * @return
      */

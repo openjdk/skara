@@ -46,7 +46,6 @@ public class GitHubPullRequest implements PullRequest {
     private final Logger log = Logger.getLogger("org.openjdk.skara.host");
 
     private List<String> labels = null;
-    private Hash targetHash = null;
 
     GitHubPullRequest(GitHubRepository repository, JSONValue jsonValue, RestRequest request) {
         this.host = (GitHubHost)repository.forge();
@@ -295,19 +294,7 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public String targetRef() {
-        var targetRef = json.get("base").get("ref").asString();
-        if (targetHash == null) {
-            // Read this value before returning, to ensure that future fetches of this ref contains the hash
-            targetHash = repository.branchHash(targetRef);
-        }
-        return targetRef;
-    }
-
-    @Override
-    public Hash targetHash() {
-        // Ensure that the field is populated
-        targetRef();
-        return targetHash;
+        return json.get("base").get("ref").asString();
     }
 
     @Override
@@ -720,6 +707,7 @@ public class GitHubPullRequest implements PullRequest {
     @Override
     public Diff diff() {
         var files = request.get("pulls/" + json.get("number").toString() + "/files").execute();
-        return repository.toDiff(targetHash(), headHash(), files);
+        var targetHash = repository.branchHash(targetRef());
+        return repository.toDiff(targetHash, headHash(), files);
     }
 }

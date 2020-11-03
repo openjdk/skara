@@ -152,7 +152,7 @@ public class CheckablePullRequest {
     }
 
     PullRequestCheckIssueVisitor createVisitor(Hash localHash) throws IOException {
-        var checks = JCheck.checksFor(localRepo, pr.targetHash());
+        var checks = JCheck.checksFor(localRepo, PullRequestUtils.targetHash(pr, localRepo));
         return new PullRequestCheckIssueVisitor(checks);
     }
 
@@ -161,10 +161,10 @@ public class CheckablePullRequest {
         if (confOverride != null) {
             conf = JCheck.parseConfiguration(confOverride, additionalConfiguration);
         } else {
-            conf = JCheck.parseConfiguration(localRepo, pr.targetHash(), additionalConfiguration);
+            conf = JCheck.parseConfiguration(localRepo, PullRequestUtils.targetHash(pr, localRepo), additionalConfiguration);
         }
         if (conf.isEmpty()) {
-            throw new RuntimeException("Failed to parse jcheck configuration at: " + pr.targetHash() + " with extra: " + additionalConfiguration);
+            throw new RuntimeException("Failed to parse jcheck configuration at: " + PullRequestUtils.targetHash(pr, localRepo) + " with extra: " + additionalConfiguration);
         }
         try (var issues = JCheck.check(localRepo, censusInstance.census(), CommitMessageParsers.v1, localHash,
                                        conf.get())) {
@@ -180,8 +180,8 @@ public class CheckablePullRequest {
 
     private List<CommitMetadata> divergingCommits(Hash commitHash) {
         try {
-            var updatedBase = localRepo.mergeBase(pr.targetHash(), commitHash);
-            return localRepo.commitMetadata(updatedBase, pr.targetHash());
+            var updatedBase = localRepo.mergeBase(PullRequestUtils.targetHash(pr, localRepo), commitHash);
+            return localRepo.commitMetadata(updatedBase, PullRequestUtils.targetHash(pr, localRepo));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -206,7 +206,7 @@ public class CheckablePullRequest {
                             .forEach(c -> reply.println(" * " + c.hash().hex() + ": " + c.message().get(0)));
             if (divergingCommits.size() > 10) {
                 try {
-                    var baseHash = localRepo.mergeBase(pr.targetHash(), pr.headHash());
+                    var baseHash = localRepo.mergeBase(PullRequestUtils.targetHash(pr, localRepo), pr.headHash());
                     reply.println(" * ... and " + (divergingCommits.size() - 10) + " more: " +
                                           pr.repository().webUrl(baseHash.hex(), pr.targetRef()));
                 } catch (IOException e) {
@@ -219,11 +219,11 @@ public class CheckablePullRequest {
                 localRepo.checkout(pr.headHash(), true);
                 Hash hash;
                 try {
-                    localRepo.merge(pr.targetHash());
+                    localRepo.merge(PullRequestUtils.targetHash(pr, localRepo));
                     hash = localRepo.commit("Automatic merge with latest target", "duke", "duke@openjdk.org");
                 } catch (IOException e) {
                     localRepo.abortMerge();
-                    localRepo.rebase(pr.targetHash(), "duke", "duke@openjdk.org");
+                    localRepo.rebase(PullRequestUtils.targetHash(pr, localRepo), "duke", "duke@openjdk.org");
                     hash = localRepo.head();
                 }
                 reply.println();

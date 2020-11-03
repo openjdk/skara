@@ -56,7 +56,7 @@ class ArchiveItem {
         }
 
         try {
-            localRepo.merge(pr.targetHash());
+            localRepo.merge(PullRequestUtils.targetHash(pr, localRepo));
             // No problem means no conflict
             return Optional.empty();
         } catch (IOException e) {
