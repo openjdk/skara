@@ -55,13 +55,14 @@ public class WhitespaceCheck extends CommitCheck {
                             var tabIndex = line.indexOf('\t');
                             var crIndex = line.indexOf('\r');
                             var ignoreTab = tabPattern.matcher(path.toString()).matches();
-                            if ((tabIndex >= 0 && !ignoreTab) || crIndex >= 0 || line.endsWith(" ")) {
+                            if ((tabIndex >= 0 && !ignoreTab) || crIndex >= 0
+                                    || line.endsWith(" ") || line.endsWith("\t")) {
                                 var errors = new ArrayList<WhitespaceIssue.Error>();
                                 var trailing = true;
                                 for (var index = line.length() - 1; index >= 0; index--) {
-                                    if (line.charAt(index) == ' ' && trailing) {
+                                    if ((line.charAt(index) == ' ' || line.charAt(index) == '\t') && trailing) {
                                         errors.add(WhitespaceIssue.trailing(index));
-                                    } else if (line.charAt(index) == '\t') {
+                                    } else if (line.charAt(index) == '\t'  && !ignoreTab) {
                                         errors.add(WhitespaceIssue.tab(index));
                                     } else if (line.charAt(index) == '\r') {
                                         errors.add(WhitespaceIssue.cr(index));
