@@ -29,19 +29,19 @@ public class WhitespaceConfiguration {
         new WhitespaceConfiguration(".*\\.cpp|.*\\.hpp|.*\\.c|.*\\.h|.*\\.java", "");
 
     private final String files;
-    private final String tabfiles;
+    private final String ignoreTabs;
 
-    WhitespaceConfiguration(String files, String tabfiles) {
+    WhitespaceConfiguration(String files, String ignoreTabs) {
         this.files = files;
-        this.tabfiles = tabfiles;
+        this.ignoreTabs = ignoreTabs;
     }
 
     public String files() {
         return files;
     }
 
-    public String tabfiles() {
-        return tabfiles;
+    public String ignoreTabs() {
+        return ignoreTabs;
     }
 
     static String name() {
@@ -54,7 +54,7 @@ public class WhitespaceConfiguration {
         }
 
         var files = s.get("files", DEFAULT.files());
-        var tabfiles = s.get("tabfiles", DEFAULT.tabfiles());
-        return new WhitespaceConfiguration(files, tabfiles);
+        var ignoreTabs = s.get("ignore-tabs", DEFAULT.ignoreTabs());
+        return new WhitespaceConfiguration(files, ignoreTabs);
     }
 }

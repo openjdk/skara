@@ -38,7 +38,7 @@ public class WhitespaceCheck extends CommitCheck {
         var metadata = CommitIssue.metadata(commit, message, conf, this);
         var issues = new ArrayList<Issue>();
         var pattern = Pattern.compile(conf.checks().whitespace().files());
-        var tabPattern = Pattern.compile(conf.checks().whitespace().tabfiles());
+        var tabPattern = Pattern.compile(conf.checks().whitespace().ignoreTabs());
 
         for (var diff : commit.parentDiffs()) {
             for (var patch : diff.patches()) {
