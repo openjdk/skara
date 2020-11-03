@@ -674,6 +674,8 @@ class CheckRun {
 
         for (var added : reviewTracker.newReviews().entrySet()) {
             var body = added.getValue() + "\n" +
+                    " ⚠️ Marking a PR as reviewed using the emoji buttons is deprecated and will not be supported in the near future. " +
+                    "Please use the `Approve` button instead!\n\n" +
                     "This PR has been reviewed by " +
                     formatReviewer(added.getKey().reviewer()) + " - " +
                     verdictToString(added.getKey().verdict()) + ".";

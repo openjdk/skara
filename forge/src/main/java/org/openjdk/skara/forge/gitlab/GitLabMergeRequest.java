@@ -32,7 +32,8 @@ import org.openjdk.skara.vcs.Hash;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.time.ZonedDateTime;
+import java.time.*;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -104,7 +105,30 @@ public class GitLabMergeRequest implements PullRequest {
             return List.of();
         }
 
-        return request.get("award_emoji").execute().stream()
+        var approvals = request.get("notes").execute().stream()
+                      .map(JSONValue::asObject)
+                      .filter(obj -> obj.get("system").asBoolean())
+                      .filter(obj -> obj.get("body").contains("approved this merge request"))
+                      .map(obj -> {
+                          var reviewerObj = obj.get("author").asObject();
+                          var reviewer = HostUser.create(reviewerObj.get("id").asInt(),
+                                                         reviewerObj.get("username").asString(),
+                                                         reviewerObj.get("name").asString());
+                          var verdict = obj.get("body").contains("unapproved") ? Review.Verdict.NONE : Review.Verdict.APPROVED;
+                          var createdAt = ZonedDateTime.parse(obj.get("created_at").asString());
+
+                          // Find the latest commit that isn't created after our review
+                          var hash = commits.get(0).hash;
+                          for (var cd : commits) {
+                              if (createdAt.isAfter(cd.date)) {
+                                  hash = cd.hash;
+                              }
+                          }
+                          var id = obj.get("id").asInt();
+                          return new Review(createdAt, reviewer, verdict, hash, id, "");
+                      });
+
+        var awardApprovals = request.get("award_emoji").execute().stream()
                       .map(JSONValue::asObject)
                       .filter(obj -> obj.get("name").asString().equals("thumbsup") ||
                               obj.get("name").asString().equals("thumbsdown") ||
@@ -135,8 +159,11 @@ public class GitLabMergeRequest implements PullRequest {
                           }
                           var id = obj.get("id").asInt();
                           return new Review(createdAt, reviewer.get(), verdict, hash, id, null);
-                      })
-                      .collect(Collectors.toList());
+                      });
+
+        return Stream.concat(approvals, awardApprovals)
+                     .sorted(Comparator.comparing(review -> review.createdAt().truncatedTo(ChronoUnit.MINUTES)))
+                     .collect(Collectors.toList());
     }
 
     @Override
