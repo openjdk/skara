@@ -210,8 +210,14 @@ public class HostedRepositoryPool {
     public Optional<List<String>> lines(HostedRepository hostedRepository, Path p, String ref) throws IOException {
         var hostedRepositoryInstance = new HostedRepositoryInstance(hostedRepository);
         var seedRepo = hostedRepositoryInstance.seedRepository(true);
-        var hash = seedRepo.resolve(ref).orElseThrow(() -> new IllegalArgumentException("Unknown ref: " + ref));
-        return seedRepo.lines(p, hash);
+        var hash = seedRepo.resolve(ref);
+        if (hash.isEmpty()) {
+            // It may fail because the seed is stale - need to refresh it now
+            fetchWithRetry(seedRepo, hostedRepository.url());
+            hash = seedRepo.resolve(ref);
+        }
+        var finalHash = hash.orElseThrow(() -> new IllegalArgumentException("Unknown ref: " + ref));
+        return seedRepo.lines(p, finalHash);
     }
 
     public Repository seedRepository(HostedRepository hostedRepository, boolean allowStale) throws IOException {
