@@ -158,7 +158,7 @@ class ReviewArchive {
                 } else {
                     throw new RuntimeException("PR " + pr.webUrl() + " has integrated label but no integration comment");
                 }
-            } else if (localRepo.isAncestor(pr.headHash(), pr.targetHash())) {
+            } else if (localRepo.isAncestor(pr.headHash(), PullRequestUtils.targetHash(pr, localRepo))) {
                 var commit = localRepo.lookup(pr.headHash());
                 var reply = ArchiveItem.integratedNotice(pr, localRepo, commit.orElseThrow(), hostUserToEmailAuthor, parent, subjectPrefix);
                 generated.add(reply);

@@ -46,7 +46,6 @@ public class GitLabMergeRequest implements PullRequest {
     private final GitLabRepository repository;
     private final GitLabHost host;
 
-    private Hash targetHash = null;
     private List<String> labels;
 
     GitLabMergeRequest(GitLabRepository repository, GitLabHost host, JSONValue jsonValue, RestRequest request) {
@@ -327,18 +326,7 @@ public class GitLabMergeRequest implements PullRequest {
     @Override
     public String targetRef() {
         var targetRef = json.get("target_branch").asString();
-        if (targetHash == null) {
-            // Read this value before returning, to ensure that future fetches of this ref contains the hash
-            targetHash = repository.branchHash(targetRef);
-        }
         return targetRef;
-    }
-
-    @Override
-    public Hash targetHash() {
-        // Ensure that the field is populated
-        targetRef();
-        return targetHash;
     }
 
     @Override
@@ -782,6 +770,7 @@ public class GitLabMergeRequest implements PullRequest {
     @Override
     public Diff diff() {
         var changes = request.get("changes").execute();
-        return repository.toDiff(targetHash(), headHash(), changes.get("changes"));
+        var targetHash = repository.branchHash(targetRef());
+        return repository.toDiff(targetHash, headHash(), changes.get("changes"));
     }
 }

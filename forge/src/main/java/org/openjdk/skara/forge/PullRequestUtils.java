@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 public class PullRequestUtils {
     private static Hash commitSquashed(PullRequest pr, Repository localRepo, Hash finalHead, Author author, Author committer, String commitMessage) throws IOException {
         return localRepo.commit(commitMessage, author.name(), author.email(), ZonedDateTime.now(),
-                                committer.name(), committer.email(), ZonedDateTime.now(), List.of(pr.targetHash()), localRepo.tree(finalHead));
+                                committer.name(), committer.email(), ZonedDateTime.now(), List.of(targetHash(pr, localRepo)), localRepo.tree(finalHead));
     }
 
     private final static Pattern mergeSourcePattern = Pattern.compile("^Merge ([-/\\w:]+)$");
@@ -113,7 +113,7 @@ public class PullRequestUtils {
 
         // Ensure that the source and the target are related
         try {
-            localRepo.mergeBase(pr.targetHash(), sourceHead);
+            localRepo.mergeBase(targetHash(pr, localRepo), sourceHead);
         } catch (IOException e) {
             throw new CommitFailure("The target and the source branches do not share common history - cannot merge them.");
         }
@@ -133,10 +133,14 @@ public class PullRequestUtils {
     private static Hash commitMerge(PullRequest pr, Repository localRepo, Hash finalHead, Author author, Author committer, String commitMessage) throws IOException, CommitFailure {
         var commits = localRepo.commitMetadata(baseHash(pr, localRepo), finalHead);
         var sourceHash = findSourceHash(pr, localRepo, commits);
-        var parents = List.of(localRepo.mergeBase(pr.targetHash(), finalHead), sourceHash);
+        var parents = List.of(localRepo.mergeBase(targetHash(pr, localRepo), finalHead), sourceHash);
 
         return localRepo.commit(commitMessage, author.name(), author.email(), ZonedDateTime.now(),
                 committer.name(), committer.email(), ZonedDateTime.now(), parents, localRepo.tree(finalHead));
+    }
+
+    public static Hash targetHash(PullRequest pr, Repository localRepo) throws IOException {
+        return localRepo.resolve("prutils_targetref").orElseThrow(() -> new IllegalStateException("Must materialize PR first"));
     }
 
     public static Repository materialize(HostedRepositoryPool hostedRepositoryPool, PullRequest pr, Path path) throws IOException {
@@ -161,7 +165,7 @@ public class PullRequestUtils {
     }
 
     public static Hash baseHash(PullRequest pr, Repository localRepo) throws IOException {
-        return localRepo.mergeBase(pr.targetHash(), pr.headHash());
+        return localRepo.mergeBase(targetHash(pr, localRepo), pr.headHash());
     }
 
     public static Set<Path> changedFiles(PullRequest pr, Repository localRepo) throws IOException {
@@ -190,7 +194,7 @@ public class PullRequestUtils {
                                   .flatMap(commit -> commit.parents().stream().skip(1))
                                   .collect(Collectors.toList());
         for (var mergeParent : mergeParents) {
-            if (!localRepo.mergeBase(pr.targetHash(), mergeParent).equals(mergeParent)) {
+            if (!localRepo.mergeBase(targetHash(pr, localRepo), mergeParent).equals(mergeParent)) {
                 return true;
             }
         }

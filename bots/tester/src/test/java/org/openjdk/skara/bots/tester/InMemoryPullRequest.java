@@ -111,11 +111,6 @@ class InMemoryPullRequest implements PullRequest {
     }
 
     @Override
-    public Hash targetHash() {
-        return null;
-    }
-
-    @Override
     public String title() {
         return null;
     }

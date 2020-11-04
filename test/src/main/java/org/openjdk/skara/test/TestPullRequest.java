@@ -161,11 +161,6 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     }
 
     @Override
-    public Hash targetHash() {
-        return targetRepository.branchHash(data.targetRef);
-    }
-
-    @Override
     public Map<String, Check> checks(Hash hash) {
         return data.checks.stream()
                 .filter(check -> check.hash().equals(hash))
@@ -247,15 +242,16 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     @Override
     public Diff diff() {
         try {
+            var targetHash = targetRepository.branchHash(targetRef());
             var targetLocalRepository = targetRepository.localRepository();
             var sourceLocalRepository = sourceRepository.localRepository();
             if (targetLocalRepository.root().equals(sourceLocalRepository.root())) {
                 // same target and source repo, must contain both commits
-                return targetLocalRepository.diff(targetHash(), headHash());
+                return targetLocalRepository.diff(targetHash, headHash());
             } else {
                 var uri = URI.create("file://" + sourceLocalRepository.root().toString());
                 var fetchHead = targetLocalRepository.fetch(uri, sourceRef);
-                return targetLocalRepository.diff(targetHash(), fetchHead);
+                return targetLocalRepository.diff(targetHash, fetchHead);
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);

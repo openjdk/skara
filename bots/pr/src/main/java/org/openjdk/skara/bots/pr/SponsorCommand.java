@@ -97,9 +97,9 @@ public class SponsorCommand implements CommandHandler {
             var rebaseMessage = new StringWriter();
             if (!command.args().isBlank()) {
                 var wantedHash = new Hash(command.args());
-                if (!pr.targetHash().equals(wantedHash)) {
+                if (!PullRequestUtils.targetHash(pr, localRepo).equals(wantedHash)) {
                     reply.print("The head of the target branch is no longer at the requested hash " + wantedHash);
-                    reply.println(" - it has moved to " + pr.targetHash() + ". Aborting integration.");
+                    reply.println(" - it has moved to " + PullRequestUtils.targetHash(pr, localRepo) + ". Aborting integration.");
                     return;
                 }
             }
@@ -136,7 +136,7 @@ public class SponsorCommand implements CommandHandler {
                 return;
             }
 
-            if (!localHash.equals(pr.targetHash())) {
+            if (!localHash.equals(PullRequestUtils.targetHash(pr, localRepo))) {
                 var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
                 var finalRebaseMessage = rebaseMessage.toString();
                 if (!finalRebaseMessage.isBlank()) {

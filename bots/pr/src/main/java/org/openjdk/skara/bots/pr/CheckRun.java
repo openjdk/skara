@@ -699,7 +699,7 @@ class CheckRun {
 
         try {
             var hasContributingFile =
-                !localRepo.files(pr.targetHash(), Path.of("CONTRIBUTING.md")).isEmpty();
+                !localRepo.files(PullRequestUtils.targetHash(pr, localRepo), Path.of("CONTRIBUTING.md")).isEmpty();
             if (hasContributingFile) {
                 message.append("\n\nℹ️ This project also has non-automated pre-integration requirements. Please see the file ");
                 message.append("[CONTRIBUTING.md](https://github.com/");
