@@ -107,13 +107,13 @@ public class GitLabMergeRequest implements PullRequest {
         var approvals = request.get("notes").execute().stream()
                       .map(JSONValue::asObject)
                       .filter(obj -> obj.get("system").asBoolean())
-                      .filter(obj -> obj.get("body").contains("approved this merge request"))
+                      .filter(obj -> obj.get("body").asString().contains("approved this merge request"))
                       .map(obj -> {
                           var reviewerObj = obj.get("author").asObject();
                           var reviewer = HostUser.create(reviewerObj.get("id").asInt(),
                                                          reviewerObj.get("username").asString(),
                                                          reviewerObj.get("name").asString());
-                          var verdict = obj.get("body").contains("unapproved") ? Review.Verdict.NONE : Review.Verdict.APPROVED;
+                          var verdict = obj.get("body").asString().contains("unapproved") ? Review.Verdict.NONE : Review.Verdict.APPROVED;
                           var createdAt = ZonedDateTime.parse(obj.get("created_at").asString());
 
                           // Find the latest commit that isn't created after our review
