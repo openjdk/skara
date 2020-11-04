@@ -146,13 +146,15 @@ class PullRequestBot implements Bot {
     private boolean checkHasExpired(PullRequest pr) {
         var expiresAt = scheduledRechecks.get(pr.webUrl().toString());
         if (expiresAt != null && Instant.now().isAfter(expiresAt)) {
-            log.info("Check metadata has expired (expired at: " + expiresAt + ")");
+            log.info("Check metadata has expired (expired at: " + expiresAt + ") for PR #" + pr.id());
+            scheduledRechecks.remove(pr.webUrl().toString());
             return true;
         }
         return false;
     }
 
     void scheduleRecheckAt(PullRequest pr, Instant expiresAt) {
+        log.info("Setting check metadata expiration to: " + expiresAt + " for PR #" + pr.id());
         scheduledRechecks.put(pr.webUrl().toString(), expiresAt);
     }
 
