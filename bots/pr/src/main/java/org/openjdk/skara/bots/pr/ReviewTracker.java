@@ -48,8 +48,12 @@ class ReviewTracker {
             }
         }
 
-        // Find all reviews without a comment
+        // Find all reviews without a body and a comment
         for (var review : reviews) {
+            if (review.body().isPresent()) {
+                // Ignore these
+                continue;
+            }
             // Not notified yet
             if (!notified.contains(review.id())) {
                 newComments.put(review, String.format(reviewMarker, review.id()));
