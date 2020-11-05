@@ -139,10 +139,6 @@ public class IssueCommand implements CommandHandler {
                     reply.println("The issue `" + issue.shortId() + "` was not found in the `" + bot.issueProject().name() + "` project - make sure you have entered it correctly.");
                     continue;
                 }
-                if (validatedIssue.get().state() != org.openjdk.skara.issuetracker.Issue.State.OPEN) {
-                    reply.println("The issue [" + validatedIssue.get().id() + "](" + validatedIssue.get().webUrl() + ") isn't open - make sure you have selected the correct issue.");
-                    continue;
-                }
                 if (issue.description() == null) {
                     validatedIssues.add(new Issue(validatedIssue.get().id(), validatedIssue.get().title()));
                 } else {
