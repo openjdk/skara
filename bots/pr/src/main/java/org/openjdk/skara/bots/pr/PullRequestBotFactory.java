@@ -56,6 +56,14 @@ public class PullRequestBotFactory implements BotFactory {
             }
         }
 
+        var forks = new HashMap<String, HostedRepository>();
+        if (specific.contains("forks")) {
+            for (var fork : specific.get("forks").asArray()) {
+                var repo = configuration.repository(fork.asString());
+                forks.put(repo.name(), repo);
+            }
+        }
+
         var readyLabels = specific.get("ready").get("labels").stream()
                                   .map(JSONValue::asString)
                                   .collect(Collectors.toSet());
@@ -89,7 +97,8 @@ public class PullRequestBotFactory implements BotFactory {
                                            .readyLabels(readyLabels)
                                            .readyComments(readyComments)
                                            .externalCommands(external)
-                                           .seedStorage(configuration.storageFolder().resolve("seeds"));
+                                           .seedStorage(configuration.storageFolder().resolve("seeds"))
+                                           .forks(forks);
 
             if (repo.value().contains("labels")) {
                 var labelGroup = repo.value().get("labels").asString();

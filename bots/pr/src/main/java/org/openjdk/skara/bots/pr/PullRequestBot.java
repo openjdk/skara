@@ -62,6 +62,7 @@ class PullRequestBot implements Bot {
     private final ConcurrentMap<Hash, Boolean> currentLabels;
     private final ConcurrentHashMap<String, Instant> scheduledRechecks;
     private final PullRequestUpdateCache updateCache;
+    private final Map<String, HostedRepository> forks;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     private Instant lastFullUpdate;
@@ -74,7 +75,8 @@ class PullRequestBot implements Bot {
                    Map<String, Pattern> readyComments, IssueProject issueProject,
                    boolean ignoreStaleReviews, Pattern allowedTargetBranches,
                    Path seedStorage, HostedRepository confOverrideRepo, String confOverrideName,
-                   String confOverrideRef, String censusLink, List<HostUser> commitCommandUsers) {
+                   String confOverrideRef, String censusLink, List<HostUser> commitCommandUsers,
+                   Map<String, HostedRepository> forks) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -97,6 +99,7 @@ class PullRequestBot implements Bot {
         this.commitCommandUsers = commitCommandUsers.stream()
                                                     .map(HostUser::id)
                                                     .collect(Collectors.toSet());
+        this.forks = forks;
 
         currentLabels = new ConcurrentHashMap<>();
         scheduledRechecks = new ConcurrentHashMap<>();
@@ -271,6 +274,10 @@ class PullRequestBot implements Bot {
         return Optional.ofNullable(seedStorage);
     }
 
+    Optional<HostedRepositoryPool> hostedRepositoryPool() {
+        return seedStorage().map(path -> new HostedRepositoryPool(path));
+    }
+
     Optional<HostedRepository> confOverrideRepository() {
         return Optional.ofNullable(confOverrideRepo);
     }
@@ -288,5 +295,13 @@ class PullRequestBot implements Bot {
             return Optional.empty();
         }
         return Optional.of(URI.create(censusLink.replace("{{contributor}}", contributor.username())));
+    }
+
+    HostedRepository writeableForkOf(HostedRepository upstream) {
+        var fork = forks.get(upstream.name());
+        if (fork == null) {
+            throw new IllegalArgumentException("No writeable fork for " + upstream.name());
+        }
+        return fork;
     }
 }
