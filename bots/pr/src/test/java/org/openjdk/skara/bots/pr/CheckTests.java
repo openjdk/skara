@@ -1442,14 +1442,13 @@ class CheckTests {
                                            .addAuthor(author.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
             var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build())
-                                         .allowedIssueTypes(Set.of("Bug"))
                                          .issueProject(issues)
                                          .build();
 
             var bug = issues.createIssue("My first bug", List.of("A bug"),
                                          Map.of("issuetype", JSON.of("Bug")));
             var feature = issues.createIssue("My first feature", List.of("A feature"),
-                                             Map.of("issuetype", JSON.of("Enhancement")));
+                                             Map.of("issuetype", JSON.of("Backport")));
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -1479,18 +1478,10 @@ class CheckTests {
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
-
-            // Verify that the check failed for the feature PR
-            var featureChecks = featurePR.checks(featureHash);
-            assertEquals(1, featureChecks.size());
-            var featureCheck = featureChecks.get("jcheck");
-            assertEquals(CheckStatus.FAILURE, featureCheck.status());
-            var link = "[" + feature.id() + "](" + feature.webUrl() + ")";
-            assertTrue(featureCheck.summary()
-                                   .orElseThrow()
-                                   .contains("The issue " + link + " is not of the expected type. " +
-                                             "The allowed issue types are:\n" +
-                                             "   - Bug\n"));
+            assertTrue(featurePR.body().contains(feature.id()));
+            assertTrue(featurePR.body().contains("My first feature"));
+            assertTrue(featurePR.body().contains("## Issue\n"));
+            assertTrue(featurePR.body().contains("Unexpected issue type"));
         }
     }
 

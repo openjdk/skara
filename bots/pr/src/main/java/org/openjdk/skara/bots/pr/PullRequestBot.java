@@ -52,7 +52,6 @@ class PullRequestBot implements Bot {
     private final Map<String, Pattern> readyComments;
     private final IssueProject issueProject;
     private final boolean ignoreStaleReviews;
-    private final Set<String> allowedIssueTypes;
     private final Pattern allowedTargetBranches;
     private final Path seedStorage;
     private final HostedRepository confOverrideRepo;
@@ -73,7 +72,7 @@ class PullRequestBot implements Bot {
                    Map<String, String> blockingCheckLabels, Set<String> readyLabels,
                    Set<String> twoReviewersLabels, Set<String> twentyFourHoursLabels,
                    Map<String, Pattern> readyComments, IssueProject issueProject,
-                   boolean ignoreStaleReviews, Set<String> allowedIssueTypes, Pattern allowedTargetBranches,
+                   boolean ignoreStaleReviews, Pattern allowedTargetBranches,
                    Path seedStorage, HostedRepository confOverrideRepo, String confOverrideName,
                    String confOverrideRef, String censusLink, List<HostUser> commitCommandUsers) {
         remoteRepo = repo;
@@ -88,7 +87,6 @@ class PullRequestBot implements Bot {
         this.issueProject = issueProject;
         this.readyComments = readyComments;
         this.ignoreStaleReviews = ignoreStaleReviews;
-        this.allowedIssueTypes = allowedIssueTypes;
         this.allowedTargetBranches = allowedTargetBranches;
         this.seedStorage = seedStorage;
         this.confOverrideRepo = confOverrideRepo;
@@ -263,10 +261,6 @@ class PullRequestBot implements Bot {
 
     boolean ignoreStaleReviews() {
         return ignoreStaleReviews;
-    }
-
-    Set<String> allowedIssueTypes() {
-        return allowedIssueTypes;
     }
 
     Pattern allowedTargetBranches() {

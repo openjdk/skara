@@ -62,6 +62,7 @@ class CheckRun {
             "If in doubt, feel free to delete everything in this edit box first, the bot will restore the progress section as needed.\n-->";
     private static final String fullNameWarningMarker = "<!-- PullRequestBot full name warning comment -->";
     private static final Pattern BACKPORT_PATTERN = Pattern.compile("<!-- backport ([0-9a-z]{40}) -->");
+    private final static Set<String> primaryTypes = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
     private final Set<String> newLabels;
 
     private Duration expiresIn;
@@ -107,10 +108,6 @@ class CheckRun {
         return matcher.matches();
     }
 
-    private Set<String> allowedIssueTypes() {
-        return workItem.bot.allowedIssueTypes();
-    }
-
     private List<Issue> issues() {
         var issue = Issue.fromStringRelaxed(pr.title());
         if (issue.isPresent()) {
@@ -124,22 +121,6 @@ class CheckRun {
 
     private IssueProject issueProject() {
         return workItem.bot.issueProject();
-    }
-
-    private List<org.openjdk.skara.issuetracker.Issue> issuesOfDisallowedType() {
-        var issueProject = issueProject();
-        var allowed = allowedIssueTypes();
-        if (issueProject != null && allowed != null) {
-            return issues().stream()
-                           .filter(i -> i.project().equals(Optional.of(issueProject.name())))
-                           .map(i -> issueProject.issue(i.shortId()))
-                           .filter(Optional::isPresent)
-                           .map(Optional::get)
-                           .filter(i -> i.properties().containsKey("issuetype"))
-                           .filter(i -> !allowed.contains(i.properties().get("issuetype").asString()))
-                           .collect(Collectors.toList());
-        }
-        return List.of();
     }
 
     private List<String> allowedTargetBranches() {
@@ -168,20 +149,6 @@ class CheckRun {
                     allowedTargetBranches().stream()
                     .map(name -> "   - " + name)
                     .collect(Collectors.joining("\n"));
-            ret.add(error);
-        }
-
-        var disallowedIssues = issuesOfDisallowedType();
-        if (!disallowedIssues.isEmpty()) {
-            var s = disallowedIssues.size() > 1 ? "s " : " ";
-            var are = disallowedIssues.size() > 1 ? "are" : "is";
-            var links = disallowedIssues.stream()
-                                        .map(i -> "[" + i.id() + "](" + i.webUrl() + ")")
-                                        .collect(Collectors.toList());
-            var error = "The issue" + s + String.join(",", links) + " " + are + " not of the expected type. The allowed issue types are:\n" +
-                allowedIssueTypes().stream()
-                .map(name -> "   - " + name)
-                .collect(Collectors.joining("\n"));
             ret.add(error);
         }
 
@@ -577,6 +544,7 @@ class CheckRun {
                     try {
                         var iss = issueProject.issue(currentIssue.shortId());
                         if (iss.isPresent()) {
+                            var properties = iss.get().properties();
                             progressBody.append("[");
                             progressBody.append(iss.get().id());
                             progressBody.append("](");
@@ -592,6 +560,10 @@ class CheckRun {
                                     progressBody.append(" ⚠️ Issue is not open.");
                                 }
                                 continue;
+                            }
+                            if (properties.containsKey("issuetype") && !primaryTypes.contains(properties.get("issuetype").asString())) {
+                                progressBody.append(" ⚠️ Unexpected issue type `").append(properties.get("issuetype").asString()).append("`.");
+                                setExpiration(Duration.ofMinutes(10));
                             }
                             progressBody.append("\n");
                         } else {
