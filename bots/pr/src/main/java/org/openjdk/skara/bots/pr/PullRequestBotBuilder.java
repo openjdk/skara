@@ -45,7 +45,6 @@ public class PullRequestBotBuilder {
     private Map<String, Pattern> readyComments = Map.of();
     private IssueProject issueProject = null;
     private boolean ignoreStaleReviews = false;
-    private Set<String> allowedIssueTypes = null;
     private Pattern allowedTargetBranches = Pattern.compile(".*");
     private Path seedStorage = null;
     private HostedRepository confOverrideRepo = null;
@@ -117,11 +116,6 @@ public class PullRequestBotBuilder {
         return this;
     }
 
-    public PullRequestBotBuilder allowedIssueTypes(Set<String> allowedIssueTypes) {
-        this.allowedIssueTypes = allowedIssueTypes;
-        return this;
-    }
-
     public PullRequestBotBuilder allowedTargetBranches(String allowedTargetBranches) {
         this.allowedTargetBranches = Pattern.compile(allowedTargetBranches);
         return this;
@@ -160,7 +154,7 @@ public class PullRequestBotBuilder {
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration, externalCommands,
                                   blockingCheckLabels, readyLabels, twoReviewersLabels, twentyFourHoursLabels,
-                                  readyComments, issueProject, ignoreStaleReviews, allowedIssueTypes,
+                                  readyComments, issueProject, ignoreStaleReviews,
                                   allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,
                                   confOverrideRef, censusLink, commitCommandUsers);
     }
