@@ -587,6 +587,12 @@ class CheckRun {
                                 progressBody.append(" ⚠️ Title mismatch between PR and JBS.");
                                 setExpiration(Duration.ofMinutes(10));
                             }
+                            if (iss.get().state() != org.openjdk.skara.issuetracker.Issue.State.OPEN) {
+                                if (!pr.labels().contains("backport")) {
+                                    progressBody.append(" ⚠️ Issue is not open.");
+                                }
+                                continue;
+                            }
                             progressBody.append("\n");
                         } else {
                             progressBody.append("⚠️ Failed to retrieve information on issue `");

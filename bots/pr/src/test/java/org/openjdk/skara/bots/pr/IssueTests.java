@@ -385,6 +385,77 @@ class IssueTests {
         }
     }
 
+    @Test
+    void closedIssue(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).issueProject(issues).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var issue1 = issues.createIssue("First", List.of("Hello"), Map.of());
+            issue1.setState(Issue.State.RESOLVED);
+            var pr = credentials.createPullRequest(author, "master", "edit",
+                                                   issue1.id() + ": This is a pull request");
+
+            // First check
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.body().contains(issue1.id()));
+            assertTrue(pr.body().contains("First"));
+            assertTrue(pr.body().contains("## Issue\n"));
+            assertTrue(pr.body().contains("Issue is not open"));
+        }
+    }
+
+    @Test
+    void closedIssueBackport(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).issueProject(issues).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var issue1 = issues.createIssue("First", List.of("Hello"), Map.of());
+            issue1.setState(Issue.State.RESOLVED);
+            var pr = credentials.createPullRequest(author, "master", "edit",
+                                                   issue1.id() + ": This is a pull request");
+            pr.addLabel("backport");
+
+            // First check
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.body().contains(issue1.id()));
+            assertTrue(pr.body().contains("First"));
+            assertTrue(pr.body().contains("## Issue\n"));
+            assertFalse(pr.body().contains("Issue is not open"));
+        }
+    }
+
     private static final Pattern addedIssuePattern = Pattern.compile("`(.*)` was successfully created", Pattern.MULTILINE);
 
     private static Issue issueFromLastComment(PullRequest pr, IssueProject issueProject) {
