@@ -300,7 +300,7 @@ public class GitLabRepository implements HostedRepository {
        // GitLab does not offer an id for commit comments
        var body = o.get("note").asString();
        var user = gitLabHost.parseAuthorField(o);
-       var id = Integer.toString(Objects.hash(createdAt.toString(), body, user.id()));
+       var id = Integer.toString((hash.hex() + createdAt.toString() + user.id()).hashCode());
        return new CommitComment(hash,
                                 path,
                                 line,
