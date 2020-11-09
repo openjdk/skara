@@ -360,11 +360,12 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public void addCommitComment(Hash hash, String body) {
+    public CommitComment addCommitComment(Hash hash, String body) {
         var query = JSON.object().put("body", body);
-        request.post("commits/" + hash.hex() + "/comments")
-               .body(query)
-               .execute();
+        var result = request.post("commits/" + hash.hex() + "/comments")
+                            .body(query)
+                            .execute();
+        return toCommitComment(result);
     }
 
     @Override

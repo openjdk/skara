@@ -221,7 +221,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public void addCommitComment(Hash hash, String body) {
+    public CommitComment addCommitComment(Hash hash, String body) {
         var id = nextCommitCommentId;
         nextCommitCommentId += 1;
         var createdAt = ZonedDateTime.now();
@@ -230,7 +230,9 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
             commitComments.put(hash, new ArrayList<>());
         }
         var comments = commitComments.get(hash);
-        comments.add(new CommitComment(hash, null, -1, Integer.toString(id), body, host.currentUser(), createdAt, createdAt));
+        var comment = new CommitComment(hash, null, -1, Integer.toString(id), body, host.currentUser(), createdAt, createdAt);
+        comments.add(comment);
+        return comment;
     }
 
     @Override
