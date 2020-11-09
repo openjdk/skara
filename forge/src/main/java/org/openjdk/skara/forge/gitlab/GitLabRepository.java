@@ -298,12 +298,14 @@ public class GitLabRepository implements HostedRepository {
        // GitLab does not offer updated_at for commit comments
        var createdAt = ZonedDateTime.parse(o.get("created_at").asString());
        // GitLab does not offer an id for commit comments
-       var id = "";
+       var body = o.get("note").asString();
+       var user = gitLabHost.parseAuthorField(o);
+       var id = Integer.toString((hash.hex() + createdAt.toString() + user.id()).hashCode());
        return new CommitComment(hash,
                                 path,
                                 line,
                                 id,
-                                o.get("note").asString(),
+                                body,
                                 gitLabHost.parseAuthorField(o),
                                 createdAt,
                                 createdAt);
@@ -381,11 +383,12 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public void addCommitComment(Hash hash, String body) {
+    public CommitComment addCommitComment(Hash hash, String body) {
         var query = JSON.object().put("note", body);
-        request.post("repository/commits/" + hash.hex() + "/comments")
-               .body(query)
-               .execute();
+        var result = request.post("repository/commits/" + hash.hex() + "/comments")
+                            .body(query)
+                            .execute();
+        return toCommitComment(hash, result);
     }
 
     @Override

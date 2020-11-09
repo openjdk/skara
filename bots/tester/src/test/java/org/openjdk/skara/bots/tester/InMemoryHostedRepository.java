@@ -157,7 +157,8 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
-    public void addCommitComment(Hash commit, String body) {
+    public CommitComment addCommitComment(Hash commit, String body) {
+        return null;
     }
 
     @Override
