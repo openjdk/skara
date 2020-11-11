@@ -39,7 +39,7 @@ public class MergeMessageCheck extends CommitCheck {
         }
 
         var pattern = Pattern.compile(conf.checks().merge().message());
-        if (commit.message().size() != 1 || !pattern.matcher(commit.message().get(0)).matches()) {
+        if (!message.issues().isEmpty() || message.original().isPresent() || !pattern.matcher(message.title()).matches()) {
             var metadata = CommitIssue.metadata(commit, message, conf, this);
             log.finer("issue: wrong merge message");
             return iterator(new MergeMessageIssue(pattern.toString(), metadata));

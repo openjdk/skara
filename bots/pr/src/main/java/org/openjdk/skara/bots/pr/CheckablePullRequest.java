@@ -32,6 +32,7 @@ import org.openjdk.skara.vcs.openjdk.Issue;
 
 import java.io.*;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class CheckablePullRequest {
@@ -53,10 +54,7 @@ public class CheckablePullRequest {
         }
     }
 
-    private String commitMessage(List<Review> activeReviews, Namespace namespace, boolean manualReviewers) throws IOException {
-        return commitMessage(activeReviews, namespace, manualReviewers, null);
-    }
-    private String commitMessage(List<Review> activeReviews, Namespace namespace, boolean manualReviewers, Hash original) throws IOException {
+    private String commitMessage(Hash head, List<Review> activeReviews, Namespace namespace, boolean manualReviewers, Hash original) throws IOException {
         var eligibleReviews = activeReviews.stream()
                                            .filter(review -> !ignoreStaleReviews || review.hash().equals(pr.headHash()))
                                            .filter(review -> review.verdict() == Review.Verdict.APPROVED)
@@ -82,16 +80,39 @@ public class CheckablePullRequest {
 
         var additionalIssues = SolvesTracker.currentSolved(currentUser, comments);
         var summary = Summary.summary(currentUser, comments);
-        var issue = Issue.fromStringRelaxed(pr.title());
-        var commitMessageBuilder = issue.map(CommitMessage::title).orElseGet(() -> CommitMessage.title(pr.title()));
-        if (issue.isPresent()) {
-            commitMessageBuilder.issues(additionalIssues);
+        CommitMessageBuilder commitMessageBuilder;
+        if (PullRequestUtils.isMerge(pr)) {
+            var conf = JCheckConfiguration.from(localRepo, head);
+            var title = pr.title();
+            if (conf.isPresent() && !conf.get().checks().enabled(List.of(new MergeMessageCheck())).isEmpty()) {
+                var mergeConf = conf.get().checks().merge();
+                var pattern = Pattern.compile(mergeConf.message());
+                while (true)  {
+                    var matcher = pattern.matcher(title);
+                    if (matcher.matches()) {
+                        break;
+                    } else {
+                        if (title.length() > 1) {
+                            title = title.substring(0, title.length() - 1);
+                        } else {
+                            throw new RuntimeException("Unable to make merge PR title '" + pr.title() + "' conform to '" + mergeConf.message() + "'");
+                        }
+                    }
+                }
+            }
+            commitMessageBuilder = CommitMessage.title(title);
+        } else {
+            var issue = Issue.fromStringRelaxed(pr.title());
+            commitMessageBuilder = issue.map(CommitMessage::title).orElseGet(() -> CommitMessage.title(pr.title()));
+            if (issue.isPresent()) {
+                commitMessageBuilder.issues(additionalIssues);
+            }
+            if (original != null) {
+                commitMessageBuilder.original(original);
+            }
         }
         commitMessageBuilder.contributors(additionalContributors)
                             .reviewers(new ArrayList<>(reviewers));
-        if (original != null) {
-            commitMessageBuilder.original(original);
-        }
         summary.ifPresent(commitMessageBuilder::summary);
 
         return String.join("\n", commitMessageBuilder.format(CommitMessageFormatters.v1));
@@ -135,14 +156,14 @@ public class CheckablePullRequest {
         }
 
         var activeReviews = filterActiveReviews(pr.reviews());
-        var commitMessage = commitMessage(activeReviews, namespace, false, original);
+        var commitMessage = commitMessage(finalHead, activeReviews, namespace, false, original);
         return PullRequestUtils.createCommit(pr, localRepo, finalHead, author, committer, commitMessage);
     }
 
     Hash amendManualReviewers(Hash commit, Namespace namespace, Hash original) throws IOException {
         var activeReviews = filterActiveReviews(pr.reviews());
-        var originalCommitMessage = commitMessage(activeReviews, namespace, false, original);
-        var amendedCommitMessage = commitMessage(activeReviews, namespace, true, original);
+        var originalCommitMessage = commitMessage(commit, activeReviews, namespace, false, original);
+        var amendedCommitMessage = commitMessage(commit, activeReviews, namespace, true, original);
 
         if (originalCommitMessage.equals(amendedCommitMessage)) {
             return commit;

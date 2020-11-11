@@ -22,21 +22,15 @@
  */
 package org.openjdk.skara.jcheck;
 
-import org.openjdk.skara.vcs.Author;
-import org.openjdk.skara.vcs.Commit;
-import org.openjdk.skara.vcs.CommitMetadata;
-import org.openjdk.skara.vcs.Hash;
-import org.openjdk.skara.vcs.openjdk.CommitMessage;
-import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
-
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
+import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.vcs.openjdk.*;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.ArrayList;
-import java.time.ZonedDateTime;
 import java.io.IOException;
+import java.time.ZonedDateTime;
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 class MergeMessageCheckTests {
     private static final List<String> CONFIGURATION = List.of(
@@ -94,14 +88,13 @@ class MergeMessageCheckTests {
     }
 
     @Test
-    void multiLineMessageShouldFail() throws IOException {
+    void multiLineMessageShouldWork() throws IOException {
         var commit = commit(List.of("Merge", "", "This is a summary"));
         var message = message(commit);
         var check = new MergeMessageCheck();
         var issues = toList(check.check(commit, message, conf(), null));
 
-        assertEquals(1, issues.size());
-        assertTrue(issues.get(0) instanceof MergeMessageIssue);
+        assertEquals(List.of(), issues);
     }
 
     @Test
