@@ -247,15 +247,8 @@ class CheckRun {
         }
     }
 
-    private boolean updateClean(Hash hash) {
-        var result = pr.repository().forge().search(hash);
-        if (result.isEmpty()) {
-            throw new IllegalStateException("Backport comment for PR " + pr.id() + " contains bad hash: " + hash.hex());
-        }
-
+    private boolean updateClean(Commit commit) {
         var hasCleanLabel = labels.contains("clean");
-
-        var commit = result.get();
         var originalPatches = new HashMap<String, Patch>();
         for (var patch : commit.parentDiffs().get(0).patches()) {
             originalPatches.put(patch.toString(), patch);
@@ -344,7 +337,7 @@ class CheckRun {
         return true;
     }
 
-    private Optional<Hash> backportedFrom() {
+    private Optional<HostedCommit> backportedFrom() {
         var botUser = pr.repository().forge().currentUser();
         var backportLines = pr.comments()
                               .stream()
@@ -353,8 +346,16 @@ class CheckRun {
                               .map(l -> BACKPORT_PATTERN.matcher(l))
                               .filter(Matcher::find)
                               .collect(Collectors.toList());
-        return backportLines.isEmpty()?
-            Optional.empty() : Optional.of(new Hash(backportLines.get(0).group(1)));
+        if (backportLines.isEmpty()) {
+            return Optional.empty();
+        }
+
+        var hash = new Hash(backportLines.get(0).group(1));
+        var commit = pr.repository().forge().search(hash);
+        if (commit.isEmpty()) {
+            throw new IllegalStateException("Backport comment for PR " + pr.id() + " contains bad hash: " + hash.hex());
+        }
+        return commit;
     }
 
     private String getRole(String username) {
@@ -983,7 +984,7 @@ class CheckRun {
                 updateReviewedMessages(comments, allReviews);
             }
 
-            var amendedHash = checkablePullRequest.amendManualReviewers(localHash, censusInstance.namespace(), original.orElse(null));
+            var amendedHash = checkablePullRequest.amendManualReviewers(localHash, censusInstance.namespace(), original.map(Commit::hash).orElse(null));
             var commit = localRepo.lookup(amendedHash).orElseThrow();
             var commitMessage = String.join("\n", commit.message());
             var readyForIntegration = visitor.messages().isEmpty() &&
