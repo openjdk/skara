@@ -138,6 +138,7 @@ public class BackportsTests {
             issue.setProperty("issuetype", JSON.of("Bug"));
             var backport = credentials.createIssue(issueProject, "Backport");
             backport.setProperty("issuetype", JSON.of("Backport"));
+            backport.setState(Issue.State.RESOLVED);
             issue.addLink(Link.create(backport, "backported by").build());
 
             issue.setProperty("fixVersions", JSON.array().add("11-pool"));
@@ -167,7 +168,13 @@ public class BackportsTests {
         private final IssueProject issueProject;
         private final List<Issue> issues;
 
-        private void setVersion(Issue issue, String version) {
+        private void setState(Issue issue, String version) {
+            if (version.endsWith("#open")) {
+                version = version.substring(0, version.length() - 5);
+            } else {
+                issue.setState(Issue.State.RESOLVED);
+            }
+
             var resolvedInBuild = "";
             if (version.contains("/")) {
                 resolvedInBuild = version.split("/", 2)[1];
@@ -186,14 +193,14 @@ public class BackportsTests {
 
             issues.add(credentials.createIssue(issueProject, "Main issue"));
             issues.get(0).setProperty("issuetype", JSON.of("Bug"));
-            setVersion(issues.get(0), initialVersion);
+            setState(issues.get(0), initialVersion);
         }
 
         void addBackports(String... versions) {
             for (int backportIndex = 0; backportIndex < versions.length; ++backportIndex) {
                 var issue = credentials.createIssue(issueProject, "Backport issue " + backportIndex);
                 issue.setProperty("issuetype", JSON.of("Backport"));
-                setVersion(issue, versions[backportIndex]);
+                setState(issue, versions[backportIndex]);
                 issues.get(0).addLink(Link.create(issue, "backported by").build());
                 issues.add(issue);
             }
@@ -405,6 +412,28 @@ public class BackportsTests {
 
             backports.addBackports("11.0.3.0.1-oracle");
             backports.assertLabeled("11.0.4.0.1-oracle", "11.0.6-oracle", "11.0.5.0.1-oracle", "11.0.5-oracle", "11.0.5");
+        }
+    }
+
+    @Test
+    void labelTest8255226_1(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "16");
+            backports.assertLabeled();
+
+            backports.addBackports("15-pool", "11-pool", "8-pool", "7-pool");
+            backports.assertLabeled("16", "15-pool");
+        }
+    }
+
+    @Test
+    void labelTest8255226_2(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "16");
+            backports.assertLabeled();
+
+            backports.addBackports("15-pool#open", "11-pool#open", "8-pool#open", "7-pool#open");
+            backports.assertLabeled();
         }
     }
 }
