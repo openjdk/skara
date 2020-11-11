@@ -248,93 +248,17 @@ class CheckRun {
     }
 
     private boolean updateClean(Commit commit) {
+        var backportDiff = commit.parentDiffs().get(0);
+        var prDiff = pr.diff();
+        var isClean = DiffComparator.areFuzzyEqual(backportDiff, prDiff);
         var hasCleanLabel = labels.contains("clean");
-        var originalPatches = new HashMap<String, Patch>();
-        for (var patch : commit.parentDiffs().get(0).patches()) {
-            originalPatches.put(patch.toString(), patch);
-        }
-        var prPatches = new HashMap<String, Patch>();
-        for (var patch : pr.diff().patches()) {
-            prPatches.put(patch.toString(), patch);
-        }
-
-        if (originalPatches.size() != prPatches.size()) {
-            if (hasCleanLabel) {
-                pr.removeLabel("clean");
-            }
-            return false;
-        }
-
-        var descriptions = new HashSet<>(originalPatches.keySet());
-        descriptions.removeAll(prPatches.keySet());
-        if (!descriptions.isEmpty()) {
-            if (hasCleanLabel) {
-                pr.removeLabel("clean");
-            }
-            return false;
-        }
-
-        for (var desc : originalPatches.keySet()) {
-            var original = originalPatches.get(desc).asTextualPatch();
-            var backport = prPatches.get(desc).asTextualPatch();
-            if (original.hunks().size() != backport.hunks().size()) {
-                if (hasCleanLabel) {
-                    pr.removeLabel("clean");
-                }
-                return false;
-            }
-            if (original.additions() != backport.additions()) {
-                if (hasCleanLabel) {
-                    pr.removeLabel("clean");
-                }
-                return false;
-            }
-            if (original.deletions() != backport.deletions()) {
-                if (hasCleanLabel) {
-                    pr.removeLabel("clean");
-                }
-                return false;
-            }
-            for (var i = 0; i < original.hunks().size(); i++) {
-                var originalHunk = original.hunks().get(i);
-                var backportHunk = backport.hunks().get(i);
-
-                if (originalHunk.source().lines().size() != backportHunk.source().lines().size()) {
-                    if (hasCleanLabel) {
-                        pr.removeLabel("clean");
-                    }
-                    return false;
-                }
-                var sourceLines = new HashSet<>(originalHunk.source().lines());
-                sourceLines.removeAll(backportHunk.source().lines());
-                if (!sourceLines.isEmpty()) {
-                    if (hasCleanLabel) {
-                        pr.removeLabel("clean");
-                    }
-                    return false;
-                }
-
-                if (originalHunk.target().lines().size() != backportHunk.target().lines().size()) {
-                    if (hasCleanLabel) {
-                        pr.removeLabel("clean");
-                    }
-                    return false;
-                }
-                var targetLines = new HashSet<>(originalHunk.target().lines());
-                targetLines.removeAll(backportHunk.target().lines());
-                if (!targetLines.isEmpty()) {
-                    if (hasCleanLabel) {
-                        pr.removeLabel("clean");
-                    }
-                    return false;
-                }
-            }
-        }
-
-        if (!hasCleanLabel) {
+        if (isClean && !hasCleanLabel) {
             pr.addLabel("clean");
         }
-        return true;
+        if (!isClean && hasCleanLabel) {
+            pr.removeLabel("clean");
+        }
+        return isClean;
     }
 
     private Optional<HostedCommit> backportedFrom() {
