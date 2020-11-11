@@ -25,8 +25,113 @@ package org.openjdk.skara.vcs;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class DiffComparator {
+    public static Diff diff(Diff a, Diff b) throws IOException {
+        Path tmpDir = null;
+        try {
+            tmpDir = Files.createTempDirectory(null);
+            var repo = Repository.init(tmpDir, VCS.GIT);
+
+            var aDeleted = a.patches().stream()
+                                      .filter(Patch::isTextual)
+                                      .filter(p -> p.status().isDeleted())
+                                      .map(p -> p.source().path().orElseThrow())
+                                      .collect(Collectors.toSet());
+            var bDeleted = b.patches().stream()
+                                      .filter(Patch::isTextual)
+                                      .filter(p -> p.status().isDeleted())
+                                      .map(p -> p.source().path().orElseThrow())
+                                      .collect(Collectors.toSet());
+
+            for (var patch : a.patches()) {
+                if (patch.status().isDeleted() || patch.isBinary()) {
+                    continue;
+                }
+
+                var path = tmpDir.resolve(patch.target().path().orElseThrow());
+                var lines = new ArrayList<String>();
+                for (var hunk : patch.asTextualPatch().hunks()) {
+                    var start = hunk.target().range().start();
+                    for (var i = lines.size(); i < start; i++) {
+                        lines.add("");
+                    }
+                    for (var i = 0; i < hunk.target().lines().size(); i++) {
+                        lines.add(hunk.target().lines().get(i));
+                    }
+                }
+                Files.createDirectories(path.getParent());
+                Files.write(path, lines);
+                repo.add(path);
+            }
+            var aHash = repo.commit("a", "a", "a@localhost", true);
+
+            Files.walk(repo.root())
+                 .filter(p -> !p.toString().contains(".git"))
+                 .map(Path::toFile)
+                 .sorted(Comparator.reverseOrder())
+                 .forEach(File::delete);
+
+            var additionalPatches = new ArrayList<Patch>();
+            for (var patch : a.patches()) {
+                if (patch.status().isDeleted() && !bDeleted.contains(patch.source().path().get())) {
+                    if (patch.isBinary()) {
+                        continue;
+                    }
+                    var path = tmpDir.resolve(patch.source().path().get());
+                    var hunks = patch.asTextualPatch().hunks();
+                    if (hunks.size() != 1) {
+                        throw new IllegalStateException("A deleted patch should only have one hunk");
+                    }
+                    var hunk = hunks.get(0);
+                    Files.write(path, hunk.source().lines());
+                    repo.add(path);
+                }
+            }
+            for (var patch : b.patches()) {
+                if (patch.status().isDeleted() && !aDeleted.contains(patch.source().path().get())) {
+                    additionalPatches.add(patch);
+                }
+            }
+
+            for (var patch : b.patches()) {
+                if (patch.status().isDeleted() || patch.isBinary()) {
+                    continue;
+                }
+
+                var path = tmpDir.resolve(patch.target().path().orElseThrow());
+                var lines = new ArrayList<String>();
+                for (var hunk : patch.asTextualPatch().hunks()) {
+                    var start = hunk.target().range().start();
+                    for (var i = lines.size(); i < start; i++) {
+                        lines.add("");
+                    }
+                    for (var i = 0; i < hunk.target().lines().size(); i++) {
+                        lines.add(hunk.target().lines().get(i));
+                    }
+                }
+                Files.write(path, lines);
+                repo.add(path);
+            }
+            var bHash = repo.commit("b", "b", "b@localhost", true);
+
+            var diffDiff = repo.diff(aHash, bHash);
+            diffDiff.patches().addAll(additionalPatches);
+            return diffDiff;
+        } finally {
+            if (tmpDir != null) {
+                Files.walk(tmpDir)
+                     .map(Path::toFile)
+                     .sorted(Comparator.reverseOrder())
+                     .forEach(File::delete);
+                if (Files.exists(tmpDir)) {
+                    Files.delete(tmpDir);
+                }
+            }
+        }
+    }
+
     public static boolean areFuzzyEqual(Diff a, Diff b) {
         var aPatches = new HashMap<String, Patch>();
         for (var patch : a.patches()) {

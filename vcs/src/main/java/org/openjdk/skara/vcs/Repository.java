@@ -91,25 +91,56 @@ public interface Repository extends ReadOnlyRepository {
     default void config(String section, String key, String value) throws IOException {
         config(section, key, value, false);
     }
-    Hash commit(String message,
+    default Hash commit(String message,
                 String authorName,
-                String authorEmail) throws IOException;
+                String authorEmail) throws IOException {
+        return commit(message, authorName, authorEmail, false);
+    }
     Hash commit(String message,
                 String authorName,
                 String authorEmail,
-                ZonedDateTime date) throws IOException;
+                boolean allowEmpty) throws IOException;
+    default Hash commit(String message,
+                String authorName,
+                String authorEmail,
+                ZonedDateTime date) throws IOException {
+        return commit(message, authorName, authorEmail, date, false);
+    }
+    Hash commit(String message,
+                String authorName,
+                String authorEmail,
+                ZonedDateTime date,
+                boolean allowEmpty) throws IOException;
+    default Hash commit(String message,
+                String authorName,
+                String authorEmail,
+                String committerName,
+                String committerEmail) throws IOException {
+        return commit(message, authorName, authorEmail, committerName, committerEmail, false);
+    }
     Hash commit(String message,
                 String authorName,
                 String authorEmail,
                 String committerName,
-                String committerEmail) throws IOException;
+                String committerEmail,
+                boolean allowEmpty) throws IOException;
+    default Hash commit(String message,
+                String authorName,
+                String authorEmail,
+                ZonedDateTime authorDate,
+                String committerName,
+                String committerEmail,
+                ZonedDateTime committerDate) throws IOException {
+        return commit(message, authorName, authorEmail, authorDate, committerName, committerEmail, committerDate, false);
+    }
     Hash commit(String message,
                 String authorName,
                 String authorEmail,
                 ZonedDateTime authorDate,
                 String committerName,
                 String committerEmail,
-                ZonedDateTime committerDate) throws IOException;
+                ZonedDateTime committerDate,
+                boolean allowEmpty) throws IOException;
     Hash commit(String message,
                 String authorName,
                 String authorEmail,

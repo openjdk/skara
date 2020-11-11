@@ -624,12 +624,12 @@ public class HgRepository implements Repository {
 
 
     @Override
-    public Hash commit(String message, String authorName, String authorEmail)  throws IOException {
+    public Hash commit(String message, String authorName, String authorEmail, boolean allowEmpty)  throws IOException {
         return commit(message, authorName, authorEmail, null);
     }
 
     @Override
-    public Hash commit(String message, String authorName, String authorEmail, ZonedDateTime authorDate)  throws IOException {
+    public Hash commit(String message, String authorName, String authorEmail, ZonedDateTime authorDate, boolean allowEmpty)  throws IOException {
         var user = authorEmail == null ? authorName : authorName + " <" + authorEmail + ">";
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("hg", "commit", "--message=" + message, "--user=" + user));
@@ -648,7 +648,8 @@ public class HgRepository implements Repository {
                        String authorName,
                        String authorEmail,
                        String committerName,
-                       String committerEmail) throws IOException {
+                       String committerEmail,
+                       boolean allowEmpty) throws IOException {
         return commit(message, authorName, authorEmail, null, committerName, committerEmail, null);
     }
 
@@ -659,7 +660,8 @@ public class HgRepository implements Repository {
                        ZonedDateTime authorDate,
                        String committerName,
                        String committerEmail,
-                       ZonedDateTime committerDate) throws IOException {
+                       ZonedDateTime committerDate,
+                       boolean allowEmpty) throws IOException {
         if (!Objects.equals(authorName, committerName) ||
             !Objects.equals(authorEmail, committerEmail) ||
             !Objects.equals(authorDate, committerDate)) {

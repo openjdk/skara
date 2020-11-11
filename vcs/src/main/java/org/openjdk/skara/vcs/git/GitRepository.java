@@ -690,13 +690,13 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public Hash commit(String message, String authorName, String authorEmail)  throws IOException {
-        return commit(message, authorName, authorEmail, null);
+    public Hash commit(String message, String authorName, String authorEmail, boolean allowEmpty)  throws IOException {
+        return commit(message, authorName, authorEmail, null, allowEmpty);
     }
 
     @Override
-    public Hash commit(String message, String authorName, String authorEmail, ZonedDateTime authorDate)  throws IOException {
-        return commit(message, authorName, authorEmail, authorDate, authorName, authorEmail, authorDate);
+    public Hash commit(String message, String authorName, String authorEmail, ZonedDateTime authorDate, boolean allowEmpty)  throws IOException {
+        return commit(message, authorName, authorEmail, authorDate, authorName, authorEmail, authorDate, allowEmpty);
     }
 
     @Override
@@ -704,8 +704,9 @@ public class GitRepository implements Repository {
                        String authorName,
                        String authorEmail,
                        String committerName,
-                       String committerEmail) throws IOException {
-        return commit(message, authorName, authorEmail, null, committerName, committerEmail, null);
+                       String committerEmail,
+                       boolean allowEmpty) throws IOException {
+        return commit(message, authorName, authorEmail, null, committerName, committerEmail, null, allowEmpty);
     }
 
     @Override
@@ -715,8 +716,14 @@ public class GitRepository implements Repository {
                        ZonedDateTime authorDate,
                        String committerName,
                        String committerEmail,
-                       ZonedDateTime committerDate) throws IOException {
-        var cmd = Process.capture("git", "commit", "--message=" + message)
+                       ZonedDateTime committerDate,
+                       boolean allowEmpty) throws IOException {
+        var args = new ArrayList<String>();
+        args.addAll(List.of("git", "commit", "--message=" + message));
+        if (allowEmpty) {
+            args.add("--allow-empty");
+        }
+        var cmd = Process.capture(args.toArray(new String[0]))
                          .workdir(dir)
                          .environ("GIT_AUTHOR_NAME", authorName)
                          .environ("GIT_AUTHOR_EMAIL", authorEmail)

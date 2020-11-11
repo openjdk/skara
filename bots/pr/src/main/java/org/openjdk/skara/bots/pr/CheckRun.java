@@ -61,6 +61,7 @@ class CheckRun {
     private static final String emptyPrBodyMarker = "<!--\nReplace this text with a description of your pull request (also remove the surrounding HTML comment markers).\n" +
             "If in doubt, feel free to delete everything in this edit box first, the bot will restore the progress section as needed.\n-->";
     private static final String fullNameWarningMarker = "<!-- PullRequestBot full name warning comment -->";
+    private static final String diffDiffMarker = "<!-- PullRequestBot diff-diff comment -->";
     private static final Pattern BACKPORT_PATTERN = Pattern.compile("<!-- backport ([0-9a-z]{40}) -->");
     private final static Set<String> primaryTypes = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
     private final Set<String> newLabels;
@@ -895,6 +896,40 @@ class CheckRun {
                 readyForIntegration = visitor.isReadyForReview() &&
                                       additionalErrors.isEmpty() &&
                                       integrationBlockers.isEmpty();
+            } else if (original.isPresent()) {
+                var originalDiff = original.get().parentDiffs().get(0);
+                var prDiff = pr.diff();
+                var diffDiff = DiffComparator.diff(originalDiff, prDiff);
+
+                var lines = new ArrayList<String>();
+                lines.add(diffDiffMarker);
+                for (var patch : diffDiff.patches()) {
+                    lines.add("- **`" + patch.target().path().orElseThrow() + "`**");
+                    lines.add("   ```diff");
+                    if (patch.isBinary()) {
+                        lines.add("   Binary files differ");
+                    } else {
+                        for (var hunk : patch.asTextualPatch().hunks()) {
+                            lines.add("   @@ " + hunk.source().range().toString() + " " +
+                                      hunk.target().range().toString() + " @@");
+                            for (var line : hunk.source().lines()) {
+                                lines.add("   - " + line);
+                            }
+                            for (var line : hunk.target().lines()) {
+                                lines.add("   + " + line);
+                            }
+                        }
+                    }
+                    lines.add("   ```");
+                }
+
+                var body = String.join("\n", lines);
+                var diffDiffComment = findComment(comments, diffDiffMarker);
+                if (diffDiffComment.isEmpty()) {
+                    pr.addComment(body);
+                } else {
+                    pr.updateComment(diffDiffComment.get().id(), body);
+                }
             }
 
             updateMergeReadyComment(readyForIntegration, commitMessage, comments, activeReviews, rebasePossible);
