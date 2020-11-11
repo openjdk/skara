@@ -84,7 +84,7 @@ public class CheckablePullRequest {
         if (PullRequestUtils.isMerge(pr)) {
             var conf = JCheckConfiguration.from(localRepo, head);
             var title = pr.title();
-            if (conf.isPresent()) {
+            if (conf.isPresent() && !conf.get().checks().enabled(List.of(new MergeMessageCheck())).isEmpty()) {
                 var mergeConf = conf.get().checks().merge();
                 var pattern = Pattern.compile(mergeConf.message());
                 while (true)  {
@@ -110,10 +110,10 @@ public class CheckablePullRequest {
             if (original != null) {
                 commitMessageBuilder.original(original);
             }
-            commitMessageBuilder.contributors(additionalContributors)
-                                .reviewers(new ArrayList<>(reviewers));
-            summary.ifPresent(commitMessageBuilder::summary);
         }
+        commitMessageBuilder.contributors(additionalContributors)
+                            .reviewers(new ArrayList<>(reviewers));
+        summary.ifPresent(commitMessageBuilder::summary);
 
         return String.join("\n", commitMessageBuilder.format(CommitMessageFormatters.v1));
     }
