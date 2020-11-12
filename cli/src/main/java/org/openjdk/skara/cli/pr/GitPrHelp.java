@@ -71,6 +71,12 @@ public class GitPrHelp {
         commands.put("sponsor", Pair.of(GitPrSponsor.inputs, GitPrSponsor.flags));
         commands.put("test", Pair.of(GitPrTest.inputs, GitPrTest.flags));
         commands.put("info", Pair.of(GitPrInfo.inputs, GitPrInfo.flags));
+        commands.put("issue", Pair.of(GitPrIssue.inputs, GitPrIssue.flags));
+        commands.put("reviewer", Pair.of(GitPrReviewer.inputs, GitPrReviewer.flags));
+        commands.put("summary", Pair.of(GitPrSummary.inputs, GitPrSummary.flags));
+        commands.put("cc", Pair.of(GitPrCC.inputs, GitPrCC.flags));
+        commands.put("csr", Pair.of(GitPrCSR.inputs, GitPrCSR.flags));
+        commands.put("contributor", Pair.of(GitPrContributor.inputs, GitPrContributor.flags));
     }
 
     private static String describe(List<Input> inputs) {
