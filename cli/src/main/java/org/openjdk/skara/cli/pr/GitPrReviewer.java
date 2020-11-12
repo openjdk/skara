@@ -34,7 +34,7 @@ public class GitPrReviewer {
         Option.shortcut("")
               .fullname("credit")
               .describe("USERNAME")
-              .helptext("Consider pull request reviewed by this user")
+              .helptext("Credit a person as a reviewer of this pull request")
               .optional(),
         Option.shortcut("")
               .fullname("remove")
