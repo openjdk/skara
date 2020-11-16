@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,11 +26,8 @@ import org.openjdk.skara.census.Census;
 import org.openjdk.skara.vcs.Commit;
 import org.openjdk.skara.vcs.openjdk.CommitMessage;
 
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 import java.util.logging.Logger;
 
 public class WhitespaceCheck extends CommitCheck {
@@ -41,6 +38,7 @@ public class WhitespaceCheck extends CommitCheck {
         var metadata = CommitIssue.metadata(commit, message, conf, this);
         var issues = new ArrayList<Issue>();
         var pattern = Pattern.compile(conf.checks().whitespace().files());
+        var tabPattern = Pattern.compile(conf.checks().whitespace().ignoreTabs());
 
         for (var diff : commit.parentDiffs()) {
             for (var patch : diff.patches()) {
@@ -56,13 +54,15 @@ public class WhitespaceCheck extends CommitCheck {
                             var row = hunk.target().range().start() + i;
                             var tabIndex = line.indexOf('\t');
                             var crIndex = line.indexOf('\r');
-                            if (tabIndex >= 0 || crIndex >= 0 || line.endsWith(" ")) {
+                            var ignoreTab = tabPattern.matcher(path.toString()).matches();
+                            if ((tabIndex >= 0 && !ignoreTab) || crIndex >= 0
+                                    || line.endsWith(" ") || line.endsWith("\t")) {
                                 var errors = new ArrayList<WhitespaceIssue.Error>();
                                 var trailing = true;
                                 for (var index = line.length() - 1; index >= 0; index--) {
-                                    if (line.charAt(index) == ' ' && trailing) {
+                                    if ((line.charAt(index) == ' ' || line.charAt(index) == '\t') && trailing) {
                                         errors.add(WhitespaceIssue.trailing(index));
-                                    } else if (line.charAt(index) == '\t') {
+                                    } else if (line.charAt(index) == '\t'  && !ignoreTab) {
                                         errors.add(WhitespaceIssue.tab(index));
                                     } else if (line.charAt(index) == '\r') {
                                         errors.add(WhitespaceIssue.cr(index));

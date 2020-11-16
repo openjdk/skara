@@ -22,7 +22,6 @@
  */
 package org.openjdk.skara.jcheck;
 
-import org.openjdk.skara.census.Census;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.CommitMessage;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
@@ -35,7 +34,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
 import java.time.ZonedDateTime;
-import java.io.IOException;
 
 class WhitespaceCheckTests {
     private static List<Diff> parentDiffs(String filename, String line) {
@@ -56,9 +54,10 @@ class WhitespaceCheckTests {
         "[checks \"whitespace\"]"
     );
 
-    private static JCheckConfiguration configuration(String files) {
+    private static JCheckConfiguration configuration(String files, String ignoreTabs) {
         var lines = new ArrayList<>(CONFIGURATION);
         lines.add("files = " + files);
+        lines.add("ignore-tabs = " + ignoreTabs);
         return JCheckConfiguration.parse(lines);
     }
 
@@ -87,7 +86,7 @@ class WhitespaceCheckTests {
     @Test
     void noBadWhitespaceShouldPass() {
         var commit = commit(parentDiffs("README.md", "An additional line"));
-        var conf = configuration("README\\.md");
+        var conf = configuration("README\\.md", "");
         var check = new WhitespaceCheck();
         var issues = toList(check.check(commit, message(commit), conf, null));
 
@@ -99,7 +98,7 @@ class WhitespaceCheckTests {
         var filename = "README.md";
         var line = "An additional line ";
         var commit = commit(parentDiffs(filename, line));
-        var conf = configuration("README\\.md");
+        var conf = configuration("README\\.md", "");
         var message = message(commit);
         var check = new WhitespaceCheck();
         var issues = toList(check.check(commit, message, conf, null));
@@ -119,11 +118,59 @@ class WhitespaceCheckTests {
     }
 
     @Test
-    void tabShouldFail() {
+    void trailingTabShouldFailWithoutIgnoreTabs() {
+        var filename = "README.md";
+        var line = "An additional line\t";
+        var commit = commit(parentDiffs(filename, line));
+        var conf = configuration("README\\.md", "");
+        var message = message(commit);
+        var check = new WhitespaceCheck();
+        var issues = toList(check.check(commit, message, conf, null));
+
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0) instanceof WhitespaceIssue);
+        var issue = (WhitespaceIssue) issues.get(0);
+        assertEquals(Path.of(filename), issue.path());
+        assertEquals(1, issue.row());
+        assertEquals(line, issue.line());
+        assertEquals(List.of(new WhitespaceIssue.Error(line.length() - 1, WhitespaceIssue.Whitespace.TRAILING)),
+                issue.errors());
+        assertEquals(commit, issue.commit());
+        assertEquals(check, issue.check());
+        assertEquals(message, issue.message());
+        assertEquals(Severity.ERROR, issue.severity());
+    }
+
+    @Test
+    void trailingTabShouldFailWithIgnoreTabs() {
+        var filename = "README.md";
+        var line = "An additional line\t";
+        var commit = commit(parentDiffs(filename, line));
+        var conf = configuration("README\\.md", "\"README\\\\.md");
+        var message = message(commit);
+        var check = new WhitespaceCheck();
+        var issues = toList(check.check(commit, message, conf, null));
+
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0) instanceof WhitespaceIssue);
+        var issue = (WhitespaceIssue) issues.get(0);
+        assertEquals(Path.of(filename), issue.path());
+        assertEquals(1, issue.row());
+        assertEquals(line, issue.line());
+        assertEquals(List.of(new WhitespaceIssue.Error(line.length() - 1, WhitespaceIssue.Whitespace.TRAILING)),
+                issue.errors());
+        assertEquals(commit, issue.commit());
+        assertEquals(check, issue.check());
+        assertEquals(message, issue.message());
+        assertEquals(Severity.ERROR, issue.severity());
+    }
+
+    @Test
+    void tabShouldFailWithoutIgnoreTabs() {
         var filename = "README.md";
         var line = "\tAn additional line";
         var commit = commit(parentDiffs(filename, line));
-        var conf = configuration("README\\.md");
+        var conf = configuration("README\\.md", "");
         var message = message(commit);
         var check = new WhitespaceCheck();
         var issues = toList(check.check(commit, message, conf, null));
@@ -143,11 +190,24 @@ class WhitespaceCheckTests {
     }
 
     @Test
+    void tabShouldSucceedWithIgnoreTabs() {
+        var filename = "README.md";
+        var line = "\tAn additional line";
+        var commit = commit(parentDiffs(filename, line));
+        var conf = configuration("README\\.md", "README\\.md");
+        var message = message(commit);
+        var check = new WhitespaceCheck();
+        var issues = toList(check.check(commit, message, conf, null));
+
+        assertEquals(0, issues.size());
+    }
+
+    @Test
     void crShouldFail() {
         var filename = "README.md";
         var line = "An additional line\r\n";
         var commit = commit(parentDiffs(filename, line));
-        var conf = configuration("README\\.md");
+        var conf = configuration("README\\.md", "");
         var message = message(commit);
         var check = new WhitespaceCheck();
         var issues = toList(check.check(commit, message, conf, null));
