@@ -45,7 +45,7 @@ class CheckWorkItem extends PullRequestWorkItem {
     private final Pattern metadataComments = Pattern.compile("<!-- (?:(add|remove) (?:contributor|reviewer))|(?:summary: ')|(?:solves: ')|(?:additional required reviewers)");
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     static final Pattern ISSUE_ID_PATTERN = Pattern.compile("^(?:[A-Za-z][A-Za-z0-9]+-)?([0-9]+)$");
-    private static final Pattern BACKPORT_TITLE_PATTERN = Pattern.compile("^Backport ([0-9a-z]{40})$");
+    private static final Pattern BACKPORT_TITLE_PATTERN = Pattern.compile("^Backport\\s*([0-9a-z]{40})\\s*$");
 
     CheckWorkItem(PullRequestBot bot, PullRequest pr, Consumer<RuntimeException> errorHandler) {
         super(bot, pr, errorHandler);
