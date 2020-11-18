@@ -115,11 +115,22 @@ public class GitLabRepository implements HostedRepository {
         return new GitLabMergeRequest(this, gitLabHost, pr, request);
     }
 
+    // Sometimes GitLab returns merge requests that cannot be acted upon
+    private boolean mergeRequestValid(JSONValue mrJson) {
+        var obj = mrJson.asObject();
+        if (!obj.contains("sha") || obj.get("sha").isNull()) {
+            return false;
+        }
+
+        return true;
+    }
+
     @Override
     public List<PullRequest> pullRequests() {
         return request.get("merge_requests")
                       .param("state", "opened")
                       .execute().stream()
+                      .filter(this::mergeRequestValid)
                       .map(value -> new GitLabMergeRequest(this, gitLabHost, value, request))
                       .collect(Collectors.toList());
     }
@@ -130,6 +141,7 @@ public class GitLabRepository implements HostedRepository {
                       .param("order_by", "updated_at")
                       .param("updated_after", updatedAfter.format(DateTimeFormatter.ISO_DATE_TIME))
                       .execute().stream()
+                      .filter(this::mergeRequestValid)
                       .map(value -> new GitLabMergeRequest(this, gitLabHost, value, request))
                       .collect(Collectors.toList());
     }
