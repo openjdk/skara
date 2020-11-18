@@ -109,37 +109,28 @@ class CheckWorkItem extends PullRequestWorkItem {
 
         if (currentChecks.containsKey("jcheck")) {
             var check = currentChecks.get("jcheck");
-            // Check if the currently running check seems stale - perhaps the checker failed to complete
-            if (check.completedAt().isEmpty()) {
-                var runningTime = Duration.between(check.startedAt().toInstant(), Instant.now());
-                if (runningTime.toMinutes() > 10) {
-                    log.warning("Previous jcheck running for more than 10 minutes - checking again");
-                } else {
-                    log.finer("Jcheck in progress for " + runningTime.toMinutes() + " minutes, not starting another one");
-                    return true;
-                }
-            } else {
-                if (check.metadata().isPresent()) {
-                    var previousMetadata = check.metadata().get();
-                    if (previousMetadata.contains(":")) {
-                        var splitIndex = previousMetadata.lastIndexOf(":");
-                        var stableMetadata = previousMetadata.substring(0, splitIndex);
-                        var expiresAt = Instant.ofEpochSecond(Long.parseLong(previousMetadata.substring(splitIndex + 1)));
-                        if (stableMetadata.equals(metadata) && expiresAt.isAfter(Instant.now())) {
-                            log.finer("Metadata with expiration time is still valid, not checking again");
-                            return true;
-                        }
+            if (check.completedAt().isPresent() && check.metadata().isPresent()) {
+                var previousMetadata = check.metadata().get();
+                if (previousMetadata.contains(":")) {
+                    var splitIndex = previousMetadata.lastIndexOf(":");
+                    var stableMetadata = previousMetadata.substring(0, splitIndex);
+                    var expiresAt = Instant.ofEpochSecond(Long.parseLong(previousMetadata.substring(splitIndex + 1)));
+                    if (stableMetadata.equals(metadata) && expiresAt.isAfter(Instant.now())) {
+                        log.finer("Metadata with expiration time is still valid, not checking again");
+                        return true;
                     } else {
-                        if (previousMetadata.equals(metadata)) {
-                            log.finer("No activity since last check, not checking again");
-                            return true;
-                        }
+                        log.finer("Metadata expiration time has expired - checking again");
+                    }
+                } else {
+                    if (previousMetadata.equals(metadata)) {
+                        log.fine("No activity since last check, not checking again.");
+                        return true;
+                    } else {
+                        log.fine("Previous metadata: " + check.metadata().get() + " - current: " + metadata);
                     }
                 }
-                log.info("PR updated after last check, checking again");
-                if (check.metadata().isPresent() && (!check.metadata().get().equals(metadata))) {
-                    log.fine("Previous metadata: " + check.metadata().get() + " - current: " + metadata);
-                }
+            } else {
+                log.info("Check in progress was never finished - checking again");
             }
         }
 
