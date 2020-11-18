@@ -117,7 +117,7 @@ public class GitLabRepository implements HostedRepository {
 
     // Sometimes GitLab returns merge requests that cannot be acted upon
     private boolean hasHeadHash(JSONValue json) {
-        return json.contains("sha") && !json.get("sha").isNull());
+        return json.contains("sha") && !json.get("sha").isNull();
     }
 
     @Override
