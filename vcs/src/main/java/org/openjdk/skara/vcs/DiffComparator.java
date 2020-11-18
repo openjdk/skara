@@ -76,8 +76,8 @@ public class DiffComparator {
                 return false;
             }
             for (var j = 0; j < aHunk.source().lines().size(); j++) {
-                var aLine = aHunk.source().lines().get(i);
-                var bLine = bHunk.source().lines().get(i);
+                var aLine = aHunk.source().lines().get(j);
+                var bLine = bHunk.source().lines().get(j);
                 if (!aLine.equals(bLine)) {
                     return false;
                 }
@@ -87,8 +87,8 @@ public class DiffComparator {
                 return false;
             }
             for (var j = 0; j < aHunk.target().lines().size(); j++) {
-                var aLine = aHunk.target().lines().get(i);
-                var bLine = bHunk.target().lines().get(i);
+                var aLine = aHunk.target().lines().get(j);
+                var bLine = bHunk.target().lines().get(j);
                 if (!aLine.equals(bLine)) {
                     return false;
                 }
