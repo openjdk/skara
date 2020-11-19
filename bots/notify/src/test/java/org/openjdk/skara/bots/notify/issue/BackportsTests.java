@@ -86,15 +86,25 @@ public class BackportsTests {
 
             var issue2 = credentials.createIssue(issueProject, "Issue 2");
             issue2.setProperty("issuetype", JSON.of("Bug"));
+            issue2.setState(Issue.State.RESOLVED);
             issue1.addLink(Link.create(issue2, "duplicated by").build());
 
             var issue3 = credentials.createIssue(issueProject, "Issue 3");
             issue3.setProperty("issuetype", JSON.of("CSR"));
+            issue3.setState(Issue.State.RESOLVED);
             issue1.addLink(Link.create(issue3, "CSRed by").build());
+
+            var issue4 = credentials.createIssue(issueProject, "Issue 4");
+            issue4.setProperty("issuetype", JSON.of("Backport"));
+            issue4.setState(Issue.State.RESOLVED);
+            issue1.addLink(Link.create(issue4, "related to").build());
 
             assertEquals(issue1, Backports.findMainIssue(issue1).orElseThrow());
             assertEquals(issue2, Backports.findMainIssue(issue2).orElseThrow());
             assertEquals(Optional.empty(), Backports.findMainIssue(issue3));
+            assertEquals(Optional.empty(), Backports.findMainIssue(issue4));
+
+            assertEquals(List.of(), Backports.findBackports(issue1));
         }
     }
 
