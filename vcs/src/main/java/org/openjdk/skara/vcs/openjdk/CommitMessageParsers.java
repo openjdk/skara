@@ -116,6 +116,9 @@ public class CommitMessageParsers {
             Hash original = null;
             while (i < lines.size() && lines.get(i).equals("")) {
                 i++;
+                if (i >= lines.size()) {
+                    break;
+                }
 
                 if (lines.get(i).startsWith("Co-authored-by:") ||
                     lines.get(i).startsWith("Reviewed-by:") ||

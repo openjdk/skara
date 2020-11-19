@@ -22,14 +22,14 @@
  */
 package org.openjdk.skara.vcs.openjdk;
 
+import org.junit.jupiter.api.Test;
+import org.openjdk.skara.vcs.Author;
+import org.openjdk.skara.vcs.Hash;
+
 import java.util.List;
 import java.util.Optional;
 
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-
-import org.openjdk.skara.vcs.Author;
-import org.openjdk.skara.vcs.Hash;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CommitMessageParsersTests {
     @Test
@@ -296,5 +296,19 @@ public class CommitMessageParsersTests {
         assertEquals(List.of(), message.summaries());
         assertEquals(List.of(), message.additional());
         assertEquals(Optional.of(new Hash("0123456789012345678901234567890123456789")), message.original());
+    }
+
+    @Test
+    void parseVersion1TrailingBlankLine() {
+        var text = List.of("01234567: An issue",
+                           "");
+        var message = CommitMessageParsers.v1.parse(text);
+
+        assertEquals("01234567: An issue", message.title());
+        assertEquals(List.of(new Issue("01234567", "An issue")), message.issues());
+        assertEquals(List.of(), message.contributors());
+        assertEquals(List.of(), message.reviewers());
+        assertEquals(List.of(), message.summaries());
+        assertEquals(List.of(), message.additional());
     }
 }
