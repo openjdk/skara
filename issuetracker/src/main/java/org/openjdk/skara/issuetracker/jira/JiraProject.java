@@ -353,8 +353,14 @@ public class JiraProject implements IssueProject {
                                                                                        finalProperties,
                                                                                        null)));
         query.put("fields", fields);
-        jiraHost.securityLevel().ifPresent(securityLevel -> fields.put("security", JSON.object()
-                                                                                       .put("id", securityLevel)));
+        if (properties.containsKey("security")) {
+            if (!properties.get("security").isNull()) {
+                fields.put("security", properties.get("security"));
+            }
+        } else {
+            jiraHost.securityLevel().ifPresent(securityLevel -> fields.put("security", JSON.object()
+                                                                                           .put("id", securityLevel)));
+        }
         var data = request.post("issue")
                           .body(query)
                           .execute();
