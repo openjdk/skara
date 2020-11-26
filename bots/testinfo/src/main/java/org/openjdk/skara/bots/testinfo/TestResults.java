@@ -124,33 +124,33 @@ public class TestResults {
                         var checkTitle = check.details().isPresent() ? "[" + check.name() + "](" + check.details().get() + ")" : check.name();
                         checkDetails.add(checkIcon + checkTitle);
                     }
-                    var checkBuilder = CheckBuilder.create(platform + " - " + flavor, hash);
+                    var checkBuilder = CheckBuilder.create("Pre-submit tests - " + platform + " - " + flavor, hash);
                     checkBuilder.summary(String.join("\n", checkDetails));
+                    var firstStartedAt = flavorChecks.stream()
+                                                     .map(Check::startedAt)
+                                                     .min(ZonedDateTime::compareTo);
+                    firstStartedAt.ifPresent(checkBuilder::startedAt);
+
+                    var lastCompletedAt = flavorChecks.stream()
+                                                      .map(Check::completedAt)
+                                                      .filter(Optional::isPresent)
+                                                      .map(Optional::get)
+                                                      .max(ZonedDateTime::compareTo);
                     int total = failureCount + pendingCount + successCount;
-                    // Report aggregate counts for successful / still running tests
                     if (pendingCount > 0) {
                         checkBuilder.title(pendingCount + "/" + total + " running");
                         ret.add(checkBuilder.build());
+                    } else if (failureCount > 0) {
+                        checkBuilder.title(failureCount + "/" + total + " failed");
+                        lastCompletedAt.ifPresentOrElse(ca -> checkBuilder.complete(false, ca), () -> checkBuilder.complete(false));
+                        ret.add(checkBuilder.build());
                     } else if (successCount > 0) {
                         checkBuilder.title(successCount + "/" + total + " passed");
-                        checkBuilder.complete(true);
+                        lastCompletedAt.ifPresentOrElse(ca -> checkBuilder.complete(true, ca), () -> checkBuilder.complete(true));
                         ret.add(checkBuilder.build());
                     }
                 }
             }
-        }
-
-        var failedChecks = latestChecks.stream()
-                                       .filter(check -> check.status() == CheckStatus.FAILURE)
-                                       .sorted(Comparator.comparing(Check::name))
-                                       .collect(Collectors.toList());
-        for (var check : failedChecks) {
-            var checkBuilder = CheckBuilder.create(check.name(), hash);
-            checkBuilder.title("Failure");
-            checkBuilder.summary("A failing check run was found");
-            check.details().ifPresent(checkBuilder::details);
-            checkBuilder.complete(false);
-            ret.add(checkBuilder.build());
         }
 
         return ret;

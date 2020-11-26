@@ -1,7 +1,7 @@
 package org.openjdk.skara.bots.testinfo;
 
 import org.junit.jupiter.api.*;
-import org.openjdk.skara.forge.CheckBuilder;
+import org.openjdk.skara.forge.*;
 import org.openjdk.skara.test.*;
 
 import java.io.IOException;
@@ -10,7 +10,6 @@ import java.nio.file.Path;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestInfoTests {
     @Test
@@ -45,6 +44,9 @@ public class TestInfoTests {
             var check3 = CheckBuilder.create("ps3", editHash).title("PS3");
             draftPr.createCheck(check3.build());
             draftPr.updateCheck(check3.details(URI.create("https://www.example.com")).complete(false).build());
+            var check4 = CheckBuilder.create("ps4", editHash).title("PS4");
+            draftPr.createCheck(check4.build());
+            draftPr.updateCheck(check4.details(URI.create("https://www.example.com")).build());
 
             // Now make an actual PR
             localRepo.push(editHash, author.url(), "edit", true);
@@ -53,16 +55,20 @@ public class TestInfoTests {
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
 
-            // Passing jobs are summarized
-            assertEquals(3, pr.checks(editHash).size());
-            assertEquals("1/1 passed", pr.checks(editHash).get("ps1 - Build / test").title().orElseThrow());
-            assertEquals("✔️ ps1", pr.checks(editHash).get("ps1 - Build / test").summary().orElseThrow());
-
-            // Failing jobs are reported individually
-            assertEquals("Failure", pr.checks(editHash).get("ps2").title().orElseThrow());
-            assertNull(pr.checks(editHash).get("ps2").details().orElse(null));
-            assertEquals("Failure", pr.checks(editHash).get("ps3").title().orElseThrow());
-            assertEquals(URI.create("https://www.example.com"), pr.checks(editHash).get("ps3").details().orElseThrow());
+            // Verify summarized checks
+            assertEquals(4, pr.checks(editHash).size());
+            assertEquals("1/1 passed", pr.checks(editHash).get("Pre-submit tests - ps1 - Build / test").title().orElseThrow());
+            assertEquals("✔️ ps1", pr.checks(editHash).get("Pre-submit tests - ps1 - Build / test").summary().orElseThrow());
+            assertEquals(CheckStatus.SUCCESS, pr.checks(editHash).get("Pre-submit tests - ps1 - Build / test").status());
+            assertEquals("1/1 failed", pr.checks(editHash).get("Pre-submit tests - ps2 - Build / test").title().orElseThrow());
+            assertEquals("❌ ps2", pr.checks(editHash).get("Pre-submit tests - ps2 - Build / test").summary().orElseThrow());
+            assertEquals(CheckStatus.FAILURE, pr.checks(editHash).get("Pre-submit tests - ps2 - Build / test").status());
+            assertEquals("1/1 failed", pr.checks(editHash).get("Pre-submit tests - ps3 - Build / test").title().orElseThrow());
+            assertEquals("❌ [ps3](https://www.example.com)", pr.checks(editHash).get("Pre-submit tests - ps3 - Build / test").summary().orElseThrow());
+            assertEquals(CheckStatus.FAILURE, pr.checks(editHash).get("Pre-submit tests - ps3 - Build / test").status());
+            assertEquals("1/1 running", pr.checks(editHash).get("Pre-submit tests - ps4 - Build / test").title().orElseThrow());
+            assertEquals("⏳ [ps4](https://www.example.com)", pr.checks(editHash).get("Pre-submit tests - ps4 - Build / test").summary().orElseThrow());
+            assertEquals(CheckStatus.IN_PROGRESS, pr.checks(editHash).get("Pre-submit tests - ps4 - Build / test").status());
         }
     }
 }
