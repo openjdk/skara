@@ -482,9 +482,8 @@ class CheckRun {
                             }
                             if (iss.get().state() != org.openjdk.skara.issuetracker.Issue.State.OPEN) {
                                 if (!pr.labels().contains("backport")) {
-                                    progressBody.append(" ⚠️ Issue is not open.\n");
+                                    progressBody.append(" ⚠️ Issue is not open.");
                                 }
-                                continue;
                             }
                             if (properties.containsKey("issuetype") && !primaryTypes.contains(properties.get("issuetype").asString())) {
                                 progressBody.append(" ⚠️ Unexpected issue type `").append(properties.get("issuetype").asString()).append("`.");
