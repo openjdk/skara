@@ -34,7 +34,7 @@ public class TestInfoBot implements Bot {
     private final HostedRepository repo;
     private final Map<String, Instant> expirations = new HashMap<>();
 
-    private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
+    private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");
 
     TestInfoBot(HostedRepository repo) {
         this.repo = repo;
