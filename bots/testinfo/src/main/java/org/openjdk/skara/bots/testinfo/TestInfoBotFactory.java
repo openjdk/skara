@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,45 +20,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-rootProject.name = 'skara'
+package org.openjdk.skara.bots.testinfo;
 
-include 'args'
-include 'bot'
-include 'ci'
-include 'cli'
-include 'census'
-include 'email'
-include 'encoding'
-include 'host'
-include 'ini'
-include 'jcheck'
-include 'json'
-include 'mailinglist'
-include 'process'
-include 'proxy'
-include 'storage'
-include 'ssh'
-include 'test'
-include 'vcs'
-include 'webrev'
-include 'network'
-include 'forge'
-include 'issuetracker'
-include 'version'
+import org.openjdk.skara.bot.*;
 
-include 'bots:bridgekeeper'
-include 'bots:censussync'
-include 'bots:checkout'
-include 'bots:cli'
-include 'bots:csr'
-include 'bots:forward'
-include 'bots:hgbridge'
-include 'bots:merge'
-include 'bots:mirror'
-include 'bots:mlbridge'
-include 'bots:notify'
-include 'bots:pr'
-include 'bots:submit'
-include 'bots:tester'
-include 'bots:testinfo'
-include 'bots:topological'
+import java.util.*;
+import java.util.logging.Logger;
+
+public class TestInfoBotFactory implements BotFactory {
+    private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");
+
+    @Override
+    public String name() {
+        return "testinfo";
+    }
+
+    @Override
+    public List<Bot> create(BotConfiguration configuration) {
+        var bots = new ArrayList<Bot>();
+        var specific = configuration.specific();
+        for (var repo : specific.get("repositories").asArray()) {
+            bots.add(new TestInfoBot(configuration.repository(repo.asString())));
+        }
+        return bots;
+    }
+}

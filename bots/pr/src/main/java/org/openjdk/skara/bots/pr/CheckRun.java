@@ -417,29 +417,6 @@ class CheckRun {
             progressBody.append(warningListToText(allAdditionalErrors));
         }
 
-        if (pr.sourceRepository().isPresent()) {
-            var sourceRepo = pr.sourceRepository().get();
-            var checks = sourceRepo.allChecks(pr.headHash());
-
-            var resultSummary = TestResults.summarize(checks);
-            if (resultSummary.isPresent()) {
-                progressBody.append(resultSummary.get());
-                var expiration = TestResults.expiresIn(checks);
-                expiration.ifPresent(this::setExpiration);
-            } else {
-                try {
-                    var headCommit = localRepo.commitMetadata(pr.headHash());
-                    if (headCommit.isPresent()) {
-                        // If the commit is recent, perhaps test results will appear soon
-                        if (headCommit.get().committed().isAfter(ZonedDateTime.now().minus(Duration.ofDays(1)))) {
-                            setExpiration(Duration.ofMinutes(10));
-                        }
-                    }
-                } catch (IOException ignored) {
-                }
-            }
-        }
-
         if (!integrationBlockers.isEmpty()) {
             progressBody.append("\n\n### Integration blocker");
             if (integrationBlockers.size() > 1) {

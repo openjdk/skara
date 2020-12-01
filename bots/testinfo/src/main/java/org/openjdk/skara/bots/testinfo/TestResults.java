@@ -20,7 +20,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.bots.pr;
+package org.openjdk.skara.bots.testinfo;
 
 import org.openjdk.skara.forge.*;
 
@@ -72,12 +72,13 @@ public class TestResults {
         return latestChecks.values();
     }
 
-    static Optional<String> summarize(List<Check> checks) {
+    static List<Check> summarize(List<Check> checks) {
         var latestChecks = latestChecks(checks);
         if (latestChecks.isEmpty()) {
-            return Optional.empty();
+            return List.of();
         }
 
+        var hash = latestChecks.stream().findAny().orElseThrow().hash();
         var platforms = latestChecks.stream()
                                     .map(check -> platformFromName(check.name()))
                                     .collect(Collectors.toCollection(TreeSet::new));
@@ -85,7 +86,7 @@ public class TestResults {
                                   .map(check -> flavorFromName(check.name()))
                                   .collect(Collectors.toCollection(TreeSet::new));
         if (platforms.isEmpty() || flavors.isEmpty()) {
-            return Optional.empty();
+            return List.of();
         }
 
         var platformFlavors = latestChecks.stream()
@@ -94,14 +95,8 @@ public class TestResults {
                                                                     entry -> entry.getValue().stream()
                                                                                   .collect(Collectors.groupingBy(check -> flavorFromName(check.name())))));
 
-        var resultsBody = new StringBuilder();
-        resultsBody.append("\n\n### Testing\n\n");
-        resultsBody.append("|     |");
-        platforms.forEach(platform -> resultsBody.append(" ").append(platform).append(" |"));
-        resultsBody.append("\n| --- |");
-        platforms.forEach(platform -> resultsBody.append(" ----- |"));
+        var ret = new ArrayList<Check>();
         for (var flavor : flavors) {
-            resultsBody.append("\n| ").append(flavor).append(" |");
             for (var platform : platforms) {
                 var platformChecks = platformFlavors.get(platform);
                 var flavorChecks = platformChecks.get(flavor);
@@ -109,64 +104,56 @@ public class TestResults {
                     int failureCount = 0;
                     int pendingCount = 0;
                     int successCount = 0;
+                    var checkDetails = new ArrayList<String>();
+                    String checkIcon = "";
                     for (var check : flavorChecks) {
                         switch (check.status()) {
                             case IN_PROGRESS:
+                                checkIcon = "⏳ ";
                                 pendingCount++;
                                 break;
                             case FAILURE:
+                                checkIcon = "❌ ";
                                 failureCount++;
                                 break;
                             case SUCCESS:
+                                checkIcon = "✔️ ";
                                 successCount++;
                                 break;
                         }
+                        var checkTitle = check.details().isPresent() ? "[" + check.name() + "](" + check.details().get() + ")" : check.name();
+                        checkDetails.add(checkIcon + checkTitle);
                     }
+                    var checkBuilder = CheckBuilder.create("Pre-submit tests - " + platform + " - " + flavor, hash);
+                    checkBuilder.summary(String.join("\n", checkDetails));
+                    var firstStartedAt = flavorChecks.stream()
+                                                     .map(Check::startedAt)
+                                                     .min(ZonedDateTime::compareTo);
+                    firstStartedAt.ifPresent(checkBuilder::startedAt);
+
+                    var lastCompletedAt = flavorChecks.stream()
+                                                      .map(Check::completedAt)
+                                                      .filter(Optional::isPresent)
+                                                      .map(Optional::get)
+                                                      .max(ZonedDateTime::compareTo);
                     int total = failureCount + pendingCount + successCount;
-                    if (failureCount > 0) {
-                        resultsBody.append(" ❌");
-                        resultsBody.append(" (").append(failureCount).append("/").append(total).append(" failed) |");
-                    } else if (pendingCount > 0) {
-                        resultsBody.append(" ⏳");
-                        resultsBody.append(" (").append(pendingCount).append("/").append(total).append(" running) |");
-                    } else {
-                        resultsBody.append(" ✔️");
-                        resultsBody.append(" (").append(successCount).append("/").append(total).append(" passed) |");
+                    if (pendingCount > 0) {
+                        checkBuilder.title(pendingCount + "/" + total + " running");
+                        ret.add(checkBuilder.build());
+                    } else if (failureCount > 0) {
+                        checkBuilder.title(failureCount + "/" + total + " failed");
+                        lastCompletedAt.ifPresentOrElse(ca -> checkBuilder.complete(false, ca), () -> checkBuilder.complete(false));
+                        ret.add(checkBuilder.build());
+                    } else if (successCount > 0) {
+                        checkBuilder.title(successCount + "/" + total + " passed");
+                        lastCompletedAt.ifPresentOrElse(ca -> checkBuilder.complete(true, ca), () -> checkBuilder.complete(true));
+                        ret.add(checkBuilder.build());
                     }
-
-                } else {
-                    resultsBody.append("    | ");
                 }
             }
         }
 
-        var failedChecks = latestChecks.stream()
-                                       .filter(check -> check.status() == CheckStatus.FAILURE)
-                                       .sorted(Comparator.comparing(Check::name))
-                                       .collect(Collectors.toList());
-        if (!failedChecks.isEmpty()) {
-            resultsBody.append("\n\n**Failed test task");
-            if (failedChecks.size() > 1) {
-                resultsBody.append("s");
-            }
-            resultsBody.append("**");
-            for (var failedCheck : failedChecks) {
-                resultsBody.append("\n- ");
-                if (failedCheck.details().isPresent()) {
-                    resultsBody.append("[");
-                    resultsBody.append(failedCheck.name());
-                    resultsBody.append("](");
-                    resultsBody.append(failedCheck.details().get().toString());
-                    resultsBody.append(")");
-                } else {
-                    resultsBody.append("`");
-                    resultsBody.append(failedCheck.name());
-                    resultsBody.append("`");
-                }
-            }
-        }
-
-        return Optional.of(resultsBody.toString());
+        return ret;
     }
 
     static Optional<Duration> expiresIn(List<Check> checks) {
@@ -175,7 +162,7 @@ public class TestResults {
                                       .filter(check -> check.status() == CheckStatus.IN_PROGRESS)
                                       .findAny();
         if (needRefresh.isPresent()) {
-            return Optional.of(Duration.ofMinutes(5));
+            return Optional.of(Duration.ofMinutes(2));
         } else {
             return Optional.empty();
         }

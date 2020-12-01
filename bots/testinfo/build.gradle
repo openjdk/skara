@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,45 +20,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-rootProject.name = 'skara'
 
-include 'args'
-include 'bot'
-include 'ci'
-include 'cli'
-include 'census'
-include 'email'
-include 'encoding'
-include 'host'
-include 'ini'
-include 'jcheck'
-include 'json'
-include 'mailinglist'
-include 'process'
-include 'proxy'
-include 'storage'
-include 'ssh'
-include 'test'
-include 'vcs'
-include 'webrev'
-include 'network'
-include 'forge'
-include 'issuetracker'
-include 'version'
+module {
+    name = 'org.openjdk.skara.bots.testinfo'
+    test {
+        requires 'org.junit.jupiter.api'
+        requires 'org.openjdk.skara.test'
+        opens 'org.openjdk.skara.bots.testinfo' to 'org.junit.platform.commons'
+    }
+}
 
-include 'bots:bridgekeeper'
-include 'bots:censussync'
-include 'bots:checkout'
-include 'bots:cli'
-include 'bots:csr'
-include 'bots:forward'
-include 'bots:hgbridge'
-include 'bots:merge'
-include 'bots:mirror'
-include 'bots:mlbridge'
-include 'bots:notify'
-include 'bots:pr'
-include 'bots:submit'
-include 'bots:tester'
-include 'bots:testinfo'
-include 'bots:topological'
+dependencies {
+    implementation project(':bot')
+    implementation project(':ci')
+    implementation project(':vcs')
+    implementation project(':host')
+    implementation project(':forge')
+    implementation project(':issuetracker')
+    implementation project(':census')
+    implementation project(':process')
+    implementation project(':json')
+    implementation project(':network')
+    implementation project(':storage')
+
+    testImplementation project(':test')
+}
