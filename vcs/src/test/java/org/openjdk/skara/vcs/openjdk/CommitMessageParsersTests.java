@@ -309,6 +309,6 @@ public class CommitMessageParsersTests {
         assertEquals(List.of(), message.contributors());
         assertEquals(List.of(), message.reviewers());
         assertEquals(List.of(), message.summaries());
-        assertEquals(List.of(), message.additional());
+        assertEquals(List.of(""), message.additional());
     }
 }
