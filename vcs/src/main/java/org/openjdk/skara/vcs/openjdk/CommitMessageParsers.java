@@ -114,7 +114,7 @@ public class CommitMessageParsers {
             var coAuthors = new ArrayList<Author>();
             var reviewers = new ArrayList<String>();
             Hash original = null;
-            while (i < lines.size() && lines.get(i).equals("")) {
+            while (i < (lines.size() - 1) && lines.get(i).equals("")) {
                 i++;
 
                 if (lines.get(i).startsWith("Co-authored-by:") ||
