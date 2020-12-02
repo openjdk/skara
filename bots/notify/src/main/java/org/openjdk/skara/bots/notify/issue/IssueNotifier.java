@@ -25,10 +25,10 @@ package org.openjdk.skara.bots.notify.issue;
 import org.openjdk.skara.bots.notify.*;
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
-import org.openjdk.skara.json.JSON;
+import org.openjdk.skara.json.*;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.*;
 
@@ -46,14 +46,13 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     private final URI commitIcon;
     private final boolean setFixVersion;
     private final Map<String, String> fixVersions;
-    private final JbsBackport jbsBackport;
     private final boolean prOnly;
     private final String buildName;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
     IssueNotifier(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,
-            boolean setFixVersion, Map<String, String> fixVersions, JbsBackport jbsBackport, boolean prOnly,
+            boolean setFixVersion, Map<String, String> fixVersions, boolean prOnly,
                   String buildName) {
         this.issueProject = issueProject;
         this.reviewLink = reviewLink;
@@ -62,7 +61,6 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         this.commitIcon = commitIcon;
         this.setFixVersion = setFixVersion;
         this.fixVersions = fixVersions;
-        this.jbsBackport = jbsBackport;
         this.prOnly = prOnly;
         this.buildName = buildName;
     }
@@ -179,6 +177,30 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         realIssue.get().removeLink(link);
     }
 
+    private final static Set<String> copiedProperties = Set.of("priority", "versions", "components", "security",
+                                                                "customfield_10000", "customfield_10005", "customfield_10008");
+
+    private Issue createBackportIssue(Issue primary, String assignee) {
+        var finalProperties = new HashMap<String, JSONValue>();
+        for (var property : primary.properties().entrySet()) {
+            if (copiedProperties.contains(property.getKey())) {
+                finalProperties.put(property.getKey(), property.getValue());
+            }
+        }
+        finalProperties.put("issuetype", JSON.of("Backport"));
+        if (assignee != null) {
+            finalProperties.put("assignee", JSON.of(assignee));
+        }
+        if (!finalProperties.containsKey("security")) {
+            finalProperties.put("security", JSON.of());
+        }
+        var backport = primary.project().createIssue(primary.title(), List.of(""), finalProperties);
+
+        var backportLink = Link.create(backport, "backported by").build();
+        primary.addLink(backportLink);
+        return backport;
+    }
+
     @Override
     public void onNewCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) {
         for (var commit : commits) {
@@ -227,7 +249,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                         var fixVersion = JdkVersion.parse(requestedVersion);
                         var existing = Backports.findIssue(issue, fixVersion);
                         if (existing.isEmpty()) {
-                            issue = jbsBackport.createBackport(issue, requestedVersion, username.orElse(null));
+                            issue = createBackportIssue(issue, username.orElse(null));
                         } else {
                             issue = existing.get();
                         }

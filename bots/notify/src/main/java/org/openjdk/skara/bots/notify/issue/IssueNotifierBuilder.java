@@ -35,8 +35,6 @@ class IssueNotifierBuilder {
     private URI commitIcon = null;
     private boolean setFixVersion = false;
     private Map<String, String> fixVersions = null;
-    private JbsVault vault = null;
-    private String securityLevel = null;
     private boolean prOnly = true;
     private String buildName = null;
 
@@ -76,16 +74,6 @@ class IssueNotifierBuilder {
         return this;
     }
 
-    public IssueNotifierBuilder vault(JbsVault vault) {
-        this.vault = vault;
-        return this;
-    }
-
-    public IssueNotifierBuilder securityLevel(String securityLevel) {
-        this.securityLevel = securityLevel;
-        return this;
-    }
-
     public IssueNotifierBuilder prOnly(boolean prOnly) {
         this.prOnly = prOnly;
         return this;
@@ -97,8 +85,7 @@ class IssueNotifierBuilder {
     }
 
     IssueNotifier build() {
-        var jbsBackport = new JbsBackport(issueProject.webUrl(), vault, securityLevel);
         return new IssueNotifier(issueProject, reviewLink, reviewIcon, commitLink, commitIcon,
-                                 setFixVersion, fixVersions, jbsBackport, prOnly, buildName);
+                                 setFixVersion, fixVersions, prOnly, buildName);
     }
 }
