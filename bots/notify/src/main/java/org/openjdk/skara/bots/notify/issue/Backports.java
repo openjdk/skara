@@ -195,6 +195,8 @@ public class Backports {
         var links = primary.links();
         return links.stream()
                     .filter(l -> l.issue().isPresent())
+                    .filter(l -> l.relationship().isPresent())
+                    .filter(l -> l.relationship().get().equals("backported by") || l.relationship().get().equals("backport of"))
                     .map(l -> l.issue().get())
                     .filter(i -> i.state() != Issue.State.OPEN)
                     .filter(i -> i.properties().containsKey("issuetype"))
