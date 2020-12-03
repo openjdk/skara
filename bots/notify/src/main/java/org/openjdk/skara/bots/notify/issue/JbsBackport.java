@@ -79,6 +79,13 @@ public class JbsBackport {
             request.body("level", securityLevel);
         }
         var response = request.execute();
-        return primary.project().issue(response.get("key").asString()).orElseThrow();
+        var issue = primary.project().issue(response.get("key").asString()).orElseThrow();
+
+        // The backport should not have any labels set - if it does, clear them
+        var labels = issue.labels();
+        for (var label : labels) {
+            issue.removeLabel(label);
+        }
+        return issue;
     }
 }
