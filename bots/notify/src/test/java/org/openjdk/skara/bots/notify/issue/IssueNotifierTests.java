@@ -834,7 +834,9 @@ public class IssueNotifierTests {
             // Create an issue and commit a fix
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"),
                                                  Map.of("issuetype", JSON.of("Enhancement"),
-                                                        "customfield_10008", JSON.of("java.io"),
+                                                        "customfield_10008", JSON.object()
+                                                                                 .put("id", 244)
+                                                                                 .put("name", "java.io"),
                                                         "customfield_10005", JSON.array()
                                                                                  .add(JSON.object()
                                                                                           .put("id", "17010")
@@ -870,7 +872,8 @@ public class IssueNotifierTests {
 
             // Custom properties should also propagate
             assertEquals("1", backport.properties().get("priority").asString());
-            assertEquals("java.io", backport.properties().get("customfield_10008").asString());
+            assertEquals(244, backport.properties().get("customfield_10008").get("id").asInt());
+            assertEquals("java.io", backport.properties().get("customfield_10008").get("name").asString());
             assertEquals(2, backport.properties().get("customfield_10005").asArray().size());
         }
     }
