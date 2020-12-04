@@ -39,7 +39,7 @@ public class PullRequestUtils {
                                 committer.name(), committer.email(), ZonedDateTime.now(), List.of(targetHash(pr, localRepo)), localRepo.tree(finalHead));
     }
 
-    private final static Pattern mergeSourcePattern = Pattern.compile("^Merge ([-/\\w:]+)$");
+    private final static Pattern mergeSourcePattern = Pattern.compile("^Merge ([-/\\w:+]+)$");
 
     private static Optional<Hash> fetchRef(Repository localRepo, URI uri, String ref) throws IOException {
         // Just a plain name - is this a branch?
