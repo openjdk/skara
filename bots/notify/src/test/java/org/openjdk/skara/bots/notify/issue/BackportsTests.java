@@ -52,6 +52,9 @@ public class BackportsTests {
             assertEquals(issue1, Backports.findMainIssue(issue1).orElseThrow());
             assertEquals(issue1, Backports.findMainIssue(issue2).orElseThrow());
             assertEquals(issue1, Backports.findMainIssue(issue3).orElseThrow());
+
+            assertEquals(List.of(issue2), Backports.findBackports(issue1, false));
+            assertEquals(List.of(), Backports.findBackports(issue1, true));
         }
     }
 
@@ -104,7 +107,7 @@ public class BackportsTests {
             assertEquals(Optional.empty(), Backports.findMainIssue(issue3));
             assertEquals(Optional.empty(), Backports.findMainIssue(issue4));
 
-            assertEquals(List.of(), Backports.findBackports(issue1));
+            assertEquals(List.of(), Backports.findBackports(issue1, false));
         }
     }
 

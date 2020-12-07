@@ -161,7 +161,7 @@ public class Backports {
      */
     static Optional<Issue> findIssue(Issue primary, JdkVersion fixVersion) {
         log.fine("Searching for properly versioned issue for primary issue " + primary.id());
-        var candidates = Stream.concat(Stream.of(primary), findBackports(primary).stream()).collect(Collectors.toList());
+        var candidates = Stream.concat(Stream.of(primary), findBackports(primary, false).stream()).collect(Collectors.toList());
         candidates.forEach(c -> log.fine("Candidate: " + c.id() + " with versions: " + String.join(",", fixVersions(c))));
         var matchingVersionIssue = candidates.stream()
                                              .filter(i -> matchVersion(i, fixVersion))
@@ -191,14 +191,14 @@ public class Backports {
         return Optional.empty();
     }
 
-    static List<Issue> findBackports(Issue primary) {
+    static List<Issue> findBackports(Issue primary, boolean resolvedOnly) {
         var links = primary.links();
         return links.stream()
                     .filter(l -> l.issue().isPresent())
                     .filter(l -> l.relationship().isPresent())
-                    .filter(l -> l.relationship().get().equals("backported by") || l.relationship().get().equals("backport of"))
+                    .filter(l -> l.relationship().get().equals("backported by"))
                     .map(l -> l.issue().get())
-                    .filter(i -> i.state() != Issue.State.OPEN)
+                    .filter(i -> !resolvedOnly || (i.state() != Issue.State.OPEN))
                     .filter(i -> i.properties().containsKey("issuetype"))
                     .filter(i -> i.properties().get("issuetype").asString().equals("Backport"))
                     .collect(Collectors.toList());
@@ -309,7 +309,7 @@ public class Backports {
         if (mainIssue.isEmpty()) {
             return;
         }
-        var related = Backports.findBackports(mainIssue.get());
+        var related = Backports.findBackports(mainIssue.get(), true);
 
         var allIssues = new ArrayList<Issue>();
         allIssues.add(mainIssue.get());
