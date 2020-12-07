@@ -196,9 +196,8 @@ public class Backports {
         return links.stream()
                     .filter(l -> l.issue().isPresent())
                     .filter(l -> l.relationship().isPresent())
-                    .filter(l -> l.relationship().get().equals("backported by") || l.relationship().get().equals("backport of"))
+                    .filter(l -> l.relationship().get().equals("backported by"))
                     .map(l -> l.issue().get())
-                    .filter(i -> i.state() != Issue.State.OPEN)
                     .filter(i -> i.properties().containsKey("issuetype"))
                     .filter(i -> i.properties().get("issuetype").asString().equals("Backport"))
                     .collect(Collectors.toList());
