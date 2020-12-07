@@ -24,7 +24,7 @@
 package org.openjdk.skara.bots.testinfo;
 
 import org.openjdk.skara.bot.*;
-import org.openjdk.skara.forge.HostedRepository;
+import org.openjdk.skara.forge.*;
 
 import java.time.*;
 import java.util.*;
@@ -40,6 +40,10 @@ public class TestInfoBot implements Bot {
         this.repo = repo;
     }
 
+    private String pullRequestToKey(PullRequest pr) {
+        return pr.id() + "#" + pr.headHash().hex();
+    }
+
     @Override
     public List<WorkItem> getPeriodicItems() {
         var prs = repo.pullRequests(ZonedDateTime.now().minus(Duration.ofDays(1)));
@@ -48,8 +52,10 @@ public class TestInfoBot implements Bot {
             if (pr.sourceRepository().isEmpty()) {
                 continue;
             }
-            if (expirations.containsKey(pr.id())) {
-                var expiresAt = expirations.get(pr.id());
+            var expirationKey = pullRequestToKey(pr);
+
+            if (expirations.containsKey(expirationKey)) {
+                var expiresAt = expirations.get(expirationKey);
                 if (expiresAt.isAfter(Instant.now())) {
                     continue;
                 }
@@ -61,10 +67,10 @@ public class TestInfoBot implements Bot {
 
             if (summarizedChecks.isEmpty()) {
                 // No test related checks found, they may not have started yet, so we'll keep looking
-                expirations.put(pr.id(), Instant.now().plus(Duration.ofMinutes(5)));
+                expirations.put(expirationKey, Instant.now().plus(Duration.ofMinutes(2)));
                 continue;
             } else {
-                expirations.put(pr.id(), Instant.now().plus(TestResults.expiresIn(checks).orElse(Duration.ofDays(1000))));
+                expirations.put(expirationKey, Instant.now().plus(TestResults.expiresIn(checks).orElse(Duration.ofMinutes(30))));
             }
 
             // Time to refresh test info
