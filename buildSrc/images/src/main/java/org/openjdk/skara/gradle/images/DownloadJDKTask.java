@@ -79,7 +79,7 @@ public class DownloadJDKTask extends DefaultTask {
                     digest.update(bytes, 0, read);
                 }
             }
-            return new BigInteger(1, digest.digest()).toString(16);
+            return String.format("%064x", new BigInteger(1, digest.digest()));
         } catch (NoSuchAlgorithmException e) {
             throw new GradleException("this JRE does not support SHA-256");
         }
