@@ -1109,7 +1109,7 @@ class MergeTests {
             // Make a change in another branch
             var otherHash = CheckableRepository.appendAndCommit(localRepo, "Change in other",
                                                                 "Other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash, author.url(), "other", true);
+            localRepo.push(otherHash, author.url(), "branch-a+b", true);
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
