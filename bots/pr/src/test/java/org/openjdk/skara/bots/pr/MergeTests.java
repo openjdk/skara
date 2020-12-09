@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
+import static org.openjdk.skara.forge.CheckStatus.SUCCESS;
 
 class MergeTests {
     @Test
@@ -1082,7 +1083,54 @@ class MergeTests {
             assertEquals(1, error, () -> pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
 
             var check = pr.checks(mergeHash).get("jcheck");
-            assertEquals("- Could not determine the source for this merge. A Merge PR title must be specified on the format: Merge `project`:`branch` to allow verification of the merge contents.", check.summary().orElseThrow());
+            assertEquals("- Could not determine the source for this merge. A Merge PR title must be specified on the format: `^Merge ([-/\\w:+]+)$` to allow verification of the merge contents.", check.summary().orElseThrow());
+        }
+    }
+
+    @Test
+    void branchWithPlus(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType(), Path.of("appendable.txt"), Set.of("merge"), "1.0");
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change in another branch
+            var otherHash = CheckableRepository.appendAndCommit(localRepo, "Change in other",
+                                                                "Other\n\nReviewed-by: integrationreviewer2");
+            localRepo.push(otherHash, author.url(), "other", true);
+
+            // Go back to the original master
+            localRepo.checkout(masterHash, true);
+
+            // Make a change with a corresponding PR
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            localRepo.add(unrelated);
+            var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
+            localRepo.push(updatedMaster, author.url(), "master");
+
+            localRepo.merge(otherHash);
+            var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
+            localRepo.push(mergeHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge branch-a+b");
+
+            // Let the bot check the status
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // should be successful
+            var check = pr.checks(mergeHash).get("jcheck");
+            assertSame(SUCCESS, check.status());
         }
     }
 

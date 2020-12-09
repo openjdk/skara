@@ -62,8 +62,8 @@ public class PullRequestUtils {
     private static Hash fetchMergeSource(PullRequest pr, Repository localRepo) throws IOException, CommitFailure {
         var sourceMatcher = mergeSourcePattern.matcher(pr.title());
         if (!sourceMatcher.matches()) {
-            throw new CommitFailure("Could not determine the source for this merge. A Merge PR title must be specified on the format: " +
-                                            "Merge `project`:`branch` to allow verification of the merge contents.");
+            throw new CommitFailure("Could not determine the source for this merge. A Merge PR title must be specified on the format: `" +
+                                            mergeSourcePattern.toString() + "` to allow verification of the merge contents.");
         }
 
         var source = sourceMatcher.group(1);
