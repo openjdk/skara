@@ -39,7 +39,7 @@ public class PullRequestUtils {
                                 committer.name(), committer.email(), ZonedDateTime.now(), List.of(targetHash(pr, localRepo)), localRepo.tree(finalHead));
     }
 
-    private final static Pattern mergeSourcePattern = Pattern.compile("^Merge ([-/\\w:]+)$");
+    private final static Pattern mergeSourcePattern = Pattern.compile("^Merge ([-/\\w:+]+)$");
 
     private static Optional<Hash> fetchRef(Repository localRepo, URI uri, String ref) throws IOException {
         // Just a plain name - is this a branch?
@@ -62,8 +62,8 @@ public class PullRequestUtils {
     private static Hash fetchMergeSource(PullRequest pr, Repository localRepo) throws IOException, CommitFailure {
         var sourceMatcher = mergeSourcePattern.matcher(pr.title());
         if (!sourceMatcher.matches()) {
-            throw new CommitFailure("Could not determine the source for this merge. A Merge PR title must be specified on the format: " +
-                                            "Merge `project`:`branch` to allow verification of the merge contents.");
+            throw new CommitFailure("Could not determine the source for this merge. A Merge PR title must be specified in the format: `" +
+                                            mergeSourcePattern.toString() + "` to allow verification of the merge contents.");
         }
 
         var source = sourceMatcher.group(1);
