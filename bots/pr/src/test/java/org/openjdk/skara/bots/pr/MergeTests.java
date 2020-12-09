@@ -1083,7 +1083,7 @@ class MergeTests {
             assertEquals(1, error, () -> pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
 
             var check = pr.checks(mergeHash).get("jcheck");
-            assertEquals("- Could not determine the source for this merge. A Merge PR title must be specified of the format: `^Merge ([-/\\w:+]+)$` to allow verification of the merge contents.", check.summary().orElseThrow());
+            assertEquals("- Could not determine the source for this merge. A Merge PR title must be specified in the format: `^Merge ([-/\\w:+]+)$` to allow verification of the merge contents.", check.summary().orElseThrow());
         }
     }
 
