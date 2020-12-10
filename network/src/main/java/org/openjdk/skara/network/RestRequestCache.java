@@ -22,7 +22,9 @@
  */
 package org.openjdk.skara.network;
 
+import javax.net.ssl.SSLSession;
 import java.io.IOException;
+import java.net.URI;
 import java.net.http.*;
 import java.time.*;
 import java.util.*;
@@ -97,6 +99,56 @@ enum RestRequestCache {
         }
     }
 
+    private static class CachedHttpResponse<T> implements HttpResponse<T> {
+        private final HttpResponse<T> original;
+        private final HttpResponse<T> fromRequest;
+
+        CachedHttpResponse(HttpResponse<T> original, HttpResponse<T> fromRequest) {
+            this.original = original;
+            this.fromRequest = fromRequest;
+        }
+
+        @Override
+        public int statusCode() {
+            return original.statusCode();
+        }
+
+        @Override
+        public HttpRequest request() {
+            return fromRequest.request();
+        }
+
+        @Override
+        public Optional<HttpResponse<T>> previousResponse() {
+            return fromRequest.previousResponse();
+        }
+
+        @Override
+        public HttpHeaders headers() {
+            return fromRequest.headers();
+        }
+
+        @Override
+        public T body() {
+            return original.body();
+        }
+
+        @Override
+        public Optional<SSLSession> sslSession() {
+            return fromRequest.sslSession();
+        }
+
+        @Override
+        public URI uri() {
+            return fromRequest.uri();
+        }
+
+        @Override
+        public HttpClient.Version version() {
+            return fromRequest.version();
+        }
+    }
+
     private Duration maxAllowedAge(RequestContext requestContext) {
         // Known stable caches can afford a longer timeout - others expire faster
         if (requestContext.unauthenticatedRequest.uri().toString().contains("github.com")) {
@@ -133,7 +185,7 @@ enum RestRequestCache {
             }
             if (response.statusCode() == 304) {
                 log.finer("Using cached response for " + finalRequest + " (" + authId + ")");
-                return cached;
+                return new CachedHttpResponse<>(cached, response);
             } else {
                 cachedResponses.put(requestContext, response);
                 cachedUpdated.put(requestContext, Instant.now());

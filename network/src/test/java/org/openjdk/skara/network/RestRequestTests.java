@@ -33,13 +33,14 @@ import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.time.Duration;
 import java.util.*;
+import java.util.stream.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class RestReceiver implements AutoCloseable {
     private final HttpServer server;
     private final List<JSONObject> requests = new ArrayList<>();
-    private final List<String> responses;
+    private List<String> responses;
     private int responseCode;
 
     private int truncatedResponseCount = 0;
@@ -145,6 +146,11 @@ class RestReceiver implements AutoCloseable {
 
     boolean usedCached() {
         return usedCache;
+    }
+
+    void addPage(String responsePage) {
+        this.responses = Stream.concat(responses.stream(), List.of(responsePage).stream())
+                               .collect(Collectors.toList());
     }
 
     @Override
@@ -274,4 +280,35 @@ class RestRequestTests {
             assertTrue(receiver.usedCached());
         }
     }
-}
+
+    @Test
+    void cachedPagination() throws IOException {
+        var page1 = "[ { \"a\": 1 } ]";
+        var page2 = "[ { \"b\": 2 } ]";
+        try (var receiver = new RestReceiver(List.of(page1))) {
+            var request = new RestRequest(receiver.getEndpoint());
+            var result = request.get("/test").execute();
+            assertEquals(1, result.asArray().size());
+            assertEquals(1, result.asArray().get(0).get("a").asInt());
+            assertFalse(receiver.usedCached());
+
+            var anotherRequest = new RestRequest(receiver.getEndpoint());
+            var anotherResult = anotherRequest.get("/test").execute();
+            assertEquals(1, anotherResult.asArray().size());
+            assertEquals(1, anotherResult.asArray().get(0).get("a").asInt());
+            assertTrue(receiver.usedCached());
+
+            receiver.addPage(page2);
+            var pagedRequest = new RestRequest(receiver.getEndpoint());
+            var pagedResult = pagedRequest.get("/test").execute();
+            assertEquals(2, pagedResult.asArray().size());
+            assertEquals(1, pagedResult.asArray().get(0).get("a").asInt());
+            assertFalse(receiver.usedCached());
+
+            var anotherPagedRequest = new RestRequest(receiver.getEndpoint());
+            var anotherPagedResult = anotherPagedRequest.get("/test").execute();
+            assertEquals(2, anotherPagedResult.asArray().size());
+            assertEquals(1, anotherPagedResult.asArray().get(0).get("a").asInt());
+            assertTrue(receiver.usedCached());
+        }
+    }}
