@@ -125,7 +125,14 @@ enum RestRequestCache {
 
         @Override
         public HttpHeaders headers() {
-            return fromRequest.headers();
+            var combined = new HashMap<String, List<String>>();
+            for (var header : original.headers().map().entrySet()) {
+                combined.put(header.getKey(), header.getValue());
+            }
+            for (var header : fromRequest.headers().map().entrySet()) {
+                combined.put(header.getKey(), header.getValue());
+            }
+            return HttpHeaders.of(combined, (a, b) -> true);
         }
 
         @Override
