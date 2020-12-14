@@ -40,7 +40,7 @@ public class Email {
     private final Map<String, String> headers;
 
     private final static Pattern mboxMessageHeaderBodyPattern = Pattern.compile(
-            "\\R{2}", Pattern.MULTILINE);
+            "(\\r\\n){2}|(\\n){2}", Pattern.MULTILINE);
     private final static Pattern mboxMessageHeaderPattern = Pattern.compile(
             "^([-\\w]+): ((?:.(?!\\R\\w))*.)", Pattern.MULTILINE | Pattern.DOTALL);
 

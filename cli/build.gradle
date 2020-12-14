@@ -79,8 +79,8 @@ images {
         launchers = ext.launchers
         bundles = ['zip', 'tar.gz']
         jdk {
-            url = 'https://download.java.net/java/GA/jdk14.0.1/664493ef4a6946b186ff29eb326336a2/7/GPL/openjdk-14.0.1_windows-x64_bin.zip'
-            sha256 = '26255f3f2fe7168ec0dce9d9f3825649c18540ba86279a7506c7f17dd3e537f9'
+            url = 'https://download.java.net/java/GA/jdk15.0.1/51f4f36ad4ef43e39d0dfdbaf6549e32/9/GPL/openjdk-15.0.1_windows-x64_bin.zip'
+            sha256 = '0a27c733fc7ceaaae3856a9c03f5e2304af30a32de6b454b8762ec02447c5464'
         }
     }
 
@@ -90,8 +90,8 @@ images {
         man = 'cli/resources/man'
         bundles = ['zip', 'tar.gz']
         jdk {
-            url = 'https://download.java.net/java/GA/jdk14.0.1/664493ef4a6946b186ff29eb326336a2/7/GPL/openjdk-14.0.1_linux-x64_bin.tar.gz'
-            sha256 = '22ce248e0bd69f23028625bede9d1b3080935b68d011eaaf9e241f84d6b9c4cc'
+            url = 'https://download.java.net/java/GA/jdk15.0.1/51f4f36ad4ef43e39d0dfdbaf6549e32/9/GPL/openjdk-15.0.1_linux-x64_bin.tar.gz'
+            sha256 = '83ec3a7b1649a6b31e021cde1e58ab447b07fb8173489f27f427e731c89ed84a'
         }
     }
 
@@ -101,8 +101,8 @@ images {
         man = 'cli/resources/man'
         bundles = ['zip', 'tar.gz']
         jdk {
-            url = 'https://download.java.net/java/GA/jdk14.0.1/664493ef4a6946b186ff29eb326336a2/7/GPL/openjdk-14.0.1_osx-x64_bin.tar.gz'
-            sha256 = 'd8aa6806e6cc99724395563bf02fc6907a7c801f4caef85b96ad44927193da07'
+            url = 'https://download.java.net/java/GA/jdk15.0.1/51f4f36ad4ef43e39d0dfdbaf6549e32/9/GPL/openjdk-15.0.1_osx-x64_bin.tar.gz'
+            sha256 = 'e1d4868fb082d9202261c5a05251eded56fb805da2d641a65f604988b00b1979'
         }
     }
 
