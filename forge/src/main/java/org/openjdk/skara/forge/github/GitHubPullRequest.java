@@ -402,19 +402,11 @@ public class GitHubPullRequest implements PullRequest {
                                 var conclusion = c.get("conclusion").asString();
                                 var completedAt = ZonedDateTime.parse(c.get("completed_at").asString());
                                 switch (conclusion) {
-                                    case "cancelled":
-                                        checkBuilder.cancel(completedAt);
-                                        break;
-                                    case "success":
-                                        checkBuilder.complete(true, completedAt);
-                                        break;
-                                    case "failure":
-                                        // fallthrough
-                                    case "neutral":
-                                        checkBuilder.complete(false, completedAt);
-                                        break;
-                                    default:
-                                        throw new IllegalStateException("Unexpected conclusion: " + conclusion);
+                                    case "cancelled" -> checkBuilder.cancel(completedAt);
+                                    case "success" -> checkBuilder.complete(true, completedAt);
+                                    case "action_required", "failure", "neutral" -> checkBuilder.complete(false, completedAt);
+                                    case "skipped" -> checkBuilder.skipped(completedAt);
+                                    default -> throw new IllegalStateException("Unexpected conclusion: " + conclusion);
                                 }
                             }
                             if (c.contains("external_id")) {

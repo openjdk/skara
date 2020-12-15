@@ -462,20 +462,11 @@ public class GitHubRepository implements HostedRepository {
                              var conclusion = c.get("conclusion").asString();
                              var completedAt = ZonedDateTime.parse(c.get("completed_at").asString());
                              switch (conclusion) {
-                                 case "cancelled":
-                                 case "skipped":
-                                     checkBuilder.cancel(completedAt);
-                                     break;
-                                 case "success":
-                                     checkBuilder.complete(true, completedAt);
-                                     break;
-                                 case "failure":
-                                     // fallthrough
-                                 case "neutral":
-                                     checkBuilder.complete(false, completedAt);
-                                     break;
-                                 default:
-                                     throw new IllegalStateException("Unexpected conclusion: " + conclusion);
+                                 case "cancelled" -> checkBuilder.cancel(completedAt);
+                                 case "success" -> checkBuilder.complete(true, completedAt);
+                                 case "action_required", "failure", "neutral" -> checkBuilder.complete(false, completedAt);
+                                 case "skipped" -> checkBuilder.skipped(completedAt);
+                                 default -> throw new IllegalStateException("Unexpected conclusion: " + conclusion);
                              }
                          }
                          if (c.contains("external_id")) {
@@ -497,5 +488,16 @@ public class GitHubRepository implements HostedRepository {
                          return checkBuilder.build(); }
                      )
                      .collect(Collectors.toList());
+    }
+
+    @Override
+    public WorkflowStatus workflowStatus() {
+        var workflows = request.get("actions/workflows").execute();
+        var count = workflows.asObject().get("total_count").asInt();
+        if (count == 0) {
+            return WorkflowStatus.NOT_CONFIGURED;
+        } else {
+            return WorkflowStatus.ENABLED;
+        }
     }
 }

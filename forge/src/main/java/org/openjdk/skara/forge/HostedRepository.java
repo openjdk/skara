@@ -73,6 +73,7 @@ public interface HostedRepository {
     void updateCommitComment(String id, String body);
     Optional<HostedCommit> commit(Hash hash);
     List<Check> allChecks(Hash hash);
+    WorkflowStatus workflowStatus();
 
     default PullRequest createPullRequest(HostedRepository target,
                                           String targetRef,

@@ -17,12 +17,6 @@ public class TestInfoTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
-            var reviewer = credentials.getHostedRepository();
-            var issues = credentials.getIssueProject();
-
-            var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.forge().currentUser().id())
-                                           .addReviewer(reviewer.forge().currentUser().id());
             var checkBot = new TestInfoBot(author);
 
             // Populate the projects repository
@@ -77,12 +71,6 @@ public class TestInfoTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
-            var reviewer = credentials.getHostedRepository();
-            var issues = credentials.getIssueProject();
-
-            var censusBuilder = credentials.getCensusBuilder()
-                                           .addAuthor(author.forge().currentUser().id())
-                                           .addReviewer(reviewer.forge().currentUser().id());
             var checkBot = new TestInfoBot(author);
 
             // Populate the projects repository

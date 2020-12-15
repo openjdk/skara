@@ -488,4 +488,13 @@ public class GitLabRepository implements HostedRepository {
     public List<Check> allChecks(Hash hash) {
         return List.of();
     }
+
+    @Override
+    public WorkflowStatus workflowStatus() {
+        if (json.contains("jobs_enabled")) {
+            return json.get("jobs_enabled").asBoolean() ? WorkflowStatus.ENABLED : WorkflowStatus.DISABLED;
+        } else {
+            return WorkflowStatus.DISABLED;
+        }
+    }
 }
