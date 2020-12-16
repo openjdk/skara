@@ -26,15 +26,19 @@ import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.*;
 
 import java.nio.file.Path;
+import java.time.*;
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 public class TestInfoBotWorkItem implements WorkItem {
     private final PullRequest pr;
-    private final List<Check> summarizedChecks;
+    private final Consumer<Duration> expiresIn;
+    private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");
 
-    TestInfoBotWorkItem(PullRequest pr, List<Check> summarizedChecks) {
+    TestInfoBotWorkItem(PullRequest pr, Consumer<Duration> expiresIn) {
         this.pr = pr;
-        this.summarizedChecks = summarizedChecks;
+        this.expiresIn = expiresIn;
     }
 
     @Override
@@ -51,14 +55,74 @@ public class TestInfoBotWorkItem implements WorkItem {
         return "TestInfoBotWorkItem@" + pr.repository().name() + "#" + pr.id();
     }
 
+    private Check testingNotConfiguredNotice(PullRequest pr) {
+        var sourceRepoUrl = pr.sourceRepository().orElseThrow().nonTransformedWebUrl().toString();
+        if (pr.sourceRepository().orElseThrow().forge().name().equals("GitHub")) {
+            sourceRepoUrl += "/actions";
+        }
+
+        return CheckBuilder.create("Pre-submit test status", pr.headHash())
+                           .skipped()
+                           .title("Testing is not configured")
+                           .summary("In order to run pre-submit tests, the [source repository](" +
+                                            sourceRepoUrl + ")" +
+                                            " must be properly configured to allow test execution. " +
+                                            "See https://wiki.openjdk.java.net/display/SKARA/Testing for more information on how to configure this.")
+                           .build();
+    }
+
+    private Check testingEnabledNotice(PullRequest pr) {
+        return CheckBuilder.create("Pre-submit test status", pr.headHash())
+                           .complete(true)
+                           .title("Tests are now enabled")
+                           .summary("Pre-submit tests have been now been enabled for the source repository")
+                           .build();
+    }
+
     @Override
     public Collection<WorkItem> run(Path scratch) {
-        var existing = pr.checks(pr.headHash());
-        for (var check : summarizedChecks) {
-            if (!existing.containsKey(check.name())) {
-                pr.createCheck(check);
+        var sourceRepo = pr.sourceRepository().get();
+        var sourceChecks = sourceRepo.allChecks(pr.headHash());
+
+        var targetChecks = pr.checks(pr.headHash());
+        var noticeCheck = targetChecks.get("Pre-submit test status");
+
+        if (sourceRepo.workflowStatus() == WorkflowStatus.NOT_CONFIGURED) {
+            if (noticeCheck == null) {
+                pr.createCheck(testingNotConfiguredNotice(pr));
+                expiresIn.accept(Duration.ofMinutes(2));
             }
-            pr.updateCheck(check);
+        } else if (sourceRepo.workflowStatus() == WorkflowStatus.DISABLED) {
+            // Explicitly disabled - could possibly post a notice
+        } else {
+            var summarizedChecks = TestResults.summarize(sourceChecks);
+            if (summarizedChecks.isEmpty()) {
+                // No test related checks found, they may not have started yet, so we'll keep looking
+                log.fine("No checks found to summarize - waiting");
+                expiresIn.accept(Duration.ofMinutes(2));
+            } else {
+                expiresIn.accept(TestResults.expiresIn(sourceChecks).orElse(Duration.ofMinutes(30)));
+            }
+
+            if (noticeCheck != null && noticeCheck.status() == CheckStatus.SKIPPED) {
+                // If a disabled notice has been posted earlier, we can't delete it - just mark it completed
+                pr.updateCheck(testingEnabledNotice(pr));
+            }
+
+            for (var check : summarizedChecks) {
+                if (!targetChecks.containsKey(check.name())) {
+                    pr.createCheck(check);
+                    targetChecks.put(check.name(), check);
+                }
+                var current = targetChecks.get(check.name());
+                if ((current.status() != check.status()) ||
+                        (!current.summary().equals(check.summary())) ||
+                        (!current.title().equals(check.summary()))) {
+                    pr.updateCheck(check);
+                } else {
+                    log.fine("Not updating unchanged check: " + check.name());
+                }
+            }
         }
 
         return List.of();
