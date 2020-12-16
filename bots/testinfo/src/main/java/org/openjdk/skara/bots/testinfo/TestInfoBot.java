@@ -46,7 +46,7 @@ public class TestInfoBot implements Bot {
 
     private Check testingNotConfiguredNotice(PullRequest pr) {
         var sourceRepoUrl = pr.sourceRepository().orElseThrow().nonTransformedWebUrl().toString();
-        if (sourceRepoUrl.toLowerCase().contains("github.com")) {
+        if (pr.sourceRepository().orElseThrow().forge().name().equals("GitHub")) {
             sourceRepoUrl += "/actions";
         }
 
