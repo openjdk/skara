@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
 import static org.openjdk.skara.cli.pr.Utils.*;
 
@@ -305,7 +306,7 @@ public class GitPrCreate {
 
         var mailingLists = new ArrayList<String>();
         var parentProject = projectName(parentRepo.url());
-        var isTargetingJDKRepo = parentProject.endsWith("jdk");
+        var isTargetingJDKRepo = parentProject.matches(".*\\/jdk[0-9]*");
         var cc = getOption("cc", "create", arguments);
         var isCCManual = cc != null && !cc.equals("auto");
         if (!isTargetingJDKRepo && isCCManual) {
