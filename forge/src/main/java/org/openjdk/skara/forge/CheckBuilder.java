@@ -130,6 +130,18 @@ public class CheckBuilder {
         return this;
     }
 
+    public CheckBuilder skipped() {
+        status = CheckStatus.SKIPPED;
+        completedAt = ZonedDateTime.now();
+        return this;
+    }
+
+    public CheckBuilder skipped(ZonedDateTime actionRequiredAt) {
+        status = CheckStatus.SKIPPED;
+        completedAt = ZonedDateTime.now();
+        return this;
+    }
+
     public Check build() {
         return new Check(name, hash, status, startedAt, completedAt, metadata, title, summary, annotations, details);
     }

@@ -263,6 +263,11 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
                    .collect(Collectors.toList());
     }
 
+    @Override
+    public WorkflowStatus workflowStatus() {
+        return WorkflowStatus.ENABLED;
+    }
+
     Repository localRepository() {
         return localRepository;
     }
