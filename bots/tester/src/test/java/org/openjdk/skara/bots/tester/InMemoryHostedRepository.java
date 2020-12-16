@@ -176,6 +176,11 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
+    public WorkflowStatus workflowStatus() {
+        return WorkflowStatus.DISABLED;
+    }
+
+    @Override
     public List<CommitComment> recentCommitComments() {
         return List.of();
     }
