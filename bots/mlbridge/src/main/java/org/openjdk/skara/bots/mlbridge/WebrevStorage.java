@@ -174,8 +174,14 @@ class WebrevStorage {
     }
 
     private boolean shouldBeReplaced(Path file) {
+        var neverReplace = Set.of(
+            "index.html",
+            "comparison.json",
+            "commits.json",
+            "metadata.json"
+        );
         try {
-            if (file.getFileName().toString().equals("index.html")) {
+            if (neverReplace.contains(file.getFileName().toString())) {
                 return false;
             } else {
                 return Files.size(file) >= 1000 * 1000;
