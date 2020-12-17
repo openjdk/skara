@@ -27,13 +27,11 @@ import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
-import org.openjdk.skara.vcs.Diff;
-import org.openjdk.skara.vcs.Hash;
+import org.openjdk.skara.vcs.*;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.time.*;
-import java.time.temporal.ChronoUnit;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -108,7 +106,6 @@ public class GitLabMergeRequest implements PullRequest {
                                .map(JSONValue::asObject)
                                .filter(obj -> obj.get("system").asBoolean())
                                .filter(obj -> obj.get("body").asString().contains("approved this merge request"))
-                               .sorted(Comparator.comparing(obj -> ZonedDateTime.parse(obj.get("created_at").asString())))
                                .map(obj -> {
                                    var reviewerObj = obj.get("author").asObject();
                                    var reviewer = HostUser.create(reviewerObj.get("id").asInt(),
@@ -133,7 +130,6 @@ public class GitLabMergeRequest implements PullRequest {
                                     .filter(obj -> obj.get("name").asString().equals("thumbsup") ||
                                             obj.get("name").asString().equals("thumbsdown") ||
                                             obj.get("name").asString().equals("question"))
-                                    .sorted(Comparator.comparing(obj -> ZonedDateTime.parse(obj.get("updated_at").asString())))
                                     .map(obj -> {
                                         var reviewer = repository.forge().user(obj.get("user").get("username").asString());
                                         Review.Verdict verdict;
@@ -163,7 +159,7 @@ public class GitLabMergeRequest implements PullRequest {
                                     });
 
         return Stream.concat(approvals, awardApprovals)
-                     .sorted(Comparator.comparing(review -> review.createdAt().truncatedTo(ChronoUnit.MINUTES)))
+                     .sorted(Comparator.comparing(Review::createdAt))
                      .collect(Collectors.toList());
     }
 
