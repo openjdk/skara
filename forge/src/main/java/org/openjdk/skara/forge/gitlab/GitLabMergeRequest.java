@@ -105,60 +105,62 @@ public class GitLabMergeRequest implements PullRequest {
         }
 
         var approvals = request.get("notes").execute().stream()
-                      .map(JSONValue::asObject)
-                      .filter(obj -> obj.get("system").asBoolean())
-                      .filter(obj -> obj.get("body").asString().contains("approved this merge request"))
-                      .map(obj -> {
-                          var reviewerObj = obj.get("author").asObject();
-                          var reviewer = HostUser.create(reviewerObj.get("id").asInt(),
-                                                         reviewerObj.get("username").asString(),
-                                                         reviewerObj.get("name").asString());
-                          var verdict = obj.get("body").asString().contains("unapproved") ? Review.Verdict.NONE : Review.Verdict.APPROVED;
-                          var createdAt = ZonedDateTime.parse(obj.get("created_at").asString());
+                               .map(JSONValue::asObject)
+                               .filter(obj -> obj.get("system").asBoolean())
+                               .filter(obj -> obj.get("body").asString().contains("approved this merge request"))
+                               .sorted(Comparator.comparing(obj -> ZonedDateTime.parse(obj.get("created_at").asString())))
+                               .map(obj -> {
+                                   var reviewerObj = obj.get("author").asObject();
+                                   var reviewer = HostUser.create(reviewerObj.get("id").asInt(),
+                                                                  reviewerObj.get("username").asString(),
+                                                                  reviewerObj.get("name").asString());
+                                   var verdict = obj.get("body").asString().contains("unapproved") ? Review.Verdict.NONE : Review.Verdict.APPROVED;
+                                   var createdAt = ZonedDateTime.parse(obj.get("created_at").asString());
 
-                          // Find the latest commit that isn't created after our review
-                          var hash = commits.get(0).hash;
-                          for (var cd : commits) {
-                              if (createdAt.isAfter(cd.date)) {
-                                  hash = cd.hash;
-                              }
-                          }
-                          var id = obj.get("id").asInt();
-                          return new Review(createdAt, reviewer, verdict, hash, id, "");
-                      });
+                                   // Find the latest commit that isn't created after our review
+                                   var hash = commits.get(0).hash;
+                                   for (var cd : commits) {
+                                       if (createdAt.isAfter(cd.date)) {
+                                           hash = cd.hash;
+                                       }
+                                   }
+                                   var id = obj.get("id").asInt();
+                                   return new Review(createdAt, reviewer, verdict, hash, id, "");
+                               });
 
         var awardApprovals = request.get("award_emoji").execute().stream()
-                      .map(JSONValue::asObject)
-                      .filter(obj -> obj.get("name").asString().equals("thumbsup") ||
-                              obj.get("name").asString().equals("thumbsdown") ||
-                              obj.get("name").asString().equals("question"))
-                      .map(obj -> {
-                          var reviewer = repository.forge().user(obj.get("user").get("username").asString());
-                          Review.Verdict verdict;
-                          switch (obj.get("name").asString()) {
-                              case "thumbsup":
-                                  verdict = Review.Verdict.APPROVED;
-                                  break;
-                              case "thumbsdown":
-                                  verdict = Review.Verdict.DISAPPROVED;
-                                  break;
-                              default:
-                                  verdict = Review.Verdict.NONE;
-                                  break;
-                          }
+                                    .map(JSONValue::asObject)
+                                    .filter(obj -> obj.get("name").asString().equals("thumbsup") ||
+                                            obj.get("name").asString().equals("thumbsdown") ||
+                                            obj.get("name").asString().equals("question"))
+                                    .sorted(Comparator.comparing(obj -> ZonedDateTime.parse(obj.get("updated_at").asString())))
+                                    .map(obj -> {
+                                        var reviewer = repository.forge().user(obj.get("user").get("username").asString());
+                                        Review.Verdict verdict;
+                                        switch (obj.get("name").asString()) {
+                                            case "thumbsup":
+                                                verdict = Review.Verdict.APPROVED;
+                                                break;
+                                            case "thumbsdown":
+                                                verdict = Review.Verdict.DISAPPROVED;
+                                                break;
+                                            default:
+                                                verdict = Review.Verdict.NONE;
+                                                break;
+                                        }
 
-                          var createdAt = ZonedDateTime.parse(obj.get("updated_at").asString());
+                                        var createdAt = ZonedDateTime.parse(obj.get("updated_at").asString());
 
-                          // Find the latest commit that isn't created after our review
-                          var hash = commits.get(0).hash;
-                          for (var cd : commits) {
-                              if (createdAt.isAfter(cd.date)) {
-                                  hash = cd.hash;
-                              }
-                          }
-                          var id = obj.get("id").asInt();
-                          return new Review(createdAt, reviewer.get(), verdict, hash, id, null);
-                      });
+                                        // Find the latest commit that isn't created after our review
+                                        var hash = commits.get(0).hash;
+                                        for (var cd : commits) {
+                                            if (createdAt.isAfter(cd.date)) {
+                                                hash = cd.hash;
+                                            }
+                                        }
+                                        var id = obj.get("id").asInt();
+                                        return new Review(createdAt, reviewer.get(), verdict, hash, id, null);
+                                    });
 
         return Stream.concat(approvals, awardApprovals)
                      .sorted(Comparator.comparing(review -> review.createdAt().truncatedTo(ChronoUnit.MINUTES)))
