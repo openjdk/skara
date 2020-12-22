@@ -215,7 +215,7 @@
             "src/java.naming/",
             "src/java.prefs/",
             "src/java.rmi/",
-            "src/java.se",
+            "src/java.se/",
             "src/java.smartcardio/",
             "src/java.sql",
             "src/java.transaction.xa",
