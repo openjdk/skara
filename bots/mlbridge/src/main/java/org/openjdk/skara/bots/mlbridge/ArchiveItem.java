@@ -215,7 +215,8 @@ class ArchiveItem {
     }
 
     static ArchiveItem closedNotice(PullRequest pr, HostUserToEmailAuthor hostUserToEmailAuthor, ArchiveItem parent, String subjectPrefix) {
-        return new ArchiveItem(parent, "cn", pr.updatedAt(), pr.updatedAt(), pr.author(), Map.of("PR-Closed-Notice", "0"),
+        var closedBy = pr.closedBy().orElseThrow(() -> new RuntimeException("PR is not closed by anyone: " + pr.id()));
+        return new ArchiveItem(parent, "cn", pr.updatedAt(), pr.updatedAt(), closedBy, Map.of("PR-Closed-Notice", "0"),
                                () -> String.format("%sWithdrawn: %s", subjectPrefix, pr.title()),
                                () -> ArchiveMessages.composeReplyHeader(parent.createdAt(), hostUserToEmailAuthor.author(parent.author())),
                                () -> ArchiveMessages.composeClosedNotice(pr),

@@ -304,4 +304,9 @@ class InMemoryPullRequest implements PullRequest {
     public Diff diff() {
         return null;
     }
+
+    @Override
+    public Optional<HostUser> closedBy() {
+        return Optional.empty();
+    }
 }

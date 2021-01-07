@@ -539,4 +539,9 @@ public class JiraIssue implements Issue {
     public void removeProperty(String name) {
 
     }
+
+    @Override
+    public Optional<HostUser> closedBy() {
+        throw new RuntimeException("Not implemented yet");
+    }
 }

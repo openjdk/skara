@@ -185,6 +185,10 @@ class ArchiveWorkItem implements WorkItem {
     }
 
     private EmailAddress getAuthorAddress(CensusInstance censusInstance, HostUser originalAuthor) {
+        if (originalAuthor.username().endsWith("[bot]")) {
+            return bot.emailAddress();
+        }
+
         var contributor = censusInstance.namespace().get(originalAuthor.id());
         if (contributor == null) {
             return EmailAddress.from(originalAuthor.fullName(),

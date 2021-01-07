@@ -245,4 +245,9 @@ public class TestIssue implements Issue {
         data.properties.remove(name);
         data.lastUpdate = ZonedDateTime.now();
     }
+
+    @Override
+    public Optional<HostUser> closedBy() {
+        return isClosed() ? Optional.of(author) : Optional.empty();
+    }
 }
