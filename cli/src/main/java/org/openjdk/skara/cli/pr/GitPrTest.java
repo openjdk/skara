@@ -51,6 +51,10 @@ public class GitPrTest {
               .helptext("Approve a test request")
               .optional(),
         Switch.shortcut("")
+              .fullname("cancel")
+              .helptext("Cancel a test request")
+              .optional(),
+        Switch.shortcut("")
               .fullname("verbose")
               .helptext("Turn on verbose output")
               .optional(),
@@ -84,6 +88,8 @@ public class GitPrTest {
         var command = "/test";
         if (arguments.contains("approve")) {
             command += " approve";
+        } else if (arguments.contains("cancel")) {
+            command += " cancel";
         } else if (arguments.contains("job")) {
             command += arguments.get("job").asString();
         }
