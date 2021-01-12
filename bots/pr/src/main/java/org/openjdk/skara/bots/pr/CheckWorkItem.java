@@ -192,7 +192,17 @@ class CheckWorkItem extends PullRequestWorkItem {
                     var message = CommitMessageParsers.v1.parse(metadata.get().message());
                     var issues = message.issues();
                     if (!issues.isEmpty()) {
-                        pr.setTitle(issues.get(0).toString());
+                        var id = issues.get(0).id();
+                        var issue = bot.issueProject().issue(id);
+                        if (!issue.isPresent()) {
+                            var text = "<!-- backport error -->\n" +
+                                       ":warning: @" + pr.author().username() + " the issue `" + id + "` from commit " +
+                                       "`" + hash.hex() + "` does not exist in project [" +
+                                       bot.issueProject().name() + "](" + bot.issueProject().webUrl() + ")";
+                            pr.addComment(text);
+                            return List.of();
+                        }
+                        pr.setTitle(id + ": " + issue.get().title());
                     }
 
                     var comment = new ArrayList<String>();
