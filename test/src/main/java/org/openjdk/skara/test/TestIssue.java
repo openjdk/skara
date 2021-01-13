@@ -147,6 +147,7 @@ public class TestIssue implements Issue {
     public void setState(State state) {
         data.state = state;
         data.lastUpdate = ZonedDateTime.now();
+        data.closedBy = user;
     }
 
     @Override
@@ -248,6 +249,6 @@ public class TestIssue implements Issue {
 
     @Override
     public Optional<HostUser> closedBy() {
-        return isClosed() ? Optional.of(author) : Optional.empty();
+        return isClosed() ? Optional.of(data.closedBy) : Optional.empty();
     }
 }

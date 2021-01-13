@@ -638,8 +638,9 @@ class MailingListBridgeBotTests {
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertTrue(archiveContains(archiveFolder.path(), "Subject: RFR: 1234: This is a pull request"));
 
-            // Close it
-            pr.setState(Issue.State.CLOSED);
+            // Close it (as a separate user)
+            var closerPr = ignored.pullRequest(pr.id());
+            closerPr.setState(Issue.State.CLOSED);
 
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
@@ -655,6 +656,11 @@ class MailingListBridgeBotTests {
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Subject: Withdrawn: 1234: This is a pull request"));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Subject: Re: RFR: 1234: This is a pull request"));
+
+            // The closer should be the bot account - not the PR creator nor the closer
+            assertEquals(2, archiveContainsCount(archiveFolder.path(), Pattern.quote("From: test+2+user2 at openjdk.java.net (User Number 2)")));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), Pattern.quote("From: test at test.mail (test)")));
+            assertEquals(0, archiveContainsCount(archiveFolder.path(), Pattern.quote("From: test+3+user3 at openjdk.java.net (User Number 3)")));
         }
     }
 

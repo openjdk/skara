@@ -185,7 +185,7 @@ class ArchiveWorkItem implements WorkItem {
     }
 
     private EmailAddress getAuthorAddress(CensusInstance censusInstance, HostUser originalAuthor) {
-        if (originalAuthor.username().endsWith("[bot]")) {
+        if (bot.ignoredUsers().contains(originalAuthor.username())) {
             return bot.emailAddress();
         }
 
