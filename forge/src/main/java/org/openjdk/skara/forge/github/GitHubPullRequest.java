@@ -702,4 +702,20 @@ public class GitHubPullRequest implements PullRequest {
         var targetHash = repository.branchHash(targetRef());
         return repository.toDiff(targetHash, headHash(), files);
     }
+
+    @Override
+    public Optional<HostUser> closedBy() {
+        if (!isClosed()) {
+            return Optional.empty();
+        }
+
+        return request.get("issues/" + json.get("number").toString() + "/timeline")
+                      .execute()
+                      .stream()
+                      .map(JSONValue::asObject)
+                      .filter(obj -> obj.contains("event"))
+                      .filter(obj -> obj.get("event").asString().equals("closed"))
+                      .reduce((a, b) -> b)
+                      .map(e -> host.parseUserObject(e.get("actor")));
+    }
 }

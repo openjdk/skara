@@ -771,4 +771,13 @@ public class GitLabMergeRequest implements PullRequest {
         var targetHash = repository.branchHash(targetRef());
         return repository.toDiff(targetHash, headHash(), changes.get("changes"));
     }
+
+    @Override
+    public Optional<HostUser> closedBy() {
+        if (!isClosed()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(host.parseAuthorObject(json.get("closed_by").asObject()));
+    }
 }

@@ -40,4 +40,5 @@ class IssueData {
     final Map<String, JSONValue> properties = new HashMap<>();
     ZonedDateTime created = ZonedDateTime.now();
     ZonedDateTime lastUpdate = created;
+    HostUser closedBy = null;
 }

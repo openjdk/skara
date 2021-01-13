@@ -115,6 +115,18 @@ public interface Issue {
      */
     State state();
 
+    default boolean isOpen() {
+        return state() == State.OPEN;
+    }
+
+    default boolean isClosed() {
+        return state() == State.CLOSED;
+    }
+
+    default boolean isResolved() {
+        return state() == State.RESOLVED;
+    }
+
     /**
      * Set the state.
      * @param state Desired state
@@ -173,4 +185,6 @@ public interface Issue {
     void setProperty(String name, JSONValue value);
 
     void removeProperty(String name);
+
+    Optional<HostUser> closedBy();
 }
