@@ -60,7 +60,7 @@ class GitCommitMetadata {
 
     public static CommitMetadata read(UnixStreamReader reader) throws IOException {
         var hash = new Hash(reader.readLine());
-        log.fine("Parsing: " + hash.hex());
+        log.finest("Parsing: " + hash.hex());
 
         var parentHashes = reader.readLine();
         if (parentHashes.equals("")) {
@@ -74,20 +74,20 @@ class GitCommitMetadata {
         var dateFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
         var authorName = reader.readLine();
-        log.finer("authorName: " + authorName);
+        log.finest("authorName: " + authorName);
         var authorEmail = reader.readLine();
-        log.finer("authorEmail: " + authorEmail);
+        log.finest("authorEmail: " + authorEmail);
         var author = new Author(authorName, authorEmail);
         var authored = ZonedDateTime.parse(reader.readLine(), dateFormatter);
-        log.finer("authorDate: " + authored);
+        log.finest("authorDate: " + authored);
 
         var committerName = reader.readLine();
-        log.finer("committerName: " + committerName);
+        log.finest("committerName: " + committerName);
         var committerEmail = reader.readLine();
-        log.finer("committerEmail " + committerName);
+        log.finest("committerEmail " + committerName);
         var committer = new Author(committerName, committerEmail);
         var committed = ZonedDateTime.parse(reader.readLine(), dateFormatter);
-        log.finer("committerDate: " + committed);
+        log.finest("committerDate: " + committed);
 
 
         var message = new ArrayList<String>();
