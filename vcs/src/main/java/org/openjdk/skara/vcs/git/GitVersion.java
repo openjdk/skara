@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 public class GitVersion {
 
     private static final Pattern versionPattern = Pattern.compile(
-            "git version (?<versionString>.*(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<security>\\d+).*)");
+            "git version (?<versionString>.*?(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<security>\\d+).*)");
     private static final GitVersion UNKNOWN = new GitVersion("UNKNOWN", -1, -1, -1);
 
     private final String versionString;
