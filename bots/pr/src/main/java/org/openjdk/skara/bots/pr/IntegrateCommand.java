@@ -165,6 +165,9 @@ public class IntegrateCommand implements CommandHandler {
             // Rebase and push it!
             if (!localHash.equals(PullRequestUtils.targetHash(pr, localRepo))) {
                 var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
+                localRepo.push(amendedHash, pr.repository().url(), pr.targetRef());
+                success = true;
+
                 var finalRebaseMessage = rebaseMessage.toString();
                 if (!finalRebaseMessage.isBlank()) {
                     reply.println(rebaseMessage.toString());
@@ -172,8 +175,6 @@ public class IntegrateCommand implements CommandHandler {
                 reply.println("Pushed as commit " + amendedHash.hex() + ".");
                 reply.println();
                 reply.println(":bulb: You may see a message that your pull request was closed with unmerged commits. This can be safely ignored.");
-                localRepo.push(amendedHash, pr.repository().url(), pr.targetRef());
-                success = true;
                 pr.setState(PullRequest.State.CLOSED);
                 pr.addLabel("integrated");
                 pr.removeLabel("ready");
