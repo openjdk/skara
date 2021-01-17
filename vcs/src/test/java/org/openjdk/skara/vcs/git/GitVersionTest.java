@@ -43,6 +43,9 @@ public class GitVersionTest {
             arguments("git version 2.25.3", 2, 25, 3),
             arguments("git version 2.26.1", 2, 26, 1),
 
+            arguments("git version 2.30.0.284", 2, 30, 0),
+            arguments("git version 2.30.0.284.cafebabe-yoyodyne", 2, 30, 0),
+
             arguments("git version 2.27.0.windows.1", 2, 27, 0)
         );
     }
@@ -62,6 +65,9 @@ public class GitVersionTest {
 
     static Stream<Arguments> unsupportedVersions() {
         return Stream.of(
+            // check for "git 10 bug"
+            arguments("git version 10.1.12", 10, 1, 12),
+
             arguments("git version 2.17.4", 2, 17, 4),
             arguments("git version 2.18.3", 2, 18, 3),
             arguments("git version 2.19.4", 2, 19, 4),
