@@ -187,6 +187,7 @@ public class GitToHgConverter implements Converter {
         var missing = new TreeSet<>(gitTags);
         missing.removeAll(hgTags);
         for (var name : missing) {
+            log.info("Converting tag " + name);
             var gitHash = gitRepo.resolve(name).orElseThrow(() ->
                     new IOException("Cannot resolve known tag " + name)
             );
@@ -201,6 +202,7 @@ public class GitToHgConverter implements Converter {
                 hgRepo.tag(hgHash, name, "Added tag " + name + " for " + hgHash.abbreviate(), "duke", null, null);
             }
             var hgTagCommitHash = hgRepo.head();
+            log.info("Converted tag " + name + " with resulting hash " + hgTagCommitHash.hex());
             var last = marks.get(marks.size() - 1);
             var newMark = new Mark(last.key(), last.hg(), last.git(), hgTagCommitHash);
             marks.set(marks.size() - 1, newMark);
@@ -215,7 +217,7 @@ public class GitToHgConverter implements Converter {
         var gitRoot = gitRepo.root();
 
         for (var commit : commits) {
-            log.fine("Converting Git hash: " + commit.hash().hex());
+            log.info("Converting Git hash: " + commit.hash().hex());
             var parents = commit.parents();
             var gitParent0 = parents.get(0);
             var status0 = gitRepo.status(gitParent0, commit.hash());
@@ -272,7 +274,7 @@ public class GitToHgConverter implements Converter {
             } else {
                 hgHash = hgRepo.commit(hgMessage, hgAuthor, null, date);
             }
-            log.fine("Converted hg hash: " + hgHash.hex());
+            log.info("Converted hg hash: " + hgHash.hex());
 
             marks.add(new Mark(marks.size() + 1, hgHash, commit.hash()));
             gitToHg.put(commit.hash(), hgHash);

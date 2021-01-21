@@ -140,9 +140,12 @@ public class CheckoutBot implements Bot, WorkItem {
                     var convertedGitHashes = existing.stream().map(Mark::git).collect(Collectors.toSet());
                     var gitHead = fromRepo.head();
                     if (!convertedGitHashes.contains(gitHead)) {
+                        log.info("Found Git commits that needs to be converted. Git HEAD: " + gitHead.hex());
                         Collections.sort(existing);
                         converter.convert(fromRepo, toRepo, existing);
                         hasConverted = true;
+                    } else {
+                        log.info("No new Git commits to convert");
                     }
                 }
             } finally {
