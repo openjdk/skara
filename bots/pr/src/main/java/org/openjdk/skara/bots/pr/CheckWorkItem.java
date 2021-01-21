@@ -191,24 +191,30 @@ class CheckWorkItem extends PullRequestWorkItem {
                 if (metadata.isPresent()) {
                     var message = CommitMessageParsers.v1.parse(metadata.get().message());
                     var issues = message.issues();
-                    if (!issues.isEmpty()) {
-                        var id = issues.get(0).id();
-                        var issue = bot.issueProject().issue(id);
-                        if (!issue.isPresent()) {
-                            var text = "<!-- backport error -->\n" +
-                                       ":warning: @" + pr.author().username() + " the issue `" + id + "` from commit " +
-                                       "`" + hash.hex() + "` does not exist in project [" +
-                                       bot.issueProject().name() + "](" + bot.issueProject().webUrl() + ")";
-                            pr.addComment(text);
-                            return List.of();
-                        }
-                        pr.setTitle(id + ": " + issue.get().title());
+                    var comment = new ArrayList<String>();
+                    if (issues.isEmpty()) {
+                        var text = "<!-- backport error -->\n" +
+                                   ":warning: @" + pr.author().username() + " the commit `" + hash.hex() + "`" +
+                                   " does not refer to an issue in project [" +
+                                   bot.issueProject().name() + "](" + bot.issueProject().webUrl() + ").";
+                        pr.addComment(text);
+                        return List.of();
                     }
 
-                    var comment = new ArrayList<String>();
+                    var id = issues.get(0).id();
+                    var issue = bot.issueProject().issue(id);
+                    if (!issue.isPresent()) {
+                        var text = "<!-- backport error -->\n" +
+                                   ":warning: @" + pr.author().username() + " the issue with id `" + id + "` from commit " +
+                                   "`" + hash.hex() + "` does not exist in project [" +
+                                   bot.issueProject().name() + "](" + bot.issueProject().webUrl() + ").";
+                        pr.addComment(text);
+                        return List.of();
+                    }
+                    pr.setTitle(id + ": " + issue.get().title());
                     comment.add("<!-- backport " + hash.hex() + " -->\n");
-                    for (var issue : issues.subList(1, issues.size())) {
-                        comment.add(SolvesTracker.setSolvesMarker(issue));
+                    for (var additionalIssue : issues.subList(1, issues.size())) {
+                        comment.add(SolvesTracker.setSolvesMarker(additionalIssue));
                     }
                     var summary = message.summaries();
                     if (!summary.isEmpty()) {
