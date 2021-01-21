@@ -186,11 +186,18 @@ public class GitToHgConverter implements Converter {
         }
         var missing = new TreeSet<>(gitTags);
         missing.removeAll(hgTags);
+        var gitBranchHead = gitRepo.resolve(branch).orElseThrow(() ->
+            new IOException("Cannot resolve Git branch " + branch)
+        );
         for (var name : missing) {
             log.info("Converting tag " + name);
             var gitHash = gitRepo.resolve(name).orElseThrow(() ->
                     new IOException("Cannot resolve known tag " + name)
             );
+            if (!gitRepo.isAncestor(gitBranchHead, gitHash)) {
+                // The tag is referring to a commit on another branch
+                continue;
+            }
             var hgHash = gitToHg.get(gitHash);
             var annotated = gitRepo.annotate(new Tag(name));
             if (annotated.isPresent()) {
