@@ -47,9 +47,11 @@ import static org.junit.jupiter.api.Assertions.*;
 class MailingListBridgeBotTests {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge.test");
 
-    private Optional<String> archiveContents(Path archive) {
+    private Optional<String> archiveContents(Path archive, String prId) {
         try {
-            var mbox = Files.find(archive, 50, (path, attrs) -> path.toString().endsWith(".mbox")).findAny();
+            var mbox = Files.find(archive, 50, (path, attrs) -> path.toString().endsWith(".mbox"))
+                            .filter(path -> path.getFileName().toString().contains(prId))
+                            .findAny();
             if (mbox.isEmpty()) {
                 return Optional.empty();
             }
@@ -61,11 +63,19 @@ class MailingListBridgeBotTests {
     }
 
     private boolean archiveContains(Path archive, String text) {
-        return archiveContainsCount(archive, text) > 0;
+        return archiveContains(archive, text, "");
+    }
+
+    private boolean archiveContains(Path archive, String text, String prId) {
+        return archiveContainsCount(archive, text, prId) > 0;
     }
 
     private int archiveContainsCount(Path archive, String text) {
-        var lines = archiveContents(archive);
+        return archiveContainsCount(archive, text, "");
+    }
+
+    private int archiveContainsCount(Path archive, String text, String prId) {
+        var lines = archiveContents(archive, prId);
         if (lines.isEmpty()) {
             return 0;
         }
@@ -987,7 +997,7 @@ class MailingListBridgeBotTests {
             assertEquals(9, archiveContainsCount(archiveFolder.path(), "^On.*wrote:"));
 
             // File specific comments should appear after the approval
-            var archiveText = archiveContents(archiveFolder.path()).orElseThrow();
+            var archiveText = archiveContents(archiveFolder.path(), "").orElseThrow();
             assertTrue(archiveText.indexOf("Looks fine") < archiveText.indexOf("The final review comment"));
 
             // Check the mailing list
@@ -3193,6 +3203,78 @@ class MailingListBridgeBotTests {
             assertTrue(archiveContains(archiveFolder.path(), "Fetch:"));
             assertTrue(archiveContains(archiveFolder.path(), "^ - Change msg"));
             assertFalse(archiveContains(archiveFolder.path(), "With several lines"));
+        }
+    }
+
+    @Test
+    void dependent(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var archiveFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
+            var author = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var from = EmailAddress.from("test", "test@test.mail");
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageHTMLRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+
+            // Create a separate change
+            var depHash = CheckableRepository.appendAndCommit(localRepo, "A simple change");
+            localRepo.push(depHash, author.url(), "dep", true);
+            var depPr = credentials.createPullRequest(archive, "master", "dep", "The first pr");
+
+            // Simulate the pr dependency notifier creating the corresponding branch
+            localRepo.push(depHash, author.url(), "pr/" + depPr.id(), true);
+
+            // Run an archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // Make a change with a corresponding PR
+            localRepo.checkout(masterHash, true);
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
+                                                               "Change msg\n\nWith several lines");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "pr/" + depPr.id(), "edit", "1234: This is a pull request");
+            pr.setBody("This is a PR");
+
+            // Run an archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            pr.addComment("Looks good!");
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // Check the archive
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertTrue(archiveContains(archiveFolder.path(), "Subject: RFR: "), pr.id());
+            assertTrue(archiveContains(archiveFolder.path(), "Subject: Re: RFR: ", pr.id()));
+
+            assertTrue(archiveContains(archiveFolder.path(), "Depends on PR:", pr.id()));
+            assertFalse(archiveContains(archiveFolder.path(), "Depends on PR:", depPr.id()));
         }
     }
 }

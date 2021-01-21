@@ -254,6 +254,16 @@ class ArchiveMessages {
         }
     }
 
+    private static Optional<String> composeDependsOn(PullRequest pr) {
+        var dependsId = PreIntegrations.dependentPullRequestId(pr);
+        if (dependsId.isEmpty()) {
+            return Optional.empty();
+        }
+
+        var dependsPr = pr.repository().pullRequest(dependsId.get());
+        return Optional.of("Depends on PR: " + dependsPr.webUrl());
+    }
+
     static String composeReplyFooter(PullRequest pr) {
         return "PR: " + pr.webUrl();
     }
@@ -263,7 +273,9 @@ class ArchiveMessages {
         var commits = commits(localRepo, base, head);
         var commitsLink = commitsLink(pr, base, head);
         var issueString = issueUrl(pr, issueProject, projectPrefix).map(url -> "  Issue: " + url + "\n").orElse("");
-        return "Commit messages:\n" +
+
+        return composeDependsOn(pr).map(line -> line + "\n\n").orElse("") +
+                "Commit messages:\n" +
                 formatCommitMessagesBrief(commits, commitsLink).orElse("") + "\n\n" +
                 "Changes: " + pr.changeUrl() + "\n" +
                 " Webrev: " + webrev.uri().toString() + "\n" +
