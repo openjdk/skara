@@ -136,22 +136,15 @@ public class CheckoutBot implements Bot, WorkItem {
                         new IllegalStateException("Repository vanished from " + to));
                     var existing = new ArrayList<>(marks.current());
                     log.info("Found " + existing.size() + " existing marks");
-
-                    var convertedGitHashes = existing.stream().map(Mark::git).collect(Collectors.toSet());
-                    var gitHead = fromRepo.head();
-                    if (!convertedGitHashes.contains(gitHead)) {
-                        log.info("Found Git commits that needs to be converted. Git HEAD: " + gitHead.hex());
-                        Collections.sort(existing);
-                        converter.convert(fromRepo, toRepo, existing);
-                        hasConverted = true;
-                    } else {
-                        log.info("No new Git commits to convert");
-                    }
+                    converter.convert(fromRepo, toRepo, existing);
+                    hasConverted = true;
                 }
             } finally {
                 if (hasConverted) {
                     log.info("Storing " + converter.marks().size() + " marks");
                     marks.put(converter.marks());
+                } else {
+                    log.info("No conversion has taken place, not updating marks");
                 }
             }
         } catch (IOException e) {

@@ -194,8 +194,8 @@ public class GitToHgConverter implements Converter {
             var gitHash = gitRepo.resolve(name).orElseThrow(() ->
                     new IOException("Cannot resolve known tag " + name)
             );
-            if (!gitRepo.isAncestor(gitBranchHead, gitHash)) {
-                // The tag is referring to a commit on another branch
+            if (!gitRepo.isAncestor(gitHash, gitBranchHead)) {
+                log.info("Tag " + name + " refers to a commit not present on branch " + branch.name());
                 continue;
             }
             var hgHash = gitToHg.get(gitHash);
