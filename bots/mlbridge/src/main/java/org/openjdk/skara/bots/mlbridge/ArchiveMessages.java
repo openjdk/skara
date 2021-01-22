@@ -261,7 +261,7 @@ class ArchiveMessages {
         }
 
         var dependsPr = pr.repository().pullRequest(dependsId.get());
-        return Optional.of("Depends on PR: " + dependsPr.webUrl());
+        return Optional.of("Depends on: " + dependsPr.webUrl());
     }
 
     static String composeReplyFooter(PullRequest pr) {

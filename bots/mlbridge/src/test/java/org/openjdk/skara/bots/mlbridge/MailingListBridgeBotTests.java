@@ -3273,8 +3273,8 @@ class MailingListBridgeBotTests {
             assertTrue(archiveContains(archiveFolder.path(), "Subject: RFR: "), pr.id());
             assertTrue(archiveContains(archiveFolder.path(), "Subject: Re: RFR: ", pr.id()));
 
-            assertTrue(archiveContains(archiveFolder.path(), "Depends on PR:", pr.id()));
-            assertFalse(archiveContains(archiveFolder.path(), "Depends on PR:", depPr.id()));
+            assertTrue(archiveContains(archiveFolder.path(), "Depends on:", pr.id()));
+            assertFalse(archiveContains(archiveFolder.path(), "Depends on:", depPr.id()));
         }
     }
 }
