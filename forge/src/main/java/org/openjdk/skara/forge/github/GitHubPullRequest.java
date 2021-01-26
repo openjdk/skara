@@ -539,6 +539,19 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
+    public void setLabels(List<String> labels) {
+        var labelArray = JSON.array();
+        for (var label : labels) {
+            labelArray.add(label);
+        }
+        var query = JSON.object().put("labels", labelArray);
+        request.put("issues/" + json.get("number").toString() + "/labels")
+               .body(query)
+               .execute();
+        this.labels = labels;
+    }
+
+    @Override
     public List<String> labels() {
         if (labels == null) {
             labels = request.get("issues/" + json.get("number").toString() + "/labels").execute().stream()

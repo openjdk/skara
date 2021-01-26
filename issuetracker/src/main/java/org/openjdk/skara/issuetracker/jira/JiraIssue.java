@@ -251,6 +251,19 @@ public class JiraIssue implements Issue {
     }
 
     @Override
+    public void setLabels(List<String> labels) {
+        var labelsArray = JSON.array();
+        for (var label : labels) {
+            labelsArray.add(label);
+        }
+        var query = JSON.object()
+                        .put("update", JSON.object()
+                                           .put("labels", JSON.array().add(JSON.object()
+                                                                               .put("set", labelsArray))));
+        request.put("").body(query).execute();
+    }
+
+    @Override
     public List<String> labels() {
         return json.get("fields").get("labels").stream()
                    .map(JSONValue::asString)

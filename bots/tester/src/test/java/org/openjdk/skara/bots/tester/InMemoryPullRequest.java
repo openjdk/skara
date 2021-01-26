@@ -218,6 +218,11 @@ class InMemoryPullRequest implements PullRequest {
     }
 
     @Override
+    public void setLabels(List<String> labels) {
+        this.labels = new HashSet<>(labels);
+    }
+
+    @Override
     public List<String> labels() {
         return new ArrayList<String>(labels);
     }

@@ -83,8 +83,8 @@ public class JbsBackport {
 
         // The backport should not have any labels set - if it does, clear them
         var labels = issue.labels();
-        for (var label : labels) {
-            issue.removeLabel(label);
+        if (!labels.isEmpty()) {
+            issue.setLabels(List.of());
         }
         return issue;
     }

@@ -146,6 +146,11 @@ public interface Issue {
     void removeLabel(String label);
 
     /**
+     * Set the given labels and remove any others.
+     */
+    void setLabels(List<String> labels);
+
+    /**
      * Retrieves all the currently set labels.
      * @return
      */

@@ -164,6 +164,16 @@ public class TestIssue implements Issue {
     }
 
     @Override
+    public void setLabels(List<String> labels) {
+        data.labels.clear();
+        var now = ZonedDateTime.now();
+        for (var label : labels) {
+            data.labels.put(label, now);
+        }
+        data.lastUpdate = now;
+    }
+
+    @Override
     public List<String> labels() {
         return new ArrayList<>(data.labels.keySet());
     }
