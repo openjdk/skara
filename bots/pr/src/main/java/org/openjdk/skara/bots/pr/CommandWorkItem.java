@@ -207,6 +207,8 @@ public class CommandWorkItem extends PullRequestWorkItem {
                 // Must re-fetch PR after running the command, the command might have updated the PR
                 var updatedPR = pr.repository().pullRequest(pr.id());
                 return List.of(new LabelerWorkItem(bot, updatedPR, errorHandler));
+            } else {
+                return List.of();
             }
         }
 
