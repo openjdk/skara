@@ -115,10 +115,12 @@ public class LabelerWorkItem extends PullRequestWorkItem {
 
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
-        if (bot.currentLabels().containsKey(pr.headHash())) {
+        if (bot.isAutoLabelled(pr)) {
             return List.of();
         }
+
         if (bot.labelConfiguration().allowed().isEmpty()) {
+            bot.setAutoLabelled(pr);
             return List.of();
         }
 
@@ -129,6 +131,15 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         // If a manual label command has been issued before we have done any labeling,
         // that is considered to be a request to override any automatic labelling
         if (manuallyAdded.size() > 0 || manuallyRemoved.size() > 0) {
+            bot.setAutoLabelled(pr);
+            return List.of();
+        }
+
+        // If the PR already has one of the allowed labels, that is also considered to override automatic labelling
+        var existingAllowed = new HashSet<>(pr.labels());
+        existingAllowed.retainAll(bot.labelConfiguration().allowed());
+        if (!existingAllowed.isEmpty()) {
+            bot.setAutoLabelled(pr);
             return List.of();
         }
 
@@ -156,8 +167,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                          .filter(label -> !newLabels.contains(label))
                          .filter(label -> !manuallyAdded.contains(label))
                          .forEach(pr::removeLabel);
-
-            bot.currentLabels().put(pr.headHash(), Boolean.TRUE);
+            bot.setAutoLabelled(pr);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
