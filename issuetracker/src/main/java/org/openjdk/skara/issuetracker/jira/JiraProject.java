@@ -40,6 +40,7 @@ public class JiraProject implements IssueProject {
     private JSONObject projectMetadataCache = null;
     private List<JiraLinkType> linkTypes = null;
     private JSONObject createMetaCache = null;
+    private Map<String, Map<String, JSONObject>> createFieldCache = new HashMap<>();
     private JSONObject editMetaCache = null;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.issuetracker.jira");
@@ -66,6 +67,38 @@ public class JiraProject implements IssueProject {
                                      .asObject();
         }
         return createMetaCache;
+    }
+
+    private Map<String, JSONObject> createFields(String issueType) {
+        if (createFieldCache.containsKey(issueType)) {
+            return createFieldCache.get(issueType);
+        }
+        var ret = new HashMap<String, JSONObject>();
+        var fields = request.get("issue/createmeta/" + projectName + "/issuetypes/" + issueType)
+                            .onError(et -> et.statusCode() == 404 ? Optional.of((JSON.object().put("jira7", true))) : Optional.empty())
+                            .execute()
+                            .asObject();
+        if (fields.contains("jira7")) {
+            var createMeta = createMeta();
+            fields = createMeta.get("projects").stream()
+                               .filter(p -> p.contains("name"))
+                               .filter(p -> p.get("name").asString().equalsIgnoreCase(projectName))
+                               .findAny().orElseThrow()
+                               .get("issuetypes").stream()
+                               .filter(i -> i.get("id").asString().equals(issueType))
+                               .findAny().orElseThrow()
+                               .get("fields")
+                               .asObject();
+            for (var field : fields.fields()) {
+                ret.put(field.name(), field.value().asObject());
+            }
+        } else {
+            for (var field : fields.get("values").asArray()) {
+                ret.put(field.get("fieldId").asString(), field.asObject());
+            }
+        }
+        createFieldCache.put(issueType, ret);
+        return ret;
     }
 
     private JSONObject editMeta(String issueId) {
@@ -259,17 +292,7 @@ public class JiraProject implements IssueProject {
             }
         }
 
-        var createMeta = createMeta();
-        var fields = createMeta.get("projects").stream()
-                               .filter(p -> p.contains("name"))
-                               .filter(p -> p.get("name").asString().equalsIgnoreCase(projectName))
-                               .findAny().orElseThrow()
-                               .get("issuetypes").stream()
-                               .filter(i -> i.get("id").asString().equals(allProperties.get("issuetype").get("id").asString()))
-                               .findAny().orElseThrow()
-                               .get("fields")
-                               .asObject();
-
+        var fields = createFields(allProperties.get("issuetype").get("id").asString());
         var field = fields.get(name);
         var componentIds = allProperties.get("components").stream()
                                         .map(c -> c.get("id").asString())
@@ -304,20 +327,9 @@ public class JiraProject implements IssueProject {
         return URIBuilder.base(jiraHost.getUri()).setPath("/projects/" + projectName).build();
     }
 
-    private boolean isInitialField(String issueType, String name, JSONValue value) {
-        var createMeta = createMeta();
-        var fields = createMeta.get("projects").stream()
-                               .filter(p -> p.contains("name"))
-                               .filter(p -> p.get("name").asString().equalsIgnoreCase(projectName))
-                               .findAny().orElseThrow()
-                               .get("issuetypes").stream()
-                               .filter(i -> i.get("id").asString().equals(issueType))
-                               .findAny().orElseThrow()
-                               .get("fields").fields().stream()
-                               .map(JSONObject.Field::name)
-                               .collect(Collectors.toSet());
-
-        return fields.contains(name);
+    private boolean isInitialField(String issueType, String name) {
+        var fields = createFields(issueType);
+        return fields.containsKey(name);
     }
 
     @Override
@@ -347,7 +359,7 @@ public class JiraProject implements IssueProject {
         var issueType = finalProperties.get("issuetype").get("id").asString();
         var fields = JSON.object();
         finalProperties.entrySet().stream()
-                       .filter(entry -> isInitialField(issueType, entry.getKey(), entry.getValue()))
+                       .filter(entry -> isInitialField(issueType, entry.getKey()))
                        .forEach(entry -> fields.put(entry.getKey(), encodeCustomFields(entry.getKey(),
                                                                                        entry.getValue(),
                                                                                        finalProperties,
@@ -367,7 +379,7 @@ public class JiraProject implements IssueProject {
         var finalId = id;
         var editFields = JSON.object();
         finalProperties.entrySet().stream()
-                       .filter(entry -> !isInitialField(issueType, entry.getKey(), entry.getValue()))
+                       .filter(entry -> !isInitialField(issueType, entry.getKey()))
                        .forEach(entry -> editFields.put(entry.getKey(), encodeCustomFields(entry.getKey(),
                                                                                            entry.getValue(),
                                                                                            finalProperties,
