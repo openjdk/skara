@@ -647,6 +647,14 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
+    public void setLabels(List<String> labels) {
+        request.put("")
+               .body("labels", String.join(",", labels))
+               .execute();
+        this.labels = labels;
+    }
+
+    @Override
     public List<String> labels() {
         if (labels == null) {
             var currentJson = request.get("").execute().asObject();
