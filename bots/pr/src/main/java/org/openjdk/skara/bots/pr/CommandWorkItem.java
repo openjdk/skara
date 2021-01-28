@@ -201,14 +201,13 @@ public class CommandWorkItem extends PullRequestWorkItem {
 
         if (nextCommand.isEmpty()) {
             log.info("No new non-external PR commands found, stopping further processing");
-            // When all commands are processed, it's time to check labels
-            // Must re-fetch PR after running the command, the command might have updated the PR
-            var updatedPR = pr.repository().pullRequest(pr.id());
 
-            if (!pr.labels().contains("integrated")) {
+            if (!bot.isAutoLabelled(pr)) {
+                // When all commands are processed, it's time to check labels
+                // Must re-fetch PR after running the command, the command might have updated the PR
+                var updatedPR = pr.repository().pullRequest(pr.id());
                 return List.of(new LabelerWorkItem(bot, updatedPR, errorHandler));
             } else {
-                log.info("Skip updating labels in integrated PR");
                 return List.of();
             }
         }

@@ -37,7 +37,7 @@ import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentCont
 
 class LabelerTests {
     @Test
-    void simple(TestInfo testInfo) throws IOException {
+    void noMatch(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
@@ -76,6 +76,38 @@ class LabelerTests {
             assertLastCommentContains(pr, "- `test1`");
             assertLastCommentContains(pr, "- `test2`");
             assertLastCommentContains(pr, "</details>");
+        }
+    }
+
+    @Test
+    void match(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var labelConfiguration = LabelConfigurationJson.builder()
+                                                           .addMatchers("test1", List.of(Pattern.compile("a.txt")))
+                                                           .addMatchers("test2", List.of(Pattern.compile("b.txt")))
+                                                           .build();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var labelBot = PullRequestBot.newBuilder()
+                                         .repo(author)
+                                         .censusRepo(censusBuilder.build())
+                                         .labelConfiguration(labelConfiguration)
+                                         .build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path();
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
 
             var fileA = localRepoFolder.resolve("a.txt");
             Files.writeString(fileA, "Hello");
@@ -83,57 +115,153 @@ class LabelerTests {
             var hashA = localRepo.commit("test1", "test", "test@test");
             localRepo.push(hashA, author.url(), "edit");
 
-            // Make sure that the push registered
-            var lastHeadHash = pr.headHash();
-            var refreshCount = 0;
-            do {
-                pr = author.pullRequest(pr.id());
-                if (refreshCount++ > 100) {
-                    fail("The PR did not update after the new push");
-                }
-            } while (pr.headHash().equals(lastHeadHash));
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Check the status - there should now be a test1 label
             TestBotRunner.runPeriodicItems(labelBot);
             assertEquals(Set.of("rfr", "test1"), new HashSet<>(pr.labels()));
+        }
+    }
 
-            var fileB = localRepoFolder.resolve("b.txt");
-            Files.writeString(fileB, "Hello");
-            localRepo.add(fileB);
-            var hashB = localRepo.commit("test2", "test", "test@test");
-            localRepo.push(hashB, author.url(), "edit");
+    @Test
+    void initialLabelCommand(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
 
-            // Make sure that the push registered
-            lastHeadHash = pr.headHash();
-            refreshCount = 0;
-            do {
-                pr = author.pullRequest(pr.id());
-                if (refreshCount++ > 100) {
-                    fail("The PR did not update after the new push");
-                }
-            } while (pr.headHash().equals(lastHeadHash));
+            var labelConfiguration = LabelConfigurationJson.builder()
+                                                           .addMatchers("test1", List.of(Pattern.compile("a.txt")))
+                                                           .addMatchers("test2", List.of(Pattern.compile("b.txt")))
+                                                           .build();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var labelBot = PullRequestBot.newBuilder()
+                                         .repo(author)
+                                         .censusRepo(censusBuilder.build())
+                                         .labelConfiguration(labelConfiguration)
+                                         .build();
 
-            // Check the status - there should now be a test2 label
-            TestBotRunner.runPeriodicItems(labelBot);
-            assertEquals(Set.of("rfr", "test1", "test2"), new HashSet<>(pr.labels()));
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path();
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
 
-            localRepo.remove(fileA);
-            var hashNoA = localRepo.commit("test2", "test", "test@test");
-            localRepo.push(hashNoA, author.url(), "edit");
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
 
-            // Make sure that the push registered
-            lastHeadHash = pr.headHash();
-            refreshCount = 0;
-            do {
-                pr = author.pullRequest(pr.id());
-                if (refreshCount++ > 100) {
-                    fail("The PR did not update after the new push");
-                }
-            } while (pr.headHash().equals(lastHeadHash));
+            var fileA = localRepoFolder.resolve("a.txt");
+            Files.writeString(fileA, "Hello");
+            localRepo.add(fileA);
+            var hashA = localRepo.commit("test1", "test", "test@test");
+            localRepo.push(hashA, author.url(), "edit");
 
-            // Check the status - the test1 label should be gone
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Issue a manual label command
+            var reviewerPr = reviewer.pullRequest(pr.id());
+            reviewerPr.addComment("/label add test2");
+
+            // Check the status - there should still only be a test2 label
             TestBotRunner.runPeriodicItems(labelBot);
             assertEquals(Set.of("rfr", "test2"), new HashSet<>(pr.labels()));
+        }
+    }
+
+    @Test
+    void initialLabel(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var labelConfiguration = LabelConfigurationJson.builder()
+                                                           .addMatchers("test1", List.of(Pattern.compile("a.txt")))
+                                                           .addMatchers("test2", List.of(Pattern.compile("b.txt")))
+                                                           .build();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var labelBot = PullRequestBot.newBuilder()
+                                         .repo(author)
+                                         .censusRepo(censusBuilder.build())
+                                         .labelConfiguration(labelConfiguration)
+                                         .build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path();
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+
+            var fileA = localRepoFolder.resolve("a.txt");
+            Files.writeString(fileA, "Hello");
+            localRepo.add(fileA);
+            var hashA = localRepo.commit("test1", "test", "test@test");
+            localRepo.push(hashA, author.url(), "edit");
+
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Manually set a label
+            pr.addLabel("test2");
+
+            // Check the status - there should still only be a test2 label
+            TestBotRunner.runPeriodicItems(labelBot);
+            assertEquals(Set.of("rfr", "test2"), new HashSet<>(pr.labels()));
+        }
+    }
+
+    @Test
+    void initialUnmatchedLabel(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var labelConfiguration = LabelConfigurationJson.builder()
+                                                           .addMatchers("test1", List.of(Pattern.compile("a.txt")))
+                                                           .addMatchers("test2", List.of(Pattern.compile("b.txt")))
+                                                           .build();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var labelBot = PullRequestBot.newBuilder()
+                                         .repo(author)
+                                         .censusRepo(censusBuilder.build())
+                                         .labelConfiguration(labelConfiguration)
+                                         .build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path();
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+
+            var fileA = localRepoFolder.resolve("a.txt");
+            Files.writeString(fileA, "Hello");
+            localRepo.add(fileA);
+            var hashA = localRepo.commit("test1", "test", "test@test");
+            localRepo.push(hashA, author.url(), "edit");
+
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Manually set a label that isn't in the set of automatic ones
+            pr.addLabel("test42");
+
+            // Check the status - the test1 label should have been added
+            TestBotRunner.runPeriodicItems(labelBot);
+            assertEquals(Set.of("rfr", "test1", "test42"), new HashSet<>(pr.labels()));
         }
     }
 }

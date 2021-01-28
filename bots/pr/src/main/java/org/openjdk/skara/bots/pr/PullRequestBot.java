@@ -25,16 +25,15 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.census.Contributor;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.host.*;
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.JSONValue;
-import org.openjdk.skara.vcs.Hash;
 
 import java.net.URI;
 import java.nio.file.Path;
 import java.time.*;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -59,7 +58,7 @@ class PullRequestBot implements Bot {
     private final String confOverrideRef;
     private final String censusLink;
     private final Set<String> commitCommandUsers;
-    private final ConcurrentMap<Hash, Boolean> currentLabels;
+    private final Set<String> autoLabelled;
     private final ConcurrentHashMap<String, Instant> scheduledRechecks;
     private final PullRequestUpdateCache updateCache;
     private final Map<String, HostedRepository> forks;
@@ -101,7 +100,7 @@ class PullRequestBot implements Bot {
                                                     .collect(Collectors.toSet());
         this.forks = forks;
 
-        currentLabels = new ConcurrentHashMap<>();
+        autoLabelled = new HashSet<>();
         scheduledRechecks = new ConcurrentHashMap<>();
         updateCache = new PullRequestUpdateCache();
 
@@ -258,10 +257,6 @@ class PullRequestBot implements Bot {
         return issueProject;
     }
 
-    ConcurrentMap<Hash, Boolean> currentLabels() {
-        return currentLabels;
-    }
-
     boolean ignoreStaleReviews() {
         return ignoreStaleReviews;
     }
@@ -303,5 +298,17 @@ class PullRequestBot implements Bot {
             throw new IllegalArgumentException("No writeable fork for " + upstream.name());
         }
         return fork;
+    }
+
+    public boolean isAutoLabelled(PullRequest pr) {
+        synchronized (autoLabelled) {
+            return autoLabelled.contains(pr.id());
+        }
+    }
+
+    public void setAutoLabelled(PullRequest pr) {
+        synchronized (autoLabelled) {
+            autoLabelled.add(pr.id());
+        }
     }
 }
