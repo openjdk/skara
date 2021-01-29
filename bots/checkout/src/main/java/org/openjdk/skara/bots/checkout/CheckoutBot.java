@@ -135,6 +135,7 @@ public class CheckoutBot implements Bot, WorkItem {
                     var toRepo = Repository.get(to).orElseThrow(() ->
                         new IllegalStateException("Repository vanished from " + to));
                     var existing = new ArrayList<>(marks.current());
+                    Collections.sort(existing);
                     log.info("Found " + existing.size() + " existing marks");
                     converter.convert(fromRepo, toRepo, existing);
                     hasConverted = true;
