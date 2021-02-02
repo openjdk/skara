@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,6 +28,7 @@ import org.openjdk.skara.test.TemporaryDirectory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.openjdk.skara.vcs.git.GitRepository;
 
 import java.io.IOException;
 import java.net.URI;
@@ -1653,6 +1654,7 @@ public class RepositoryTests {
             pb.environment().put("GIT_COMMITTER_NAME", "duke");
             pb.environment().put("GIT_COMMITTER_EMAIL", "duke@openjdk.org");
             pb.directory(dir.path().toFile());
+            pb.environment().putAll(GitRepository.NO_CONFIG_ENV);
 
             var res = pb.start().waitFor();
             assertEquals(0, res);
@@ -1686,6 +1688,7 @@ public class RepositoryTests {
             pb.environment().put("GIT_COMMITTER_NAME", "duke");
             pb.environment().put("GIT_COMMITTER_EMAIL", "duke@openjdk.org");
             pb.directory(dir.path().toFile());
+            pb.environment().putAll(GitRepository.NO_CONFIG_ENV);
 
             var res = pb.start().waitFor();
             assertEquals(0, res);
@@ -2448,6 +2451,7 @@ public class RepositoryTests {
             // so use a ProcessBuilder and invoke git directly here
             var pb = new ProcessBuilder("git", "tag", "test-tag", head.hex());
             pb.directory(repo.root().toFile());
+            pb.environment().putAll(GitRepository.NO_CONFIG_ENV);
             assertEquals(0, pb.start().waitFor());
 
             var tags = repo.tags();

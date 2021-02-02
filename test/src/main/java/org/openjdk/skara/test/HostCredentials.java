@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -330,18 +330,23 @@ public class HostCredentials implements AutoCloseable {
         return lockHash;
     }
 
-    public HostedRepository getHostedRepository() {
+    public HostedRepository getHostedRepository() throws IOException {
         var host = getRepositoryHost();
         var repo = credentials.getHostedRepository(host);
 
+        var retryCount = 0;
         while (credentialsLock == null) {
             try {
                 if (getLock(repo)) {
                     credentialsLock = repo;
                 }
             } catch (IOException e) {
+                if (retryCount > 3) {
+                    throw e;
+                }
                 try {
                     Thread.sleep(Duration.ofSeconds(1).toMillis());
+                    retryCount++;
                 } catch (InterruptedException ignored) {
                 }
             }
