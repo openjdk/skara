@@ -225,8 +225,11 @@ IDE when working on Skara you can simply open the root folder and the project
 should be automatically imported. You will need to configure a Platform SDK that
 is JDK 14 or above. Either set this up manually, or [build](#building) once from
 the terminal, which will download a suitable JDK. Configure IntelliJ to use it
-at `File → Project Structure → Platform Settings → SDKs → + → Add
-JDK... → <skara-folder>/.jdk/openjdk-15.0.1_osx-x64_bin/jdk-15.0.1.jdk/Contents/Home`.
+at `File → Project Structure → Platform Settings → SDKs → + → Add JDK...` and
+browse to the downloaded JDK found in `<skara-folder>/.jdk/`. For example, on
+macOS, select the
+`<skara-folder>/.jdk/openjdk-15.0.1_osx-x64_bin/jdk-15.0.1.jdk/Contents/Home`
+folder.
 
 ### Vim
 
