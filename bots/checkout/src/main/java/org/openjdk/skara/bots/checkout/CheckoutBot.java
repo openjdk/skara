@@ -114,6 +114,7 @@ public class CheckoutBot implements Bot, WorkItem {
                 fromRepo = Repository.get(fromDir).orElseThrow(() ->
                     new IllegalStateException("Git repository vanished from " + fromDir));
             }
+            fromRepo.fetchRemote("origin");
             fromRepo.checkout(branch);
             fromRepo.pull("origin", branch.name(), true);
 
