@@ -218,6 +218,19 @@ Linux](https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux) on Windows.
 Please see the sections below for instructions on setting up a particular editor
 or IDE.
 
+### IntelliJ IDEA
+
+If you choose to use [IntelliJ IDEA](https://www.jetbrains.com/idea/) as your
+IDE when working on Skara you can simply open the root folder and the project
+should be automatically imported. You will need to configure a Platform SDK that
+is JDK 14 or above. Either set this up manually, or [build](#building) once from
+the terminal, which will download a suitable JDK. Configure IntelliJ to use it
+at `File → Project Structure → Platform Settings → SDKs → + → Add JDK...` and
+browse to the downloaded JDK found in `<skara-folder>/.jdk/`. For example, on
+macOS, select the
+`<skara-folder>/.jdk/openjdk-15.0.1_osx-x64_bin/jdk-15.0.1.jdk/Contents/Home`
+folder.
+
 ### Vim
 
 If you choose to use [Vim](https://vim.org) as your editor when working on Skara then you
