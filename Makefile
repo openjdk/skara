@@ -44,7 +44,7 @@ images:
 	@sh gradlew images
 
 bots:
-	@sh gradlew :bots:cli:images
+	@sh gradlew bots
 
 offline:
 	@sh gradlew :offline
