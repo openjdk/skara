@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.openjdk.skara.vcs.git.GitRepository;
+import org.openjdk.skara.vcs.hg.HgRepository;
 
 import java.io.IOException;
 import java.net.URI;
@@ -2179,6 +2180,42 @@ public class RepositoryTests {
             assertEquals(List.of(), repo.config("test.key"));
             repo.config("test", "key", "value");
             assertEquals(List.of("value"), repo.config("test.key"));
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
+    void testNoConfig(VCS vcs) throws IOException, InterruptedException {
+        // Verify that our method of disabling configuration works
+        try (var dir = new TemporaryDirectory()) {
+            switch (vcs) {
+                case GIT -> {
+                    var gitRepo = new GitRepository(dir.path()).init();
+                    var configResult = GitRepository.capture(dir.path(),
+                            "git", "config", "--list").await();
+                    assertEquals(configResult.status(), 0);
+
+                    // We can't get a list of all settings except local, so compare all with local only
+                    var localConfigResult = GitRepository.capture(dir.path(),
+                            "git", "config", "--list", "--local").await();
+                    assertEquals(localConfigResult.status(), 0);
+                    assertEquals(localConfigResult.stdout(), configResult.stdout());
+                }
+
+                case HG -> {
+                    var hgRepo = new HgRepository(dir.path()).init();
+                    var settingsResult = HgRepository.capture(dir.path(),
+                            "hg", "config").await();
+                    assertEquals(settingsResult.status(), 0);
+
+                    // There's no way to stop hg from picking up ui.editor or repo settings,
+                    // nor to print only them, so hard-code these settings.
+                    var filteredSettings = settingsResult.stdout().stream().filter(
+                            s -> !(s.startsWith("bundle.mainreporoot=") || s.startsWith("ui.editor="))
+                    ).toArray();
+                    assertTrue(filteredSettings.length == 0);
+                }
+            }
         }
     }
 

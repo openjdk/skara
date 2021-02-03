@@ -82,7 +82,7 @@ public class GitRepository implements Repository {
         return capture(cmd.toArray(new String[0]));
     }
 
-    private Execution capture(Path cwd, Map<String, String> env, List<String> cmd) {
+    private static Execution capture(Path cwd, Map<String, String> env, List<String> cmd) {
         return capture(cwd, env, cmd.toArray(new String[0]));
     }
 
@@ -90,7 +90,7 @@ public class GitRepository implements Repository {
         return capture(dir, cmd);
     }
 
-    private static Execution capture(Path cwd, String... cmd) {
+    public static Execution capture(Path cwd, String... cmd) {
         return capture(cwd, NO_CONFIG_ENV, cmd);
     }
 
