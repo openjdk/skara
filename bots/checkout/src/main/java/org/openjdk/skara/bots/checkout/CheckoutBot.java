@@ -118,8 +118,8 @@ public class CheckoutBot implements Bot, WorkItem {
             fromRepo.checkout(branch);
             fromRepo.pull("origin", branch.name(), true);
 
-            var repoName = Path.of(webURI().getPath()).getFileName().toString();
-            var marksDir = scratch.resolve("checkout").resolve("marks").resolve(repoName);
+            var toRepoName = to.getFileName().toString();
+            var marksDir = scratch.resolve("checkout").resolve("marks").resolve(toRepoName);
             Files.createDirectories(marksDir);
             var marks = marksStorage.materialize(marksDir);
             var converter = new GitToHgConverter(branch);

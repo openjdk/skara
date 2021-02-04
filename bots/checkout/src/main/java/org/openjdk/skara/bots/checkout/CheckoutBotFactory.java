@@ -53,8 +53,8 @@ public class CheckoutBotFactory implements BotFactory {
             var fromBranch = new Branch(repo.get("from").get("branch").asString());
             var to = Path.of(repo.get("to").asString());
 
-            var repoName = from.webUrl().getPath().substring(1) + ".git"; // Remove leading '/'
-            var markStorage = MarkStorage.create(marksRepo, marksUser, repoName);
+            var toRepoName = to.getFileName().toString();
+            var markStorage = MarkStorage.create(marksRepo, marksUser, toRepoName);
 
             bots.add(new CheckoutBot(from, fromBranch, to, storage, markStorage));
         }
