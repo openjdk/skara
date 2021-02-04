@@ -67,7 +67,7 @@ public class Process {
             return this;
         }
 
-        public Description environMap(Map<String, String> keyValueMap) {
+        public Description environ(Map<String, String> keyValueMap) {
             if (keyValueMap != null) {
                 getCurrentProcessBuilderSetup().environment.putAll(keyValueMap);
             }

@@ -97,7 +97,7 @@ public class GitRepository implements Repository {
     private static Execution capture(Path cwd, Map<String, String> env, String... cmd) {
         return Process.capture(cmd)
                       .workdir(cwd)
-                      .environMap(env)
+                      .environ(env)
                       .execute();
     }
 
@@ -734,7 +734,7 @@ public class GitRepository implements Repository {
                        ZonedDateTime committerDate) throws IOException {
         var cmd = Process.capture("git", "commit", "--message=" + message)
                          .workdir(dir)
-                         .environMap(NO_CONFIG_ENV)
+                         .environ(NO_CONFIG_ENV)
                          .environ("GIT_AUTHOR_NAME", authorName)
                          .environ("GIT_AUTHOR_EMAIL", authorEmail)
                          .environ("GIT_COMMITTER_NAME", committerName)
@@ -770,7 +770,7 @@ public class GitRepository implements Repository {
         }
         var cmd = Process.capture(cmdLine.toArray(new String[0]))
                 .workdir(dir)
-                .environMap(NO_CONFIG_ENV)
+                .environ(NO_CONFIG_ENV)
                 .environ("GIT_AUTHOR_NAME", authorName)
                 .environ("GIT_AUTHOR_EMAIL", authorEmail)
                 .environ("GIT_COMMITTER_NAME", committerName)
@@ -823,7 +823,7 @@ public class GitRepository implements Repository {
         }
         var cmd = Process.capture("git", "commit", "--amend", "--reset-author", "--message=" + message)
                          .workdir(dir)
-                         .environMap(NO_CONFIG_ENV)
+                         .environ(NO_CONFIG_ENV)
                          .environ("GIT_AUTHOR_NAME", authorName)
                          .environ("GIT_AUTHOR_EMAIL", authorEmail)
                          .environ("GIT_COMMITTER_NAME", committerName)
@@ -838,7 +838,7 @@ public class GitRepository implements Repository {
     public Tag tag(Hash hash, String name, String message, String authorName, String authorEmail, ZonedDateTime date) throws IOException {
         var cmd = Process.capture("git", "tag", "--annotate", "--message=" + message, name, hash.hex())
                          .workdir(dir)
-                         .environMap(NO_CONFIG_ENV)
+                         .environ(NO_CONFIG_ENV)
                          .environ("GIT_AUTHOR_NAME", authorName)
                          .environ("GIT_AUTHOR_EMAIL", authorEmail)
                          .environ("GIT_COMMITTER_NAME", authorName)
@@ -898,7 +898,7 @@ public class GitRepository implements Repository {
                             .environ("GIT_COMMITTER_NAME", committerName)
                             .environ("GIT_COMMITTER_EMAIL", committerEmail)
                             .workdir(dir)
-                            .environMap(NO_CONFIG_ENV)
+                            .environ(NO_CONFIG_ENV)
                             .execute()) {
             await(p);
         }

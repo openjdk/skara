@@ -95,7 +95,7 @@ public class HgRepository implements Repository {
     }
     public static Execution capture(Path cwd, String... cmd) {
         return Process.capture(cmd)
-                      .environMap(NO_CONFIG_ENV)
+                      .environ(NO_CONFIG_ENV)
                       .workdir(cwd)
                       .execute();
     }
