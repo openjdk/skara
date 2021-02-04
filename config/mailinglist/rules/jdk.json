@@ -222,7 +222,7 @@
             "src/java.xml/",
             "src/jdk.accessibility/",
             "src/jdk.incubator.foreign/",
-            "src/jdk.incubator.jpackage/",
+            "src/jdk.jpackage/",
             "src/jdk.internal.jvmstat/",
             "src/jdk.internal.opt/",
             "src/jdk.jartool/",
