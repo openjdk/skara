@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,6 +37,14 @@ import java.util.stream.*;
 import java.net.URI;
 
 public class HgRepository implements Repository {
+    public final static Map<String, String> NO_CONFIG_ENV = Map.of(
+            "HGRCPATH", "",
+            "HGPLAIN", "",
+            "HGEDITOR", "",
+            "EDITOR", "",
+            "VISUAL", ""
+    );
+
     private static final String EXT_PY = "ext.py";
     private final Path dir;
     private final Logger log = Logger.getLogger("org.openjdk.skara.vcs.hg");
@@ -54,8 +62,7 @@ public class HgRepository implements Repository {
         var pb = new ProcessBuilder(cmd);
         pb.directory(dir.toFile());
         pb.redirectError(ProcessBuilder.Redirect.DISCARD);
-        pb.environment().put("HGRCPATH", "");
-        pb.environment().put("HGPLAIN", "");
+        pb.environment().putAll(NO_CONFIG_ENV);
         return pb.start();
     }
 
@@ -86,10 +93,9 @@ public class HgRepository implements Repository {
     private static Execution capture(Path cwd, List<String> cmd) {
         return capture(cwd, cmd.toArray(new String[0]));
     }
-    private static Execution capture(Path cwd, String... cmd) {
+    public static Execution capture(Path cwd, String... cmd) {
         return Process.capture(cmd)
-                      .environ("HGRCPATH", "")
-                      .environ("HGPLAIN", "")
+                      .environ(NO_CONFIG_ENV)
                       .workdir(cwd)
                       .execute();
     }
@@ -589,8 +595,7 @@ public class HgRepository implements Repository {
         pb.directory(dir.toFile());
         pb.redirectError(ProcessBuilder.Redirect.DISCARD);
         pb.redirectOutput(to.toFile());
-        pb.environment().put("HGRCPATH", "");
-        pb.environment().put("HGPLAIN", "");
+        pb.environment().putAll(NO_CONFIG_ENV);
         var p = pb.start();
         try {
             await(p);

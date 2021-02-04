@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,6 +28,8 @@ import org.openjdk.skara.test.TemporaryDirectory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.openjdk.skara.vcs.git.GitRepository;
+import org.openjdk.skara.vcs.hg.HgRepository;
 
 import java.io.IOException;
 import java.net.URI;
@@ -1653,6 +1655,7 @@ public class RepositoryTests {
             pb.environment().put("GIT_COMMITTER_NAME", "duke");
             pb.environment().put("GIT_COMMITTER_EMAIL", "duke@openjdk.org");
             pb.directory(dir.path().toFile());
+            pb.environment().putAll(GitRepository.NO_CONFIG_ENV);
 
             var res = pb.start().waitFor();
             assertEquals(0, res);
@@ -1686,6 +1689,7 @@ public class RepositoryTests {
             pb.environment().put("GIT_COMMITTER_NAME", "duke");
             pb.environment().put("GIT_COMMITTER_EMAIL", "duke@openjdk.org");
             pb.directory(dir.path().toFile());
+            pb.environment().putAll(GitRepository.NO_CONFIG_ENV);
 
             var res = pb.start().waitFor();
             assertEquals(0, res);
@@ -2181,6 +2185,42 @@ public class RepositoryTests {
 
     @ParameterizedTest
     @EnumSource(VCS.class)
+    void testNoConfig(VCS vcs) throws IOException, InterruptedException {
+        // Verify that our method of disabling configuration works
+        try (var dir = new TemporaryDirectory()) {
+            switch (vcs) {
+                case GIT -> {
+                    var gitRepo = new GitRepository(dir.path()).init();
+                    var configResult = GitRepository.capture(dir.path(),
+                            "git", "config", "--list").await();
+                    assertEquals(configResult.status(), 0);
+
+                    // We can't get a list of all settings except local, so compare all with local only
+                    var localConfigResult = GitRepository.capture(dir.path(),
+                            "git", "config", "--list", "--local").await();
+                    assertEquals(localConfigResult.status(), 0);
+                    assertEquals(localConfigResult.stdout(), configResult.stdout());
+                }
+
+                case HG -> {
+                    var hgRepo = new HgRepository(dir.path()).init();
+                    var settingsResult = HgRepository.capture(dir.path(),
+                            "hg", "config").await();
+                    assertEquals(settingsResult.status(), 0);
+
+                    // There's no way to stop hg from picking up ui.editor or repo settings,
+                    // nor to print only them, so hard-code these settings.
+                    var filteredSettings = settingsResult.stdout().stream().filter(
+                            s -> !(s.startsWith("bundle.mainreporoot=") || s.startsWith("ui.editor="))
+                    ).toArray();
+                    assertTrue(filteredSettings.length == 0);
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
     void testFetchRemote(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
             var upstream = Repository.init(dir.path(), vcs);
@@ -2448,6 +2488,7 @@ public class RepositoryTests {
             // so use a ProcessBuilder and invoke git directly here
             var pb = new ProcessBuilder("git", "tag", "test-tag", head.hex());
             pb.directory(repo.root().toFile());
+            pb.environment().putAll(GitRepository.NO_CONFIG_ENV);
             assertEquals(0, pb.start().waitFor());
 
             var tags = repo.tags();

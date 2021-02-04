@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,6 +38,12 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class GitRepository implements Repository {
+    public final static Map<String, String> NO_CONFIG_ENV = Map.of(
+            "HOME", "/this-does-not-exist-and-if-you-create-it-you-are-in-trouble",
+            "XDG_CONFIG_HOME", "/this-does-not-exist-and-if-you-create-it-you-are-in-trouble",
+            "GIT_CONFIG_NOSYSTEM", "true"
+    );
+
     private final Path dir;
     private final Logger log = Logger.getLogger("org.openjdk.skara.vcs.git");
     private Path cachedRoot = null;
@@ -51,6 +57,7 @@ public class GitRepository implements Repository {
         log.fine("Executing " + String.join(" ", cmd));
         var pb = new ProcessBuilder(cmd);
         pb.directory(dir.toFile());
+        pb.environment().putAll(NO_CONFIG_ENV);
         pb.redirectError(ProcessBuilder.Redirect.DISCARD);
         return pb.start();
     }
@@ -75,13 +82,22 @@ public class GitRepository implements Repository {
         return capture(cmd.toArray(new String[0]));
     }
 
+    private static Execution capture(Path cwd, Map<String, String> env, List<String> cmd) {
+        return capture(cwd, env, cmd.toArray(new String[0]));
+    }
+
     private Execution capture(String... cmd) {
         return capture(dir, cmd);
     }
 
-    private static Execution capture(Path cwd, String... cmd) {
+    public static Execution capture(Path cwd, String... cmd) {
+        return capture(cwd, NO_CONFIG_ENV, cmd);
+    }
+
+    private static Execution capture(Path cwd, Map<String, String> env, String... cmd) {
         return Process.capture(cmd)
                       .workdir(cwd)
+                      .environ(env)
                       .execute();
     }
 
@@ -718,6 +734,7 @@ public class GitRepository implements Repository {
                        ZonedDateTime committerDate) throws IOException {
         var cmd = Process.capture("git", "commit", "--message=" + message)
                          .workdir(dir)
+                         .environ(NO_CONFIG_ENV)
                          .environ("GIT_AUTHOR_NAME", authorName)
                          .environ("GIT_AUTHOR_EMAIL", authorEmail)
                          .environ("GIT_COMMITTER_NAME", committerName)
@@ -753,6 +770,7 @@ public class GitRepository implements Repository {
         }
         var cmd = Process.capture(cmdLine.toArray(new String[0]))
                 .workdir(dir)
+                .environ(NO_CONFIG_ENV)
                 .environ("GIT_AUTHOR_NAME", authorName)
                 .environ("GIT_AUTHOR_EMAIL", authorEmail)
                 .environ("GIT_COMMITTER_NAME", committerName)
@@ -805,6 +823,7 @@ public class GitRepository implements Repository {
         }
         var cmd = Process.capture("git", "commit", "--amend", "--reset-author", "--message=" + message)
                          .workdir(dir)
+                         .environ(NO_CONFIG_ENV)
                          .environ("GIT_AUTHOR_NAME", authorName)
                          .environ("GIT_AUTHOR_EMAIL", authorEmail)
                          .environ("GIT_COMMITTER_NAME", committerName)
@@ -819,6 +838,7 @@ public class GitRepository implements Repository {
     public Tag tag(Hash hash, String name, String message, String authorName, String authorEmail, ZonedDateTime date) throws IOException {
         var cmd = Process.capture("git", "tag", "--annotate", "--message=" + message, name, hash.hex())
                          .workdir(dir)
+                         .environ(NO_CONFIG_ENV)
                          .environ("GIT_AUTHOR_NAME", authorName)
                          .environ("GIT_AUTHOR_EMAIL", authorEmail)
                          .environ("GIT_COMMITTER_NAME", authorName)
@@ -878,6 +898,7 @@ public class GitRepository implements Repository {
                             .environ("GIT_COMMITTER_NAME", committerName)
                             .environ("GIT_COMMITTER_EMAIL", committerEmail)
                             .workdir(dir)
+                            .environ(NO_CONFIG_ENV)
                             .execute()) {
             await(p);
         }
@@ -1133,7 +1154,8 @@ public class GitRepository implements Repository {
 
     @Override
     public List<String> config(String key) throws IOException {
-        try (var p = capture("git", "config", key)) {
+        // We must explicitly do this *with* the user's .gitconfig, so override NO_CONFIG_ENV
+        try (var p = capture(dir, Collections.emptyMap(), "git", "config", key)) {
             var res = p.await();
             return res.status() == 0 ? res.stdout() : List.of();
         }
@@ -1531,7 +1553,8 @@ public class GitRepository implements Repository {
         }
         cmd.add(section + "." + key);
         cmd.add(value);
-        try (var p = capture(cmd)) {
+        // We must explicitly do this *with* the user's .gitconfig, so override NO_CONFIG_ENV
+        try (var p = capture(dir, Collections.emptyMap(), cmd)) {
             await(p);
         }
     }
