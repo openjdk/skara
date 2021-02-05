@@ -25,8 +25,9 @@ package org.openjdk.skara.bots.notify.issue;
 import org.openjdk.skara.bots.notify.*;
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.issuetracker.*;
+import org.openjdk.skara.jbs.*;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.vcs.*;
@@ -266,7 +267,18 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                             }
                         }
                         issue.setProperty("fixVersions", JSON.of(requestedVersion));
-                        Backports.labelReleaseStreamDuplicates(issue, "hgupdate-sync");
+
+                        var related = Backports.findBackports(issue, true);
+                        var allIssues = new ArrayList<Issue>();
+                        allIssues.add(issue);
+                        allIssues.addAll(related);
+
+                        var duplicates = Backports.releaseStreamDuplicates(allIssues);
+                        for (var i : duplicates) {
+                            if (!i.labels().contains("hgupdate-sync")) {
+                                i.addLabel("hgupdate-sync");
+                            }
+                        }
                     }
                 }
             }

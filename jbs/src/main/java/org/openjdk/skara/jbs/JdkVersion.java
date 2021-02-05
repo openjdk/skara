@@ -20,7 +20,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.bots.notify.issue;
+package org.openjdk.skara.jbs;
 
 import java.util.*;
 import java.util.regex.Pattern;
@@ -139,6 +139,10 @@ public class JdkVersion implements Comparable<JdkVersion> {
 
     public Optional<String> resolvedInBuild() {
         return Optional.ofNullable(build);
+    }
+
+    public String raw() {
+        return raw;
     }
 
     // Return the number from a numbered build (e.g., 'b12' -> 12), or -1 if not a numbered build.

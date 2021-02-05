@@ -45,7 +45,10 @@ public class SkaraDebug {
                        .main(GitVerifyImport::main),
                 Command.name("mlrules")
                        .helptext("create and verify jdk mailing list filter rules")
-                       .main(GitMlRules::main)
+                       .main(GitMlRules::main),
+                Command.name("issue-redecorate")
+                       .helptext("reapplies the hgupdate-sync label to the given ussue")
+                       .main(IssueRedecorate::main)
         );
 
         HttpProxy.setup();

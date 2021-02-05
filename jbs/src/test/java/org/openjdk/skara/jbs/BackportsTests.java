@@ -20,7 +20,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.bots.notify.issue;
+package org.openjdk.skara.jbs;
 
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.issuetracker.*;
@@ -29,6 +29,7 @@ import org.openjdk.skara.test.HostCredentials;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -220,30 +221,33 @@ public class BackportsTests {
         }
 
         void assertLabeled(String... labeledVersions) {
-            Backports.labelReleaseStreamDuplicates(issues.get(0), "hgupdate-sync");
-
+            var related = Backports.findBackports(issues.get(0), true);
+            var allIssues = new ArrayList<Issue>();
+            allIssues.add(issues.get(0));
+            allIssues.addAll(related);
+            var labeledIssues = Backports.releaseStreamDuplicates(allIssues)
+                                         .stream()
+                                         .map(issue -> issue.properties().get("fixVersions").get(0).asString())
+                                         .collect(Collectors.toSet());
             var labels = new HashSet<>(Arrays.asList(labeledVersions));
-            var labeledIssues = new HashSet<String>();
-            for (var issue : issues) {
-                var version = issue.properties().get("fixVersions").get(0).asString();
-                if (issue.labels().contains("hgupdate-sync")) {
-                    labeledIssues.add(version);
-                }
-            }
             assertEquals(labels, labeledIssues);
         }
 
         void assertNotLabeled(String... labeledVersions) {
-            Backports.labelReleaseStreamDuplicates(issues.get(0), "hgupdate-sync");
-
-            var labels = new HashSet<>(Arrays.asList(labeledVersions));
-            var unLabeledIssues = new HashSet<String>();
-            for (var issue : issues) {
-                var version = issue.properties().get("fixVersions").get(0).asString();
-                if (!issue.labels().contains("hgupdate-sync")) {
-                    unLabeledIssues.add(version);
-                }
+            var related = Backports.findBackports(issues.get(0), true);
+            var allIssues = new ArrayList<Issue>();
+            allIssues.add(issues.get(0));
+            allIssues.addAll(related);
+            var labeledIssues = Backports.releaseStreamDuplicates(allIssues)
+                                         .stream()
+                                         .map(issue -> issue.properties().get("fixVersions").get(0).asString())
+                                         .collect(Collectors.toSet());
+            var unLabeledIssues = new HashSet<>();
+            for (var issue : allIssues) {
+                unLabeledIssues.add(issue.properties().get("fixVersions").get(0).asString());
             }
+            unLabeledIssues.removeAll(labeledIssues);
+            var labels = new HashSet<>(Arrays.asList(labeledVersions));
             assertEquals(labels, unLabeledIssues);
         }
     }
