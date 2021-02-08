@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,22 +20,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.issuetracker;
+module org.openjdk.skara.bots.synclabel {
+    requires org.openjdk.skara.vcs;
+    requires org.openjdk.skara.host;
+    requires org.openjdk.skara.network;
+    requires org.openjdk.skara.bot;
+    requires org.openjdk.skara.process;
+    requires org.openjdk.skara.storage;
+    requires org.openjdk.skara.jbs;
+    requires java.logging;
 
-import org.openjdk.skara.host.HostUser;
-import org.openjdk.skara.json.JSONValue;
-
-import java.net.URI;
-import java.time.ZonedDateTime;
-import java.util.*;
-
-public interface IssueProject {
-    IssueTracker issueTracker();
-    URI webUrl();
-    Issue createIssue(String title, List<String> body, Map<String, JSONValue> properties);
-    Optional<Issue> issue(String id);
-    List<Issue> issues();
-    List<Issue> issues(ZonedDateTime updatedAfter);
-    String name();
-    Optional<HostUser> findUser(String findBy);
+    provides org.openjdk.skara.bot.BotFactory with org.openjdk.skara.bots.synclabel.SyncLabelBotFactory;
 }

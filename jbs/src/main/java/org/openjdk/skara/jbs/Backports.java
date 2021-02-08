@@ -27,6 +27,7 @@ import org.openjdk.skara.json.JSONValue;
 
 import java.util.*;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import java.util.stream.*;
 
 public class Backports {
@@ -204,6 +205,8 @@ public class Backports {
                     .collect(Collectors.toList());
     }
 
+    private static final Pattern featureFamilyPattern = Pattern.compile("^([^\\d]*)(\\d+)$");
+
     /**
      * Classifies a given version as belonging to one or more release streams.
      *
@@ -218,7 +221,14 @@ public class Backports {
     private static List<String> releaseStreams(JdkVersion jdkVersion) {
         var ret = new ArrayList<String>();
         try {
-            var numericFeature = Integer.parseInt(jdkVersion.feature());
+            var featureFamilyMatcher = featureFamilyPattern.matcher(jdkVersion.feature());
+            if (!featureFamilyMatcher.matches()) {
+                log.warning("Cannot parse feature family: " + jdkVersion.feature());
+                return ret;
+            }
+            var featureFamily = featureFamilyMatcher.group(1);
+            var featureVersion = featureFamilyMatcher.group(2);
+            var numericFeature = Integer.parseInt(featureVersion);
             if (numericFeature >= 9) {
                 if (jdkVersion.update().isPresent()) {
                     var numericUpdate = Integer.parseInt(jdkVersion.update().get());
@@ -237,7 +247,7 @@ public class Backports {
                         }
                     }
                 } else {
-                    ret.add("features");
+                    ret.add("features-" + featureFamily);
                     ret.add(jdkVersion.feature() + "+updates-oracle");
                     ret.add(jdkVersion.feature() + "+updates-openjdk");
                 }
@@ -258,8 +268,8 @@ public class Backports {
             } else {
                 log.warning("Ignoring issue with unknown version: " + jdkVersion);
             }
-        } catch (NumberFormatException ignored) {
-            log.info("Cannot determine release streams for version: " + jdkVersion);
+        } catch (NumberFormatException e) {
+            log.info("Cannot determine release streams for version: " + jdkVersion + " (" + e + ")");
         }
         return ret;
     }

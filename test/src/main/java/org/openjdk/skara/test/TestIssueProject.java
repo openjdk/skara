@@ -28,6 +28,7 @@ import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.network.URIBuilder;
 
 import java.net.URI;
+import java.time.ZonedDateTime;
 import java.util.*;
 
 public class TestIssueProject implements IssueProject {
@@ -69,6 +70,11 @@ public class TestIssueProject implements IssueProject {
 
     @Override
     public List<Issue> issues() {
+        return new ArrayList<>(host.getIssues(this));
+    }
+
+    @Override
+    public List<Issue> issues(ZonedDateTime updatedAfter) {
         return new ArrayList<>(host.getIssues(this));
     }
 

@@ -28,6 +28,7 @@ import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
 
 import java.net.URI;
+import java.time.*;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -419,6 +420,32 @@ public class JiraProject implements IssueProject {
                             .execute();
         for (var issue : issues.get("issues").asArray()) {
             ret.add(new JiraIssue(this, request, issue));
+        }
+        return ret;
+    }
+
+    @Override
+    public List<Issue> issues(ZonedDateTime updatedAfter) {
+        var ret = new ArrayList<Issue>();
+        var jql = "project = " + projectName + " AND updated >= '-" + Duration.between(updatedAfter, ZonedDateTime.now()).toMinutes() + "m'";
+        var issues = request.get("search")
+                            .param("jql", jql)
+                            .execute();
+        var startAt = 0;
+        while (issues.get("issues").asArray().size() > 0) {
+            for (var issue : issues.get("issues").asArray()) {
+                ret.add(new JiraIssue(this, request, issue));
+            }
+
+            if (ret.size() < issues.get("total").asInt()) {
+                startAt += issues.get("issues").asArray().size();
+                issues = request.get("search")
+                                .param("jql", jql)
+                                .param("startAt", String.valueOf(startAt))
+                                .execute();
+            } else {
+                break;
+            }
         }
         return ret;
     }
