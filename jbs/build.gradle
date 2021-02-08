@@ -24,6 +24,7 @@
 module {
     name = 'org.openjdk.skara.jbs'
     test {
+        requires 'org.openjdk.skara.test'
         requires 'org.junit.jupiter.api'
         opens 'org.openjdk.skara.jbs' to 'org.junit.platform.commons'
     }
