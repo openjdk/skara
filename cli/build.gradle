@@ -22,7 +22,7 @@
  */
 
 plugins {
-    id 'org.openjdk.skara.gradle.images'
+    id 'images'
 }
 
 module {

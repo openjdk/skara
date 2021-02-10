@@ -25,11 +25,13 @@ plugins {
     id 'java-gradle-plugin'
 }
 
+group = 'org.openjdk.skara.gradle'
+
 gradlePlugin {
     plugins {
         simplePlugin {
-            id = 'org.openjdk.skara.gradle.reproduce'
-            implementationClass = 'org.openjdk.skara.gradle.reproduce.ReproducePlugin'
+            id = 'version'
+            implementationClass = 'org.openjdk.skara.gradle.version.VersionPlugin'
         }
     }
 }
