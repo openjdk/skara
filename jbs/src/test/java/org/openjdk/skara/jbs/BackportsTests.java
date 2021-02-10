@@ -270,7 +270,18 @@ public class BackportsTests {
             backports.assertLabeled();
 
             backports.addBackports("openjfx14", "openjfx16");
+            backports.assertLabeled("openjfx15", "openjfx16");
+        }
+    }
+
+    @Test
+    void labelOpenJdkFeatureReleaseStream(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "openjdk8u292");
             backports.assertLabeled();
+
+            backports.addBackports("openjdk8u302");
+            backports.assertLabeled("openjdk8u302");
         }
     }
 

@@ -52,6 +52,7 @@ dependencies {
     implementation project(':bots:checkout')
     implementation project(':bots:censussync')
     implementation project(':bots:testinfo')
+    implementation project(':bots:synclabel')
     implementation project(':ci')
     implementation project(':vcs')
     implementation project(':jcheck')
@@ -88,7 +89,8 @@ images {
                    'org.openjdk.skara.bots.bridgekeeper',
                    'org.openjdk.skara.bots.checkout',
                    'org.openjdk.skara.bots.censussync',
-                   'org.openjdk.skara.bots.testinfo']
+                   'org.openjdk.skara.bots.testinfo',
+                   'org.openjdk.skara.bots.synclabel']
         launchers = ['skara-bots': 'org.openjdk.skara.bots.cli/org.openjdk.skara.bots.cli.BotLauncher']
         options = ["--module-path", "plugins"]
         bundles = ['zip', 'tar.gz']
