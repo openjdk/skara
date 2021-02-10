@@ -49,6 +49,7 @@ dependencies {
     implementation project(':proxy')
     implementation project(':version')
     implementation project(':process')
+    implementation project(':jbs')
 
     testImplementation project(':test')
 }

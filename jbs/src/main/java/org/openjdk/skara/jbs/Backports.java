@@ -20,7 +20,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.bots.notify.issue;
+package org.openjdk.skara.jbs;
 
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.json.JSONValue;
@@ -61,7 +61,7 @@ public class Backports {
      * @param issue
      * @return
      */
-    static Optional<JdkVersion> mainFixVersion(Issue issue) {
+    public static Optional<JdkVersion> mainFixVersion(Issue issue) {
         var versionString = fixVersions(issue).stream()
                                               .filter(Backports::isNonScratchVersion)
                                               .collect(Collectors.toList());
@@ -83,7 +83,7 @@ public class Backports {
      *  Return the main issue for this backport.
      *  Harmless when called with the main issue
      */
-    static Optional<Issue> findMainIssue(Issue issue) {
+    public static Optional<Issue> findMainIssue(Issue issue) {
         if (isPrimaryIssue(issue)) {
             return Optional.of(issue);
         }
@@ -159,7 +159,7 @@ public class Backports {
      *
      * A "scratch" fixVersion is empty, "tbd.*", or "unknown".
      */
-    static Optional<Issue> findIssue(Issue primary, JdkVersion fixVersion) {
+    public static Optional<Issue> findIssue(Issue primary, JdkVersion fixVersion) {
         log.fine("Searching for properly versioned issue for primary issue " + primary.id());
         var candidates = Stream.concat(Stream.of(primary), findBackports(primary, false).stream()).collect(Collectors.toList());
         candidates.forEach(c -> log.fine("Candidate: " + c.id() + " with versions: " + String.join(",", fixVersions(c))));
@@ -191,7 +191,7 @@ public class Backports {
         return Optional.empty();
     }
 
-    static List<Issue> findBackports(Issue primary, boolean resolvedOnly) {
+    public static List<Issue> findBackports(Issue primary, boolean resolvedOnly) {
         var links = primary.links();
         return links.stream()
                     .filter(l -> l.issue().isPresent())
@@ -295,27 +295,16 @@ public class Backports {
     }
 
     /**
-     * Applies a label to later releases in a release stream.
-     *
-     * The label should not be applied to the first release in a specific stream where a fix ships. I.e.
-     * it should only be applied to issues in any given stream if the fix version of the issue *is not* the first
+     * Returns release stream duplicate issue. I.e.
+     * it will contain issues in any given stream if the fix version of the issue *is not* the first
      * release where the fix has shipped *within that stream*.
      *
-     * @param issue
-     * @param label
+     * @param related
      */
-    static void labelReleaseStreamDuplicates(Issue issue, String label) {
-        var mainIssue = Backports.findMainIssue(issue);
-        if (mainIssue.isEmpty()) {
-            return;
-        }
-        var related = Backports.findBackports(mainIssue.get(), true);
+    public static List<Issue> releaseStreamDuplicates(List<Issue> related) {
+        var ret = new ArrayList<Issue>();
 
-        var allIssues = new ArrayList<Issue>();
-        allIssues.add(mainIssue.get());
-        allIssues.addAll(related);
-
-        for (var streamIssues : groupByReleaseStream(allIssues)) {
+        for (var streamIssues : groupByReleaseStream(related)) {
             // The first issue may have the label if it was part of another
             // stream. (e.g. feature release has 14 & 15 where update release
             // has 15, 15.0.1 & 15.0.2. In this case the label should be
@@ -324,12 +313,10 @@ public class Backports {
             // the label.
             if (streamIssues.size() > 1) {
                 var rest = streamIssues.subList(1, streamIssues.size());
-                for (var i : rest) {
-                    if (!i.labels().contains(label)) {
-                        i.addLabel(label);
-                    }
-                }
+                ret.addAll(rest);
             }
         }
+
+        return ret;
     }
 }

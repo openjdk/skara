@@ -49,6 +49,7 @@ dependencies {
     implementation project(':email')
     implementation project(':storage')
     implementation project(':mailinglist')
+    implementation project(':jbs')
 
     testImplementation project(':test')
 }
