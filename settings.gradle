@@ -22,6 +22,12 @@
  */
 rootProject.name = 'skara'
 
+includeBuild 'gradle/plugins/proxy-plugin'
+includeBuild 'gradle/plugins/module-plugin'
+includeBuild 'gradle/plugins/images-plugin'
+includeBuild 'gradle/plugins/version-plugin'
+includeBuild 'gradle/plugins/reproduce-plugin'
+
 include 'args'
 include 'bot'
 include 'ci'
