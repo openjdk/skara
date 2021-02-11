@@ -49,6 +49,7 @@
             "src/java.desktop/windows/native/(common/|libawt/java2d/|libfontmanager)",
             "src/java.desktop/windows/native/libawt/windows/(gdi|mtsafe|wbuffer|wprint|win32|awt.h|colordata|img_util_md|mlib_types|awt_(custompalette|drawingsurface|mlib|multimon|palette|print|rectangle|win32))",
             "src/java.desktop/windows/native/libawt/windows/(?!awt_inputmethod)",
+            "src/java.desktop/macosx/native/libawt_lwawt/(font|java2d)/",
             "src/jdk.accessibility/share/classes/com/sun/java/accessibility/",
             "src/jdk.accessibility/windows/classes/com/sun/java/accessibility/internal/AccessBridge.java",
             "test/jdk/demo/jfc/J2Ddemo",
