@@ -157,23 +157,23 @@ public class BackportsTests {
 
             issue.setProperty("fixVersions", JSON.array().add("11-pool"));
             backport.setProperty("fixVersions", JSON.array().add("12-pool"));
-            assertEquals(issue, Backports.findIssue(issue, JdkVersion.parse("11.1")).orElseThrow());
-            assertEquals(backport, Backports.findIssue(issue, JdkVersion.parse("12.2")).orElseThrow());
-            assertEquals(Optional.empty(), Backports.findIssue(issue, JdkVersion.parse("13.3")));
+            assertEquals(issue, Backports.findIssue(issue, JdkVersion.parse("11.1").orElseThrow()).orElseThrow());
+            assertEquals(backport, Backports.findIssue(issue, JdkVersion.parse("12.2").orElseThrow()).orElseThrow());
+            assertEquals(Optional.empty(), Backports.findIssue(issue, JdkVersion.parse("13.3").orElseThrow()));
 
             issue.setProperty("fixVersions", JSON.array().add("tbd"));
-            assertEquals(issue, Backports.findIssue(issue, JdkVersion.parse("11.1")).orElseThrow());
+            assertEquals(issue, Backports.findIssue(issue, JdkVersion.parse("11.1").orElseThrow()).orElseThrow());
 
             issue.setProperty("fixVersions", JSON.array().add("12.2"));
             backport.setProperty("fixVersions", JSON.array().add("tbd"));
-            assertEquals(issue, Backports.findIssue(issue, JdkVersion.parse("12.2")).orElseThrow());
-            assertEquals(backport, Backports.findIssue(issue, JdkVersion.parse("11.1")).orElseThrow());
+            assertEquals(issue, Backports.findIssue(issue, JdkVersion.parse("12.2").orElseThrow()).orElseThrow());
+            assertEquals(backport, Backports.findIssue(issue, JdkVersion.parse("11.1").orElseThrow()).orElseThrow());
 
             issue.setProperty("fixVersions", JSON.array().add("12.2"));
             backport.setProperty("fixVersions", JSON.array().add("11.1"));
-            assertEquals(issue, Backports.findIssue(issue, JdkVersion.parse("12.2")).orElseThrow());
-            assertEquals(backport, Backports.findIssue(issue, JdkVersion.parse("11.1")).orElseThrow());
-            assertEquals(Optional.empty(), Backports.findIssue(issue, JdkVersion.parse("13.3")));
+            assertEquals(issue, Backports.findIssue(issue, JdkVersion.parse("12.2").orElseThrow()).orElseThrow());
+            assertEquals(backport, Backports.findIssue(issue, JdkVersion.parse("11.1").orElseThrow()).orElseThrow());
+            assertEquals(Optional.empty(), Backports.findIssue(issue, JdkVersion.parse("13.3").orElseThrow()));
         }
     }
 
@@ -270,7 +270,7 @@ public class BackportsTests {
             backports.assertLabeled();
 
             backports.addBackports("openjfx14", "openjfx16");
-            backports.assertLabeled("openjfx15", "openjfx16");
+            backports.assertLabeled();
         }
     }
 
@@ -461,6 +461,17 @@ public class BackportsTests {
             backports.assertLabeled();
 
             backports.addBackports("15-pool#open", "11-pool#open", "8-pool#open", "7-pool#open");
+            backports.assertLabeled();
+        }
+    }
+
+    @Test
+    void labelTest8242283(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "15");
+            backports.assertLabeled();
+
+            backports.addBackports("14.0.2", "14u-cpu", "11.0.9-oracle", "11.0.9");
             backports.assertLabeled();
         }
     }

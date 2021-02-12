@@ -33,7 +33,7 @@ public class JdkVersion implements Comparable<JdkVersion> {
     private final String build;
 
     private final static Pattern jdkVersionPattern = Pattern.compile("(5\\.0|[1-9][0-9]?)(u([0-9]{1,3}))?$");
-    private final static Pattern hsxVersionPattern = Pattern.compile("(hs[1-9][0-9]{1,2})(\\\\.([0-9]{1,3}))?$");
+    private final static Pattern hsxVersionPattern = Pattern.compile("(hs[1-9][0-9]{1,2})(\\.([0-9]{1,3}))?$");
     private final static Pattern embVersionPattern = Pattern.compile("(emb-[8-9])(u([0-9]{1,3}))?$");
     private final static Pattern ojVersionPattern = Pattern.compile("(openjdk[1-9][0-9]?)(u([0-9]{1,3}))?$");
 
@@ -64,15 +64,14 @@ public class JdkVersion implements Comparable<JdkVersion> {
             }
 
             finalComponents.addAll(Arrays.asList(raw.split("\\.")));
+
+            // All components except the optional one must be numeric
+            finalComponents.forEach(Integer::parseUnsignedInt);
+
             if (optional != null) {
                 finalComponents.add(null);
                 finalComponents.add(optional);
             }
-        }
-
-        // Never leave a trailing 'u' in the major version
-        if (finalComponents.get(0).endsWith("u")) {
-            finalComponents.set(0, finalComponents.get(0).substring(0, finalComponents.get(0).length() - 1));
         }
 
         return finalComponents;
@@ -92,12 +91,20 @@ public class JdkVersion implements Comparable<JdkVersion> {
                            .findAny().orElse(null);
     }
 
-    public static JdkVersion parse(String raw) {
-        return new JdkVersion(raw, null);
+    public static Optional<JdkVersion> parse(String raw) {
+        try {
+            return Optional.of(new JdkVersion(raw, null));
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
     }
 
-    public static JdkVersion parse(String raw, String build) {
-        return new JdkVersion(raw, build);
+    public static Optional<JdkVersion> parse(String raw, String build) {
+        try {
+            return Optional.of(new JdkVersion(raw, build));
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
     }
 
     public List<String> components() {
