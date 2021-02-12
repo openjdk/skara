@@ -59,7 +59,7 @@ class BotSlackHandlerTests {
     @Test
     void throttled() throws IOException, InterruptedException {
         try (var receiver = new RestReceiver()) {
-            final var maxDuration = Duration.ofMillis(100);
+            final var maxDuration = Duration.ofMillis(1500);
             var handler = new BotSlackHandler(receiver.getEndpoint(), "test", maxDuration, new HashMap<>());
 
             // Post until we hit throttling
