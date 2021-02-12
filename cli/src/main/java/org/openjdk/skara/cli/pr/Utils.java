@@ -23,11 +23,9 @@
 package org.openjdk.skara.cli.pr;
 
 import org.openjdk.skara.args.*;
-import org.openjdk.skara.cli.Remote;
+import org.openjdk.skara.cli.ForgeUtils;
 import org.openjdk.skara.cli.Logging;
-import org.openjdk.skara.cli.GitCredentials;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.host.*;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.issuetracker.IssueTracker;
 import org.openjdk.skara.issuetracker.Issue;
@@ -38,7 +36,6 @@ import org.openjdk.skara.version.Version;
 
 import java.io.IOException;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -57,64 +54,12 @@ class Utils {
         System.exit(1);
     }
 
-    static String gitConfig(String key) {
-        try {
-            var pb = new ProcessBuilder("git", "config", key);
-            pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
-            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
-            var p = pb.start();
-
-            var output = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            var res = p.waitFor();
-            if (res != 0) {
-                return null;
-            }
-
-            return output == null ? null : output.replace("\n", "");
-        } catch (InterruptedException e) {
-            return null;
-        } catch (IOException e) {
-            return null;
-        }
-    }
-
-    static String getOption(String name, Arguments arguments) {
-        return getOption(name, null, arguments);
-    }
-
     static String getOption(String name, String subsection, Arguments arguments) {
-        if (arguments.contains(name)) {
-            return arguments.get(name).asString();
-        }
-
-        if (subsection != null && !subsection.isEmpty()) {
-            var subsectionSpecific = gitConfig("pr." + subsection + "." + name);
-            if (subsectionSpecific != null) {
-                return subsectionSpecific;
-            }
-        }
-
-        return gitConfig("fork." + name);
-    }
-
-    static boolean getSwitch(String name, Arguments arguments) {
-        return getSwitch(name, null, arguments);
+        return ForgeUtils.getOption(name, "pr", subsection, arguments);
     }
 
     static boolean getSwitch(String name, String subsection, Arguments arguments) {
-        if (arguments.contains(name)) {
-            return true;
-        }
-
-        if (subsection != null && !subsection.isEmpty()) {
-            var subsectionSpecific = gitConfig("pr." + subsection + "." + name);
-            if (subsectionSpecific != null) {
-                return subsectionSpecific.toLowerCase().equals("true");
-            }
-        }
-
-        var sectionSpecific = gitConfig("fork." + name);
-        return sectionSpecific != null && sectionSpecific.toLowerCase().equals("true");
+        return ForgeUtils.getSwitch(name, "pr", subsection, arguments);
     }
 
     static String rightPad(String s, int length) {
@@ -330,37 +275,8 @@ class Utils {
         }
     }
 
-    static String projectName(URI uri) {
-        var name = uri.getPath().toString().substring(1);
-        if (name.endsWith(".git")) {
-            name = name.substring(0, name.length() - ".git".length());
-        }
-        return name;
-    }
-
-    static HostedRepository getHostedRepositoryFor(URI uri, ReadOnlyRepository repo, Forge host) throws IOException {
-        HostedRepository targetRepo = null;
-
-        try {
-            var upstream = Remote.toWebURI(repo.pullPath("upstream"));
-            targetRepo = host.repository(projectName(upstream)).orElse(null);
-        } catch (IOException e) {
-            // do nothing
-        }
-
-        if (targetRepo == null) {
-            var remoteRepo = host.repository(projectName(uri)).orElseThrow(() ->
-                    new IOException("Could not find repository at: " + uri.toString())
-            );
-            var parentRepo = remoteRepo.parent();
-            targetRepo = parentRepo.isPresent() ? parentRepo.get() : remoteRepo;
-        }
-
-        return targetRepo;
-    }
-
     static PullRequest getPullRequest(URI uri, ReadOnlyRepository repo, Forge host, String prId) throws IOException {
-        var pr = getHostedRepositoryFor(uri, repo, host).pullRequest(prId);
+        var pr = ForgeUtils.getHostedRepositoryFor(uri, repo, host).pullRequest(prId);
         if (pr == null) {
             exit("error: could not fetch PR information");
         }
@@ -444,43 +360,15 @@ class Utils {
     }
 
     static String getRemote(ReadOnlyRepository repo, Arguments arguments) throws IOException {
-        var remote = getOption("remote", arguments);
-        return remote == null ? "origin" : remote;
+        return ForgeUtils.getRemote(repo, "pr", arguments);
     }
 
     static URI getURI(ReadOnlyRepository repo, Arguments arguments) throws IOException {
-        var remotePullPath = repo.pullPath(getRemote(repo, arguments));
-        return Remote.toWebURI(remotePullPath);
+        return ForgeUtils.getURI(repo, "pr", arguments);
     }
 
     static Forge getForge(URI uri, ReadOnlyRepository repo, Arguments arguments) throws IOException {
-        var username = getOption("username", arguments);
-        var token = System.getenv("GIT_TOKEN");
-        var shouldUseToken = !getSwitch("no-token", arguments);
-        var credentials = !shouldUseToken ?
-            null :
-            GitCredentials.fill(uri.getHost(), uri.getPath(), username, token, uri.getScheme());
-        var forgeURI = URI.create(uri.getScheme() + "://" + uri.getHost());
-        var forge = credentials == null ?
-            Forge.from(forgeURI) :
-            Forge.from(forgeURI, new Credential(credentials.username(), credentials.password()));
-        if (forge.isEmpty()) {
-            if (!shouldUseToken) {
-                if (arguments.contains("verbose")) {
-                    System.err.println("");
-                }
-                System.err.println("warning: using git-pr with --no-token may result in rate limiting from " + forgeURI);
-                if (!arguments.contains("verbose")) {
-                    System.err.println("         Re-run git-pr with --verbose to see if you are being rate limited");
-                    System.err.println("");
-                }
-            }
-            exit("error: failed to connect to host: " + forgeURI);
-        }
-        if (credentials != null) {
-            GitCredentials.approve(credentials);
-        }
-        return forge.get();
+        return ForgeUtils.getForge(uri, repo, "pr", arguments);
     }
 
     public static Optional<Comment> awaitReplyTo(PullRequest pr, Comment command) throws InterruptedException {

@@ -23,6 +23,7 @@
 package org.openjdk.skara.cli.pr;
 
 import org.openjdk.skara.args.*;
+import org.openjdk.skara.cli.ForgeUtils;
 import org.openjdk.skara.host.HostUser;
 
 import static org.openjdk.skara.cli.pr.Utils.*;
@@ -115,7 +116,7 @@ public class GitPrList {
         var repo = getRepo();
         var uri = getURI(repo, arguments);
         var host = getForge(uri, repo, arguments);
-        var remoteRepo = getHostedRepositoryFor(uri, repo, host);
+        var remoteRepo = ForgeUtils.getHostedRepositoryFor(uri, repo, host);
 
         var prs = remoteRepo.pullRequests();
         var ids = new ArrayList<String>();
