@@ -79,6 +79,23 @@ configure(subprojects.findAll() { it.name != 'bots' }) {
         reports.html.enabled = false
     }
 
+    tasks.withType(Test).configureEach {
+        maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+    }
+
+    tasks.withType(Test).configureEach {
+        forkEvery = 100
+    }
+
+    tasks.withType(Test).configureEach {
+        reports.html.enabled = false
+        reports.junitXml.enabled = false
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.fork = true
+    }
+
     publishing {
         repositories {
             maven {
