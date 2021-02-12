@@ -36,6 +36,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class GitInfo {
@@ -67,22 +68,32 @@ public class GitInfo {
         return conf.general().jbs().toUpperCase();
     }
 
-    private static URI getReviewUrl(ReadOnlyRepository repo, Hash hash, CommitMessage message) throws IOException {
-        var project = jbsProject(repo, hash);
-        if (message.issues().size() == 1) {
-            var issueId = message.issues().get(0).shortId();
-            var issueTracker = IssueTracker.from("jira", JBS);
-            var issue = issueTracker.project(project).issue(issueId);
-            if (issue.isPresent()) {
-                for (var link : issue.get().links()) {
-                    if (link.title().isPresent() && link.uri().isPresent()) {
-                        if (link.title().get().equals("Review")) {
-                            return link.uri().get();
-                        }
-                    }
-                }
-            }
+    private static URI getReviewUrl(ReadOnlyRepository repo, Arguments arguments, Hash hash, CommitMessage message) throws IOException {
+        var repoUrl = ForgeUtils.getURI(repo, "info", arguments);
+        var forge = ForgeUtils.getForge(repoUrl, repo, "info", arguments);
+        var remoteRepo = ForgeUtils.getHostedRepositoryFor(repoUrl, repo, forge);
+
+        var comments = remoteRepo.commitComments(hash);
+        var reviewComment = comments.stream().filter(c -> c.author().username().equals("openjdk-notifier[bot]")
+            && c.body().startsWith("<!-- COMMIT COMMENT NOTIFICATION -->")).findFirst();
+
+        if (reviewComment.isEmpty()) {
+            return null;
         }
+
+        /** The review comment looks like this:
+         * <!-- COMMIT COMMENT NOTIFICATION -->
+         * ### Review
+         *
+         * - [openjdk/skara/123](https://git.openjdk.java.net/skara/pull/123)
+         */
+
+        var pattern = Pattern.compile("### Review[^]]*]\\((.*)\\)");
+        var matcher = pattern.matcher(reviewComment.get().body());
+        if (matcher.find()) {
+            return URI.create(matcher.group(1));
+        }
+
         return null;
     }
 
@@ -257,9 +268,9 @@ public class GitInfo {
         }
 
         if (showReview) {
-            var decoration = useDecoration? "Review: " : "";
-            var reviewUrl = getReviewUrl(repo, hash, message);
+            var reviewUrl = getReviewUrl(repo, arguments, hash, message);
             if (reviewUrl != null) {
+                var decoration = useDecoration? "Review: " : "";
                 System.out.println(decoration + reviewUrl);
             }
         }
