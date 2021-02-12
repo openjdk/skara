@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -65,6 +65,25 @@ public class GitInfo {
     private static String jbsProject(ReadOnlyRepository repo, Hash hash) throws IOException {
         var conf = JCheckConfiguration.from(repo, hash).orElseThrow();
         return conf.general().jbs().toUpperCase();
+    }
+
+    private static URI getReviewUrl(ReadOnlyRepository repo, Hash hash, CommitMessage message) throws IOException {
+        var project = jbsProject(repo, hash);
+        if (message.issues().size() == 1) {
+            var issueId = message.issues().get(0).shortId();
+            var issueTracker = IssueTracker.from("jira", JBS);
+            var issue = issueTracker.project(project).issue(issueId);
+            if (issue.isPresent()) {
+                for (var link : issue.get().links()) {
+                    if (link.title().isPresent() && link.uri().isPresent()) {
+                        if (link.title().get().equals("Review")) {
+                            return link.uri().get();
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     public static void main(String[] args) throws IOException {
@@ -239,20 +258,9 @@ public class GitInfo {
 
         if (showReview) {
             var decoration = useDecoration? "Review: " : "";
-            var project = jbsProject(repo, hash);
-            if (message.issues().size() == 1) {
-                var issueId = message.issues().get(0).shortId();
-                var issueTracker = IssueTracker.from("jira", JBS);
-                var issue = issueTracker.project(project).issue(issueId);
-                if (issue.isPresent()) {
-                    for (var link : issue.get().links()) {
-                        if (link.title().isPresent() && link.uri().isPresent()) {
-                            if (link.title().get().equals("Review")) {
-                                System.out.println(decoration + link.uri().get());
-                            }
-                        }
-                    }
-                }
+            var reviewUrl = getReviewUrl(repo, hash, message);
+            if (reviewUrl != null) {
+                System.out.println(decoration + reviewUrl);
             }
         }
         if (showIssues) {
