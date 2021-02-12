@@ -90,8 +90,6 @@ public class JdkVersionTests {
         assertEquals(Optional.empty(), JdkVersion.parse("bla"));
         assertEquals(Optional.empty(), JdkVersion.parse(""));
         assertEquals(Optional.empty(), JdkVersion.parse("12u-cpu"));
-        assertEquals(Optional.empty(), JdkVersion.parse("12u-cpu"));
-        assertEquals(Optional.empty(), JdkVersion.parse("13u-open"));
         assertEquals(Optional.empty(), JdkVersion.parse("13u-open"));
     }
 }
