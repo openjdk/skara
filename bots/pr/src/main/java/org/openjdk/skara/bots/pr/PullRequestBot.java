@@ -171,7 +171,9 @@ class PullRequestBot implements Bot {
         }
 
         for (var commitComment : commitComments) {
-            ret.add(new CommitCommandWorkItem(this, commitComment));
+            processedCommitComments.add(commitComment.id());
+            ret.add(new CommitCommandWorkItem(this, commitComment,
+                                              e -> processedCommitComments.remove(commitComment.id())));
         }
 
         return ret;
@@ -180,8 +182,6 @@ class PullRequestBot implements Bot {
     @Override
     public List<WorkItem> getPeriodicItems() {
         List<PullRequest> prs;
-        List<CommitComment> commitComments = List.of();
-
         if (lastFullUpdate == null || lastFullUpdate.isBefore(Instant.now().minus(Duration.ofMinutes(10)))) {
             lastFullUpdate = Instant.now();
             log.info("Fetching all open pull requests");
@@ -191,14 +191,10 @@ class PullRequestBot implements Bot {
             prs = remoteRepo.pullRequests(ZonedDateTime.now().minus(Duration.ofDays(1)));
         }
 
-        commitComments = remoteRepo.recentCommitComments().stream()
-                                   .filter(cc -> !processedCommitComments.contains(cc.id()))
-                                   .collect(Collectors.toList());
-        if (!commitComments.isEmpty()) {
-            processedCommitComments.addAll(commitComments.stream()
-                                                         .map(Comment::id)
-                                                         .collect(Collectors.toList()));
-        }
+        var commitComments = remoteRepo.recentCommitComments()
+                                       .stream()
+                                       .filter(cc -> !processedCommitComments.contains(cc.id()))
+                                       .collect(Collectors.toList());
 
         return getWorkItems(prs, commitComments);
     }

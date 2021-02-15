@@ -32,10 +32,12 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.*;
 import java.util.stream.*;
+import java.util.function.Consumer;
 
 public class CommitCommandWorkItem implements WorkItem {
     private final PullRequestBot bot;
     private final CommitComment commitComment;
+    private final Consumer<RuntimeException> onError;
 
     private static final String commandReplyMarker = "<!-- Jmerge command reply message (%s) -->";
     private static final Pattern commandReplyPattern = Pattern.compile("<!-- Jmerge command reply message \\((\\S+)\\) -->");
@@ -70,9 +72,10 @@ public class CommitCommandWorkItem implements WorkItem {
         }
     }
 
-    CommitCommandWorkItem(PullRequestBot bot, CommitComment commitComment) {
+    CommitCommandWorkItem(PullRequestBot bot, CommitComment commitComment, Consumer<RuntimeException> onError) {
         this.bot = bot;
         this.commitComment = commitComment;
+        this.onError = onError;
     }
 
     @Override
@@ -161,5 +164,10 @@ public class CommitCommandWorkItem implements WorkItem {
         }
 
         return List.of();
+    }
+
+    @Override
+    public void handleRuntimeException(RuntimeException e) {
+        onError.accept(e);
     }
 }
