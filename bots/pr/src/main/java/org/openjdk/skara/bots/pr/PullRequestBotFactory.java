@@ -58,9 +58,9 @@ public class PullRequestBotFactory implements BotFactory {
 
         var forks = new HashMap<String, HostedRepository>();
         if (specific.contains("forks")) {
-            for (var fork : specific.get("forks").asArray()) {
-                var repo = configuration.repository(fork.asString());
-                forks.put(repo.name(), repo);
+            for (var fork : specific.get("forks").fields()) {
+                var repo = configuration.repository(fork.value().asString());
+                forks.put(fork.name(), repo);
             }
         }
 
