@@ -65,7 +65,12 @@ public class GitInfo {
 
     private static String jbsProject(ReadOnlyRepository repo, Hash hash) throws IOException {
         var conf = JCheckConfiguration.from(repo, hash).orElseThrow();
-        return conf.general().jbs().toUpperCase();
+        var jbsProject = conf.general().jbs();
+        if (jbsProject != null) {
+            return jbsProject.toUpperCase();
+        } else {
+            return null;
+        }
     }
 
     private static URI getReviewUrl(ReadOnlyRepository repo, Arguments arguments, Hash hash, CommitMessage message) throws IOException {
@@ -74,8 +79,8 @@ public class GitInfo {
         var remoteRepo = ForgeUtils.getHostedRepositoryFor(repoUrl, repo, forge);
 
         var comments = remoteRepo.commitComments(hash);
-        var reviewComment = comments.stream().filter(c -> c.author().username().equals("openjdk-notifier[bot]")
-            && c.body().startsWith("<!-- COMMIT COMMENT NOTIFICATION -->")).findFirst();
+        var reviewComment = comments.stream().filter(
+                c -> c.body().startsWith("<!-- COMMIT COMMENT NOTIFICATION -->")).findFirst();
 
         if (reviewComment.isEmpty()) {
             return null;
@@ -276,19 +281,21 @@ public class GitInfo {
         }
         if (showIssues) {
             var project = jbsProject(repo, hash);
-            var uri = JBS + "/browse/" + project + "-";
-            var issues = message.issues();
-            if (issues.size() > 1) {
-                if (useDecoration) {
-                    System.out.println("Issues:");
+            if (project != null) {
+                var uri = JBS + "/browse/" + project + "-";
+                var issues = message.issues();
+                if (issues.size() > 1) {
+                    if (useDecoration) {
+                        System.out.println("Issues:");
+                    }
+                    var decoration = useDecoration ? "- " : "";
+                    for (var issue : issues) {
+                        System.out.println(decoration + uri + issue.shortId());
+                    }
+                } else if (issues.size() == 1) {
+                    var decoration = useDecoration ? "Issue: " : "";
+                    System.out.println(decoration + uri + issues.get(0).shortId());
                 }
-                var decoration = useDecoration ? "- " : "";
-                for (var issue : issues) {
-                    System.out.println(decoration + uri + issue.shortId());
-                }
-            } else if (issues.size() == 1) {
-                var decoration = useDecoration ? "Issue: " : "";
-                System.out.println(decoration + uri + issues.get(0).shortId());
             }
         }
     }
