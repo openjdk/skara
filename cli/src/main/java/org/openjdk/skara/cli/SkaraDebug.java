@@ -48,7 +48,10 @@ public class SkaraDebug {
                        .main(GitMlRules::main),
                 Command.name("issue-redecorate")
                        .helptext("reapplies the hgupdate-sync label to the given ussue")
-                       .main(IssueRedecorate::main)
+                       .main(IssueRedecorate::main),
+                Command.name("commit-comments")
+                       .helptext("Lists recent commit comments for a repository")
+                       .main(GitCommitComments::main)
         );
 
         HttpProxy.setup();
