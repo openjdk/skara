@@ -270,7 +270,7 @@ public class BackportsTests {
             backports.assertLabeled();
 
             backports.addBackports("openjfx14", "openjfx16");
-            backports.assertLabeled();
+            backports.assertLabeled("openjfx15", "openjfx16");
         }
     }
 

@@ -36,6 +36,7 @@ public class JdkVersion implements Comparable<JdkVersion> {
     private final static Pattern hsxVersionPattern = Pattern.compile("(hs[1-9][0-9]{1,2})(\\.([0-9]{1,3}))?$");
     private final static Pattern embVersionPattern = Pattern.compile("(emb-[8-9])(u([0-9]{1,3}))?$");
     private final static Pattern ojVersionPattern = Pattern.compile("(openjdk[1-9][0-9]?)(u([0-9]{1,3}))?$");
+    private final static Pattern fxVersionPattern = Pattern.compile("(openjfx[1-9][0-9]?)(u([0-9]{1,3}))?$");
 
     private final static Pattern legacyPrefixPattern = Pattern.compile("^([^\\d]*)\\d+$");
 
@@ -43,7 +44,7 @@ public class JdkVersion implements Comparable<JdkVersion> {
         var finalComponents = new ArrayList<String>();
 
         // First check for the legacy patterns
-        for (var legacyPattern : List.of(jdkVersionPattern, hsxVersionPattern, embVersionPattern, ojVersionPattern)) {
+        for (var legacyPattern : List.of(jdkVersionPattern, hsxVersionPattern, embVersionPattern, ojVersionPattern, fxVersionPattern)) {
             var legacyMatcher = legacyPattern.matcher(raw);
             if (legacyMatcher.matches()) {
                 finalComponents.add(legacyMatcher.group(1));
