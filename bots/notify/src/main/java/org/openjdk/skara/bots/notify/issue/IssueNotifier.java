@@ -225,7 +225,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                     }
 
                     if (requestedVersion != null) {
-                        var fixVersion = JdkVersion.parse(requestedVersion);
+                        var fixVersion = JdkVersion.parse(requestedVersion).orElseThrow();
                         var existing = Backports.findIssue(issue, fixVersion);
                         if (existing.isEmpty()) {
                             issue = jbsBackport.createBackport(issue, requestedVersion, username.orElse(null));
@@ -345,7 +345,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 if (requestedVersion == null) {
                     throw new RuntimeException("Failed to determine requested fixVersion for " + issue.id());
                 }
-                var fixVersion = JdkVersion.parse(requestedVersion);
+                var fixVersion = JdkVersion.parse(requestedVersion).orElseThrow();
                 var existing = Backports.findIssue(issue, fixVersion);
                 if (existing.isEmpty()) {
                     throw new RuntimeException("Cannot find a properly resolved issue for: " + issue.id());
