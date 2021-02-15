@@ -170,7 +170,7 @@ public class BackportCommand implements CommandHandler {
                                            var link = "[" + c.username() + "](https://openjdk.java.net/census#" +
                                                       c.username() + ")";
                                            return c.fullName().isPresent() ?
-                                                    c.fullName() + " (" + link + ")" :
+                                                    c.fullName().get() + " (" + link + ")" :
                                                     link;
                                        })
                                        .collect(Collectors.toList());
