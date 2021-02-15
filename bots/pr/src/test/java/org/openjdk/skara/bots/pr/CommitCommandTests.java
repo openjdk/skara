@@ -46,7 +46,6 @@ public class CommitCommandTests {
                                     .censusRepo(censusBuilder.build())
                                     .censusLink("https://census.com/{{contributor}}-profile")
                                     .seedStorage(seedFolder)
-                                    .commitCommandUsers(List.of(author.forge().currentUser()))
                                     .build();
 
             // Populate the projects repository
@@ -92,7 +91,6 @@ public class CommitCommandTests {
                                     .censusRepo(censusBuilder.build())
                                     .censusLink("https://census.com/{{contributor}}-profile")
                                     .seedStorage(seedFolder)
-                                    .commitCommandUsers(List.of(author.forge().currentUser()))
                                     .build();
 
             // Populate the projects repository

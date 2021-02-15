@@ -141,14 +141,6 @@ public class PullRequestBotFactory implements BotFactory {
                 botBuilder.censusLink(repo.value().get("censuslink").asString());
             }
 
-            if (repo.value().contains("commitcommanders")) {
-                var allowed = repo.value().get("commitcommanders").stream()
-                                  .map(JSONValue::asString)
-                                  .map(s -> HostUser.builder().id(s).build())
-                                  .collect(Collectors.toList());
-                botBuilder.commitCommandUsers(allowed);
-            }
-
             ret.add(botBuilder.build());
         }
 

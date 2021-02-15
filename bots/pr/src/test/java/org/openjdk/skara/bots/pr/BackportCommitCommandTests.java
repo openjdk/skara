@@ -47,7 +47,6 @@ public class BackportCommitCommandTests {
                                     .censusRepo(censusBuilder.build())
                                     .censusLink("https://census.com/{{contributor}}-profile")
                                     .seedStorage(seedFolder)
-                                    .commitCommandUsers(List.of(author.forge().currentUser()))
                                     .forks(Map.of(author.name(), author))
                                     .build();
 
@@ -115,7 +114,6 @@ public class BackportCommitCommandTests {
                                     .censusRepo(censusBuilder.build())
                                     .censusLink("https://census.com/{{contributor}}-profile")
                                     .seedStorage(seedFolder)
-                                    .commitCommandUsers(List.of(author.forge().currentUser()))
                                     .forks(Map.of(author.name(), author))
                                     .build();
 
@@ -157,7 +155,6 @@ public class BackportCommitCommandTests {
                                     .censusRepo(censusBuilder.build())
                                     .censusLink("https://census.com/{{contributor}}-profile")
                                     .seedStorage(seedFolder)
-                                    .commitCommandUsers(List.of(author.forge().currentUser()))
                                     .forks(Map.of(author.name(), author))
                                     .build();
 
@@ -199,7 +196,6 @@ public class BackportCommitCommandTests {
                                     .censusRepo(censusBuilder.build())
                                     .censusLink("https://census.com/{{contributor}}-profile")
                                     .seedStorage(seedFolder)
-                                    .commitCommandUsers(List.of(author.forge().currentUser()))
                                     .forks(Map.of(author.name(), author))
                                     .build();
 

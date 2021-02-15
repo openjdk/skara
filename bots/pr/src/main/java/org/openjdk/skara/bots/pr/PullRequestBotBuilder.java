@@ -51,7 +51,6 @@ public class PullRequestBotBuilder {
     private String confOverrideName = ".conf/jcheck";
     private String confOverrideRef = Branch.defaultFor(VCS.GIT).name();
     private String censusLink = null;
-    private List<HostUser> commitCommandUsers = List.of();
     private Map<String, HostedRepository> forks = Map.of();
 
     PullRequestBotBuilder() {
@@ -147,11 +146,6 @@ public class PullRequestBotBuilder {
         return this;
     }
 
-    public PullRequestBotBuilder commitCommandUsers(List<HostUser> commitCommandUsers) {
-        this.commitCommandUsers = commitCommandUsers;
-        return this;
-    }
-
     public PullRequestBotBuilder forks(Map<String, HostedRepository> forks) {
         this.forks = forks;
         return this;
@@ -162,6 +156,6 @@ public class PullRequestBotBuilder {
                                   blockingCheckLabels, readyLabels, twoReviewersLabels, twentyFourHoursLabels,
                                   readyComments, issueProject, ignoreStaleReviews,
                                   allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,
-                                  confOverrideRef, censusLink, commitCommandUsers, forks);
+                                  confOverrideRef, censusLink, forks);
     }
 }

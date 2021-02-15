@@ -57,7 +57,6 @@ class PullRequestBot implements Bot {
     private final String confOverrideName;
     private final String confOverrideRef;
     private final String censusLink;
-    private final Set<String> commitCommandUsers;
     private final Set<String> autoLabelled;
     private final ConcurrentHashMap<String, Instant> scheduledRechecks;
     private final PullRequestUpdateCache updateCache;
@@ -74,8 +73,7 @@ class PullRequestBot implements Bot {
                    Map<String, Pattern> readyComments, IssueProject issueProject,
                    boolean ignoreStaleReviews, Pattern allowedTargetBranches,
                    Path seedStorage, HostedRepository confOverrideRepo, String confOverrideName,
-                   String confOverrideRef, String censusLink, List<HostUser> commitCommandUsers,
-                   Map<String, HostedRepository> forks) {
+                   String confOverrideRef, String censusLink, Map<String, HostedRepository> forks) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -95,9 +93,6 @@ class PullRequestBot implements Bot {
         this.confOverrideRef = confOverrideRef;
         this.censusLink = censusLink;
 
-        this.commitCommandUsers = commitCommandUsers.stream()
-                                                    .map(HostUser::id)
-                                                    .collect(Collectors.toSet());
         this.forks = forks;
 
         autoLabelled = new HashSet<>();
@@ -196,16 +191,13 @@ class PullRequestBot implements Bot {
             prs = remoteRepo.pullRequests(ZonedDateTime.now().minus(Duration.ofDays(1)));
         }
 
-        if (!commitCommandUsers.isEmpty()) {
-            commitComments = remoteRepo.recentCommitComments().stream()
-                                       .filter(cc -> !processedCommitComments.contains(cc.id()))
-                                       .filter(cc -> commitCommandUsers.contains(cc.author().id()))
-                                       .collect(Collectors.toList());
-            if (!commitComments.isEmpty()) {
-                processedCommitComments.addAll(commitComments.stream()
-                                                             .map(Comment::id)
-                                                             .collect(Collectors.toList()));
-            }
+        commitComments = remoteRepo.recentCommitComments().stream()
+                                   .filter(cc -> !processedCommitComments.contains(cc.id()))
+                                   .collect(Collectors.toList());
+        if (!commitComments.isEmpty()) {
+            processedCommitComments.addAll(commitComments.stream()
+                                                         .map(Comment::id)
+                                                         .collect(Collectors.toList()));
         }
 
         return getWorkItems(prs, commitComments);
