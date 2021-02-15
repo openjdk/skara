@@ -64,7 +64,7 @@ class PullRequestBot implements Bot {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     private Instant lastFullUpdate;
-    private final Set<String> processedCommitComments;
+    private final ConcurrentHashMap<String, Boolean> processedCommitComments;
 
     PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef,
                    LabelConfiguration labelConfiguration, Map<String, String> externalCommands,
@@ -101,7 +101,7 @@ class PullRequestBot implements Bot {
 
         // Only check recently updated when starting up to avoid congestion
         lastFullUpdate = Instant.now();
-        processedCommitComments = new HashSet<>();
+        processedCommitComments = new ConcurrentHashMap<>();
     }
 
     static PullRequestBotBuilder newBuilder() {
@@ -171,7 +171,7 @@ class PullRequestBot implements Bot {
         }
 
         for (var commitComment : commitComments) {
-            processedCommitComments.add(commitComment.id());
+            processedCommitComments.put(commitComment.id(), true);
             ret.add(new CommitCommandWorkItem(this, commitComment,
                                               e -> processedCommitComments.remove(commitComment.id())));
         }
