@@ -30,8 +30,8 @@ group = 'org.openjdk.skara.gradle'
 gradlePlugin {
     plugins {
         simplePlugin {
-            id = 'proxy'
-            implementationClass = 'org.openjdk.skara.gradle.proxy.ProxyPlugin'
+            id = 'skara-images'
+            implementationClass = 'org.openjdk.skara.gradle.images.ImagesPlugin'
         }
     }
 }

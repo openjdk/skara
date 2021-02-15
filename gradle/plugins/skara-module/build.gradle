@@ -30,8 +30,8 @@ group = 'org.openjdk.skara.gradle'
 gradlePlugin {
     plugins {
         simplePlugin {
-            id = 'version'
-            implementationClass = 'org.openjdk.skara.gradle.version.VersionPlugin'
+            id = 'skara-module'
+            implementationClass = 'org.openjdk.skara.gradle.module.ModulePlugin'
         }
     }
 }

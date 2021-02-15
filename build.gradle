@@ -23,25 +23,25 @@
 
 buildscript {
     dependencies {
-        classpath 'org.openjdk.skara.gradle:reproduce'
-        classpath 'org.openjdk.skara.gradle:proxy'
-        classpath 'org.openjdk.skara.gradle:version'
-        classpath 'org.openjdk.skara.gradle:images'
-        classpath 'org.openjdk.skara.gradle:module'
+        classpath 'org.openjdk.skara.gradle:skara-reproduce'
+        classpath 'org.openjdk.skara.gradle:skara-proxy'
+        classpath 'org.openjdk.skara.gradle:skara-version'
+        classpath 'org.openjdk.skara.gradle:skara-images'
+        classpath 'org.openjdk.skara.gradle:skara-module'
     }
 }
 
 plugins {
-    id 'proxy'
-    id 'version'
-    id 'reproduce'
+    id 'skara-proxy'
+    id 'skara-version'
+    id 'skara-reproduce'
 }
 
 configure(subprojects.findAll() { it.name != 'bots' }) {
     apply plugin: 'java-library'
     apply plugin: 'maven-publish'
-    apply plugin: 'module'
-    apply plugin: 'version'
+    apply plugin: 'skara-module'
+    apply plugin: 'skara-version'
 
     group = 'org.openjdk.skara'
 
