@@ -30,7 +30,7 @@ group = 'org.openjdk.skara.gradle'
 gradlePlugin {
     plugins {
         simplePlugin {
-            id = 'images'
+            id = 'skara-images'
             implementationClass = 'org.openjdk.skara.gradle.images.ImagesPlugin'
         }
     }

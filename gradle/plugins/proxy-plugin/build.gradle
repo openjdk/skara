@@ -30,7 +30,7 @@ group = 'org.openjdk.skara.gradle'
 gradlePlugin {
     plugins {
         simplePlugin {
-            id = 'proxy'
+            id = 'skara-proxy'
             implementationClass = 'org.openjdk.skara.gradle.proxy.ProxyPlugin'
         }
     }

@@ -22,7 +22,7 @@
  */
 
 plugins {
-    id 'images'
+    id 'skara-images'
 }
 
 module {
