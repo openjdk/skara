@@ -366,10 +366,10 @@ public class GitLabRepository implements HostedRepository {
 
     @Override
     public List<CommitComment> recentCommitComments() {
-        var twoDaysAgo = ZonedDateTime.now().minusDays(2);
+        var fourDaysAgo = ZonedDateTime.now().minusDays(4);
         var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         return request.get("events")
-                      .param("after", twoDaysAgo.format(formatter))
+                      .param("after", fourDaysAgo.format(formatter))
                       .execute()
                       .stream()
                       .filter(o -> o.contains("note") &&
