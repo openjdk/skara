@@ -78,28 +78,7 @@ public class GitInfo {
         var forge = ForgeUtils.getForge(repoUrl, repo, "info", arguments);
         var remoteRepo = ForgeUtils.getHostedRepositoryFor(repoUrl, repo, forge);
 
-        var comments = remoteRepo.commitComments(hash);
-        var reviewComment = comments.stream().filter(
-                c -> c.body().startsWith("<!-- COMMIT COMMENT NOTIFICATION -->")).findFirst();
-
-        if (reviewComment.isEmpty()) {
-            return null;
-        }
-
-        /** The review comment looks like this:
-         * <!-- COMMIT COMMENT NOTIFICATION -->
-         * ### Review
-         *
-         * - [openjdk/skara/123](https://git.openjdk.java.net/skara/pull/123)
-         */
-
-        var pattern = Pattern.compile("### Review[^]]*]\\((.*)\\)");
-        var matcher = pattern.matcher(reviewComment.get().body());
-        if (matcher.find()) {
-            return URI.create(matcher.group(1));
-        }
-
-        return null;
+        return remoteRepo.reviewUrl(hash);
     }
 
     public static void main(String[] args) throws IOException {
