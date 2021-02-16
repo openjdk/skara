@@ -111,7 +111,7 @@ class ForgeTests {
             gitHostedRepo.addCommitComment(hash, """
                     <!-- COMMIT COMMENT NOTIFICATION -->
                     ### Review
-                    
+
                      - [openjdk/skara/123](https://git.openjdk.java.net/skara/pull/123)
                     """);
 
