@@ -23,9 +23,9 @@
 package org.openjdk.skara.census;
 
 import java.util.*;
+
+import org.openjdk.skara.xml.XML;
 import org.w3c.dom.*;
-import org.xml.sax.*;
-import javax.xml.parsers.*;
 
 class Parser {
     public static List<Member> members(List<Element> elements, Map<String, Contributor> contributors) {

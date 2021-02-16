@@ -24,10 +24,10 @@
 package org.openjdk.skara.bots.censussync;
 
 import org.openjdk.skara.bot.*;
-import org.openjdk.skara.census.Census;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.network.RestRequest;
 import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.xml.XML;
 import org.w3c.dom.Element;
 
 import java.io.*;
@@ -35,7 +35,6 @@ import java.net.URI;
 import java.net.http.*;
 import java.nio.file.*;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.logging.Logger;
 

@@ -20,22 +20,32 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.census;
+package org.openjdk.skara.xml;
 
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.io.IOException;
-import java.io.StringReader;
 import java.util.*;
 import org.w3c.dom.*;
 import org.xml.sax.*;
 import javax.xml.parsers.*;
 
-class XML {
-    static Document parse(Path p) throws IOException {
+public class XML {
+    public static Document parse(Path p) throws IOException {
         return parse(new InputSource(Files.newInputStream(p)));
     }
 
-    static Document parse(List<String> lines) throws IOException {
+    public static Document parse(String p) throws IOException {
+        try {
+            var factory = DocumentBuilderFactory.newInstance();
+            var builder = factory.newDocumentBuilder();
+            return builder.parse(new InputSource(new ByteArrayInputStream(p.getBytes(StandardCharsets.UTF_8))));
+        } catch (ParserConfigurationException | SAXException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Document parse(List<String> lines) throws IOException {
         return parse(new InputSource(new StringReader(String.join("\n", lines))));
     }
 
@@ -44,14 +54,12 @@ class XML {
             var factory = DocumentBuilderFactory.newInstance();
             var builder = factory.newDocumentBuilder();
             return builder.parse(source);
-        } catch (ParserConfigurationException e) {
-            throw new RuntimeException(e);
-        } catch (SAXException e) {
+        } catch (ParserConfigurationException | SAXException e) {
             throw new RuntimeException(e);
         }
     }
 
-    static List<Element> children(Element element, String name) {
+    public static List<Element> children(Element element, String name) {
         var result = new ArrayList<Element>();
 
         var nodes = element.getChildNodes();
@@ -68,7 +76,7 @@ class XML {
         return result;
     }
 
-    static List<Element> children(Document document, String name) {
+    public static List<Element> children(Document document, String name) {
         var result = new ArrayList<Element>();
 
         var nodes = document.getElementsByTagName(name);
@@ -90,21 +98,21 @@ class XML {
         return elements.isEmpty() ? null : elements.get(0);
     }
 
-    static Element child(Element element, String name) {
+    public static Element child(Element element, String name) {
         var elements = children(element, name);
         return single(elements);
     }
 
-    static Element child(Document document, String name) {
+    public static Element child(Document document, String name) {
         var elements = children(document, name);
         return single(elements);
     }
 
-    static String attribute(Element element, String name) {
+    public static String attribute(Element element, String name) {
         return element.getAttribute(name);
     }
 
-    static boolean hasAttribute(Element element, String name) {
+    public static boolean hasAttribute(Element element, String name) {
         return element.hasAttribute(name);
     }
 }

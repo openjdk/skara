@@ -52,6 +52,7 @@ include 'forge'
 include 'issuetracker'
 include 'version'
 include 'jbs'
+include 'xml'
 
 include 'bots:bridgekeeper'
 include 'bots:censussync'

@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.census;
 
+import org.openjdk.skara.xml.XML;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
