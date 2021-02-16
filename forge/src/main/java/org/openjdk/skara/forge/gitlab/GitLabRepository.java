@@ -37,6 +37,7 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class GitLabRepository implements HostedRepository {
     private final GitLabHost gitLabHost;
@@ -44,6 +45,10 @@ public class GitLabRepository implements HostedRepository {
     private final RestRequest request;
     private final JSONValue json;
     private final Pattern mergeRequestPattern;
+    private final ZonedDateTime instantiated;
+    private ZonedDateTime until;
+
+    private static final ConcurrentHashMap<String, ConcurrentHashMap<String, Hash>> projectsToTitleToHashes = new ConcurrentHashMap<>();
 
     public GitLabRepository(GitLabHost gitLabHost, String projectName) {
         this(gitLabHost, gitLabHost.getProjectInfo(projectName).orElseThrow(() -> new RuntimeException("Project not found: " + projectName)));
@@ -70,6 +75,10 @@ public class GitLabRepository implements HostedRepository {
         var urlPattern = URIBuilder.base(gitLabHost.getUri())
                                    .setPath("/" + projectName + "/merge_requests/").build();
         mergeRequestPattern = Pattern.compile(urlPattern.toString() + "(\\d+)");
+        instantiated = ZonedDateTime.now();
+        until = instantiated;
+
+        projectsToTitleToHashes.putIfAbsent(projectName, new ConcurrentHashMap<>());
     }
 
     @Override
@@ -331,37 +340,50 @@ public class GitLabRepository implements HostedRepository {
                                    String commentBody,
                                    ZonedDateTime commentCreatedAt,
                                    HostUser author) {
-        var result = request.get("search")
-                            .param("scope", "commits")
-                            .param("search", commitTitle)
-                            .execute()
-                            .stream()
-                            .filter(o -> o.get("title").asString().equals(commitTitle))
-                            .map(o -> new Hash(o.get("id").asString()))
-                            .collect(Collectors.toList());
-        if (result.isEmpty()) {
-            throw new IllegalArgumentException("No commit with title: " + commitTitle);
+        var commitTitlesToHashes = projectsToTitleToHashes.get(projectName);
+        if (commitTitlesToHashes.containsKey(commitTitle)) {
+            return commitTitlesToHashes.get(commitTitle);
         }
-        if (result.size() > 1) {
-            var filtered = result.stream()
-                                 .flatMap(hash -> commitComments(hash).stream()
-                                                                      .filter(c -> c.body().equals(commentBody))
-                                                                      .filter(c -> c.createdAt().equals(commentCreatedAt))
-                                                                      .filter(c -> c.author().equals(author)))
-                                 .map(c -> c.commit())
-                                 .collect(Collectors.toList());
-            if (filtered.isEmpty()) {
-                throw new IllegalStateException("No commit with title '" + commitTitle +
-                                                "' and comment '" + commentBody + "'");
+
+        // Update with most recent commits
+        request.get("repository/commits")
+               .param("since", instantiated.format(DateTimeFormatter.ISO_DATE_TIME))
+               .execute()
+               .stream()
+               .forEach(o -> {
+                   var hash = new Hash(o.get("id").asString());
+                   var title = o.get("title").asString();
+                   commitTitlesToHashes.put(title, hash);
+               });
+
+        // Update lazily 12 months at a time
+        if (until != null) {
+            var since = until.minusMonths(12);
+            for (var i = 0; i < 100; i++) {
+                var commits = request.get("repository/commits")
+                                     .param("since", since.format(DateTimeFormatter.ISO_DATE_TIME))
+                                     .param("until", until.format(DateTimeFormatter.ISO_DATE_TIME))
+                                     .execute()
+                                     .asArray();
+                until = since;
+                since = until.minusMonths(12);
+
+                if (commits.size() == 0) {
+                    until = null;
+                    break;
+                }
+                for (var commit : commits) {
+                   var hash = new Hash(commit.get("id").asString());
+                   var title = commit.get("title").asString();
+                   commitTitlesToHashes.put(title, hash);
+                }
+                if (commitTitlesToHashes.containsKey(commitTitle)) {
+                    return commitTitlesToHashes.get(commitTitle);
+                }
             }
-            if (filtered.size() > 1) {
-                var hashes = filtered.stream().map(Hash::hex).collect(Collectors.toList());
-                throw new IllegalStateException("Multiple commits with identical comment '" + commentBody + "': "
-                                                 + String.join(",", hashes));
-            }
-            return filtered.get(0);
         }
-        return result.get(0);
+
+        throw new RuntimeException("Could not find commit with title: '" + commitTitle + "' for project " + projectName);
     }
 
     @Override
