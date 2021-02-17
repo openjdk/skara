@@ -42,17 +42,17 @@ public class CensusSyncBotFactory implements BotFactory {
         var specific = configuration.specific();
         for (var sync : specific.get("sync").asArray()) {
             switch (sync.get("method").asString()) {
-                case "downgrade" -> {
+                case "unify" -> {
                     var from = configuration.repository(sync.get("from").asString());
                     var to = configuration.repository(sync.get("to").asString());
                     var version = sync.get("version").asInt();
-                    bots.add(new CensusSyncDowngradeBot(from, to, version));
+                    bots.add(new CensusSyncUnifyBot(from, to, version));
                 }
-                case "upgrade" -> {
+                case "split" -> {
                     var from = URI.create(sync.get("from").asString());
                     var to = configuration.repository(sync.get("to").asString());
                     var version = sync.get("version").asInt();
-                    bots.add(new CensusSyncUpgradeBot(from, to, version));
+                    bots.add(new CensusSyncSplitBot(from, to, version));
                 }
             }
         }

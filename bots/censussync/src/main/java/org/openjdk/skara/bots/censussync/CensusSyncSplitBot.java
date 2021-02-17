@@ -32,13 +32,12 @@ import org.w3c.dom.Element;
 
 import java.io.*;
 import java.net.URI;
-import java.net.http.*;
 import java.nio.file.*;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.logging.Logger;
 
-public class CensusSyncUpgradeBot implements Bot, WorkItem {
+public class CensusSyncSplitBot implements Bot, WorkItem {
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final URI from;
     private final HostedRepository to;
@@ -47,7 +46,7 @@ public class CensusSyncUpgradeBot implements Bot, WorkItem {
 
     private String lastCensus = "";
 
-    CensusSyncUpgradeBot(URI from, HostedRepository to, int version) {
+    CensusSyncSplitBot(URI from, HostedRepository to, int version) {
         this.from = from;
         this.to = to;
         this.version = version;
@@ -57,34 +56,21 @@ public class CensusSyncUpgradeBot implements Bot, WorkItem {
 
     @Override
     public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof CensusSyncUpgradeBot)) {
+        if (!(other instanceof CensusSyncSplitBot)) {
             return true;
         }
-        var o = (CensusSyncUpgradeBot) other;
+        var o = (CensusSyncSplitBot) other;
         return !o.to.equals(to);
     }
 
     @Override
     public String toString() {
-        return "CensusSyncUpgradeBot(" + from + "->" + to.name() + "@" + version + ")";
+        return "CensusSyncSplitBot(" + from + "->" + to.name() + "@" + version + ")";
     }
 
     @Override
     public List<WorkItem> getPeriodicItems() {
         return List.of(this);
-    }
-
-    private static Path download(Path root, URI uri) throws IOException, InterruptedException {
-        var tmpFile = Files.createTempFile(root, "census", ".xml");
-        var client = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                                 .uri(uri)
-                                 .build();
-        var response = client.send(request, HttpResponse.BodyHandlers.ofFile(tmpFile));
-        if (response.statusCode() != 200) {
-            throw new RuntimeException("Failed to download census file: " + response.statusCode());
-        }
-        return tmpFile;
     }
 
     private static PrintWriter newPrintWriter(Path p) throws IOException {

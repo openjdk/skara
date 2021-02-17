@@ -27,7 +27,7 @@ module {
 
 publishing {
     publications {
-        webrev(MavenPublication) {
+        xml(MavenPublication) {
             from components.java
         }
     }

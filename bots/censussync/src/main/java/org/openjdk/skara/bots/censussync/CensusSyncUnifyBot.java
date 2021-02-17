@@ -35,14 +35,14 @@ import java.util.logging.Logger;
 import java.time.*;
 import java.time.format.*;
 
-public class CensusSyncDowngradeBot implements Bot, WorkItem {
+public class CensusSyncUnifyBot implements Bot, WorkItem {
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final HostedRepository from;
     private final HostedRepository to;
     private final int version;
     private Hash last;
 
-    CensusSyncDowngradeBot(HostedRepository from, HostedRepository to, int version) {
+    CensusSyncUnifyBot(HostedRepository from, HostedRepository to, int version) {
         this.from = from;
         this.to = to;
         this.version = version;
@@ -55,16 +55,16 @@ public class CensusSyncDowngradeBot implements Bot, WorkItem {
 
     @Override
     public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof CensusSyncDowngradeBot)) {
+        if (!(other instanceof CensusSyncUnifyBot)) {
             return true;
         }
-        var o = (CensusSyncDowngradeBot) other;
+        var o = (CensusSyncUnifyBot) other;
         return !o.to.equals(to);
     }
 
     @Override
     public String toString() {
-        return "CensusSyncDowngradeBot(" + from.name() + "->" + to.name() + "@" + version + ")";
+        return "CensusSyncUnifyBot(" + from.name() + "->" + to.name() + "@" + version + ")";
     }
 
     @Override
