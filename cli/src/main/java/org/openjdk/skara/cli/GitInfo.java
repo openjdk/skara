@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,6 +36,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class GitInfo {
@@ -64,7 +65,20 @@ public class GitInfo {
 
     private static String jbsProject(ReadOnlyRepository repo, Hash hash) throws IOException {
         var conf = JCheckConfiguration.from(repo, hash).orElseThrow();
-        return conf.general().jbs().toUpperCase();
+        var jbsProject = conf.general().jbs();
+        if (jbsProject != null) {
+            return jbsProject.toUpperCase();
+        } else {
+            return null;
+        }
+    }
+
+    private static URI getReviewUrl(ReadOnlyRepository repo, Arguments arguments, Hash hash, CommitMessage message) throws IOException {
+        var repoUrl = ForgeUtils.getURI(repo, "info", arguments);
+        var forge = ForgeUtils.getForge(repoUrl, repo, "info", arguments);
+        var remoteRepo = ForgeUtils.getHostedRepositoryFor(repoUrl, repo, forge);
+
+        return remoteRepo.reviewUrl(hash);
     }
 
     public static void main(String[] args) throws IOException {
@@ -238,38 +252,29 @@ public class GitInfo {
         }
 
         if (showReview) {
-            var decoration = useDecoration? "Review: " : "";
-            var project = jbsProject(repo, hash);
-            if (message.issues().size() == 1) {
-                var issueId = message.issues().get(0).shortId();
-                var issueTracker = IssueTracker.from("jira", JBS);
-                var issue = issueTracker.project(project).issue(issueId);
-                if (issue.isPresent()) {
-                    for (var link : issue.get().links()) {
-                        if (link.title().isPresent() && link.uri().isPresent()) {
-                            if (link.title().get().equals("Review")) {
-                                System.out.println(decoration + link.uri().get());
-                            }
-                        }
-                    }
-                }
+            var reviewUrl = getReviewUrl(repo, arguments, hash, message);
+            if (reviewUrl != null) {
+                var decoration = useDecoration? "Review: " : "";
+                System.out.println(decoration + reviewUrl);
             }
         }
         if (showIssues) {
             var project = jbsProject(repo, hash);
-            var uri = JBS + "/browse/" + project + "-";
-            var issues = message.issues();
-            if (issues.size() > 1) {
-                if (useDecoration) {
-                    System.out.println("Issues:");
+            if (project != null) {
+                var uri = JBS + "/browse/" + project + "-";
+                var issues = message.issues();
+                if (issues.size() > 1) {
+                    if (useDecoration) {
+                        System.out.println("Issues:");
+                    }
+                    var decoration = useDecoration ? "- " : "";
+                    for (var issue : issues) {
+                        System.out.println(decoration + uri + issue.shortId());
+                    }
+                } else if (issues.size() == 1) {
+                    var decoration = useDecoration ? "Issue: " : "";
+                    System.out.println(decoration + uri + issues.get(0).shortId());
                 }
-                var decoration = useDecoration ? "- " : "";
-                for (var issue : issues) {
-                    System.out.println(decoration + uri + issue.shortId());
-                }
-            } else if (issues.size() == 1) {
-                var decoration = useDecoration ? "Issue: " : "";
-                System.out.println(decoration + uri + issues.get(0).shortId());
             }
         }
     }

@@ -28,6 +28,7 @@ import org.openjdk.skara.vcs.*;
 import java.net.URI;
 import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.regex.Pattern;
 
 public interface HostedRepository {
     Forge forge();
@@ -81,5 +82,30 @@ public interface HostedRepository {
                                           String title,
                                           List<String> body) {
         return createPullRequest(target, targetRef, sourceRef, title, body, false);
+    }
+
+    default URI reviewUrl(Hash hash) {
+        var comments = this.commitComments(hash);
+        var reviewComment = comments.stream().filter(
+                c -> c.body().startsWith("<!-- COMMIT COMMENT NOTIFICATION -->")).findFirst();
+
+        if (reviewComment.isEmpty()) {
+            return null;
+        }
+
+        /** The review comment looks like this:
+         * <!-- COMMIT COMMENT NOTIFICATION -->
+         * ### Review
+         *
+         * - [openjdk/skara/123](https://git.openjdk.java.net/skara/pull/123)
+         */
+
+        var pattern = Pattern.compile("### Review[^]]*]\\((.*)\\)");
+        var matcher = pattern.matcher(reviewComment.get().body());
+        if (matcher.find()) {
+            return URI.create(matcher.group(1));
+        }
+
+        return null;
     }
 }

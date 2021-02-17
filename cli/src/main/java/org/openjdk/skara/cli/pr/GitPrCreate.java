@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.regex.Pattern;
 
 import static org.openjdk.skara.cli.pr.Utils.*;
 
@@ -145,7 +144,7 @@ public class GitPrCreate {
                 return null;
         });
 
-        var remoteRepo = host.repository(projectName(uri)).orElseThrow(() ->
+        var remoteRepo = host.repository(ForgeUtils.projectName(uri)).orElseThrow(() ->
                 new IOException("Could not find repository at " + uri.toString())
         );
         var parentRepo = remoteRepo.parent().orElseThrow(() ->
@@ -305,7 +304,7 @@ public class GitPrCreate {
         }
 
         var mailingLists = new ArrayList<String>();
-        var parentProject = projectName(parentRepo.url());
+        var parentProject = ForgeUtils.projectName(parentRepo.url());
         var isTargetingJDKRepo = parentProject.matches(".*\\/jdk[0-9]*");
         var cc = getOption("cc", "create", arguments);
         var isCCManual = cc != null && !cc.equals("auto");
