@@ -21,6 +21,7 @@
  * questions.
  */
 module org.openjdk.skara.census {
+    requires org.openjdk.skara.xml;
     requires java.xml;
     requires java.net.http;
     requires java.logging;

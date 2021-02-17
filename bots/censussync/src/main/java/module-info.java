@@ -27,7 +27,10 @@ module org.openjdk.skara.bots.censussync {
     requires org.openjdk.skara.bot;
     requires org.openjdk.skara.process;
     requires org.openjdk.skara.storage;
+    requires org.openjdk.skara.xml;
     requires java.logging;
+    requires java.xml;
+    requires java.net.http;
 
     provides org.openjdk.skara.bot.BotFactory with org.openjdk.skara.bots.censussync.CensusSyncBotFactory;
 }

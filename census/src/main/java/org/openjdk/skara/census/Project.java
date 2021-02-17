@@ -25,6 +25,8 @@ package org.openjdk.skara.census;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
+
+import org.openjdk.skara.xml.XML;
 import org.w3c.dom.*;
 
 public class Project {

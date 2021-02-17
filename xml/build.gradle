@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,27 +22,13 @@
  */
 
 module {
-    name = 'org.openjdk.skara.bots.censussync'
-    test {
-        requires 'org.junit.jupiter.api'
-        requires 'org.openjdk.skara.test'
-        opens 'org.openjdk.skara.bots.censussync' to 'org.junit.platform.commons'
-    }
+    name = 'org.openjdk.skara.xml'
 }
 
-dependencies {
-    implementation project(':bot')
-    implementation project(':ci')
-    implementation project(':vcs')
-    implementation project(':host')
-    implementation project(':forge')
-    implementation project(':issuetracker')
-    implementation project(':census')
-    implementation project(':process')
-    implementation project(':json')
-    implementation project(':network')
-    implementation project(':storage')
-    implementation project(':xml')
-
-    testImplementation project(':test')
+publishing {
+    publications {
+        xml(MavenPublication) {
+            from components.java
+        }
+    }
 }

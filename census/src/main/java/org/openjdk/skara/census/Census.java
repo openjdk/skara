@@ -26,10 +26,11 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
 import java.util.logging.Logger;
-import java.util.stream.*;
 import java.net.URI;
 import java.net.http.*;
 import java.time.*;
+
+import org.openjdk.skara.xml.XML;
 import org.w3c.dom.Document;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;

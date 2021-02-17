@@ -29,6 +29,10 @@ module {
     }
 }
 
+dependencies {
+    implementation project(':xml')
+}
+
 publishing {
     publications {
         census(MavenPublication) {

@@ -23,12 +23,9 @@
 package org.openjdk.skara.bots.censussync;
 
 import org.openjdk.skara.bot.*;
-import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.vcs.openjdk.convert.Mark;
 
-import java.util.*;
 import java.net.URI;
-import java.nio.file.Path;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class CensusSyncBotFactory implements BotFactory {
@@ -44,10 +41,20 @@ public class CensusSyncBotFactory implements BotFactory {
         var bots = new ArrayList<Bot>();
         var specific = configuration.specific();
         for (var sync : specific.get("sync").asArray()) {
-            var from = configuration.repository(sync.get("from").asString());
-            var to = configuration.repository(sync.get("to").asString());
-            var version = sync.get("version").asInt();
-            bots.add(new CensusSyncBot(from, to, version));
+            switch (sync.get("method").asString()) {
+                case "unify" -> {
+                    var from = configuration.repository(sync.get("from").asString());
+                    var to = configuration.repository(sync.get("to").asString());
+                    var version = sync.get("version").asInt();
+                    bots.add(new CensusSyncUnifyBot(from, to, version));
+                }
+                case "split" -> {
+                    var from = URI.create(sync.get("from").asString());
+                    var to = configuration.repository(sync.get("to").asString());
+                    var version = sync.get("version").asInt();
+                    bots.add(new CensusSyncSplitBot(from, to, version));
+                }
+            }
         }
         return bots;
     }

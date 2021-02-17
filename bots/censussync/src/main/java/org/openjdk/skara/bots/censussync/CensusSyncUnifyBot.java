@@ -27,28 +27,22 @@ import org.openjdk.skara.bot.*;
 import org.openjdk.skara.census.Census;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.vcs.openjdk.convert.*;
-import org.openjdk.skara.storage.StorageBuilder;
 
 import java.io.*;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.nio.file.*;
-import java.nio.charset.StandardCharsets;
-import java.net.URI;
-import java.net.URLEncoder;
 import java.util.logging.Logger;
 import java.time.*;
 import java.time.format.*;
 
-public class CensusSyncBot implements Bot, WorkItem {
+public class CensusSyncUnifyBot implements Bot, WorkItem {
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final HostedRepository from;
     private final HostedRepository to;
     private final int version;
     private Hash last;
 
-    CensusSyncBot(HostedRepository from, HostedRepository to, int version) {
+    CensusSyncUnifyBot(HostedRepository from, HostedRepository to, int version) {
         this.from = from;
         this.to = to;
         this.version = version;
@@ -61,16 +55,16 @@ public class CensusSyncBot implements Bot, WorkItem {
 
     @Override
     public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof CensusSyncBot)) {
+        if (!(other instanceof CensusSyncUnifyBot)) {
             return true;
         }
-        var o = (CensusSyncBot) other;
+        var o = (CensusSyncUnifyBot) other;
         return !o.to.equals(to);
     }
 
     @Override
     public String toString() {
-        return "CensusSyncBot(" + from.name() + "->" + to.name() + "@" + version + ")";
+        return "CensusSyncUnifyBot(" + from.name() + "->" + to.name() + "@" + version + ")";
     }
 
     @Override
