@@ -891,6 +891,49 @@ class CheckTests {
     }
 
     @Test
+    void issueTitleCutOff(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).issueProject(issues).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), Path.of("appendable.txt"),
+                    Set.of("issues"), null);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            var issue1 = issues.createIssue("My first issue with a very long title that is going to be cut off by the Git Forge provider", List.of("Hello"), Map.of());
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var prBadTitle =  credentials.createPullRequest(author, "master", "edit", issue1.id() + ": My first issue with a very long title that is going to be cut off by …", List.of("…the Git Forge provider"), false);
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            assertTrue(prBadTitle.body().contains("Title mismatch between PR and JBS for issue"));
+
+            var prCutOff =  credentials.createPullRequest(author, "master", "edit", issue1.id() + ": My first issue with a very long title that is going to be cut off by …", List.of("…the Git Forge provider"), false);
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            assertFalse(prCutOff.body().contains("Title mismatch between PR and JBS for issue"));
+
+            // And the body should contain the issue title
+            assertEquals("TEST-1: My first issue with a very long title that is going to be cut off by the Git Forge provider", prCutOff.title());
+        }
+    }
+
+    @Test
     void issueInSummary(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
