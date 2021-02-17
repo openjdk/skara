@@ -26,7 +26,7 @@ module {
     test {
         requires 'org.junit.jupiter.api'
         requires 'org.openjdk.skara.test'
-        opens 'org.openjdk.skara.bots.testinfo' to 'org.junit.platform.commons'
+        opens 'org.openjdk.skara.bots.synclabel' to 'org.junit.platform.commons'
     }
 }
 

@@ -61,7 +61,7 @@ public class SyncLabelBot implements Bot {
                 }
             }
             issueUpdatedAt.put(issue.id(), issue.updatedAt());
-            ret.add(new SyncLabelBotCheckWorkItem(issueProject, issue.id()));
+            ret.add(new SyncLabelBotFindMainIssueWorkItem(issueProject, issue.id()));
         }
         return ret;
     }

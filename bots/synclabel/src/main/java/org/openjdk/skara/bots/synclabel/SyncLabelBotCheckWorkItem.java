@@ -32,12 +32,12 @@ import java.util.logging.Logger;
 
 public class SyncLabelBotCheckWorkItem implements WorkItem {
     private final IssueProject issueProject;
-    private final String issueId;
+    private final String mainIssueId;
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");
 
-    SyncLabelBotCheckWorkItem(IssueProject issueProject, String issueId) {
+    SyncLabelBotCheckWorkItem(IssueProject issueProject, String mainIssueId) {
         this.issueProject = issueProject;
-        this.issueId = issueId;
+        this.mainIssueId = mainIssueId;
     }
 
     @Override
@@ -46,20 +46,19 @@ public class SyncLabelBotCheckWorkItem implements WorkItem {
             return true;
         }
         var o = (SyncLabelBotCheckWorkItem) other;
-        return !o.issueId.equals(issueId);
+        return !o.mainIssueId.equals(mainIssueId);
     }
 
     @Override
     public String toString() {
-        return "SyncLabelBotCheckWorkItem@" + issueId;
+        return "SyncLabelBotCheckWorkItem@" + mainIssueId;
     }
 
     @Override
     public Collection<WorkItem> run(Path scratch) {
-        var ret = new ArrayList<WorkItem>();
-        var issue = issueProject.issue(issueId);
+        var issue = issueProject.issue(mainIssueId);
         if (issue.isEmpty()) {
-            log.severe("Issue " + issueId + " is no longer present!");
+            log.severe("Issue " + mainIssueId + " is no longer present!");
             return List.of();
         }
 
@@ -76,19 +75,19 @@ public class SyncLabelBotCheckWorkItem implements WorkItem {
                 if (i.labels().contains("hgupdate-sync")) {
                     log.finer(i.id() + " (" + versionString + ") - already labeled");
                 } else {
-                    ret.add(new SyncLabelBotLabelWorkItem(i, SyncLabelBotLabelWorkItem.LabelAction.ADD));
                     log.info(i.id() + " (" + versionString + ") - needs to be labeled");
+                    i.addLabel("hgupdate-sync");
                 }
             } else {
                 if (i.labels().contains("hgupdate-sync")) {
-                    ret.add(new SyncLabelBotLabelWorkItem(i, SyncLabelBotLabelWorkItem.LabelAction.REMOVE));
                     log.info(i.id() + " (" + versionString + ") - labeled incorrectly!");
+                    i.removeLabel("hgupdate-sync");
                 } else {
                     log.finer(i.id() + " (" + versionString + ") - not labeled");
                 }
             }
         }
 
-        return ret;
+        return List.of();
     }
 }

@@ -267,18 +267,6 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                             }
                         }
                         issue.setProperty("fixVersions", JSON.of(requestedVersion));
-
-                        var related = Backports.findBackports(issue, true);
-                        var allIssues = new ArrayList<Issue>();
-                        allIssues.add(issue);
-                        allIssues.addAll(related);
-
-                        var duplicates = Backports.releaseStreamDuplicates(allIssues);
-                        for (var i : duplicates) {
-                            if (!i.labels().contains("hgupdate-sync")) {
-                                i.addLabel("hgupdate-sync");
-                            }
-                        }
                     }
                 }
             }

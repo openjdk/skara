@@ -75,7 +75,7 @@ public class TestIssueProject implements IssueProject {
 
     @Override
     public List<Issue> issues(ZonedDateTime updatedAfter) {
-        return new ArrayList<>(host.getIssues(this));
+        return new ArrayList<>(host.getIssues(this, updatedAfter));
     }
 
     @Override
