@@ -914,7 +914,7 @@ class CheckTests {
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.url(), "edit", true);
-            var prBadTitle =  credentials.createPullRequest(author, "master", "edit", issue1.id() + ": My first issue with a very long title that is going to be cut off by …", List.of("…the Git Forge provider"), false);
+            var prBadTitle =  credentials.createPullRequest(author, "master", "edit", issue1.id() + ": My OTHER issue with a very long title that is going to be cut off by …", List.of("…the Git Forge provider"), false);
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
@@ -929,7 +929,7 @@ class CheckTests {
             assertFalse(prCutOff.body().contains("Title mismatch between PR and JBS for issue"));
 
             // And the body should contain the issue title
-            assertEquals("TEST-1: My first issue with a very long title that is going to be cut off by the Git Forge provider", prCutOff.title());
+            assertEquals("1: My first issue with a very long title that is going to be cut off by the Git Forge provider", prCutOff.title());
         }
     }
 
