@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -921,15 +921,17 @@ class CheckTests {
 
             assertTrue(prBadTitle.body().contains("Title mismatch between PR and JBS for issue"));
 
-            var prCutOff =  credentials.createPullRequest(author, "master", "edit", issue1.id() + ": My first issue with a very long title that is going to be cut off by …", List.of("…the Git Forge provider"), false);
+            var prCutOff =  credentials.createPullRequest(author, "master", "edit", issue1.id() + ": My first issue with a very long title that is going to be cut off by …", List.of("…the Git Forge provider", "", "It also has a second line!"), false);
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
 
             assertFalse(prCutOff.body().contains("Title mismatch between PR and JBS for issue"));
 
-            // And the body should contain the issue title
+            // The PR title should contain the full issue title
             assertEquals("1: My first issue with a very long title that is going to be cut off by the Git Forge provider", prCutOff.title());
+            // And the body should not contain the issue title
+            assertTrue(prCutOff.body().startsWith("It also has a second line!"));
         }
     }
 

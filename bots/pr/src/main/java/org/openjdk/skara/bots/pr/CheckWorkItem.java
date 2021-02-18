@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,7 +26,6 @@ import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
-import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 
@@ -150,14 +149,6 @@ class CheckWorkItem extends PullRequestWorkItem {
         return prefix;
     }
 
-    private boolean isTitleCutOff(Optional<Issue> issue, String title) {
-        if (title.endsWith(ELLIPSIS)) {
-            title = title.substring(0, title.length() - 1);
-        }
-        var issueTitle = issue.get().title();
-        return issueTitle.startsWith(title) && issueTitle.length() > title.length();
-    }
-
     /**
      * Help the user by fixing up an "almost correct" PR title
      * @return true if the PR was modified
@@ -165,10 +156,6 @@ class CheckWorkItem extends PullRequestWorkItem {
     private boolean updateTitle() {
         var m = ISSUE_ID_PATTERN.matcher(pr.title());
         var project = bot.issueProject();
-
-        // We adjust the title if it is in the form of "[project-]<bugid>" only,
-        // were we add the title from JBS, or if it is "[project-]<bugid>: <title-pre>"
-        // were <title-pre> is a cut-off version of the title, in case we restore it fully
 
         if (m.matches() && project != null) {
             var prefix = getMatchGroup(m, "prefix");
@@ -183,15 +170,30 @@ class CheckWorkItem extends PullRequestWorkItem {
 
             var issue = project.issue(id);
             if (issue.isPresent()) {
+                var issueTitle = issue.get().title();
                 if (title.isEmpty()) {
+                    // If the title is in the form of "[project-]<bugid>" only
+                    // we add the title from JBS
                     var newPrTitle = id + ": " + issue.get().title();
                     pr.setTitle(newPrTitle);
                     return true;
-                } else if (isTitleCutOff(issue, title)) {
-                    var newPrTitle = id + ": " + issue.get().title();
-                    pr.setTitle(newPrTitle);
-                    // FIXME: also fixup body!
-                    return true;
+                } else {
+                    // If it is "[project-]<bugid>: <title-pre>", where <title-pre>
+                    // is a cut-off version of the title, we restore the full title
+                    if (title.endsWith(ELLIPSIS)) {
+                        title = title.substring(0, title.length() - 1);
+                    }
+                    if (issueTitle.startsWith(title) && issueTitle.length() > title.length()) {
+                        var newPrTitle = id + ": " + issue.get().title();
+                        pr.setTitle(newPrTitle);
+                        var remainingTitle = issue.get().title().substring(title.length());
+                        if (pr.body().startsWith(ELLIPSIS + remainingTitle + "\n\n")) {
+                            // Remove remaning title, plus decorations
+                            var newPrBody = pr.body().substring(remainingTitle.length() + 3);
+                            pr.setBody(newPrBody);
+                        }
+                        return true;
+                    }
                 }
             }
         }
