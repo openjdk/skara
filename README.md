@@ -1,4 +1,4 @@
-# OpenJDK Project Skara
+# OpenJDK Project Skabara
 
 The goal of Project Skara is to investigate alternative SCM and code review
 options for the OpenJDK source code, including options based upon Git rather than
