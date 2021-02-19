@@ -85,6 +85,10 @@ public class GitPrSet {
               .helptext("Mark the pull request as not draft")
               .optional(),
         Switch.shortcut("")
+              .fullname("clean")
+              .helptext("Set a backport pull request as clean")
+              .optional(),
+        Switch.shortcut("")
               .fullname("verbose")
               .helptext("Turn on verbose output")
               .optional(),
@@ -140,6 +144,13 @@ public class GitPrSet {
         var setClosed = getSwitch("closed", "set", arguments);
         if (setClosed) {
             pr.setState(PullRequest.State.CLOSED);
+        }
+
+        var setClean = getSwitch("clean", "set", arguments);
+        if (setClean) {
+            var command = pr.addComment("/clean");
+            var reply = awaitReplyTo(pr, command);
+            showReply(reply);
         }
 
         var setBody = getSwitch("body", "set", arguments);
