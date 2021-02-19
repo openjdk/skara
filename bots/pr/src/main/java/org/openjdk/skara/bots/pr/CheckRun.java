@@ -255,9 +255,18 @@ class CheckRun {
         if (isClean && !hasCleanLabel) {
             pr.addLabel("clean");
         }
-        if (!isClean && hasCleanLabel) {
+
+        var botUser = pr.repository().forge().currentUser();
+        var isCleanLabelManuallyAdded =
+            pr.comments()
+              .stream()
+              .filter(c -> c.author().equals(botUser))
+              .anyMatch(c -> c.body().contains("this backport pull request is now marked as clean"));
+
+        if (!isCleanLabelManuallyAdded && !isClean && hasCleanLabel) {
             pr.removeLabel("clean");
         }
+
         return isClean;
     }
 
