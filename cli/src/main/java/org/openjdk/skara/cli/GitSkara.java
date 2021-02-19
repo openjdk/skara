@@ -212,6 +212,7 @@ public class GitSkara {
         commands.put("proxy", GitProxy::main);
         commands.put("trees", GitTrees::main);
         commands.put("hg-export", GitHgExport::main);
+        commands.put("backport", GitBackport::main);
 
         commands.put("update", GitSkara::update);
         commands.put("-h", GitSkara::help);
