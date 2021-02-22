@@ -40,6 +40,7 @@ public class PullRequestUtils {
     }
 
     private final static Pattern mergeSourcePattern = Pattern.compile("^Merge ([-/\\w:+]+)$");
+    private final static Pattern hashSourcePattern = Pattern.compile("[0-9a-fA-F]{6,40}");
 
     private static Optional<Hash> fetchRef(Repository localRepo, URI uri, String ref) throws IOException {
         // Just a plain name - is this a branch?
@@ -65,8 +66,21 @@ public class PullRequestUtils {
             throw new CommitFailure("Could not determine the source for this merge. A Merge PR title must be specified in the format: `" +
                                             mergeSourcePattern.toString() + "` to allow verification of the merge contents.");
         }
-
         var source = sourceMatcher.group(1);
+
+        // A hash in the PRs local history can also be a valid source
+        var hashSourceMatcher = hashSourcePattern.matcher(source);
+        if (hashSourceMatcher.matches()) {
+            var hash = localRepo.resolve(source);
+            if (hash.isPresent()) {
+                // A valid merge source hash cannot be an ancestor of the target branch (if so it would not need to be merged)
+                var prTargetHash = PullRequestUtils.targetHash(pr, localRepo);
+                if (!localRepo.isAncestor(hash.get(), prTargetHash)) {
+                    return hash.get();
+                }
+            }
+        }
+
         String repoName;
         String ref;
         if (!source.contains(":")) {
