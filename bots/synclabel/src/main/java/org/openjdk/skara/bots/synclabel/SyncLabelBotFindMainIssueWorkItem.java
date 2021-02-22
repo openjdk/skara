@@ -23,47 +23,52 @@
 package org.openjdk.skara.bots.synclabel;
 
 import org.openjdk.skara.bot.WorkItem;
-import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.issuetracker.IssueProject;
+import org.openjdk.skara.jbs.Backports;
 
 import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Logger;
 
-public class SyncLabelBotLabelWorkItem implements WorkItem {
-    private final Issue issue;
-    private final LabelAction labelAction;
+public class SyncLabelBotFindMainIssueWorkItem implements WorkItem {
+    private final IssueProject issueProject;
+    private final String issueId;
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");
 
-    enum LabelAction {
-        ADD,
-        REMOVE
-    }
-
-    SyncLabelBotLabelWorkItem(Issue issue, LabelAction labelAction) {
-        this.issue = issue;
-        this.labelAction = labelAction;
+    SyncLabelBotFindMainIssueWorkItem(IssueProject issueProject, String issueId) {
+        this.issueProject = issueProject;
+        this.issueId = issueId;
     }
 
     @Override
     public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof SyncLabelBotLabelWorkItem)) {
+        if (!(other instanceof SyncLabelBotFindMainIssueWorkItem)) {
             return true;
         }
-        var o = (SyncLabelBotLabelWorkItem) other;
-        return !o.issue.webUrl().equals(issue.webUrl());
+        var o = (SyncLabelBotFindMainIssueWorkItem) other;
+        return !o.issueId.equals(issueId);
+    }
+
+    @Override
+    public Collection<WorkItem> run(Path scratchPath) {
+        var issue = issueProject.issue(issueId);
+        if (issue.isEmpty()) {
+            log.severe("Issue " + issueId + " is no longer present!");
+            return List.of();
+        }
+
+        var primary = Backports.findMainIssue(issue.get());
+        if (primary.isEmpty()) {
+            log.info("No main issue found for " + issue.get().id());
+            return List.of();
+        }
+
+        return List.of(new SyncLabelBotUpdateLabelWorkItem(issueProject, primary.get().id()));
     }
 
     @Override
     public String toString() {
-        return "SyncLabelBotLabelWorkItem@" + issue.project().name() + "#" + issue.id();
+        return "SyncLabelBotFindMainIssueWorkItem@" + issueId;
     }
 
-    @Override
-    public Collection<WorkItem> run(Path scratch) {
-        switch (labelAction) {
-            case ADD -> log.severe("Adding hgupdate-sync label to " + issue.id());
-            case REMOVE -> log.severe("Removing hgupdate-sync label from " + issue.id());
-        }
-        return List.of();
-    }
 }
