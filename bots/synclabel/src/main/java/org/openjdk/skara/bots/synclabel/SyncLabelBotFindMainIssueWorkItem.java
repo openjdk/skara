@@ -63,7 +63,7 @@ public class SyncLabelBotFindMainIssueWorkItem implements WorkItem {
             return List.of();
         }
 
-        return List.of(new SyncLabelBotCheckWorkItem(issueProject, primary.get().id()));
+        return List.of(new SyncLabelBotUpdateLabelWorkItem(issueProject, primary.get().id()));
     }
 
     @Override

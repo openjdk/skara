@@ -30,28 +30,28 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Logger;
 
-public class SyncLabelBotCheckWorkItem implements WorkItem {
+public class SyncLabelBotUpdateLabelWorkItem implements WorkItem {
     private final IssueProject issueProject;
     private final String mainIssueId;
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");
 
-    SyncLabelBotCheckWorkItem(IssueProject issueProject, String mainIssueId) {
+    SyncLabelBotUpdateLabelWorkItem(IssueProject issueProject, String mainIssueId) {
         this.issueProject = issueProject;
         this.mainIssueId = mainIssueId;
     }
 
     @Override
     public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof SyncLabelBotCheckWorkItem)) {
+        if (!(other instanceof SyncLabelBotUpdateLabelWorkItem)) {
             return true;
         }
-        var o = (SyncLabelBotCheckWorkItem) other;
+        var o = (SyncLabelBotUpdateLabelWorkItem) other;
         return !o.mainIssueId.equals(mainIssueId);
     }
 
     @Override
     public String toString() {
-        return "SyncLabelBotCheckWorkItem@" + mainIssueId;
+        return "SyncLabelBotUpdateLabelWorkItem@" + mainIssueId;
     }
 
     @Override
