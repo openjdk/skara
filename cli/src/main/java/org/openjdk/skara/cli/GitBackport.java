@@ -31,7 +31,7 @@ import org.openjdk.skara.version.Version;
 import org.openjdk.skara.proxy.HttpProxy;
 
 import java.io.IOException;
-import java.net.URI;
+import java.net.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.function.Supplier;
@@ -48,6 +48,20 @@ public class GitBackport {
         return lines.size() == 1 ? lines.get(0) : null;
     }
 
+    private static void run(Repository repo, String... args) throws IOException {
+        var pb = new ProcessBuilder(args);
+        pb.inheritIO();
+        pb.directory(repo.root().toFile());
+        try {
+            var err = pb.start().waitFor();
+            if (err != 0) {
+                System.exit(err);
+            }
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        }
+    }
+
     static final List<Flag> flags = List.of(
         Option.shortcut("u")
               .fullname("username")
@@ -58,16 +72,6 @@ public class GitBackport {
               .fullname("from")
               .describe("REPO")
               .helptext("Repository to backport from")
-              .optional(),
-        Option.shortcut("")
-              .fullname("to")
-              .describe("REPO")
-              .helptext("Repository to backport to")
-              .optional(),
-        Option.shortcut("")
-              .fullname("branch")
-              .describe("NAME")
-              .helptext("Name of branch to backport to (default to 'master')")
               .optional(),
         Switch.shortcut("")
               .fullname("verbose")
@@ -84,10 +88,10 @@ public class GitBackport {
     );
 
     static final List<Input> inputs = List.of(
-        Input.position(0)
-             .describe("HASH")
-             .singular()
-             .required()
+         Input.position(0)
+              .describe("HASH")
+              .singular()
+              .required()
     );
 
     public static void main(String[] args) throws IOException, InterruptedException {
@@ -115,104 +119,78 @@ public class GitBackport {
         var repo = repository.get();
 
         var from = getOption("from", arguments, repo);
-        var to = getOption("to", arguments, repo);
+        if (from == null) {
+            System.err.println("error: must specify repository to backport from using --from");
+        }
 
-        if (from != null && to != null) {
-            System.err.println("error: cannot specify both --from and --to");
+        var commit = arguments.at(0).asString();
+
+        var gitUsername = repo.config("user.name");
+        if (gitUsername.size() != 1) {
+            System.err.println("error: user.name not configured");
             System.exit(1);
         }
 
-        if (from == null && to == null) {
-            System.err.println("error: must use either --from or --to");
+        var gitEmail = repo.config("user.email");
+        if (gitEmail.size() != 1) {
+            System.err.println("error: user.email not configured");
             System.exit(1);
         }
 
-        var hash = new Hash(arguments.at(0).asString());
-        var resolved = repo.resolve(hash.hex());
-        if (resolved.isPresent()) {
-            hash = resolved.get();
-        }
-
-        var origin = Remote.toWebURI(Remote.toURI(repo.pullPath("origin"), true).toString());
-        var username = getOption("username", arguments, repo);
-        var token = System.getenv("GIT_TOKEN");
-        var credentials = GitCredentials.fill(origin.getHost(), origin.getPath(), username, token, origin.getScheme());
-        var forgeURI = URI.create(origin.getScheme() + "://" + origin.getHost());
-        var forge = Forge.from(forgeURI, new Credential(credentials.username(), credentials.password()));
-        if (forge.isEmpty()) {
-            System.err.println("error: could not find forge for " + forgeURI.getHost());
-            System.exit(1);
-        }
-
-        var branch = getOption("branch", arguments, repo);
-
-        HostedRepository hostedRepo = null;
-        Comment comment = null;
-        if (from != null) {
-            var originName = origin.getPath().substring(1);
-            var originRepo = forge.get().repository(originName);
-            if (!originRepo.isPresent()) {
-                System.err.println("error: repository named " + originName + " not present on " + forge.get().name());
-                System.exit(1);
-            }
-            var upstreamRepo = originRepo.get().parent().isPresent() ?
-                originRepo.get().parent().get() : originRepo.get();
-            var upstreamGroup = upstreamRepo.name().split("/")[0];
-            var repoName = from.startsWith("http") ? URI.create(from).getPath().substring(1) : from;
-            if (!repoName.contains("/")) {
-                repoName = upstreamGroup + "/" + repoName;
-            }
-            var maybeHostedRepo = forge.get().repository(repoName);
-            if (!maybeHostedRepo.isPresent()) {
-                System.err.println("error: repository named " + repoName + " not present on " + forge.get().name());
-                System.exit(1);
-            }
-            hostedRepo = maybeHostedRepo.get();
-            var targetName = upstreamRepo.name().split("/")[1];
-            var message = "/backport " + targetName;
-            if (branch != null) {
-                message += " " + branch;
-            }
-            comment = hostedRepo.addCommitComment(hash, message);
-        } else if (to != null ) {
-            var repoName = origin.getPath().substring(1);
-            var maybeHostedRepo = forge.get().repository(repoName);
-            if (!maybeHostedRepo.isPresent()) {
-                System.err.println("error: repository named " + repoName + " not present on " + forge.get().name());
-                System.exit(1);
-            }
-            hostedRepo = maybeHostedRepo.get();
-            var parent = hostedRepo.parent();
-            if (parent.isPresent()) {
-                hostedRepo = parent.get();
-            }
-            var targetName = to.startsWith("http") ? URI.create(to).getPath().substring(1) : to;
-            var message = "/backport " + targetName;
-            if (branch != null) {
-                message += " " + branch;
-            }
-            comment = hostedRepo.addCommitComment(hash, message);
-        } else {
-            throw new IllegalStateException("Should not be here, both 'from' and 'to' are null");
-        }
-
-        var seenReply = false;
-        var expected = "<!-- Jmerge command reply message (" + comment.id() + ") -->";
-        for (var i = 0; i < 90; i++) {
-            var comments = hostedRepo.commitComments(hash);
-            for (var c : comments) {
-                var lines = c.body().split("\n");
-                if (lines.length > 0 && lines[0].equals(expected)) {
-                    for (var j = 1; j < lines.length; j++) {
-                        System.out.println(lines[j]);
-                    }
-                    System.exit(0);
+        URI fromURI = null;
+        try {
+            fromURI = Remote.toURI(from, false);
+        } catch (IOException e) {
+            var origin = Remote.toURI(repo.pullPath("origin"), false);
+            var dotGit = origin.getPath().endsWith(".git") ? ".git" : "";
+            if (from.contains("/")) {
+                fromURI = URI.create(origin.getScheme() + "://" + origin.getHost() + "/" + from + dotGit);
+            } else {
+                var canonical = Remote.toWebURI(Remote.toURI(repo.pullPath("origin"), true).toString());
+                var username = getOption("username", arguments, repo);
+                var token = System.getenv("GIT_TOKEN");
+                var credentials = GitCredentials.fill(canonical.getHost(), canonical.getPath(), username, token, canonical.getScheme());
+                var forgeURI = URI.create(canonical.getScheme() + "://" + canonical.getHost());
+                var forge = Forge.from(forgeURI, new Credential(credentials.username(), credentials.password()));
+                if (forge.isEmpty()) {
+                    System.err.println("error: could not find forge at " + forgeURI.getHost());
+                    System.exit(1);
                 }
+                var originRemoteRepository = forge.get().repository(canonical.getPath().substring(1));
+                if (originRemoteRepository.isEmpty()) {
+                    System.err.println("error: could not find repository named '" + origin.getPath().substring(1) + "' on " + forge.get().hostname());
+                    System.exit(1);
+                }
+                var upstreamRemoteRepository = originRemoteRepository.get().parent();
+                if (upstreamRemoteRepository.isEmpty()) {
+                    System.err.println("error: the repository named '" + originRemoteRepository.get().name() + " is not a fork of another repository");
+                    System.exit(1);
+                }
+                var upstreamGroup = upstreamRemoteRepository.get().webUrl().getPath().substring(1).split("/")[0];
+                fromURI = URI.create(origin.getScheme() + "://" +
+                                     origin.getHost() + "/" +
+                                     upstreamGroup + "/" +
+                                     from +
+                                     dotGit);
             }
-            Thread.sleep(2000);
         }
 
-        System.err.println("error: timed out waiting for response to /backport command");
-        System.exit(1);
+        System.out.println("Fetching ...");
+        System.out.flush();
+        var fetchHead = repo.fetch(fromURI, commit, false);
+
+        System.out.println("Cherry picking ...");
+        System.out.flush();
+        run(repo, "git", "cherry-pick", "--no-commit",
+                                        "--keep-redundant-commits",
+                                        "--strategy=recursive",
+                                        "--strategy-option=patience",
+                                        fetchHead.hex());
+
+        System.out.println("Committing ...");
+        System.out.flush();
+        run(repo, "git", "commit", "--quiet", "--message=" + "Backport " + fetchHead.hex());
+
+        System.out.println("Commit " + fetchHead.hex() + " successfully backported as commit " + repo.head().hex());
     }
 }

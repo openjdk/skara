@@ -58,11 +58,6 @@ public class GitPrCreate {
               .describe("MAILING LISTS")
               .helptext("Mailing lists to CC for inital RFR e-mail")
               .optional(),
-        Option.shortcut("")
-              .fullname("backport")
-              .describe("REV")
-              .helptext("Create a backport pull request for the given revision")
-              .optional(),
         Switch.shortcut("")
               .fullname("ignore-workspace")
               .helptext("Ignore local changes in worktree and staging area when creating pull request")
@@ -384,33 +379,23 @@ public class GitPrCreate {
         var project = jbsProjectFromJcheckConf(repo, targetBranch);
         var issue = getIssue(currentBranch, project);
         var file = Files.createTempFile("PULL_REQUEST_", ".md");
-        var toBackport = getOption("backport", "create", arguments);
-        if (toBackport == null) {
+        if (issue.isPresent()) {
+            Files.writeString(file, format(issue.get()) + "\n\n");
+        } else {
+            var commit = commits.get(0);
+            issue = getIssue(commit, project);
             if (issue.isPresent()) {
                 Files.writeString(file, format(issue.get()) + "\n\n");
             } else {
-                var commit = commits.get(0);
-                issue = getIssue(commit, project);
-                if (issue.isPresent()) {
-                    Files.writeString(file, format(issue.get()) + "\n\n");
-                } else {
-                    var message = CommitMessageParsers.v1.parse(commit.message());
-                    Files.writeString(file, message.title() + "\n");
-                    if (!message.summaries().isEmpty()) {
-                        Files.write(file, message.summaries(), StandardOpenOption.APPEND);
-                    }
-                    if (!message.additional().isEmpty()) {
-                        Files.write(file, message.additional(), StandardOpenOption.APPEND);
-                    }
+                var message = CommitMessageParsers.v1.parse(commit.message());
+                Files.writeString(file, message.title() + "\n");
+                if (!message.summaries().isEmpty()) {
+                    Files.write(file, message.summaries(), StandardOpenOption.APPEND);
+                }
+                if (!message.additional().isEmpty()) {
+                    Files.write(file, message.additional(), StandardOpenOption.APPEND);
                 }
             }
-        } else {
-            var hash = repo.resolve(toBackport);
-            if (hash.isEmpty()) {
-                System.err.println("error: could not resolve " + toBackport);
-                System.exit(1);
-            }
-            Files.writeString(file, "Backport " + hash.get().hex() + "\n\n");
         }
 
         appendPaddedHTMLComment(file, "Please enter the pull request message for your changes.");

@@ -36,6 +36,7 @@
         proxy = ! git skara proxy
         trees = ! git skara trees
         hg-export = ! git skara hg-export
+        backport = ! git skara backport
 
         tcommit = trees commit
         tconfig = trees config

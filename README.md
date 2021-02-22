@@ -21,6 +21,7 @@ and [Git](https://git-scm.com/) hashes
 - git-skara - learn about and update the Skara CLI tools
 - git-trees - run a git command in a tree of repositories
 - git-publish - publishes a local branch to a remote repository
+- git-backport - backports a commit from another repository onto the current branch
 
 There are also CLI tools available for importing OpenJDK
 [Mercurial](https://mercurial-scm.org/) repositories into
