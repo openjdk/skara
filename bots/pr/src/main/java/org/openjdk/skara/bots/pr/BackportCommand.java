@@ -87,22 +87,24 @@ public class BackportCommand implements CommandHandler {
             repoName = group + "/" + repoName;
         }
 
-        var targetRepo = forge.repository(repoName);
-        if (targetRepo.isEmpty()) {
+        var potentialTargetRepo = forge.repository(repoName);
+        if (potentialTargetRepo.isEmpty()) {
             reply.println("@" + username + " the target repository `" + repoName + "` does not exist");
             return;
         }
+        var targetRepo = potentialTargetRepo.get();
 
-        var branchName = parts.length == 2 ? parts[1] : "master";
-        var targetBranches = targetRepo.get().branches();
-        if (targetBranches.stream().noneMatch(b -> b.name().equals(branchName))) {
-            reply.println("@" + username + " the target branch `" + branchName + "` does not exist");
+        var targetBranchName = parts.length == 2 ? parts[1] : "master";
+        var targetBranches = targetRepo.branches();
+        if (targetBranches.stream().noneMatch(b -> b.name().equals(targetBranchName))) {
+            reply.println("@" + username + " the target branch `" + targetBranchName + "` does not exist");
             return;
         }
+        var targetBranch = new Branch(targetBranchName);
 
         try {
             var hash = commit.hash();
-            var fork = bot.writeableForkOf(targetRepo.get());
+            var fork = bot.writeableForkOf(targetRepo);
             var localRepoDir = scratchPath.resolve("backport-command")
                                           .resolve(repoName)
                                           .resolve("fork");
@@ -110,7 +112,7 @@ public class BackportCommand implements CommandHandler {
                                .orElseThrow(() -> new IllegalStateException("Missing repository pool for PR bot"))
                                .materialize(fork, localRepoDir);
             var fetchHead = localRepo.fetch(bot.repo().url(), hash.hex());
-            localRepo.checkout(new Branch(branchName));
+            localRepo.checkout(targetBranch);
             var head = localRepo.head();
             var backportBranch = localRepo.branch(head, "backport-" + hash.abbreviate());
             localRepo.checkout(backportBranch);
@@ -118,7 +120,7 @@ public class BackportCommand implements CommandHandler {
             if (!didApply) {
                 var lines = new ArrayList<String>();
                 lines.add("@" + username + " :warning: could not backport `" + hash.abbreviate() + "` to " +
-                          "[" + repoName + "](" + targetRepo.get().webUrl() + "] due to conflicts in the following files:");
+                          "[" + repoName + "](" + targetRepo.webUrl() + "] due to conflicts in the following files:");
                 lines.add("");
                 var unmerged = localRepo.status()
                                         .stream()
@@ -129,7 +131,7 @@ public class BackportCommand implements CommandHandler {
                     lines.add("- " + path.toString());
                 }
                 lines.add("");
-                lines.add("To manually resolve these conflicts run the following commands in your personal fork of [" + repoName + "](" + targetRepo.get().webUrl() + "):");
+                lines.add("To manually resolve these conflicts run the following commands in your personal fork of [" + repoName + "](" + targetRepo.webUrl() + "):");
                 lines.add("");
                 lines.add("```");
                 lines.add("$ git checkout -b " + backportBranch.name());
@@ -140,7 +142,7 @@ public class BackportCommand implements CommandHandler {
                 lines.add("$ git commit -m 'Backport " + hash.hex() + "'");
                 lines.add("```");
                 lines.add("");
-                lines.add("Once you have resolved the conflicts as explained above continue with creating a pull request towards the [" + repoName + "](" + targetRepo.get().webUrl() + ") with the title \"Backport " + hash.hex() + "\".");
+                lines.add("Once you have resolved the conflicts as explained above continue with creating a pull request towards the [" + repoName + "](" + targetRepo.webUrl() + ") with the title \"Backport " + hash.hex() + "\".");
 
                 reply.println(String.join("\n", lines));
                 localRepo.reset(head, true);
@@ -149,15 +151,21 @@ public class BackportCommand implements CommandHandler {
 
             var backportHash = localRepo.commit("Backport " + hash.hex(), "duke", "duke@openjdk.org");
             localRepo.push(backportHash, fork.url(), backportBranch.name(), true);
+
+            if (!fork.canPush(command.user())) {
+                fork.addCollaborator(command.user(), true);
+            }
+            fork.restrictPushAccess(backportBranch, List.of(command.user()));
+
             var message = CommitMessageParsers.v1.parse(commit);
             var formatter = DateTimeFormatter.ofPattern("d MMM uuuu");
-            var lines = new ArrayList<String>();
-            lines.add("Hi all,");
-            lines.add("");
-            lines.add("this is an _automatically_ generated pull request containing a backport of " +
-                      "[" + hash.abbreviate() + "](" + commit.url() + ") as requested by " +
-                      "@" + username);
-            lines.add("");
+            var body = new ArrayList<String>();
+            body.add("> Hi all,");
+            body.add("> ");
+            body.add("> this pull request contains a backport of commit " +
+                      "[" + hash.abbreviate() + "](" + commit.url() + ") from the " +
+                      "[" + currentRepoName + "](" + bot.repo().webUrl() + ") repository.");
+            body.add(">");
             var info = "The commit being backported was authored by " + commit.author().name() + " on " +
                         commit.committed().format(formatter);
             if (message.reviewers().isEmpty()) {
@@ -184,18 +192,40 @@ public class BackportCommand implements CommandHandler {
                 info += " and was reviewed by " + listing;
             }
             info += ".";
-            lines.add(info);
-            lines.add("");
-            lines.add("Thanks,");
-            lines.add("J. Duke");
+            body.add(info);
+            body.add("> ");
+            body.add("> Thanks!");
 
-            var prFromFork = fork.createPullRequest(targetRepo.get(),
-                                                    "master",
-                                                    backportBranch.name(),
-                                                    "Backport " + hash.hex(),
-                                                    lines);
-            var prFromTarget = targetRepo.get().pullRequest(prFromFork.id());
-            reply.println("@" + command.user().username() + " backport pull request [#" + prFromTarget.id() + "](" + prFromFork.webUrl() + ") targeting repository [" + targetRepo.get().name() + "](" + targetRepo.get().webUrl() + ") created successfully.");
+            var createPrUrl = fork.createPullRequestUrl(targetRepo, targetBranch.name(), backportBranch.name());
+            var targetBranchWebUrl = targetRepo.webUrl(targetBranch);
+            var backportBranchWebUrl = fork.webUrl(backportBranch);
+            var backportWebUrl = fork.webUrl(backportHash);
+            reply.println("@" + command.user().username() + " the [backport](" + backportWebUrl + ")" +
+                          " was successfully created on the branch [" + backportBranch.name() + "](" +
+                          backportBranchWebUrl + ") in my [personal fork](" + fork.webUrl() + ") of [" +
+                          targetRepo.name() + "](" + targetRepo.webUrl() + "). To create a pull request " +
+                          "with this backport targeting [" + targetRepo.name() + ":" + targetBranch.name() + "](" +
+                          targetBranchWebUrl + "), just click the following link:\n" +
+                          "\n" +
+                          "[:arrow_right: ***Create pull request***](" + createPrUrl + ")\n" +
+                          "\n" +
+                          "The title of the pull request is automatically filled in correctly and below you " +
+                          "find a suggestion for the pull request body:\n" +
+                          "\n" +
+                          String.join("\n", body) +
+                          "\n" +
+                          "If you need to update the [source branch](" + backportBranchWebUrl + ") of the pull " +
+                          "then run the following commands in a local clone of your personal fork of " +
+                          "[" + targetRepo.name() + "](" + targetRepo.webUrl() + "):\n" +
+                          "\n" +
+                          "```\n" +
+                          "$ git fetch " + fork.webUrl() + " " + backportBranch.name() + ":" + backportBranch.name() + "\n" +
+                          "$ git checkout " + backportBranch.name() + "\n" +
+                          "# make changes\n" +
+                          "$ git add paths/to/changed/files\n" +
+                          "$ git commit --message 'Describe additional changes made'\n" +
+                          "$ git push\n" +
+                          "```");
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
