@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -44,8 +44,9 @@ import java.util.stream.Stream;
 class CheckWorkItem extends PullRequestWorkItem {
     private final Pattern metadataComments = Pattern.compile("<!-- (?:(add|remove) (?:contributor|reviewer))|(?:summary: ')|(?:solves: ')|(?:additional required reviewers)");
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
-    static final Pattern ISSUE_ID_PATTERN = Pattern.compile("^(?:[A-Za-z][A-Za-z0-9]+-)?([0-9]+)$");
+    static final Pattern ISSUE_ID_PATTERN = Pattern.compile("^(?:(?<prefix>[A-Za-z][A-Za-z0-9]+)-)?(?<id>[0-9]+)(?::\\s+(?<title>.+))?$");
     private static final Pattern BACKPORT_TITLE_PATTERN = Pattern.compile("^Backport\\s*([0-9a-z]{40})\\s*$");
+    private static final String ELLIPSIS = "…";
 
     CheckWorkItem(PullRequestBot bot, PullRequest pr, Consumer<RuntimeException> errorHandler) {
         super(bot, pr, errorHandler);
@@ -137,23 +138,64 @@ class CheckWorkItem extends PullRequestWorkItem {
         return false;
     }
 
+    /**
+     * Return the matching group, or the empty string if no match is found
+     */
+    private String getMatchGroup(java.util.regex.Matcher m, String group) {
+        var prefix = m.group(group);
+        if (prefix == null) {
+            return "";
+        }
+        return prefix;
+    }
+
+    /**
+     * Help the user by fixing up an "almost correct" PR title
+     * @return true if the PR was modified
+     */
     private boolean updateTitle() {
-        var title = pr.title();
-        var m = ISSUE_ID_PATTERN.matcher(title);
+        var m = ISSUE_ID_PATTERN.matcher(pr.title());
         var project = bot.issueProject();
 
-        var newTitle = title;
         if (m.matches() && project != null) {
-            var id = m.group(1);
+            var prefix = getMatchGroup(m, "prefix");
+            var id = getMatchGroup(m,"id");
+            var title = getMatchGroup(m,"title");
+
+            if (!prefix.isEmpty() && !prefix.equalsIgnoreCase(project.name())) {
+                // If [project-] prefix does not match our project, something is odd;
+                // don't touch the PR title in that case
+                return false;
+            }
+
             var issue = project.issue(id);
             if (issue.isPresent()) {
-                newTitle = id + ": " + issue.get().title();
+                var issueTitle = issue.get().title();
+                if (title.isEmpty()) {
+                    // If the title is in the form of "[project-]<bugid>" only
+                    // we add the title from JBS
+                    var newPrTitle = id + ": " + issue.get().title();
+                    pr.setTitle(newPrTitle);
+                    return true;
+                } else {
+                    // If it is "[project-]<bugid>: <title-pre>", where <title-pre>
+                    // is a cut-off version of the title, we restore the full title
+                    if (title.endsWith(ELLIPSIS)) {
+                        title = title.substring(0, title.length() - 1);
+                    }
+                    if (issueTitle.startsWith(title) && issueTitle.length() > title.length()) {
+                        var newPrTitle = id + ": " + issue.get().title();
+                        pr.setTitle(newPrTitle);
+                        var remainingTitle = issue.get().title().substring(title.length());
+                        if (pr.body().startsWith(ELLIPSIS + remainingTitle + "\n\n")) {
+                            // Remove remaning title, plus decorations
+                            var newPrBody = pr.body().substring(remainingTitle.length() + 3);
+                            pr.setBody(newPrBody);
+                        }
+                        return true;
+                    }
+                }
             }
-        }
-
-        if (!title.equals(newTitle)) {
-            pr.setTitle(newTitle);
-            return true;
         }
 
         return false;
