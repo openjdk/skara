@@ -269,6 +269,11 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
+    public URI createPullRequestUrl(HostedRepository target, String sourceRef, String targetRef) {
+        return URI.create(target.webUrl().toString() + "/pull/new/" + targetRef + "..." + projectName + ":" + sourceRef);
+    }
+
+    @Override
     public URI webUrl(Branch branch) {
         return URI.create(webUrl() + "/branch/" + branch.name());
     }

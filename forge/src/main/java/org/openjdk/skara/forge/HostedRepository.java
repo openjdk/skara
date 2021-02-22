@@ -76,6 +76,9 @@ public interface HostedRepository {
     Optional<HostedCommit> commit(Hash hash);
     List<Check> allChecks(Hash hash);
     WorkflowStatus workflowStatus();
+    URI createPullRequestUrl(HostedRepository target,
+                             String targetRef,
+                             String sourceRef);
 
     default PullRequest createPullRequest(HostedRepository target,
                                           String targetRef,

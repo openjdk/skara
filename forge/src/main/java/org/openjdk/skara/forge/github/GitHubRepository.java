@@ -506,4 +506,11 @@ public class GitHubRepository implements HostedRepository {
         var endpoint = "/" + repository + "/tree/" + branch.name();
         return gitHubHost.getWebURI(endpoint);
     }
+
+    @Override
+    public URI createPullRequestUrl(HostedRepository target, String targetRef, String sourceRef) {
+        var sourceGroup = repository.split("/")[0];
+        var endpoint = "/" + target.name() + "/" + targetRef + "..." + sourceGroup + ":" + sourceRef;
+        return gitHubHost.getWebURI(endpoint);
+    }
 }

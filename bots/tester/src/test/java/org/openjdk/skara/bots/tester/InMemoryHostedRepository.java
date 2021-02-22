@@ -186,6 +186,11 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
+    public URI createPullRequestUrl(HostedRepository target, String sourceRef, String targetRef) {
+        return null;
+    }
+
+    @Override
     public URI webUrl(Branch branch) {
         return null;
     }
