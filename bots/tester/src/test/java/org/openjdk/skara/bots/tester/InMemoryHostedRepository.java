@@ -184,4 +184,9 @@ class InMemoryHostedRepository implements HostedRepository {
     public List<CommitComment> recentCommitComments() {
         return List.of();
     }
+
+    @Override
+    public URI webUrl(Branch branch) {
+        return null;
+    }
 }

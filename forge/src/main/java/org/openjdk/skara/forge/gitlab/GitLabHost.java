@@ -247,4 +247,8 @@ public class GitLabHost implements Forge {
     public String hostname() {
         return uri.getHost();
     }
+
+    URI getWebUri(String endpoint) {
+        return URI.create(uri.toString() + endpoint);
+    }
 }

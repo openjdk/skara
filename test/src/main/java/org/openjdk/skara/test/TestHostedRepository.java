@@ -268,6 +268,11 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
         return WorkflowStatus.ENABLED;
     }
 
+    @Override
+    public URI webUrl(Branch branch) {
+        return URI.create(webUrl() + "/branch/" + branch.name());
+    }
+
     Repository localRepository() {
         return localRepository;
     }

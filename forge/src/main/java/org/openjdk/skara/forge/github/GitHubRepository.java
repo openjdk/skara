@@ -500,4 +500,10 @@ public class GitHubRepository implements HostedRepository {
             return WorkflowStatus.ENABLED;
         }
     }
+
+    @Override
+    public URI webUrl(Branch branch) {
+        var endpoint = "/" + repository + "/tree/" + branch.name();
+        return gitHubHost.getWebURI(endpoint);
+    }
 }
