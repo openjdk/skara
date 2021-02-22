@@ -519,4 +519,10 @@ public class GitLabRepository implements HostedRepository {
             return WorkflowStatus.DISABLED;
         }
     }
+
+    @Override
+    public URI webUrl(Branch branch) {
+        var endpoint = "/" + projectName + "/-/tree/" + branch.name();
+        return gitLabHost.getWebUri(endpoint);
+    }
 }
