@@ -525,4 +525,16 @@ public class GitLabRepository implements HostedRepository {
         var endpoint = "/" + projectName + "/-/tree/" + branch.name();
         return gitLabHost.getWebUri(endpoint);
     }
+
+    @Override
+    public URI createPullRequestUrl(HostedRepository target, String targetRef, String sourceRef) {
+        var id = json.get("id").asInt();
+        var targetId = ((GitLabRepository) target).json.get("id").asInt();
+        var endpoint = "/" + projectName + "/-/merge_requests/new?" +
+                       "merge_request[source_project_id]=" + id +
+                       "&merge_request[source_branch]=" + sourceRef +
+                       "&merge_request[target_project]=" + targetId +
+                       "&merge_request[target_branch]=" + targetRef;
+        return gitLabHost.getWebUri(endpoint);
+    }
 }
