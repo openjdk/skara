@@ -63,7 +63,6 @@ class PullRequestBot implements Bot {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     private Instant lastFullUpdate;
-    private final ConcurrentHashMap<String, Boolean> processedCommitComments;
 
     PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef,
                    LabelConfiguration labelConfiguration, Map<String, String> externalCommands,
@@ -100,7 +99,6 @@ class PullRequestBot implements Bot {
 
         // Only check recently updated when starting up to avoid congestion
         lastFullUpdate = Instant.now();
-        processedCommitComments = new ConcurrentHashMap<>();
     }
 
     static PullRequestBotBuilder newBuilder() {
@@ -152,8 +150,9 @@ class PullRequestBot implements Bot {
         scheduledRechecks.put(pr.webUrl().toString(), expiresAt);
     }
 
-    private List<WorkItem> getWorkItems(List<PullRequest> pullRequests, List<CommitComment> commitComments) {
+    private List<WorkItem> getWorkItems(List<PullRequest> pullRequests) {
         var ret = new LinkedList<WorkItem>();
+        ret.add(new CommitCommentsWorkItem(this, remoteRepo));
 
         for (var pr : pullRequests) {
             if (updateCache.needsUpdate(pr) || checkHasExpired(pr)) {
@@ -167,12 +166,6 @@ class PullRequestBot implements Bot {
                     ret.add(new CommandWorkItem(this, pr, e -> updateCache.invalidate(pr)));
                 }
             }
-        }
-
-        for (var commitComment : commitComments) {
-            processedCommitComments.put(commitComment.id(), true);
-            ret.add(new CommitCommandWorkItem(this, commitComment,
-                                              e -> processedCommitComments.remove(commitComment.id())));
         }
 
         return ret;
@@ -190,12 +183,7 @@ class PullRequestBot implements Bot {
             prs = remoteRepo.pullRequests(ZonedDateTime.now().minus(Duration.ofDays(1)));
         }
 
-        var commitComments = remoteRepo.recentCommitComments()
-                                       .stream()
-                                       .filter(cc -> !processedCommitComments.containsKey(cc.id()))
-                                       .collect(Collectors.toList());
-
-        return getWorkItems(prs, commitComments);
+        return getWorkItems(prs);
     }
 
     @Override
@@ -205,7 +193,7 @@ class PullRequestBot implements Bot {
             return new ArrayList<>();
         }
 
-        return getWorkItems(webHook.get().updatedPullRequests(), List.of());
+        return getWorkItems(webHook.get().updatedPullRequests());
     }
 
     HostedRepository repo() {
