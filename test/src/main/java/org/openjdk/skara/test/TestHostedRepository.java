@@ -41,7 +41,6 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     private final Repository localRepository;
     private final Pattern pullRequestPattern;
     private final Map<Hash, List<CommitComment>> commitComments;
-    private int nextCommitCommentId;
 
     public TestHostedRepository(TestHost host, String projectName, Repository localRepository) {
         super(host, projectName);
@@ -50,7 +49,6 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
         this.localRepository = localRepository;
         pullRequestPattern = Pattern.compile(url().toString() + "/pr/" + "(\\d+)");
         commitComments = new HashMap<>();
-        nextCommitCommentId = 0;
     }
 
     @Override
@@ -222,15 +220,14 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
 
     @Override
     public CommitComment addCommitComment(Hash hash, String body) {
-        var id = nextCommitCommentId;
-        nextCommitCommentId += 1;
         var createdAt = ZonedDateTime.now();
+        var id = createdAt.toInstant().toString();
 
         if (!commitComments.containsKey(hash)) {
             commitComments.put(hash, new ArrayList<>());
         }
         var comments = commitComments.get(hash);
-        var comment = new CommitComment(hash, null, -1, Integer.toString(id), body, host.currentUser(), createdAt, createdAt);
+        var comment = new CommitComment(hash, null, -1, id, body, host.currentUser(), createdAt, createdAt);
         comments.add(comment);
         return comment;
     }
