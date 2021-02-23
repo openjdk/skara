@@ -46,9 +46,10 @@ public class GitLabRepository implements HostedRepository {
     private final JSONValue json;
     private final Pattern mergeRequestPattern;
     private final ZonedDateTime instantiated;
-    private ZonedDateTime until;
 
-    private static final ConcurrentHashMap<String, ConcurrentHashMap<String, Hash>> projectsToTitleToHashes = new ConcurrentHashMap<>();
+    private static final ZonedDateTime EPOCH = ZonedDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC);
+    private static final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<Hash, Boolean>>> projectsToTitleToHashes = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, ZonedDateTime> lastCommitUpdates = new ConcurrentHashMap<>();
 
     public GitLabRepository(GitLabHost gitLabHost, String projectName) {
         this(gitLabHost, gitLabHost.getProjectInfo(projectName).orElseThrow(() -> new RuntimeException("Project not found: " + projectName)));
@@ -76,9 +77,9 @@ public class GitLabRepository implements HostedRepository {
                                    .setPath("/" + projectName + "/merge_requests/").build();
         mergeRequestPattern = Pattern.compile(urlPattern.toString() + "(\\d+)");
         instantiated = ZonedDateTime.now();
-        until = instantiated;
 
         projectsToTitleToHashes.putIfAbsent(projectName, new ConcurrentHashMap<>());
+        lastCommitUpdates.putIfAbsent(projectName, EPOCH);
     }
 
     @Override
@@ -336,28 +337,13 @@ public class GitLabRepository implements HostedRepository {
                       .collect(Collectors.toList());
     }
 
-    private Hash commitWithComment(String commitTitle,
-                                   String commentBody,
-                                   ZonedDateTime commentCreatedAt,
-                                   HostUser author) {
+    private Set<Hash> commitsWithTitle(String commitTitle, ZonedDateTime now) {
         var commitTitlesToHashes = projectsToTitleToHashes.get(projectName);
-        if (commitTitlesToHashes.containsKey(commitTitle)) {
-            return commitTitlesToHashes.get(commitTitle);
-        }
+        var lastUpdated = lastCommitUpdates.get(projectName);
 
-        // Update with most recent commits
-        request.get("repository/commits")
-               .param("since", instantiated.format(DateTimeFormatter.ISO_DATE_TIME))
-               .execute()
-               .stream()
-               .forEach(o -> {
-                   var hash = new Hash(o.get("id").asString());
-                   var title = o.get("title").asString();
-                   commitTitlesToHashes.put(title, hash);
-               });
-
-        // Update lazily 12 months at a time
-        if (until != null) {
+        if (lastUpdated == EPOCH) {
+            // Fetch all commits one year at a time
+            var until = now;
             var since = until.minusMonths(12);
             for (var i = 0; i < 100; i++) {
                 var commits = request.get("repository/commits")
@@ -369,46 +355,111 @@ public class GitLabRepository implements HostedRepository {
                 since = until.minusMonths(12);
 
                 if (commits.size() == 0) {
-                    until = null;
                     break;
                 }
+
                 for (var commit : commits) {
                    var hash = new Hash(commit.get("id").asString());
                    var title = commit.get("title").asString();
-                   commitTitlesToHashes.put(title, hash);
+                   var empty = new ConcurrentHashMap<Hash, Boolean>();
+                   var existing = commitTitlesToHashes.putIfAbsent(title, empty);
+                   if (existing == null) {
+                       existing = empty;
+                   }
+                   existing.put(hash, true);
                 }
-                if (commitTitlesToHashes.containsKey(commitTitle)) {
-                    return commitTitlesToHashes.get(commitTitle);
+            }
+
+            lastCommitUpdates.put(projectName, now);
+        }
+
+        // Update with most recent commits
+        var lastUpdate = lastCommitUpdates.get(projectName);
+        if (lastUpdate.isBefore(now)) {
+            request.get("repository/commits")
+                   .param("since", lastUpdate.format(DateTimeFormatter.ISO_DATE_TIME))
+                   .execute()
+                   .stream()
+                   .forEach(o -> {
+                       var hash = new Hash(o.get("id").asString());
+                       var title = o.get("title").asString();
+                       var empty = new ConcurrentHashMap<Hash, Boolean>();
+                       var existing = commitTitlesToHashes.putIfAbsent(title, empty);
+                       if (existing == null) {
+                           existing = empty;
+                       }
+                       existing.put(hash, true);
+                   });
+            lastCommitUpdates.put(projectName, now);
+        }
+
+        if (commitTitlesToHashes.containsKey(commitTitle)) {
+            return commitTitlesToHashes.get(commitTitle).keySet();
+        }
+
+        if (commitTitle.endsWith("...")) {
+            var candidates = new HashSet<Hash>();
+            var prefix = commitTitle.substring(0, commitTitle.length() - "...".length());
+            for (var title : commitTitlesToHashes.keySet()) {
+                if (title.startsWith(prefix)) {
+                    candidates.addAll(commitTitlesToHashes.get(title).keySet());
+                }
+            }
+            return candidates;
+        }
+
+        return Set.of();
+    }
+
+    private Hash commitWithComment(String commitTitle,
+                                   ZonedDateTime commentCreatedAt,
+                                   HostUser author,
+                                   ZonedDateTime now) {
+        var candidates = commitsWithTitle(commitTitle, now);
+        if (candidates.size() == 1) {
+            return candidates.iterator().next();
+        }
+
+        for (var candidate : candidates) {
+            var comments = commitComments(candidate);
+            for (var comment : comments) {
+                if (comment.createdAt().equals(commentCreatedAt) &&
+                    comment.author().equals(author)) {
+                    return candidate;
                 }
             }
         }
 
-        throw new RuntimeException("Could not find commit with title: '" + commitTitle + "' for project " + projectName);
+        throw new RuntimeException("Did not find commit with title " + commitTitle + " for repository " + projectName);
     }
 
     @Override
     public List<CommitComment> recentCommitComments() {
         var fourDaysAgo = ZonedDateTime.now().minusDays(4);
         var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        return request.get("events")
+        var notes = request.get("events")
                       .param("after", fourDaysAgo.format(formatter))
                       .execute()
                       .stream()
                       .filter(o -> o.contains("note") &&
                                    o.get("note").contains("noteable_type") &&
                                    o.get("note").get("noteable_type").asString().equals("Commit"))
-                      .map(o -> {
-                          var createdAt = ZonedDateTime.parse(o.get("note").get("created_at").asString());
-                          var body = o.get("note").get("body").asString();
-                          var user = gitLabHost.parseAuthorField(o);
-                          var id = o.get("note").get("id").asInt();
-                          Supplier<Hash> hash = () -> commitWithComment(o.get("target_title").asString(),
-                                                                        body,
-                                                                        createdAt,
-                                                                        user);
-                          return new CommitComment(hash, null, -1, String.valueOf(id), body, user, createdAt, createdAt);
-                      })
                       .collect(Collectors.toList());
+
+        var now = ZonedDateTime.now();
+        return notes.stream()
+                    .map(o -> {
+                        var createdAt = ZonedDateTime.parse(o.get("note").get("created_at").asString());
+                        var body = o.get("note").get("body").asString();
+                        var user = gitLabHost.parseAuthorField(o);
+                        var id = o.get("note").get("id").asInt();
+                        var hash = commitWithComment(o.get("target_title").asString(),
+                                                     createdAt,
+                                                     user,
+                                                     now);
+                        return new CommitComment(hash, null, -1, String.valueOf(id), body, user, createdAt, createdAt);
+                    })
+                    .collect(Collectors.toList());
     }
 
     @Override
