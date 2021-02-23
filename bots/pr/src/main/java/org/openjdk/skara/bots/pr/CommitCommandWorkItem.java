@@ -87,7 +87,7 @@ public class CommitCommandWorkItem implements WorkItem {
         if (!bot.repo().webUrl().equals(otherItem.bot.repo().webUrl())) {
             return true;
         }
-        if (!commitComment.commit().equals(otherItem.commitComment.commit())) {
+        if (!commitComment.id().equals(otherItem.commitComment.id())) {
             return true;
         }
         return false;
