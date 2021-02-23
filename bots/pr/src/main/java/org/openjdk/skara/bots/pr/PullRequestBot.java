@@ -35,6 +35,7 @@ import java.time.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
+import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -191,10 +192,15 @@ class PullRequestBot implements Bot {
             prs = remoteRepo.pullRequests(ZonedDateTime.now().minus(Duration.ofDays(1)));
         }
 
-        var commitComments = remoteRepo.recentCommitComments()
+        List<CommitComment> commitComments = List.of();
+        try {
+            commitComments = remoteRepo.recentCommitComments()
                                        .stream()
                                        .filter(cc -> !processedCommitComments.contains(cc.id()))
                                        .collect(Collectors.toList());
+        } catch (Throwable e) {
+            log.log(Level.SEVERE, "Could not fetch commit comments for " + remoteRepo.name(), e);
+        }
 
         return getWorkItems(prs, commitComments);
     }
