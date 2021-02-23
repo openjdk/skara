@@ -205,7 +205,21 @@ public class Backports {
                     .collect(Collectors.toList());
     }
 
-    private static final Pattern featureFamilyPattern = Pattern.compile("^([^\\d]*)(\\d+)$");
+    // For Java 8, certain interim versions are considered to be different feature versions
+    private static String legacyFeatureSplit(JdkVersion version) {
+        if (version.feature().equals("8") && version.interim().isPresent()) {
+            var interim = Integer.parseInt(version.interim().get());
+            if (interim > 100) {
+                return version.feature() + "+100";
+            } else {
+                return version.feature() + "+0";
+            }
+        } else {
+            return version.feature();
+        }
+    }
+
+    private static final Pattern featureFamilyPattern = Pattern.compile("^([^\\d]*)(\\d+)u?$");
 
     /**
      * Classifies a given version as belonging to one or more release streams.
@@ -229,41 +243,49 @@ public class Backports {
             var featureFamily = featureFamilyMatcher.group(1);
             var featureVersion = featureFamilyMatcher.group(2);
             var numericFeature = Integer.parseInt(featureVersion);
+            var featureString = featureFamily + "-" + featureVersion;
             if (numericFeature >= 9) {
                 if (jdkVersion.update().isPresent()) {
                     var numericUpdate = Integer.parseInt(jdkVersion.update().get());
                     if (numericUpdate == 1 || numericUpdate == 2) {
-                        ret.add(jdkVersion.feature() + "+updates-oracle");
-                        ret.add(jdkVersion.feature() + "+updates-openjdk");
+                        ret.add(featureString + "+updates-oracle");
+                        ret.add(featureString + "+updates-openjdk");
                     } else if (numericUpdate > 2) {
                         if (jdkVersion.opt().isPresent() && jdkVersion.opt().get().equals("oracle")) {
                             if (jdkVersion.patch().isPresent()) {
-                                ret.add(jdkVersion.feature()+ "+bpr");
+                                ret.add(featureString + "+bpr");
                             } else {
-                                ret.add(jdkVersion.feature() + "+updates-oracle");
+                                ret.add(featureString + "+updates-oracle");
                             }
                         } else {
-                            ret.add(jdkVersion.feature() + "+updates-openjdk");
+                            ret.add(featureString + "+updates-openjdk");
                         }
                     }
                 } else {
-                    ret.add("features-" + featureFamily);
-                    ret.add(jdkVersion.feature() + "+updates-oracle");
-                    ret.add(jdkVersion.feature() + "+updates-openjdk");
+                    if (jdkVersion.opt().isPresent() && jdkVersion.opt().get().equals("cpu")) {
+                        ret.add(featureString + "+updates-oracle");
+                        ret.add(featureString + "+updates-openjdk");
+                    } else {
+                        ret.add("features-" + featureFamily);
+                        ret.add(featureString + "+updates-oracle");
+                        ret.add(featureString + "+updates-openjdk");
+                    }
                 }
             } else if (numericFeature == 7 || numericFeature == 8) {
+                var feature = legacyFeatureSplit(jdkVersion);
+
                 var resolvedInBuild = jdkVersion.resolvedInBuild();
                 if (resolvedInBuild.isPresent()) {
                     if (!resolvedInBuild.get().equals("team")) { // Special case - team build resolved are ignored
                         int resolvedInBuildNumber = jdkVersion.resolvedInBuildNumber();
                         if (resolvedInBuildNumber < 31) {
-                            ret.add(jdkVersion.feature());
+                            ret.add(feature);
                         } else if (resolvedInBuildNumber < 60) {
-                            ret.add(jdkVersion.feature() + "+bpr");
+                            ret.add(feature + "+bpr");
                         }
                     }
                 } else {
-                    ret.add(jdkVersion.feature());
+                    ret.add(feature);
                 }
             } else {
                 log.warning("Ignoring issue with unknown version: " + jdkVersion);

@@ -65,10 +65,6 @@ public class JdkVersion implements Comparable<JdkVersion> {
             }
 
             finalComponents.addAll(Arrays.asList(raw.split("\\.")));
-
-            // All components except the optional one must be numeric
-            finalComponents.forEach(Integer::parseUnsignedInt);
-
             if (optional != null) {
                 finalComponents.add(null);
                 finalComponents.add(optional);
