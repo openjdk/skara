@@ -32,11 +32,13 @@ import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.openjdk.skara.cli.pr.Utils.*;
 
 public class GitPrCreate {
+    private static final Pattern BACKPORT_PATTERN = Pattern.compile("^Backport [0-9a-f]{40}$");
     static final List<Flag> flags = List.of(
         Option.shortcut("u")
               .fullname("username")
@@ -379,21 +381,23 @@ public class GitPrCreate {
         var project = jbsProjectFromJcheckConf(repo, targetBranch);
         var issue = getIssue(currentBranch, project);
         var file = Files.createTempFile("PULL_REQUEST_", ".md");
-        if (issue.isPresent()) {
+        var headCommit = commits.get(0);
+        var headCommitMessage = CommitMessageParsers.v1.parse(headCommit.message());
+        if (BACKPORT_PATTERN.matcher(headCommitMessage.title()).matches() && commits.size() == 1) {
+            Files.writeString(file, headCommitMessage.title() + "\n\n");
+        } else if (issue.isPresent()) {
             Files.writeString(file, format(issue.get()) + "\n\n");
         } else {
-            var commit = commits.get(0);
-            issue = getIssue(commit, project);
+            issue = getIssue(headCommit, project);
             if (issue.isPresent()) {
                 Files.writeString(file, format(issue.get()) + "\n\n");
             } else {
-                var message = CommitMessageParsers.v1.parse(commit.message());
-                Files.writeString(file, message.title() + "\n");
-                if (!message.summaries().isEmpty()) {
-                    Files.write(file, message.summaries(), StandardOpenOption.APPEND);
+                Files.writeString(file, headCommitMessage.title() + "\n");
+                if (!headCommitMessage.summaries().isEmpty()) {
+                    Files.write(file, headCommitMessage.summaries(), StandardOpenOption.APPEND);
                 }
-                if (!message.additional().isEmpty()) {
-                    Files.write(file, message.additional(), StandardOpenOption.APPEND);
+                if (!headCommitMessage.additional().isEmpty()) {
+                    Files.write(file, headCommitMessage.additional(), StandardOpenOption.APPEND);
                 }
             }
         }
