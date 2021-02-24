@@ -27,7 +27,7 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Comment;
 
 import java.io.*;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.*;

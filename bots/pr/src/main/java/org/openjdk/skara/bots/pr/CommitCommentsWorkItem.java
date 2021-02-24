@@ -23,9 +23,11 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.bot.WorkItem;
-import org.openjdk.skara.forge.HostedRepository;
+import org.openjdk.skara.forge.*;
+import org.openjdk.skara.vcs.*;
 
-import java.nio.file.Path;
+import java.io.*;
+import java.nio.file.*;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
@@ -48,18 +50,49 @@ class CommitCommentsWorkItem implements WorkItem {
         return true;
     }
 
+    private boolean isAncestor(ReadOnlyRepository repo, Hash ancestor, Hash descendant) {
+        try {
+            return repo.isAncestor(ancestor, descendant);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
         log.info("Looking for recent commit comments for repository " + repo.name());
 
-        return repo.recentCommitComments()
-                   .stream()
-                   .filter(cc -> !processed.containsKey(cc.id()))
-                   .map(cc -> {
-                       processed.put(cc.id(), true);
-                       return new CommitCommandWorkItem(bot, cc, e -> processed.remove(cc.id()));
-                   })
-                   .collect(Collectors.toList());
+        var commitComments = repo.recentCommitComments();
 
+        try {
+            var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
+            var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
+            var localRepoDir = scratchPath.resolve(bot.repo().name());
+            Files.createDirectories(localRepoDir);
+            var localRepo = hostedRepositoryPool.materialize(bot.repo(), localRepoDir);
+            var remoteBranches = bot.repo().branches()
+                                           .stream()
+                                           .filter(b -> !b.name().startsWith("pr/"))
+                                           .collect(Collectors.toList());
+            for (var branch : remoteBranches) {
+                localRepo.fetch(bot.repo().url(), branch.name());
+            }
+            return commitComments.stream()
+                                 .filter(cc -> !processed.containsKey(cc.id()))
+                                 .filter(cc -> remoteBranches.stream()
+                                                             .anyMatch(b -> isAncestor(localRepo, cc.commit(), b.hash())))
+                                 .map(cc -> {
+                                     processed.put(cc.id(), true);
+                                     return new CommitCommandWorkItem(bot, cc, e -> processed.remove(cc.id()));
+                                 })
+                                 .collect(Collectors.toList());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "CommitCommentsWorkItem@" + repo.name();
     }
 }
