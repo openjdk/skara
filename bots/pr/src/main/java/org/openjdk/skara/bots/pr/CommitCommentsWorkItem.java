@@ -28,7 +28,7 @@ import org.openjdk.skara.vcs.*;
 
 import java.io.*;
 import java.nio.file.*;
-import java.util.Collection;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -62,8 +62,6 @@ class CommitCommentsWorkItem implements WorkItem {
     public Collection<WorkItem> run(Path scratchPath) {
         log.info("Looking for recent commit comments for repository " + repo.name());
 
-        var commitComments = repo.recentCommitComments();
-
         try {
             var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
             var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
@@ -77,6 +75,19 @@ class CommitCommentsWorkItem implements WorkItem {
             for (var branch : remoteBranches) {
                 localRepo.fetch(bot.repo().url(), branch.name());
             }
+
+            var commitTitleToCommits = new HashMap<String, Set<Hash>>();
+            for (var commit : localRepo.commitMetadata()) {
+                var title = commit.message().get(0);
+                if (commitTitleToCommits.containsKey(title)) {
+                    commitTitleToCommits.get(title).add(commit.hash());
+                } else {
+                    var set = new HashSet<Hash>();
+                    set.add(commit.hash());
+                    commitTitleToCommits.put(title, set);
+                }
+            }
+            var commitComments = repo.recentCommitComments(commitTitleToCommits);
             return commitComments.stream()
                                  .filter(cc -> !processed.containsKey(cc.id()))
                                  .filter(cc -> remoteBranches.stream()
