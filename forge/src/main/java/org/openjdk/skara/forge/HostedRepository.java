@@ -70,7 +70,10 @@ public interface HostedRepository {
     Hash branchHash(String ref);
     List<HostedBranch> branches();
     List<CommitComment> commitComments(Hash hash);
-    List<CommitComment> recentCommitComments();
+    default List<CommitComment> recentCommitComments() {
+        return recentCommitComments(Map.of());
+    }
+    List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits);
     CommitComment addCommitComment(Hash hash, String body);
     void updateCommitComment(String id, String body);
     Optional<HostedCommit> commit(Hash hash);

@@ -292,7 +292,7 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public List<CommitComment> recentCommitComments() {
+    public List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits) {
         var parts = name().split("/");
         var owner = parts[0];
         var name = parts[1];

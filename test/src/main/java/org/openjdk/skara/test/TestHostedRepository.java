@@ -210,7 +210,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public List<CommitComment> recentCommitComments() {
+    public List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits) {
         return commitComments.values()
                              .stream()
                              .flatMap(e -> e.stream())
