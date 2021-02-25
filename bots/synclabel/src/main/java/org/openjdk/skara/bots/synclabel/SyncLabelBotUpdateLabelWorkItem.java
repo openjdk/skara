@@ -29,6 +29,7 @@ import org.openjdk.skara.jbs.*;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Logger;
+import java.util.stream.*;
 
 public class SyncLabelBotUpdateLabelWorkItem implements WorkItem {
     private final IssueProject issueProject;
@@ -62,10 +63,9 @@ public class SyncLabelBotUpdateLabelWorkItem implements WorkItem {
             return List.of();
         }
 
-        var related = Backports.findBackports(issue.get(), true);
-        var allIssues = new ArrayList<Issue>();
-        allIssues.add(issue.get());
-        allIssues.addAll(related);
+        var allIssues = Stream.concat(Stream.of(issue.get()), Backports.findBackports(issue.get(), true).stream())
+                              .filter(i -> !i.labels().contains("hgupdate-sync-ignore"))
+                              .collect(Collectors.toList());
 
         var needsLabel = Backports.releaseStreamDuplicates(allIssues);
         for (var i : allIssues) {
