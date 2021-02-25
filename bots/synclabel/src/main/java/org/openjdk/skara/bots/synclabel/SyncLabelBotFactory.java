@@ -26,6 +26,7 @@ import org.openjdk.skara.bot.*;
 
 import java.util.*;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 public class SyncLabelBotFactory implements BotFactory {
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");
@@ -40,7 +41,10 @@ public class SyncLabelBotFactory implements BotFactory {
         var bots = new ArrayList<Bot>();
         var specific = configuration.specific();
         for (var issueproject : specific.get("issueprojects").asArray()) {
-            bots.add(new SyncLabelBot(configuration.issueProject(issueproject.asString())));
+            var project = configuration.issueProject(issueproject.get("project").asString());
+            var inspect = issueproject.contains("inspect") ? Pattern.compile(issueproject.get("inspect").asString()) : Pattern.compile(".*");
+            var ignore = issueproject.contains("ignore") ? Pattern.compile(issueproject.get("ignore").asString()) : Pattern.compile("\\b\\B");
+            bots.add(new SyncLabelBot(project, inspect, ignore));
         }
         return bots;
     }
