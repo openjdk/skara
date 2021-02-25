@@ -56,7 +56,7 @@ public class CommitCommandWorkItem implements WorkItem {
             Stream.concat(
                     commandHandlers.entrySet().stream()
                                    .map(entry -> entry.getKey() + " - " + entry.getValue().description()),
-                    bot.externalCommands().entrySet().stream()
+                    bot.externalCommitCommands().entrySet().stream()
                        .map(entry -> entry.getKey() + " - " + entry.getValue())
             ).sorted().forEachOrdered(c -> reply.println(" * " + c));
         }

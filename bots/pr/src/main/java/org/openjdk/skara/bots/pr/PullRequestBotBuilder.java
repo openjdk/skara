@@ -37,7 +37,8 @@ public class PullRequestBotBuilder {
     private HostedRepository censusRepo;
     private String censusRef = Branch.defaultFor(VCS.GIT).name();
     private LabelConfiguration labelConfiguration = LabelConfigurationJson.builder().build();
-    private Map<String, String> externalCommands = Map.of();
+    private Map<String, String> externalPullRequestCommands = Map.of();
+    private Map<String, String> externalCommitCommands = Map.of();
     private Map<String, String> blockingCheckLabels = Map.of();
     private Set<String> readyLabels = Set.of();
     private Set<String> twoReviewersLabels = Set.of();
@@ -76,8 +77,13 @@ public class PullRequestBotBuilder {
         return this;
     }
 
-    public PullRequestBotBuilder externalCommands(Map<String, String> externalCommands) {
-        this.externalCommands = externalCommands;
+    public PullRequestBotBuilder externalPullRequestCommands(Map<String, String> externalPullRequestCommands) {
+        this.externalPullRequestCommands = externalPullRequestCommands;
+        return this;
+    }
+
+    public PullRequestBotBuilder externalCommitCommands(Map<String, String> externalCommitCommands) {
+        this.externalCommitCommands = externalCommitCommands;
         return this;
     }
 
@@ -152,7 +158,8 @@ public class PullRequestBotBuilder {
     }
 
     public PullRequestBot build() {
-        return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration, externalCommands,
+        return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration,
+                                  externalPullRequestCommands, externalCommitCommands,
                                   blockingCheckLabels, readyLabels, twoReviewersLabels, twentyFourHoursLabels,
                                   readyComments, issueProject, ignoreStaleReviews,
                                   allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,

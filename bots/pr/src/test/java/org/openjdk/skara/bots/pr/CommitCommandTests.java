@@ -28,7 +28,7 @@ import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Hash;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -162,6 +162,46 @@ public class CommitCommandTests {
 
             // Verify that the bot did *not* reply
             assertEquals(List.of(comment), author.commitComments(prHash));
+        }
+    }
+
+    @Test
+    void externalCommitCommand(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var bot = PullRequestBot.newBuilder()
+                                    .repo(author)
+                                    .censusRepo(censusBuilder.build())
+                                    .censusLink("https://census.com/{{contributor}}-profile")
+                                    .externalCommitCommands(Map.of("external", "Help for external command"))
+                                    .seedStorage(seedFolder)
+                                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change directly on master
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "master");
+
+            // Add a help command
+            author.addCommitComment(editHash, "/help");
+            TestBotRunner.runPeriodicItems(bot);
+
+            // Look at the reply
+            var replies = author.commitComments(editHash);
+            CommitCommandAsserts.assertLastCommentContains(replies, "Available commands");
+            CommitCommandAsserts.assertLastCommentContains(replies, "external");
+            CommitCommandAsserts.assertLastCommentContains(replies, "Help for external command");
         }
     }
 }

@@ -42,10 +42,17 @@ public class PullRequestBotFactory implements BotFactory {
         var ret = new ArrayList<Bot>();
         var specific = configuration.specific();
 
-        var external = new HashMap<String, String>();
-        if (specific.contains("external")) {
-            for (var command : specific.get("external").fields()) {
-                external.put(command.name(), command.value().asString());
+        var externalPullRequestCommands = new HashMap<String, String>();
+        if (specific.contains("external") && specific.get("external").contains("pr")) {
+            for (var command : specific.get("external").get("pr").fields()) {
+                externalPullRequestCommands.put(command.name(), command.value().asString());
+            }
+        }
+
+        var externalCommitCommands = new HashMap<String, String>();
+        if (specific.contains("external") && specific.get("external").contains("commit")) {
+            for (var command : specific.get("external").get("commit").fields()) {
+                externalCommitCommands.put(command.name(), command.value().asString());
             }
         }
 
@@ -96,7 +103,8 @@ public class PullRequestBotFactory implements BotFactory {
                                            .blockingCheckLabels(blockers)
                                            .readyLabels(readyLabels)
                                            .readyComments(readyComments)
-                                           .externalCommands(external)
+                                           .externalPullRequestCommands(externalPullRequestCommands)
+                                           .externalCommitCommands(externalCommitCommands)
                                            .seedStorage(configuration.storageFolder().resolve("seeds"))
                                            .forks(forks);
 

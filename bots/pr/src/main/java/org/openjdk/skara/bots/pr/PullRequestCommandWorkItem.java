@@ -35,7 +35,7 @@ import java.util.logging.Logger;
 import java.util.regex.*;
 import java.util.stream.*;
 
-public class CommandWorkItem extends PullRequestWorkItem {
+public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     private static final String commandReplyMarker = "<!-- Jmerge command reply message (%s) -->";
@@ -67,7 +67,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
                     commandHandlers.entrySet().stream()
                                    .filter(entry -> entry.getValue().allowedInPullRequest())
                                    .map(entry -> entry.getKey() + " - " + entry.getValue().description()),
-                    bot.externalCommands().entrySet().stream()
+                    bot.externalPullRequestCommands().entrySet().stream()
                                           .map(entry -> entry.getKey() + " - " + entry.getValue())
             ).sorted().forEachOrdered(c -> reply.println(" * " + c));
         }
@@ -79,7 +79,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
                     commandHandlers.entrySet().stream()
                                    .filter(entry -> entry.getValue().allowedInCommit())
                                    .map(entry -> entry.getKey() + " - " + entry.getValue().description()),
-                    bot.externalCommands().entrySet().stream()
+                    bot.externalPullRequestCommands().entrySet().stream()
                        .map(entry -> entry.getKey() + " - " + entry.getValue())
             ).sorted().forEachOrdered(c -> reply.println(" * " + c));
         }
@@ -95,7 +95,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
         }
     }
 
-    CommandWorkItem(PullRequestBot bot, PullRequest pr, Consumer<RuntimeException> errorHandler) {
+    PullRequestCommandWorkItem(PullRequestBot bot, PullRequest pr, Consumer<RuntimeException> errorHandler) {
         super(bot, pr, errorHandler);
     }
 
@@ -129,7 +129,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
 
         return allCommands.stream()
                           .filter(ci -> !handled.contains(ci.id()))
-                          .filter(ci -> !bot.externalCommands().containsKey(ci.name()))
+                          .filter(ci -> !bot.externalPullRequestCommands().containsKey(ci.name()))
                           .findFirst();
     }
 
@@ -175,7 +175,7 @@ public class CommandWorkItem extends PullRequestWorkItem {
             } else {
                 if (handler.get().allowedInPullRequest()) {
                     if (command.id().startsWith("body") && !handler.get().allowedInBody()) {
-                        handler = Optional.of(new CommandWorkItem.InvalidBodyCommandHandler());
+                        handler = Optional.of(new PullRequestCommandWorkItem.InvalidBodyCommandHandler());
                     }
                     handler.get().handle(bot, pr, censusInstance, scratchPath, command, allComments, printer);
                 } else {
@@ -236,6 +236,6 @@ public class CommandWorkItem extends PullRequestWorkItem {
 
     @Override
     public String toString() {
-        return "CommandWorkItem@" + pr.repository().name() + "#" + pr.id();
+        return "PullRequestCommandWorkItem@" + pr.repository().name() + "#" + pr.id();
     }
 }

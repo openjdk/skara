@@ -42,7 +42,8 @@ class PullRequestBot implements Bot {
     private final HostedRepository censusRepo;
     private final String censusRef;
     private final LabelConfiguration labelConfiguration;
-    private final Map<String, String> externalCommands;
+    private final Map<String, String> externalPullRequestCommands;
+    private final Map<String, String> externalCommitCommands;
     private final Map<String, String> blockingCheckLabels;
     private final Set<String> readyLabels;
     private final Set<String> twoReviewersLabels;
@@ -64,8 +65,8 @@ class PullRequestBot implements Bot {
 
     private Instant lastFullUpdate;
 
-    PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef,
-                   LabelConfiguration labelConfiguration, Map<String, String> externalCommands,
+    PullRequestBot(HostedRepository repo, HostedRepository censusRepo, String censusRef, LabelConfiguration labelConfiguration,
+                   Map<String, String> externalPullRequestCommands, Map<String, String> externalCommitCommands,
                    Map<String, String> blockingCheckLabels, Set<String> readyLabels,
                    Set<String> twoReviewersLabels, Set<String> twentyFourHoursLabels,
                    Map<String, Pattern> readyComments, IssueProject issueProject,
@@ -76,7 +77,8 @@ class PullRequestBot implements Bot {
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
         this.labelConfiguration = labelConfiguration;
-        this.externalCommands = externalCommands;
+        this.externalPullRequestCommands = externalPullRequestCommands;
+        this.externalCommitCommands = externalCommitCommands;
         this.blockingCheckLabels = blockingCheckLabels;
         this.readyLabels = readyLabels;
         this.twoReviewersLabels = twoReviewersLabels;
@@ -163,7 +165,7 @@ class PullRequestBot implements Bot {
                     ret.add(new CheckWorkItem(this, pr, e -> updateCache.invalidate(pr)));
                 } else {
                     // Closed PR's do not need to be checked
-                    ret.add(new CommandWorkItem(this, pr, e -> updateCache.invalidate(pr)));
+                    ret.add(new PullRequestCommandWorkItem(this, pr, e -> updateCache.invalidate(pr)));
                 }
             }
         }
@@ -212,8 +214,12 @@ class PullRequestBot implements Bot {
         return labelConfiguration;
     }
 
-    Map<String, String> externalCommands() {
-        return externalCommands;
+    Map<String, String> externalPullRequestCommands() {
+        return externalPullRequestCommands;
+    }
+
+    Map<String, String> externalCommitCommands() {
+        return externalCommitCommands;
     }
 
     Map<String, String> blockingCheckLabels() {

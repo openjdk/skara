@@ -312,6 +312,6 @@ class CheckWorkItem extends PullRequestWorkItem {
 
         // Must re-fetch PR after executing CheckRun
         var updatedPR = pr.repository().pullRequest(pr.id());
-        return List.of(new CommandWorkItem(bot, updatedPR, errorHandler));
+        return List.of(new PullRequestCommandWorkItem(bot, updatedPR, errorHandler));
     }
 }
