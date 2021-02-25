@@ -32,7 +32,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
 
-class CommandTests {
+class PullRequestCommandTests {
     @Test
     void invalidCommand(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
@@ -276,7 +276,7 @@ class CommandTests {
             var mergeBot = PullRequestBot.newBuilder()
                                          .repo(integrator)
                                          .censusRepo(censusBuilder.build())
-                                         .externalCommands(Map.of("external", "Help for external command"))
+                                         .externalPullRequestCommands(Map.of("external", "Help for external command"))
                                          .build();
 
             // Populate the projects repository
