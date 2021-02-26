@@ -23,7 +23,6 @@
 package org.openjdk.skara.bots.synclabel;
 
 import org.openjdk.skara.bot.WorkItem;
-import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.jbs.*;
 
 import java.nio.file.Path;
@@ -32,12 +31,12 @@ import java.util.logging.Logger;
 import java.util.stream.*;
 
 public class SyncLabelBotUpdateLabelWorkItem implements WorkItem {
-    private final IssueProject issueProject;
+    private final SyncLabelBot bot;
     private final String mainIssueId;
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");
 
-    SyncLabelBotUpdateLabelWorkItem(IssueProject issueProject, String mainIssueId) {
-        this.issueProject = issueProject;
+    SyncLabelBotUpdateLabelWorkItem(SyncLabelBot bot, String mainIssueId) {
+        this.bot = bot;
         this.mainIssueId = mainIssueId;
     }
 
@@ -57,7 +56,7 @@ public class SyncLabelBotUpdateLabelWorkItem implements WorkItem {
 
     @Override
     public Collection<WorkItem> run(Path scratch) {
-        var issue = issueProject.issue(mainIssueId);
+        var issue = bot.issueProject().issue(mainIssueId);
         if (issue.isEmpty()) {
             log.severe("Issue " + mainIssueId + " is no longer present!");
             return List.of();
@@ -65,6 +64,9 @@ public class SyncLabelBotUpdateLabelWorkItem implements WorkItem {
 
         var allIssues = Stream.concat(Stream.of(issue.get()), Backports.findBackports(issue.get(), true).stream())
                               .filter(i -> !i.labels().contains("hgupdate-sync-ignore"))
+                              .filter(i -> Backports.mainFixVersion(i).isPresent())
+                              .filter(i -> bot.inspect().matcher(Backports.mainFixVersion(i).get().raw()).matches())
+                              .filter(i -> !bot.ignore().matcher(Backports.mainFixVersion(i).get().raw()).matches())
                               .collect(Collectors.toList());
 
         var needsLabel = Backports.releaseStreamDuplicates(allIssues);

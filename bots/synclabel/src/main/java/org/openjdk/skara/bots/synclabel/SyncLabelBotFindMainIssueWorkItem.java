@@ -23,7 +23,6 @@
 package org.openjdk.skara.bots.synclabel;
 
 import org.openjdk.skara.bot.WorkItem;
-import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.jbs.Backports;
 
 import java.nio.file.Path;
@@ -31,12 +30,12 @@ import java.util.*;
 import java.util.logging.Logger;
 
 public class SyncLabelBotFindMainIssueWorkItem implements WorkItem {
-    private final IssueProject issueProject;
     private final String issueId;
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");
+    private final SyncLabelBot bot;
 
-    SyncLabelBotFindMainIssueWorkItem(IssueProject issueProject, String issueId) {
-        this.issueProject = issueProject;
+    SyncLabelBotFindMainIssueWorkItem(SyncLabelBot bot, String issueId) {
+        this.bot = bot;
         this.issueId = issueId;
     }
 
@@ -51,7 +50,7 @@ public class SyncLabelBotFindMainIssueWorkItem implements WorkItem {
 
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
-        var issue = issueProject.issue(issueId);
+        var issue = bot.issueProject().issue(issueId);
         if (issue.isEmpty()) {
             log.severe("Issue " + issueId + " is no longer present!");
             return List.of();
@@ -63,7 +62,7 @@ public class SyncLabelBotFindMainIssueWorkItem implements WorkItem {
             return List.of();
         }
 
-        return List.of(new SyncLabelBotUpdateLabelWorkItem(issueProject, primary.get().id()));
+        return List.of(new SyncLabelBotUpdateLabelWorkItem(bot, primary.get().id()));
     }
 
     @Override

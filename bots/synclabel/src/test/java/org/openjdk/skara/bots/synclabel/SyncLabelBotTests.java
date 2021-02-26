@@ -36,11 +36,22 @@ import static org.openjdk.skara.issuetracker.Issue.State.RESOLVED;
 
 public class SyncLabelBotTests {
     private TestBotFactory testBotBuilder(IssueProject issueProject, Path storagePath) {
+        return testBotBuilder(issueProject, storagePath, null, null);
+    }
+
+    private TestBotFactory testBotBuilder(IssueProject issueProject, Path storagePath, String inspect, String ignore) {
+        var cfg = JSON.object().put("project", issueProject.name());
+        if (inspect != null) {
+            cfg.put("inspect", inspect);
+        }
+        if (ignore != null) {
+            cfg.put("ignore", ignore);
+        }
         return TestBotFactory.newBuilder()
                              .addIssueProject(issueProject.name(), issueProject)
                              .storagePath(storagePath)
                              .addConfiguration("issueprojects", JSON.array()
-                                                                    .add(issueProject.name()))
+                                                                    .add(cfg))
                              .build();
     }
 
@@ -143,7 +154,7 @@ public class SyncLabelBotTests {
     }
 
     @Test
-    void testIgnored(TestInfo testInfo) throws IOException {
+    void testManualIgnore(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var storageFolder = tempFolder.path().resolve("storage");
@@ -220,6 +231,112 @@ public class SyncLabelBotTests {
             assertEquals(List.of("hgupdate-sync-ignore"), issue3.labels());
             assertEquals(List.of(), issue4.labels());
             assertEquals(List.of(), issue5.labels());
+        }
+    }
+
+    @Test
+    void testIgnore(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var storageFolder = tempFolder.path().resolve("storage");
+            var issueProject = credentials.getIssueProject();
+            var syncLabelBot = testBotBuilder(issueProject, storageFolder).create("synclabel", JSON.object());
+
+            var issue1 = credentials.createIssue(issueProject, "Issue 1");
+            issue1.setProperty("fixVersions", JSON.array().add(JSON.of("8u41")));
+            issue1.setProperty("issuetype", JSON.of("Bug"));
+            issue1.setState(RESOLVED);
+            TestBotRunner.runPeriodicItems(syncLabelBot);
+            assertEquals(List.of(), issue1.labels());
+
+            var issue2 = credentials.createIssue(issueProject, "Issue 2");
+            issue2.setProperty("fixVersions", JSON.array().add(JSON.of("8u261")));
+            issue2.setProperty("issuetype", JSON.of("Backport"));
+            issue2.setState(RESOLVED);
+            issue1.addLink(Link.create(issue2, "backported by").build());
+            TestBotRunner.runPeriodicItems(syncLabelBot);
+            assertEquals(List.of(), issue1.labels());
+
+            var issue3 = credentials.createIssue(issueProject, "Issue 3");
+            issue3.setProperty("fixVersions", JSON.array().add(JSON.of("8u251")));
+            issue3.setProperty("issuetype", JSON.of("Backport"));
+            issue3.setState(RESOLVED);
+            issue1.addLink(Link.create(issue3, "backported by").build());
+            TestBotRunner.runPeriodicItems(syncLabelBot);
+            assertEquals(List.of("hgupdate-sync"), issue3.labels());
+
+            var issue4 = credentials.createIssue(issueProject, "Issue 4");
+            issue4.setProperty("fixVersions", JSON.array().add(JSON.of("emb-8u251")));
+            issue4.setProperty("issuetype", JSON.of("Backport"));
+            issue4.setState(RESOLVED);
+            issue1.addLink(Link.create(issue4, "backported by").build());
+
+            TestBotRunner.runPeriodicItems(syncLabelBot);
+            assertEquals(List.of(), issue1.labels());
+            assertEquals(List.of("hgupdate-sync"), issue2.labels());
+            assertEquals(List.of("hgupdate-sync"), issue3.labels());
+            assertEquals(List.of(), issue4.labels());
+
+            // Now try it with a configured ignore - issue 3 should lose its label
+            var syncLabelBotWithIgnore = testBotBuilder(issueProject, storageFolder, null, "8u4\\d").create("synclabel", JSON.object());
+            TestBotRunner.runPeriodicItems(syncLabelBotWithIgnore);
+            assertEquals(List.of(), issue1.labels());
+            assertEquals(List.of("hgupdate-sync"), issue2.labels());
+            assertEquals(List.of(), issue3.labels());
+            assertEquals(List.of(), issue4.labels());
+        }
+    }
+
+    @Test
+    void testInspect(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var storageFolder = tempFolder.path().resolve("storage");
+            var issueProject = credentials.getIssueProject();
+            var syncLabelBot = testBotBuilder(issueProject, storageFolder).create("synclabel", JSON.object());
+
+            var issue1 = credentials.createIssue(issueProject, "Issue 1");
+            issue1.setProperty("fixVersions", JSON.array().add(JSON.of("8u41")));
+            issue1.setProperty("issuetype", JSON.of("Bug"));
+            issue1.setState(RESOLVED);
+            TestBotRunner.runPeriodicItems(syncLabelBot);
+            assertEquals(List.of(), issue1.labels());
+
+            var issue2 = credentials.createIssue(issueProject, "Issue 2");
+            issue2.setProperty("fixVersions", JSON.array().add(JSON.of("8u261")));
+            issue2.setProperty("issuetype", JSON.of("Backport"));
+            issue2.setState(RESOLVED);
+            issue1.addLink(Link.create(issue2, "backported by").build());
+            TestBotRunner.runPeriodicItems(syncLabelBot);
+            assertEquals(List.of(), issue1.labels());
+
+            var issue3 = credentials.createIssue(issueProject, "Issue 3");
+            issue3.setProperty("fixVersions", JSON.array().add(JSON.of("8u251")));
+            issue3.setProperty("issuetype", JSON.of("Backport"));
+            issue3.setState(RESOLVED);
+            issue1.addLink(Link.create(issue3, "backported by").build());
+            TestBotRunner.runPeriodicItems(syncLabelBot);
+            assertEquals(List.of("hgupdate-sync"), issue3.labels());
+
+            var issue4 = credentials.createIssue(issueProject, "Issue 4");
+            issue4.setProperty("fixVersions", JSON.array().add(JSON.of("8u361")));
+            issue4.setProperty("issuetype", JSON.of("Backport"));
+            issue4.setState(RESOLVED);
+            issue1.addLink(Link.create(issue4, "backported by").build());
+
+            TestBotRunner.runPeriodicItems(syncLabelBot);
+            assertEquals(List.of(), issue1.labels());
+            assertEquals(List.of("hgupdate-sync"), issue2.labels());
+            assertEquals(List.of("hgupdate-sync"), issue3.labels());
+            assertEquals(List.of("hgupdate-sync"), issue4.labels());
+
+            // Now try it with a configured include - issue 2 will now lose its label
+            var syncLabelBotWithIgnore = testBotBuilder(issueProject, storageFolder, "8u\\d6\\d", null).create("synclabel", JSON.object());
+            TestBotRunner.runPeriodicItems(syncLabelBotWithIgnore);
+            assertEquals(List.of(), issue1.labels());
+            assertEquals(List.of(), issue2.labels());
+            assertEquals(List.of("hgupdate-sync"), issue3.labels());
+            assertEquals(List.of("hgupdate-sync"), issue4.labels());
         }
     }
 }

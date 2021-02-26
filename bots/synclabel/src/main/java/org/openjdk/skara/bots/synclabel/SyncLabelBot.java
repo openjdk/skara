@@ -28,17 +28,34 @@ import org.openjdk.skara.issuetracker.IssueProject;
 import java.time.*;
 import java.util.*;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 public class SyncLabelBot implements Bot {
     private final IssueProject issueProject;
+    private final Pattern inspect;
+    private final Pattern ignore;
     private final Map<String, ZonedDateTime> issueUpdatedAt = new HashMap<>();
 
     private ZonedDateTime lastUpdate;
 
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");
 
-    SyncLabelBot(IssueProject issueProject) {
+    SyncLabelBot(IssueProject issueProject, Pattern inspect, Pattern ignore) {
         this.issueProject = issueProject;
+        this.inspect = inspect;
+        this.ignore = ignore;
+    }
+
+    IssueProject issueProject() {
+        return issueProject;
+    }
+
+    Pattern inspect() {
+        return inspect;
+    }
+
+    Pattern ignore() {
+        return ignore;
     }
 
     @Override
@@ -61,7 +78,7 @@ public class SyncLabelBot implements Bot {
                 }
             }
             issueUpdatedAt.put(issue.id(), issue.updatedAt());
-            ret.add(new SyncLabelBotFindMainIssueWorkItem(issueProject, issue.id()));
+            ret.add(new SyncLabelBotFindMainIssueWorkItem(this, issue.id()));
         }
         return ret;
     }
