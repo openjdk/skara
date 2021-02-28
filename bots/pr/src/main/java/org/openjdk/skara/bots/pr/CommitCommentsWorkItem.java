@@ -67,12 +67,14 @@ class CommitCommentsWorkItem implements WorkItem {
             var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
             var localRepoPath = scratchPath.resolve("pr").resolve("commit-comments").resolve(bot.repo().name());
             var localRepo = hostedRepositoryPool.materialize(bot.repo(), localRepoPath);
+            localRepo.fetchAllRemotes(false);
             var remoteBranches = bot.repo().branches()
                                            .stream()
                                            .filter(b -> !b.name().startsWith("pr/"))
                                            .collect(Collectors.toList());
             for (var branch : remoteBranches) {
-                localRepo.fetch(bot.repo().url(), branch.name());
+                localRepo.checkout(new Branch(branch.name()));
+                localRepo.merge(new Branch("origin/" + branch.name()), Repository.FastForward.ONLY);
             }
 
             var commitTitleToCommits = new HashMap<String, Set<Hash>>();
