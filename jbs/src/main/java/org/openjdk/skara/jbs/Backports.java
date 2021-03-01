@@ -73,8 +73,8 @@ public class Backports {
             log.warning("Issue " + issue.id() + " has multiple valid fixVersions - ignoring");
             return Optional.empty();
         }
-        if (issue.properties().containsKey("customfield_10006") && issue.properties().get("customfield_10006").isObject()) {
-            return JdkVersion.parse(versionString.get(0), issue.properties().get("customfield_10006").get("value").asString());
+        if (issue.properties().containsKey("customfield_10006")) {
+            return JdkVersion.parse(versionString.get(0), issue.properties().get("customfield_10006").asString());
         } else {
             return JdkVersion.parse(versionString.get(0));
         }
