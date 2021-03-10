@@ -547,4 +547,22 @@ public class GitLabRepository implements HostedRepository {
                        "&merge_request[target_branch]=" + targetRef;
         return gitLabHost.getWebUri(endpoint);
     }
+
+    @Override
+    public void addCollaborator(HostUser user, boolean canPush) {
+        var accessLevel = canPush ? "30" : "20";
+        var data = "user_id=" + user.id() + "&access_level=" + accessLevel;
+        request.post("members")
+               .body(data)
+               .execute();
+    }
+
+    @Override
+    public boolean canPush(HostUser user) {
+        var accessLevel = request.get("members/" + user.id())
+                                 .execute()
+                                 .get("access_level")
+                                 .asInt();
+        return accessLevel >= 30;
+    }
 }
