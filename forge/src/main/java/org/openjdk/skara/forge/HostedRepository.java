@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.forge;
 
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 
@@ -82,6 +83,8 @@ public interface HostedRepository {
     URI createPullRequestUrl(HostedRepository target,
                              String targetRef,
                              String sourceRef);
+    void addCollaborator(HostUser user, boolean canPush);
+    boolean canPush(HostUser user);
 
     default PullRequest createPullRequest(HostedRepository target,
                                           String targetRef,
