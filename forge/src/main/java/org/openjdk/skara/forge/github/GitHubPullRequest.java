@@ -185,20 +185,27 @@ public class GitHubPullRequest implements PullRequest {
                .execute();
     }
 
-    private ReviewComment parseReviewComment(ReviewComment parent, JSONObject json) {
-        var author = host.parseUserField(json);
-        var threadId = parent == null ? json.get("id").toString() : parent.threadId();
+    private ReviewComment parseReviewComment(ReviewComment parent, JSONObject reviewJson) {
+        var author = host.parseUserField(reviewJson);
+        var threadId = parent == null ? reviewJson.get("id").toString() : parent.threadId();
 
-        int line = json.get("original_line").asInt();
-        var hash = new Hash(json.get("original_commit_id").asString());
-        var path = json.get("path").asString();
+        int line = reviewJson.get("original_line").asInt();
+        var hash = new Hash(reviewJson.get("original_commit_id").asString());
+        var path = reviewJson.get("path").asString();
 
-        if (json.get("side").asString().equals("LEFT")) {
+        if (reviewJson.get("side").asString().equals("LEFT")) {
             var commitInfo = request.get("commits/" + hash).execute();
+
+            // If line is present, it indicates the line in the merge-base commit
+            if (!reviewJson.get("line").isNull()) {
+                hash = new Hash(json.get("base").get("sha").asString());
+                line = reviewJson.get("line").asInt();
+            } else {
+                hash = new Hash(commitInfo.get("parents").asArray().get(0).get("sha").asString());
+            }
 
             // It's possible that the file in question was renamed / deleted in an earlier commit, would
             // need to parse all the commits in the PR to be sure. But this should cover most cases.
-            hash = new Hash(commitInfo.get("parents").asArray().get(0).get("sha").asString());
             for (var file : commitInfo.get("files").asArray()) {
                 if (file.get("filename").asString().equals(path)) {
                     if (file.get("status").asString().equals("renamed")) {
@@ -214,11 +221,11 @@ public class GitHubPullRequest implements PullRequest {
                                         hash,
                                         path,
                                         line,
-                                        json.get("id").toString(),
-                                        json.get("body").asString(),
+                                        reviewJson.get("id").toString(),
+                                        reviewJson.get("body").asString(),
                                         author,
-                                        ZonedDateTime.parse(json.get("created_at").asString()),
-                                        ZonedDateTime.parse(json.get("updated_at").asString()));
+                                        ZonedDateTime.parse(reviewJson.get("created_at").asString()),
+                                        ZonedDateTime.parse(reviewJson.get("updated_at").asString()));
         return comment;
     }
 
