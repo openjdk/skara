@@ -67,7 +67,6 @@ class CommitCommentsWorkItem implements WorkItem {
             var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
             var localRepoPath = scratchPath.resolve("pr").resolve("commit-comments").resolve(bot.repo().name());
             var localRepo = hostedRepositoryPool.materialize(bot.repo(), localRepoPath);
-            localRepo.fetchAllRemotes(false);
             var remoteBranches = bot.repo().branches()
                                            .stream()
                                            .filter(b -> !b.name().startsWith("pr/"))
