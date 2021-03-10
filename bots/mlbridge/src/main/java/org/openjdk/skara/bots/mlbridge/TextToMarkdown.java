@@ -28,7 +28,7 @@ import java.util.regex.*;
 public class TextToMarkdown {
     private static final Pattern punctuationPattern = Pattern.compile("([!\"#$%&'()*+,\\-./:;<=?@\\[\\]^_`{|}~])", Pattern.MULTILINE);
     private static final Pattern indentedPattern = Pattern.compile("^ {4}", Pattern.MULTILINE);
-    private static final Pattern quoteBlockPattern = Pattern.compile("^(>(>|\\s)*\\s.*$)", Pattern.MULTILINE);
+    private static final Pattern mentionPattern = Pattern.compile("@(\\w+)", Pattern.MULTILINE);
 
     private static String escapeBackslashes(String text) {
         return text.replace("\\", "\\\\");
@@ -61,7 +61,12 @@ public class TextToMarkdown {
         return String.join("\n", ret);
     }
 
+    private static String escapeMention(String text) {
+        var mentionMatcher = mentionPattern.matcher(text);
+        return mentionMatcher.replaceAll("@<!-- -->$1");
+    }
+
     static String escapeFormatting(String text) {
-        return escapeIndention(escapePunctuation(escapeBackslashes(separateQuoteBlocks(text))));
+        return escapeIndention(escapeMention(escapePunctuation(escapeBackslashes(separateQuoteBlocks(text)))));
     }
 }

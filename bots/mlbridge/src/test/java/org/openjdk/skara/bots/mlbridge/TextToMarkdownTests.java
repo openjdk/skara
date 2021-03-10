@@ -56,4 +56,9 @@ class TextToMarkdownTests {
         assertEquals("> 1\n> 2\n\n3", TextToMarkdown.escapeFormatting("> 1\n> 2\n3"));
         assertEquals("> 1\n> 2\n\n3", TextToMarkdown.escapeFormatting("> 1\n> 2\n\n3"));
     }
+
+    @Test
+    void mention() {
+        assertEquals("1\\@<!-- -->2", TextToMarkdown.escapeFormatting("1@2"));
+    }
 }
