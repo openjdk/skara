@@ -67,6 +67,7 @@ public class RestRequest {
         private final List<Param> bodyParams = new ArrayList<>();
         private final Map<String, String> headers = new HashMap<>();
         private JSONValue body;
+        private String rawBody;
         private int maxPages;
         private ErrorTransform onError;
 
@@ -75,16 +76,25 @@ public class RestRequest {
             this.endpoint = endpoint;
 
             body = null;
+            rawBody = null;
             maxPages = Integer.MAX_VALUE;
             onError = null;
         }
 
-        private JSONValue composedBody() {
+        private String composedBody() {
+            if (rawBody != null && (body != null || !bodyParams.isEmpty())) {
+                throw new RuntimeException("Cannot mix raw body and JSON body in request");
+            }
+
+            if (rawBody != null) {
+                return rawBody;
+            }
+
             var finalBody = body == null ? JSON.object() : body.asObject();
             for (var param : bodyParams) {
                 finalBody.put(param.key, param.value);
             }
-            return finalBody;
+            return finalBody.toString();
         }
 
         /**
@@ -122,6 +132,16 @@ public class RestRequest {
          */
         public QueryBuilder body(JSONValue json) {
             body = json;
+            return this;
+        }
+
+        /**
+         * Sets the request body encoded as raw POST data.
+         * @param data
+         * @return
+         */
+        public QueryBuilder body(String data) {
+            rawBody = data;
             return this;
         }
 
@@ -288,7 +308,7 @@ public class RestRequest {
         }
     }
 
-    private HttpRequest.Builder createRequest(RequestType requestType, String endpoint, JSONValue body,
+    private HttpRequest.Builder createRequest(RequestType requestType, String endpoint, String body,
                                       List<QueryBuilder.Param> params, Map<String, String> headers) {
         var uriBuilder = URIBuilder.base(apiBase);
         if (endpoint != null && !endpoint.isEmpty()) {
@@ -305,7 +325,7 @@ public class RestRequest {
                                         .header("Content-type", "application/json");
 
         if (body != null) {
-            requestBuilder.method(requestType.name(), HttpRequest.BodyPublishers.ofString(body.toString()));
+            requestBuilder.method(requestType.name(), HttpRequest.BodyPublishers.ofString(body));
         }
         headers.forEach(requestBuilder::header);
         return requestBuilder;

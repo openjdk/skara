@@ -40,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class RestReceiver implements AutoCloseable {
     private final HttpServer server;
     private final List<JSONObject> requests = new ArrayList<>();
+    private final List<String> rawRequests = new ArrayList<>();
     private List<String> responses;
     private int responseCode;
 
@@ -63,7 +64,11 @@ class RestReceiver implements AutoCloseable {
             if (input.isBlank()) {
                 requests.add(JSON.object());
             } else {
-                requests.add(JSON.parse(input).asObject());
+                try {
+                    requests.add(JSON.parse(input).asObject());
+                } catch (IllegalStateException e) {
+                    rawRequests.add(input);
+                }
             }
 
             var pageQuery = exchange.getRequestURI().getQuery();
@@ -138,6 +143,10 @@ class RestReceiver implements AutoCloseable {
 
     List<JSONObject> getRequests() {
         return requests;
+    }
+
+    List<String> getRawRequests() {
+        return rawRequests;
     }
 
     void setTruncatedResponseCount(int count) {
@@ -311,4 +320,29 @@ class RestRequestTests {
             assertEquals(1, anotherPagedResult.asArray().get(0).get("a").asInt());
             assertTrue(receiver.usedCached());
         }
-    }}
+    }
+
+    @Test
+    void rawBody() throws IOException {
+        try (var receiver = new RestReceiver()) {
+            var request = new RestRequest(receiver.getEndpoint());
+            request.post("/test").body("foo=bar").execute();
+            var rawRequests = receiver.getRawRequests();
+            assertEquals(1, rawRequests.size());
+            assertEquals("foo=bar", rawRequests.get(0));
+            assertEquals(List.of(), receiver.getRequests());
+        }
+    }
+
+    @Test
+    void jsonBody() throws IOException {
+        try (var receiver = new RestReceiver()) {
+            var request = new RestRequest(receiver.getEndpoint());
+            request.post("/test").body(JSON.object().put("foo", "bar")).execute();
+            var requests = receiver.getRequests();
+            assertEquals(1, requests.size());
+            assertEquals("bar", requests.get(0).get("foo").asString());
+            assertEquals(List.of(), receiver.getRawRequests());
+        }
+    }
+}
