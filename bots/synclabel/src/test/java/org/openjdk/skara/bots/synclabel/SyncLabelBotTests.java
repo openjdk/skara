@@ -339,4 +339,49 @@ public class SyncLabelBotTests {
             assertEquals(List.of("hgupdate-sync"), issue4.labels());
         }
     }
+
+    @Test
+    void testAddLabelWithBuild(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var storageFolder = tempFolder.path().resolve("storage");
+            var issueProject = credentials.getIssueProject();
+            var syncLabelBot = testBotBuilder(issueProject, storageFolder).create("synclabel", JSON.object());
+
+            var issue1 = credentials.createIssue(issueProject, "Issue 1");
+            issue1.setProperty("fixVersions", JSON.array().add(JSON.of("openjfx17")));
+            issue1.setProperty("issuetype", JSON.of("Bug"));
+            issue1.setState(RESOLVED);
+            TestBotRunner.runPeriodicItems(syncLabelBot);
+            assertEquals(List.of(), issue1.labels());
+
+            var issue2 = credentials.createIssue(issueProject, "Issue 2");
+            issue2.setProperty("fixVersions", JSON.array().add(JSON.of("8u271")));
+            issue2.setProperty("issuetype", JSON.of("Backport"));
+            issue2.setProperty("customfield_10006", JSON.of("b33"));
+            issue2.setState(RESOLVED);
+            issue1.addLink(Link.create(issue2, "backported by").build());
+            TestBotRunner.runPeriodicItems(syncLabelBot);
+            assertEquals(List.of(), issue1.labels());
+
+            var issue3 = credentials.createIssue(issueProject, "Issue 3");
+            issue3.setProperty("fixVersions", JSON.array().add(JSON.of("8u291")));
+            issue3.setProperty("issuetype", JSON.of("Backport"));
+            issue3.setState(RESOLVED);
+            issue1.addLink(Link.create(issue3, "backported by").build());
+            TestBotRunner.runPeriodicItems(syncLabelBot);
+            assertEquals(List.of(), issue3.labels());
+
+            var issue4 = credentials.createIssue(issueProject, "Issue 4");
+            issue4.setProperty("fixVersions", JSON.array().add(JSON.of("8u301")));
+            issue4.setProperty("issuetype", JSON.of("Backport"));
+            issue4.setState(RESOLVED);
+            issue1.addLink(Link.create(issue4, "backported by").build());
+            TestBotRunner.runPeriodicItems(syncLabelBot);
+            assertEquals(List.of(), issue1.labels());
+            assertEquals(List.of(), issue2.labels());
+            assertEquals(List.of(), issue3.labels());
+            assertEquals(List.of("hgupdate-sync"), issue4.labels());
+        }
+    }
 }

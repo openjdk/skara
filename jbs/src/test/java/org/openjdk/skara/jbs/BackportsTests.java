@@ -196,7 +196,7 @@ public class BackportsTests {
             }
             issue.setProperty("fixVersions", JSON.array().add(version));
             if (!resolvedInBuild.isEmpty()) {
-                issue.setProperty("customfield_10006", JSON.object().put("value", resolvedInBuild));
+                issue.setProperty("customfield_10006", JSON.of(resolvedInBuild));
             }
         }
 
@@ -473,6 +473,22 @@ public class BackportsTests {
 
             backports.addBackports("14.0.2", "14u-cpu", "11.0.9-oracle", "11.0.9");
             backports.assertLabeled();
+        }
+    }
+
+    @Test
+    void labelTest8261303(TestInfo testInfo) throws IOException
+    {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "openjfx17");
+            backports.assertLabeled();
+
+            backports.addBackports("8u271/b33", "8u291", "8u301");
+            backports.assertLabeled("8u301");
+
+            backports.addBackports("11.0.11-oracle", "11.0.11", "11.0.10-oracle", "11.0.9.0.1-oracle/b01",
+                    "11.0.9-oracle", "11.0.8.0.2-oracle");
+            backports.assertLabeled("8u301", "11.0.9.0.1-oracle", "11.0.10-oracle", "11.0.11-oracle");
         }
     }
 }
