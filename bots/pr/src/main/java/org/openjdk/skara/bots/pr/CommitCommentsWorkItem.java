@@ -72,7 +72,8 @@ class CommitCommentsWorkItem implements WorkItem {
                                            .filter(b -> !b.name().startsWith("pr/"))
                                            .collect(Collectors.toList());
             for (var branch : remoteBranches) {
-                localRepo.fetch(bot.repo().url(), branch.name());
+                localRepo.checkout(new Branch(branch.name()));
+                localRepo.merge(new Branch("origin/" + branch.name()), Repository.FastForward.ONLY);
             }
 
             var commitTitleToCommits = new HashMap<String, Set<Hash>>();
