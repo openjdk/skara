@@ -82,7 +82,8 @@ public class TestIssue implements Issue {
 
     @Override
     public void setTitle(String title) {
-        data.title = title;
+        // the strip simulates gitlab behavior
+        data.title = title.strip();
         data.lastUpdate = ZonedDateTime.now();
     }
 
