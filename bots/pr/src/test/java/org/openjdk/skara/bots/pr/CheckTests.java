@@ -947,7 +947,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR title should contain the issue title without trailing space
-            assertEquals("TEST-1: My second issue ending in space", prCutOff2.title());
+            assertEquals("TEST-2: My second issue ending in space", prCutOff2.title());
         }
     }
 
