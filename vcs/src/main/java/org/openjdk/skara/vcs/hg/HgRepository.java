@@ -50,8 +50,8 @@ public class HgRepository implements Repository {
     private final Path dir;
     private final Logger log = Logger.getLogger("org.openjdk.skara.vcs.hg");
 
-    public static void ignoreUserConfiguration(boolean ignore) {
-        currentEnv = ignore ? NO_CONFIG_ENV : Collections.emptyMap();
+    public static void ignoreConfiguration() {
+        currentEnv = NO_CONFIG_ENV;
     }
 
     private void copyResource(String name, Path p) throws IOException {

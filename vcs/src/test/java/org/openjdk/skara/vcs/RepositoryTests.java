@@ -22,7 +22,6 @@
  */
 package org.openjdk.skara.vcs;
 
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.openjdk.skara.test.TemporaryDirectory;
 
@@ -48,8 +47,8 @@ public class RepositoryTests {
 
     @BeforeAll
     static void setup() {
-        GitRepository.ignoreUserConfiguration(true);
-        HgRepository.ignoreUserConfiguration(true);
+        GitRepository.ignoreConfiguration();
+        HgRepository.ignoreConfiguration();
     }
 
     @ParameterizedTest

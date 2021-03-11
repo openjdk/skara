@@ -50,8 +50,8 @@ public class GitRepository implements Repository {
     private Path cachedRoot = null;
     private static final Hash EMPTY_TREE = new Hash("4b825dc642cb6eb9a060e54bf8d69288fbee4904");
 
-    public static void ignoreUserConfiguration(boolean ignore) {
-        currentEnv = ignore ? NO_CONFIG_ENV : Collections.emptyMap();
+    public static void ignoreConfiguration() {
+        currentEnv = NO_CONFIG_ENV;
     }
 
     private java.lang.Process start(String... cmd) throws IOException {
