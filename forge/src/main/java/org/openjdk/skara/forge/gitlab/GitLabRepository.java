@@ -565,4 +565,10 @@ public class GitLabRepository implements HostedRepository {
                                  .asInt();
         return accessLevel >= 30;
     }
+
+    @Override
+    public void restrictPushAccess(Branch branch, List<HostUser> users) {
+        // Not possible to implement using GitLab Community Edition.
+        // Must work around in admin web UI using groups.
+    }
 }

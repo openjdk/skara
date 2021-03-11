@@ -287,6 +287,11 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
         return collaborators.getOrDefault(user.username(), false);
     }
 
+    @Override
+    public void restrictPushAccess(Branch branch, List<HostUser> users) {
+        // Not possible to simulate
+    }
+
     Repository localRepository() {
         return localRepository;
     }

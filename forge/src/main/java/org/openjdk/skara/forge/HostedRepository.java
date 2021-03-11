@@ -85,6 +85,7 @@ public interface HostedRepository {
                              String sourceRef);
     void addCollaborator(HostUser user, boolean canPush);
     boolean canPush(HostUser user);
+    void restrictPushAccess(Branch branch, List<HostUser> users);
 
     default PullRequest createPullRequest(HostedRepository target,
                                           String targetRef,

@@ -204,4 +204,8 @@ class InMemoryHostedRepository implements HostedRepository {
     public boolean canPush(HostUser user) {
         return false;
     }
+
+    @Override
+    public void restrictPushAccess(Branch branch, List<HostUser> users) {
+    }
 }

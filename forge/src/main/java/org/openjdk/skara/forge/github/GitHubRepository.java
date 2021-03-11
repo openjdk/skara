@@ -532,4 +532,17 @@ public class GitHubRepository implements HostedRepository {
                                 .asString();
         return permission.equals("admin") || permission.equals("write");
     }
+
+    @Override
+    public void restrictPushAccess(Branch branch, List<HostUser> users) {
+        var usernames = JSON.array();
+        for (var user : users) {
+            usernames.add(user.username());
+        }
+        var query = JSON.object()
+                        .put("restrictions", JSON.object().put("users", usernames));
+        request.put("branches/" + branch.name() + "/protection")
+               .body(query)
+               .execute();
+    }
 }
