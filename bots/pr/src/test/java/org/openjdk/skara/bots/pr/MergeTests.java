@@ -127,6 +127,127 @@ class MergeTests {
         }
     }
 
+    @Test
+    void mergeAllowed(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder()
+                                         .repo(integrator)
+                                         .censusRepo(censusBuilder.build())
+                                         .integrators(Set.of(author.forge().currentUser().username()))
+                                         .build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make more changes in another branch
+            var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other",
+                                                                 "First other\n\nReviewed-by: integrationreviewer2");
+            localRepo.push(otherHash1, author.url(), "other", true);
+            var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other",
+                                                                 "Second other\n\nReviewed-by: integrationreviewer2");
+            localRepo.push(otherHash2, author.url(), "other");
+
+            // Go back to the original master
+            localRepo.checkout(masterHash, true);
+
+            // Make a change with a corresponding PR
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            localRepo.add(unrelated);
+            var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
+            localRepo.merge(otherHash2);
+            localRepo.push(updatedMaster, author.url(), "master");
+
+            var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
+            localRepo.push(mergeHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":other");
+
+            // Approve it as another user
+            var approvalPr = integrator.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // Let the bot check the status
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // Push it
+            pr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an ok message
+            assertLastCommentContains(pr, "Pushed as commit");
+        }
+    }
+
+    @Test
+    void mergeDisallowed(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder()
+                                         .repo(integrator)
+                                         .censusRepo(censusBuilder.build())
+                                         .integrators(Set.of(integrator.forge().currentUser().username()))
+                                         .build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make more changes in another branch
+            var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other",
+                                                                 "First other\n\nReviewed-by: integrationreviewer2");
+            localRepo.push(otherHash1, author.url(), "other", true);
+            var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other",
+                                                                 "Second other\n\nReviewed-by: integrationreviewer2");
+            localRepo.push(otherHash2, author.url(), "other");
+
+            // Go back to the original master
+            localRepo.checkout(masterHash, true);
+
+            // Make a change with a corresponding PR
+            var unrelated = Files.writeString(localRepo.root().resolve("unrelated.txt"), "Unrelated", StandardCharsets.UTF_8);
+            localRepo.add(unrelated);
+            var updatedMaster = localRepo.commit("Unrelated", "some", "some@one");
+            localRepo.merge(otherHash2);
+            localRepo.push(updatedMaster, author.url(), "master");
+
+            var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
+            localRepo.push(mergeHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":other");
+
+            // Approve it as another user
+            var approvalPr = integrator.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // Let the bot check the status
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // Push it
+            pr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with a failure message
+            assertLastCommentContains(pr, "Your integration request cannot be fulfilled at this time");
+        }
+    }
 
     @Test
     void hashMerge(TestInfo testInfo) throws IOException {
@@ -203,7 +324,7 @@ class MergeTests {
             assertTrue(commits.contains(otherHash2));
             assertFalse(commits.contains(mergeHash));
 
-            // Author and committer should updated in the merge commit
+            // Author and committer should be updated in the merge commit
             var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
             assertEquals("Merge " + otherHash2.hex(), headCommit.message().get(0));
             assertEquals("Generated Committer 1", headCommit.author().name());

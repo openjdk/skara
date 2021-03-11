@@ -259,7 +259,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                 var localRepoPath = scratchPath.resolve("pr").resolve("check").resolve(pr.repository().name());
                 var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, localRepoPath);
 
-                var expiresAt = CheckRun.execute(this, pr, localRepo, comments, allReviews, activeReviews, labels, census, bot.ignoreStaleReviews());
+                var expiresAt = CheckRun.execute(this, pr, localRepo, comments, allReviews, activeReviews, labels, census, bot.ignoreStaleReviews(), bot.integrators());
                 if (expiresAt.isPresent()) {
                     bot.scheduleRecheckAt(pr, expiresAt.get());
                 }

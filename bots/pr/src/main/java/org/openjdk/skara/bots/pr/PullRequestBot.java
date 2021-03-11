@@ -25,7 +25,6 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.census.Contributor;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.JSONValue;
 
@@ -61,6 +60,7 @@ class PullRequestBot implements Bot {
     private final ConcurrentHashMap<String, Instant> scheduledRechecks;
     private final PullRequestUpdateCache updateCache;
     private final Map<String, HostedRepository> forks;
+    private final Set<String> integrators;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     private Instant lastFullUpdate;
@@ -73,7 +73,8 @@ class PullRequestBot implements Bot {
                    Map<String, Pattern> readyComments, IssueProject issueProject,
                    boolean ignoreStaleReviews, Pattern allowedTargetBranches,
                    Path seedStorage, HostedRepository confOverrideRepo, String confOverrideName,
-                   String confOverrideRef, String censusLink, Map<String, HostedRepository> forks) {
+                   String confOverrideRef, String censusLink, Map<String, HostedRepository> forks,
+                   Set<String> integrators) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -92,8 +93,8 @@ class PullRequestBot implements Bot {
         this.confOverrideName = confOverrideName;
         this.confOverrideRef = confOverrideRef;
         this.censusLink = censusLink;
-
         this.forks = forks;
+        this.integrators = integrators;
 
         autoLabelled = new HashSet<>();
         scheduledRechecks = new ConcurrentHashMap<>();
@@ -298,5 +299,9 @@ class PullRequestBot implements Bot {
         synchronized (autoLabelled) {
             autoLabelled.add(pr.id());
         }
+    }
+
+    public Set<String> integrators() {
+        return integrators;
     }
 }
