@@ -37,17 +37,22 @@ import java.util.stream.*;
 import java.net.URI;
 
 public class HgRepository implements Repository {
-    public final static Map<String, String> NO_CONFIG_ENV = Map.of(
+    private final static Map<String, String> NO_CONFIG_ENV = Map.of(
             "HGRCPATH", "",
             "HGPLAIN", "",
             "HGEDITOR", "",
             "EDITOR", "",
             "VISUAL", ""
     );
+    private static Map<String, String> currentEnv = Collections.emptyMap();
 
     private static final String EXT_PY = "ext.py";
     private final Path dir;
     private final Logger log = Logger.getLogger("org.openjdk.skara.vcs.hg");
+
+    public static void ignoreUserConfiguration(boolean ignore) {
+        currentEnv = ignore ? NO_CONFIG_ENV : Collections.emptyMap();
+    }
 
     private void copyResource(String name, Path p) throws IOException {
         Files.copy(this.getClass().getResourceAsStream("/" + name), p, StandardCopyOption.REPLACE_EXISTING);
@@ -62,7 +67,7 @@ public class HgRepository implements Repository {
         var pb = new ProcessBuilder(cmd);
         pb.directory(dir.toFile());
         pb.redirectError(ProcessBuilder.Redirect.DISCARD);
-        pb.environment().putAll(NO_CONFIG_ENV);
+        pb.environment().putAll(currentEnv);
         return pb.start();
     }
 
@@ -95,7 +100,7 @@ public class HgRepository implements Repository {
     }
     public static Execution capture(Path cwd, String... cmd) {
         return Process.capture(cmd)
-                      .environ(NO_CONFIG_ENV)
+                      .environ(currentEnv)
                       .workdir(cwd)
                       .execute();
     }
@@ -595,7 +600,7 @@ public class HgRepository implements Repository {
         pb.directory(dir.toFile());
         pb.redirectError(ProcessBuilder.Redirect.DISCARD);
         pb.redirectOutput(to.toFile());
-        pb.environment().putAll(NO_CONFIG_ENV);
+        pb.environment().putAll(currentEnv);
         var p = pb.start();
         try {
             await(p);
