@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.vcs;
 
-import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
 import org.openjdk.skara.test.TemporaryDirectory;
 
 import org.junit.jupiter.api.Test;
@@ -44,6 +44,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class RepositoryTests {
+
+    @BeforeAll
+    static void setup() {
+        GitRepository.ignoreConfiguration();
+        HgRepository.ignoreConfiguration();
+    }
 
     @ParameterizedTest
     @EnumSource(VCS.class)
@@ -1655,7 +1661,7 @@ public class RepositoryTests {
             pb.environment().put("GIT_COMMITTER_NAME", "duke");
             pb.environment().put("GIT_COMMITTER_EMAIL", "duke@openjdk.org");
             pb.directory(dir.path().toFile());
-            pb.environment().putAll(GitRepository.NO_CONFIG_ENV);
+            pb.environment().putAll(GitRepository.currentEnv);
 
             var res = pb.start().waitFor();
             assertEquals(0, res);
@@ -1689,7 +1695,7 @@ public class RepositoryTests {
             pb.environment().put("GIT_COMMITTER_NAME", "duke");
             pb.environment().put("GIT_COMMITTER_EMAIL", "duke@openjdk.org");
             pb.directory(dir.path().toFile());
-            pb.environment().putAll(GitRepository.NO_CONFIG_ENV);
+            pb.environment().putAll(GitRepository.currentEnv);
 
             var res = pb.start().waitFor();
             assertEquals(0, res);
@@ -2488,7 +2494,7 @@ public class RepositoryTests {
             // so use a ProcessBuilder and invoke git directly here
             var pb = new ProcessBuilder("git", "tag", "test-tag", head.hex());
             pb.directory(repo.root().toFile());
-            pb.environment().putAll(GitRepository.NO_CONFIG_ENV);
+            pb.environment().putAll(GitRepository.currentEnv);
             assertEquals(0, pb.start().waitFor());
 
             var tags = repo.tags();

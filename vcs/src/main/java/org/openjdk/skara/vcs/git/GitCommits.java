@@ -81,7 +81,7 @@ class GitCommits implements Commits, AutoCloseable {
         cmd.add(range);
         var pb = new ProcessBuilder(cmd);
         pb.directory(dir.toFile());
-        pb.environment().putAll(GitRepository.NO_CONFIG_ENV);
+        pb.environment().putAll(GitRepository.currentEnv);
         var command = pb.command();
         try {
             var p = pb.start();
