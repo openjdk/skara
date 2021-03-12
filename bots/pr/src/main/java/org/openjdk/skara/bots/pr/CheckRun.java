@@ -48,6 +48,7 @@ class CheckRun {
     private final Set<String> labels;
     private final CensusInstance censusInstance;
     private final boolean ignoreStaleReviews;
+    private final Set<String> integrators;
 
     private final Hash baseHash;
     private final CheckablePullRequest checkablePullRequest;
@@ -69,7 +70,7 @@ class CheckRun {
 
     private CheckRun(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                      List<Review> allReviews, List<Review> activeReviews, Set<String> labels,
-                     CensusInstance censusInstance, boolean ignoreStaleReviews) throws IOException {
+                     CensusInstance censusInstance, boolean ignoreStaleReviews, Set<String> integrators) throws IOException {
         this.workItem = workItem;
         this.pr = pr;
         this.localRepo = localRepo;
@@ -80,6 +81,7 @@ class CheckRun {
         this.newLabels = new HashSet<>(labels);
         this.censusInstance = censusInstance;
         this.ignoreStaleReviews = ignoreStaleReviews;
+        this.integrators = integrators;
 
         baseHash = PullRequestUtils.baseHash(pr, localRepo);
         checkablePullRequest = new CheckablePullRequest(pr, localRepo, ignoreStaleReviews,
@@ -90,8 +92,8 @@ class CheckRun {
 
     static Optional<Instant> execute(CheckWorkItem workItem, PullRequest pr, Repository localRepo, List<Comment> comments,
                         List<Review> allReviews, List<Review> activeReviews, Set<String> labels, CensusInstance censusInstance,
-                        boolean ignoreStaleReviews) throws IOException {
-        var run = new CheckRun(workItem, pr, localRepo, comments, allReviews, activeReviews, labels, censusInstance, ignoreStaleReviews);
+                        boolean ignoreStaleReviews, Set<String> integrators) throws IOException {
+        var run = new CheckRun(workItem, pr, localRepo, comments, allReviews, activeReviews, labels, censusInstance, ignoreStaleReviews, integrators);
         run.checkStatus();
         if (run.expiresIn != null) {
             return Optional.of(Instant.now().plus(run.expiresIn));
@@ -156,6 +158,11 @@ class CheckRun {
             if (labels.contains(blocker.getKey())) {
                 ret.add(blocker.getValue());
             }
+        }
+
+        if (!integrators.isEmpty() && PullRequestUtils.isMerge(pr) && !integrators.contains(pr.author().username())) {
+            var error = "Only the designated integrators for this repository are allowed to create merge-style pull requests.";
+            ret.add(error);
         }
 
         return ret;

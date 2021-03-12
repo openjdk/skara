@@ -22,11 +22,9 @@
  */
 package org.openjdk.skara.bots.pr;
 
-import org.openjdk.skara.host.HostUser;
-import org.openjdk.skara.vcs.Branch;
-import org.openjdk.skara.vcs.VCS;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.IssueProject;
+import org.openjdk.skara.vcs.*;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -53,6 +51,7 @@ public class PullRequestBotBuilder {
     private String confOverrideRef = Branch.defaultFor(VCS.GIT).name();
     private String censusLink = null;
     private Map<String, HostedRepository> forks = Map.of();
+    private Set<String> integrators = Set.of();
 
     PullRequestBotBuilder() {
     }
@@ -157,12 +156,17 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder integrators(Set<String> integrators) {
+        this.integrators = new HashSet<>(integrators);
+        return this;
+    }
+
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration,
                                   externalPullRequestCommands, externalCommitCommands,
                                   blockingCheckLabels, readyLabels, twoReviewersLabels, twentyFourHoursLabels,
                                   readyComments, issueProject, ignoreStaleReviews,
                                   allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,
-                                  confOverrideRef, censusLink, forks);
+                                  confOverrideRef, censusLink, forks, integrators);
     }
 }
