@@ -67,34 +67,9 @@ public class BackportCommitCommandTests {
             assertEquals(2, recentCommitComments.size());
             var botReply = recentCommitComments.get(0);
             assertTrue(botReply.body().contains("backport"));
-            assertTrue(botReply.body().contains("created successfully."));
-
-            var pulls = author.pullRequests();
-            assertEquals(1, pulls.size());
-            var pr = pulls.get(0);
-            assertEquals("Backport " + editHash.hex(), pr.title());
-            assertEquals("master", pr.targetRef());
-
-            var prDiff = pr.diff();
-            var commitDiff = localRepo.diff(masterHash, editHash);
-            assertEquals(1, commitDiff.patches().size());
-            assertEquals(1, prDiff.patches().size());
-
-            var commitPatch = commitDiff.patches().get(0);
-            var prPatch = commitDiff.patches().get(0);
-            assertEquals(commitPatch.status(), prPatch.status());
-            assertEquals(commitPatch.target().path(), prPatch.target().path());
-            assertEquals(commitPatch.source().path(), prPatch.source().path());
-
-            var commitHunks = commitPatch.asTextualPatch().hunks();
-            var prHunks = prPatch.asTextualPatch().hunks();
-            assertEquals(commitHunks.size(), prHunks.size());
-            for (var i = 0; i < commitHunks.size(); i++) {
-                var commitHunk = commitHunks.get(i);
-                var prHunk = prHunks.get(i);
-                assertEquals(commitHunk.target().lines(), prHunk.target().lines());
-                assertEquals(commitHunk.source().lines(), prHunk.source().lines());
-            }
+            assertTrue(botReply.body().contains("was successfully created"));
+            assertTrue(botReply.body().contains("To create a pull request"));
+            assertTrue(botReply.body().contains("with this backport"));
         }
     }
 
