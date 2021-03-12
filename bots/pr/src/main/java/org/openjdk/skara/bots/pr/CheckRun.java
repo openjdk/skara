@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -519,9 +519,18 @@ class CheckRun {
 
     private String checkoutCommands() {
         var repoUrl = pr.repository().webUrl();
-        return
+        var firstTime =
            "`$ git fetch " + repoUrl + " " + pr.fetchRef() + ":pull/" + pr.id() + "`\n" +
            "`$ git checkout pull/" + pr.id() + "`\n";
+        var updating =
+           "`$ git checkout pull/" + pr.id() + "`\n" +
+           "`$ git pull " + repoUrl + " " + pr.fetchRef() + "`\n";
+
+        return "To checkout this PR locally:\n" +
+                firstTime +
+                "\n" +
+                "To update a local copy of the PR:\n" +
+                updating;
     }
 
     private String bodyWithoutStatus() {
