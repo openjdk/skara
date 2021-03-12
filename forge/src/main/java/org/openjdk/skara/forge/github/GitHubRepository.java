@@ -509,6 +509,12 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
+    public URI webUrl(Tag tag) {
+        var endpoint = "/" + repository + "/releases/tag/" + tag.name();
+        return gitHubHost.getWebURI(endpoint);
+    }
+
+    @Override
     public URI createPullRequestUrl(HostedRepository target, String targetRef, String sourceRef) {
         var sourceGroup = repository.split("/")[0];
         var endpoint = "/" + target.name() + "/" + targetRef + "..." + sourceGroup + ":" + sourceRef;

@@ -537,6 +537,12 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
+    public URI webUrl(Tag tag) {
+        var endpoint = "/" + projectName + "/-/tags/" + tag.name();
+        return gitLabHost.getWebUri(endpoint);
+    }
+
+    @Override
     public URI createPullRequestUrl(HostedRepository target, String targetRef, String sourceRef) {
         var id = json.get("id").asInt();
         var targetId = ((GitLabRepository) target).json.get("id").asInt();

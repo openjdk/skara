@@ -278,6 +278,11 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
+    public URI webUrl(Tag tag) {
+        return URI.create(webUrl() + "/tag/" + tag.name());
+    }
+
+    @Override
     public void addCollaborator(HostUser user, boolean canPush) {
         collaborators.put(user.username(), canPush);
     }

@@ -61,6 +61,7 @@ public interface HostedRepository {
     URI nonTransformedWebUrl();
     URI webUrl(Hash hash);
     URI webUrl(Branch branch);
+    URI webUrl(Tag tag);
     URI webUrl(String baseRef, String headRef);
     VCS repositoryType();
     String fileContents(String filename, String ref);
