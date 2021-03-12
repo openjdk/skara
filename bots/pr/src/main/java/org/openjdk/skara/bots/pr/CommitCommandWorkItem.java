@@ -46,7 +46,8 @@ public class CommitCommandWorkItem implements WorkItem {
 
     private static final Map<String, CommandHandler> commandHandlers = Map.ofEntries(
             Map.entry("help", new HelpCommand()),
-            Map.entry("backport", new BackportCommand())
+            Map.entry("backport", new BackportCommand()),
+            Map.entry("tag", new TagCommand())
     );
 
     static class HelpCommand implements CommandHandler {
