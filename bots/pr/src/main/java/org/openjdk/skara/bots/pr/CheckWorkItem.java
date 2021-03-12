@@ -170,7 +170,7 @@ class CheckWorkItem extends PullRequestWorkItem {
 
             var issue = project.issue(id);
             if (issue.isPresent()) {
-                var issueTitle = issue.get().title().strip();
+                var issueTitle = issue.get().title();
                 if (title.isEmpty()) {
                     // If the title is in the form of "[project-]<bugid>" only
                     // we add the title from JBS
