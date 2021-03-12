@@ -909,6 +909,7 @@ class CheckTests {
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.push(masterHash, author.url(), "master", true);
 
+            // Verify that a cut-off title is corrected
             var issue1 = issues.createIssue("My first issue with a very long title that is going to be cut off by the Git Forge provider", List.of("Hello"), Map.of());
 
             // Make a change with a corresponding PR
@@ -932,6 +933,21 @@ class CheckTests {
             assertEquals("1: My first issue with a very long title that is going to be cut off by the Git Forge provider", prCutOff.title());
             // And the body should not contain the issue title
             assertTrue(prCutOff.body().startsWith("It also has a second line!"));
+
+            // Verify that trailing space in issue is ignored
+            var issue2 = issues.createIssue("My second issue ending in space   ", List.of("Hello"), Map.of());
+
+            // Make a change with a corresponding PR
+            var editHash2 = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash2, author.url(), "edit", true);
+
+            var prCutOff2 =  credentials.createPullRequest(author, "master", "edit", issue2.id() + ": My second issue ending in space", List.of(), false);
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // The PR title should contain the issue title without trailing space
+            assertEquals("TEST-2: My second issue ending in space", prCutOff2.title());
         }
     }
 

@@ -174,7 +174,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                 if (title.isEmpty()) {
                     // If the title is in the form of "[project-]<bugid>" only
                     // we add the title from JBS
-                    var newPrTitle = id + ": " + issue.get().title();
+                    var newPrTitle = id + ": " + issueTitle;
                     pr.setTitle(newPrTitle);
                     return true;
                 } else {
@@ -184,9 +184,9 @@ class CheckWorkItem extends PullRequestWorkItem {
                         title = title.substring(0, title.length() - 1);
                     }
                     if (issueTitle.startsWith(title) && issueTitle.length() > title.length()) {
-                        var newPrTitle = id + ": " + issue.get().title();
+                        var newPrTitle = id + ": " + issueTitle;
                         pr.setTitle(newPrTitle);
-                        var remainingTitle = issue.get().title().substring(title.length());
+                        var remainingTitle = issueTitle.substring(title.length());
                         if (pr.body().startsWith(ELLIPSIS + remainingTitle + "\n\n")) {
                             // Remove remaning title, plus decorations
                             var newPrBody = pr.body().substring(remainingTitle.length() + 3);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -77,12 +77,13 @@ public class TestIssue implements Issue {
 
     @Override
     public String title() {
-        return data.title;
+        return data.title.strip();
     }
 
     @Override
     public void setTitle(String title) {
-        data.title = title;
+        // the strip simulates gitlab behavior
+        data.title = title.strip();
         data.lastUpdate = ZonedDateTime.now();
     }
 

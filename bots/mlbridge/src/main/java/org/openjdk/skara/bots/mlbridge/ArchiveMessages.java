@@ -172,7 +172,7 @@ class ArchiveMessages {
     static String composeConversation(PullRequest pr) {
         var filteredBody = filterCommentsAndCommands(pr.body());
         if (filteredBody.isEmpty()) {
-            filteredBody = pr.title().strip();
+            filteredBody = pr.title();
         }
 
         return filteredBody;
