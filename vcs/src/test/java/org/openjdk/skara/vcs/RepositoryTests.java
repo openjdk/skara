@@ -2888,4 +2888,49 @@ public class RepositoryTests {
             assertFalse(r.contains(new Hash("0123456789012345678901234567890123456789")));
         }
     }
+
+    @Test
+    void testTagPush() throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var upstream = Repository.init(dir.path(), VCS.GIT);
+
+            Files.write(upstream.root().resolve(".git").resolve("config"),
+                        List.of("[receive]", "denyCurrentBranch=ignore"),
+                        WRITE, APPEND);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            upstream.add(readme);
+            var initialCommit = upstream.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            try (var dir2 = new TemporaryDirectory()) {
+                var downstream = Repository.init(dir2.path(), VCS.GIT);
+
+                 // note: forcing unix path separators for URI
+                var upstreamURI = URI.create("file:///" + dir.toString().replace('\\', '/'));
+
+                var fetchHead = downstream.fetch(upstreamURI, downstream.defaultBranch().name());
+                downstream.checkout(fetchHead, false);
+
+                var downstreamReadme = dir2.path().resolve("README");
+                Files.write(downstreamReadme, List.of("Downstream change"), WRITE, APPEND);
+
+                downstream.add(downstreamReadme);
+                var head = downstream.commit("Modify README", "duke", "duke@openjdk.java.net");
+
+                var tag = downstream.tag(initialCommit, "v1.0", "Added tag v1.0", "duke", "duke@openjdk.org");
+
+                downstream.push(tag, upstreamURI, false);
+            }
+
+            upstream.checkout(upstream.resolve(upstream.defaultBranch().name()).get(), false);
+
+            var commits = upstream.commits().asList();
+            assertEquals(1, commits.size());
+            var tags = upstream.tags();
+            assertEquals(1, tags.size());
+            assertEquals("v1.0", tags.get(0).name());
+        }
+    }
 }
