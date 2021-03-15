@@ -197,6 +197,11 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
+    public URI webUrl(Tag tag) {
+        return null;
+    }
+
+    @Override
     public void addCollaborator(HostUser user, boolean canPush) {
     }
 
