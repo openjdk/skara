@@ -22,8 +22,8 @@
  */
 package org.openjdk.skara.forge.gitlab;
 
-import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.forge.*;
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
 import org.openjdk.skara.vcs.*;
@@ -34,10 +34,9 @@ import java.nio.file.Path;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.function.Supplier;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class GitLabRepository implements HostedRepository {
     private final GitLabHost gitLabHost;
@@ -173,11 +172,15 @@ public class GitLabRepository implements HostedRepository {
 
     @Override
     public URI url() {
-        var builder = URIBuilder
-                .base(gitLabHost.getUri())
-                .setPath("/" + projectName + ".git");
-        gitLabHost.getPat().ifPresent(pat -> builder.setAuthentication(pat.username() + ":" + pat.password()));
-        return builder.build();
+        if (gitLabHost.useSsh()) {
+            return URI.create("ssh://git@" + gitLabHost.getPat().orElseThrow().username() + "." + gitLabHost.getUri().getHost() + ":" + projectName + ".git");
+        } else {
+            var builder = URIBuilder
+                    .base(gitLabHost.getUri())
+                    .setPath("/" + projectName + ".git");
+            gitLabHost.getPat().ifPresent(pat -> builder.setAuthentication(pat.username() + ":" + pat.password()));
+            return builder.build();
+        }
     }
 
     @Override

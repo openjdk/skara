@@ -27,9 +27,13 @@ import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.json.JSONObject;
 import org.openjdk.skara.json.JSONValue;
 
+import java.io.*;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class GitLabForgeFactory implements ForgeFactory {
@@ -41,6 +45,33 @@ public class GitLabForgeFactory implements ForgeFactory {
     @Override
     public Set<String> knownHosts() {
         return Set.of("gitlab.com");
+    }
+
+    private void configureSshKey(String userName, String hostName, String sshKey) {
+        var cfgPath = Path.of(System.getProperty("user.home"), ".ssh");
+        var cfgFile = cfgPath.resolve("config");
+        var existing = "";
+        try {
+            existing = Files.readString(cfgFile, StandardCharsets.UTF_8);
+        } catch (IOException ignored) {
+        }
+
+        var userHost = userName + "." + hostName;
+        var existingBlock = Pattern.compile("^Match host=" + Pattern.quote(userHost) + "(?:\\R[ \\t]+.*)+", Pattern.MULTILINE);
+        var existingMatcher = existingBlock.matcher(existing);
+        var filtered = existingMatcher.replaceAll("");
+        var result = "Match host=" + userHost + "\n" +
+                "  Hostname " + hostName + "\n" +
+                "  PreferredAuthentications publickey\n" +
+                "  StrictHostKeyChecking no\n" +
+                "  IdentityFile " + sshKey + "\n" +
+                "\n";
+
+        try {
+            Files.writeString(cfgFile, result + filtered.strip() + "\n", StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
@@ -56,10 +87,15 @@ public class GitLabForgeFactory implements ForgeFactory {
                                   .map(JSONValue::asString)
                                   .collect(Collectors.toSet());
         }
+        var useSsh = false;
+        if (configuration != null && configuration.contains("sshkey") && credential != null) {
+            configureSshKey(credential.username(), uri.getHost(), configuration.get("sshkey").asString());
+            useSsh = true;
+        }
         if (credential != null) {
-            return new GitLabHost(name, uri, credential, groups);
+            return new GitLabHost(name, uri, useSsh, credential, groups);
         } else {
-            return new GitLabHost(name, uri, groups);
+            return new GitLabHost(name, uri, useSsh, groups);
         }
     }
 }

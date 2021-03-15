@@ -26,20 +26,19 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
-import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.vcs.Hash;
 
 import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.logging.Logger;
-import java.time.ZonedDateTime;
+import java.util.stream.Collectors;
 
 public class GitLabHost implements Forge {
     private final String name;
     private final URI uri;
+    private final boolean useSsh;
     private final Credential pat;
     private final RestRequest request;
     private final Logger log = Logger.getLogger("org.openjdk.skara.forge.gitlab");
@@ -47,9 +46,10 @@ public class GitLabHost implements Forge {
 
     private HostUser cachedCurrentUser = null;
 
-    GitLabHost(String name, URI uri, Credential pat, Set<String> groups) {
+    GitLabHost(String name, URI uri, boolean useSsh, Credential pat, Set<String> groups) {
         this.name = name;
         this.uri = uri;
+        this.useSsh = useSsh;
         this.pat = pat;
         this.groups = groups;
 
@@ -59,9 +59,10 @@ public class GitLabHost implements Forge {
         request = new RestRequest(baseApi, pat.username(), () -> Arrays.asList("Private-Token", pat.password()));
     }
 
-    GitLabHost(String name, URI uri, Set<String> groups) {
+    GitLabHost(String name, URI uri, boolean useSsh, Set<String> groups) {
         this.name = name;
         this.uri = uri;
+        this.useSsh = useSsh;
         this.pat = null;
         this.groups = groups;
 
@@ -73,6 +74,10 @@ public class GitLabHost implements Forge {
 
     public URI getUri() {
         return uri;
+    }
+
+    boolean useSsh() {
+        return useSsh;
     }
 
     Optional<Credential> getPat() {
