@@ -572,6 +572,19 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public void push(Tag tag, URI uri, boolean force) throws IOException {
+        var cmd = new ArrayList<>(List.of("hg", "push"));
+        if (force) {
+            cmd.add("--force");
+        }
+        cmd.add(tag.name());
+        cmd.add(uri.toString());
+        try (var p = capture(cmd)) {
+            await(p);
+        }
+    }
+
+    @Override
     public boolean isClean() throws IOException {
         try (var p = capture("hg", "status")) {
             var output = await(p);
