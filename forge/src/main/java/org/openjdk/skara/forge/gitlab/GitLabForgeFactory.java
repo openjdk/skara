@@ -57,10 +57,10 @@ public class GitLabForgeFactory implements ForgeFactory {
         }
 
         var userHost = userName + "." + hostName;
-        var existingBlock = Pattern.compile("^Match host=" + Pattern.quote(userHost) + "(?:\\R[ \\t]+.*)+", Pattern.MULTILINE);
+        var existingBlock = Pattern.compile("^Match host " + Pattern.quote(userHost) + "(?:\\R[ \\t]+.*)+", Pattern.MULTILINE);
         var existingMatcher = existingBlock.matcher(existing);
         var filtered = existingMatcher.replaceAll("");
-        var result = "Match host=" + userHost + "\n" +
+        var result = "Match host " + userHost + "\n" +
                 "  Hostname " + hostName + "\n" +
                 "  PreferredAuthentications publickey\n" +
                 "  StrictHostKeyChecking no\n" +
