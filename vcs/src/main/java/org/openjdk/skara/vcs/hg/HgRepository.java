@@ -308,6 +308,11 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public List<CommitMetadata> commitMetadataFor(List<Branch> branches) throws IOException {
+        throw new RuntimeException("Not implemented yet");
+    }
+
+    @Override
     public List<CommitMetadata> commitMetadata(String range) throws IOException {
         return commitMetadata(range, List.of(), false);
     }

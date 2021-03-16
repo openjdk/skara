@@ -70,6 +70,10 @@ public interface ReadOnlyRepository {
     List<CommitMetadata> commitMetadata(Hash from, Hash to, List<Path> paths) throws IOException;
     List<CommitMetadata> commitMetadata(String range, List<Path> paths, boolean reverse) throws IOException;
     List<CommitMetadata> commitMetadata(Hash from, Hash to, List<Path> paths, boolean reverse) throws IOException;
+
+    // Can't overload on both List<Path> and List<Branch>
+    List<CommitMetadata> commitMetadataFor(List<Branch> branches) throws IOException;
+
     String range(Hash h);
     String rangeInclusive(Hash from, Hash to);
     String rangeExclusive(Hash from, Hash to);
