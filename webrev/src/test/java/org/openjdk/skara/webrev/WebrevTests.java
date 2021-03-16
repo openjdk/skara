@@ -23,6 +23,7 @@
 package org.openjdk.skara.webrev;
 
 import org.openjdk.skara.test.TemporaryDirectory;
+import org.openjdk.skara.test.TestableRepository;
 import org.openjdk.skara.vcs.*;
 
 import org.junit.jupiter.params.ParameterizedTest;
@@ -45,7 +46,7 @@ class WebrevTests {
     void simple(VCS vcs) throws IOException {
         try (var repoFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory()) {
-            var repo = Repository.init(repoFolder.path(), vcs);
+            var repo = TestableRepository.init(repoFolder.path(), vcs);
             var file = repoFolder.path().resolve("x.txt");
             Files.writeString(file, "1\n2\n3\n", StandardCharsets.UTF_8);
             repo.add(file);
@@ -65,7 +66,7 @@ class WebrevTests {
     void middle(VCS vcs) throws IOException {
         try (var repoFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory()) {
-            var repo = Repository.init(repoFolder.path(), vcs);
+            var repo = TestableRepository.init(repoFolder.path(), vcs);
             var file = repoFolder.path().resolve("x.txt");
             Files.writeString(file, "1\n2\n3\n4\n5\n6\n7\n8\n9\n", StandardCharsets.UTF_8);
             repo.add(file);
@@ -84,7 +85,7 @@ class WebrevTests {
     void emptySourceHunk(VCS vcs) throws IOException {
         try (var repoFolder = new TemporaryDirectory();
         var webrevFolder = new TemporaryDirectory()) {
-            var repo = Repository.init(repoFolder.path(), vcs);
+            var repo = TestableRepository.init(repoFolder.path(), vcs);
             var file = repoFolder.path().resolve("x.txt");
             Files.writeString(file, "1\n2\n3\n", StandardCharsets.UTF_8);
             repo.add(file);
@@ -103,7 +104,7 @@ class WebrevTests {
     void removedHeader(VCS vcs) throws IOException {
         try (var repoFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory()) {
-            var repo = Repository.init(repoFolder.path(), vcs);
+            var repo = TestableRepository.init(repoFolder.path(), vcs);
             var file = repoFolder.path().resolve("x.txt");
             Files.writeString(file, "1\n2\n3\n4\n5\n6\n7\n8\n9\n", StandardCharsets.UTF_8);
             repo.add(file);
@@ -121,7 +122,7 @@ class WebrevTests {
     @EnumSource(VCS.class)
     void removeBinaryFile(VCS vcs) throws IOException {
         try (var tmp = new TemporaryDirectory()) {
-            var repo = Repository.init(tmp.path().resolve("repo"), vcs);
+            var repo = TestableRepository.init(tmp.path().resolve("repo"), vcs);
             var binaryFile = repo.root().resolve("x.jpg");
             byte[] contents = {0x1, 0x2, 0x3, 0x4, 0x5, 0x0, 0x2, 0x3, 0x4, 0x5};
             Files.write(binaryFile, contents);
@@ -138,7 +139,7 @@ class WebrevTests {
     @EnumSource(VCS.class)
     void addBinaryFile(VCS vcs) throws IOException {
         try (var tmp = new TemporaryDirectory()) {
-            var repo = Repository.init(tmp.path().resolve("repo"), vcs);
+            var repo = TestableRepository.init(tmp.path().resolve("repo"), vcs);
             var readme = repo.root().resolve("README");
             Files.writeString(readme, "Hello\n");
             repo.add(readme);
@@ -158,7 +159,7 @@ class WebrevTests {
     @EnumSource(VCS.class)
     void modifyBinaryFile(VCS vcs) throws IOException {
         try (var tmp = new TemporaryDirectory()) {
-            var repo = Repository.init(tmp.path().resolve("repo"), vcs);
+            var repo = TestableRepository.init(tmp.path().resolve("repo"), vcs);
             var readme = repo.root().resolve("README");
             var binaryFile = repo.root().resolve("x.jpg");
             byte[] contents = {0x1, 0x2, 0x3, 0x4, 0x5, 0x0, 0x2, 0x3, 0x4, 0x5};
@@ -180,7 +181,7 @@ class WebrevTests {
     void reservedName(VCS vcs) throws IOException {
         try (var repoFolder = new TemporaryDirectory();
              var webrevFolder = new TemporaryDirectory()) {
-            var repo = Repository.init(repoFolder.path(), vcs);
+            var repo = TestableRepository.init(repoFolder.path(), vcs);
             var file = repoFolder.path().resolve("index.html");
             Files.writeString(file, "1\n2\n3\n", StandardCharsets.UTF_8);
             repo.add(file);

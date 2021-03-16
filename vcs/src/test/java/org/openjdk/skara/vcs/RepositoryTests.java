@@ -28,6 +28,7 @@ import org.openjdk.skara.test.TemporaryDirectory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.openjdk.skara.test.TestableRepository;
 import org.openjdk.skara.vcs.git.GitRepository;
 import org.openjdk.skara.vcs.hg.HgRepository;
 
@@ -72,7 +73,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testExistsOnInitializedRepository(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.exists());
         }
     }
@@ -81,7 +82,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testExistsOnSubdir() throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), VCS.GIT);
+            var r = TestableRepository.init(dir.path(), VCS.GIT);
             assertTrue(r.exists());
 
             var subdir = Paths.get(dir.toString(), "test");
@@ -95,7 +96,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testRootOnTopLevel() throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), VCS.GIT);
+            var r = TestableRepository.init(dir.path(), VCS.GIT);
             assertEquals(dir.toString(), r.root().toString());
         }
     }
@@ -104,7 +105,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testRootOnSubdirectory(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertEquals(dir.toString(), r.root().toString());
 
             var subdir = Paths.get(dir.toString(), "sub");
@@ -119,7 +120,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testResolveOnEmptyRepository(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.resolve("HEAD").isEmpty());
         }
     }
@@ -128,7 +129,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testResolveWithHEAD(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -143,7 +144,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testConfig(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             if (vcs == VCS.GIT) {
                 var config = dir.path().resolve(".git").resolve("config");
@@ -163,7 +164,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testCurrentBranchOnEmptyRepository(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertEquals(r.defaultBranch(), r.currentBranch().get());
         }
     }
@@ -172,7 +173,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testCheckout(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -199,7 +200,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testLines(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -222,7 +223,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testLinesInSubdir(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            Repository.init(dir.path(), vcs);
+            TestableRepository.init(dir.path(), vcs);
 
             var subdir = dir.path().resolve("sub");
             Files.createDirectories(subdir);
@@ -250,7 +251,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testCommitListingOnEmptyRepo(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.commits().asList().isEmpty());
         }
     }
@@ -259,7 +260,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testCommitListingWithSingleCommit(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -339,7 +340,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testCommitListingWithMultipleCommits(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -408,7 +409,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testSquashDeletes(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var file1 = dir.path().resolve("file1.txt");
             Files.write(file1, List.of("Hello, file 1!"));
@@ -467,7 +468,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testSquash(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -542,7 +543,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testMergeBase(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -567,7 +568,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testIsAncestor(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -595,7 +596,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testRebase(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -668,7 +669,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testInitializedRepositoryIsEmpty(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isEmpty());
         }
     }
@@ -677,7 +678,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testRepositoryWithCommitIsNonEmpty(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -693,7 +694,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testEmptyRepositoryIsHealthy(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isHealthy());
         }
     }
@@ -702,7 +703,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testNonEmptyRepositoryIsHealthy(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -719,7 +720,7 @@ public class RepositoryTests {
     void testNonCheckedOutRepositoryIsHealthy(VCS vcs) throws IOException {
         try (var dir1 = new TemporaryDirectory();
              var dir2 = new TemporaryDirectory()) {
-            var r1 = Repository.init(dir1.path(), vcs);
+            var r1 = TestableRepository.init(dir1.path(), vcs);
 
             var readme = dir1.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -728,7 +729,7 @@ public class RepositoryTests {
             var hash = r1.commit("Add README", "duke", "duke@openjdk.java.net");
             r1.tag(hash, "tag", "tagging", "duke", "duke@openjdk.java.net");
 
-            var r2 = Repository.init(dir2.path(), vcs);
+            var r2 = TestableRepository.init(dir2.path(), vcs);
             r2.fetch(r1.root().toUri(), r1.defaultBranch().name());
 
             assertTrue(r2.isHealthy());
@@ -739,7 +740,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testBranchesOnEmptyRepository(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             var expected = vcs == VCS.GIT ? List.of() : List.of(new Branch("default"));
             assertEquals(List.of(), r.branches());
         }
@@ -749,7 +750,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testBranchesOnNonEmptyRepository(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -765,7 +766,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testTagsOnEmptyRepository(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             var expected = vcs == VCS.GIT ? List.of() : List.of(new Tag("tip"));
             assertEquals(expected, r.tags());
         }
@@ -775,7 +776,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testTagsOnNonEmptyRepository(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -792,7 +793,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testFetchAndPush(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var upstream = Repository.init(dir.path(), vcs);
+            var upstream = TestableRepository.init(dir.path(), vcs);
 
             if (vcs == VCS.GIT) {
                 Files.write(upstream.root().resolve(".git").resolve("config"),
@@ -807,7 +808,7 @@ public class RepositoryTests {
             upstream.commit("Add README", "duke", "duke@openjdk.java.net");
 
             try (var dir2 = new TemporaryDirectory()) {
-                var downstream = Repository.init(dir2.path(), vcs);
+                var downstream = TestableRepository.init(dir2.path(), vcs);
 
                  // note: forcing unix path separators for URI
                 var upstreamURI = URI.create("file:///" + dir.toString().replace('\\', '/'));
@@ -835,7 +836,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testClean(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             r.clean();
 
             var readme = dir.path().resolve("README");
@@ -863,7 +864,7 @@ public class RepositoryTests {
 
             // Mercurial cannot currently deal with this situation
             if (vcs != VCS.HG) {
-                var subRepo = Repository.init(dir.path().resolve("submodule"), vcs);
+                var subRepo = TestableRepository.init(dir.path().resolve("submodule"), vcs);
                 var subRepoFile = subRepo.root().resolve("file.txt");
                 Files.write(subRepoFile, List.of("Looks like a file in a submodule"));
 
@@ -878,7 +879,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testCleanIgnored(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             r.clean();
 
             var readme = dir.path().resolve("README");
@@ -902,7 +903,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testDiffBetweenCommits(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -951,7 +952,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testDiffBetweenCommitsWithMultiplePatches(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -1020,7 +1021,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testDiffBetweenCommitsWithMultipleHunks(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var abc = dir.path().resolve("abc.txt");
             Files.write(abc, List.of("A", "B", "C"));
@@ -1083,7 +1084,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testDiffWithRemoval(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, world!"));
@@ -1132,7 +1133,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testDiffWithAddition(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, world!"));
@@ -1182,7 +1183,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testDiffWithWorkingDir(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, world!"));
@@ -1229,7 +1230,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testCommitMetadata(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, world!"));
@@ -1255,7 +1256,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testCommitMetadataWithFiles(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme1 = dir.path().resolve("README_1");
             Files.write(readme1, List.of("1"));
@@ -1292,7 +1293,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testCommitMetadataWithReverse(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, world!"));
@@ -1319,7 +1320,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testTrivialMerge(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, world!"));
@@ -1372,7 +1373,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testMergeWithEdit(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, world!"));
@@ -1456,7 +1457,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testDefaultBranch(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             var expected = vcs == VCS.GIT ? "master" : "default";
             assertEquals(expected, r.defaultBranch().name());
         }
@@ -1466,7 +1467,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testPaths(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             var remote = vcs == VCS.GIT ? "origin" : "default";
             r.setPaths(remote, "http://pull", "http://push");
             assertEquals("http://pull", r.pullPath(remote));
@@ -1478,7 +1479,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testIsValidRevisionRange(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertFalse(r.isValidRevisionRange("foo"));
 
             var readme = dir.path().resolve("README");
@@ -1494,7 +1495,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testDefaultTag(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             var expected = vcs == VCS.GIT ? Optional.empty() : Optional.of(new Tag("tip"));
             assertEquals(expected, r.defaultTag());
         }
@@ -1504,7 +1505,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testTag(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, world!"));
@@ -1525,7 +1526,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testIsClean(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
 
             var readme = dir.path().resolve("README");
@@ -1550,7 +1551,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testShowOnExecutableFiles(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
 
             var readOnlyExecutableFile = dir.path().resolve("hello.sh");
@@ -1586,7 +1587,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testDiffOnFilenamesWithSpace(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
 
             var fileWithSpaceInName = dir.path().resolve("hello world.txt");
@@ -1610,7 +1611,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testDiffAgainstInitialRevision(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
 
             var readme = dir.path().resolve("README.md");
@@ -1630,7 +1631,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testStatusAgainstInitialRevision(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
 
             var readme = dir.path().resolve("README.md");
@@ -1651,7 +1652,7 @@ public class RepositoryTests {
     @Test
     void testSingleEmptyCommit() throws IOException, InterruptedException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), VCS.GIT);
+            var r = TestableRepository.init(dir.path(), VCS.GIT);
             assertTrue(r.isClean());
 
             // must ust git directly to be able to pass --allow-empty
@@ -1680,7 +1681,7 @@ public class RepositoryTests {
     @Test
     void testEmptyCommitWithParent() throws IOException, InterruptedException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), VCS.GIT);
+            var r = TestableRepository.init(dir.path(), VCS.GIT);
             assertTrue(r.isClean());
 
             var f = Files.createFile(dir.path().resolve("hello.txt"));
@@ -1715,7 +1716,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testAmend(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
 
             var f = dir.path().resolve("README");
@@ -1737,7 +1738,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testRevert(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
 
             var f = dir.path().resolve("README");
@@ -1764,7 +1765,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testFiles(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
 
             var f = dir.path().resolve("README");
@@ -1805,7 +1806,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testDump(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
 
             var f = dir.path().resolve("README");
@@ -1826,7 +1827,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testStatus(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
 
             var f = dir.path().resolve("README");
@@ -1856,7 +1857,7 @@ public class RepositoryTests {
     @Test
     void testStatusWithUnicodeFiles() throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), VCS.GIT);
+            var r = TestableRepository.init(dir.path(), VCS.GIT);
             assertTrue(r.isClean());
 
             var f = dir.path().resolve("REÁDME.md");
@@ -1880,7 +1881,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testTrackLineEndings(VCS vcs) throws IOException, InterruptedException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             if (vcs == VCS.GIT) { // turn of git's meddling
                 int exitCode = new ProcessBuilder()
                         .command("git", "config", "--local", "core.autocrlf", "false")
@@ -1926,7 +1927,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testContains(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
 
             var f = dir.path().resolve("README");
@@ -1948,7 +1949,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testAbortMerge(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
 
             var f = dir.path().resolve("README");
@@ -1978,7 +1979,7 @@ public class RepositoryTests {
         assumeTrue(vcs == VCS.GIT); // FIXME reset is not yet implemented for HG
 
         try (var dir = new TemporaryDirectory()) {
-            var repo = Repository.init(dir.path(), vcs);
+            var repo = TestableRepository.init(dir.path(), vcs);
             assertTrue(repo.isClean());
 
             var f = dir.path().resolve("README");
@@ -2004,7 +2005,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testRemotes(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var repo = Repository.init(dir.path(), vcs);
+            var repo = TestableRepository.init(dir.path(), vcs);
             assertEquals(List.of(), repo.remotes());
             repo.addRemote("foobar", "https://foo/bar");
             assertEquals(List.of("foobar"), repo.remotes());
@@ -2015,13 +2016,13 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testRemoteBranches(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var upstream = Repository.init(dir.path().resolve("upstream"), vcs);
+            var upstream = TestableRepository.init(dir.path().resolve("upstream"), vcs);
             var readme = upstream.root().resolve("README");
             Files.writeString(readme, "Hello\n");
             upstream.add(readme);
             var head = upstream.commit("Added README", "duke", "duke@openjdk.org");
 
-            var fork = Repository.init(dir.path().resolve("fork"), vcs);
+            var fork = TestableRepository.init(dir.path().resolve("fork"), vcs);
             fork.addRemote("upstream", upstream.root().toUri().toString());
             var refs = fork.remoteBranches("upstream");
             assertEquals(1, refs.size());
@@ -2035,7 +2036,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testSubmodulesOnEmptyRepo(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var repo = Repository.init(dir.path(), vcs);
+            var repo = TestableRepository.init(dir.path(), vcs);
             assertEquals(List.of(), repo.submodules());
         }
     }
@@ -2044,7 +2045,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testSubmodulesOnRepoWithNoSubmodules(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var repo = Repository.init(dir.path().resolve("repo"), vcs);
+            var repo = TestableRepository.init(dir.path().resolve("repo"), vcs);
             var readme = repo.root().resolve("README");
             Files.writeString(readme, "Hello\n");
             repo.add(readme);
@@ -2057,13 +2058,13 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testSubmodulesOnRepoWithSubmodule(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var submodule = Repository.init(dir.path().resolve("submodule"), vcs);
+            var submodule = TestableRepository.init(dir.path().resolve("submodule"), vcs);
             var readme = submodule.root().resolve("README");
             Files.writeString(readme, "Hello\n");
             submodule.add(readme);
             var head = submodule.commit("Added README", "duke", "duke@openjdk.org");
 
-            var repo = Repository.init(dir.path().resolve("repo"), vcs);
+            var repo = TestableRepository.init(dir.path().resolve("repo"), vcs);
             var pullPath = submodule.root().toAbsolutePath().toString();
             repo.addSubmodule(pullPath, Path.of("sub"));
             repo.commit("Added submodule", "duke", "duke@openjdk.org");
@@ -2081,7 +2082,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testAnnotateTag(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory(false)) {
-            var repo = Repository.init(dir.path(), vcs);
+            var repo = TestableRepository.init(dir.path(), vcs);
             var readme = repo.root().resolve("README");
             var now = ZonedDateTime.now();
             Files.writeString(readme, "Hello\n");
@@ -2106,7 +2107,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testAnnotateTagOnMissingTag(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var repo = Repository.init(dir.path(), vcs);
+            var repo = TestableRepository.init(dir.path(), vcs);
             var readme = repo.root().resolve("README");
             var now = ZonedDateTime.now();
             Files.writeString(readme, "Hello\n");
@@ -2121,7 +2122,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testAnnotateTagOnEmptyRepo(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var repo = Repository.init(dir.path(), vcs);
+            var repo = TestableRepository.init(dir.path(), vcs);
             assertEquals(Optional.empty(), repo.annotate(new Tag("unknown")));
         }
     }
@@ -2130,7 +2131,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testDiffWithFileList(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var repo = Repository.init(dir.path(), vcs);
+            var repo = TestableRepository.init(dir.path(), vcs);
             var readme = repo.root().resolve("README");
             Files.writeString(readme, "Hello\n");
             repo.add(readme);
@@ -2182,7 +2183,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testWritingConfigValue(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var repo = Repository.init(dir.path(), vcs);
+            var repo = TestableRepository.init(dir.path(), vcs);
             assertEquals(List.of(), repo.config("test.key"));
             repo.config("test", "key", "value");
             assertEquals(List.of("value"), repo.config("test.key"));
@@ -2229,7 +2230,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testFetchRemote(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var upstream = Repository.init(dir.path(), vcs);
+            var upstream = TestableRepository.init(dir.path(), vcs);
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
 
@@ -2237,7 +2238,7 @@ public class RepositoryTests {
             upstream.commit("Add README", "duke", "duke@openjdk.java.net");
 
             try (var dir2 = new TemporaryDirectory()) {
-                var downstream = Repository.init(dir2.path(), vcs);
+                var downstream = TestableRepository.init(dir2.path(), vcs);
 
                  // note: forcing unix path separators for URI
                 var upstreamURI = URI.create("file:///" + dir.toString().replace('\\', '/'));
@@ -2254,7 +2255,7 @@ public class RepositoryTests {
         assumeTrue(vcs == VCS.GIT); // FIXME hard to test with hg due to bookmarks and branches
         try (var dir = new TemporaryDirectory(false)) {
             var upstreamDir = dir.path().resolve("upstream" + (vcs == VCS.GIT ? ".git" : ".hg"));
-            var upstream = Repository.init(upstreamDir, vcs);
+            var upstream = TestableRepository.init(upstreamDir, vcs);
 
             Files.write(upstream.root().resolve(".git").resolve("config"),
                         List.of("[receive]", "denyCurrentBranch=ignore"),
@@ -2301,7 +2302,7 @@ public class RepositoryTests {
     void testUnmergedStatus(VCS vcs) throws IOException {
         assumeTrue(vcs == VCS.GIT);
         try (var dir = new TemporaryDirectory(false)) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, world!"));
@@ -2337,7 +2338,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testRangeSingle(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var repo = Repository.init(dir.path(), vcs);
+            var repo = TestableRepository.init(dir.path(), vcs);
             var range = repo.range(new Hash("0123456789"));
             if (vcs == VCS.GIT) {
                 assertEquals("0123456789^!", range);
@@ -2353,7 +2354,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testRangeInclusive(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var repo = Repository.init(dir.path(), vcs);
+            var repo = TestableRepository.init(dir.path(), vcs);
             var range = repo.rangeInclusive(new Hash("01234"), new Hash("56789"));
             if (vcs == VCS.GIT) {
                 assertEquals("01234^..56789", range);
@@ -2369,7 +2370,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testRangeExclusive(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var repo = Repository.init(dir.path(), vcs);
+            var repo = TestableRepository.init(dir.path(), vcs);
             var range = repo.rangeExclusive(new Hash("01234"), new Hash("56789"));
             if (vcs == VCS.GIT) {
                 assertEquals("01234..56789", range);
@@ -2384,14 +2385,14 @@ public class RepositoryTests {
     @Test
     void testHgRepoNestedInGitRepo() throws IOException {
         try (var gitDir = new TemporaryDirectory()) {
-            var gitRepo = Repository.init(gitDir.path(), VCS.GIT);
+            var gitRepo = TestableRepository.init(gitDir.path(), VCS.GIT);
             var gitFile = gitRepo.root().resolve("git-file.txt");
             Files.write(gitFile, List.of("Hello, Git!"));
             gitRepo.add(gitFile);
             var gitHash = gitRepo.commit("Added git-file.txt", "duke", "duke@openjdk.java.net");
 
             var hgDir = gitRepo.root().resolve("hg");
-            var hgRepo = Repository.init(hgDir, VCS.HG);
+            var hgRepo = TestableRepository.init(hgDir, VCS.HG);
             var hgFile = hgRepo.root().resolve("hg-file.txt");
             Files.write(hgFile, List.of("Hello, Mercurial!"));
             hgRepo.add(hgFile);
@@ -2412,14 +2413,14 @@ public class RepositoryTests {
     @Test
     void testGitRepoNestedInHgRepo() throws IOException {
         try (var hgDir = new TemporaryDirectory()) {
-            var hgRepo = Repository.init(hgDir.path(), VCS.HG);
+            var hgRepo = TestableRepository.init(hgDir.path(), VCS.HG);
             var hgFile = hgRepo.root().resolve("hg-file.txt");
             Files.write(hgFile, List.of("Hello, Mercurial!"));
             hgRepo.add(hgFile);
             var hgHash = hgRepo.commit("Added hg-file.txt", "duke", "duke@openjdk.java.net");
 
             var gitDir = hgRepo.root().resolve("git");
-            var gitRepo = Repository.init(gitDir, VCS.GIT);
+            var gitRepo = TestableRepository.init(gitDir, VCS.GIT);
             var gitFile = gitRepo.root().resolve("git-file.txt");
             Files.write(gitFile, List.of("Hello, Git!"));
             gitRepo.add(gitFile);
@@ -2440,13 +2441,13 @@ public class RepositoryTests {
     @Test
     void testGitAndHgRepoInSameDirectory() throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var hgRepo = Repository.init(dir.path(), VCS.HG);
+            var hgRepo = TestableRepository.init(dir.path(), VCS.HG);
             var hgFile = hgRepo.root().resolve("hg-file.txt");
             Files.write(hgFile, List.of("Hello, Mercurial!"));
             hgRepo.add(hgFile);
             var hgHash = hgRepo.commit("Added hg-file.txt", "duke", "duke@openjdk.java.net");
 
-            var gitRepo = Repository.init(dir.path(), VCS.GIT);
+            var gitRepo = TestableRepository.init(dir.path(), VCS.GIT);
             var gitFile = gitRepo.root().resolve("git-file.txt");
             Files.write(gitFile, List.of("Hello, Git!"));
             gitRepo.add(gitFile);
@@ -2459,7 +2460,7 @@ public class RepositoryTests {
     @Test
     void testCommitterDate() throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var repo = Repository.init(dir.path(), VCS.GIT);
+            var repo = TestableRepository.init(dir.path(), VCS.GIT);
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
 
@@ -2483,7 +2484,7 @@ public class RepositoryTests {
     @Test
     void testLightweightTags() throws IOException, InterruptedException {
         try (var dir = new TemporaryDirectory()) {
-            var repo = Repository.init(dir.path(), VCS.GIT);
+            var repo = TestableRepository.init(dir.path(), VCS.GIT);
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
 
@@ -2512,7 +2513,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testMergeCommitWithRenamedP0AndModifiedP1(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory(false)) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README.old");
             Files.write(readme, List.of("Hello, world!"));
@@ -2557,7 +2558,7 @@ public class RepositoryTests {
     @Test
     void testMercurialTagWithoutEmail() throws IOException, InterruptedException {
         try (var dir = new TemporaryDirectory()) {
-            var repo = Repository.init(dir.path(), VCS.HG);
+            var repo = TestableRepository.init(dir.path(), VCS.HG);
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
             repo.add(readme);
@@ -2573,7 +2574,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testNonFastForwardMerge(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -2597,7 +2598,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testFastForwardMerge(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -2623,7 +2624,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testDeleteUntrackedFiles(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -2648,7 +2649,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testTimestampOnTags(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -2667,7 +2668,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testFollow(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -2693,7 +2694,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testFollowMergeCommit(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory(false)) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
@@ -2742,7 +2743,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testPull(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var upstream = Repository.init(dir.path(), vcs);
+            var upstream = TestableRepository.init(dir.path(), vcs);
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
 
@@ -2751,7 +2752,7 @@ public class RepositoryTests {
             upstream.tag(head, "1.0", "Added tag 1.0", "duke", "duke@openjdk.java.net");
 
             try (var dir2 = new TemporaryDirectory()) {
-                var downstream = Repository.init(dir2.path(), vcs);
+                var downstream = TestableRepository.init(dir2.path(), vcs);
 
                  // note: forcing unix path separators for URI
                 var upstreamURI = URI.create("file:///" + dir.toString().replace('\\', '/'));
@@ -2778,7 +2779,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testNonExistingLookup(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
 
             var readme = dir.path().resolve("README.md");
@@ -2795,7 +2796,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testSuccessfulCherryPicking(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
 
             var readme = dir.path().resolve("README.md");
@@ -2834,7 +2835,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testFailingCherryPicking(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory(false)) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
 
             var readme = dir.path().resolve("README.md");
@@ -2876,7 +2877,7 @@ public class RepositoryTests {
     @EnumSource(VCS.class)
     void testRepositoryContains(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), vcs);
+            var r = TestableRepository.init(dir.path(), vcs);
             assertTrue(r.isClean());
 
             var readme = dir.path().resolve("README.md");

@@ -55,7 +55,7 @@ public class TestHost implements Forge, IssueTracker {
         var folder = new TemporaryDirectory();
         data.folders.add(folder);
         try {
-            var repo = Repository.init(folder.path().resolve("hosted.git"), VCS.GIT);
+            var repo = TestableRepository.init(folder.path().resolve("hosted.git"), VCS.GIT);
             Files.writeString(repo.root().resolve("content.txt"), "Initial content", StandardCharsets.UTF_8);
             repo.add(repo.root().resolve("content.txt"));
             var hash = repo.commit("Initial content", "author", "author@none");

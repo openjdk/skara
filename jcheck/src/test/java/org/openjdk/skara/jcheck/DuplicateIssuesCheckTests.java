@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.jcheck;
 
+import org.openjdk.skara.test.TestableRepository;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.*;
 import org.openjdk.skara.test.TemporaryDirectory;
@@ -60,7 +61,7 @@ class DuplicateIssuesCheckTests {
     @Test
     void noDuplicatedIssuesShouldPass() throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), VCS.GIT);
+            var r = TestableRepository.init(dir.path(), VCS.GIT);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, world!"));
@@ -85,7 +86,7 @@ class DuplicateIssuesCheckTests {
     @Test
     void duplicateIssuesInMessageShouldFail() throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), VCS.GIT);
+            var r = TestableRepository.init(dir.path(), VCS.GIT);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, world!"));
@@ -115,7 +116,7 @@ class DuplicateIssuesCheckTests {
     @Test
     void duplicateIssuesInPreviousCommitsShouldFail() throws IOException {
         try (var dir = new TemporaryDirectory()) {
-            var r = Repository.init(dir.path(), VCS.GIT);
+            var r = TestableRepository.init(dir.path(), VCS.GIT);
 
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, world!"));

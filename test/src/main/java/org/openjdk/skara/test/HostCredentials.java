@@ -285,7 +285,7 @@ public class HostCredentials implements AutoCloseable {
                 localRepo = Repository.materialize(repoFolder, repo.url(), "testlock");
             } catch (IOException e) {
                 // If the branch does not exist, we'll try to create it
-                localRepo = Repository.init(repoFolder, VCS.GIT);
+                localRepo = TestableRepository.init(repoFolder, VCS.GIT);
             }
 
             if (Files.exists(lockFile)) {

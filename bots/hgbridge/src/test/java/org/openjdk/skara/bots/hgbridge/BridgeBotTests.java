@@ -69,7 +69,7 @@ class BridgeBotTests {
             this.destinations(List.of(destination));
 
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
-            var marksLocalRepo = Repository.init(marksRepoPath.resolve("marks.git"), VCS.GIT);
+            var marksLocalRepo = TestableRepository.init(marksRepoPath.resolve("marks.git"), VCS.GIT);
 
             var initialFile = marksLocalRepo.root().resolve("init.txt");
             if (!Files.exists(initialFile)) {

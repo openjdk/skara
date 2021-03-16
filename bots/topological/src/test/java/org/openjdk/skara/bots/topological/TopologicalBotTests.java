@@ -46,7 +46,7 @@ class TopologicalBotTests {
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
-            var repo = Repository.init(fromDir, VCS.GIT);
+            var repo = TestableRepository.init(fromDir, VCS.GIT);
             var gitConfig = repo.root().resolve(".git").resolve("config");
             Files.write(gitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
@@ -116,7 +116,7 @@ class TopologicalBotTests {
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
-            var repo = Repository.init(fromDir, VCS.GIT);
+            var repo = TestableRepository.init(fromDir, VCS.GIT);
             var gitConfig = repo.root().resolve(".git").resolve("config");
             Files.write(gitConfig, List.of("[receive]", "denyCurrentBranch = ignore"), APPEND);
             var hostedRepo = new TestHostedRepository(host, "test", repo);

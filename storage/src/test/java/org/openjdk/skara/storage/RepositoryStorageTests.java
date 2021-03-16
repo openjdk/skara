@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.storage;
 
+import org.openjdk.skara.test.TestableRepository;
 import org.openjdk.skara.vcs.*;
 
 import org.junit.jupiter.params.ParameterizedTest;
@@ -49,7 +50,7 @@ class RepositoryStorageTests {
     @EnumSource(VCS.class)
     void simple(VCS vcs) throws IOException {
         var tmpDir = Files.createTempDirectory("repositorystorage");
-        var repository = Repository.init(tmpDir, vcs);
+        var repository = TestableRepository.init(tmpDir, vcs);
         var storage = stringStorage(repository);
 
         assertEquals(Set.of(), storage.current());
@@ -61,7 +62,7 @@ class RepositoryStorageTests {
     @EnumSource(VCS.class)
     void multiple(VCS vcs) throws IOException {
         var tmpDir = Files.createTempDirectory("repositorystorage");
-        var repository = Repository.init(tmpDir, vcs);
+        var repository = TestableRepository.init(tmpDir, vcs);
         var storage = stringStorage(repository);
 
         assertEquals(Set.of(), storage.current());
@@ -73,7 +74,7 @@ class RepositoryStorageTests {
     @EnumSource(VCS.class)
     void retained(VCS vcs) throws IOException {
         var tmpDir = Files.createTempDirectory("repositorystorage");
-        var repository = Repository.init(tmpDir, vcs);
+        var repository = TestableRepository.init(tmpDir, vcs);
         var storage = stringStorage(repository);
 
         assertEquals(Set.of(), storage.current());
@@ -89,7 +90,7 @@ class RepositoryStorageTests {
     @EnumSource(VCS.class)
     void duplicates(VCS vcs) throws IOException {
         var tmpDir = Files.createTempDirectory("repositorystorage");
-        var repository = Repository.init(tmpDir, vcs);
+        var repository = TestableRepository.init(tmpDir, vcs);
         var storage = stringStorage(repository);
 
         assertEquals(Set.of(), storage.current());

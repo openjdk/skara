@@ -22,11 +22,8 @@
  */
 package org.openjdk.skara.bots.checkout;
 
-import org.openjdk.skara.forge.HostedRepository;
-import org.openjdk.skara.storage.StorageBuilder;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.host.HostUser;
-import org.openjdk.skara.vcs.Tag;
 import org.openjdk.skara.vcs.*;
 
 import org.junit.jupiter.api.*;
@@ -61,7 +58,7 @@ class CheckoutBotTests {
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
             var marksLocalDir = tmp.path().resolve("marks.git");
             Files.createDirectories(marksLocalDir);
-            var marksLocalRepo = Repository.init(marksLocalDir, VCS.GIT);
+            var marksLocalRepo = TestableRepository.init(marksLocalDir, VCS.GIT);
             marksLocalRepo.config("receive", "denyCurrentBranch", "ignore");
             var marksHostedRepo = new TestHostedRepository(host, "marks", marksLocalRepo);
 
@@ -74,7 +71,7 @@ class CheckoutBotTests {
 
             var gitLocalDir = tmp.path().resolve("from.git");
             Files.createDirectories(gitLocalDir);
-            var gitLocalRepo = Repository.init(gitLocalDir, VCS.GIT);
+            var gitLocalRepo = TestableRepository.init(gitLocalDir, VCS.GIT);
             populate(gitLocalRepo);
             var gitHostedRepo = new TestHostedRepository(host, "from", gitLocalRepo);
 
@@ -93,7 +90,7 @@ class CheckoutBotTests {
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
             var marksLocalDir = tmp.path().resolve("marks.git");
             Files.createDirectories(marksLocalDir);
-            var marksLocalRepo = Repository.init(marksLocalDir, VCS.GIT);
+            var marksLocalRepo = TestableRepository.init(marksLocalDir, VCS.GIT);
             marksLocalRepo.config("receive", "denyCurrentBranch", "ignore");
             var marksHostedRepo = new TestHostedRepository(host, "marks", marksLocalRepo);
 
@@ -107,7 +104,7 @@ class CheckoutBotTests {
 
             var gitLocalDir = tmp.path().resolve("from.git");
             Files.createDirectories(gitLocalDir);
-            var gitLocalRepo = Repository.init(gitLocalDir, VCS.GIT);
+            var gitLocalRepo = TestableRepository.init(gitLocalDir, VCS.GIT);
             populate(gitLocalRepo);
             var gitHostedRepo = new TestHostedRepository(host, "from", gitLocalRepo);
 

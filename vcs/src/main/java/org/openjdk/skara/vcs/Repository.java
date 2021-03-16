@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -191,6 +191,14 @@ public interface Repository extends ReadOnlyRepository {
             default:
                 throw new IllegalArgumentException("Invalid enum value: " + vcs);
         }
+    }
+
+    /**
+     * Turn on a static flag of all repository providers to ignore local configuration.
+     */
+    static void ignoreConfiguration() {
+        GitRepository.ignoreConfiguration();
+        HgRepository.ignoreConfiguration();
     }
 
     static Optional<Repository> get(Path p) throws IOException {

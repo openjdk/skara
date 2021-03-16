@@ -23,6 +23,7 @@
 package org.openjdk.skara.vcs.openjdk.converter;
 
 import org.openjdk.skara.test.TemporaryDirectory;
+import org.openjdk.skara.test.TestableRepository;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.convert.HgToGitConverter;
 
@@ -39,14 +40,14 @@ class HgToGitConverterTests {
     void convertOneCommit() throws IOException {
         try (var hgRoot = new TemporaryDirectory();
              var gitRoot = new TemporaryDirectory()) {
-            var hgRepo = Repository.init(hgRoot.path(), VCS.HG);
+            var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var readme = hgRoot.path().resolve("README.md");
 
             Files.writeString(readme, "Hello, world");
             hgRepo.add(readme);
             hgRepo.commit("1234567: Added README", "foo", "foo@localhost");
 
-            var gitRepo = Repository.init(gitRoot.path(), VCS.GIT);
+            var gitRepo = TestableRepository.init(gitRoot.path(), VCS.GIT);
 
             var converter = new HgToGitConverter(Map.of(), Map.of(), Set.of(), Set.of(),
                                                  Map.of("foo", "Foo Bar <foo@openjdk.java.net>"), Map.of(), Map.of());
@@ -120,7 +121,7 @@ class HgToGitConverterTests {
     void convertOneSponsoredCommit() throws IOException {
         try (var hgRoot = new TemporaryDirectory();
              var gitRoot = new TemporaryDirectory()) {
-            var hgRepo = Repository.init(hgRoot.path(), VCS.HG);
+            var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var readme = hgRoot.path().resolve("README.md");
 
             Files.writeString(readme, "Hello, world");
@@ -128,7 +129,7 @@ class HgToGitConverterTests {
             var message = List.of("1234567: Added README", "Contributed-by: baz@domain.org");
             hgRepo.commit(String.join("\n", message), "foo", "foo@host.com");
 
-            var gitRepo = Repository.init(gitRoot.path(), VCS.GIT);
+            var gitRepo = TestableRepository.init(gitRoot.path(), VCS.GIT);
 
             var converter = new HgToGitConverter(Map.of(), Map.of(), Set.of(), Set.of(),
                                                  Map.of("foo", "Foo Bar <foo@openjdk.java.net>"),
@@ -155,7 +156,7 @@ class HgToGitConverterTests {
     void convertOneCoAuthoredCommit() throws IOException {
         try (var hgRoot = new TemporaryDirectory();
              var gitRoot = new TemporaryDirectory()) {
-            var hgRepo = Repository.init(hgRoot.path(), VCS.HG);
+            var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var readme = hgRoot.path().resolve("README.md");
 
             Files.writeString(readme, "Hello, world");
@@ -163,7 +164,7 @@ class HgToGitConverterTests {
             var message = List.of("1234567: Added README", "Contributed-by: baz@domain.org, foo@host.com");
             hgRepo.commit(String.join("\n", message), "foo", "foo@host.com");
 
-            var gitRepo = Repository.init(gitRoot.path(), VCS.GIT);
+            var gitRepo = TestableRepository.init(gitRoot.path(), VCS.GIT);
 
             var converter = new HgToGitConverter(Map.of(), Map.of(), Set.of(), Set.of(),
                                                  Map.of("foo", "Foo Bar <foo@openjdk.java.net>"),
@@ -192,7 +193,7 @@ class HgToGitConverterTests {
     void convertCommitWithSummary() throws IOException {
         try (var hgRoot = new TemporaryDirectory();
              var gitRoot = new TemporaryDirectory()) {
-            var hgRepo = Repository.init(hgRoot.path(), VCS.HG);
+            var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var readme = hgRoot.path().resolve("README.md");
 
             Files.writeString(readme, "Hello, world");
@@ -200,7 +201,7 @@ class HgToGitConverterTests {
             var message = List.of("1234567: Added README", "Summary: additional text", "Contributed-by: baz@domain.org, foo@host.com");
             hgRepo.commit(String.join("\n", message), "foo", "foo@host.com");
 
-            var gitRepo = Repository.init(gitRoot.path(), VCS.GIT);
+            var gitRepo = TestableRepository.init(gitRoot.path(), VCS.GIT);
 
             var converter = new HgToGitConverter(Map.of(), Map.of(), Set.of(), Set.of(),
                                                  Map.of("foo", "Foo Bar <foo@openjdk.java.net>"),

@@ -45,18 +45,18 @@ class MergeBotTests {
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
-            var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
+            var fromLocalRepo = TestableRepository.init(fromDir, VCS.GIT);
             var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
 
             var toDir = temp.path().resolve("to.git");
-            var toLocalRepo = Repository.init(toDir, VCS.GIT);
+            var toLocalRepo = TestableRepository.init(toDir, VCS.GIT);
             var toGitConfig = toDir.resolve(".git").resolve("config");
             Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
             var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
 
             var forkDir = temp.path().resolve("fork.git");
-            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkLocalRepo = TestableRepository.init(forkDir, VCS.GIT);
             var forkGitConfig = forkDir.resolve(".git").resolve("config");
             Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
@@ -120,18 +120,18 @@ class MergeBotTests {
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
-            var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
+            var fromLocalRepo = TestableRepository.init(fromDir, VCS.GIT);
             var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
 
             var toDir = temp.path().resolve("to.git");
-            var toLocalRepo = Repository.init(toDir, VCS.GIT);
+            var toLocalRepo = TestableRepository.init(toDir, VCS.GIT);
             var toGitConfig = toDir.resolve(".git").resolve("config");
             Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
             var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
 
             var forkDir = temp.path().resolve("fork.git");
-            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkLocalRepo = TestableRepository.init(forkDir, VCS.GIT);
             var forkGitConfig = forkDir.resolve(".git").resolve("config");
             Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
@@ -209,18 +209,18 @@ class MergeBotTests {
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
-            var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
+            var fromLocalRepo = TestableRepository.init(fromDir, VCS.GIT);
             var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
 
             var toDir = temp.path().resolve("to.git");
-            var toLocalRepo = Repository.init(toDir, VCS.GIT);
+            var toLocalRepo = TestableRepository.init(toDir, VCS.GIT);
             var toGitConfig = toDir.resolve(".git").resolve("config");
             Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
             var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
 
             var forkDir = temp.path().resolve("fork.git");
-            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkLocalRepo = TestableRepository.init(forkDir, VCS.GIT);
             var forkGitConfig = forkDir.resolve(".git").resolve("config");
             Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
@@ -301,18 +301,18 @@ class MergeBotTests {
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
-            var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
+            var fromLocalRepo = TestableRepository.init(fromDir, VCS.GIT);
             var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
 
             var toDir = temp.path().resolve("to.git");
-            var toLocalRepo = Repository.init(toDir, VCS.GIT);
+            var toLocalRepo = TestableRepository.init(toDir, VCS.GIT);
             var toGitConfig = toDir.resolve(".git").resolve("config");
             Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
             var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
 
             var forkDir = temp.path().resolve("fork.git");
-            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkLocalRepo = TestableRepository.init(forkDir, VCS.GIT);
             var forkGitConfig = forkDir.resolve(".git").resolve("config");
             Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
@@ -372,18 +372,18 @@ class MergeBotTests {
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
-            var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
+            var fromLocalRepo = TestableRepository.init(fromDir, VCS.GIT);
             var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
 
             var toDir = temp.path().resolve("to.git");
-            var toLocalRepo = Repository.init(toDir, VCS.GIT);
+            var toLocalRepo = TestableRepository.init(toDir, VCS.GIT);
             var toGitConfig = toDir.resolve(".git").resolve("config");
             Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
             var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
 
             var forkDir = temp.path().resolve("fork.git");
-            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkLocalRepo = TestableRepository.init(forkDir, VCS.GIT);
             var forkGitConfig = forkDir.resolve(".git").resolve("config");
             Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
@@ -435,19 +435,19 @@ class MergeBotTests {
             assertEquals("Merge test:master", pr.title());
 
             var fromDir2 = temp.path().resolve("from2.git");
-            var fromLocalRepo2 = Repository.init(fromDir2, VCS.GIT);
+            var fromLocalRepo2 = TestableRepository.init(fromDir2, VCS.GIT);
             var fromHostedRepo2 = new TestHostedRepository(host, "test-2", fromLocalRepo2);
 
             var host2 = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
             var toDir2 = temp.path().resolve("to2.git");
-            var toLocalRepo2 = Repository.init(toDir2, VCS.GIT);
+            var toLocalRepo2 = TestableRepository.init(toDir2, VCS.GIT);
             var toGitConfig2 = toDir2.resolve(".git").resolve("config");
             Files.write(toGitConfig2, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
             var toHostedRepo2 = new TestHostedRepository(host2, "test-mirror-2", toLocalRepo2);
 
             var forkDir2 = temp.path().resolve("fork2.git");
-            var forkLocalRepo2 = Repository.init(forkDir2, VCS.GIT);
+            var forkLocalRepo2 = TestableRepository.init(forkDir2, VCS.GIT);
             var forkGitConfig2 = forkDir2.resolve(".git").resolve("config");
             Files.write(forkGitConfig2, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
@@ -504,18 +504,18 @@ class MergeBotTests {
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
-            var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
+            var fromLocalRepo = TestableRepository.init(fromDir, VCS.GIT);
             var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
 
             var toDir = temp.path().resolve("to.git");
-            var toLocalRepo = Repository.init(toDir, VCS.GIT);
+            var toLocalRepo = TestableRepository.init(toDir, VCS.GIT);
             var toGitConfig = toDir.resolve(".git").resolve("config");
             Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
             var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
 
             var forkDir = temp.path().resolve("fork.git");
-            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkLocalRepo = TestableRepository.init(forkDir, VCS.GIT);
             var forkGitConfig = forkDir.resolve(".git").resolve("config");
             Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
@@ -575,18 +575,18 @@ class MergeBotTests {
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
-            var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
+            var fromLocalRepo = TestableRepository.init(fromDir, VCS.GIT);
             var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
 
             var toDir = temp.path().resolve("to.git");
-            var toLocalRepo = Repository.init(toDir, VCS.GIT);
+            var toLocalRepo = TestableRepository.init(toDir, VCS.GIT);
             var toGitConfig = toDir.resolve(".git").resolve("config");
             Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
             var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
 
             var forkDir = temp.path().resolve("fork.git");
-            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkLocalRepo = TestableRepository.init(forkDir, VCS.GIT);
             var forkGitConfig = forkDir.resolve(".git").resolve("config");
             Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
@@ -687,18 +687,18 @@ class MergeBotTests {
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
-            var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
+            var fromLocalRepo = TestableRepository.init(fromDir, VCS.GIT);
             var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
 
             var toDir = temp.path().resolve("to.git");
-            var toLocalRepo = Repository.init(toDir, VCS.GIT);
+            var toLocalRepo = TestableRepository.init(toDir, VCS.GIT);
             var toGitConfig = toDir.resolve(".git").resolve("config");
             Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
             var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
 
             var forkDir = temp.path().resolve("fork.git");
-            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkLocalRepo = TestableRepository.init(forkDir, VCS.GIT);
             var forkGitConfig = forkDir.resolve(".git").resolve("config");
             Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
@@ -802,18 +802,18 @@ class MergeBotTests {
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
-            var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
+            var fromLocalRepo = TestableRepository.init(fromDir, VCS.GIT);
             var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
 
             var toDir = temp.path().resolve("to.git");
-            var toLocalRepo = Repository.init(toDir, VCS.GIT);
+            var toLocalRepo = TestableRepository.init(toDir, VCS.GIT);
             var toGitConfig = toDir.resolve(".git").resolve("config");
             Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
             var toHostedRepo = new TestHostedRepository(host, "test", toLocalRepo);
 
             var forkDir = temp.path().resolve("fork.git");
-            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkLocalRepo = TestableRepository.init(forkDir, VCS.GIT);
             var forkGitConfig = forkDir.resolve(".git").resolve("config");
             Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
@@ -923,18 +923,18 @@ class MergeBotTests {
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
-            var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
+            var fromLocalRepo = TestableRepository.init(fromDir, VCS.GIT);
             var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
 
             var toDir = temp.path().resolve("to.git");
-            var toLocalRepo = Repository.init(toDir, VCS.GIT);
+            var toLocalRepo = TestableRepository.init(toDir, VCS.GIT);
             var toGitConfig = toDir.resolve(".git").resolve("config");
             Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
             var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
 
             var forkDir = temp.path().resolve("fork.git");
-            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkLocalRepo = TestableRepository.init(forkDir, VCS.GIT);
             var forkGitConfig = forkDir.resolve(".git").resolve("config");
             Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
@@ -1044,18 +1044,18 @@ class MergeBotTests {
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
-            var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
+            var fromLocalRepo = TestableRepository.init(fromDir, VCS.GIT);
             var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
 
             var toDir = temp.path().resolve("to.git");
-            var toLocalRepo = Repository.init(toDir, VCS.GIT);
+            var toLocalRepo = TestableRepository.init(toDir, VCS.GIT);
             var toGitConfig = toDir.resolve(".git").resolve("config");
             Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
             var toHostedRepo = new TestHostedRepository(host, "test", toLocalRepo);
 
             var forkDir = temp.path().resolve("fork.git");
-            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkLocalRepo = TestableRepository.init(forkDir, VCS.GIT);
             var forkGitConfig = forkDir.resolve(".git").resolve("config");
             Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
@@ -1165,18 +1165,18 @@ class MergeBotTests {
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
-            var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
+            var fromLocalRepo = TestableRepository.init(fromDir, VCS.GIT);
             var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
 
             var toDir = temp.path().resolve("to.git");
-            var toLocalRepo = Repository.init(toDir, VCS.GIT);
+            var toLocalRepo = TestableRepository.init(toDir, VCS.GIT);
             var toGitConfig = toDir.resolve(".git").resolve("config");
             Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
             var toHostedRepo = new TestHostedRepository(host, "test", toLocalRepo);
 
             var forkDir = temp.path().resolve("fork.git");
-            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkLocalRepo = TestableRepository.init(forkDir, VCS.GIT);
             var forkGitConfig = forkDir.resolve(".git").resolve("config");
             Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
@@ -1292,18 +1292,18 @@ class MergeBotTests {
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
-            var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
+            var fromLocalRepo = TestableRepository.init(fromDir, VCS.GIT);
             var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
 
             var toDir = temp.path().resolve("to.git");
-            var toLocalRepo = Repository.init(toDir, VCS.GIT);
+            var toLocalRepo = TestableRepository.init(toDir, VCS.GIT);
             var toGitConfig = toDir.resolve(".git").resolve("config");
             Files.write(toGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                     StandardOpenOption.APPEND);
             var toHostedRepo = new TestHostedRepository(host, "test-mirror", toLocalRepo);
 
             var forkDir = temp.path().resolve("fork.git");
-            var forkLocalRepo = Repository.init(forkDir, VCS.GIT);
+            var forkLocalRepo = TestableRepository.init(forkDir, VCS.GIT);
             var forkGitConfig = forkDir.resolve(".git").resolve("config");
             Files.write(forkGitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                     StandardOpenOption.APPEND);
@@ -1349,7 +1349,7 @@ class MergeBotTests {
 
             // But push something out of place to the local storage as well
             var sanitizedForkUrl = URLEncoder.encode(toFork.webUrl().toString(), StandardCharsets.UTF_8);
-            var storageRepo = Repository.init(storage.resolve(sanitizedForkUrl), VCS.GIT);
+            var storageRepo = TestableRepository.init(storage.resolve(sanitizedForkUrl), VCS.GIT);
             var divergedForkFile = storageRepo.root().resolve("d.txt");
             Files.writeString(divergedForkFile, "Hello D\n");
             storageRepo.add(divergedForkFile);

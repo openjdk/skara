@@ -55,7 +55,7 @@ public class HostedRepositoryStorageTests {
             storage.put(List.of("a", "b"));
 
             // Corrupt the destination path and materialize again
-            var localRepo = Repository.init(tempFolder.path(), VCS.GIT);
+            var localRepo = TestableRepository.init(tempFolder.path(), VCS.GIT);
             localRepo.checkout(new Branch("storage"));
             assertThrows(RuntimeException.class, () -> new HostedRepositoryStorage<>(repo, tempFolder.path(), "master", "test.txt",
                                                                                      "duke", "duke@openjdk.java.org",

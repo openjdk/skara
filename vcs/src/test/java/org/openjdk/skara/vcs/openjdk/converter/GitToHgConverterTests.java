@@ -23,6 +23,7 @@
 package org.openjdk.skara.vcs.openjdk.converter;
 
 import org.openjdk.skara.test.TemporaryDirectory;
+import org.openjdk.skara.test.TestableRepository;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.convert.GitToHgConverter;
 import org.openjdk.skara.vcs.openjdk.convert.Mark;
@@ -111,14 +112,14 @@ class GitToHgConverterTests {
     void convertOneCommit() throws IOException {
         try (var hgRoot = new TemporaryDirectory();
              var gitRoot = new TemporaryDirectory()) {
-            var gitRepo = Repository.init(gitRoot.path(), VCS.GIT);
+            var gitRepo = TestableRepository.init(gitRoot.path(), VCS.GIT);
             var readme = gitRoot.path().resolve("README.md");
 
             Files.writeString(readme, "Hello, world");
             gitRepo.add(readme);
             gitRepo.commit("1234567: Added README", "Foo Bar", "foo@openjdk.java.net");
 
-            var hgRepo = Repository.init(hgRoot.path(), VCS.HG);
+            var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
             var marks = converter.convert(gitRepo, hgRepo);
 
@@ -142,7 +143,7 @@ class GitToHgConverterTests {
     void convertOneSponsoredCommit() throws IOException {
         try (var hgRoot = new TemporaryDirectory();
              var gitRoot = new TemporaryDirectory()) {
-            var gitRepo = Repository.init(gitRoot.path(), VCS.GIT);
+            var gitRepo = TestableRepository.init(gitRoot.path(), VCS.GIT);
             var readme = gitRoot.path().resolve("README.md");
 
             Files.writeString(readme, "Hello, world");
@@ -150,7 +151,7 @@ class GitToHgConverterTests {
             gitRepo.commit("1234567: Added README", "Foo Bar", "foo@host.com",
                                                     "Baz Bar", "baz@openjdk.java.net");
 
-            var hgRepo = Repository.init(hgRoot.path(), VCS.HG);
+            var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
             var marks = converter.convert(gitRepo, hgRepo);
 
@@ -169,7 +170,7 @@ class GitToHgConverterTests {
     void convertRepoWithCopy() throws IOException {
         try (var hgRoot = new TemporaryDirectory();
              var gitRoot = new TemporaryDirectory()) {
-            var gitRepo = Repository.init(gitRoot.path(), VCS.GIT);
+            var gitRepo = TestableRepository.init(gitRoot.path(), VCS.GIT);
             var readme = gitRoot.path().resolve("README.md");
 
             Files.writeString(readme, "Hello, world");
@@ -180,7 +181,7 @@ class GitToHgConverterTests {
             gitRepo.copy(readme, readme2);
             gitRepo.commit("Copied README", "Foo Bar", "foo@openjdk.java.net");
 
-            var hgRepo = Repository.init(hgRoot.path(), VCS.HG);
+            var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
             var marks = converter.convert(gitRepo, hgRepo);
 
@@ -204,7 +205,7 @@ class GitToHgConverterTests {
     void convertRepoWithMove() throws IOException {
         try (var hgRoot = new TemporaryDirectory();
              var gitRoot = new TemporaryDirectory()) {
-            var gitRepo = Repository.init(gitRoot.path(), VCS.GIT);
+            var gitRepo = TestableRepository.init(gitRoot.path(), VCS.GIT);
             var readme = gitRoot.path().resolve("README.md");
 
             Files.writeString(readme, "Hello, world");
@@ -215,7 +216,7 @@ class GitToHgConverterTests {
             gitRepo.move(readme, readme2);
             gitRepo.commit("Moved README", "Foo Bar", "foo@openjdk.java.net");
 
-            var hgRepo = Repository.init(hgRoot.path(), VCS.HG);
+            var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
             var marks = converter.convert(gitRepo, hgRepo);
 
@@ -239,7 +240,7 @@ class GitToHgConverterTests {
     void convertOneCoAuthoredCommit() throws IOException {
         try (var hgRoot = new TemporaryDirectory();
              var gitRoot = new TemporaryDirectory()) {
-            var gitRepo = Repository.init(gitRoot.path(), VCS.GIT);
+            var gitRepo = TestableRepository.init(gitRoot.path(), VCS.GIT);
             var readme = gitRoot.path().resolve("README.md");
 
             Files.writeString(readme, "Hello, world");
@@ -248,7 +249,7 @@ class GitToHgConverterTests {
             gitRepo.commit(String.join("\n", message), "Foo Bar", "foo@host.com",
                                                        "Baz Bar", "baz@openjdk.java.net");
 
-            var hgRepo = Repository.init(hgRoot.path(), VCS.HG);
+            var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
             var marks = converter.convert(gitRepo, hgRepo);
 
@@ -267,7 +268,7 @@ class GitToHgConverterTests {
     void convertCommitWithSummary() throws IOException {
         try (var hgRoot = new TemporaryDirectory();
              var gitRoot = new TemporaryDirectory()) {
-            var gitRepo = Repository.init(gitRoot.path(), VCS.GIT);
+            var gitRepo = TestableRepository.init(gitRoot.path(), VCS.GIT);
             var readme = gitRoot.path().resolve("README.md");
 
             Files.writeString(readme, "Hello, world");
@@ -280,7 +281,7 @@ class GitToHgConverterTests {
             gitRepo.commit(String.join("\n", message), "Foo Bar", "foo@host.com",
                                                        "Baz Bar", "baz@openjdk.java.net");
 
-            var hgRepo = Repository.init(hgRoot.path(), VCS.HG);
+            var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
             var marks = converter.convert(gitRepo, hgRepo);
 
@@ -301,7 +302,7 @@ class GitToHgConverterTests {
     void convertMergeCommit() throws IOException {
         try (var hgRoot = new TemporaryDirectory();
              var gitRoot = new TemporaryDirectory()) {
-            var gitRepo = Repository.init(gitRoot.path(), VCS.GIT);
+            var gitRepo = TestableRepository.init(gitRoot.path(), VCS.GIT);
             var readme = gitRoot.path().resolve("README.md");
 
             Files.writeString(readme, "First line");
@@ -327,7 +328,7 @@ class GitToHgConverterTests {
             gitRepo.merge(toMerge);
             gitRepo.commit("Merge", "Foo Bar", "foo@openjdk.java.net");
 
-            var hgRepo = Repository.init(hgRoot.path(), VCS.HG);
+            var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
             var marks = converter.convert(gitRepo, hgRepo);
             assertReposEquals(marks, gitRepo, hgRepo);
@@ -338,7 +339,7 @@ class GitToHgConverterTests {
     void convertMergeCommitWithP0Diff() throws IOException {
         try (var hgRoot = new TemporaryDirectory();
              var gitRoot = new TemporaryDirectory()) {
-            var gitRepo = Repository.init(gitRoot.path(), VCS.GIT);
+            var gitRepo = TestableRepository.init(gitRoot.path(), VCS.GIT);
             var readme = gitRoot.path().resolve("README.md");
 
             Files.writeString(readme, "First line\n");
@@ -366,7 +367,7 @@ class GitToHgConverterTests {
             gitRepo.add(readme);
             gitRepo.commit("Merge", "Foo Bar", "foo@openjdk.java.net");
 
-            var hgRepo = Repository.init(hgRoot.path(), VCS.HG);
+            var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
             var marks = converter.convert(gitRepo, hgRepo);
             assertReposEquals(marks, gitRepo, hgRepo);
@@ -377,7 +378,7 @@ class GitToHgConverterTests {
     void convertMergeCommitWithP1Diff() throws IOException {
         try (var hgRoot = new TemporaryDirectory();
              var gitRoot = new TemporaryDirectory()) {
-            var gitRepo = Repository.init(gitRoot.path(), VCS.GIT);
+            var gitRepo = TestableRepository.init(gitRoot.path(), VCS.GIT);
             var readme = gitRoot.path().resolve("README.md");
 
             Files.writeString(readme, "First line\n");
@@ -405,7 +406,7 @@ class GitToHgConverterTests {
             gitRepo.add(contributing);
             gitRepo.commit("Merge", "Foo Bar", "foo@openjdk.java.net");
 
-            var hgRepo = Repository.init(hgRoot.path(), VCS.HG);
+            var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
             var marks = converter.convert(gitRepo, hgRepo);
             assertReposEquals(marks, gitRepo, hgRepo);
@@ -416,7 +417,7 @@ class GitToHgConverterTests {
         try (var hgRoot = new TemporaryDirectory(false);
              var gitRoot = new TemporaryDirectory(false)) {
             var gitRepo = Repository.clone(URI.create("https://git.openjdk.java.net/" + repo + ".git"), gitRoot.path());
-            var hgRepo = Repository.init(hgRoot.path(), VCS.HG);
+            var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter(new Branch("master"));
             var marks = converter.convert(gitRepo, hgRepo);
             assertReposEquals(marks, gitRepo, hgRepo);
@@ -427,7 +428,7 @@ class GitToHgConverterTests {
     void convertGitTag() throws IOException {
         try (var hgRoot = new TemporaryDirectory(false);
              var gitRoot = new TemporaryDirectory(false)) {
-            var gitRepo = Repository.init(gitRoot.path(), VCS.GIT);
+            var gitRepo = TestableRepository.init(gitRoot.path(), VCS.GIT);
             var readme = gitRoot.path().resolve("README.md");
 
             Files.writeString(readme, "First line\n");
@@ -440,7 +441,7 @@ class GitToHgConverterTests {
             var tagDate = ZonedDateTime.parse("2020-08-24T11:30:32+02:00");
             var tag = gitRepo.tag(second, "1.0", "Added tag 1.0", "Foo Bar", "foo@openjdk.java.net", tagDate);
 
-            var hgRepo = Repository.init(hgRoot.path(), VCS.HG);
+            var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
             var marks = converter.convert(gitRepo, hgRepo);
             var lastMark = marks.get(marks.size() - 1);
