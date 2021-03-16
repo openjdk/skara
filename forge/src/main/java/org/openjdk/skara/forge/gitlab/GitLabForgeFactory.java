@@ -49,6 +49,13 @@ public class GitLabForgeFactory implements ForgeFactory {
 
     private void configureSshKey(String userName, String hostName, String sshKey) {
         var cfgPath = Path.of(System.getProperty("user.home"), ".ssh");
+        if (!Files.isDirectory(cfgPath)) {
+            try {
+                Files.createDirectories(cfgPath);
+            } catch (IOException ignored) {
+            }
+        }
+
         var cfgFile = cfgPath.resolve("config");
         var existing = "";
         try {
