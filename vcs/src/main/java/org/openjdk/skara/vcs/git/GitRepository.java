@@ -495,7 +495,7 @@ public class GitRepository implements Repository {
         } else {
             cmd.add("--no-tags");
         }
-        cmd.add(uri.toString());
+        cmd.add(decodeUri(uri));
         cmd.add(refspec);
         try (var p = capture(cmd)) {
             await(p);
@@ -505,7 +505,7 @@ public class GitRepository implements Repository {
 
     @Override
     public void fetchAll(URI uri, boolean includeTags) throws IOException {
-        var cmd = new ArrayList<>(List.of("git", "fetch", "--recurse-submodules=on-demand", "--prune", uri.toString()));
+        var cmd = new ArrayList<>(List.of("git", "fetch", "--recurse-submodules=on-demand", "--prune", decodeUri(uri)));
         cmd.add("+refs/heads/*:refs/heads/*");
         if (includeTags) {
             cmd.add("+refs/tags/*:refs/tags/*");
@@ -579,7 +579,7 @@ public class GitRepository implements Repository {
 
     @Override
     public void pushAll(URI uri) throws IOException {
-        try (var p = capture("git", "push", "--mirror", uri.toString())) {
+        try (var p = capture("git", "push", "--mirror", decodeUri(uri))) {
             await(p);
         }
     }
@@ -592,7 +592,7 @@ public class GitRepository implements Repository {
         }
         refspec += hash.hex() + ":" + ref;
 
-        try (var p = capture("git", "push", uri.toString(), refspec)) {
+        try (var p = capture("git", "push", decodeUri(uri), refspec)) {
             await(p);
         }
     }
@@ -1357,6 +1357,14 @@ public class GitRepository implements Repository {
         }
     }
 
+    private static String decodeUri(URI from) {
+        if (from.getScheme().equals("ssh")) {
+            return from.toString().substring(6);
+        } else {
+            return from.toString();
+        }
+    }
+
     public static Repository clone(URI from, Path to, boolean isBare, Path seed) throws IOException {
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("git", "clone"));
@@ -1369,7 +1377,7 @@ public class GitRepository implements Repository {
             cmd.add("--reference-if-able");
             cmd.add(seed.toString());
         }
-        cmd.addAll(List.of(from.toString(), to.toString()));
+        cmd.addAll(List.of(decodeUri(from), to.toString()));
         try (var p = capture(Path.of("").toAbsolutePath(), cmd)) {
             await(p);
         }
@@ -1378,7 +1386,7 @@ public class GitRepository implements Repository {
 
     public static Repository mirror(URI from, Path to) throws IOException {
         var cwd = Path.of("").toAbsolutePath();
-        try (var p = capture(cwd, "git", "clone", "--mirror", from.toString(), to.toString())) {
+        try (var p = capture(cwd, "git", "clone", "--mirror", decodeUri(from), to.toString())) {
             await(p);
         }
         return new GitRepository(to);
