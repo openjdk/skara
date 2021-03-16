@@ -44,7 +44,7 @@ public class BackportCommand implements CommandHandler {
 
     @Override
     public String description() {
-        return "Create a backport";
+        return "create a backport";
     }
 
     @Override

@@ -45,7 +45,7 @@ public class TagCommand implements CommandHandler {
 
     @Override
     public String description() {
-        return "Create a tag for the given commit";
+        return "create a tag";
     }
 
     @Override
