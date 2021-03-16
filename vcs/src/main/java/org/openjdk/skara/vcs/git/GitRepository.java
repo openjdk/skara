@@ -255,6 +255,19 @@ public class GitRepository implements Repository {
     }
 
     @Override
+    public List<CommitMetadata> commitMetadataFor(List<Branch> branches) throws IOException {
+        var args = new ArrayList<String>();
+        args.addAll(List.of("git", "rev-list",
+                                   "--format=" + GitCommitMetadata.FORMAT,
+                                   "--topo-order",
+                                   "--no-abbrev",
+                                   "--no-color"));
+        args.addAll(branches.stream().map(Branch::name).collect(Collectors.toList()));
+        args.add("--");
+        return readMetadata(args, "commit ");
+    }
+
+    @Override
     public List<CommitMetadata> commitMetadata(Hash from, Hash to, List<Path> paths, boolean reverse) throws IOException {
         return commitMetadata(from.hex() + ".." + to.hex(), paths, reverse);
     }

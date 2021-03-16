@@ -2933,4 +2933,49 @@ public class RepositoryTests {
             assertEquals("v1.0", tags.get(0).name());
         }
     }
+
+    @Test
+    void testCommitMetadataWithBranchesWithGit() throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = Repository.init(dir.path(), VCS.GIT);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, world!"));
+            r.add(readme);
+            var first = r.commit("Added README", "duke", "duke@openjdk.java.net");
+
+            var b1 = r.branch(first, "b1");
+            r.checkout(b1);
+            Files.write(readme, List.of("One more line"), WRITE, APPEND);
+            r.add(readme);
+            var second = r.commit("Modified README", "duke", "duke@openjdk.java.net");
+
+            r.checkout(r.defaultBranch());
+            var b2 = r.branch(first, "b2");
+            r.checkout(b2);
+            Files.write(readme, List.of("An additional line"), WRITE, APPEND);
+            r.add(readme);
+            var third = r.commit("Additional line added to README", "duke", "duke@openjdk.java.net");
+
+            var metadata = r.commitMetadataFor(List.of(r.defaultBranch()));
+            assertEquals(1, metadata.size());
+            assertEquals(first, metadata.get(0).hash());
+
+            metadata = r.commitMetadataFor(List.of(r.defaultBranch(), b1));
+            assertEquals(2, metadata.size());
+            assertEquals(second, metadata.get(0).hash());
+            assertEquals(first, metadata.get(1).hash());
+
+            metadata = r.commitMetadataFor(List.of(r.defaultBranch(), b2));
+            assertEquals(2, metadata.size());
+            assertEquals(third, metadata.get(0).hash());
+            assertEquals(first, metadata.get(1).hash());
+
+            metadata = r.commitMetadataFor(List.of(r.defaultBranch(), b1, b2));
+            assertEquals(3, metadata.size());
+            assertEquals(second, metadata.get(0).hash());
+            assertEquals(third, metadata.get(1).hash());
+            assertEquals(first, metadata.get(2).hash());
+        }
+    }
 }

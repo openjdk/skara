@@ -185,6 +185,10 @@ class TestRepository implements ReadOnlyRepository {
         return List.of();
     }
 
+    public List<CommitMetadata> commitMetadataFor(List<Branch> branches) throws IOException {
+        return List.of();
+    }
+
     public Path root() throws IOException {
         return null;
     }
