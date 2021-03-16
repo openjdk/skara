@@ -66,18 +66,15 @@ class CommitCommentsWorkItem implements WorkItem {
             var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
             var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
             var localRepoPath = scratchPath.resolve("pr").resolve("commit-comments").resolve(bot.repo().name());
-            var localRepo = hostedRepositoryPool.materialize(bot.repo(), localRepoPath);
+            var localRepo = hostedRepositoryPool.materializeBare(bot.repo(), localRepoPath);
+            localRepo.fetchAll(bot.repo().url());
             var remoteBranches = bot.repo().branches()
                                            .stream()
                                            .filter(b -> !b.name().startsWith("pr/"))
                                            .collect(Collectors.toList());
-            for (var branch : remoteBranches) {
-                localRepo.checkout(new Branch(branch.name()));
-                localRepo.merge(new Branch("origin/" + branch.name()), Repository.FastForward.ONLY);
-            }
-
+            var localBranches = remoteBranches.stream().map(b -> new Branch(b.name())).collect(Collectors.toList());
             var commitTitleToCommits = new HashMap<String, Set<Hash>>();
-            for (var commit : localRepo.commitMetadata()) {
+            for (var commit : localRepo.commitMetadataFor(localBranches)) {
                 var title = commit.message().get(0);
                 if (commitTitleToCommits.containsKey(title)) {
                     commitTitleToCommits.get(title).add(commit.hash());
