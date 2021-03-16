@@ -2963,19 +2963,19 @@ public class RepositoryTests {
 
             metadata = r.commitMetadataFor(List.of(r.defaultBranch(), b1));
             assertEquals(2, metadata.size());
-            assertEquals(second, metadata.get(0).hash());
-            assertEquals(first, metadata.get(1).hash());
+            assertTrue(metadata.stream().anyMatch(c -> c.hash().equals(first)));
+            assertTrue(metadata.stream().anyMatch(c -> c.hash().equals(second)));
 
             metadata = r.commitMetadataFor(List.of(r.defaultBranch(), b2));
             assertEquals(2, metadata.size());
-            assertEquals(third, metadata.get(0).hash());
-            assertEquals(first, metadata.get(1).hash());
+            assertTrue(metadata.stream().anyMatch(c -> c.hash().equals(first)));
+            assertTrue(metadata.stream().anyMatch(c -> c.hash().equals(third)));
 
             metadata = r.commitMetadataFor(List.of(r.defaultBranch(), b1, b2));
             assertEquals(3, metadata.size());
-            assertEquals(second, metadata.get(0).hash());
-            assertEquals(third, metadata.get(1).hash());
-            assertEquals(first, metadata.get(2).hash());
+            assertTrue(metadata.stream().anyMatch(c -> c.hash().equals(first)));
+            assertTrue(metadata.stream().anyMatch(c -> c.hash().equals(second)));
+            assertTrue(metadata.stream().anyMatch(c -> c.hash().equals(third)));
         }
     }
 }
