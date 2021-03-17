@@ -25,9 +25,10 @@ package org.openjdk.skara.bots.pr;
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.test.*;
-import org.openjdk.skara.vcs.Hash;
+import org.openjdk.skara.vcs.*;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -202,6 +203,44 @@ public class CommitCommandTests {
             CommitCommandAsserts.assertLastCommentContains(replies, "Available commands");
             CommitCommandAsserts.assertLastCommentContains(replies, "external");
             CommitCommandAsserts.assertLastCommentContains(replies, "Help for external command");
+        }
+    }
+
+    @Test
+    void missingJcheckConf(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var bot = PullRequestBot.newBuilder()
+                                    .repo(author)
+                                    .censusRepo(censusBuilder.build())
+                                    .censusLink("https://census.com/{{contributor}}-profile")
+                                    .externalCommitCommands(Map.of("external", "Help for external command"))
+                                    .seedStorage(seedFolder)
+                                    .build();
+
+            // Populate the projects repository
+            var localRepo = Repository.init(tempFolder.path(), author.repositoryType());
+            var readme = localRepo.root().resolve("README");
+            Files.writeString(readme, "Hello, world!");
+            localRepo.add(readme);
+            var masterHash = localRepo.commit("Added README", "duke", "duke@openjdk.org");
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Add a help command
+            author.addCommitComment(masterHash, "/help");
+            TestBotRunner.runPeriodicItems(bot);
+
+            // Look at the reply
+            var replies = author.commitComments(masterHash);
+            CommitCommandAsserts.assertLastCommentContains(replies, "there is no `.jcheck/conf` present");
+            CommitCommandAsserts.assertLastCommentContains(replies, "cannot process command");
         }
     }
 }

@@ -150,18 +150,26 @@ public class CommitCommandWorkItem implements WorkItem {
             new IllegalStateException("Commit with hash " + commitComment.commit() + " missing"));
         var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
-        var census = CensusInstance.create(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(),
-                                           scratchPath.resolve("census"), bot.repo(), commit.hash().hex(),
-                                           bot.confOverrideRepository().orElse(null),
-                                           bot.confOverrideName(),
-                                           bot.confOverrideRef());
         var allComments = bot.repo().commitComments(commit.hash());
         var nextCommand = nextCommand(allComments);
-
         if (nextCommand.isEmpty()) {
             log.info("No new commit comments found, stopping further processing");
         } else {
-            processCommand(scratchPath, commit, census, nextCommand.get(), allComments);
+            var census = CensusInstance.create(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(),
+                                               scratchPath.resolve("census"), bot.repo(), commit.hash().hex(),
+                                               bot.confOverrideRepository().orElse(null),
+                                               bot.confOverrideName(),
+                                               bot.confOverrideRef());
+            var command = nextCommand.get();
+            if (census.isEmpty()) {
+                var comment = String.format(commandReplyMarker, command.id()) + "\n" +
+                              "@" + command.user().username() +
+                              " there is no `.jcheck/conf` present at revision " +
+                              commit.hash().abbreviate() + " - cannot process command.";
+                bot.repo().addCommitComment(commit.hash(), comment);
+            } else {
+                processCommand(scratchPath, commit, census.get(), command, allComments);
+            }
         }
 
         return List.of();
