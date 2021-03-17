@@ -171,4 +171,9 @@ public class CommitCommandWorkItem implements WorkItem {
     public void handleRuntimeException(RuntimeException e) {
         onError.accept(e);
     }
+
+    @Override
+    public String toString() {
+        return "CommitCommandWorkItem@" + bot.repo().name() + ":" + commitComment.commit().abbreviate();
+    }
 }
