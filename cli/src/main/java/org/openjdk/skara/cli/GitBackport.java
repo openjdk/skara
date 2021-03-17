@@ -151,7 +151,7 @@ public class GitBackport {
                 var token = System.getenv("GIT_TOKEN");
                 var credentials = GitCredentials.fill(canonical.getHost(), canonical.getPath(), username, token, canonical.getScheme());
                 var forgeURI = URI.create(canonical.getScheme() + "://" + canonical.getHost());
-                var forge = Forge.from(forgeURI, new Credential(credentials.username(), credentials.password()));
+                var forge = ForgeUtils.from(forgeURI, new Credential(credentials.username(), credentials.password()));
                 if (forge.isEmpty()) {
                     System.err.println("error: could not find forge at " + forgeURI.getHost());
                     System.exit(1);

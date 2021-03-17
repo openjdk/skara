@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.Optional;
 
 public class ForgeUtils {
     private static void exit(String fmt, Object... args) {
@@ -107,6 +108,19 @@ public class ForgeUtils {
         return Remote.toWebURI(remotePullPath);
     }
 
+    public static Optional<Forge> from(URI uri) {
+        return from(uri, null);
+    }
+
+    public static Optional<Forge> from(URI uri, Credential credentials) {
+        var name = gitConfig("forge.name");
+        if (name != null) {
+            var forge = credentials == null ? Forge.from(name, uri) : Forge.from(name, uri, credentials);
+            return Optional.of(forge);
+        }
+        return credentials == null ? Forge.from(uri) : Forge.from(uri, credentials);
+    }
+
     public static Forge getForge(URI uri, ReadOnlyRepository repo, String command, Arguments arguments) throws IOException {
         var username = getOption("username", null, null, arguments);
         var token = System.getenv("GIT_TOKEN");
@@ -116,8 +130,8 @@ public class ForgeUtils {
                 GitCredentials.fill(uri.getHost(), uri.getPath(), username, token, uri.getScheme());
         var forgeURI = URI.create(uri.getScheme() + "://" + uri.getHost());
         var forge = credentials == null ?
-                Forge.from(forgeURI) :
-                Forge.from(forgeURI, new Credential(credentials.username(), credentials.password()));
+                from(forgeURI) :
+                from(forgeURI, new Credential(credentials.username(), credentials.password()));
         if (forge.isEmpty()) {
             if (!shouldUseToken) {
                 if (arguments.contains("verbose")) {

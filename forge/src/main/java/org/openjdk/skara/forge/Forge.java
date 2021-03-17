@@ -46,6 +46,14 @@ public interface Forge extends Host {
         return factory.get().create(uri, credential, configuration);
     }
 
+    static Forge from(String name, URI uri, Credential credential) {
+        return from(name, uri, credential, null);
+    }
+
+    static Forge from(String name, URI uri) {
+        return from(name, uri, null);
+    }
+
     static Optional<Forge> from(URI uri, Credential credential, JSONObject configuration) {
         var factories = ForgeFactory.getForgeFactories();
 
