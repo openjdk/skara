@@ -193,6 +193,8 @@ public class GitWebrev {
         if (arguments.contains("verbose") || arguments.contains("debug")) {
             var level = arguments.contains("debug") ? Level.FINER : Level.FINE;
             Logging.setup(level);
+        } else {
+            Logging.setup(Level.WARNING);
         }
 
         var cwd = Paths.get("").toAbsolutePath();

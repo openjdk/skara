@@ -344,7 +344,7 @@ public class Webrev {
                     } else if (bySourcePath.containsKey(file)) {
                         sorted.add(bySourcePath.get(file));
                     } else {
-                        throw new IOException("Filename not present in diff: " + file);
+                        log.warning("ignoring file not present in diff: " + file);
                     }
                 }
                 patches = sorted;
