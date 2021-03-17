@@ -92,7 +92,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 return Optional.of(user.get().username());
             }
 
-            log.severe("Cannot determine issue tracker user name from committer email: " + committerEmail);
+            log.warning("Cannot determine issue tracker user name from committer email: " + committerEmail);
             return Optional.empty();
         }
     }
