@@ -162,12 +162,11 @@ public class CommitCommandWorkItem implements WorkItem {
                                                bot.confOverrideRef());
             var command = nextCommand.get();
             if (census.isEmpty()) {
-                var writer = new StringWriter();
-                var printer = new PrintWriter(writer);
-                printer.println(String.format(commandReplyMarker, command.id()));
-                printer.println("@" + command.user().username() +
-                                " there is no `.jcheck/conf` present at revision " +
-                                commit.hash().abbreviate() + " - cannot process command.");
+                var comment = String.format(commandReplyMarker, command.id()) + "\n" +
+                              "@" + command.user().username() +
+                              " there is no `.jcheck/conf` present at revision " +
+                              commit.hash().abbreviate() + " - cannot process command.";
+                bot.repo().addCommitComment(commit.hash(), comment);
             } else {
                 processCommand(scratchPath, commit, census.get(), command, allComments);
             }
