@@ -217,7 +217,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
 
         var census = CensusInstance.create(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
-                                           bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef());
+                                           bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef()).orElseThrow();
         var command = nextCommand.get();
         log.info("Processing command: " + command.id() + " - " + command.name());
 

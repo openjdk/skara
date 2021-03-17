@@ -66,20 +66,18 @@ class CensusInstance {
         return namespace;
     }
 
-    private static JCheckConfiguration configuration(HostedRepositoryPool hostedRepositoryPool, HostedRepository remoteRepo, String name, String ref) throws IOException {
-        var confFile = hostedRepositoryPool.lines(remoteRepo, Path.of(name), ref).orElseThrow(
-                () -> new IOException("Failed to read jcheck configuration from " + name + ":" + ref));
-        return JCheckConfiguration.parse(confFile);
+    private static Optional<JCheckConfiguration> configuration(HostedRepositoryPool hostedRepositoryPool, HostedRepository remoteRepo, String name, String ref) throws IOException {
+        return hostedRepositoryPool.lines(remoteRepo, Path.of(name), ref).map(JCheckConfiguration::parse);
     }
 
-    static CensusInstance create(HostedRepositoryPool hostedRepositoryPool,
+    static Optional<CensusInstance> create(HostedRepositoryPool hostedRepositoryPool,
                                  HostedRepository censusRepo, String censusRef, Path folder, PullRequest pr,
                                  HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef) {
         return create(hostedRepositoryPool, censusRepo, censusRef, folder, pr.repository(), pr.targetRef(),
                       confOverrideRepo, confOverrideName, confOverrideRef);
     }
 
-    static CensusInstance create(HostedRepositoryPool hostedRepositoryPool,
+    static Optional<CensusInstance> create(HostedRepositoryPool hostedRepositoryPool,
                                  HostedRepository censusRepo, String censusRef, Path folder, HostedRepository repository, String ref,
                                  HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef) {
         var repoName = censusRepo.url().getHost() + "/" + censusRepo.name();
@@ -91,7 +89,7 @@ class CensusInstance {
         }
 
         try {
-            JCheckConfiguration configuration;
+            Optional<JCheckConfiguration> configuration;
             if (confOverrideRepo == null) {
                 configuration = configuration(hostedRepositoryPool, repository, ".jcheck/conf", ref);
             } else {
@@ -100,10 +98,13 @@ class CensusInstance {
                                               confOverrideName,
                                               confOverrideRef);
             }
+            if (configuration.isEmpty()) {
+                return Optional.empty();
+            }
             var census = Census.parse(repoFolder);
-            var project = project(configuration, census);
+            var project = project(configuration.get(), census);
             var namespace = namespace(census, repository.namespace());
-            return new CensusInstance(census, configuration, project, namespace);
+            return Optional.of(new CensusInstance(census, configuration.get(), project, namespace));
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot parse census at " + repoFolder, e);
         }
