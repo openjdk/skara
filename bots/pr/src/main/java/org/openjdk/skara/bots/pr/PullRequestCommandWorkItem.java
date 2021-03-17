@@ -40,7 +40,6 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
 
     private static final String commandReplyMarker = "<!-- Jmerge command reply message (%s) -->";
     private static final Pattern commandReplyPattern = Pattern.compile("<!-- Jmerge command reply message \\((\\S+)\\) -->");
-    private static final String selfCommandMarker = "<!-- Valid self-command -->";
     private final static Pattern pushedPattern = Pattern.compile("Pushed as commit ([a-f0-9]{40})\\.");
 
     private static final Map<String, CommandHandler> commandHandlers = Map.ofEntries(
@@ -58,6 +57,8 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
             Map.entry("cc", new LabelCommand("cc")),
             Map.entry("clean", new CleanCommand())
     );
+
+    public static final String VALID_BOT_COMMAND_MARKER = "<!-- Valid self-command -->";
 
     static class HelpCommand implements CommandHandler {
         @Override
@@ -116,7 +117,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         var body = PullRequestBody.parse(pr).bodyText();
         var allCommands = Stream.concat(CommandExtractor.extractCommands(commandHandlers, body, "body", pr.author()).stream(),
                                         comments.stream()
-                                                .filter(comment -> !comment.author().equals(self) || comment.body().endsWith(selfCommandMarker))
+                                                .filter(comment -> !comment.author().equals(self) || comment.body().endsWith(VALID_BOT_COMMAND_MARKER))
                                                 .flatMap(c -> CommandExtractor.extractCommands(commandHandlers, c.body(), c.id(), c.author()).stream()))
                                 .collect(Collectors.toList());
 

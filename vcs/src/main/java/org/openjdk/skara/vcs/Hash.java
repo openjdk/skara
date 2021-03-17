@@ -64,4 +64,8 @@ public class Hash {
     public String abbreviate() {
         return hex().substring(0, 8);
     }
+
+    public boolean isValid() {
+        return hex.toLowerCase().matches("[a-f0-9]{40}");
+    }
 }
