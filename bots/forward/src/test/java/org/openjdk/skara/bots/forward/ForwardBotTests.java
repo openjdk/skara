@@ -44,11 +44,11 @@ class ForwardBotTests {
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
-            var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
+            var fromLocalRepo = TestableRepository.init(fromDir, VCS.GIT);
             var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
 
             var toDir = temp.path().resolve("to.git");
-            var toLocalRepo = Repository.init(toDir, VCS.GIT);
+            var toLocalRepo = TestableRepository.init(toDir, VCS.GIT);
             var gitConfig = toDir.resolve(".git").resolve("config");
             Files.write(gitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);
@@ -81,11 +81,11 @@ class ForwardBotTests {
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));
 
             var fromDir = temp.path().resolve("from.git");
-            var fromLocalRepo = Repository.init(fromDir, VCS.GIT);
+            var fromLocalRepo = TestableRepository.init(fromDir, VCS.GIT);
             var fromHostedRepo = new TestHostedRepository(host, "test", fromLocalRepo);
 
             var toDir = temp.path().resolve("to.git");
-            var toLocalRepo = Repository.init(toDir, VCS.GIT);
+            var toLocalRepo = TestableRepository.init(toDir, VCS.GIT);
             var gitConfig = toDir.resolve(".git").resolve("config");
             Files.write(gitConfig, List.of("[receive]", "denyCurrentBranch = ignore"),
                         StandardOpenOption.APPEND);

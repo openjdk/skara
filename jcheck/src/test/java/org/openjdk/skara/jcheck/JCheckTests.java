@@ -26,6 +26,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.openjdk.skara.census.Census;
 import org.openjdk.skara.test.TemporaryDirectory;
+import org.openjdk.skara.test.TestableRepository;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 
@@ -40,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class JCheckTests {
     static class CheckableRepository {
         public static Repository create(Path path, VCS vcs) throws IOException {
-            var repo = Repository.init(path, vcs);
+            var repo = TestableRepository.init(path, vcs);
 
             Files.createDirectories(path.resolve(".jcheck"));
             var checkConf = path.resolve(".jcheck/conf");

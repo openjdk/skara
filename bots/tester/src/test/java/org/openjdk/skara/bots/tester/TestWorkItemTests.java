@@ -484,7 +484,7 @@ class TestWorkItemTests {
     void approvedPendingRequestShouldBeStarted() throws IOException {
         try (var tmp = new TemporaryDirectory()) {
             var localRepoDir = tmp.path().resolve("repository.git");
-            var localRepo = Repository.init(localRepoDir, VCS.GIT);
+            var localRepo = TestableRepository.init(localRepoDir, VCS.GIT);
             var readme = localRepoDir.resolve("README");
             Files.writeString(readme, "Hello\n");
             localRepo.add(readme);
@@ -593,7 +593,7 @@ class TestWorkItemTests {
     void cancellingApprovedPendingRequestShouldBeCancel() throws IOException {
         try (var tmp = new TemporaryDirectory()) {
             var localRepoDir = tmp.path().resolve("repository.git");
-            var localRepo = Repository.init(localRepoDir, VCS.GIT);
+            var localRepo = TestableRepository.init(localRepoDir, VCS.GIT);
             var readme = localRepoDir.resolve("README");
             Files.writeString(readme, "Hello\n");
             localRepo.add(readme);
@@ -719,7 +719,7 @@ class TestWorkItemTests {
     void errorWhenCreatingTestJobShouldResultInError() throws IOException {
         try (var tmp = new TemporaryDirectory()) {
             var localRepoDir = tmp.path().resolve("repository.git");
-            var localRepo = Repository.init(localRepoDir, VCS.GIT);
+            var localRepo = TestableRepository.init(localRepoDir, VCS.GIT);
             var readme = localRepoDir.resolve("README");
             Files.writeString(readme, "Hello\n");
             localRepo.add(readme);
@@ -808,7 +808,7 @@ class TestWorkItemTests {
     void finishedJobShouldResultInFinishedComment() throws IOException {
         try (var tmp = new TemporaryDirectory()) {
             var localRepoDir = tmp.path().resolve("repository.git");
-            var localRepo = Repository.init(localRepoDir, VCS.GIT);
+            var localRepo = TestableRepository.init(localRepoDir, VCS.GIT);
             var readme = localRepoDir.resolve("README");
             Files.writeString(readme, "Hello\n");
             localRepo.add(readme);
@@ -962,7 +962,7 @@ class TestWorkItemTests {
     void userOnApprovelistDoesNotNeedApproval() throws IOException {
         try (var tmp = new TemporaryDirectory()) {
             var localRepoDir = tmp.path().resolve("repository.git");
-            var localRepo = Repository.init(localRepoDir, VCS.GIT);
+            var localRepo = TestableRepository.init(localRepoDir, VCS.GIT);
             var readme = localRepoDir.resolve("README");
             Files.writeString(readme, "Hello\n");
             localRepo.add(readme);

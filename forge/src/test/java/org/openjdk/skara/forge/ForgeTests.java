@@ -29,6 +29,7 @@ import org.openjdk.skara.json.JSONObject;
 import org.openjdk.skara.test.TemporaryDirectory;
 import org.openjdk.skara.test.TestHost;
 import org.openjdk.skara.test.TestHostedRepository;
+import org.openjdk.skara.test.TestableRepository;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.Repository;
 import org.openjdk.skara.vcs.VCS;
@@ -99,7 +100,7 @@ class ForgeTests {
         try (var tmp = new TemporaryDirectory()) {
             var gitLocalDir = tmp.path().resolve("review.git");
             Files.createDirectories(gitLocalDir);
-            var gitLocalRepo = Repository.init(gitLocalDir, VCS.GIT);
+            var gitLocalRepo = TestableRepository.init(gitLocalDir, VCS.GIT);
             var hash = createCommit(gitLocalRepo);
 
             var host = TestHost.createNew(List.of(HostUser.create(0, "duke", "J. Duke")));

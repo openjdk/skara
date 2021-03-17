@@ -101,7 +101,7 @@ public class HostedRepositoryPoolTests {
             localRepo.push(masterHash, source.url(), "master", true);
 
             var pool = new HostedRepositoryPool(seedFolder.path());
-            var empty = Repository.init(cloneFolder.path(), VCS.GIT);
+            var empty = TestableRepository.init(cloneFolder.path(), VCS.GIT);
             assertThrows(IOException.class, () -> empty.checkout(new Branch("master"), true));
             var clone = pool.checkout(source, "master", cloneFolder.path());
             assertFalse(CheckableRepository.hasBeenEdited(clone));

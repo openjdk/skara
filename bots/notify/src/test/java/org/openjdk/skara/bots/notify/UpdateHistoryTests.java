@@ -25,6 +25,7 @@ package org.openjdk.skara.bots.notify;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.storage.StorageBuilder;
 import org.openjdk.skara.test.HostCredentials;
+import org.openjdk.skara.test.TestableRepository;
 import org.openjdk.skara.vcs.Tag;
 import org.openjdk.skara.vcs.*;
 
@@ -39,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class UpdateHistoryTests {
     private String resetHostedRepository(HostedRepository repository) throws IOException {
         var folder = Files.createTempDirectory("updatehistory");
-        var localRepository = Repository.init(folder, repository.repositoryType());
+        var localRepository = TestableRepository.init(folder, repository.repositoryType());
         var firstFile = folder.resolve("first.txt");
         Files.writeString(firstFile, "First file to commit");
         localRepository.add(firstFile);
