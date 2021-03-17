@@ -1078,9 +1078,12 @@ class MailingListBridgeBotTests {
                                             .build();
 
             // Populate the projects repository
-            var reviewFile = Path.of("reviewfile.txt");
-            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
-            var masterHash = localRepo.resolve("master").orElseThrow();
+            var reviewFile1 = Path.of("reviewfile.txt");
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile1);
+            var reviewFile2 = Path.of("aardvark_reviewfile.txt");
+            Files.writeString(localRepo.root().resolve(reviewFile2), "1\n2\n3\n4\n5\n6\n", StandardCharsets.UTF_8);
+            localRepo.add(reviewFile2);
+            var masterHash = localRepo.commit("Another one", "duke", "duke@openjdk.org");
             localRepo.push(masterHash, author.url(), "master", true);
             localRepo.push(masterHash, archive.url(), "webrev", true);
 
@@ -1092,21 +1095,27 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
 
-            // Make two file specific comments
+            // Make a few file specific comments
             var reviewPr = reviewer.pullRequest(pr.id());
-            var comment1 = reviewPr.addReviewComment(masterHash, editHash, reviewFile.toString(), 2, "Review comment");
-            var comment2 = reviewPr.addReviewComment(masterHash, editHash, reviewFile.toString(), 2, "Another review comment");
+            var comment1 = reviewPr.addReviewComment(masterHash, editHash, reviewFile1.toString(), 2, "Review comment");
+            var comment2 = reviewPr.addReviewComment(masterHash, editHash, reviewFile1.toString(), 3, "Another review comment");
+            var comment3 = reviewPr.addReviewComment(masterHash, editHash, reviewFile2.toString(), 4, "Yet another review comment");
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
 
-            pr.addReviewCommentReply(comment1, "I agree");
+            pr.addReviewCommentReply(comment3, "I don't care");
             pr.addReviewCommentReply(comment2, "I don't agree");
+            pr.addReviewCommentReply(comment1, "I agree");
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
 
             // Sanity check the archive
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertEquals(2, archiveContainsCount(archiveFolder.path(), "^On.*wrote:"));
+
+            var archiveText = archiveContents(archiveFolder.path(), "").orElseThrow();
+            assertTrue(archiveText.indexOf("I agree") < archiveText.indexOf("I don't agree"), archiveText);
+            assertTrue(archiveText.indexOf("I don't care") < archiveText.indexOf("I don't agree"), archiveText);
         }
     }
 

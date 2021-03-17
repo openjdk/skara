@@ -354,7 +354,10 @@ class ArchiveWorkItem implements WorkItem {
             }
 
             // File specific comments
-            var reviewComments = pr.reviewComments();
+            var reviewComments = pr.reviewComments().stream()
+                                   .sorted(Comparator.comparing(ReviewComment::line))
+                                   .sorted(Comparator.comparing(ReviewComment::path))
+                                   .collect(Collectors.toList());
             for (var reviewComment : reviewComments) {
                 if (ignoreComment(reviewComment.author(), reviewComment.body())) {
                     continue;
