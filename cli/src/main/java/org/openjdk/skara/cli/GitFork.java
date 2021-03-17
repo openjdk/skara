@@ -383,7 +383,7 @@ public class GitFork {
 
                 var setupPrePushHooksOption = getOption("setup-pre-push-hook", subsection, arguments);
                 if (setupPrePushHooksOption != null) {
-                    var res = GitJCheck.run(repo, new String[]{"--setup-pre-push-hook", setupPrePushHooksOption });
+                    var res = GitJCheck.run(repo, new String[]{"--setup-pre-push-hook"});
                     if (res != 0) {
                         System.exit(res);
                     }
