@@ -310,6 +310,10 @@ class CheckWorkItem extends PullRequestWorkItem {
             }
         }
 
+        if (pr.labels().contains("auto") && pr.labels().contains("ready") && !pr.labels().contains("sponsor")) {
+            pr.addComment("/integrate\n" + PullRequestCommandWorkItem.VALID_BOT_COMMAND_MARKER);
+        }
+
         // Must re-fetch PR after executing CheckRun
         var updatedPR = pr.repository().pullRequest(pr.id());
         return List.of(new PullRequestCommandWorkItem(bot, updatedPR, errorHandler));

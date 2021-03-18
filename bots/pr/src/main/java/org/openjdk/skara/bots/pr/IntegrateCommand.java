@@ -40,6 +40,10 @@ public class IntegrateCommand implements CommandHandler {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     private static final Pattern BACKPORT_PATTERN = Pattern.compile("<!-- backport ([0-9a-z]{40}) -->");
 
+    private void showHelp(PrintWriter reply) {
+        reply.println("usage: `/integrate [auto|manual|<hash>]`");
+    }
+
     private Optional<String> checkProblem(Map<String, Check> performedChecks, String checkName, PullRequest pr) {
         final var failure = "the status check `" + checkName + "` did not complete successfully";
         final var inProgress = "the status check `" + checkName + "` is still in progress";
@@ -60,7 +64,7 @@ public class IntegrateCommand implements CommandHandler {
 
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
-        if (!command.user().equals(pr.author())) {
+        if (!command.user().equals(pr.author()) && !command.user().equals(pr.repository().forge().currentUser())) {
             reply.print("Only the author (@" + pr.author().username() + ") is allowed to issue the `integrate` command.");
 
             // If the command author is allowed to sponsor this change, suggest that command
@@ -73,6 +77,36 @@ public class IntegrateCommand implements CommandHandler {
             }
             reply.println();
             return;
+        }
+
+        Hash targetHash = null;
+        if (!command.args().isEmpty()) {
+            var args = command.args().split(" ");
+            if (args.length != 1) {
+                showHelp(reply);
+                return;
+            }
+
+            var arg = args[0].trim();
+            if (arg.equals("auto")) {
+                pr.addLabel("auto");
+                reply.println("This pull request will be automatically integrated when it is ready");
+                return;
+            } else if (arg.equals("manual")) {
+                if (pr.labels().contains("auto")) {
+                    pr.removeLabel("auto");
+                }
+                reply.println("This pull request will have to be integrated manually using the "+
+                              "[/integrate](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) pull request command.");
+                return;
+            } else {
+                // Validate the target hash if requested
+                targetHash = new Hash(arg);
+                if (!targetHash.isValid()) {
+                    reply.println("The given argument, `" + arg + "`, is not a valid hash.");
+                    return;
+                }
+            }
         }
 
         var problem = checkProblem(pr.checks(pr.headHash()), "jcheck", pr);
@@ -109,18 +143,14 @@ public class IntegrateCommand implements CommandHandler {
                                                        bot.confOverrideName(),
                                                        bot.confOverrideRef());
 
-            // Validate the target hash if requested
-            var rebaseMessage = new StringWriter();
-            if (!command.args().isBlank()) {
-                var wantedHash = new Hash(command.args());
-                if (!PullRequestUtils.targetHash(pr, localRepo).equals(wantedHash)) {
-                    reply.print("The head of the target branch is no longer at the requested hash " + wantedHash);
-                    reply.println(" - it has moved to " + PullRequestUtils.targetHash(pr, localRepo) + ". Aborting integration.");
-                    return;
-                }
-            };
+            if (targetHash != null && !PullRequestUtils.targetHash(pr, localRepo).equals(targetHash)) {
+                reply.print("The head of the target branch is no longer at the requested hash " + targetHash);
+                reply.println(" - it has moved to " + PullRequestUtils.targetHash(pr, localRepo) + ". Aborting integration.");
+                return;
+            }
 
             // Now merge the latest changes from the target
+            var rebaseMessage = new StringWriter();
             var rebaseWriter = new PrintWriter(rebaseMessage);
             var rebasedHash = checkablePr.mergeTarget(rebaseWriter);
             if (rebasedHash.isEmpty()) {
@@ -200,5 +230,10 @@ public class IntegrateCommand implements CommandHandler {
     @Override
     public String description() {
         return "performs integration of the changes in the PR";
+    }
+
+    @Override
+    public boolean allowedInBody() {
+        return true;
     }
 }

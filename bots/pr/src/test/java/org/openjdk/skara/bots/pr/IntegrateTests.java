@@ -30,7 +30,7 @@ import org.openjdk.skara.vcs.Repository;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
@@ -820,6 +820,282 @@ class IntegrateTests {
             assertTrue(jcheck.summary().isPresent());
             var summary = jcheck.summary().get();
             assertTrue(summary.contains("Pull request's HEAD commit must contain a valid e-mail"));
+        }
+    }
+
+    @Test
+    void invalidHash(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var pushedFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Approve it as another user
+            var approvalPr = integrator.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // The bot should reply with integration message
+            TestBotRunner.runPeriodicItems(mergeBot);
+            var integrateComments = pr.comments()
+                                      .stream()
+                                      .filter(c -> c.body().contains("To integrate this PR with the above commit message to the `master` branch"))
+                                      .filter(c -> c.body().contains("If you prefer to avoid any potential automatic rebasing"))
+                                      .count();
+            assertEquals(1, integrateComments);
+
+            // Attempt a merge (the bot should only process the first one)
+            pr.addComment("/integrate a3987asdf");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an error message
+            var pushed = pr.comments().stream()
+                           .filter(comment -> comment.body().contains("is not a valid hash"))
+                           .count();
+            assertEquals(1, pushed);
+
+            // Ready label should remain
+            assertTrue(pr.labels().contains("ready"));
+        }
+    }
+
+    @Test
+    void integrateAutoInBody(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var pushedFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR with auto integration
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "PR Title", List.of("/integrate auto"));
+
+            // The bot should add the auto label and reply
+            TestBotRunner.runPeriodicItems(mergeBot);
+            var integrateComments = pr.comments()
+                                      .stream()
+                                      .filter(c -> c.body().contains("This pull request will be automatically integrated"))
+                                      .count();
+            assertEquals(1, integrateComments);
+            assertTrue(pr.labels().contains("auto"));
+
+            // Approve it as another user
+            var approvalPr = integrator.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // The bot should post the /integrate command and push
+            TestBotRunner.runPeriodicItems(mergeBot);
+            var pushed = pr.comments().stream()
+                           .filter(comment -> comment.body().contains("Pushed as commit"))
+                           .count();
+            assertEquals(1, pushed);
+
+            // The change should now be present on the master branch
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
+            assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
+
+            var headHash = pushedRepo.resolve("HEAD").orElseThrow();
+            var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
+
+            // Author and committer should be the same
+            assertEquals("Generated Committer 1", headCommit.author().name());
+            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
+            assertEquals("Generated Committer 1", headCommit.committer().name());
+            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
+            assertTrue(pr.labels().contains("integrated"));
+
+            // Ready label should have been removed
+            assertFalse(pr.labels().contains("ready"));
+        }
+    }
+
+    @Test
+    void integrateAutoInComment(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var pushedFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR with auto integration
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "PR Title");
+
+            // The bot should add the auto label and reply
+            pr.addComment("/integrate auto");
+            TestBotRunner.runPeriodicItems(mergeBot);
+            var integrateComments = pr.comments()
+                                      .stream()
+                                      .filter(c -> c.body().contains("This pull request will be automatically integrated"))
+                                      .count();
+            assertEquals(1, integrateComments);
+            assertTrue(pr.labels().contains("auto"));
+
+            // Approve it as another user
+            var approvalPr = integrator.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // The bot should post the /integrate command and push
+            TestBotRunner.runPeriodicItems(mergeBot);
+            var pushed = pr.comments().stream()
+                           .filter(comment -> comment.body().contains("Pushed as commit"))
+                           .count();
+            assertEquals(1, pushed);
+
+            // The change should now be present on the master branch
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
+            assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
+
+            var headHash = pushedRepo.resolve("HEAD").orElseThrow();
+            var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
+
+            // Author and committer should be the same
+            assertEquals("Generated Committer 1", headCommit.author().name());
+            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
+            assertEquals("Generated Committer 1", headCommit.committer().name());
+            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
+            assertTrue(pr.labels().contains("integrated"));
+
+            // Ready label should have been removed
+            assertFalse(pr.labels().contains("ready"));
+        }
+    }
+
+    @Test
+    void manualIntegration(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var pushedFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addReviewer(integrator.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR with auto integration
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "PR Title", List.of("/integrate auto"));
+
+            // The bot should add the auto label and reply
+            TestBotRunner.runPeriodicItems(mergeBot);
+            var integrateComments = pr.comments()
+                                      .stream()
+                                      .filter(c -> c.body().contains("This pull request will be automatically integrated"))
+                                      .count();
+            assertEquals(1, integrateComments);
+            assertTrue(pr.labels().contains("auto"));
+
+            // Make a comment to integrate manually
+            pr.addComment("/integrate manual");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with that the PR will have to be manually integrated
+            TestBotRunner.runPeriodicItems(mergeBot);
+            var replies = pr.comments().stream()
+                           .filter(comment -> comment.body().contains("This pull request will have to be integrated manually"))
+                           .count();
+            assertEquals(1, replies);
+
+            // The "auto" label should have been removed
+            assertFalse(pr.labels().contains("auto"));
+
+            // Approve it as another user
+            var approvalPr = integrator.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // The bot should reply with integration message
+            TestBotRunner.runPeriodicItems(mergeBot);
+            integrateComments = pr.comments()
+                                  .stream()
+                                  .filter(c -> c.body().contains("To integrate this PR with the above commit message to the `master` branch"))
+                                  .filter(c -> c.body().contains("If you prefer to avoid any potential automatic rebasing"))
+                                  .count();
+            assertEquals(1, integrateComments);
+
+            // Issue the /integrate command
+            pr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an ok message
+            var pushed = pr.comments().stream()
+                           .filter(comment -> comment.body().contains("Pushed as commit"))
+                           .count();
+            assertEquals(1, pushed);
+
+            // The change should now be present on the master branch
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
+            assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
+
+            var headHash = pushedRepo.resolve("HEAD").orElseThrow();
+            var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
+
+            // Author and committer should be the same
+            assertEquals("Generated Committer 1", headCommit.author().name());
+            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
+            assertEquals("Generated Committer 1", headCommit.committer().name());
+            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
+            assertTrue(pr.labels().contains("integrated"));
+
+            // Ready label should have been removed
+            assertFalse(pr.labels().contains("ready"));
         }
     }
 }

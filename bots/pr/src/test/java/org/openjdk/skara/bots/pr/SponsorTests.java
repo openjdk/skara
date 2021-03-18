@@ -703,4 +703,67 @@ class SponsorTests {
             assertEquals("Merge edit", masterHead.message().get(0));
         }
     }
+
+    @Test
+    void sponsorAutoIntegration(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var authorFullName = author.forge().currentUser().fullName();
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "This is a new line", "Append commit", authorFullName, "ta@none.none");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Flag it as ready for integration automatically
+            pr.addComment("/integrate auto");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // Bot should have replied
+            var replies = pr.comments().stream()
+                          .filter(comment -> comment.body().contains("will be automatically integrated"))
+                          .count();
+            assertEquals(1, replies);
+
+            // Approve it as another user
+            var approvalPr = reviewer.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // Let the bot see it
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // Bot should have marked the PR as ready for sponsor
+            var ready = pr.comments().stream()
+                          .filter(comment -> comment.body().contains("now ready to be sponsored"))
+                          .filter(comment -> comment.body().contains("at version " + editHash.hex()))
+                          .count();
+            assertEquals(1, ready);
+            assertTrue(pr.labels().contains("sponsor"));
+
+            // Reviewer now sponsor
+            var reviewerPr = reviewer.pullRequest(pr.id());
+            reviewerPr.addComment("/sponsor");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should have pushed the commit
+            var pushed = pr.comments().stream()
+                           .filter(comment -> comment.body().contains("Pushed as commit"))
+                           .count();
+            assertEquals(1, pushed);
+        }
+    }
+
 }
