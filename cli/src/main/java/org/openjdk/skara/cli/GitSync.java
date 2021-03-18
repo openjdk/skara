@@ -156,11 +156,11 @@ public class GitSync {
                         var originPullPath = repo.pullPath("origin");
                         try {
                             var uri = Remote.toWebURI(originPullPath);
-                            from = Forge.from(uri)
-                                        .flatMap(f -> f.repository(uri.getPath().substring(1)))
-                                        .flatMap(r -> r.parent())
-                                        .map(p -> p.webUrl().toString())
-                                        .orElse(null);
+                            from = ForgeUtils.from(uri)
+                                             .flatMap(f -> f.repository(uri.getPath().substring(1)))
+                                             .flatMap(r -> r.parent())
+                                             .map(p -> p.webUrl().toString())
+                                             .orElse(null);
                         } catch (Throwable e) {
                             from = null;
                         }

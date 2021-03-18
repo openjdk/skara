@@ -265,7 +265,7 @@ public class GitFork {
             exit("error: no username for " + webURI.getHost() + " found, use git-credentials or the flag --username");
         }
 
-        var host = Forge.from(webURI, new Credential(credentials.username(), credentials.password()));
+        var host = ForgeUtils.from(webURI, new Credential(credentials.username(), credentials.password()));
         if (host.isEmpty()) {
             exit("error: could not connect to host " + webURI.getHost());
         }

@@ -289,11 +289,11 @@ public class GitDefpath {
                 var originPullPath = repo.pullPath("origin");
                 var uri = Remote.toWebURI(originPullPath);
                 try {
-                    upstreamURI = Forge.from(uri)
-                                       .flatMap(f -> f.repository(uri.getPath().substring(1)))
-                                       .flatMap(r -> r.parent())
-                                       .map(p -> p.webUrl())
-                                       .orElse(null);
+                    upstreamURI = ForgeUtils.from(uri)
+                                            .flatMap(f -> f.repository(uri.getPath().substring(1)))
+                                            .flatMap(r -> r.parent())
+                                            .map(p -> p.webUrl())
+                                            .orElse(null);
                 } catch (Throwable t) {
                     System.err.println("error: could not find upstream repository");
                     System.exit(1);
@@ -324,11 +324,11 @@ public class GitDefpath {
                     System.exit(1);
                 }
                 try {
-                    forkURI = Forge.from(uri, new Credential(credentials.username(), credentials.password()))
-                                   .flatMap(f -> f.repository(uri.getPath().substring(1)))
-                                   .map(r -> r.fork())
-                                   .map(fork -> fork.webUrl())
-                                   .orElse(null);
+                    forkURI = ForgeUtils.from(uri, new Credential(credentials.username(), credentials.password()))
+                                        .flatMap(f -> f.repository(uri.getPath().substring(1)))
+                                        .map(r -> r.fork())
+                                        .map(fork -> fork.webUrl())
+                                        .orElse(null);
                 } catch (Throwable t) {
                     System.err.println("error: could not find fork for upstream repository");
                     System.exit(1);
