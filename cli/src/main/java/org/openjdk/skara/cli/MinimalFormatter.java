@@ -24,9 +24,19 @@ package org.openjdk.skara.cli;
 
 import java.util.logging.Formatter;
 import java.util.logging.LogRecord;
+import java.util.logging.Level;
 
 class MinimalFormatter extends Formatter {
     public String format(LogRecord record) {
-        return record.getMessage() + "\n";
+        var prefix = "";
+        var level = record.getLevel();
+        if (level.equals(Level.SEVERE)) {
+            prefix = "error: ";
+        } else if (level.equals(Level.WARNING)) {
+            prefix = "warning: ";
+        } else if (level.equals(Level.INFO)) {
+            prefix = "info: ";
+        }
+        return prefix + record.getMessage() + "\n";
     }
 }
