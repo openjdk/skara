@@ -41,6 +41,19 @@ public class ForgeUtils {
         System.exit(1);
     }
 
+    private static void gitConfig(String key, String value) {
+        try {
+            var pb = new ProcessBuilder("git", "config", key, value);
+            pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
+            pb.start().waitFor();
+        } catch (InterruptedException e) {
+            // do nothing
+        } catch (IOException e) {
+            // do nothing
+        }
+    }
+
     private static String gitConfig(String key) {
         try {
             var pb = new ProcessBuilder("git", "config", key);
@@ -118,7 +131,11 @@ public class ForgeUtils {
             var forge = credentials == null ? Forge.from(name, uri) : Forge.from(name, uri, credentials);
             return Optional.of(forge);
         }
-        return credentials == null ? Forge.from(uri) : Forge.from(uri, credentials);
+        var forge = credentials == null ? Forge.from(uri) : Forge.from(uri, credentials);
+        if (forge.isPresent()) {
+            gitConfig("forge.name", forge.get().name().toLowerCase());
+        }
+        return forge;
     }
 
     public static Forge getForge(URI uri, ReadOnlyRepository repo, String command, Arguments arguments) throws IOException {
