@@ -247,7 +247,9 @@ public class ArgumentParser {
             }
         }
 
-        if (!errors.isEmpty()) {
+        // If --version is specified then don't care about required flags or inputs
+        var showVersion = arguments.contains("version");
+        if (!errors.isEmpty() && !showVersion) {
             for (var error : errors) {
                 System.err.println(error);
             }
