@@ -32,14 +32,17 @@ import org.openjdk.skara.vcs.Branch;
 
 import java.io.IOException;
 import java.net.URI;
-import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.openjdk.skara.bots.notify.TestUtils.*;
-import static org.openjdk.skara.issuetracker.Issue.State.*;
+import static org.openjdk.skara.issuetracker.Issue.State.OPEN;
+import static org.openjdk.skara.issuetracker.Issue.State.RESOLVED;
 
 public class IssueNotifierTests {
     private Set<String> fixVersions(Issue issue) {
@@ -582,6 +585,100 @@ public class IssueNotifierTests {
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
             assertEquals("b08", updatedIssue.properties().get("customfield_10006").asString());
 
+        }
+    }
+
+    @Test
+    void testIssueRetryTag(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var issueProject = credentials.getIssueProject();
+            var storageFolder = tempFolder.path().resolve("storage");
+            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object())
+                                        .put("buildname", "team");
+            var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
+
+            // Initialize history
+            var current = localRepo.resolve("master").orElseThrow();
+            localRepo.tag(current, "jdk-16+9", "First tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and commit a fix
+            var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
+            localRepo.push(editHash, repo.url(), "master");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The changeset should be reflected in a comment
+            var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+
+            var comments = updatedIssue.comments();
+            assertEquals(1, comments.size());
+            var comment = comments.get(0);
+            assertTrue(comment.body().contains(editHash.abbreviate()));
+
+            // As well as a fixVersion and a resolved in build
+            assertEquals(Set.of("0.1"), fixVersions(updatedIssue));
+            assertEquals("team", updatedIssue.properties().get("customfield_10006").asString());
+
+            // The issue should be assigned and resolved
+            assertEquals(RESOLVED, updatedIssue.state());
+            assertEquals(List.of(issueProject.issueTracker().currentUser()), updatedIssue.assignees());
+
+            // Tag it
+            localRepo.tag(editHash, "jdk-16+110", "Second tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The build should now be updated
+            updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            assertEquals("b110", updatedIssue.properties().get("customfield_10006").asString());
+
+            // Tag it again
+            localRepo.tag(editHash, "jdk-16+10", "Third tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+
+            // Claim that it is already processed
+            localRepo.fetch(repo.url(), "+history:history");
+            localRepo.checkout(new Branch("history"), true);
+            var historyFile = repoFolder.resolve("test.tags.txt");
+            var processed = new ArrayList<>(Files.readAllLines(historyFile, StandardCharsets.UTF_8));
+            processed.add("jdk-16+10 issue done");
+            Files.writeString(historyFile, String.join("\n", processed), StandardCharsets.UTF_8);
+            localRepo.add(historyFile);
+            var updatedHash = localRepo.commit("Marking jdk-16+10 as done", "duke", "duke@openjdk.org");
+            localRepo.push(updatedHash, repo.url(), "history");
+
+            // Now let the notifier see it
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The build should not have been updated
+            updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            assertEquals("b110", updatedIssue.properties().get("customfield_10006").asString());
+
+            // Flag it as in need of retry
+            processed.remove(processed.size() - 1);
+            processed.add("jdk-16+10 issue retry");
+            Files.writeString(repoFolder.resolve("test.tags.txt"), String.join("\n", processed), StandardCharsets.UTF_8);
+            localRepo.add(historyFile);
+            var retryHash = localRepo.commit("Marking jdk-16+10 as needing retry", "duke", "duke@openjdk.org");
+            localRepo.push(retryHash, repo.url(), "history");
+
+            // Now let the notifier see it
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The build should have been updated by the retry
+            updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            assertEquals("b10", updatedIssue.properties().get("customfield_10006").asString());
         }
     }
 

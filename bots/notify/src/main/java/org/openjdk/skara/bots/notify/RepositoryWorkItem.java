@@ -155,7 +155,7 @@ public class RepositoryWorkItem implements WorkItem {
         var errors = new ArrayList<Throwable>();
         var tags = localRepo.tags();
         var newTags = tags.stream()
-                          .filter(tag -> !history.hasTag(tag, listener.name()))
+                          .filter(tag -> !history.hasTag(tag, listener.name()) || history.shouldRetryTagUpdate(tag, listener.name()))
                           .collect(Collectors.toList());
 
         if (tags.size() == newTags.size()) {
