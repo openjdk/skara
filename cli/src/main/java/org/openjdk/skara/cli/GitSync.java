@@ -177,6 +177,19 @@ public class GitSync {
 
         var fromPullPath = remotes.contains(from) ?
             Remote.toURI(repo.pullPath(from)) : Remote.toURI(from);
+        var fromScheme = fromPullPath.getScheme();
+        if (fromScheme.equals("https") || fromScheme.equals("http")) {
+            var token = System.getenv("GIT_TOKEN");
+            var username = getOption("username", arguments, repo);
+            var credentials = GitCredentials.fill(fromPullPath.getHost(),
+                                                  fromPullPath.getPath(),
+                                                  username,
+                                                  token,
+                                                  fromScheme);
+            if (credentials.password() != null && credentials.username() != null && token != null) {
+                fromPullPath = URI.create(fromScheme + "://" + credentials.username() + ":" + credentials.password() + "@" + fromPullPath.getHost() + fromPullPath.getPath());
+            }
+        }
 
         String to = null;
         if (arguments.contains("to")) {
