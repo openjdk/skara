@@ -46,6 +46,14 @@ public class GitPrIntegrate {
               .helptext("Integrate the pull request atomically")
               .optional(),
         Switch.shortcut("")
+              .fullname("auto")
+              .helptext("Configure the pull request for automatic integration")
+              .optional(),
+        Switch.shortcut("")
+              .fullname("manual")
+              .helptext("Configure the pull request for manual integration")
+              .optional(),
+        Switch.shortcut("")
               .fullname("verbose")
               .helptext("Turn on verbose output")
               .optional(),
@@ -69,12 +77,27 @@ public class GitPrIntegrate {
     public static void main(String[] args) throws IOException, InterruptedException {
         var parser = new ArgumentParser("git-pr", flags, inputs);
         var arguments = parse(parser, args);
+
+        var isAtomic = getSwitch("atomic", "integrate", arguments);
+        var isAuto = getSwitch("auto", "integrate", arguments);
+        var isManual = getSwitch("manual", "integrate", arguments);
+        if (isAuto && isManual) {
+            exit("error: cannot use both --auto and --manual");
+        }
+        if (isAtomic) {
+            if (isAuto) {
+                exit("error: cannot use both --atomic and --auto");
+            }
+            if (isManual) {
+                exit("error: cannot use both --atomic and --manual");
+            }
+        }
+
         var repo = getRepo();
         var uri = getURI(repo, arguments);
         var host = getForge(uri, repo, arguments);
         var id = pullRequestIdArgument(repo, arguments);
         var pr = getPullRequest(uri, repo, host, id);
-        var isAtomic = getSwitch("atomic", "integrate", arguments);
 
         var message = "/integrate";
         if (isAtomic) {
@@ -85,6 +108,10 @@ public class GitPrIntegrate {
             var sourceHash = repo.fetch(pr.repository().webUrl(), pr.fetchRef());
             var mergeBase = repo.mergeBase(sourceHash, targetHash.get());
             message += " " + mergeBase.hex();
+        } else if (isAuto) {
+            message += " auto";
+        } else if (isManual) {
+            message += " manual";
         }
 
         var integrateComment = pr.addComment(message);
