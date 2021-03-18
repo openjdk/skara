@@ -738,4 +738,10 @@ public class GitHubPullRequest implements PullRequest {
                       .reduce((a, b) -> b)
                       .map(e -> host.parseUserObject(e.get("actor")));
     }
+
+    @Override
+    public URI filesUrl(Hash hash) {
+        var endpoint = "/" + repository.name() + "/pull/" + id() + "/files/" + hash.hex();
+        return host.getWebURI(endpoint);
+    }
 }

@@ -155,7 +155,7 @@ class ArchiveWorkItem implements WorkItem {
         comment += "### Webrevs" + "\n";
         comment += webrevListMarker + "\n";
         comment += " * " + String.format("%02d", index) + ": " + webrevDescriptions;
-        comment += " (" + pr.headHash() + ")\n";
+        comment += " (" + pr.filesUrl(pr.headHash()) + ")\n";
 
         if (existing.isPresent()) {
             if (existing.get().body().contains(webrevDescriptions)) {
