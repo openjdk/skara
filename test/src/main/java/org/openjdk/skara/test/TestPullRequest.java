@@ -257,4 +257,9 @@ public class TestPullRequest extends TestIssue implements PullRequest {
             throw new UncheckedIOException(e);
         }
     }
+
+    @Override
+    public URI filesUrl(Hash hash) {
+        return URI.create(webUrl().toString() + "/files/" + hash.hex());
+    }
 }

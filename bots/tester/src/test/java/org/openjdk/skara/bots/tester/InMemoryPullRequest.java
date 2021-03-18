@@ -314,4 +314,9 @@ class InMemoryPullRequest implements PullRequest {
     public Optional<HostUser> closedBy() {
         return Optional.empty();
     }
+
+    @Override
+    public URI filesUrl(Hash hash) {
+        return null;
+    }
 }

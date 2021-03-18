@@ -161,4 +161,6 @@ public interface PullRequest extends Issue {
      * @return
      */
     void setTargetRef(String targetRef);
+
+    URI filesUrl(Hash hash);
 }

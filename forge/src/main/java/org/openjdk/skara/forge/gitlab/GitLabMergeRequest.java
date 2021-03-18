@@ -788,4 +788,10 @@ public class GitLabMergeRequest implements PullRequest {
 
         return Optional.of(host.parseAuthorObject(json.get("closed_by").asObject()));
     }
+
+    @Override
+    public URI filesUrl(Hash hash) {
+        var endpoint = "/" + repository.name() + "/-/merge_requests/" + id() + "/diffs?commit_id=" + hash.hex();
+        return host.getWebUri(endpoint);
+    }
 }
