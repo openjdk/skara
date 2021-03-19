@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -284,12 +284,13 @@ class Utils {
         return pr;
     }
 
-    static void show(String ref, Hash hash) throws IOException {
-        show(ref, hash, null);
+    static void show(String ref, Hash hash, boolean useTool) throws IOException {
+        show(ref, hash, null, useTool);
     }
 
-    static void show(String ref, Hash hash, Path dir) throws IOException {
-        var pb = new ProcessBuilder("git", "diff", "--binary",
+    static void show(String ref, Hash hash, Path dir, boolean useTool) throws IOException {
+        var command = useTool ? "difftool" : "diff";
+        var pb = new ProcessBuilder("git", command, "--binary",
                                                    "--patch",
                                                    "--find-renames=50%",
                                                    "--find-copies=50%",
