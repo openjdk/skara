@@ -336,7 +336,8 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 var fixVersion = JdkVersion.parse(requestedVersion).orElseThrow();
                 var existing = Backports.findIssue(issue, fixVersion);
                 if (existing.isEmpty()) {
-                    throw new RuntimeException("Cannot find a properly resolved issue for: " + issue.id());
+                    log.severe("Cannot find a properly resolved issue for: " + issue.id() + " - will not update resolved in build");
+                    return;
                 } else {
                     issue = existing.get();
                 }
