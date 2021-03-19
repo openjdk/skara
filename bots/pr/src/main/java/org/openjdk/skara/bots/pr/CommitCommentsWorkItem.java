@@ -79,7 +79,7 @@ class CommitCommentsWorkItem implements WorkItem {
                 if (commitTitleToCommits.containsKey(title)) {
                     commitTitleToCommits.get(title).add(commit.hash());
                 } else {
-                    var set = new HashSet<Hash>();
+                    var set = new LinkedHashSet<Hash>();
                     set.add(commit.hash());
                     commitTitleToCommits.put(title, set);
                 }
