@@ -281,6 +281,9 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         if (buildName == null) {
             return;
         }
+        if (tag.buildNum().isEmpty()) {
+            return;
+        }
 
         for (var commit : commits) {
             var commitMessage = CommitMessageParsers.v1.parse(commit);
@@ -343,7 +346,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
 
                 // Check if the build name should be updated
                 var oldBuild = issue.properties().getOrDefault("customfield_10006", JSON.of());
-                var newBuild = "b" + String.format("%02d", tag.buildNum());
+                var newBuild = "b" + String.format("%02d", tag.buildNum().get());
                 if (BuildCompare.shouldReplace(newBuild, oldBuild.asString())) {
                     issue.setProperty("customfield_10006", JSON.of(newBuild));
                 } else {
