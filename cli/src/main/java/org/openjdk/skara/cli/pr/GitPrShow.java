@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -41,6 +41,10 @@ public class GitPrShow {
               .describe("NAME")
               .helptext("Name of remote, defaults to 'origin'")
               .optional(),
+        Switch.shortcut("t")
+              .fullname("tool")
+              .helptext("Use git diftool (GUI) instead of git diff")
+              .optional(),
         Switch.shortcut("")
               .fullname("no-token")
               .helptext("Do not use a personal access token (PAT)")
@@ -74,8 +78,9 @@ public class GitPrShow {
         var host = getForge(uri, repo, arguments);
         var id = pullRequestIdArgument(repo, arguments);
         var pr = getPullRequest(uri, repo, host, id);
+        var useTool = getSwitch("tool", "show", arguments);
 
         var fetchHead = repo.fetch(pr.repository().webUrl(), pr.fetchRef());
-        show(pr.targetRef(), fetchHead);
+        show(pr.targetRef(), fetchHead, useTool);
     }
 }
