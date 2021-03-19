@@ -309,7 +309,6 @@
             "src/hotspot/share/libadt/",
             "src/hotspot/share/opto/",
             "src/hotspot/share/runtime/(deoptimization|frame|icache|registermap|sharedruntime|stub|sweeper|vframe)",
-            "src/java.base/share/classes/java/lang/invoke/",
             "src/jdk.aot/",
             "src/jdk.internal.vm.ci/",
             "src/jdk.internal.vm.compiler.management/",
