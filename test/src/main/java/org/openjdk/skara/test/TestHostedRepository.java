@@ -212,11 +212,12 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits) {
+    public List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits, Set<Integer> excludeAuthors) {
         return commitComments.values()
                              .stream()
                              .flatMap(e -> e.stream())
                              .sorted((c1, c2) -> c2.updatedAt().compareTo(c1.updatedAt()))
+                             .filter(c -> !excludeAuthors.contains(Integer.valueOf(c.author().id())))
                              .collect(Collectors.toList());
     }
 

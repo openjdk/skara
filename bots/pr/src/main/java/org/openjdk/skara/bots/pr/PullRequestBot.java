@@ -62,6 +62,7 @@ class PullRequestBot implements Bot {
     private final PullRequestUpdateCache updateCache;
     private final Map<String, HostedRepository> forks;
     private final Set<String> integrators;
+    private final Set<Integer> excludeCommitCommentsFrom;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     private Instant lastFullUpdate;
@@ -74,7 +75,7 @@ class PullRequestBot implements Bot {
                    boolean ignoreStaleReviews, Pattern allowedTargetBranches,
                    Path seedStorage, HostedRepository confOverrideRepo, String confOverrideName,
                    String confOverrideRef, String censusLink, Map<String, HostedRepository> forks,
-                   Set<String> integrators) {
+                   Set<String> integrators, Set<Integer> excludeCommitCommentsFrom) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -96,6 +97,7 @@ class PullRequestBot implements Bot {
         this.censusLink = censusLink;
         this.forks = forks;
         this.integrators = integrators;
+        this.excludeCommitCommentsFrom = excludeCommitCommentsFrom;
 
         autoLabelled = new HashSet<>();
         scheduledRechecks = new ConcurrentHashMap<>();
@@ -156,7 +158,7 @@ class PullRequestBot implements Bot {
 
     private List<WorkItem> getWorkItems(List<PullRequest> pullRequests) {
         var ret = new LinkedList<WorkItem>();
-        ret.add(new CommitCommentsWorkItem(this, remoteRepo));
+        ret.add(new CommitCommentsWorkItem(this, remoteRepo, excludeCommitCommentsFrom));
 
         for (var pr : pullRequests) {
             if (updateCache.needsUpdate(pr) || checkHasExpired(pr)) {

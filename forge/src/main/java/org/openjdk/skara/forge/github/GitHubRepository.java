@@ -293,7 +293,7 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits) {
+    public List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits, Set<Integer> excludeAuthors) {
         var parts = name().split("/");
         var owner = parts[0];
         var name = parts[1];
@@ -333,6 +333,7 @@ public class GitHubRepository implements HostedRepository {
                            .get("commitComments")
                            .get("nodes")
                            .stream()
+                           .filter(o -> !excludeAuthors.contains(o.get("author").get("databaseId").asInt()))
                            .map(o -> {
                                var hash = new Hash(o.get("commit").get("oid").asString());
                                var createdAt = ZonedDateTime.parse(o.get("createdAt").asString());

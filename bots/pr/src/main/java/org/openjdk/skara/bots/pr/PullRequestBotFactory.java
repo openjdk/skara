@@ -71,6 +71,14 @@ public class PullRequestBotFactory implements BotFactory {
             }
         }
 
+        var excludeCommitCommentsFrom = new HashSet<Integer>();
+        if (specific.contains("exclude-commit-comments-from")) {
+            specific.get("exclude-commit-comments-from")
+                    .stream()
+                    .map(o -> o.asInt())
+                    .forEach(id -> excludeCommitCommentsFrom.add(id));
+        }
+
         var readyLabels = specific.get("ready").get("labels").stream()
                                   .map(JSONValue::asString)
                                   .collect(Collectors.toSet());

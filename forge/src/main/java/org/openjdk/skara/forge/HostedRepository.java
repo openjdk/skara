@@ -73,9 +73,9 @@ public interface HostedRepository {
     List<HostedBranch> branches();
     List<CommitComment> commitComments(Hash hash);
     default List<CommitComment> recentCommitComments() {
-        return recentCommitComments(Map.of());
+        return recentCommitComments(Map.of(), Set.of());
     }
-    List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits);
+    List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits, Set<Integer> excludeAuthors);
     CommitComment addCommitComment(Hash hash, String body);
     void updateCommitComment(String id, String body);
     Optional<HostedCommit> commit(Hash hash);

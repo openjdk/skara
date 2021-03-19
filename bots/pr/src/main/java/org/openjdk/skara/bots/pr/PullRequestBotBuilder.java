@@ -52,6 +52,7 @@ public class PullRequestBotBuilder {
     private String censusLink = null;
     private Map<String, HostedRepository> forks = Map.of();
     private Set<String> integrators = Set.of();
+    private Set<Integer> excludeCommitCommentsFrom = Set.of();
 
     PullRequestBotBuilder() {
     }
@@ -161,12 +162,17 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder excludeCommitCommentsFrom(Set<Integer> excludeCommitCommentsFrom) {
+        this.excludeCommitCommentsFrom = excludeCommitCommentsFrom;
+        return this;
+    }
+
     public PullRequestBot build() {
         return new PullRequestBot(repo, censusRepo, censusRef, labelConfiguration,
                                   externalPullRequestCommands, externalCommitCommands,
                                   blockingCheckLabels, readyLabels, twoReviewersLabels, twentyFourHoursLabels,
                                   readyComments, issueProject, ignoreStaleReviews,
                                   allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,
-                                  confOverrideRef, censusLink, forks, integrators);
+                                  confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom);
     }
 }
