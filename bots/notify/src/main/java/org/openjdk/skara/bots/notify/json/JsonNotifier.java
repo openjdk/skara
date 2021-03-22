@@ -95,7 +95,10 @@ class JsonNotifier implements Notifier, RepositoryListener {
 
     @Override
     public void onNewOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotation) throws NonRetriableException {
-        var build = String.format("b%02d", tag.buildNum());
+        if (tag.buildNum().isEmpty()) {
+            return;
+        }
+        var build = String.format("b%02d", tag.buildNum().get());
         try (var writer = new JsonWriter(path, repository.name())) {
             var issues = new ArrayList<Issue>();
             for (var commit : commits) {

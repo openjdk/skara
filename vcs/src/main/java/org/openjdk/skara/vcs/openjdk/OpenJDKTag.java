@@ -108,25 +108,25 @@ public class OpenJDKTag {
      *
      * @return
      */
-    public int buildNum() {
+    public Optional<Integer> buildNum() {
         if (buildNum == null) {
-            return 0;
+            return Optional.empty();
         }
-        return Integer.parseInt(buildNum);
+        return Optional.of(Integer.parseInt(buildNum));
     }
 
     /**
-     * Tag of the previous build (if any).
+     * Tag of the previous build (if any). Build 0 (and no build number at all) have no previous build.
      *
      * @return
      */
     public Optional<OpenJDKTag> previous() {
-        if (buildNum() == 0) {
+        if (buildNum().orElse(0) == 0) {
             return Optional.empty();
         }
 
         // Make sure build numbers < 10 for JDK 9 tags are not prefixed with '0'
-        var previousBuildNum = buildNum() - 1;
+        var previousBuildNum = buildNum().get() - 1;
         var formattedBuildNum = String.format(buildPrefix.equals("+") ? "%d" : "%02d", previousBuildNum);
         var tagName = prefix + buildPrefix + formattedBuildNum;
         var tag = new Tag(tagName);

@@ -33,64 +33,64 @@ class OpenJDKTagTests {
     void parseTags() {
         var tag = new Tag("jdk-10+20");
         var jdkTag = OpenJDKTag.create(tag).orElseThrow();
-        assertEquals(20, jdkTag.buildNum());
+        assertEquals(20, jdkTag.buildNum().orElseThrow());
         var previousTag = jdkTag.previous().orElseThrow();
-        assertEquals(19, previousTag.buildNum());
+        assertEquals(19, previousTag.buildNum().orElseThrow());
     }
 
     @Test
     void parseSingleDigitTags() {
         var tag = new Tag("jdk-10+10");
         var jdkTag = OpenJDKTag.create(tag).orElseThrow();
-        assertEquals(10, jdkTag.buildNum());
+        assertEquals(10, jdkTag.buildNum().orElseThrow());
         var previousTag = jdkTag.previous().orElseThrow();
         assertEquals("jdk-10+9", previousTag.tag().name());
-        assertEquals(9, previousTag.buildNum());
+        assertEquals(9, previousTag.buildNum().orElseThrow());
     }
 
     @Test
     void parseLegacyTags() {
         var tag = new Tag("jdk7-b147");
         var jdkTag = OpenJDKTag.create(tag).orElseThrow();
-        assertEquals(147, jdkTag.buildNum());
+        assertEquals(147, jdkTag.buildNum().orElseThrow());
         var previousTag = jdkTag.previous().orElseThrow();
-        assertEquals(146, previousTag.buildNum());
+        assertEquals(146, previousTag.buildNum().orElseThrow());
     }
 
     @Test
     void parseSingleDigitLegacyTags() {
         var tag = new Tag("jdk7-b10");
         var jdkTag = OpenJDKTag.create(tag).orElseThrow();
-        assertEquals(10, jdkTag.buildNum());
+        assertEquals(10, jdkTag.buildNum().orElseThrow());
         var previousTag = jdkTag.previous().orElseThrow();
         assertEquals("jdk7-b09", previousTag.tag().name());
-        assertEquals(9, previousTag.buildNum());
+        assertEquals(9, previousTag.buildNum().orElseThrow());
     }
 
     @Test
     void parseHotspotTags() {
         var tag = new Tag("hs23.6-b19");
         var jdkTag = OpenJDKTag.create(tag).orElseThrow();
-        assertEquals(19, jdkTag.buildNum());
+        assertEquals(19, jdkTag.buildNum().orElseThrow());
         var previousTag = jdkTag.previous().orElseThrow();
-        assertEquals(18, previousTag.buildNum());
+        assertEquals(18, previousTag.buildNum().orElseThrow());
     }
 
     @Test
     void parseSingleDigitHotspotTags() {
         var tag = new Tag("hs23.6-b10");
         var jdkTag = OpenJDKTag.create(tag).orElseThrow();
-        assertEquals(10, jdkTag.buildNum());
+        assertEquals(10, jdkTag.buildNum().orElseThrow());
         var previousTag = jdkTag.previous().orElseThrow();
         assertEquals("hs23.6-b09", previousTag.tag().name());
-        assertEquals(9, previousTag.buildNum());
+        assertEquals(9, previousTag.buildNum().orElseThrow());
     }
 
     @Test
     void noPrevious() {
         var tag = new Tag("jdk-10+0");
         var jdkTag = OpenJDKTag.create(tag).orElseThrow();
-        assertEquals(0, jdkTag.buildNum());
+        assertEquals(0, jdkTag.buildNum().orElseThrow());
         assertFalse(jdkTag.previous().isPresent());
     }
 
@@ -99,9 +99,9 @@ class OpenJDKTagTests {
         var tag = new Tag("12.1.3+14");
         var jdkTag = OpenJDKTag.create(tag).orElseThrow();
         assertEquals("12.1.3", jdkTag.version());
-        assertEquals(14, jdkTag.buildNum());
+        assertEquals(14, jdkTag.buildNum().orElseThrow());
         var previousTag = jdkTag.previous().orElseThrow();
-        assertEquals(13, previousTag.buildNum());
+        assertEquals(13, previousTag.buildNum().orElseThrow());
     }
 
     @Test
@@ -109,6 +109,6 @@ class OpenJDKTagTests {
         var tag = new Tag("12.1-ga");
         var jdkTag = OpenJDKTag.create(tag).orElseThrow();
         assertEquals("12.1", jdkTag.version());
-        assertEquals(0, jdkTag.buildNum());
+        assertTrue(jdkTag.buildNum().isEmpty());
     }
 }

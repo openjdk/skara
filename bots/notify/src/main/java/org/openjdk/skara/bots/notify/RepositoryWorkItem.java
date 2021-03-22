@@ -182,7 +182,7 @@ public class RepositoryWorkItem implements WorkItem {
                                 .map(OpenJDKTag::create)
                                 .filter(Optional::isPresent)
                                 .map(Optional::get)
-                                .sorted(Comparator.comparingInt(OpenJDKTag::buildNum))
+                                .sorted(Comparator.comparingInt(tag -> tag.buildNum().orElse(-1)))
                                 .collect(Collectors.toList());
         for (var tag : newJdkTags) {
             var commits = new ArrayList<Commit>();
