@@ -182,7 +182,7 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
-    public List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits) {
+    public List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits, Set<Integer> excludeAuthors) {
         return List.of();
     }
 

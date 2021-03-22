@@ -382,7 +382,7 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits) {
+    public List<CommitComment> recentCommitComments(Map<String, Set<Hash>> commitTitleToCommits, Set<Integer> excludeAuthors) {
         var fourDaysAgo = ZonedDateTime.now().minusDays(4);
         var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         var notes = request.get("events")
@@ -392,6 +392,9 @@ public class GitLabRepository implements HostedRepository {
                       .filter(o -> o.contains("note") &&
                                    o.get("note").contains("noteable_type") &&
                                    o.get("note").get("noteable_type").asString().equals("Commit"))
+                      .filter(o -> o.contains("author") &&
+                                   o.get("author").contains("id") &&
+                                   !excludeAuthors.contains(o.get("author").get("id").asInt()))
                       .collect(Collectors.toList());
 
         // Fetch eventual new commits

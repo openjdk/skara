@@ -36,13 +36,15 @@ import java.util.stream.Collectors;
 class CommitCommentsWorkItem implements WorkItem {
     private final PullRequestBot bot;
     private final HostedRepository repo;
+    private final Set<Integer> excludeCommitCommentsFrom;
 
     private static final ConcurrentHashMap<String, Boolean> processed = new ConcurrentHashMap<>();
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
-    CommitCommentsWorkItem(PullRequestBot bot, HostedRepository repo) {
+    CommitCommentsWorkItem(PullRequestBot bot, HostedRepository repo, Set<Integer> excludeCommitCommentsFrom) {
         this.bot = bot;
         this.repo = repo;
+        this.excludeCommitCommentsFrom = excludeCommitCommentsFrom;
     }
 
     @Override
@@ -84,7 +86,7 @@ class CommitCommentsWorkItem implements WorkItem {
                     commitTitleToCommits.put(title, set);
                 }
             }
-            var commitComments = repo.recentCommitComments(commitTitleToCommits);
+            var commitComments = repo.recentCommitComments(commitTitleToCommits, excludeCommitCommentsFrom);
             return commitComments.stream()
                                  .filter(cc -> !processed.containsKey(cc.id()))
                                  .filter(cc -> remoteBranches.stream()
