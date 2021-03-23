@@ -83,4 +83,9 @@ class MimeTextTests {
     void decodeIsoQSpaces() {
         assertEquals("Bä Bä Bä", MimeText.decode("=?iso-8859-1?Q?B=E4_B=E4=20B=E4?="));
     }
+
+    @Test
+    void multibyte() {
+        assertEquals("first.last at example.com (First Lüst)", MimeText.decode("first.last at example.com (=?UTF-8?Q?First_L=C3=BCst?=)"));
+    }
 }
