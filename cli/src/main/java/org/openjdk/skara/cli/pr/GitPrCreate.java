@@ -25,6 +25,7 @@ package org.openjdk.skara.cli.pr;
 import org.openjdk.skara.args.*;
 import org.openjdk.skara.cli.*;
 import org.openjdk.skara.forge.*;
+import org.openjdk.skara.issuetracker.Label;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
@@ -342,14 +343,13 @@ public class GitPrCreate {
                 }
             } else {
                 var suggested = suggestedLabels(repo, host, parentProject, targetBranch, headRef);
+                var labelNameToLabel = parentRepo.labels().stream().collect(Collectors.toMap(l -> l.name(), l -> l));
                 System.out.println("The following mailing lists will be CC:d for the \"RFR\" e-mail:");
                 for (var label : suggested) {
-                    String list = null;
                     if (label.endsWith("-dev")) {
-                        list = label + "@openjdk.java.net";
-                    } else {
-                        list = label + "-dev@openjdk.java.net";
+                        label = label.substring(0, label.length() - "-dev".length());
                     }
+                    var list = labelNameToLabel.getOrDefault(label, new Label(label)).description().orElse(label + "-dev@openjdk.java.net");
                     if (cc == null) {
                         System.out.println("- " + list);
                     }
