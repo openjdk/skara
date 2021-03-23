@@ -61,12 +61,12 @@ public class CleanCommand implements CommandHandler {
             return;
         }
 
-        if (!pr.labels().contains("backport")) {
+        if (!pr.labelNames().contains("backport")) {
             reply.println("@" + username + " can only mark [backport pull requests](https://wiki.openjdk.java.net/display/SKARA/Backports#Backports-BackportPullRequests) as clean");
             return;
         }
 
-        if (pr.labels().contains("clean")) {
+        if (pr.labelNames().contains("clean")) {
             reply.println("@" + username + " this backport pull request is already marked as clean");
             return;
         }

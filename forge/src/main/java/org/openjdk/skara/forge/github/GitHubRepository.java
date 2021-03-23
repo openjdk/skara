@@ -24,6 +24,7 @@ package org.openjdk.skara.forge.github;
 
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
+import org.openjdk.skara.issuetracker.Label;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
 import org.openjdk.skara.vcs.*;
@@ -551,5 +552,14 @@ public class GitHubRepository implements HostedRepository {
         request.put("branches/" + branch.name() + "/protection")
                .body(query)
                .execute();
+    }
+
+    @Override
+    public List<Label> labels() {
+        return request.get("labels")
+                      .execute()
+                      .stream()
+                      .map(o -> new Label(o.get("name").asString(), o.get("description").asString()))
+                      .collect(Collectors.toList());
     }
 }

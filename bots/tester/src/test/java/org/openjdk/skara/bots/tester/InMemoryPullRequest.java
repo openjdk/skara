@@ -29,6 +29,7 @@ import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import java.time.*;
 import java.net.*;
 
@@ -223,8 +224,8 @@ class InMemoryPullRequest implements PullRequest {
     }
 
     @Override
-    public List<String> labels() {
-        return new ArrayList<String>(labels);
+    public List<Label> labels() {
+        return labels.stream().map(s -> new Label(s)).collect(Collectors.toList());
     }
 
     @Override

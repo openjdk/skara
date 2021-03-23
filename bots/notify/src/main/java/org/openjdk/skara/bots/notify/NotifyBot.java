@@ -67,7 +67,7 @@ public class NotifyBot implements Bot, Emitter {
     }
 
     private boolean isOfInterest(PullRequest pr) {
-        var labels = new HashSet<>(pr.labels());
+        var labels = new HashSet<>(pr.labelNames());
         if (!(labels.contains("rfr") || labels.contains("integrated"))) {
             log.fine("PR is not yet ready - needs either 'rfr' or 'integrated' label");
             return false;

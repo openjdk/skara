@@ -62,7 +62,7 @@ public class CSRCommand implements CommandHandler {
             return;
         }
 
-        var labels = pr.labels();
+        var labels = pr.labelNames();
 
         var cmd = command.args().trim().toLowerCase();
         if (!cmd.isEmpty() && !(cmd.equals("needed") || cmd.equals("unneeded") || cmd.equals("uneeded"))) {

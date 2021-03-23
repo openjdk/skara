@@ -24,6 +24,7 @@ package org.openjdk.skara.forge.gitlab;
 
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
+import org.openjdk.skara.issuetracker.Label;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
 import org.openjdk.skara.vcs.*;
@@ -582,5 +583,14 @@ public class GitLabRepository implements HostedRepository {
     public void restrictPushAccess(Branch branch, List<HostUser> users) {
         // Not possible to implement using GitLab Community Edition.
         // Must work around in admin web UI using groups.
+    }
+
+    @Override
+    public List<Label> labels() {
+        return request.get("labels")
+                      .execute()
+                      .stream()
+                      .map(o -> new Label(o.get("name").asString(), o.get("description").asString()))
+                      .collect(Collectors.toList());
     }
 }

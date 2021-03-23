@@ -264,9 +264,9 @@ public class JiraIssue implements Issue {
     }
 
     @Override
-    public List<String> labels() {
+    public List<Label> labels() {
         return json.get("fields").get("labels").stream()
-                   .map(JSONValue::asString)
+                   .map(s -> new Label(s.asString()))
                    .collect(Collectors.toList());
     }
 

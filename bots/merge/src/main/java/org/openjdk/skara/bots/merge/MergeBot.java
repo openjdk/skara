@@ -322,7 +322,7 @@ class MergeBot implements Bot, WorkItem {
                         // to just wait until the next time the bot runs
                         shouldMerge = false;
 
-                        if (pr.labels().contains("ready") && !pr.labels().contains("sponsor")) {
+                        if (pr.labelNames().contains("ready") && !pr.labelNames().contains("sponsor")) {
                             var comments = pr.comments();
                             var integrateComments =
                                 comments.stream()

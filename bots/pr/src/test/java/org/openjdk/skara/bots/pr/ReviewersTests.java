@@ -104,7 +104,7 @@ public class ReviewersTests {
 
             // The PR should not yet be considered as ready for review
             var updatedPr = author.pullRequest(pr.id());
-            assertFalse(updatedPr.labels().contains("ready"));
+            assertFalse(updatedPr.labelNames().contains("ready"));
 
             // Now reduce the number of required reviewers
             reviewerPr.addComment("/reviewers 1");
@@ -113,7 +113,7 @@ public class ReviewersTests {
 
             // The PR should now be considered as ready for review
             updatedPr = author.pullRequest(pr.id());
-            assertTrue(updatedPr.labels().contains("ready"));
+            assertTrue(updatedPr.labelNames().contains("ready"));
 
             // Now request that the lead reviews
             reviewerPr.addComment("/reviewers 1 lead");
@@ -123,7 +123,7 @@ public class ReviewersTests {
 
             // The PR should no longer be considered as ready for review
             updatedPr = author.pullRequest(pr.id());
-            assertFalse(updatedPr.labels().contains("ready"));
+            assertFalse(updatedPr.labelNames().contains("ready"));
 
             // Drop the extra requirement that it should be the lead
             reviewerPr.addComment("/reviewers 1");
@@ -133,7 +133,7 @@ public class ReviewersTests {
 
             // The PR should now be considered as ready for review yet again
             updatedPr = author.pullRequest(pr.id());
-            assertTrue(updatedPr.labels().contains("ready"));
+            assertTrue(updatedPr.labelNames().contains("ready"));
         }
     }
 

@@ -112,7 +112,7 @@ class PullRequestBot implements Bot {
     }
 
     private boolean isReady(PullRequest pr) {
-        var labels = new HashSet<>(pr.labels());
+        var labels = new HashSet<>(pr.labelNames());
         for (var readyLabel : readyLabels) {
             if (!labels.contains(readyLabel)) {
                 log.fine("PR is not yet ready - missing label '" + readyLabel + "'");

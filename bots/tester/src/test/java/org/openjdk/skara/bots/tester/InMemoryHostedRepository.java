@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.tester;
 
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
+import org.openjdk.skara.issuetracker.Label;
 import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 
@@ -212,5 +213,10 @@ class InMemoryHostedRepository implements HostedRepository {
 
     @Override
     public void restrictPushAccess(Branch branch, List<HostUser> users) {
+    }
+
+    @Override
+    public List<Label> labels() {
+        return List.of();
     }
 }

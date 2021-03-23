@@ -216,7 +216,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                                            bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef()).orElseThrow();
         var comments = pr.comments();
         var allReviews = pr.reviews();
-        var labels = new HashSet<>(pr.labels());
+        var labels = new HashSet<>(pr.labelNames());
 
         // Filter out the active reviews
         var activeReviews = CheckablePullRequest.filterActiveReviews(allReviews);
@@ -310,7 +310,7 @@ class CheckWorkItem extends PullRequestWorkItem {
             }
         }
 
-        if (pr.labels().contains("auto") && pr.labels().contains("ready") && !pr.labels().contains("sponsor")) {
+        if (pr.labelNames().contains("auto") && pr.labelNames().contains("ready") && !pr.labelNames().contains("sponsor")) {
             pr.addComment("/integrate\n" + PullRequestCommandWorkItem.VALID_BOT_COMMAND_MARKER);
         }
 

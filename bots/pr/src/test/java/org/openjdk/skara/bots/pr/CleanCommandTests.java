@@ -64,14 +64,14 @@ public class CleanCommandTests {
             var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
             TestBotRunner.runPeriodicItems(prBot);
 
-            assertFalse(pr.labels().contains("backport"));
-            assertFalse(pr.labels().contains("clean"));
+            assertFalse(pr.labelNames().contains("backport"));
+            assertFalse(pr.labelNames().contains("clean"));
 
             // Try to issue the "/clean" PR command, should not work
             pr.addComment("/clean");
             TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.labels().contains("backport"));
-            assertFalse(pr.labels().contains("clean"));
+            assertFalse(pr.labelNames().contains("backport"));
+            assertFalse(pr.labelNames().contains("clean"));
             assertLastCommentContains(pr, "can only mark [backport pull requests]");
             assertLastCommentContains(pr, "as clean");
         }
@@ -131,15 +131,15 @@ public class CleanCommandTests {
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
             assertEquals(issue1Number + ": An issue", pr.title());
-            assertTrue(pr.labels().contains("backport"));
+            assertTrue(pr.labelNames().contains("backport"));
 
             // The bot should have added the "clean" label
-            assertTrue(pr.labels().contains("clean"));
+            assertTrue(pr.labelNames().contains("clean"));
 
             // Issue the "/clean" PR command, should do nothing
             pr.addComment("/clean");
             TestBotRunner.runPeriodicItems(bot);
-            assertTrue(pr.labels().contains("clean"));
+            assertTrue(pr.labelNames().contains("clean"));
             assertLastCommentContains(pr, "this backport pull request is already marked as clean");
         }
     }
@@ -206,15 +206,15 @@ public class CleanCommandTests {
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + upstreamHash.hex() + " -->"));
             assertEquals(issue2Number + ": Another issue", pr.title());
-            assertTrue(pr.labels().contains("backport"));
+            assertTrue(pr.labelNames().contains("backport"));
 
             // The bot should not have added the "clean" label
-            assertFalse(pr.labels().contains("clean"));
+            assertFalse(pr.labelNames().contains("clean"));
 
             // Use the "/clean" pull request command to mark the backport PR as clean
             pr.addComment("/clean");
             TestBotRunner.runPeriodicItems(bot);
-            assertTrue(pr.labels().contains("clean"));
+            assertTrue(pr.labelNames().contains("clean"));
             assertLastCommentContains(pr, "this backport pull request is now marked as clean");
         }
     }
@@ -283,16 +283,16 @@ public class CleanCommandTests {
             assertTrue(backportComment.contains("This backport pull request has now been updated with issue"));
             assertTrue(backportComment.contains("<!-- backport " + upstreamHash.hex() + " -->"));
             assertEquals(issue2Number + ": Another issue", pr.title());
-            assertTrue(pr.labels().contains("backport"));
+            assertTrue(pr.labelNames().contains("backport"));
 
             // The bot should not have added the "clean" label
-            assertFalse(pr.labels().contains("clean"));
+            assertFalse(pr.labelNames().contains("clean"));
 
             // Use the "/clean" pull request command as author, should not work
             var prAsAuthor = contributor.pullRequest(pr.id());
             prAsAuthor.addComment("/clean");
             TestBotRunner.runPeriodicItems(bot);
-            assertFalse(pr.labels().contains("clean"));
+            assertFalse(pr.labelNames().contains("clean"));
             assertLastCommentContains(pr, "only OpenJDK [Committers]");
             assertLastCommentContains(pr, "can use the `/clean` command");
         }

@@ -1060,7 +1060,7 @@ public class IssueNotifierTests {
             assertEquals("java.io", backport.properties().get("customfield_10008").asString());
 
             // Labels should not
-            assertEquals(0, backport.labels().size());
+            assertEquals(0, backport.labelNames().size());
         }
     }
 }

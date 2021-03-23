@@ -81,7 +81,7 @@ public class LabelCommand implements CommandHandler {
             showHelp(bot.labelConfiguration(), reply);
             return;
         }
-        var currentLabels = new HashSet<>(pr.labels());
+        var currentLabels = new HashSet<>(pr.labelNames());
         if (argumentMatcher.group(1) == null || argumentMatcher.group(1).equals("add")) {
             for (var label : labels) {
                 if (!currentLabels.contains(label)) {

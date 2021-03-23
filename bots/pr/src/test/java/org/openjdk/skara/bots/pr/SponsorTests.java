@@ -114,9 +114,9 @@ class SponsorTests {
 
             assertEquals("Generated Reviewer 1", headCommit.committer().name());
             assertEquals("integrationreviewer1@openjdk.java.net", headCommit.committer().email());
-            assertTrue(pr.labels().contains("integrated"));
-            assertFalse(pr.labels().contains("ready"));
-            assertFalse(pr.labels().contains("sponsor"));
+            assertTrue(pr.labelNames().contains("integrated"));
+            assertFalse(pr.labelNames().contains("ready"));
+            assertFalse(pr.labelNames().contains("sponsor"));
         }
     }
 
@@ -276,7 +276,7 @@ class SponsorTests {
                           .filter(comment -> comment.body().contains("at version " + editHash.hex()))
                           .count();
             assertEquals(1, ready);
-            assertTrue(pr.labels().contains("sponsor"));
+            assertTrue(pr.labelNames().contains("sponsor"));
 
             // Push another change
             var updateHash = CheckableRepository.appendAndCommit(localRepo, "Yet more stuff", "Append commit", authorFullName, "ta@none.none");
@@ -294,7 +294,7 @@ class SponsorTests {
 
             // The label should have been dropped
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertFalse(pr.labels().contains("sponsor"));
+            assertFalse(pr.labelNames().contains("sponsor"));
 
             // Reviewer now tries to sponsor
             var reviewerPr = reviewer.pullRequest(pr.id());
@@ -310,12 +310,12 @@ class SponsorTests {
             // Flag it as ready for integration again
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertTrue(pr.labels().contains("sponsor"));
+            assertTrue(pr.labelNames().contains("sponsor"));
 
             // It should now be possible to sponsor
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertFalse(pr.labels().contains("sponsor"));
+            assertFalse(pr.labelNames().contains("sponsor"));
 
             // The bot should have pushed the commit
             var pushed = pr.comments().stream()
@@ -512,14 +512,14 @@ class SponsorTests {
                           .filter(comment -> comment.body().contains("at version " + editHash.hex()))
                           .count();
             assertEquals(1, ready);
-            assertTrue(pr.labels().contains("sponsor"));
+            assertTrue(pr.labelNames().contains("sponsor"));
 
             // The reviewer now changes their mind
             approvalPr.addReview(Review.Verdict.DISAPPROVED, "No wait, disapproved");
 
             // The label should have been dropped
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertFalse(pr.labels().contains("sponsor"));
+            assertFalse(pr.labelNames().contains("sponsor"));
 
             // Reviewer now tries to sponsor
             var reviewerPr = reviewer.pullRequest(pr.id());
@@ -532,12 +532,12 @@ class SponsorTests {
             // Make it ready for integration again
             approvalPr.addReview(Review.Verdict.APPROVED, "Sorry, wrong button");
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertTrue(pr.labels().contains("sponsor"));
+            assertTrue(pr.labelNames().contains("sponsor"));
 
             // It should now be possible to sponsor
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertFalse(pr.labels().contains("sponsor"));
+            assertFalse(pr.labelNames().contains("sponsor"));
 
             // The bot should have pushed the commit
             var pushed = pr.comments().stream()
@@ -751,7 +751,7 @@ class SponsorTests {
                           .filter(comment -> comment.body().contains("at version " + editHash.hex()))
                           .count();
             assertEquals(1, ready);
-            assertTrue(pr.labels().contains("sponsor"));
+            assertTrue(pr.labelNames().contains("sponsor"));
 
             // Reviewer now sponsor
             var reviewerPr = reviewer.pullRequest(pr.id());

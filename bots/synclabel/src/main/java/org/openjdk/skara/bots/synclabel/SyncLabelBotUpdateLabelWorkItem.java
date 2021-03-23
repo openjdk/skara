@@ -63,7 +63,7 @@ public class SyncLabelBotUpdateLabelWorkItem implements WorkItem {
         }
 
         var allIssues = Stream.concat(Stream.of(issue.get()), Backports.findBackports(issue.get(), true).stream())
-                              .filter(i -> !i.labels().contains("hgupdate-sync-ignore"))
+                              .filter(i -> !i.labelNames().contains("hgupdate-sync-ignore"))
                               .filter(i -> Backports.mainFixVersion(i).isPresent())
                               .filter(i -> bot.inspect().matcher(Backports.mainFixVersion(i).get().raw()).matches())
                               .filter(i -> !bot.ignore().matcher(Backports.mainFixVersion(i).get().raw()).matches())
@@ -74,14 +74,14 @@ public class SyncLabelBotUpdateLabelWorkItem implements WorkItem {
             var version = Backports.mainFixVersion(i);
             var versionString = version.map(JdkVersion::raw).orElse("no fix version");
             if (needsLabel.contains(i)) {
-                if (i.labels().contains("hgupdate-sync")) {
+                if (i.labelNames().contains("hgupdate-sync")) {
                     log.finer(i.id() + " (" + versionString + ") - already labeled");
                 } else {
                     log.info(i.id() + " (" + versionString + ") - needs to be labeled");
                     i.addLabel("hgupdate-sync");
                 }
             } else {
-                if (i.labels().contains("hgupdate-sync")) {
+                if (i.labelNames().contains("hgupdate-sync")) {
                     log.info(i.id() + " (" + versionString + ") - labeled incorrectly!");
                     i.removeLabel("hgupdate-sync");
                 } else {

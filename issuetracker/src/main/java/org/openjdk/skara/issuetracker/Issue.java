@@ -28,6 +28,7 @@ import org.openjdk.skara.json.JSONValue;
 import java.net.URI;
 import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public interface Issue {
     /**
@@ -144,6 +145,9 @@ public interface Issue {
      * @param label
      */
     void removeLabel(String label);
+    default void removeLabel(Label label) {
+        removeLabel(label.name());
+    }
 
     /**
      * Set the given labels and remove any others.
@@ -154,7 +158,10 @@ public interface Issue {
      * Retrieves all the currently set labels.
      * @return
      */
-    List<String> labels();
+    List<Label> labels();
+    default List<String> labelNames() {
+        return labels().stream().map(Label::name).collect(Collectors.toList());
+    }
 
     /**
      * Returns a link that will lead to the issue.

@@ -136,7 +136,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         }
 
         // If the PR already has one of the allowed labels, that is also considered to override automatic labelling
-        var existingAllowed = new HashSet<>(pr.labels());
+        var existingAllowed = new HashSet<>(pr.labelNames());
         existingAllowed.retainAll(bot.labelConfiguration().allowed());
         if (!existingAllowed.isEmpty()) {
             bot.setAutoLabelled(pr);
@@ -149,7 +149,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
             var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
             var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, path);
             var newLabels = getLabels(localRepo);
-            var currentLabels = pr.labels().stream()
+            var currentLabels = pr.labelNames().stream()
                                   .filter(key -> bot.labelConfiguration().allowed().contains(key))
                                   .collect(Collectors.toSet());
 

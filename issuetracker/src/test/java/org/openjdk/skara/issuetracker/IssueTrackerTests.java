@@ -65,7 +65,7 @@ class IssueTrackerTests {
             issue.setProperty("fixVersions", JSON.array().add("1.0").add("2.0"));
             issue.setProperty("fixVersions", JSON.array().add("3.0"));
             var updated = project.issue(issue.id()).orElseThrow();
-            assertEquals(List.of("another"), updated.labels());
+            assertEquals(List.of("another"), updated.labelNames());
             assertEquals(1, updated.properties().get("fixVersions").asArray().size());
             assertEquals("3.0", updated.properties().get("fixVersions").get(0).asString());
             assertEquals(List.of(project.issueTracker().currentUser()), updated.assignees());

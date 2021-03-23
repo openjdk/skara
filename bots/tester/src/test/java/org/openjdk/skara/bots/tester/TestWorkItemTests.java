@@ -1187,7 +1187,7 @@ class TestWorkItemTests {
             assertEquals("@duke you need to get approval to run the tests in tier1 for commits up until 01234567",
                          lines[3]);
 
-            assertEquals(List.of("test-request"), pr.labels());
+            assertEquals(List.of("test-request"), pr.labelNames());
 
             // Nothing should change if we run it yet again
             item.run(scratch);
@@ -1270,7 +1270,7 @@ class TestWorkItemTests {
             assertEquals("@duke you need to get approval to run the tests in tier1 for commits up until 01234567",
                          lines[3]);
 
-            assertEquals(List.of("test-request"), pr.labels());
+            assertEquals(List.of("test-request"), pr.labelNames());
 
             // Nothing should change if we run it yet again
             item.run(scratch);
@@ -1295,7 +1295,7 @@ class TestWorkItemTests {
             assertEquals(fourthComment, comments.get(3));
             assertEquals(fifthComment, comments.get(4));
 
-            assertEquals(List.of(), pr.labels());
+            assertEquals(List.of(), pr.labelNames());
         }
     }
 }

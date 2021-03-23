@@ -162,7 +162,7 @@ public class LabelTests {
 
             // The bot should have applied one label automatically
             TestBotRunner.runPeriodicItems(prBot);
-            assertEquals(Set.of("2", "rfr"), new HashSet<>(pr.labels()));
+            assertEquals(Set.of("2", "rfr"), new HashSet<>(pr.labelNames()));
             assertLastCommentContains(pr, "The following label will be automatically applied");
             assertLastCommentContains(pr, "`2`");
 
@@ -179,13 +179,13 @@ public class LabelTests {
 
             // The bot should not apply labels since the user has manually removed labels
             TestBotRunner.runPeriodicItems(prBot);
-            assertEquals(Set.of("rfr"), new HashSet<>(pr.labels()));
+            assertEquals(Set.of("rfr"), new HashSet<>(pr.labelNames()));
 
             // Adding the label manually is fine
             pr.addComment("/label add group");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "The `group` label was successfully added.");
-            assertEquals(Set.of("group", "rfr"), new HashSet<>(pr.labels()));
+            assertEquals(Set.of("group", "rfr"), new HashSet<>(pr.labelNames()));
         }
     }
 
@@ -226,7 +226,7 @@ public class LabelTests {
 
             // The bot will not add any label automatically
             TestBotRunner.runPeriodicItems(prBot);
-            assertEquals(Set.of("1", "rfr"), new HashSet<>(pr.labels()));
+            assertEquals(Set.of("1", "rfr"), new HashSet<>(pr.labelNames()));
             assertEquals(1, pr.comments().size());
             assertLastCommentContains(pr, "The `1` label was successfully added.");
 
@@ -238,14 +238,14 @@ public class LabelTests {
 
             // The bot will still not do any automatic labelling
             TestBotRunner.runPeriodicItems(prBot);
-            assertEquals(Set.of("1", "rfr"), new HashSet<>(pr.labels()));
+            assertEquals(Set.of("1", "rfr"), new HashSet<>(pr.labelNames()));
 
             // Adding manually is still fine
             pr.addComment("/label add group 2");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "The `group` label was successfully added.");
             assertLastCommentContains(pr, "The `2` label was successfully added.");
-            assertEquals(Set.of("1", "2", "group", "rfr"), new HashSet<>(pr.labels()));
+            assertEquals(Set.of("1", "2", "group", "rfr"), new HashSet<>(pr.labelNames()));
         }
     }
 

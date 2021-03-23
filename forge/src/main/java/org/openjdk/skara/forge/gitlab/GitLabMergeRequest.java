@@ -44,7 +44,8 @@ public class GitLabMergeRequest implements PullRequest {
     private final GitLabRepository repository;
     private final GitLabHost host;
 
-    private List<String> labels;
+    private List<Label> labels;
+    private Map<String, Label> labelNameToLabel;
 
     GitLabMergeRequest(GitLabRepository repository, GitLabHost host, JSONValue jsonValue, RestRequest request) {
         this.repository = repository;
@@ -52,10 +53,14 @@ public class GitLabMergeRequest implements PullRequest {
         this.json = jsonValue;
         this.request = request.restrict("merge_requests/" + json.get("iid").toString() + "/");
 
-        labels = json.get("labels").stream()
-                            .map(JSONValue::asString)
-                            .sorted()
-                            .collect(Collectors.toList());
+        labelNameToLabel = repository.labels()
+                                     .stream()
+                                     .collect(Collectors.toMap(l -> l.name(), l -> l));
+        labels = json.get("labels")
+                     .stream()
+                     .map(s -> labelNameToLabel.get(s.asString()))
+                     .sorted()
+                     .collect(Collectors.toList());
     }
 
     @Override
@@ -651,17 +656,18 @@ public class GitLabMergeRequest implements PullRequest {
         request.put("")
                .body("labels", String.join(",", labels))
                .execute();
-        this.labels = labels;
+        this.labels = labels.stream().map(l -> labelNameToLabel.get(l)).collect(Collectors.toList());
     }
 
     @Override
-    public List<String> labels() {
+    public List<Label> labels() {
         if (labels == null) {
             var currentJson = request.get("").execute().asObject();
-            labels = currentJson.get("labels").stream()
-                              .map(JSONValue::asString)
-                              .sorted()
-                              .collect(Collectors.toList());
+            labels = currentJson.get("labels")
+                                .stream()
+                                .map(s -> labelNameToLabel.get(s.asString()))
+                                .sorted()
+                                .collect(Collectors.toList());
         }
         return labels;
     }

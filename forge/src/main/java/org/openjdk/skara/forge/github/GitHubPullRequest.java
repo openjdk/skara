@@ -45,7 +45,7 @@ public class GitHubPullRequest implements PullRequest {
     private final GitHubRepository repository;
     private final Logger log = Logger.getLogger("org.openjdk.skara.host");
 
-    private List<String> labels = null;
+    private List<Label> labels = null;
 
     GitHubPullRequest(GitHubRepository repository, JSONValue jsonValue, RestRequest request) {
         this.host = (GitHubHost)repository.forge();
@@ -55,7 +55,7 @@ public class GitHubPullRequest implements PullRequest {
 
         labels = json.get("labels")
                      .stream()
-                     .map(v -> v.get("name").asString())
+                     .map(v -> new Label(v.get("name").asString(), v.get("description").asString()))
                      .sorted()
                      .collect(Collectors.toList());
     }
@@ -552,18 +552,21 @@ public class GitHubPullRequest implements PullRequest {
             labelArray.add(label);
         }
         var query = JSON.object().put("labels", labelArray);
-        request.put("issues/" + json.get("number").toString() + "/labels")
-               .body(query)
-               .execute();
-        this.labels = labels;
+        var newLabels = request.put("issues/" + json.get("number").toString() + "/labels")
+                               .body(query)
+                               .execute()
+                               .stream()
+                               .map(o -> new Label(o.get("name").asString(), o.get("description").asString()))
+                               .collect(Collectors.toList());
+        this.labels = newLabels;
     }
 
     @Override
-    public List<String> labels() {
+    public List<Label> labels() {
         if (labels == null) {
             labels = request.get("issues/" + json.get("number").toString() + "/labels").execute().stream()
                             .map(JSONValue::asObject)
-                            .map(obj -> obj.get("name").asString())
+                            .map(obj -> new Label(obj.get("name").asString(), obj.get("description").asString()))
                             .sorted()
                             .collect(Collectors.toList());
         }

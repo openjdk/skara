@@ -99,10 +99,10 @@ class IntegrateTests {
             assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
             assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
-            assertTrue(pr.labels().contains("integrated"));
+            assertTrue(pr.labelNames().contains("integrated"));
 
             // Ready label should have been removed
-            assertFalse(pr.labels().contains("ready"));
+            assertFalse(pr.labelNames().contains("ready"));
         }
     }
 
@@ -812,7 +812,7 @@ class IntegrateTests {
 
             // The bot should respond with a failure about missing e-mail
             pr = author.pullRequest(pr.id());
-            assertFalse(pr.labels().contains("ready"));
+            assertFalse(pr.labelNames().contains("ready"));
             var checks = pr.checks(pr.headHash());
             assertTrue(checks.containsKey("jcheck"));
             var jcheck = checks.get("jcheck");
@@ -873,7 +873,7 @@ class IntegrateTests {
             assertEquals(1, pushed);
 
             // Ready label should remain
-            assertTrue(pr.labels().contains("ready"));
+            assertTrue(pr.labelNames().contains("ready"));
         }
     }
 
@@ -910,7 +910,7 @@ class IntegrateTests {
                                       .filter(c -> c.body().contains("This pull request will be automatically integrated"))
                                       .count();
             assertEquals(1, integrateComments);
-            assertTrue(pr.labels().contains("auto"));
+            assertTrue(pr.labelNames().contains("auto"));
 
             // Approve it as another user
             var approvalPr = integrator.pullRequest(pr.id());
@@ -935,10 +935,10 @@ class IntegrateTests {
             assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
             assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
-            assertTrue(pr.labels().contains("integrated"));
+            assertTrue(pr.labelNames().contains("integrated"));
 
             // Ready label should have been removed
-            assertFalse(pr.labels().contains("ready"));
+            assertFalse(pr.labelNames().contains("ready"));
         }
     }
 
@@ -976,7 +976,7 @@ class IntegrateTests {
                                       .filter(c -> c.body().contains("This pull request will be automatically integrated"))
                                       .count();
             assertEquals(1, integrateComments);
-            assertTrue(pr.labels().contains("auto"));
+            assertTrue(pr.labelNames().contains("auto"));
 
             // Approve it as another user
             var approvalPr = integrator.pullRequest(pr.id());
@@ -1001,10 +1001,10 @@ class IntegrateTests {
             assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
             assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
-            assertTrue(pr.labels().contains("integrated"));
+            assertTrue(pr.labelNames().contains("integrated"));
 
             // Ready label should have been removed
-            assertFalse(pr.labels().contains("ready"));
+            assertFalse(pr.labelNames().contains("ready"));
         }
     }
 
@@ -1041,7 +1041,7 @@ class IntegrateTests {
                                       .filter(c -> c.body().contains("This pull request will be automatically integrated"))
                                       .count();
             assertEquals(1, integrateComments);
-            assertTrue(pr.labels().contains("auto"));
+            assertTrue(pr.labelNames().contains("auto"));
 
             // Make a comment to integrate manually
             pr.addComment("/integrate manual");
@@ -1055,7 +1055,7 @@ class IntegrateTests {
             assertEquals(1, replies);
 
             // The "auto" label should have been removed
-            assertFalse(pr.labels().contains("auto"));
+            assertFalse(pr.labelNames().contains("auto"));
 
             // Approve it as another user
             var approvalPr = integrator.pullRequest(pr.id());
@@ -1092,10 +1092,10 @@ class IntegrateTests {
             assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
             assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
-            assertTrue(pr.labels().contains("integrated"));
+            assertTrue(pr.labelNames().contains("integrated"));
 
             // Ready label should have been removed
-            assertFalse(pr.labels().contains("ready"));
+            assertFalse(pr.labelNames().contains("ready"));
         }
     }
 }
