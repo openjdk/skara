@@ -582,7 +582,8 @@ public class GitLabRepository implements HostedRepository {
         // Must work around in admin web UI using groups.
     }
 
-    List<Label> labels() {
+    @Override
+    public List<Label> labels() {
         return request.get("labels")
                       .execute()
                       .stream()

@@ -24,6 +24,7 @@ package org.openjdk.skara.forge;
 
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.json.JSONValue;
+import org.openjdk.skara.issuetracker.Label;
 import org.openjdk.skara.vcs.*;
 
 import java.net.URI;
@@ -87,6 +88,7 @@ public interface HostedRepository {
     void addCollaborator(HostUser user, boolean canPush);
     boolean canPush(HostUser user);
     void restrictPushAccess(Branch branch, List<HostUser> users);
+    List<Label> labels();
 
     default PullRequest createPullRequest(HostedRepository target,
                                           String targetRef,
