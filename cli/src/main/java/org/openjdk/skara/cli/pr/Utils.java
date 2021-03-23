@@ -97,7 +97,7 @@ class Utils {
     }
 
     static String statusForPullRequest(PullRequest pr) {
-        var labels = pr.labels();
+        var labels = pr.labelNames();
         if (pr.isDraft()) {
             return "DRAFT";
         } else if (labels.contains("integrated")) {

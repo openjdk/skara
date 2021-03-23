@@ -329,7 +329,7 @@ public class TestWorkItem implements WorkItem {
                     log.warning("Could not find check for job with " + jobId + " for hash " + hash + " for PR " + pr.webUrl());
                 }
             }
-            if (pr.labels().contains(TEST_REQUEST_LABEL)) {
+            if (pr.labelNames().contains(TEST_REQUEST_LABEL)) {
                 pr.removeLabel(TEST_REQUEST_LABEL);
             }
         } else if (stage == Stage.REQUESTED) {
@@ -363,7 +363,7 @@ public class TestWorkItem implements WorkItem {
             Hash head = null;
             List<String> jobs = null;
 
-            if (pr.labels().contains(TEST_REQUEST_LABEL)) {
+            if (pr.labelNames().contains(TEST_REQUEST_LABEL)) {
                 pr.removeLabel(TEST_REQUEST_LABEL);
             }
 

@@ -30,6 +30,7 @@ import org.openjdk.skara.network.URIBuilder;
 import java.net.URI;
 import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class TestIssue implements Issue {
     protected final String id;
@@ -175,8 +176,8 @@ public class TestIssue implements Issue {
     }
 
     @Override
-    public List<String> labels() {
-        return new ArrayList<>(data.labels.keySet());
+    public List<Label> labels() {
+        return data.labels.keySet().stream().map(s -> new Label(s)).collect(Collectors.toList());
     }
 
     @Override

@@ -255,7 +255,7 @@ class ArchiveWorkItem implements WorkItem {
         var mbox = MailingListServerFactory.createMboxFileServer(mboxBasePath);
         var reviewArchiveList = mbox.getList(pr.id());
         var sentMails = parseArchive(reviewArchiveList);
-        var labels = new HashSet<>(pr.labels());
+        var labels = new HashSet<>(pr.labelNames());
 
         // First determine if this PR should be inspected further or not
         if (sentMails.isEmpty()) {

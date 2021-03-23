@@ -113,7 +113,7 @@ public class PreIntegrateTests {
             TestBotRunner.runPeriodicItems(mergeBot);
             followUpPr = author.pullRequest(followUpPr.id());
             assertFalse(followUpPr.body().contains("Integration blocker"));
-            assertTrue(followUpPr.labels().contains("ready"));
+            assertTrue(followUpPr.labelNames().contains("ready"));
 
             // Push something else unrelated to the target
             var currentMaster = localRepo.fetch(author.url(), "master");

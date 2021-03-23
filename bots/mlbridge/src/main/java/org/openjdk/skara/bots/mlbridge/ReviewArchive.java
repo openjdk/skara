@@ -169,7 +169,7 @@ class ReviewArchive {
         // Post a closed notice for regular RFR threads that weren't integrated
         if (pr.state() != Issue.State.OPEN) {
             var parent = generated.get(0);
-            if (pr.labels().contains("integrated")) {
+            if (pr.labelNames().contains("integrated")) {
                 var hash = findIntegratedHash();
                 if (hash.isPresent()) {
                     var commit = localRepo.lookup(hash.get());

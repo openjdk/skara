@@ -92,13 +92,13 @@ public class IssueRedecorate {
             var version = Backports.mainFixVersion(i);
             var versionString = version.map(JdkVersion::raw).orElse("no fix version");
             if (needsLabel.contains(i)) {
-                if (i.labels().contains("hgupdate-sync")) {
+                if (i.labelNames().contains("hgupdate-sync")) {
                     System.out.println("✔️ " + i.id() + " (" + versionString + ") - already labeled");
                 } else {
                     System.out.println("⏳ " + i.id() + " (" + versionString + ") - needs to be labeled");
                 }
             } else {
-                if (i.labels().contains("hgupdate-sync")) {
+                if (i.labelNames().contains("hgupdate-sync")) {
                     System.out.println("❌ " + i.id() + " (" + versionString + ") - labeled incorrectly");
                 } else {
                     System.out.println("✔️ " + i.id() + " (" + versionString + ") - not labeled");

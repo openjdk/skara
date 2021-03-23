@@ -54,7 +54,7 @@ public class PullRequestWorkItem implements WorkItem {
     private final static Pattern pushedPattern = Pattern.compile("Pushed as commit ([a-f0-9]{40})\\.");
 
     private Hash resultingCommitHash() {
-        if (pr.labels().contains("integrated")) {
+        if (pr.labelNames().contains("integrated")) {
             return pr.comments().stream()
                      .filter(comment -> comment.author().id().equals(integratorId))
                      .map(Comment::body)

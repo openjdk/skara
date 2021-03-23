@@ -190,7 +190,7 @@ public class GitPrList {
                 continue;
             }
 
-            var prLabels = new HashSet<>(pr.labels());
+            var prLabels = pr.labelNames();
             if (!filterLabels.isEmpty() && !filterLabels.stream().anyMatch(prLabels::contains)) {
                 continue;
             }

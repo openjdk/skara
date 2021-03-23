@@ -77,8 +77,8 @@ class CheckTests {
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // The PR should now be ready for review
-            assertTrue(pr.labels().contains("rfr"));
-            assertFalse(pr.labels().contains("ready"));
+            assertTrue(pr.labelNames().contains("rfr"));
+            assertFalse(pr.labelNames().contains("ready"));
 
             // Approve it as another user
             var approvalPr = reviewer.pullRequest(pr.id());
@@ -94,7 +94,7 @@ class CheckTests {
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // The PR should now be ready
-            assertTrue(pr.labels().contains("ready"));
+            assertTrue(pr.labelNames().contains("ready"));
             assertTrue(pr.body().contains("https://census.com/integrationreviewer2-profile"));
         }
     }
@@ -126,7 +126,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should not be flagged as ready for review
-            assertFalse(pr.labels().contains("rfr"));
+            assertFalse(pr.labelNames().contains("rfr"));
 
             // Approve it as another user
             var approvalPr = reviewer.pullRequest(pr.id());
@@ -142,7 +142,7 @@ class CheckTests {
             assertEquals(CheckStatus.FAILURE, check.status());
 
             // The PR should not still not be flagged as ready for review
-            assertFalse(pr.labels().contains("rfr"));
+            assertFalse(pr.labelNames().contains("rfr"));
 
             // Remove the trailing whitespace in a new commit
             editHash = CheckableRepository.replaceAndCommit(localRepo, "A line without a trailing whitespace");
@@ -162,7 +162,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should now be ready
-            assertTrue(pr.labels().contains("ready"));
+            assertTrue(pr.labelNames().contains("ready"));
 
             // The check should now be successful
             checks = pr.checks(editHash);
@@ -333,8 +333,8 @@ class CheckTests {
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // The PR should now be ready for review
-            assertTrue(pr.labels().contains("rfr"));
-            assertFalse(pr.labels().contains("ready"));
+            assertTrue(pr.labelNames().contains("rfr"));
+            assertFalse(pr.labelNames().contains("ready"));
 
             // Approve it as another user
             var approvalPr = reviewer.pullRequest(pr.id());
@@ -350,8 +350,8 @@ class CheckTests {
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // The PR should now be ready
-            assertTrue(pr.labels().contains("rfr"));
-            assertTrue(pr.labels().contains("ready"));
+            assertTrue(pr.labelNames().contains("rfr"));
+            assertTrue(pr.labelNames().contains("ready"));
 
             var addedHash = CheckableRepository.appendAndCommit(localRepo, "trailing whitespace   ");
             localRepo.push(addedHash, author.url(), "edit");
@@ -370,8 +370,8 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR is now neither ready for review nor integration
-            assertFalse(pr.labels().contains("rfr"));
-            assertFalse(pr.labels().contains("ready"));
+            assertFalse(pr.labelNames().contains("rfr"));
+            assertFalse(pr.labelNames().contains("ready"));
 
             // The check should now be failing
             checks = pr.checks(addedHash);
@@ -528,7 +528,7 @@ class CheckTests {
 
             // Get all messages up to date
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertTrue(pr.labels().contains("ready"));
+            assertTrue(pr.labelNames().contains("ready"));
 
             // Push something conflicting to master
             localRepo.checkout(masterHash, true);
@@ -546,8 +546,8 @@ class CheckTests {
             assertEquals(0, updated);
 
             // The PR should be flagged as outdated
-            assertTrue(pr.labels().contains("merge-conflict"));
-            assertFalse(pr.labels().contains("ready"));
+            assertTrue(pr.labelNames().contains("merge-conflict"));
+            assertFalse(pr.labelNames().contains("ready"));
 
             // An instructional message should have been bosted
             var help = pr.comments().stream()
@@ -575,8 +575,8 @@ class CheckTests {
             assertEquals(1, updated);
 
             // The PR should not be flagged as outdated
-            assertFalse(pr.labels().contains("merge-conflict"));
-            assertTrue(pr.labels().contains("ready"));
+            assertFalse(pr.labelNames().contains("merge-conflict"));
+            assertTrue(pr.labelNames().contains("ready"));
         }
     }
 
@@ -614,17 +614,17 @@ class CheckTests {
             assertTrue(check.summary().orElseThrow().contains("Test Blocker"));
 
             // The PR should not yet be ready for review
-            assertTrue(pr.labels().contains("block"));
-            assertFalse(pr.labels().contains("rfr"));
-            assertFalse(pr.labels().contains("ready"));
+            assertTrue(pr.labelNames().contains("block"));
+            assertFalse(pr.labelNames().contains("rfr"));
+            assertFalse(pr.labelNames().contains("ready"));
 
             // Check the status again
             pr.removeLabel("block");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should now be ready for review
-            assertTrue(pr.labels().contains("rfr"));
-            assertFalse(pr.labels().contains("ready"));
+            assertTrue(pr.labelNames().contains("rfr"));
+            assertFalse(pr.labelNames().contains("ready"));
         }
     }
 
@@ -673,16 +673,16 @@ class CheckTests {
             assertTrue(updatedPr.body().contains("Replace this text with a description of your pull request"));
 
             // The PR should not yet be ready for review
-            assertFalse(pr.labels().contains("rfr"));
-            assertFalse(pr.labels().contains("ready"));
+            assertFalse(pr.labelNames().contains("rfr"));
+            assertFalse(pr.labelNames().contains("ready"));
 
             // Check the status again
             pr.setBody("Here's that body");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should now be ready for review
-            assertTrue(pr.labels().contains("rfr"));
-            assertFalse(pr.labels().contains("ready"));
+            assertTrue(pr.labelNames().contains("rfr"));
+            assertFalse(pr.labelNames().contains("ready"));
 
             // The additional errors should be gone
             updatedPr = author.pullRequest(pr.id());
@@ -740,8 +740,8 @@ class CheckTests {
             assertTrue(updatedPr.body().contains("Executable files are not allowed (file: executable.exe)"));
 
             // The PR should not yet be ready for review
-            assertFalse(pr.labels().contains("rfr"));
-            assertFalse(pr.labels().contains("ready"));
+            assertFalse(pr.labelNames().contains("rfr"));
+            assertFalse(pr.labelNames().contains("ready"));
 
             // Drop that error
             Files.setPosixFilePermissions(tempFolder.path().resolve("executable.exe"), Set.of(PosixFilePermission.OWNER_READ));
@@ -751,8 +751,8 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should now be ready for review
-            assertTrue(pr.labels().contains("rfr"));
-            assertFalse(pr.labels().contains("ready"));
+            assertTrue(pr.labelNames().contains("rfr"));
+            assertFalse(pr.labelNames().contains("ready"));
 
             // The additional errors should be gone
             updatedPr = author.pullRequest(pr.id());
@@ -791,14 +791,14 @@ class CheckTests {
             assertEquals(0, checks.size());
 
             // The PR should not yet be ready for review
-            assertFalse(pr.labels().contains("rfr"));
+            assertFalse(pr.labelNames().contains("rfr"));
 
             // Check the status again
             pr.addLabel("good-to-go");
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should now be ready for review
-            assertTrue(pr.labels().contains("rfr"));
+            assertTrue(pr.labelNames().contains("rfr"));
         }
     }
 
@@ -832,7 +832,7 @@ class CheckTests {
             assertEquals(0, checks.size());
 
             // The PR should not yet be ready for review
-            assertFalse(pr.labels().contains("rfr"));
+            assertFalse(pr.labelNames().contains("rfr"));
 
             // Check the status again
             var reviewerPr = reviewer.pullRequest(pr.id());
@@ -840,7 +840,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should now be ready for review
-            assertTrue(pr.labels().contains("rfr"));
+            assertTrue(pr.labelNames().contains("rfr"));
         }
     }
 
@@ -1257,8 +1257,8 @@ class CheckTests {
             assertEquals(CheckStatus.SUCCESS, check.status());
 
             // The PR should still not be ready for review as it is a draft
-            assertFalse(pr.labels().contains("rfr"));
-            assertFalse(pr.labels().contains("ready"));
+            assertFalse(pr.labelNames().contains("rfr"));
+            assertFalse(pr.labelNames().contains("ready"));
         }
     }
 
@@ -1407,7 +1407,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should be flagged as ready
-            assertTrue(pr.labels().contains("ready"));
+            assertTrue(pr.labelNames().contains("ready"));
             assertFalse(pr.body().contains("Re-review required"));
 
             // Add another commit
@@ -1428,8 +1428,8 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
 
             // The PR should no longer be ready, as the review is stale
-            assertFalse(pr.labels().contains("ready"));
-            assertTrue(pr.labels().contains("rfr"));
+            assertFalse(pr.labelNames().contains("ready"));
+            assertTrue(pr.labelNames().contains("rfr"));
             assertTrue(pr.body().contains("Re-review required"));
         }
     }
@@ -1717,7 +1717,7 @@ class CheckTests {
 
             // Check the status (should become ready immediately as reviewercount is overridden to 0)
             TestBotRunner.runPeriodicItems(checkBot);
-            assertEquals(Set.of("rfr", "ready"), new HashSet<>(pr.labels()));
+            assertEquals(Set.of("rfr", "ready"), new HashSet<>(pr.labelNames()));
         }
     }
 
@@ -1765,7 +1765,7 @@ class CheckTests {
 
             // Check the status (should become ready immediately as reviewercount is overridden to 0)
             TestBotRunner.runPeriodicItems(checkBot);
-            assertEquals(Set.of("rfr", "ready"), new HashSet<>(pr.labels()));
+            assertEquals(Set.of("rfr", "ready"), new HashSet<>(pr.labelNames()));
         }
     }
 

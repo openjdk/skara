@@ -69,7 +69,7 @@ class CSRBot implements Bot, WorkItem {
             }
 
             log.info("Checking CSR label for " + describe(pr) + "...");
-            if (pr.labels().contains(CSR_LABEL)) {
+            if (pr.labelNames().contains(CSR_LABEL)) {
                 hasCSRLabel.add(pr.id());
             } else {
                 hasCSRLabel.remove(pr.id());

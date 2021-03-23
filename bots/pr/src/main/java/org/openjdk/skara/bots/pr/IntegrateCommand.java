@@ -93,7 +93,7 @@ public class IntegrateCommand implements CommandHandler {
                 reply.println("This pull request will be automatically integrated when it is ready");
                 return;
             } else if (arg.equals("manual")) {
-                if (pr.labels().contains("auto")) {
+                if (pr.labelNames().contains("auto")) {
                     pr.removeLabel("auto");
                 }
                 reply.println("This pull request will have to be integrated manually using the "+
@@ -116,7 +116,7 @@ public class IntegrateCommand implements CommandHandler {
             return;
         }
 
-        var labels = new HashSet<>(pr.labels());
+        var labels = new HashSet<>(pr.labelNames());
         if (!labels.contains("ready")) {
             reply.println("This PR has not yet been marked as ready for integration.");
             return;

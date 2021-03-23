@@ -362,7 +362,7 @@ class MergeBotTests {
             assertEquals(1, pullRequests.size());
             var pr = pullRequests.get(0);
             assertEquals("Merge test:master", pr.title());
-            assertTrue(pr.labels().contains("failed-auto-merge"));
+            assertTrue(pr.labelNames().contains("failed-auto-merge"));
         }
     }
 
@@ -637,7 +637,7 @@ class MergeBotTests {
             assertEquals(1, pullRequests.size());
             var pr = pullRequests.get(0);
             assertEquals("Merge test:master", pr.title());
-            assertTrue(pr.labels().contains("failed-auto-merge"));
+            assertTrue(pr.labelNames().contains("failed-auto-merge"));
             assertTrue(forkLocalRepo.branches().contains(new Branch("master")));
             assertTrue(forkLocalRepo.branches().contains(new Branch("2")));
 

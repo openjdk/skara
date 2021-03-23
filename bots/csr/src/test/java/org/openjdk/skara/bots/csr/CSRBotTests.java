@@ -69,7 +69,7 @@ class CSRBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should have removed the CSR label
-            assertFalse(pr.labels().contains("csr"));
+            assertFalse(pr.labelNames().contains("csr"));
         }
     }
 
@@ -100,7 +100,7 @@ class CSRBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should have kept the CSR label
-            assertTrue(pr.labels().contains("csr"));
+            assertTrue(pr.labelNames().contains("csr"));
         }
     }
 
@@ -131,7 +131,7 @@ class CSRBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should have kept the CSR label
-            assertTrue(pr.labels().contains("csr"));
+            assertTrue(pr.labelNames().contains("csr"));
         }
     }
 
@@ -169,7 +169,7 @@ class CSRBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should have removed the CSR label
-            assertTrue(pr.labels().contains("csr"));
+            assertTrue(pr.labelNames().contains("csr"));
         }
     }
 

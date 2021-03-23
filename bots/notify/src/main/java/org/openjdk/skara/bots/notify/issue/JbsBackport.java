@@ -82,7 +82,7 @@ public class JbsBackport {
         var issue = primary.project().issue(response.get("key").asString()).orElseThrow();
 
         // The backport should not have any labels set - if it does, clear them
-        var labels = issue.labels();
+        var labels = issue.labelNames();
         if (!labels.isEmpty()) {
             issue.setLabels(List.of());
         }

@@ -64,7 +64,7 @@ public class SponsorCommand implements CommandHandler {
             return;
         }
 
-        var labels = new HashSet<>(pr.labels());
+        var labels = new HashSet<>(pr.labelNames());
         if (!labels.contains("ready")) {
             reply.println("This PR has not yet been marked as ready for integration.");
             return;

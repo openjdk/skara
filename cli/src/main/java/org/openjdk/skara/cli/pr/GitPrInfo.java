@@ -225,7 +225,7 @@ public class GitPrInfo {
             if (showDecoration) {
                 System.out.format(fmt, "Labels:");
             }
-            System.out.println(String.join(", ", pr.labels()));
+            System.out.println(String.join(", ", pr.labelNames()));
         }
 
         if (showAll || showAssignees) {
