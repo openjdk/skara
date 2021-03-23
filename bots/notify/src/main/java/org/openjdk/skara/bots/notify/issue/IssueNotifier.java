@@ -285,6 +285,25 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
             return;
         }
 
+        // Determine which branch(es) this tag belongs to
+        var tagBranches = new ArrayList<String>();
+        try {
+            for (var branch : repository.branches()) {
+                if (PreIntegrations.isPreintegrationBranch(branch.name())) {
+                    continue;
+                }
+                var hash = localRepository.resolve(tag.tag()).orElseThrow();
+                if (localRepository.isAncestor(hash, branch.hash())) {
+                    tagBranches.add(branch.name());
+                }
+            }
+            if (tagBranches.isEmpty()) {
+                throw new RuntimeException("Cannot find any branch containing the tag " + tag.tag().name());
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+
         for (var commit : commits) {
             var commitMessage = CommitMessageParsers.v1.parse(commit);
             for (var commitIssue : commitMessage.issues()) {
@@ -294,64 +313,42 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                                        + " - issue not found in issue project");
                     continue;
                 }
-                var issue = optionalIssue.get();
-
-                // Determine which branch this tag belongs to
-                String tagBranch = null;
-                try {
-                    for (var branch : repository.branches()) {
-                        if (PreIntegrations.isPreintegrationBranch(branch.name())) {
-                            continue;
-                        }
-                        var hash = localRepository.resolve(tag.tag()).orElseThrow();
-                        if (localRepository.isAncestor(hash, branch.hash())) {
-                            if (tagBranch == null) {
-                                tagBranch = branch.name();
-                            } else {
-                                throw new RuntimeException("Tag " + tag.tag().name() + " found in both " + tagBranch + " and " + branch.name());
-                            }
-                        }
-                    }
-                    if (tagBranch == null) {
-                        throw new RuntimeException("Cannot find any branch containing the tag " + tag.tag().name());
-                    }
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
-                }
-
                 // The actual issue to be updated can change depending on the fix version
-                var requestedVersion = fixVersions != null ? fixVersions.getOrDefault(tagBranch, null) : null;
-                if (requestedVersion == null) {
-                    try {
-                        var conf = localRepository.lines(Path.of(".jcheck/conf"), commit.hash());
-                        if (conf.isPresent()) {
-                            var parsed = JCheckConfiguration.parse(conf.get());
-                            var version = parsed.general().version();
-                            requestedVersion = version.orElse(null);
+                for (var tagBranch : tagBranches) {
+                    var issue = optionalIssue.get();
+                    var requestedVersion = fixVersions != null ? fixVersions.getOrDefault(tagBranch, null) : null;
+                    if (requestedVersion == null) {
+                        try {
+                            var conf = localRepository.lines(Path.of(".jcheck/conf"), commit.hash());
+                            if (conf.isPresent()) {
+                                var parsed = JCheckConfiguration.parse(conf.get());
+                                var version = parsed.general().version();
+                                requestedVersion = version.orElse(null);
+                            }
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
                         }
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
                     }
-                }
-                if (requestedVersion == null) {
-                    throw new RuntimeException("Failed to determine requested fixVersion for " + issue.id());
-                }
-                var fixVersion = JdkVersion.parse(requestedVersion).orElseThrow();
-                var existing = Backports.findIssue(issue, fixVersion);
-                if (existing.isEmpty()) {
-                    log.severe("Cannot find a properly resolved issue for: " + issue.id() + " - will not update resolved in build");
-                    return;
-                } else {
-                    issue = existing.get();
-                }
+                    if (requestedVersion == null) {
+                        throw new RuntimeException("Failed to determine requested fixVersion for " + issue.id());
+                    }
+                    var fixVersion = JdkVersion.parse(requestedVersion).orElseThrow();
+                    var existing = Backports.findIssue(issue, fixVersion);
+                    if (existing.isEmpty()) {
+                        log.severe("Cannot find a properly resolved issue for: " + issue.id() + " - will not update resolved in build");
+                        return;
+                    } else {
+                        issue = existing.get();
+                    }
 
-                // Check if the build name should be updated
-                var oldBuild = issue.properties().getOrDefault("customfield_10006", JSON.of());
-                var newBuild = "b" + String.format("%02d", tag.buildNum().get());
-                if (BuildCompare.shouldReplace(newBuild, oldBuild.asString())) {
-                    issue.setProperty("customfield_10006", JSON.of(newBuild));
-                } else {
-                    log.info("Not replacing build " + oldBuild.asString() + " with " + newBuild + " for issue " + issue.id());
+                    // Check if the build name should be updated
+                    var oldBuild = issue.properties().getOrDefault("customfield_10006", JSON.of());
+                    var newBuild = "b" + String.format("%02d", tag.buildNum().get());
+                    if (BuildCompare.shouldReplace(newBuild, oldBuild.asString())) {
+                        issue.setProperty("customfield_10006", JSON.of(newBuild));
+                    } else {
+                        log.info("Not replacing build " + oldBuild.asString() + " with " + newBuild + " for issue " + issue.id());
+                    }
                 }
             }
         }

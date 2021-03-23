@@ -73,7 +73,7 @@ public class IssueNotifierTests {
                              .addConfiguration("repositories", JSON.object()
                                                                    .put("hostedrepo", JSON.object()
                                                                                           .put("basename", "test")
-                                                                                          .put("branches", "master")
+                                                                                          .put("branches", "master|other")
                                                                                           .put("issue", notifierConfig)))
                              .build();
     }
@@ -584,7 +584,102 @@ public class IssueNotifierTests {
             // The build should now be updated
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
             assertEquals("b08", updatedIssue.properties().get("customfield_10006").asString());
+        }
+    }
 
+    @Test
+    void testIssueBuildAfterTagMultipleBranches(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var issueProject = credentials.getIssueProject();
+            var storageFolder = tempFolder.path().resolve("storage");
+            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object()
+                                                                         .put("master", "16")
+                                                                         .put("other", "16.0.2"))
+                                        .put("buildname", "team");
+            var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
+
+            // Initialize history
+            var current = localRepo.resolve("master").orElseThrow();
+            localRepo.push(current, repo.url(), "other");
+            localRepo.tag(current, "jdk-16+9", "First tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and commit a fix
+            var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
+            issue.setProperty("fixVersions", JSON.of("16.0.2"));
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
+            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.url(), "other");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The changeset should be reflected in a comment in the issue and in a new backport
+            var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            var backportIssue = updatedIssue.links().get(0).issue().orElseThrow();
+
+            var comments = updatedIssue.comments();
+            assertEquals(1, comments.size());
+            var comment = comments.get(0);
+            assertTrue(comment.body().contains(editHash.abbreviate()));
+
+            var backportComments = backportIssue.comments();
+            assertEquals(1, backportComments.size());
+            var backportComment = backportComments.get(0);
+            assertTrue(backportComment.body().contains(editHash.abbreviate()));
+
+            // As well as a fixVersion and a resolved in build
+            assertEquals(Set.of("16.0.2"), fixVersions(updatedIssue));
+            assertEquals("team", updatedIssue.properties().get("customfield_10006").asString());
+            assertEquals(Set.of("16"), fixVersions(backportIssue));
+            assertEquals("team", backportIssue.properties().get("customfield_10006").asString());
+
+            // The issue should be assigned and resolved
+            assertEquals(RESOLVED, updatedIssue.state());
+            assertEquals(List.of(issueProject.issueTracker().currentUser()), updatedIssue.assignees());
+            assertEquals(RESOLVED, backportIssue.state());
+            assertEquals(List.of(issueProject.issueTracker().currentUser()), backportIssue.assignees());
+
+            // Tag it
+            localRepo.tag(editHash, "jdk-16+110", "Second tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The build should now be updated
+            updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            backportIssue = issueProject.issue(backportIssue.id()).orElseThrow();
+            assertEquals("b110", updatedIssue.properties().get("customfield_10006").asString());
+            assertEquals("b110", backportIssue.properties().get("customfield_10006").asString());
+
+            // Tag it again
+            localRepo.tag(editHash, "jdk-16+10", "Third tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The build should now be updated
+            updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            backportIssue = issueProject.issue(backportIssue.id()).orElseThrow();
+            assertEquals("b10", updatedIssue.properties().get("customfield_10006").asString());
+            assertEquals("b10", backportIssue.properties().get("customfield_10006").asString());
+
+            // Tag it once again
+            localRepo.tag(editHash, "jdk-16+8", "Fourth tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The build should now be updated
+            updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            backportIssue = issueProject.issue(backportIssue.id()).orElseThrow();
+            assertEquals("b08", updatedIssue.properties().get("customfield_10006").asString());
+            assertEquals("b08", backportIssue.properties().get("customfield_10006").asString());
         }
     }
 
