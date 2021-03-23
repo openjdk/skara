@@ -73,15 +73,16 @@ public class MimeText {
             } else {
                 var quotedDecodedSpaces = quotedMatcher.group(3).replace("_", " ");
                 var quotedPrintableMatcher = decodeQuotedPrintablePattern.matcher(quotedDecodedSpaces);
-                decoded.append(quotedPrintableMatcher.replaceAll(qmo -> {
+                var decodedAscii = quotedPrintableMatcher.replaceAll(qmo -> {
                     var byteValue = new byte[1];
                     byteValue[0] = (byte)Integer.parseInt(qmo.group(1), 16);
-                    try {
-                        return new String(byteValue, quotedMatcher.group(1));
-                    } catch (UnsupportedEncodingException e) {
-                        throw new RuntimeException(e);
-                    }
-                }));
+                    return new String(byteValue, StandardCharsets.ISO_8859_1);
+                });
+                try {
+                    decoded.append(new String(decodedAscii.getBytes(StandardCharsets.ISO_8859_1), quotedMatcher.group(1)));
+                } catch (UnsupportedEncodingException e) {
+                    throw new RuntimeException(e);
+                }
             }
             lastMatchEnd = quotedMatcher.end();
         }
