@@ -344,19 +344,23 @@ public class GitPrCreate {
             } else {
                 var suggested = suggestedLabels(repo, host, parentProject, targetBranch, headRef);
                 var labelNameToLabel = parentRepo.labels().stream().collect(Collectors.toMap(l -> l.name(), l -> l));
-                System.out.println("The following mailing lists will be CC:d for the \"RFR\" e-mail:");
                 for (var label : suggested) {
                     if (label.endsWith("-dev")) {
                         label = label.substring(0, label.length() - "-dev".length());
                     }
-                    var list = labelNameToLabel.getOrDefault(label, new Label(label)).description().orElse(label + "-dev@openjdk.java.net");
-                    if (cc == null) {
+                    var desc = labelNameToLabel.getOrDefault(label, new Label(label)).description();
+                    if (desc.isPresent()) {
+                        mailingLists.add(desc.get());
+                    }
+                }
+                if (!mailingLists.isEmpty()) {
+                    System.out.println("The following mailing lists will be CC:d for the \"RFR\" e-mail:");
+                    for (var list : mailingLists) {
                         System.out.println("- " + list);
                     }
-                    mailingLists.add(list);
                 }
             }
-            if (cc == null || !cc.equals("auto")) {
+            if (!mailingLists.isEmpty()) {
                 System.out.println("");
                 System.out.print("Do you want to proceed with this mailing list selection? [Y/n]: ");
                 var scanner = new Scanner(System.in);
