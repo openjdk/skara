@@ -71,8 +71,8 @@ public class GitMlRules {
                   .optional(),
             Option.shortcut("v")
                   .fullname("verify")
-                  .describe("FILE")
-                  .helptext("Name of file to verify against")
+                  .describe("CONFIG-FILE")
+                  .helptext("Name of json config file to verify against")
                   .optional(),
             Option.shortcut("l")
                   .fullname("lists")
@@ -669,7 +669,13 @@ public class GitMlRules {
         } else if (arguments.inputs().size() >= 1 && arguments.contains("verify")) {
             var requestedFiles = new HashSet<String>();
             for (var input : arguments.inputs()) {
-                var path = Path.of(input.asString()).toRealPath();
+                var path = Path.of(input.asString());
+                try {
+                    // Normalize, if possible
+                    path = path.toRealPath();
+                } catch (IOException ioe) {
+                    // If the file does not exist, use the name as-is
+                }
                 if (path.toFile().isFile()) {
                     requestedFiles.add(repoRoot.relativize(path).toString());
                 } else {
@@ -698,10 +704,10 @@ public class GitMlRules {
             System.out.println("  git skara mlrules <repository root> [--filter X] [--days D] [--output FILE]");
             System.out.println();
             System.out.println("To verify a rules list against historical commits and reviews:");
-            System.out.println("  git skara mlrules <repository root> [--verify FILE] [--days D]");
+            System.out.println("  git skara mlrules <repository root> [--verify CONFIG-FILE] [--days D]");
             System.out.println();
-            System.out.println("To verify a rules list against a given list of files/directories in a repository:");
-            System.out.println("  git skara mlrules --verify FILE <file1/dir1> [<file2/dir2> <file3/dir3>...]");
+            System.out.println("To verify a config file against a given list of files/directories in a repository:");
+            System.out.println("  git skara mlrules --verify CONFIG-FILE <file1/dir1> [<file2/dir2> <file3/dir3>...]");
             System.out.println();
             System.out.println("For the full list of options:");
             System.out.println("  git skara mlrules --help");
