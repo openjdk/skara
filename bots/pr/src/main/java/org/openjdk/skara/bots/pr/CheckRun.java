@@ -511,13 +511,23 @@ class CheckRun {
             progressBody.append(contributors);
         });
 
-        progressBody.append("\n\n### Download\n");
-        progressBody.append(checkoutCommands());
+        progressBody.append("\n\n### Reviewing\n");
+        progressBody.append(makeCollapsible("Using <code>git</code>", reviewUsingGitHelp()));
+        progressBody.append(makeCollapsible("Using Skara CLI tools", reviewUsingSkaraHelp()));
+        progressBody.append(makeCollapsible("Using diff file", reviewUsingDiffsHelp()));
 
         return progressBody.toString();
     }
 
-    private String checkoutCommands() {
+    private static String makeCollapsible(String summary, String content) {
+        // The linebreaks are important in getting this properly parsed
+        return "<details><summary>" + summary + "</summary>\n" +
+                "\n" +
+                content + "\n" +
+                "</details>\n";
+    }
+
+    private String reviewUsingGitHelp() {
         var repoUrl = pr.repository().webUrl();
         var firstTime =
            "`$ git fetch " + repoUrl + " " + pr.fetchRef() + ":pull/" + pr.id() + "`\n" +
@@ -526,11 +536,25 @@ class CheckRun {
            "`$ git checkout pull/" + pr.id() + "`\n" +
            "`$ git pull " + repoUrl + " " + pr.fetchRef() + "`\n";
 
-        return "To checkout this PR locally:\n" +
+        return "Checkout this PR locally:\n" +
                 firstTime +
                 "\n" +
-                "To update a local copy of the PR:\n" +
+                "Update a local copy of the PR:\n" +
                 updating;
+    }
+
+    private String reviewUsingSkaraHelp() {
+        return "Checkout this PR locally:\n" +
+                ("`$ git pr checkout " + pr.id() + "`\n") +
+                "\n" +
+                "View PR using the GUI difftool:\n" +
+                ("`$ git pr show -t " + pr.id() + "`\n");
+    }
+
+    private String reviewUsingDiffsHelp() {
+        var diffUrl = pr.repository().webUrl() + "/pull/" + pr.id() + ".diff";
+        return "Download this PR as a diff file:\n" +
+                "<a href=\"" + diffUrl + "\">" + diffUrl + "</a>\n";
     }
 
     private String bodyWithoutStatus() {
