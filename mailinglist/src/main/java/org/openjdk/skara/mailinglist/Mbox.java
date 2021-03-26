@@ -85,6 +85,8 @@ public class Mbox {
         return parseMbox(mbox, null);
     }
 
+    private static final Pattern inReplyToPattern = Pattern.compile("<(.*@.*?)>");
+
     public static List<Conversation> parseMbox(String mbox, EmailAddress sender) {
         var emails = splitMbox(mbox, sender);
         var idToMail = emails.stream().collect(Collectors.toMap(Email::id, Function.identity(), (a, b) -> a));
@@ -92,15 +94,28 @@ public class Mbox {
                                        .filter(email -> !email.hasHeader("In-Reply-To"))
                                        .collect(Collectors.toMap(Email::id, Conversation::new));
 
-        for (var email : emails) {
-            if (email.hasHeader("In-Reply-To")) {
-                var inReplyTo = EmailAddress.parse(email.headerValue("In-Reply-To"));
-                if (!idToMail.containsKey(inReplyTo)) {
-                    log.info("Can't find parent: " + inReplyTo + " - discarding");
-                } else {
+        var outOfOrder = new ArrayList<Email>();
+        var lastOutOfOrderCount = -1;
+        while (outOfOrder.size() != lastOutOfOrderCount) {
+            lastOutOfOrderCount = outOfOrder.size();
+            outOfOrder.clear();
+
+            for (var email : emails) {
+                if (email.hasHeader("In-Reply-To")) {
+                    var inReplyToMatcher = inReplyToPattern.matcher(email.headerValue("In-Reply-To"));
+                    if (!inReplyToMatcher.find()) {
+                        log.info("Cannot parse In-Reply-To header: " + email.headerValue("In-Reply-To"));
+                        continue;
+                    }
+                    var inReplyTo = EmailAddress.from(inReplyToMatcher.group(1));
+                    if (!idToMail.containsKey(inReplyTo)) {
+                        log.info("Can't find parent: " + inReplyTo + " - discarding");
+                        continue;
+                    }
                     var parent = idToMail.get(inReplyTo);
                     if (!idToConversation.containsKey(inReplyTo)) {
-                        log.info("Can't find conversation: " + inReplyTo + " - discarding");
+                        outOfOrder.add(email);
+                        log.info("Can't find conversation: " + inReplyTo + " - possibly out of order");
                     } else {
                         var conversation = idToConversation.get(inReplyTo);
                         conversation.addReply(parent, email);
@@ -108,6 +123,9 @@ public class Mbox {
                     }
                 }
             }
+        }
+        if (!outOfOrder.isEmpty()) {
+            log.info("Out of order remaining: " + outOfOrder.size());
         }
 
         return idToConversation.values().stream()

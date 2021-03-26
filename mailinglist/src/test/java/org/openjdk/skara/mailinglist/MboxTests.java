@@ -22,17 +22,17 @@
  */
 package org.openjdk.skara.mailinglist;
 
+import org.junit.jupiter.api.Test;
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.test.TemporaryDirectory;
-
-import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Duration;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MboxTests {
     @Test
@@ -131,10 +131,11 @@ class MboxTests {
             var list = mbox.getList("test");
 
             var sender = EmailAddress.from("test", "test@test.mail");
-            var sentMail = Email.create(sender, "Subject", "From is an odd way to start\n" +
-                    "From may also be the second row\n" +
-                    ">>From as a quote\n" +
-                    "And From in the middle").build();
+            var sentMail = Email.create(sender, "Subject", """
+                    From is an odd way to start
+                    From may also be the second row
+                    >>From as a quote
+                    And From in the middle""").build();
             list.post(sentMail);
             var conversations = list.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
@@ -163,17 +164,17 @@ class MboxTests {
     void unencodedFrom() throws IOException {
         try (var folder = new TemporaryDirectory()) {
             var rawMbox = folder.path().resolve("test.mbox");
-            Files.writeString(rawMbox,
-                              "From test at example.com  Wed Aug 21 17:22:50 2019\n" +
-                                      "From: test at example.com (test at example.com)\n" +
-                                      "Date: Wed, 21 Aug 2019 17:22:50 +0000\n" +
-                                      "Subject: this is a test\n" +
-                                      "Message-ID: <abc123@example.com>\n" +
-                                      "\n" +
-                                      "Sometimes there are unencoded from lines as well\n" +
-                                      "\n" +
-                                      "From this point onwards, it may be hard to parse this\n" +
-                                      "\n", StandardCharsets.UTF_8);
+            Files.writeString(rawMbox, """
+                                      From test at example.com  Wed Aug 21 17:22:50 2019
+                                      From: test at example.com (test at example.com)
+                                      Date: Wed, 21 Aug 2019 17:22:50 +0000
+                                      Subject: this is a test
+                                      Message-ID: <abc123@example.com>
+
+                                      Sometimes there are unencoded from lines as well
+
+                                      From this point onwards, it may be hard to parse this
+                                      """, StandardCharsets.UTF_8);
             var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
             var list = mbox.getList("test");
             var conversations = list.conversations(Duration.ofDays(365 * 100));
@@ -184,4 +185,78 @@ class MboxTests {
             assertTrue(conversation.first().body().contains("this point onwards"), conversation.first().body());
         }
     }
+
+    @Test
+    void replyToWithExtra() throws IOException {
+        try (var folder = new TemporaryDirectory()) {
+            var rawMbox = folder.path().resolve("test.mbox");
+            Files.writeString(rawMbox, """
+                                      From test at example.com  Wed Aug 21 17:22:50 2019
+                                      From: test at example.com (test at example.com)
+                                      Date: Wed, 21 Aug 2019 17:22:50 +0000
+                                      Subject: this is a test
+                                      Message-ID: <abc123@example.com>
+
+                                      First message
+
+                                      From test2 at example.com  Wed Aug 21 17:32:50 2019
+                                      From: test2 at example.com (test2 at example.com)
+                                      Date: Wed, 21 Aug 2019 17:32:50 +0000
+                                      Subject: Re: this is a test
+                                      In-Reply-To: <abc123@example.com> (This be a reply)
+                                      Message-ID: <def456@example.com>
+
+                                      Second message
+                                      """,
+                              StandardCharsets.UTF_8);
+            var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
+            var list = mbox.getList("test");
+            var conversations = list.conversations(Duration.ofDays(365 * 100));
+            assertEquals(1, conversations.size());
+            var conversation = conversations.get(0);
+            assertEquals(2, conversation.allMessages().size());
+        }
+    }
+
+    @Test
+    void replyOutOfOrder() throws IOException {
+        try (var folder = new TemporaryDirectory()) {
+            var rawMbox = folder.path().resolve("test.mbox");
+            Files.writeString(rawMbox, """
+                                      From test at example.com  Wed Aug 21 17:22:50 2019
+                                      From: test at example.com (test at example.com)
+                                      Date: Wed, 21 Aug 2019 17:22:50 +0000
+                                      Subject: this is a test
+                                      Message-ID: <abc123@example.com>
+
+                                      First message
+
+                                      From test3 at example.com  Wed Aug 21 17:42:50 2019
+                                      From: test3 at example.com (test3 at example.com)
+                                      Date: Wed, 21 Aug 2019 17:42:50 +0000
+                                      Subject: Re: this is a test
+                                      In-Reply-To: <def456@example.com>
+                                      Message-ID: <ghi789@example.com>
+
+                                      Third message
+
+                                      From test2 at example.com  Wed Aug 21 17:32:50 2019
+                                      From: test2 at example.com (test2 at example.com)
+                                      Date: Wed, 21 Aug 2019 17:32:50 +0000
+                                      Subject: Re: this is a test
+                                      In-Reply-To: <abc123@example.com> (This be a reply)
+                                      Message-ID: <def456@example.com>
+
+                                      Second message
+                                      """,
+                              StandardCharsets.UTF_8);
+            var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
+            var list = mbox.getList("test");
+            var conversations = list.conversations(Duration.ofDays(365 * 100));
+            assertEquals(1, conversations.size());
+            var conversation = conversations.get(0);
+            assertEquals(3, conversation.allMessages().size());
+        }
+    }
+
 }
