@@ -67,7 +67,8 @@ public class PullRequestBotFactory implements BotFactory {
         if (specific.contains("forks")) {
             for (var fork : specific.get("forks").fields()) {
                 var repo = configuration.repository(fork.value().asString());
-                forks.put(fork.name(), repo);
+                var upstream = configuration.repository(fork.name());
+                forks.put(upstream.name(), repo);
             }
         }
 
