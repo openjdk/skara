@@ -25,7 +25,7 @@ package org.openjdk.skara.bots.notify.mailinglist;
 import org.openjdk.skara.bots.notify.*;
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.mailinglist.MailingList;
+import org.openjdk.skara.mailinglist.*;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.OpenJDKTag;
 
@@ -37,7 +37,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 class MailingListNotifier implements Notifier, RepositoryListener {
-    private final MailingList list;
+    private final MailingListServer server;
     private final EmailAddress recipient;
     private final EmailAddress sender;
     private final EmailAddress author;
@@ -55,10 +55,10 @@ class MailingListNotifier implements Notifier, RepositoryListener {
         PR
     }
 
-    MailingListNotifier(MailingList list, EmailAddress recipient, EmailAddress sender, EmailAddress author,
-                       boolean includeBranch, boolean reportNewTags, boolean reportNewBranches, boolean reportNewBuilds,
-                       Mode mode, Map<String, String> headers, Pattern allowedAuthorDomains) {
-        this.list = list;
+    MailingListNotifier(MailingListServer server, EmailAddress recipient, EmailAddress sender, EmailAddress author,
+                        boolean includeBranch, boolean reportNewTags, boolean reportNewBranches, boolean reportNewBuilds,
+                        Mode mode, Map<String, String> headers, Pattern allowedAuthorDomains) {
+        this.server = server;
         this.recipient = recipient;
         this.sender = sender;
         this.author = author;
@@ -208,7 +208,7 @@ class MailingListNotifier implements Notifier, RepositoryListener {
                          .build();
 
         try {
-            list.post(email);
+            server.post(email);
         } catch (RuntimeException e) {
             throw new NonRetriableException(e);
         }
@@ -278,7 +278,7 @@ class MailingListNotifier implements Notifier, RepositoryListener {
         }
 
         try {
-            list.post(email.build());
+            server.post(email.build());
         } catch (RuntimeException e) {
             throw new NonRetriableException(e);
         }
@@ -311,7 +311,7 @@ class MailingListNotifier implements Notifier, RepositoryListener {
         }
 
         try {
-            list.post(email.build());
+            server.post(email.build());
         } catch (RuntimeException e) {
             throw new NonRetriableException(e);
         }
@@ -369,7 +369,7 @@ class MailingListNotifier implements Notifier, RepositoryListener {
                          .headers(commitHeaders(repository, commits))
                          .build();
         try {
-            list.post(email);
+            server.post(email);
         } catch (RuntimeException e) {
             throw new NonRetriableException(e);
         }

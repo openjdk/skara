@@ -331,8 +331,6 @@ class ArchiveWorkItem implements WorkItem {
 
             var webrevPath = scratchPath.resolve("mlbridge-webrevs");
             var listServer = MailingListServerFactory.createMailmanServer(bot.listArchive(), bot.smtpServer(), bot.sendInterval());
-            var list = listServer.getList(recipients.get(0).toString());
-
             var archiver = new ReviewArchive(pr, bot.emailAddress());
 
             // Regular comments
@@ -379,7 +377,12 @@ class ArchiveWorkItem implements WorkItem {
             }
 
             // Push all new mails to the archive repository
-            newMails.forEach(reviewArchiveList::post);
+            for (var newMail : newMails) {
+                var forArchiving = Email.from(newMail)
+                                        .recipient(EmailAddress.from(pr.id() + "@mbox"))
+                                        .build();
+                mbox.post(forArchiving);
+            }
             pushMbox(archiveRepo, "Adding comments for PR " + bot.codeRepo().name() + "/" + pr.id());
 
             // Finally post all new mails to the actual list
@@ -393,7 +396,7 @@ class ArchiveWorkItem implements WorkItem {
                                          .headers(bot.headers())
                                          .recipients(recipients)
                                          .build();
-                list.post(filteredEmail);
+                listServer.post(filteredEmail);
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);

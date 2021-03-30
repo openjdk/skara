@@ -30,7 +30,6 @@ import java.nio.file.Path;
 import java.time.Duration;
 
 public class MailingListServerFactory {
-
     public static MailingListServer createMailmanServer(URI archive, String smtp, Duration sendInterval) {
         return new MailmanServer(archive, smtp, sendInterval);
     }

@@ -25,7 +25,7 @@ package org.openjdk.skara.mailinglist.mboxfile;
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.mailinglist.*;
 
-import java.io.*;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.*;
@@ -34,67 +34,33 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class MboxFileList implements MailingList {
-    private final Path file;
-    private final EmailAddress recipient;
+    private final Path base;
+    private final Collection<String> names;
     private final Logger log = Logger.getLogger("org.openjdk.skara.mailinglist");
 
-    MboxFileList(Path file, EmailAddress recipient) {
-        this.file = file.resolveSibling(file.getFileName() + ".mbox");
-        this.recipient = recipient;
-    }
-
-    private void postNewConversation(Email mail) {
-        var mboxMail = Mbox.fromMail(mail);
-        if (Files.notExists(file)) {
-            if (Files.notExists(file.getParent())) {
-                try {
-                    Files.createDirectories(file.getParent());
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
-                }
-            }
-        }
-        try {
-            Files.writeString(file, mboxMail, StandardCharsets.UTF_8, StandardOpenOption.APPEND);
-        } catch (IOException e) {
-            try {
-                Files.writeString(file, mboxMail, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
-            } catch (IOException e1) {
-                throw new UncheckedIOException(e);
-            }
-        }
-    }
-
-    private void postReply(Email mail) {
-        var mboxMail = Mbox.fromMail(mail);
-        try {
-            Files.writeString(file, mboxMail, StandardCharsets.UTF_8, StandardOpenOption.APPEND);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    @Override
-    public void post(Email email) {
-        if (email.hasHeader(("In-Reply-To"))) {
-            postReply(email);
-        } else {
-            postNewConversation(email);
-        }
+    MboxFileList(Path base, Collection<String> names) {
+        this.base = base;
+        this.names = names;
     }
 
     @Override
     public List<Conversation> conversations(Duration maxAge) {
-        String mbox;
-        try {
-            mbox = Files.readString(file, StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            log.info("Failed to open mbox file");
+        var emails = new ArrayList<Email>();
+        for (var name : names) {
+            try {
+                var file = base.resolve(name + ".mbox");
+                var currentMbox = Files.readString(file, StandardCharsets.UTF_8);
+                emails.addAll(Mbox.splitMbox(currentMbox, EmailAddress.from(name + "@mbox.file")));
+            } catch (IOException e) {
+                log.info("Failed to open mbox file");
+            }
+        }
+        if (emails.isEmpty()) {
             return new LinkedList<>();
         }
         var cutoff = Instant.now().minus(maxAge);
-        return Mbox.parseMbox(mbox).stream()
-                .filter(email -> email.first().date().toInstant().isAfter(cutoff))
-                .collect(Collectors.toList());
+        return Mbox.parseConversations(emails).stream()
+                   .filter(email -> email.first().date().toInstant().isAfter(cutoff))
+                   .collect(Collectors.toList());
     }
 }

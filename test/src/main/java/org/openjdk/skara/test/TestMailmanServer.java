@@ -101,7 +101,7 @@ public class TestMailmanServer implements AutoCloseable {
     }
 
     public String createList(String name) throws IOException {
-        var listName = EmailAddress.parse(name + "@testserver.test").toString();
+        var listName = EmailAddress.parse(name + "@" + httpServer.getAddress().getHostString()).toString();
         var listPath = Files.createTempFile("list-" + name, ".txt");
         lists.put(name, listPath);
         return listName;

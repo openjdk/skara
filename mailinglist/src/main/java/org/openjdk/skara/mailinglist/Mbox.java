@@ -42,7 +42,7 @@ public class Mbox {
     private final static Pattern fromStringEncodePattern = Pattern.compile("^(>*From )", Pattern.MULTILINE);
     private final static Pattern fromStringDecodePattern = Pattern.compile("^>(>*From )", Pattern.MULTILINE);
 
-    private static List<Email> splitMbox(String mbox, EmailAddress sender) {
+    public static List<Email> splitMbox(String mbox, EmailAddress sender) {
         // Initial split
         var messages = mboxMessagePattern.matcher(mbox).results()
                                          .map(match -> match.group(1))
@@ -81,14 +81,9 @@ public class Mbox {
         return fromStringMatcher.replaceAll("$1");
     }
 
-    public static List<Conversation> parseMbox(String mbox) {
-        return parseMbox(mbox, null);
-    }
-
     private static final Pattern inReplyToPattern = Pattern.compile("<(.*@.*?)>");
 
-    public static List<Conversation> parseMbox(String mbox, EmailAddress sender) {
-        var emails = splitMbox(mbox, sender);
+    public static List<Conversation> parseConversations(List<Email> emails) {
         var idToMail = emails.stream().collect(Collectors.toMap(Email::id, Function.identity(), (a, b) -> a));
         var idToConversation = idToMail.values().stream()
                                        .filter(email -> !email.hasHeader("In-Reply-To"))
@@ -115,7 +110,6 @@ public class Mbox {
                     var parent = idToMail.get(inReplyTo);
                     if (!idToConversation.containsKey(inReplyTo)) {
                         outOfOrder.add(email);
-                        log.info("Can't find conversation: " + inReplyTo + " - possibly out of order");
                     } else {
                         var conversation = idToConversation.get(inReplyTo);
                         conversation.addReply(parent, email);
@@ -126,6 +120,7 @@ public class Mbox {
         }
         if (!outOfOrder.isEmpty()) {
             log.info("Out of order remaining: " + outOfOrder.size());
+            outOfOrder.forEach(oo -> log.info("  " + oo.id()));
         }
 
         return idToConversation.values().stream()

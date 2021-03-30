@@ -54,7 +54,7 @@ public class MailingListNotifierFactory implements NotifierFactory {
         var allowedDomains = author == null ? Pattern.compile(notifierConfiguration.get("domains").asString()) : null;
 
         var builder = MailingListNotifier.newBuilder()
-                                         .list(listServer.getList(recipient))
+                                         .server(listServer)
                                          .recipient(recipientAddress)
                                          .sender(sender)
                                          .author(author)

@@ -42,12 +42,17 @@ class MboxTests {
             var list = mbox.getList("test");
 
             var sender = EmailAddress.from("test", "test@test.mail");
-            var sentMail = Email.create(sender, "Subject", "Message").build();
-            list.post(sentMail);
+            var sentMail = Email.create(sender, "Subject", "Message")
+                                .recipient(EmailAddress.from("test@mbox"))
+                                .build();
+            var expectedMail = Email.from(sentMail)
+                                    .sender(EmailAddress.from("test@mbox.file"))
+                                    .build();
+            mbox.post(sentMail);
             var conversations = list.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var conversation = conversations.get(0);
-            assertEquals(sentMail, conversation.first());
+            assertEquals(expectedMail, conversation.first());
         }
     }
 
@@ -60,24 +65,33 @@ class MboxTests {
             var sender1 = EmailAddress.from("test1", "test1@test.mail");
             var sender2 = EmailAddress.from("test2", "test2@test.mail");
 
-            var sentParent = Email.create(sender1, "Subject 1", "Message 1").build();
-            list.post(sentParent);
+            var sentParent = Email.create(sender1, "Subject 1", "Message 1")
+                                  .recipient(EmailAddress.from("test@mbox"))
+                                  .build();
+            var expectedParent = Email.from(sentParent)
+                                      .sender(EmailAddress.from("test@mbox.file"))
+                                      .build();
+            mbox.post(sentParent);
             var conversations = list.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
 
             var sentReply = Email.create(sender2, "Subject 2", "Message 2")
+                                 .recipient(EmailAddress.from("test@mbox"))
                                  .header("In-Reply-To", sentParent.id().toString())
                                  .header("References", sentParent.id().toString())
                                  .build();
-            list.post(sentReply);
+            var expectedReply = Email.from(sentReply)
+                                     .sender(EmailAddress.from("test@mbox.file"))
+                                     .build();
+            mbox.post(sentReply);
             conversations = list.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var conversation = conversations.get(0);
-            assertEquals(sentParent, conversation.first());
-            var replies = conversation.replies(sentParent);
+            assertEquals(expectedParent, conversation.first());
+            var replies = conversation.replies(expectedParent);
             assertEquals(1, replies.size());
             var reply = replies.get(0);
-            assertEquals(sentReply, reply);
+            assertEquals(expectedReply, reply);
         }
     }
 
@@ -92,22 +106,6 @@ class MboxTests {
     }
 
     @Test
-    void nested() {
-        try (var folder = new TemporaryDirectory()) {
-            var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
-            var list = mbox.getList("this/is/a/nested/path/test");
-
-            var sender = EmailAddress.from("test", "test@test.mail");
-            var sentMail = Email.create(sender, "Subject", "Message").build();
-            list.post(sentMail);
-            var conversations = list.conversations(Duration.ofDays(1));
-            assertEquals(1, conversations.size());
-            var conversation = conversations.get(0);
-            assertEquals(sentMail, conversation.first());
-        }
-    }
-
-    @Test
     void differentAuthor() {
         try (var folder = new TemporaryDirectory()) {
             var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
@@ -115,12 +113,18 @@ class MboxTests {
 
             var sender = EmailAddress.from("test1", "test1@test.mail");
             var author = EmailAddress.from("test2", "test2@test.mail");
-            var sentMail = Email.create(author, "Subject", "Message").sender(sender).build();
-            list.post(sentMail);
+            var sentMail = Email.create(author, "Subject", "Message")
+                                .recipient(EmailAddress.from("test@mbox"))
+                                .sender(sender)
+                                .build();
+            var expectedMail = Email.from(sentMail)
+                                    .sender(EmailAddress.from("test@mbox.file"))
+                                    .build();
+            mbox.post(sentMail);
             var conversations = list.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var conversation = conversations.get(0);
-            assertEquals(sentMail, conversation.first());
+            assertEquals(expectedMail, conversation.first());
         }
     }
 
@@ -132,15 +136,20 @@ class MboxTests {
 
             var sender = EmailAddress.from("test", "test@test.mail");
             var sentMail = Email.create(sender, "Subject", """
-                    From is an odd way to start
-                    From may also be the second row
-                    >>From as a quote
-                    And From in the middle""").build();
-            list.post(sentMail);
+                                    From is an odd way to start
+                                    From may also be the second row
+                                    >>From as a quote
+                                    And From in the middle""")
+                                .recipient(EmailAddress.from("test@mbox"))
+                                .build();
+            var expectedMail = Email.from(sentMail)
+                                    .sender(EmailAddress.from("test@mbox.file"))
+                                    .build();
+            mbox.post(sentMail);
             var conversations = list.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var conversation = conversations.get(0);
-            assertEquals(sentMail, conversation.first());
+            assertEquals(expectedMail, conversation.first());
         }
     }
 
@@ -151,12 +160,17 @@ class MboxTests {
             var list = mbox.getList("test");
 
             var sender = EmailAddress.from("têßt", "test@test.mail");
-            var sentMail = Email.create(sender, "Sübjeçt", "(╯°□°)╯︵ ┻━┻").build();
-            list.post(sentMail);
+            var sentMail = Email.create(sender, "Sübjeçt", "(╯°□°)╯︵ ┻━┻")
+                                .recipient(EmailAddress.from("test@mbox"))
+                                .build();
+            var expectedMail = Email.from(sentMail)
+                                    .sender(EmailAddress.from("test@mbox.file"))
+                                    .build();
+            mbox.post(sentMail);
             var conversations = list.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var conversation = conversations.get(0);
-            assertEquals(sentMail, conversation.first());
+            assertEquals(expectedMail, conversation.first());
         }
     }
 
@@ -259,4 +273,109 @@ class MboxTests {
         }
     }
 
+    @Test
+    void replyCross() throws IOException {
+        try (var folder = new TemporaryDirectory()) {
+            var rawMbox1 = folder.path().resolve("test1.mbox");
+            Files.writeString(rawMbox1, """
+                                      From test at example.com  Wed Aug 21 17:22:50 2019
+                                      From: test at example.com (test at example.com)
+                                      Date: Wed, 21 Aug 2019 17:22:50 +0000
+                                      Subject: this is a test
+                                      Message-ID: <abc123@example.com>
+
+                                      First message
+
+                                      From test2 at example.com  Wed Aug 21 17:32:50 2019
+                                      From: test2 at example.com (test2 at example.com)
+                                      Date: Wed, 21 Aug 2019 17:32:50 +0000
+                                      Subject: Re: this is a test
+                                      In-Reply-To: <abc123@example.com> (This be a reply)
+                                      Message-ID: <def456@example.com>
+
+                                      Second message
+
+                                      From test3 at example.com  Wed Aug 21 17:42:50 2019
+                                      From: test3 at example.com (test3 at example.com)
+                                      Date: Wed, 21 Aug 2019 17:42:50 +0000
+                                      Subject: Re: this is a test
+                                      In-Reply-To: <def456@example.com>
+                                      Message-ID: <ghi789@example.com>
+
+                                      Third message
+                                      """,
+                              StandardCharsets.UTF_8);
+            var rawMbox2 = folder.path().resolve("test2.mbox");
+            Files.writeString(rawMbox2, """
+                                      From test3 at example.com  Wed Aug 21 17:42:50 2019
+                                      From: test3 at example.com (test3 at example.com)
+                                      Date: Wed, 21 Aug 2019 17:42:50 +0000
+                                      Subject: Re: this is a test
+                                      In-Reply-To: <def456@example.com>
+                                      Message-ID: <ghi789@example.com>
+
+                                      Third message
+
+                                      From test2 at example.com  Wed Aug 21 17:32:50 2019
+                                      From: test2 at example.com (test2 at example.com)
+                                      Date: Wed, 21 Aug 2019 17:32:50 +0000
+                                      Subject: Re: this is a test
+                                      In-Reply-To: <abc123@example.com> (This be a reply)
+                                      Message-ID: <def456@example.com>
+
+                                      Second message
+                                      """,
+                              StandardCharsets.UTF_8);
+            var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
+            var list = mbox.getList("test1", "test2");
+            var conversations = list.conversations(Duration.ofDays(365 * 100));
+            assertEquals(1, conversations.size());
+            var conversation = conversations.get(0);
+            assertEquals(3, conversation.allMessages().size());
+        }
+    }
+
+    @Test
+    void replyOutOfOrderSplit() throws IOException {
+        try (var folder = new TemporaryDirectory()) {
+            var rawMbox1 = folder.path().resolve("test1.mbox");
+            Files.writeString(rawMbox1, """
+                                      From test at example.com  Wed Aug 21 17:22:50 2019
+                                      From: test at example.com (test at example.com)
+                                      Date: Wed, 21 Aug 2019 17:22:50 +0000
+                                      Subject: this is a test
+                                      Message-ID: <abc123@example.com>
+
+                                      First message
+
+                                      From test3 at example.com  Wed Aug 21 17:42:50 2019
+                                      From: test3 at example.com (test3 at example.com)
+                                      Date: Wed, 21 Aug 2019 17:42:50 +0000
+                                      Subject: Re: this is a test
+                                      In-Reply-To: <def456@example.com>
+                                      Message-ID: <ghi789@example.com>
+
+                                      Third message
+                                      """,
+                              StandardCharsets.UTF_8);
+            var rawMbox2 = folder.path().resolve("test2.mbox");
+            Files.writeString(rawMbox2, """
+                                      From test2 at example.com  Wed Aug 21 17:32:50 2019
+                                      From: test2 at example.com (test2 at example.com)
+                                      Date: Wed, 21 Aug 2019 17:32:50 +0000
+                                      Subject: Re: this is a test
+                                      In-Reply-To: <abc123@example.com> (This be a reply)
+                                      Message-ID: <def456@example.com>
+
+                                      Second message
+                                      """,
+                              StandardCharsets.UTF_8);
+            var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
+            var list = mbox.getList("test1", "test2");
+            var conversations = list.conversations(Duration.ofDays(365 * 100));
+            assertEquals(1, conversations.size());
+            var conversation = conversations.get(0);
+            assertEquals(3, conversation.allMessages().size());
+        }
+    }
 }

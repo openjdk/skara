@@ -23,13 +23,13 @@
 package org.openjdk.skara.bots.notify.mailinglist;
 
 import org.openjdk.skara.email.EmailAddress;
-import org.openjdk.skara.mailinglist.MailingList;
+import org.openjdk.skara.mailinglist.*;
 
 import java.util.Map;
 import java.util.regex.Pattern;
 
 class MailingListNotifierBuilder {
-    private MailingList list;
+    private MailingListServer server;
     private EmailAddress recipient;
     private EmailAddress sender;
     private EmailAddress author = null;
@@ -43,8 +43,8 @@ class MailingListNotifierBuilder {
     private boolean repoInSubject = false;
     private Pattern branchInSubject = Pattern.compile("a^"); // Does not match anything
 
-    public MailingListNotifierBuilder list(MailingList list) {
-        this.list = list;
+    public MailingListNotifierBuilder server(MailingListServer server) {
+        this.server = server;
         return this;
     }
 
@@ -99,7 +99,7 @@ class MailingListNotifierBuilder {
     }
 
     public MailingListNotifier build() {
-        return new MailingListNotifier(list, recipient, sender, author, includeBranch, reportNewTags, reportNewBranches,
-                                      reportNewBuilds, mode, headers, allowedAuthorDomains);
+        return new MailingListNotifier(server, recipient, sender, author, includeBranch, reportNewTags, reportNewBranches,
+                                       reportNewBuilds, mode, headers, allowedAuthorDomains);
     }
 }

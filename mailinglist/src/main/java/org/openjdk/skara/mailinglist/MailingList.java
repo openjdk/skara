@@ -22,12 +22,9 @@
  */
 package org.openjdk.skara.mailinglist;
 
-import org.openjdk.skara.email.*;
-
 import java.time.Duration;
-import java.util.*;
+import java.util.List;
 
 public interface MailingList {
-    void post(Email email);
     List<Conversation> conversations(Duration maxAge);
 }

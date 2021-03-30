@@ -22,12 +22,14 @@
  */
 package org.openjdk.skara.mailinglist.mboxfile;
 
-import org.openjdk.skara.email.EmailAddress;
+import org.openjdk.skara.email.Email;
 import org.openjdk.skara.mailinglist.*;
 
-import java.net.URLEncoder;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
+import java.nio.file.*;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 public class MboxFileListServer implements MailingListServer {
     Path base;
@@ -36,9 +38,52 @@ public class MboxFileListServer implements MailingListServer {
         this.base = base;
     }
 
+    private void postNewConversation(Path file, Email mail) {
+        var mboxMail = Mbox.fromMail(mail);
+        if (Files.notExists(file)) {
+            if (Files.notExists(file.getParent())) {
+                try {
+                    Files.createDirectories(file.getParent());
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            }
+        }
+        try {
+            Files.writeString(file, mboxMail, StandardCharsets.UTF_8, StandardOpenOption.APPEND);
+        } catch (IOException e) {
+            try {
+                Files.writeString(file, mboxMail, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+            } catch (IOException e1) {
+                throw new UncheckedIOException(e);
+            }
+        }
+    }
+
+    private void postReply(Path file, Email mail) {
+        var mboxMail = Mbox.fromMail(mail);
+        try {
+            Files.writeString(file, mboxMail, StandardCharsets.UTF_8, StandardOpenOption.APPEND);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     @Override
-    public MailingList getList(String name) {
-        var recipient = URLEncoder.encode(name, StandardCharsets.US_ASCII) + "@localhost";
-        return new MboxFileList(base.resolve(name), EmailAddress.from("", recipient));
+    public void post(Email email) {
+        var recipientList = email.recipients().stream()
+                                 .map(e -> base.resolve(e.localPart() + ".mbox"))
+                                 .collect(Collectors.toList());
+
+        if (email.hasHeader(("In-Reply-To"))) {
+            recipientList.forEach(list -> postReply(list, email));
+        } else {
+            recipientList.forEach(list -> postNewConversation(list, email));
+        }
+    }
+
+    @Override
+    public MailingList getList(String... names) {
+        return new MboxFileList(base, Arrays.asList(names));
     }
 }
