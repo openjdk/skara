@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 class ArchiveMessages {
     private static final Pattern commentPattern = Pattern.compile("<!--.*?-->",
                                                                   Pattern.DOTALL | Pattern.MULTILINE);
-    private static final Pattern commandPattern = Pattern.compile("^\\s*/([A-Za-z]+).*$", Pattern.MULTILINE);
+    private static final Pattern commandPattern = Pattern.compile("^\\s*/([A-Za-z]+).*$", Pattern.MULTILINE | Pattern.DOTALL);
 
     private static String filterCommentsAndCommands(String body) {
         var parsedBody = PullRequestBody.parse(body);

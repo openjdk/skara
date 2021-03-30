@@ -1494,6 +1494,7 @@ class MailingListBridgeBotTests {
             pr.addComment("/integrate stuff");
             pr.addComment("the command is /hello there");
             pr.addComment("but this will be parsed\n/newline command");
+            pr.addComment("/multiline\nwill be dropped");
             TestBotRunner.runPeriodicItems(mlBot);
 
             // Run an archive pass
@@ -1514,6 +1515,8 @@ class MailingListBridgeBotTests {
             assertTrue(archiveContains(archiveFolder.path(), "/hello there"));
             assertTrue(archiveContains(archiveFolder.path(), "but this will be parsed"));
             assertFalse(archiveContains(archiveFolder.path(), "/newline"));
+            assertFalse(archiveContains(archiveFolder.path(), "/multiline"));
+            assertFalse(archiveContains(archiveFolder.path(), "will be dropped"));
         }
     }
 
