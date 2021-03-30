@@ -31,7 +31,7 @@ import org.openjdk.skara.vcs.openjdk.OpenJDKTag;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
-import java.util.logging.Logger;
+import java.util.logging.*;
 import java.util.regex.Pattern;
 import java.util.stream.*;
 
@@ -126,9 +126,11 @@ public class RepositoryWorkItem implements WorkItem {
                 try {
                     handleUpdatedRef(localRepo, ref, commits, listener);
                 } catch (NonRetriableException e) {
+                    log.log(Level.INFO, "Non retriable exception occurred", e);
                     errors.add(e.cause());
                 } catch (RuntimeException e) {
                     // Attempt to roll back
+                    log.log(Level.INFO, "Retriable exception occurred", e);
                     history.setBranchHash(branch, listener.name(), lastHash.get());
                     errors.add(e);
                 }
