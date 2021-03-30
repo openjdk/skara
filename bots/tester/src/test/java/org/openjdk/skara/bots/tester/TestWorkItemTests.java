@@ -553,10 +553,13 @@ class TestWorkItemTests {
             var approveComment = new Comment("2", "/test approve", member, now, now);
             pr.comments.add(approveComment);
 
-            var expectedJobId = "null-1337-17-0";
+            var expectedSubmissionId = "null-1337-17-0";
+            var expectedId = "0-17-1337-null";
             var expectedJob = new InMemoryJob();
+            expectedJob.id = expectedId;
             expectedJob.status = new Job.Status(0, 1, 7);
-            ci.jobs.put(expectedJobId, expectedJob);
+            ci.jobs.put(expectedId, expectedJob);
+            ci.jobs.put(expectedSubmissionId, expectedJob);
 
             item.run(scratch);
 
@@ -569,15 +572,15 @@ class TestWorkItemTests {
             var fourthComment = comments.get(3);
             lines = fourthComment.body().split("\n");
             assertEquals("<!-- TEST STARTED -->", lines[0]);
-            assertEquals("<!-- " + expectedJobId + " -->", lines[1]);
+            assertEquals("<!-- " + expectedId + " -->", lines[1]);
             assertEquals("<!-- " + head.hex() + " -->", lines[2]);
-            assertEquals("A test job has been started with id: " + expectedJobId, lines[3]);
+            assertEquals("A test job has been started with id: " + expectedId, lines[3]);
 
             assertEquals(1, ci.submissions.size());
             var submission = ci.submissions.get(0);
             assertTrue(submission.source.startsWith(storage));
             assertEquals(List.of("tier1"), submission.jobs);
-            assertEquals(expectedJobId, submission.id);
+            assertEquals(expectedSubmissionId, submission.id);
 
             var checks = pr.checks(pr.headHash());
             assertEquals(1, checks.keySet().size());
@@ -662,10 +665,13 @@ class TestWorkItemTests {
             var approveComment = new Comment("2", "/test approve", member, now, now);
             pr.comments.add(approveComment);
 
-            var expectedJobId = "null-1337-17-0";
+            var expectedSubmissionId = "null-1337-17-0";
+            var expectedId = "0-17-1337-null";
             var expectedJob = new InMemoryJob();
             expectedJob.status = new Job.Status(0, 1, 7);
-            ci.jobs.put(expectedJobId, expectedJob);
+            expectedJob.id = expectedId;
+            ci.jobs.put(expectedId, expectedJob);
+            ci.jobs.put(expectedSubmissionId, expectedJob);
 
             item.run(scratch);
 
@@ -678,15 +684,15 @@ class TestWorkItemTests {
             var fourthComment = comments.get(3);
             lines = fourthComment.body().split("\n");
             assertEquals("<!-- TEST STARTED -->", lines[0]);
-            assertEquals("<!-- " + expectedJobId + " -->", lines[1]);
+            assertEquals("<!-- " + expectedId + " -->", lines[1]);
             assertEquals("<!-- " + head.hex() + " -->", lines[2]);
-            assertEquals("A test job has been started with id: " + expectedJobId, lines[3]);
+            assertEquals("A test job has been started with id: " + expectedId, lines[3]);
 
             assertEquals(1, ci.submissions.size());
             var submission = ci.submissions.get(0);
             assertTrue(submission.source.startsWith(storage));
             assertEquals(List.of("tier1"), submission.jobs);
-            assertEquals(expectedJobId, submission.id);
+            assertEquals(expectedSubmissionId, submission.id);
 
             var checks = pr.checks(pr.headHash());
             assertEquals(1, checks.keySet().size());
@@ -711,7 +717,7 @@ class TestWorkItemTests {
                             .get()
                             .contains("## Status\n0 jobs completed, 1 job running, 7 jobs not yet started\n"));
 
-            assertEquals(expectedJobId, ci.cancelled.get(0));
+            assertEquals(expectedId, ci.cancelled.get(0));
         }
     }
 
@@ -877,10 +883,13 @@ class TestWorkItemTests {
             var approveComment = new Comment("2", "/test approve", member, now, now);
             pr.comments.add(approveComment);
 
-            var expectedJobId = "null-1337-17-0";
+            var expectedSubmissionId = "null-1337-17-0";
+            var expectedId = "0-17-1337-null";
             var expectedJob = new InMemoryJob();
             expectedJob.status = new Job.Status(0, 1, 7);
-            ci.jobs.put(expectedJobId, expectedJob);
+            expectedJob.id = expectedId;
+            ci.jobs.put(expectedId, expectedJob);
+            ci.jobs.put(expectedSubmissionId, expectedJob);
 
             item.run(scratch);
 
@@ -893,15 +902,15 @@ class TestWorkItemTests {
             var fourthComment = comments.get(3);
             lines = fourthComment.body().split("\n");
             assertEquals("<!-- TEST STARTED -->", lines[0]);
-            assertEquals("<!-- " + expectedJobId + " -->", lines[1]);
+            assertEquals("<!-- " + expectedId + " -->", lines[1]);
             assertEquals("<!-- " + head.hex() + " -->", lines[2]);
-            assertEquals("A test job has been started with id: " + expectedJobId, lines[3]);
+            assertEquals("A test job has been started with id: " + expectedId, lines[3]);
 
             assertEquals(1, ci.submissions.size());
             var submission = ci.submissions.get(0);
             assertTrue(submission.source.startsWith(storage));
             assertEquals(List.of("tier1"), submission.jobs);
-            assertEquals(expectedJobId, submission.id);
+            assertEquals(expectedSubmissionId, submission.id);
 
             var checks = pr.checks(pr.headHash());
             assertEquals(1, checks.keySet().size());
@@ -912,7 +921,7 @@ class TestWorkItemTests {
                             .get()
                             .contains("0 jobs completed, 1 job running, 7 jobs not yet started"));
 
-            var job = ci.jobs.get(expectedJobId);
+            var job = ci.jobs.get(expectedId);
             assertNotNull(job);
             job.id = "id";
             job.state = Job.State.COMPLETED;
@@ -931,9 +940,9 @@ class TestWorkItemTests {
             var finishedComment = comments.get(4);
             lines = finishedComment.body().split("\n");
             assertEquals("<!-- TEST FINISHED -->", lines[0]);
-            assertEquals("<!-- " + expectedJobId +" -->", lines[1]);
+            assertEquals("<!-- " + expectedId +" -->", lines[1]);
             assertEquals("<!-- " + head.hex() +" -->", lines[2]);
-            assertEquals("@duke your test job with id " + expectedJobId + " for commits up until " +
+            assertEquals("@duke your test job with id " + expectedId + " for commits up until " +
                          head.abbreviate() + " has finished.", lines[3]);
 
             checks = pr.checks(pr.headHash());
@@ -1002,10 +1011,13 @@ class TestWorkItemTests {
             var item = new TestWorkItem(ci, approvers, Set.of("0"), available, defaultJobs, name, storage, pr,
                                         u -> true);
 
-            var expectedJobId = "null-1337-17-0";
+            var expectedSubmissionId = "null-1337-17-0";
+            var expectedId = "0-17-1337-null";
             var expectedJob = new InMemoryJob();
             expectedJob.status = new Job.Status(0, 1, 7);
-            ci.jobs.put(expectedJobId, expectedJob);
+            expectedJob.id = expectedId;
+            ci.jobs.put(expectedId, expectedJob);
+            ci.jobs.put(expectedSubmissionId, expectedJob);
 
             item.run(scratch);
 
@@ -1017,15 +1029,15 @@ class TestWorkItemTests {
 
             var lines = secondComment.body().split("\n");
             assertEquals("<!-- TEST STARTED -->", lines[0]);
-            assertEquals("<!-- " + expectedJobId + " -->", lines[1]);
+            assertEquals("<!-- " + expectedId + " -->", lines[1]);
             assertEquals("<!-- " + head.hex() + " -->", lines[2]);
-            assertEquals("A test job has been started with id: " + expectedJobId, lines[3]);
+            assertEquals("A test job has been started with id: " + expectedId, lines[3]);
 
             assertEquals(1, ci.submissions.size());
             var submission = ci.submissions.get(0);
             assertTrue(submission.source.startsWith(storage));
             assertEquals(List.of("tier1"), submission.jobs);
-            assertEquals(expectedJobId, submission.id);
+            assertEquals(expectedSubmissionId, submission.id);
 
             var checks = pr.checks(pr.headHash());
             assertEquals(1, checks.keySet().size());
