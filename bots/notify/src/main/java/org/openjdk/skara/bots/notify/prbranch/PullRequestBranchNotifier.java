@@ -83,6 +83,7 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
     @Override
     public void onStateChange(PullRequest pr, Issue.State oldState) {
         if (pr.state() == Issue.State.CLOSED) {
+            PreIntegrations.retargetDependencies(pr);
             deleteBranch(pr);
         } else {
             pushBranch(pr);
