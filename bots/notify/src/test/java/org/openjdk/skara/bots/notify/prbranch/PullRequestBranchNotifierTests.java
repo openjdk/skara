@@ -176,4 +176,51 @@ public class PullRequestBranchNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
         }
     }
+
+    @Test
+    void retarget(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var storageFolder = tempFolder.path().resolve("storage");
+            var notifyBot = testBotBuilder(repo, storageFolder).create("notify", JSON.object());
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create a PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line");
+            localRepo.push(editHash, repo.url(), "source", true);
+            var pr = credentials.createPullRequest(repo, "master", "source", "This is a PR", false);
+            pr.addLabel("rfr");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The target repo should now contain the new branch
+            var hash = localRepo.fetch(repo.url(), PreIntegrations.preIntegrateBranch(pr));
+            assertEquals(editHash, hash);
+
+            // Create follow-up work
+            var followUp = CheckableRepository.appendAndCommit(localRepo, "Follow-up work", "Follow-up change");
+            localRepo.push(followUp, repo.url(), "followup", true);
+            var followUpPr = credentials.createPullRequest(repo, PreIntegrations.preIntegrateBranch(pr), "followup", "This is another pull request");
+            assertEquals(PreIntegrations.preIntegrateBranch(pr), followUpPr.targetRef());
+
+            // Close the PR
+            pr.setState(Issue.State.CLOSED);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The target repo should no longer contain the branch
+            assertThrows(IOException.class, () -> localRepo.fetch(repo.url(), PreIntegrations.preIntegrateBranch(pr)));
+
+            // The follow-up PR should have been retargeted
+            followUpPr = repo.pullRequest(followUpPr.id());
+            assertEquals("master", followUpPr.targetRef());
+        }
+    }
 }

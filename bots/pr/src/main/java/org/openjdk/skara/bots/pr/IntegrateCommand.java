@@ -220,11 +220,6 @@ public class IntegrateCommand implements CommandHandler {
                                   "The error has been logged and will be investigated. It is possible that this error " +
                                   "is caused by a transient issue; feel free to retry the operation.");
         }
-
-        // Additional cleanup outside of the integration lock
-        if (success) {
-            PreIntegrations.retargetDependencies(pr);
-        }
     }
 
     @Override
