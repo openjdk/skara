@@ -119,8 +119,8 @@ public class BackportCommand implements CommandHandler {
             var didApply = localRepo.cherryPick(fetchHead);
             if (!didApply) {
                 var lines = new ArrayList<String>();
-                lines.add("@" + username + " :warning: could not backport `" + hash.abbreviate() + "` to " +
-                          "[" + repoName + "](" + targetRepo.webUrl() + "] due to conflicts in the following files:");
+                lines.add("@" + username + " could **not** automatically backport `" + hash.abbreviate() + "` to " +
+                          "[" + repoName + "](" + targetRepo.webUrl() + ") due to conflicts in the following files:");
                 lines.add("");
                 var unmerged = localRepo.status()
                                         .stream()
@@ -142,7 +142,7 @@ public class BackportCommand implements CommandHandler {
                 lines.add("$ git commit -m 'Backport " + hash.hex() + "'");
                 lines.add("```");
                 lines.add("");
-                lines.add("Once you have resolved the conflicts as explained above continue with creating a pull request towards the [" + repoName + "](" + targetRepo.webUrl() + ") with the title \"Backport " + hash.hex() + "\".");
+                lines.add("Once you have resolved the conflicts as explained above continue with creating a pull request towards the [" + repoName + "](" + targetRepo.webUrl() + ") with the title `Backport " + hash.hex() + "`.");
 
                 reply.println(String.join("\n", lines));
                 localRepo.reset(head, true);
