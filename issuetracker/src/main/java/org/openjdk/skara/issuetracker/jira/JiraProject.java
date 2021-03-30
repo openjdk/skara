@@ -157,6 +157,19 @@ public class JiraProject implements IssueProject {
         return ret;
     }
 
+    private String versionId(String name) {
+        var ret = versions().get(name);
+        if (ret == null) {
+            // Ensure this is not due to a stale cache
+            projectMetadataCache = null;
+            ret = versions().get(name);
+            if (ret == null) {
+                throw new RuntimeException("Unknown version `" + name + "`");
+            }
+        }
+        return ret;
+    }
+
     private void populateLinkTypesIfNeeded() {
         if (linkTypes != null) {
             return;
@@ -252,7 +265,7 @@ public class JiraProject implements IssueProject {
             case "versions":
                 return Optional.of(new JSONArray(value.stream()
                                                       .map(JSONValue::asString)
-                                                      .map(s -> JSON.object().put("id", versions().get(s)))
+                                                      .map(s -> JSON.object().put("id", versionId(s)))
                                                       .collect(Collectors.toList())));
             case "components":
                 return Optional.of(new JSONArray(value.stream()
