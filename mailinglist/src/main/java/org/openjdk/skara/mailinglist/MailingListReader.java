@@ -25,6 +25,6 @@ package org.openjdk.skara.mailinglist;
 import java.time.Duration;
 import java.util.List;
 
-public interface MailingList {
+public interface MailingListReader {
     List<Conversation> conversations(Duration maxAge);
 }

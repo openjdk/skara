@@ -83,7 +83,7 @@ public class MboxFileListServer implements MailingListServer {
     }
 
     @Override
-    public MailingList getList(String... names) {
-        return new MboxFileList(base, Arrays.asList(names));
+    public MailingListReader getListReader(String... listNames) {
+        return new MboxFileListReader(base, Arrays.asList(listNames));
     }
 }

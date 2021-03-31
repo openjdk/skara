@@ -86,7 +86,7 @@ class MailingListArchiveReaderBotTests {
             // The mailing list as well
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(),
                                                                              Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var readerBot = new MailingListArchiveReaderBot(from, mailmanList, Set.of(archive));
 
             // Populate the projects repository
@@ -162,7 +162,7 @@ class MailingListArchiveReaderBotTests {
             // The mailing list as well
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(),
                                                                              Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var readerBot = new MailingListArchiveReaderBot(from, mailmanList, Set.of(archive));
 
             // Populate the projects repository
@@ -238,7 +238,7 @@ class MailingListArchiveReaderBotTests {
             // The mailing list as well
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(),
                                                                              Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var readerBot = new MailingListArchiveReaderBot(from, mailmanList, Set.of(archive));
 
             // Populate the projects repository

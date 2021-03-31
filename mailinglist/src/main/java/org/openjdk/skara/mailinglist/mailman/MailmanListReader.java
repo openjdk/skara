@@ -34,7 +34,7 @@ import java.util.concurrent.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-public class MailmanList implements MailingList {
+public class MailmanListReader implements MailingListReader {
     private final MailmanServer server;
     private final List<String> names = new ArrayList<>();
     private final Logger log = Logger.getLogger("org.openjdk.skara.mailinglist");
@@ -44,7 +44,7 @@ public class MailmanList implements MailingList {
                                                        .connectTimeout(Duration.ofSeconds(10))
                                                        .build();
 
-    MailmanList(MailmanServer server, Collection<String> names) {
+    MailmanListReader(MailmanServer server, Collection<String> names) {
         this.server = server;
         for (var name : names) {
             if (name.contains("@")) {

@@ -71,7 +71,7 @@ public class MailmanServer implements MailingListServer {
     }
 
     @Override
-    public MailingList getList(String... names) {
-        return new MailmanList(this, Arrays.asList(names));
+    public MailingListReader getListReader(String... listNames) {
+        return new MailmanListReader(this, Arrays.asList(listNames));
     }
 }

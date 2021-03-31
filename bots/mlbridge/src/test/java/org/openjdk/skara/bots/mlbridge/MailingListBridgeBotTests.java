@@ -215,7 +215,7 @@ class MailingListBridgeBotTests {
             // The mailing list as well
             listServer.processIncoming();
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var mail = conversations.get(0).first();
@@ -797,7 +797,7 @@ class MailingListBridgeBotTests {
 
             // The mailing list as well
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var mail = conversations.get(0).first();
@@ -885,7 +885,7 @@ class MailingListBridgeBotTests {
 
             // As well as the mailing list
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var mail = conversations.get(0).first();
@@ -1002,7 +1002,7 @@ class MailingListBridgeBotTests {
 
             // Check the mailing list
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var mail = conversations.get(0).first();
@@ -1605,7 +1605,7 @@ class MailingListBridgeBotTests {
 
             // Check that sender address is set properly
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             for (var newMail : conversations.get(0).allMessages()) {
@@ -1732,7 +1732,7 @@ class MailingListBridgeBotTests {
 
             // Check that sender address is set properly
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             for (var newMail : conversations.get(0).allMessages()) {
@@ -2897,7 +2897,7 @@ class MailingListBridgeBotTests {
 
             // The mail should have been sent to list1
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress1.address());
+            var mailmanList = mailmanServer.getListReader(listAddress1.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var mail = conversations.get(0).first();
@@ -3029,7 +3029,7 @@ class MailingListBridgeBotTests {
             // The mailing list as well
             listServer.processIncoming();
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             var mail = conversations.get(0).first();

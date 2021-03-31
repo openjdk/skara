@@ -38,7 +38,7 @@ class MailmanTests {
             var listAddress = testServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
                                                                              Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress);
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
             var mail = Email.create(sender, "Subject", "Body")
                             .recipient(EmailAddress.parse(listAddress))
@@ -63,7 +63,7 @@ class MailmanTests {
             var listAddress = testServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
                                                                              Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress);
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
             var sentParent = Email.create(sender, "Subject", "Body")
                                   .recipient(EmailAddress.parse(listAddress))
@@ -109,7 +109,7 @@ class MailmanTests {
             var listAddress = testServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
                                                                              Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress);
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
             var mail = Email.create(sender, "Subject", "Body")
                             .recipient(EmailAddress.parse(listAddress))
@@ -143,7 +143,7 @@ class MailmanTests {
             var listAddress = testServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
                                                                              Duration.ofDays(1));
-            var mailmanList = mailmanServer.getList(listAddress);
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
             var mail1 = Email.create(sender, "Subject 1", "Body 1")
                              .recipient(EmailAddress.parse(listAddress))

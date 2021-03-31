@@ -39,7 +39,7 @@ class MboxTests {
     void simple() {
         try (var folder = new TemporaryDirectory()) {
             var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
-            var list = mbox.getList("test");
+            var list = mbox.getListReader("test");
 
             var sender = EmailAddress.from("test", "test@test.mail");
             var sentMail = Email.create(sender, "Subject", "Message")
@@ -60,7 +60,7 @@ class MboxTests {
     void multiple() {
         try (var folder = new TemporaryDirectory()) {
             var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
-            var list = mbox.getList("test");
+            var list = mbox.getListReader("test");
 
             var sender1 = EmailAddress.from("test1", "test1@test.mail");
             var sender2 = EmailAddress.from("test2", "test2@test.mail");
@@ -99,7 +99,7 @@ class MboxTests {
     void uninitialized() {
         try (var folder = new TemporaryDirectory()) {
             var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
-            var list = mbox.getList("test");
+            var list = mbox.getListReader("test");
             var conversations = list.conversations(Duration.ofDays(1));
             assertEquals(0, conversations.size());
         }
@@ -109,7 +109,7 @@ class MboxTests {
     void differentAuthor() {
         try (var folder = new TemporaryDirectory()) {
             var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
-            var list = mbox.getList("test");
+            var list = mbox.getListReader("test");
 
             var sender = EmailAddress.from("test1", "test1@test.mail");
             var author = EmailAddress.from("test2", "test2@test.mail");
@@ -132,7 +132,7 @@ class MboxTests {
     void encodedFrom() {
         try (var folder = new TemporaryDirectory()) {
             var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
-            var list = mbox.getList("test");
+            var list = mbox.getListReader("test");
 
             var sender = EmailAddress.from("test", "test@test.mail");
             var sentMail = Email.create(sender, "Subject", """
@@ -157,7 +157,7 @@ class MboxTests {
     void utf8Encode() {
         try (var folder = new TemporaryDirectory()) {
             var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
-            var list = mbox.getList("test");
+            var list = mbox.getListReader("test");
 
             var sender = EmailAddress.from("têßt", "test@test.mail");
             var sentMail = Email.create(sender, "Sübjeçt", "(╯°□°)╯︵ ┻━┻")
@@ -190,7 +190,7 @@ class MboxTests {
                                       From this point onwards, it may be hard to parse this
                                       """, StandardCharsets.UTF_8);
             var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
-            var list = mbox.getList("test");
+            var list = mbox.getListReader("test");
             var conversations = list.conversations(Duration.ofDays(365 * 100));
             assertEquals(1, conversations.size());
             var conversation = conversations.get(0);
@@ -224,7 +224,7 @@ class MboxTests {
                                       """,
                               StandardCharsets.UTF_8);
             var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
-            var list = mbox.getList("test");
+            var list = mbox.getListReader("test");
             var conversations = list.conversations(Duration.ofDays(365 * 100));
             assertEquals(1, conversations.size());
             var conversation = conversations.get(0);
@@ -265,7 +265,7 @@ class MboxTests {
                                       """,
                               StandardCharsets.UTF_8);
             var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
-            var list = mbox.getList("test");
+            var list = mbox.getListReader("test");
             var conversations = list.conversations(Duration.ofDays(365 * 100));
             assertEquals(1, conversations.size());
             var conversation = conversations.get(0);
@@ -327,7 +327,7 @@ class MboxTests {
                                       """,
                               StandardCharsets.UTF_8);
             var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
-            var list = mbox.getList("test1", "test2");
+            var list = mbox.getListReader("test1", "test2");
             var conversations = list.conversations(Duration.ofDays(365 * 100));
             assertEquals(1, conversations.size());
             var conversation = conversations.get(0);
@@ -371,7 +371,7 @@ class MboxTests {
                                       """,
                               StandardCharsets.UTF_8);
             var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
-            var list = mbox.getList("test1", "test2");
+            var list = mbox.getListReader("test1", "test2");
             var conversations = list.conversations(Duration.ofDays(365 * 100));
             assertEquals(1, conversations.size());
             var conversation = conversations.get(0);

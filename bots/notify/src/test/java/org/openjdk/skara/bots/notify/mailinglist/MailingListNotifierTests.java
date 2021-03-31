@@ -52,7 +52,7 @@ public class MailingListNotifierTests {
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -124,7 +124,7 @@ public class MailingListNotifierTests {
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -196,7 +196,7 @@ public class MailingListNotifierTests {
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -274,7 +274,7 @@ public class MailingListNotifierTests {
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -338,7 +338,7 @@ public class MailingListNotifierTests {
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -436,7 +436,7 @@ public class MailingListNotifierTests {
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -522,7 +522,7 @@ public class MailingListNotifierTests {
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -613,7 +613,7 @@ public class MailingListNotifierTests {
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -710,7 +710,7 @@ public class MailingListNotifierTests {
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -806,7 +806,7 @@ public class MailingListNotifierTests {
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -925,7 +925,7 @@ public class MailingListNotifierTests {
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -1019,7 +1019,7 @@ public class MailingListNotifierTests {
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);
@@ -1099,7 +1099,7 @@ public class MailingListNotifierTests {
 
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
             var tagStorage = createTagStorage(repo);
             var branchStorage = createBranchStorage(repo);
             var prStateStorage = createPullRequestStateStorage(repo);

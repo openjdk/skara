@@ -171,7 +171,7 @@ class ArchiveWorkItem implements WorkItem {
         }
     }
 
-    private List<Email> parseArchive(MailingList archive) {
+    private List<Email> parseArchive(MailingListReader archive) {
         var conversations = archive.conversations(Duration.ofDays(365));
 
         if (conversations.size() == 0) {
@@ -253,7 +253,7 @@ class ArchiveWorkItem implements WorkItem {
         var archiveRepo = materializeArchive(path);
         var mboxBasePath = path.resolve(bot.codeRepo().name());
         var mbox = MailingListServerFactory.createMboxFileServer(mboxBasePath);
-        var reviewArchiveList = mbox.getList(pr.id());
+        var reviewArchiveList = mbox.getListReader(pr.id());
         var sentMails = parseArchive(reviewArchiveList);
         var labels = new HashSet<>(pr.labelNames());
 

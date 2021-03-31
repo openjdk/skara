@@ -33,12 +33,12 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-public class MboxFileList implements MailingList {
+public class MboxFileListReader implements MailingListReader {
     private final Path base;
     private final Collection<String> names;
     private final Logger log = Logger.getLogger("org.openjdk.skara.mailinglist");
 
-    MboxFileList(Path base, Collection<String> names) {
+    MboxFileListReader(Path base, Collection<String> names) {
         this.base = base;
         this.names = names;
     }
