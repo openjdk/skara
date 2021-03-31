@@ -197,4 +197,58 @@ public class BackportCommitCommandTests {
             assertEquals(List.of(), author.pullRequests());
         }
     }
+
+    @Test
+    void backportTwice(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var bot = PullRequestBot.newBuilder()
+                                    .repo(author)
+                                    .censusRepo(censusBuilder.build())
+                                    .censusLink("https://census.com/{{contributor}}-profile")
+                                    .seedStorage(seedFolder)
+                                    .forks(Map.of(author.name(), author))
+                                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change in another branch
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit");
+
+            // Add a backport command
+            author.addCommitComment(editHash, "/backport " + author.name());
+            TestBotRunner.runPeriodicItems(bot);
+
+            var recentCommitComments = author.recentCommitComments();
+            assertEquals(2, recentCommitComments.size());
+            var botReply = recentCommitComments.get(0);
+            assertTrue(botReply.body().contains("backport"));
+            assertTrue(botReply.body().contains("was successfully created"));
+            assertTrue(botReply.body().contains("To create a pull request"));
+            assertTrue(botReply.body().contains("with this backport"));
+
+            // Add a backport command again
+            author.addCommitComment(editHash, "/backport " + author.name());
+            TestBotRunner.runPeriodicItems(bot);
+
+            recentCommitComments = author.recentCommitComments();
+            assertEquals(4, recentCommitComments.size());
+            botReply = recentCommitComments.get(0);
+            assertTrue(botReply.body().contains("backport"));
+            assertTrue(botReply.body().contains("was successfully created"));
+            assertTrue(botReply.body().contains("To create a pull request"));
+            assertTrue(botReply.body().contains("with this backport"));
+        }
+    }
 }
