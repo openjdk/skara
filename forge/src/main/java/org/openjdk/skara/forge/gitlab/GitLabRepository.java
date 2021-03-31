@@ -313,6 +313,12 @@ public class GitLabRepository implements HostedRepository {
                        .collect(Collectors.toList());
     }
 
+    @Override
+    public void deleteBranch(String ref) {
+        request.delete("repository/branches/" + URLEncoder.encode(ref, StandardCharsets.US_ASCII))
+               .execute();
+    }
+
     private CommitComment toCommitComment(Hash hash, JSONValue o) {
        var line = o.get("line").isNull()? -1 : o.get("line").asInt();
        var path = o.get("path").isNull()? null : Path.of(o.get("path").asString());
