@@ -131,6 +131,17 @@ public class PullRequestBranchNotifierTests {
             // Push another change
             var updatedHash = CheckableRepository.appendAndCommit(localRepo, "Yet another line");
             localRepo.push(updatedHash, repo.url(), "source");
+
+            // Make sure that the push registered
+            var lastHeadHash = pr.headHash();
+            var refreshCount = 0;
+            do {
+                pr = repo.pullRequest(pr.id());
+                if (refreshCount++ > 100) {
+                    fail("The PR did not update after the new push");
+                }
+            } while (pr.headHash().equals(lastHeadHash));
+
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The branch should have been updated

@@ -63,14 +63,7 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
             log.info("Pull request pre-integration branch " + PreIntegrations.preIntegrateBranch(pr) + " doesn't exist on remote - ignoring");
             return;
         }
-
-        var hostedRepositoryPool = new HostedRepositoryPool(seedFolder);
-        try {
-            var seedRepo = hostedRepositoryPool.seedRepository(pr.repository(), false);
-            seedRepo.prune(new Branch(PreIntegrations.preIntegrateBranch(pr)), pr.repository().url().toString());
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        pr.repository().deleteBranch(PreIntegrations.preIntegrateBranch(pr));
     }
 
     @Override

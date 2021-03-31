@@ -72,6 +72,7 @@ public interface HostedRepository {
     long id();
     Hash branchHash(String ref);
     List<HostedBranch> branches();
+    void deleteBranch(String ref);
     List<CommitComment> commitComments(Hash hash);
     default List<CommitComment> recentCommitComments() {
         return recentCommitComments(Map.of(), Set.of());

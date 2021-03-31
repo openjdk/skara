@@ -205,6 +205,15 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
+    public void deleteBranch(String ref) {
+        try {
+            localRepository.delete(new Branch(ref));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public List<CommitComment> commitComments(Hash hash) {
         if (!commitComments.containsKey(hash)) {
             return List.of();

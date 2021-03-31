@@ -270,6 +270,12 @@ public class GitHubRepository implements HostedRepository {
                        .collect(Collectors.toList());
     }
 
+    @Override
+    public void deleteBranch(String ref) {
+        request.delete("git/refs/heads/" + ref)
+               .execute();
+    }
+
     private CommitComment toCommitComment(JSONValue o) {
         var hash = new Hash(o.get("commit_id").asString());
         var line = o.get("line").isNull()? -1 : o.get("line").asInt();
