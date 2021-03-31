@@ -111,7 +111,7 @@ public class BackportCommand implements CommandHandler {
             var localRepo = bot.hostedRepositoryPool()
                                .orElseThrow(() -> new IllegalStateException("Missing repository pool for PR bot"))
                                .materialize(fork, localRepoDir);
-            var fetchHead = localRepo.fetch(bot.repo().url(), hash.hex());
+            var fetchHead = localRepo.fetch(bot.repo().url(), hash.hex(), false);
             localRepo.checkout(targetBranch);
             var head = localRepo.head();
             var backportBranch = localRepo.branch(head, "backport-" + hash.abbreviate());
@@ -135,7 +135,7 @@ public class BackportCommand implements CommandHandler {
                 lines.add("");
                 lines.add("```");
                 lines.add("$ git checkout -b " + backportBranch.name());
-                lines.add("$ git fetch " + bot.repo().webUrl() + " " + hash.hex());
+                lines.add("$ git fetch --no-tags " + bot.repo().webUrl() + " " + hash.hex());
                 lines.add("$ git cherry-pick --no-commit " + hash.hex());
                 lines.add("$ # Resolve conflicts");
                 lines.add("$ git add files/with/resolved/conflicts");
