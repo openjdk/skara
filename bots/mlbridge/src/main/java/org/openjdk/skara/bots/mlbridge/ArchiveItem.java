@@ -297,14 +297,11 @@ class ArchiveItem {
     }
 
     static ArchiveItem findParent(List<ArchiveItem> generated, Comment comment) {
-        ArchiveItem lastCommentOrReview = generated.get(0);
         var eligible = new ArrayList<ArchiveItem>();
-        eligible.add(lastCommentOrReview);
         for (var item : generated) {
             if (item.id().startsWith("pc") || item.id().startsWith("rv")) {
-                if (item.createdAt().isBefore(comment.createdAt()) && item.createdAt().isAfter(lastCommentOrReview.createdAt())) {
-                    lastCommentOrReview = item;
-                    eligible.add(lastCommentOrReview);
+                if (item.createdAt().isBefore(comment.createdAt())) {
+                    eligible.add(item);
                 }
             }
         }
@@ -318,7 +315,15 @@ class ArchiveItem {
             return lastQuoted.get();
         }
 
-        return lastCommentOrReview;
+        ArchiveItem lastRevisionItem = generated.get(0);
+        for (var item : generated) {
+            if (item.id().startsWith("ha")) {
+                if (item.createdAt().isBefore(comment.createdAt())) {
+                    lastRevisionItem = item;
+                }
+            }
+        }
+        return lastRevisionItem;
     }
 
     static ArchiveItem findRevisionItem(List<ArchiveItem> generated, Hash hash) {
