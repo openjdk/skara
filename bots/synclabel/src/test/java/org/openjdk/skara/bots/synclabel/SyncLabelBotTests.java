@@ -243,7 +243,7 @@ public class SyncLabelBotTests {
             var syncLabelBot = testBotBuilder(issueProject, storageFolder).create("synclabel", JSON.object());
 
             var issue1 = credentials.createIssue(issueProject, "Issue 1");
-            issue1.setProperty("fixVersions", JSON.array().add(JSON.of("8u41")));
+            issue1.setProperty("fixVersions", JSON.array().add(JSON.of("8u81")));
             issue1.setProperty("issuetype", JSON.of("Bug"));
             issue1.setState(RESOLVED);
             TestBotRunner.runPeriodicItems(syncLabelBot);
@@ -278,7 +278,7 @@ public class SyncLabelBotTests {
             assertEquals(List.of(), issue4.labelNames());
 
             // Now try it with a configured ignore - issue 3 should lose its label
-            var syncLabelBotWithIgnore = testBotBuilder(issueProject, storageFolder, null, "8u4\\d").create("synclabel", JSON.object());
+            var syncLabelBotWithIgnore = testBotBuilder(issueProject, storageFolder, null, "8u8\\d").create("synclabel", JSON.object());
             TestBotRunner.runPeriodicItems(syncLabelBotWithIgnore);
             assertEquals(List.of(), issue1.labelNames());
             assertEquals(List.of("hgupdate-sync"), issue2.labelNames());
@@ -296,7 +296,7 @@ public class SyncLabelBotTests {
             var syncLabelBot = testBotBuilder(issueProject, storageFolder).create("synclabel", JSON.object());
 
             var issue1 = credentials.createIssue(issueProject, "Issue 1");
-            issue1.setProperty("fixVersions", JSON.array().add(JSON.of("8u41")));
+            issue1.setProperty("fixVersions", JSON.array().add(JSON.of("8u81")));
             issue1.setProperty("issuetype", JSON.of("Bug"));
             issue1.setState(RESOLVED);
             TestBotRunner.runPeriodicItems(syncLabelBot);
