@@ -22,16 +22,15 @@
  */
 package org.openjdk.skara.bots.mlbridge;
 
+import org.junit.jupiter.api.*;
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.json.JSON;
+import org.openjdk.skara.mailinglist.*;
 import org.openjdk.skara.network.URIBuilder;
-import org.openjdk.skara.mailinglist.MailingListServerFactory;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Repository;
-import org.openjdk.skara.json.JSON;
-
-import org.junit.jupiter.api.*;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -259,7 +258,7 @@ class MailingListBridgeBotTests {
 
             // Remove the rfr flag and post another comment
             pr.addLabel("rfr");
-            pr.addComment("This is another comment");
+            pr.addComment("@" + pr.author().username() +" This is another comment");
 
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
@@ -1178,7 +1177,7 @@ class MailingListBridgeBotTests {
 
             // The first comment should be quoted more often than the second
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertEquals(3, archiveContainsCount(archiveFolder.path(), "First comment"));
+            assertEquals(2, archiveContainsCount(archiveFolder.path(), "First comment"));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Second comment"));
         }
     }
@@ -1296,7 +1295,8 @@ class MailingListBridgeBotTests {
             // Make two comments from different authors
             var reviewPr = reviewer.pullRequest(pr.id());
             reviewPr.addComment("First comment\nsecond line");
-            pr.addComment("Second comment\nfourth line");
+            var authorPr = author.pullRequest(pr.id());
+            authorPr.addComment("Second comment\nfourth line");
 
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
@@ -1305,11 +1305,10 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
 
-            // The first comment should be quoted more often than the second
+            // The first comment should be replied to once, and the original post once
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertEquals(2, archiveContainsCount(archiveFolder.path(), "First comment"));
-            assertEquals(3, archiveContainsCount(archiveFolder.path(), "First comm"));
-            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Second comment"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), Pattern.quote(reviewPr.author().fullName()) + ".* wrote"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), Pattern.quote(pr.author().fullName()) + ".* wrote"));
         }
     }
 
@@ -2352,7 +2351,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
 
-            pr.addComment("Thanks for the review!");
+            pr.addComment("@" + reviewer.forge().currentUser().username() + " Thanks for the review!");
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
 
@@ -3107,7 +3106,7 @@ class MailingListBridgeBotTests {
 
             // Remove the rfr flag and post another comment
             pr.addLabel("rfr");
-            pr.addComment("This is another comment");
+            pr.addComment("@" + pr.author().username() + " This is another comment");
 
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
