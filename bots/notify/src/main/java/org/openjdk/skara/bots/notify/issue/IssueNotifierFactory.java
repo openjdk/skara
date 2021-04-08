@@ -84,10 +84,6 @@ public class IssueNotifierFactory implements NotifierFactory {
             }
         }
 
-        if (notifierConfiguration.contains("security")) {
-            builder.securityLevel(notifierConfiguration.get("security").asString());
-        }
-
         if (notifierConfiguration.contains("pronly")) {
             builder.prOnly(notifierConfiguration.get("pronly").asBoolean());
         }
