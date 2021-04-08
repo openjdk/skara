@@ -237,7 +237,7 @@ public class Backports {
                         ret.add(jdkVersion.feature() + "+updates-openjdk");
                     } else if (numericUpdate > 2) {
                         if (jdkVersion.opt().isPresent() && jdkVersion.opt().get().equals("oracle")) {
-                            if (jdkVersion.patch().isPresent()) {
+                            if (jdkVersion.components().size() > 4) {
                                 ret.add(jdkVersion.feature()+ "+bpr");
                             } else {
                                 ret.add(jdkVersion.feature() + "+updates-oracle");
@@ -304,6 +304,39 @@ public class Backports {
         return ret;
     }
 
+    // Certain versions / build numbers have a special meaning, and should be excluded from stream processing
+    private static boolean onExcludeList(Issue issue) {
+        var fixVersion = mainFixVersion(issue);
+        if (fixVersion.isEmpty()) {
+            return false;
+        }
+
+        var version = fixVersion.get();
+
+        // 8u260 is a contingency release
+        if (version.raw().equals("8u260")) {
+            return true;
+        }
+
+        // 8u41 to 8u44 are reserved for JSR maintenance releases
+        if (version.feature().equals("8") && version.interim().isPresent() && Integer.parseInt(version.interim().get()) >= 41 && Integer.parseInt(version.interim().get()) <= 44) {
+            return true;
+        }
+
+        // JEP-322 interim releases (second digit > 0) should be excluded from evaluation
+        var featureFamilyMatcher = featureFamilyPattern.matcher(version.feature());
+        if (featureFamilyMatcher.matches()) {
+            var featureVersion = featureFamilyMatcher.group(2);
+            var numericFeature = Integer.parseInt(featureVersion);
+
+            if (numericFeature >= 9 && version.interim().isPresent() && !version.interim().get().equals("0")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Returns release stream duplicate issue. I.e.
      * it will contain issues in any given stream if the fix version of the issue *is not* the first
@@ -314,7 +347,11 @@ public class Backports {
     public static List<Issue> releaseStreamDuplicates(List<Issue> related) {
         var ret = new ArrayList<Issue>();
 
-        for (var streamIssues : groupByReleaseStream(related)) {
+        var includedOnly = related.stream()
+                .filter(issue -> !onExcludeList(issue))
+                .collect(Collectors.toList());
+
+        for (var streamIssues : groupByReleaseStream(includedOnly)) {
             // The first issue may have the label if it was part of another
             // stream. (e.g. feature release has 14 & 15 where update release
             // has 15, 15.0.1 & 15.0.2. In this case the label should be
