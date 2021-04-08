@@ -31,7 +31,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class JbsBackport {
-    private final String securityLevel;
     private final RestRequest backportRequest;
 
     private static URI backportRequest(URI uri) {
@@ -40,8 +39,7 @@ public class JbsBackport {
                          .build();
     }
 
-    JbsBackport(URI uri, JbsVault vault, String securityLevel) {
-        this.securityLevel = securityLevel;
+    JbsBackport(URI uri, JbsVault vault) {
         if (vault != null) {
             backportRequest = new RestRequest(backportRequest(uri), vault.authId(), () -> Arrays.asList("Cookie", vault.getCookie()));
         } else {
@@ -75,8 +73,8 @@ public class JbsBackport {
         if (assignee != null) {
             request.body("assignee", assignee);
         }
-        if (securityLevel != null) {
-            request.body("level", securityLevel);
+        if (primary.properties().containsKey("security")) {
+            request.body("level", primary.properties().get("security").asString());
         }
         var response = request.execute();
         var issue = primary.project().issue(response.get("key").asString()).orElseThrow();

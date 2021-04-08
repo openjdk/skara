@@ -1028,6 +1028,7 @@ public class IssueNotifierTests {
                                                  Map.of("issuetype", JSON.of("Enhancement"),
                                                         "customfield_10008", JSON.of("java.io")
                                                  ));
+            var level = issue.properties().get("security");
             issue.setProperty("fixVersions", JSON.array().add("13.0.1"));
             issue.setProperty("priority", JSON.of("1"));
             issue.addLabel("test");
@@ -1061,6 +1062,11 @@ public class IssueNotifierTests {
 
             // Labels should not
             assertEquals(0, backport.labelNames().size());
+
+            // If the parent issue has a security level (can be configured when running a test manually) it should be propagated
+            if (level != null) {
+                assertEquals(level.asString(), backport.properties().get("security").asString());
+            }
         }
     }
 }
