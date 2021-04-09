@@ -71,14 +71,14 @@ public class ArchiveItemTests {
             var a1 = fromComment(pr, c1);
             var a2 = fromComment(pr, c2);
 
-            assertEquals(a0, ArchiveItem.findParent(List.of(a0, a1, a2), createComment(user3, "Plain unrelated reply")));
+            assertEquals(a0, ArchiveItem.findParent(List.of(a0, a1, a2), List.of(), createComment(user3, "Plain unrelated reply")));
 
-            assertEquals(a1, ArchiveItem.findParent(List.of(a0, a1, a2), createComment(user3, "> First comment\n\nI agree")));
-            assertEquals(a1, ArchiveItem.findParent(List.of(a0, a1, a2), createComment(user3, "> First comment\n>with two lines\n\nI agree")));
-            assertEquals(a1, ArchiveItem.findParent(List.of(a0, a1, a2), createComment(user3, "\n> First comment\n\nI agree")));
+            assertEquals(a1, ArchiveItem.findParent(List.of(a0, a1, a2), List.of(), createComment(user3, "> First comment\n\nI agree")));
+            assertEquals(a1, ArchiveItem.findParent(List.of(a0, a1, a2), List.of(), createComment(user3, "> First comment\n>with two lines\n\nI agree")));
+            assertEquals(a1, ArchiveItem.findParent(List.of(a0, a1, a2), List.of(), createComment(user3, "\n> First comment\n\nI agree")));
 
-            assertEquals(a1, ArchiveItem.findParent(List.of(a0, a1, a2), createComment(user3, "@user1 I agree")));
-            assertEquals(a1, ArchiveItem.findParent(List.of(a0, a1, a2), createComment(user3, "@user1\nI agree")));
+            assertEquals(a1, ArchiveItem.findParent(List.of(a0, a1, a2), List.of(), createComment(user3, "@user1 I agree")));
+            assertEquals(a1, ArchiveItem.findParent(List.of(a0, a1, a2), List.of(), createComment(user3, "@user1\nI agree")));
         }
     }
 }

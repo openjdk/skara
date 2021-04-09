@@ -188,6 +188,9 @@ class ArchiveWorkItem implements WorkItem {
         if (bot.ignoredUsers().contains(originalAuthor.username())) {
             return bot.emailAddress();
         }
+        if (BridgedComment.isBridgedUser(originalAuthor)) {
+            return EmailAddress.from(originalAuthor.fullName(), originalAuthor.email().orElseThrow());
+        }
 
         var contributor = censusInstance.namespace().get(originalAuthor.id());
         if (contributor == null) {
