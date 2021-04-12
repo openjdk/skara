@@ -41,7 +41,6 @@ import java.util.stream.Collectors;
 
 public class LinkTask extends DefaultTask {
     private final Property<String> os;
-    private final Property<String> cpu;
     private final Property<String> url;
     private final Property<Path> toDir;
     private final MapProperty<String, String> launchers;
@@ -52,7 +51,6 @@ public class LinkTask extends DefaultTask {
     @Inject
     public LinkTask(ObjectFactory factory) {
         os = factory.property(String.class);
-        cpu = factory.property(String.class);
         url = factory.property(String.class);
         toDir = factory.property(Path.class);
         launchers = factory.mapProperty(String.class, String.class);
@@ -69,11 +67,6 @@ public class LinkTask extends DefaultTask {
     @Input
     Property<String> getOS() {
         return os;
-    }
-
-    @Input
-    Property<String> getCPU() {
-        return cpu;
     }
 
     @Input
@@ -154,10 +147,11 @@ public class LinkTask extends DefaultTask {
         uniqueModules.addAll(modules.get());
         var allModules = new ArrayList<>(uniqueModules);
 
-        Files.createDirectories(toDir.get());
-        var dest = toDir.get().resolve(os.get() + "-" + cpu.get());
+        var dest = toDir.get();
         if (Files.exists(dest) && Files.isDirectory(dest)) {
             clearDirectory(dest);
+        } else {
+            Files.createDirectories(dest);
         }
 
         Collections.sort(modulePath);
@@ -182,7 +176,7 @@ public class LinkTask extends DefaultTask {
                                      .filter(p -> p.getFileName().toString().equals("java" + ext))
                                      .collect(Collectors.toList());
             if (javaLaunchers.size() != 1) {
-                throw new GradleException("Multiple or no java launchers generated for " + os.get() + "-" + cpu.get() + " image");
+                throw new GradleException("Multiple or no java launchers generated for " + os.get());
             }
             var java = javaLaunchers.get(0);
             project.exec((spec) -> {
