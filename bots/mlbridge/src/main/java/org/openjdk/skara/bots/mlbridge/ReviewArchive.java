@@ -153,9 +153,15 @@ class ReviewArchive {
             var reply = ArchiveItem.from(pr, review, hostUserToEmailAuthor, hostUserToUsername, hostUserToRole, parent);
             generated.add(reply);
         }
+        // Comments can be a reply to a bridged email
+        var bridgedComments = new ArrayList<BridgedComment>();
+        for (var ignored : ignoredComments) {
+            var bridgedComment = BridgedComment.from(ignored, pr.repository().forge().currentUser());
+            bridgedComment.ifPresent(bridgedComments::add);
+        }
         // Comments have either a comment or a review as parent, the eligible ones have been generated at this point
         for (var comment : comments) {
-            var parent = ArchiveItem.findParent(generated, comment);
+            var parent = ArchiveItem.findParent(generated, bridgedComments, comment);
             var reply = ArchiveItem.from(pr, comment, hostUserToEmailAuthor, parent);
             generated.add(reply);
         }
@@ -260,6 +266,14 @@ class ReviewArchive {
     }
 
     private Email findArchiveItemEmail(ArchiveItem item, List<Email> sentEmails, List<Email> newEmails) {
+        // Check for the special "bridged message" item first
+        if (BridgedComment.isBridgedUser(item.author())) {
+            var first = sentEmails.size() > 0 ? sentEmails.get(0) : newEmails.get(0);
+            return Email.reply(first, item.subject(), item.body())
+                        .id(EmailAddress.from(item.id().substring(2)))
+                        .build();
+        }
+
         var uniqueItemId = getUniqueMessageId(item.id());
         var stableItemId = getStableMessageId(uniqueItemId);
         return Stream.concat(sentEmails.stream(), newEmails.stream())

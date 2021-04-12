@@ -296,7 +296,7 @@ class ArchiveItem {
         return Optional.empty();
     }
 
-    static ArchiveItem findParent(List<ArchiveItem> generated, Comment comment) {
+    static ArchiveItem findParent(List<ArchiveItem> generated, List<BridgedComment> bridgedComments, Comment comment) {
         var eligible = new ArrayList<ArchiveItem>();
         for (var item : generated) {
             if (item.id().startsWith("pc") || item.id().startsWith("rv")) {
@@ -310,6 +310,14 @@ class ArchiveItem {
         if (lastMention.isPresent()) {
             return lastMention.get();
         }
+
+        // It is possible to quote a bridged comment when replying - make these eligible as well
+        for (var bridged : bridgedComments) {
+            var item = new ArchiveItem(generated.get(0), "br" + bridged.messageId().address(), bridged.created(), bridged.created(),
+                                       bridged.author(), null, generated.get(0).subject, null, bridged::body, null);
+            eligible.add(item);
+        }
+
         var lastQuoted = findLastQuoted(comment.body(), eligible);
         if (lastQuoted.isPresent()) {
             return lastQuoted.get();
