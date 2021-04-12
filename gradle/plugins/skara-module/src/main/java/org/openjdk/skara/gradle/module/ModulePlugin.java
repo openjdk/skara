@@ -118,8 +118,7 @@ public class ModulePlugin implements Plugin<Project> {
                                     "-Djunit.jupiter.extensions.autodetection.enabled=true",
                                     "--module-path", classpath,
                                     "--add-modules", "ALL-MODULE-PATH",
-                                    "--patch-module", moduleName + "=" + outputDir,
-                                    "--illegal-access=deny"
+                                    "--patch-module", moduleName + "=" + outputDir
                             ));
 
                             var opens = extension.getOpens();

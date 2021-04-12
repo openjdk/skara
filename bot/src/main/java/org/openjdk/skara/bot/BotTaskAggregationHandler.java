@@ -44,7 +44,7 @@ public abstract class BotTaskAggregationHandler extends StreamHandler {
         }
     }
 
-    private final Map<Integer, ThreadLogs> threadLogs;
+    private final Map<Long, ThreadLogs> threadLogs;
     private final Logger log;
 
     public BotTaskAggregationHandler() {
@@ -65,7 +65,7 @@ public abstract class BotTaskAggregationHandler extends StreamHandler {
     @Override
     public final void publish(LogRecord record) {
         var newEntry = new ThreadLogs();
-        var threadEntry = threadLogs.putIfAbsent(record.getThreadID(), newEntry);
+        var threadEntry = threadLogs.putIfAbsent(record.getLongThreadID(), newEntry);
         if (threadEntry == null) {
             threadEntry = newEntry;
         }
