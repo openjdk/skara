@@ -185,6 +185,10 @@ public class BackportsTests {
         private void setState(Issue issue, String version) {
             if (version.endsWith("#open")) {
                 version = version.substring(0, version.length() - 5);
+            } else if (version.endsWith("#wontfix")) {
+                version = version.substring(0, version.length() - 8);
+                issue.setState(Issue.State.RESOLVED);
+                issue.setProperty("resolution", JSON.object().put("name", JSON.of("Won't Fix")));
             } else {
                 issue.setState(Issue.State.RESOLVED);
             }
@@ -752,6 +756,17 @@ public class BackportsTests {
 
             backports.addBackports("14u-cpu", "14.0.2", "13.0.7", "11.0.9-oracle", "11.0.9");
             backports.assertLabeled();
+        }
+    }
+
+    @Test
+    void wontFix(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "14");
+            backports.assertLabeled();
+
+            backports.addBackports("15", "13.0.7", "11.0.12-oracle", "11.0.11-oracle#wontfix", "11.0.10");
+            backports.assertLabeled("15");
         }
     }
 }

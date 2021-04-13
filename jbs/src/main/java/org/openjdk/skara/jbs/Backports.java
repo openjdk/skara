@@ -192,14 +192,34 @@ public class Backports {
         return Optional.empty();
     }
 
-    public static List<Issue> findBackports(Issue primary, boolean resolvedOnly) {
+    private static boolean isFixed(Issue issue) {
+        if (issue.state() == Issue.State.OPEN) {
+            return false;
+        }
+        var resolution = issue.properties().get("resolution");
+        if (resolution == null || resolution.isNull()) {
+            return false;
+        }
+        var name = resolution.get("name");
+        if (name == null || name.isNull()) {
+            return false;
+        }
+
+        if (!name.asString().equals("Fixed")) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static List<Issue> findBackports(Issue primary, boolean fixedOnly) {
         var links = primary.links();
         return links.stream()
                     .filter(l -> l.issue().isPresent())
                     .filter(l -> l.relationship().isPresent())
                     .filter(l -> l.relationship().get().equals("backported by"))
                     .map(l -> l.issue().get())
-                    .filter(i -> !resolvedOnly || (i.state() != Issue.State.OPEN))
+                    .filter(i -> !fixedOnly || isFixed(i))
                     .filter(i -> i.properties().containsKey("issuetype"))
                     .filter(i -> i.properties().get("issuetype").asString().equals("Backport"))
                     .collect(Collectors.toList());
