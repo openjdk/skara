@@ -24,7 +24,7 @@ package org.openjdk.skara.test;
 
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.json.JSONValue;
+import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.URIBuilder;
 
 import java.net.URI;
@@ -150,6 +150,7 @@ public class TestIssue implements Issue {
         data.state = state;
         data.lastUpdate = ZonedDateTime.now();
         data.closedBy = user;
+        data.properties.put("resolution", JSON.object().put("name", JSON.of("Fixed")));
     }
 
     @Override
