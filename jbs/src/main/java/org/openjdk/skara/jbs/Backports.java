@@ -233,8 +233,12 @@ public class Backports {
                 if (jdkVersion.update().isPresent()) {
                     var numericUpdate = Integer.parseInt(jdkVersion.update().get());
                     if (numericUpdate == 1 || numericUpdate == 2) {
-                        ret.add(jdkVersion.feature() + "+updates-oracle");
-                        ret.add(jdkVersion.feature() + "+updates-openjdk");
+                        if (jdkVersion.opt().isPresent() && jdkVersion.opt().get().equals("oracle") && jdkVersion.components().size() > 4) {
+                            ret.add(jdkVersion.feature() + "+bpr");
+                        } else {
+                            ret.add(jdkVersion.feature() + "+updates-oracle");
+                            ret.add(jdkVersion.feature() + "+updates-openjdk");
+                        }
                     } else if (numericUpdate > 2) {
                         if (jdkVersion.opt().isPresent() && jdkVersion.opt().get().equals("oracle")) {
                             if (jdkVersion.components().size() > 4) {

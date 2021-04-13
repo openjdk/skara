@@ -754,4 +754,15 @@ public class BackportsTests {
             backports.assertLabeled();
         }
     }
+
+    @Test
+    void testBpr(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "17");
+            backports.assertLabeled();
+
+            backports.addBackports("16.0.2", "16.0.1.0.1-oracle", "11.0.12-oracle", "11.0.11.0.1-oracle", "8u301", "8u291", "8u281");
+            backports.assertLabeled("8u291", "8u301");
+        }
+    }
 }
