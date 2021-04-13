@@ -43,9 +43,9 @@ class CSRBotTests {
             var issues = credentials.getIssueProject();
             var issue = issues.createIssue("This is an issue", List.of(), Map.of());
 
-            var csr = issues.createIssue("This is an approved CSR", List.of(), Map.of("resolution",
-                                                                                      JSON.object().put("name", "Approved")));
+            var csr = issues.createIssue("This is an approved CSR", List.of(), Map.of());
             csr.setState(Issue.State.CLOSED);
+            csr.setProperty("resolution", JSON.object().put("name", "Approved"));
             issue.addLink(Link.create(csr, "csr for").build());
 
             var bot = new CSRBot(repo, issues);
