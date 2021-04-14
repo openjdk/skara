@@ -34,9 +34,9 @@ import java.util.concurrent.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-public class MailmanList implements MailingList {
+public class MailmanListReader implements MailingListReader {
     private final MailmanServer server;
-    private final EmailAddress listAddress;
+    private final List<String> names = new ArrayList<>();
     private final Logger log = Logger.getLogger("org.openjdk.skara.mailinglist");
     private final ConcurrentMap<URI, HttpResponse<String>> pageCache = new ConcurrentHashMap<>();
     private List<Conversation> cachedConversations = new ArrayList<>();
@@ -44,19 +44,20 @@ public class MailmanList implements MailingList {
                                                        .connectTimeout(Duration.ofSeconds(10))
                                                        .build();
 
-    MailmanList(MailmanServer server, EmailAddress name) {
+    MailmanListReader(MailmanServer server, Collection<String> names) {
         this.server = server;
-        this.listAddress = name;
+        for (var name : names) {
+            if (name.contains("@")) {
+                this.names.add(EmailAddress.parse(name).localPart());
+            } else {
+                this.names.add(name);
+            }
+        }
     }
 
     @Override
     public String toString() {
-        return "MailmanList:" + listAddress;
-    }
-
-    @Override
-    public void post(Email email) {
-        server.sendMessage(email);
+        return "MailmanList:" + String.join(", ", names);
     }
 
     private List<ZonedDateTime> getMonthRange(Duration maxAge) {
@@ -75,7 +76,7 @@ public class MailmanList implements MailingList {
         return ret;
     }
 
-    private Optional<HttpResponse<String>> getPage(HttpClient client, URI uri) {
+    private Optional<HttpResponse<String>> getPage(URI uri) {
         var requestBuilder = HttpRequest.newBuilder(uri)
                                         .timeout(Duration.ofSeconds(30))
                                         .GET();
@@ -114,39 +115,44 @@ public class MailmanList implements MailingList {
                                                   .sorted(Comparator.reverseOrder())
                                                   .collect(Collectors.toList());
 
-        var actualPages = new LinkedList<String>();
-        var useCached = false;
+        var useCached = new HashMap<String, Boolean>();
+        for (var name : names) {
+            useCached.put(name, false);
+        }
         var newContent = false;
+        var emails = new ArrayList<Email>();
         for (var month : potentialPages) {
-            URI mboxUri = server.getMbox(listAddress.localPart(), month);
+            for (var name : names) {
+                URI mboxUri = server.getMbox(name, month);
+                var sender = EmailAddress.from(name + "@" + mboxUri.getHost());
 
-            if (useCached) {
-                var cachedResponse = pageCache.get(mboxUri);
-                if (cachedResponse == null) {
-                    break;
+                if (useCached.get(name)) {
+                    var cachedResponse = pageCache.get(mboxUri);
+                    if (cachedResponse == null) {
+                        break;
+                    } else {
+                        emails.addAll(0, Mbox.splitMbox(cachedResponse.body(), sender));
+                    }
                 } else {
-                    actualPages.addFirst(cachedResponse.body());
-                }
-            } else {
-                var mboxResponse = getPage(client, mboxUri);
-                if (mboxResponse.isEmpty()) {
-                    break;
-                }
-                if (mboxResponse.get().statusCode() == 304) {
-                    actualPages.addFirst(pageCache.get(mboxUri).body());
-                    useCached = true;
-                } else {
-                    actualPages.addFirst(mboxResponse.get().body());
-                    newContent = true;
+                    var mboxResponse = getPage(mboxUri);
+                    if (mboxResponse.isEmpty()) {
+                        break;
+                    }
+                    if (mboxResponse.get().statusCode() == 304) {
+                        emails.addAll(0, Mbox.splitMbox(pageCache.get(mboxUri).body(), sender));
+                        useCached.put(name, true);
+                    } else {
+                        emails.addAll(0, Mbox.splitMbox(mboxResponse.get().body(), sender));
+                        newContent = true;
+                    }
                 }
             }
         }
 
         if (newContent) {
-            var concatenatedMbox = String.join("", actualPages);
-            var mails = Mbox.parseMbox(concatenatedMbox, listAddress);
+            var conversations = Mbox.parseMbox(emails);
             var threshold = ZonedDateTime.now().minus(maxAge);
-            cachedConversations = mails.stream()
+            cachedConversations = conversations.stream()
                                        .filter(mail -> mail.first().date().isAfter(threshold))
                                        .collect(Collectors.toList());
         }

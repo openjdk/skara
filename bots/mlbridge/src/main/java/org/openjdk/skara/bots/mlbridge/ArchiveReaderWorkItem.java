@@ -23,7 +23,7 @@
 package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.bot.WorkItem;
-import org.openjdk.skara.mailinglist.MailingList;
+import org.openjdk.skara.mailinglist.MailingListReader;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -31,9 +31,9 @@ import java.util.*;
 
 public class ArchiveReaderWorkItem implements WorkItem {
     private final MailingListArchiveReaderBot bot;
-    private final MailingList list;
+    private final MailingListReader list;
 
-    ArchiveReaderWorkItem(MailingListArchiveReaderBot bot, MailingList list) {
+    ArchiveReaderWorkItem(MailingListArchiveReaderBot bot, MailingListReader list) {
         this.bot = bot;
         this.list = list;
     }

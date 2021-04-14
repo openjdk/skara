@@ -22,25 +22,36 @@
  */
 package org.openjdk.skara.mailinglist;
 
-import org.openjdk.skara.email.Email;
+import org.openjdk.skara.email.*;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.*;
 
 public class Conversation {
     private final Email first;
-    private final Map<Email, List<Email>> replies = new LinkedHashMap<>();
-    private final Map<Email, Email> parents = new HashMap<>();
+    private final Map<EmailAddress, LinkedHashSet<Email>> replies = new LinkedHashMap<>();
+    private final Map<EmailAddress, Email> parents = new HashMap<>();
 
     Conversation(Email first) {
         this.first = first;
-        replies.put(first, new ArrayList<>());
+        replies.put(first.id(), new LinkedHashSet<>());
     }
 
     void addReply(Email parent, Email reply) {
-        var replyList = replies.get(parent);
-        replyList.add(reply);
-        replies.put(reply, new ArrayList<>());
-        parents.put(reply, parent);
+        if (!replies.containsKey(reply.id())) {
+            var replyList = replies.get(parent.id());
+            replyList.add(reply);
+            replies.put(reply.id(), new LinkedHashSet<>());
+        }
+        if (!parents.containsKey(reply.id())) {
+            parents.put(reply.id(), parent);
+        } else {
+            var oldParent = parents.get(reply.id());
+            if (!parent.equals(oldParent)) {
+                throw new RuntimeException("Email with id " + reply.id() + " seen with multiple parents: " + oldParent.id() + " and " + parent.id());
+            }
+        }
     }
 
     public Email first() {
@@ -48,25 +59,20 @@ public class Conversation {
     }
 
     public List<Email> replies(Email parent) {
-        return new ArrayList<>(replies.get(parent));
+        return new ArrayList<>(replies.get(parent.id()));
     }
 
     public List<Email> allMessages() {
-        return new ArrayList<>(replies.keySet());
+        var unordered = Stream.concat(Stream.of(List.of(first)), replies.values().stream())
+                             .flatMap(Collection::stream)
+                             .collect(Collectors.toMap(Email::id, Function.identity()));
+        return replies.keySet().stream()
+                      .map(unordered::get)
+                      .collect(Collectors.toList());
     }
 
     public Email parent(Email email) {
-        return parents.get(email);
-    }
-
-    public List<Email> allParents(Email email) {
-        var emailParents = new ArrayList<Email>();
-        while (parents.containsKey(email)) {
-            var parent = parents.get(email);
-            emailParents.add(parent);
-            email = parent;
-        }
-        return emailParents;
+        return parents.get(email.id());
     }
 
     @Override

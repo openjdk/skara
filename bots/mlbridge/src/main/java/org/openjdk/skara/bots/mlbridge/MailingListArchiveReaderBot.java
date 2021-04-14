@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 
 public class MailingListArchiveReaderBot implements Bot {
     private final EmailAddress archivePoster;
-    private final Set<MailingList> lists;
+    private final MailingListReader list;
     private final Set<HostedRepository> repositories;
     private final Map<EmailAddress, String> parsedConversations = new HashMap<>();
     private final Map<EmailAddress, PullRequest> resolvedPullRequests = new HashMap<>();
@@ -45,9 +45,9 @@ public class MailingListArchiveReaderBot implements Bot {
     private final Pattern pullRequestLinkPattern = Pattern.compile("^(?:PR: |Pull request:\\R)(.*?)$", Pattern.MULTILINE);
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
 
-    MailingListArchiveReaderBot(EmailAddress archivePoster, Set<MailingList> lists, Set<HostedRepository> repositories) {
+    MailingListArchiveReaderBot(EmailAddress archivePoster, MailingListReader list, Set<HostedRepository> repositories) {
         this.archivePoster = archivePoster;
-        this.lists = lists;
+        this.list = list;
         this.repositories = repositories;
     }
 
@@ -131,11 +131,9 @@ public class MailingListArchiveReaderBot implements Bot {
 
     @Override
     public List<WorkItem> getPeriodicItems() {
-        var readerItems = lists.stream()
-                               .map(list -> new ArchiveReaderWorkItem(this, list))
-                               .collect(Collectors.toList());
-
-        var ret = new ArrayList<WorkItem>(readerItems);
+        var readerItems = new ArchiveReaderWorkItem(this, list);
+        var ret = new ArrayList<WorkItem>();
+        ret.add(readerItems);
 
         // Check if there are any potential new comments to post
         var item = commentQueue.poll();

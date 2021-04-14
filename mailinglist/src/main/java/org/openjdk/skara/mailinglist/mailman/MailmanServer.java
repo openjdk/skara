@@ -23,20 +23,20 @@
 package org.openjdk.skara.mailinglist.mailman;
 
 import org.openjdk.skara.email.*;
-import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.mailinglist.*;
+import org.openjdk.skara.network.URIBuilder;
 
 import java.io.*;
 import java.net.URI;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.util.Locale;
+import java.util.*;
 
 public class MailmanServer implements MailingListServer {
     private final URI archive;
     private final String smtpServer;
+    private final Duration sendInterval;
     private volatile Instant lastSend;
-    private Duration sendInterval;
 
     public MailmanServer(URI archive, String smtpServer, Duration sendInterval) {
         this.archive = archive;
@@ -46,7 +46,7 @@ public class MailmanServer implements MailingListServer {
     }
 
     URI getMbox(String listName, ZonedDateTime month) {
-        var dateStr = DateTimeFormatter.ofPattern("YYYY-MMMM", Locale.US).format(month);
+        var dateStr = DateTimeFormatter.ofPattern("yyyy-MMMM", Locale.US).format(month);
         return URIBuilder.base(archive).appendPath(listName + "/" + dateStr + ".txt").build();
     }
 
@@ -66,7 +66,12 @@ public class MailmanServer implements MailingListServer {
     }
 
     @Override
-    public MailingList getList(String name) {
-        return new MailmanList(this, EmailAddress.parse(name));
+    public void post(Email email) {
+        sendMessage(email);
+    }
+
+    @Override
+    public MailingListReader getListReader(String... listNames) {
+        return new MailmanListReader(this, Arrays.asList(listNames));
     }
 }

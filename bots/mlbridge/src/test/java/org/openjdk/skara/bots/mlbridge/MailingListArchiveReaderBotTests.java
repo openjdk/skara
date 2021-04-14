@@ -38,7 +38,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MailingListArchiveReaderBotTests {
-    private void addReply(Conversation conversation, EmailAddress recipient, MailingList mailingList, PullRequest pr, String reply) {
+    private void addReply(Conversation conversation, EmailAddress recipient, MailingListServer mailingListServer, PullRequest pr, String reply) {
         var first = conversation.first();
         var references = first.id().toString();
         var email = Email.create(EmailAddress.from("Commenter", "c@test.test"), "Re: RFR: " + pr.title(), reply)
@@ -47,11 +47,11 @@ class MailingListArchiveReaderBotTests {
                          .header("In-Reply-To", first.id().toString())
                          .header("References", references)
                          .build();
-        mailingList.post(email);
+        mailingListServer.post(email);
     }
 
-    private void addReply(Conversation conversation, EmailAddress recipient, MailingList mailingList, PullRequest pr) {
-        addReply(conversation, recipient, mailingList, pr, "Looks good");
+    private void addReply(Conversation conversation, EmailAddress recipient, MailingListServer mailingListServer, PullRequest pr) {
+        addReply(conversation, recipient, mailingListServer, pr, "Looks good");
     }
 
     @Test
@@ -86,8 +86,8 @@ class MailingListArchiveReaderBotTests {
             // The mailing list as well
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(),
                                                                              Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
-            var readerBot = new MailingListArchiveReaderBot(from, Set.of(mailmanList), Set.of(archive));
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var readerBot = new MailingListArchiveReaderBot(from, mailmanList, Set.of(archive));
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -113,7 +113,7 @@ class MailingListArchiveReaderBotTests {
             // Post a reply directly to the list
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
-            addReply(conversations.get(0), listAddress, mailmanList, pr);
+            addReply(conversations.get(0), listAddress, mailmanServer, pr);
             listServer.processIncoming();
 
             // Another archive reader pass - has to be done twice
@@ -162,8 +162,8 @@ class MailingListArchiveReaderBotTests {
             // The mailing list as well
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(),
                                                                              Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
-            var readerBot = new MailingListArchiveReaderBot(from, Set.of(mailmanList), Set.of(archive));
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var readerBot = new MailingListArchiveReaderBot(from, mailmanList, Set.of(archive));
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -185,7 +185,7 @@ class MailingListArchiveReaderBotTests {
             // Post a reply directly to the list
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
-            addReply(conversations.get(0), listAddress, mailmanList, pr);
+            addReply(conversations.get(0), listAddress, mailmanServer, pr);
             listServer.processIncoming();
 
             // Another archive reader pass - has to be done twice
@@ -196,7 +196,7 @@ class MailingListArchiveReaderBotTests {
             var updated = pr.comments();
             assertEquals(2, updated.size());
 
-            var newReaderBot = new MailingListArchiveReaderBot(from, Set.of(mailmanList), Set.of(archive));
+            var newReaderBot = new MailingListArchiveReaderBot(from, mailmanList, Set.of(archive));
             TestBotRunner.runPeriodicItems(newReaderBot);
             TestBotRunner.runPeriodicItems(newReaderBot);
 
@@ -238,8 +238,8 @@ class MailingListArchiveReaderBotTests {
             // The mailing list as well
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(),
                                                                              Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress.address());
-            var readerBot = new MailingListArchiveReaderBot(from, Set.of(mailmanList), Set.of(archive));
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var readerBot = new MailingListArchiveReaderBot(from, mailmanList, Set.of(archive));
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -267,7 +267,7 @@ class MailingListArchiveReaderBotTests {
             assertEquals(1, conversations.size());
 
             var replyBody = "This line is about 30 bytes long\n".repeat(1000 * 10);
-            addReply(conversations.get(0), listAddress, mailmanList, pr, replyBody);
+            addReply(conversations.get(0), listAddress, mailmanServer, pr, replyBody);
             listServer.processIncoming();
 
             // Another archive reader pass - has to be done twice

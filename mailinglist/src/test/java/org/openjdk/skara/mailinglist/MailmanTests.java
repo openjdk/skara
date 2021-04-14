@@ -22,10 +22,9 @@
  */
 package org.openjdk.skara.mailinglist;
 
+import org.junit.jupiter.api.Test;
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.test.TestMailmanServer;
-
-import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -39,12 +38,12 @@ class MailmanTests {
             var listAddress = testServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
                                                                              Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress);
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
             var mail = Email.create(sender, "Subject", "Body")
                             .recipient(EmailAddress.parse(listAddress))
                             .build();
-            mailmanList.post(mail);
+            mailmanServer.post(mail);
             var expectedMail = Email.from(mail)
                                     .sender(EmailAddress.parse(listAddress))
                                     .build();
@@ -64,12 +63,12 @@ class MailmanTests {
             var listAddress = testServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
                                                                              Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress);
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
             var sentParent = Email.create(sender, "Subject", "Body")
                                   .recipient(EmailAddress.parse(listAddress))
                                   .build();
-            mailmanList.post(sentParent);
+            mailmanServer.post(sentParent);
             testServer.processIncoming();
             var expectedParent = Email.from(sentParent)
                                       .sender(EmailAddress.parse(listAddress))
@@ -85,7 +84,7 @@ class MailmanTests {
                                  .recipient(EmailAddress.parse(listAddress))
                                  .header("In-Reply-To", sentParent.id().toString())
                                  .build();
-            mailmanList.post(sentReply);
+            mailmanServer.post(sentReply);
             var expectedReply = Email.from(sentReply)
                                      .sender(EmailAddress.parse(listAddress))
                                      .build();
@@ -110,12 +109,12 @@ class MailmanTests {
             var listAddress = testServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
                                                                              Duration.ZERO);
-            var mailmanList = mailmanServer.getList(listAddress);
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
             var mail = Email.create(sender, "Subject", "Body")
                             .recipient(EmailAddress.parse(listAddress))
                             .build();
-            mailmanList.post(mail);
+            mailmanServer.post(mail);
             testServer.processIncoming();
 
             var expectedMail = Email.from(mail)
@@ -144,7 +143,7 @@ class MailmanTests {
             var listAddress = testServer.createList("test");
             var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(), testServer.getSMTP(),
                                                                              Duration.ofDays(1));
-            var mailmanList = mailmanServer.getList(listAddress);
+            var mailmanList = mailmanServer.getListReader(listAddress);
             var sender = EmailAddress.from("Test", "test@test.email");
             var mail1 = Email.create(sender, "Subject 1", "Body 1")
                              .recipient(EmailAddress.parse(listAddress))
@@ -153,8 +152,8 @@ class MailmanTests {
                              .recipient(EmailAddress.parse(listAddress))
                              .build();
             new Thread(() -> {
-                mailmanList.post(mail1);
-                mailmanList.post(mail2);
+                mailmanServer.post(mail1);
+                mailmanServer.post(mail2);
             }).start();
             var expectedMail = Email.from(mail1)
                                     .sender(EmailAddress.parse(listAddress))
