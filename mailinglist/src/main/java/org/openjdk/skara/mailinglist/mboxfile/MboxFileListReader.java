@@ -59,7 +59,7 @@ public class MboxFileListReader implements MailingListReader {
             return new LinkedList<>();
         }
         var cutoff = Instant.now().minus(maxAge);
-        return Mbox.parseConversations(emails).stream()
+        return Mbox.parseMbox(emails).stream()
                    .filter(email -> email.first().date().toInstant().isAfter(cutoff))
                    .collect(Collectors.toList());
     }

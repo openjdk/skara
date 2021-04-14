@@ -150,7 +150,7 @@ public class MailmanListReader implements MailingListReader {
         }
 
         if (newContent) {
-            var conversations = Mbox.parseConversations(emails);
+            var conversations = Mbox.parseMbox(emails);
             var threshold = ZonedDateTime.now().minus(maxAge);
             cachedConversations = conversations.stream()
                                        .filter(mail -> mail.first().date().isAfter(threshold))
