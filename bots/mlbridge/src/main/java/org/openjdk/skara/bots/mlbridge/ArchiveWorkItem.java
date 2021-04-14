@@ -31,7 +31,8 @@ import org.openjdk.skara.mailinglist.*;
 import org.openjdk.skara.vcs.*;
 
 import java.io.*;
-import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
 import java.time.*;
 import java.util.*;
 import java.util.function.*;
@@ -171,19 +172,6 @@ class ArchiveWorkItem implements WorkItem {
         }
     }
 
-    private List<Email> parseArchive(MailingListReader archive) {
-        var conversations = archive.conversations(Duration.ofDays(365));
-
-        if (conversations.size() == 0) {
-            return new ArrayList<>();
-        } else if (conversations.size() == 1) {
-            var conversation = conversations.get(0);
-            return conversation.allMessages();
-        } else {
-            throw new RuntimeException("Something is wrong with the mbox");
-        }
-    }
-
     private EmailAddress getAuthorAddress(CensusInstance censusInstance, HostUser originalAuthor) {
         if (bot.ignoredUsers().contains(originalAuthor.username())) {
             return bot.emailAddress();
@@ -255,9 +243,14 @@ class ArchiveWorkItem implements WorkItem {
         var path = scratchPath.resolve("mlbridge");
         var archiveRepo = materializeArchive(path);
         var mboxBasePath = path.resolve(bot.codeRepo().name());
-        var mbox = MailingListServerFactory.createMboxFileServer(mboxBasePath);
-        var reviewArchiveList = mbox.getListReader(pr.id());
-        var sentMails = parseArchive(reviewArchiveList);
+
+        var sentMails = new ArrayList<Email>();
+        try {
+            var archiveContents = Files.readString(mboxBasePath.resolve(pr.id() + ".mbox"), StandardCharsets.UTF_8);
+            sentMails.addAll(Mbox.splitMbox(archiveContents, bot.emailAddress()));
+        } catch (IOException ignored) {
+        }
+
         var labels = new HashSet<>(pr.labelNames());
 
         // First determine if this PR should be inspected further or not
@@ -380,6 +373,7 @@ class ArchiveWorkItem implements WorkItem {
             }
 
             // Push all new mails to the archive repository
+            var mbox = MailingListServerFactory.createMboxFileServer(mboxBasePath);
             for (var newMail : newMails) {
                 var forArchiving = Email.from(newMail)
                                         .recipient(EmailAddress.from(pr.id() + "@mbox"))
