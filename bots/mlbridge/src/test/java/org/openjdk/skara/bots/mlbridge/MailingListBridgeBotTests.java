@@ -3348,6 +3348,12 @@ class MailingListBridgeBotTests {
             pr.addComment(">First comm\n\nreply to first");
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
+            listServer.processIncoming();
+
+            // Ensure that the PR is considered again - no duplicates should be sent
+            pr.addLabel("ping");
+            TestBotRunner.runPeriodicItems(mlBot);
+            assertThrows(RuntimeException.class, () -> listServer.processIncoming(Duration.ofMillis(1)));
 
             // The first comment should be replied to once, and the original post once
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
