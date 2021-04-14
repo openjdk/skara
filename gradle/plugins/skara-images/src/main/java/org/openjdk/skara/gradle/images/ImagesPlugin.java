@@ -132,9 +132,9 @@ public class ImagesPlugin implements Plugin<Project> {
                     } else {
                         task.getUrl().set("local");
                     }
-                    task.getToDir().set(buildDir.resolve("images"));
+                    var toDir = isLocal ? "local" : os + "-" + cpu;
+                    task.getToDir().set(buildDir.resolve("images").resolve(toDir));
                     task.getOS().set(os);
-                    task.getCPU().set(cpu);
                     task.getLaunchers().set(env.getLaunchers());
                     task.getModules().set(env.getModules());
                 });
@@ -143,9 +143,9 @@ public class ImagesPlugin implements Plugin<Project> {
                 project.getTasks().register(launchersTaskName, LaunchersTask.class, (task) -> {
                     task.getLaunchers().set(env.getLaunchers());
                     task.getOptions().set(env.getOptions());
-                    task.getToDir().set(buildDir.resolve("launchers"));
                     task.getOS().set(os);
-                    task.getCPU().set(cpu);
+                    var toDir = isLocal ? "local" : os + "-" + cpu;
+                    task.getToDir().set(buildDir.resolve("launchers").resolve(toDir));
                 });
 
                 var zipTaskName = "bundleZip" + subName;
@@ -166,7 +166,7 @@ public class ImagesPlugin implements Plugin<Project> {
                         });
                     }
 
-                    var subdir = os + "-" + cpu;
+                    var subdir = isLocal ? "local" : os + "-" + cpu;
                     task.from(buildDir.resolve("images").resolve(subdir), (s) -> {
                         s.into("image");
                     });
@@ -194,7 +194,7 @@ public class ImagesPlugin implements Plugin<Project> {
                         });
                     }
 
-                    var subdir = os + "-" + cpu;
+                    var subdir = isLocal ? "local" : os + "-" + cpu;
                     task.from(buildDir.resolve("images").resolve(subdir), (s) -> {
                         s.into("image");
                     });
