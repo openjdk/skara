@@ -186,8 +186,12 @@ public class PullRequestUtils {
         var ret = new HashSet<Path>();
         var changes = localRepo.diff(baseHash(pr, localRepo), pr.headHash());
         for (var patch : changes.patches()) {
-            patch.target().path().ifPresent(ret::add);
-            patch.source().path().ifPresent(ret::add);
+            if (patch.status().isDeleted() || patch.status().isRenamed()) {
+                patch.source().path().ifPresent(ret::add);
+            }
+            if (!patch.status().isDeleted()) {
+                patch.target().path().ifPresent(ret::add);
+            }
         }
         return ret;
     }
