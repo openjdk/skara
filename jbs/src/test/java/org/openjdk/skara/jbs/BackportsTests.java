@@ -185,6 +185,10 @@ public class BackportsTests {
         private void setState(Issue issue, String version) {
             if (version.endsWith("#open")) {
                 version = version.substring(0, version.length() - 5);
+            } else if (version.endsWith("#wontfix")) {
+                version = version.substring(0, version.length() - 8);
+                issue.setState(Issue.State.RESOLVED);
+                issue.setProperty("resolution", JSON.object().put("name", JSON.of("Won't Fix")));
             } else {
                 issue.setState(Issue.State.RESOLVED);
             }
@@ -375,7 +379,7 @@ public class BackportsTests {
             backports.assertLabeled();
 
             backports.addBackports("8u260/master", "8u261/b06");
-            backports.assertLabeled("8u261", "8u271");
+            backports.assertLabeled( "8u271");
         }
     }
 
@@ -477,8 +481,7 @@ public class BackportsTests {
     }
 
     @Test
-    void labelTest8261303(TestInfo testInfo) throws IOException
-    {
+    void labelTest8261303(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {
             var backports = new BackportManager(credentials, "openjfx17");
             backports.assertLabeled();
@@ -489,6 +492,292 @@ public class BackportsTests {
             backports.addBackports("11.0.11-oracle", "11.0.11", "11.0.10-oracle", "11.0.9.0.1-oracle/b01",
                     "11.0.9-oracle", "11.0.8.0.2-oracle");
             backports.assertLabeled("8u301", "11.0.9.0.1-oracle", "11.0.10-oracle", "11.0.11-oracle");
+        }
+    }
+
+    @Test
+    void sampleTest1(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "16");
+            backports.assertLabeled();
+
+            backports.addBackports("16.0.1", "16.0.2");
+            backports.assertLabeled("16.0.1", "16.0.2");
+        }
+    }
+
+    @Test
+    void sampleTest2(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "17");
+            backports.assertLabeled();
+
+            backports.addBackports("16", "16.0.1");
+            backports.assertLabeled("17", "16.0.1");
+        }
+    }
+
+    @Test
+    void sampleTest3(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "17");
+            backports.assertLabeled();
+
+            backports.addBackports("16u-cpu", "16.0.1", "16.0.2");
+            backports.assertLabeled("16.0.2");
+        }
+    }
+
+    @Test
+    void sampleTest4(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "16");
+            backports.assertLabeled();
+
+            backports.addBackports("16.0.1", "16.0.2", "17");
+            backports.assertLabeled("16.0.1", "16.0.2", "17");
+        }
+    }
+
+    @Test
+    void sampleTest5(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "18");
+            backports.assertLabeled();
+
+            backports.addBackports("17.0.2", "17.0.3-oracle");
+            backports.assertLabeled("17.0.3-oracle");
+        }
+    }
+
+    @Test
+    void sampleTest6(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "8u291");
+            backports.assertLabeled();
+
+            backports.addBackports("8u281", "8u271/b34", "8u261/b32");
+            backports.assertLabeled("8u291", "8u271");
+        }
+    }
+
+    @Test
+    void sampleTest7(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "8u291");
+            backports.assertLabeled();
+
+            backports.addBackports("8u281/b31", "8u271/b60", "7u301");
+            backports.assertLabeled();
+        }
+    }
+
+    @Test
+    void sampleTest8(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "8u291");
+            backports.assertLabeled();
+
+            backports.addBackports("8u281/b31", "8u271/b37", "openjdk8u292");
+            backports.assertLabeled("8u281");
+        }
+    }
+
+    @Test
+    void sampleTest9(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "8u260");
+            backports.assertLabeled();
+
+            backports.addBackports("8u261", "8u271");
+            backports.assertLabeled("8u271");
+        }
+    }
+
+    @Test
+    void sampleTest10(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "8u261");
+            backports.assertLabeled();
+
+            backports.addBackports("8u271", "8u281", "emb-8u271", "emb-8u281");
+            backports.assertLabeled("8u271", "8u281", "emb-8u281");
+        }
+    }
+
+    @Test
+    void sampleTest11(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "8u271/b35");
+            backports.assertLabeled();
+
+            backports.addBackports("8u281/b31", "8u291", "openjdk8u292");
+            backports.assertLabeled("8u281");
+        }
+    }
+
+    @Test
+    void sampleTest12(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "8u261");
+            backports.assertLabeled();
+
+            backports.addBackports("8u271", "openjdk8u275", "openjdk8u292", "emb-8u271");
+            backports.assertLabeled("8u271", "openjdk8u292");
+        }
+    }
+
+    @Test
+    void sampleTest13(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "8u261");
+            backports.assertLabeled();
+
+            backports.addBackports("8u-tls13-repo", "8u271", "emb-8u261");
+            backports.assertLabeled("8u271");
+        }
+    }
+
+    @Test
+    void sampleTest14(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "8u41");
+            backports.assertLabeled();
+
+            backports.addBackports("8u261", "8u251");
+            backports.assertLabeled("8u261");
+        }
+    }
+
+    @Test
+    void sampleTest15(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "8u291");
+            backports.assertLabeled();
+
+            backports.addBackports("8u301", "8u281-b31");
+            backports.assertLabeled("8u301");
+        }
+    }
+
+    @Test
+    void sampleTest16(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "8u301");
+            backports.assertLabeled();
+
+            backports.addBackports("8u293");
+            backports.assertLabeled("8u301");
+        }
+    }
+
+    @Test
+    void sampleTest17(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "11.0.11");
+            backports.assertLabeled();
+
+            backports.addBackports("11.0.11-oracle");
+            backports.assertLabeled();
+        }
+    }
+
+    @Test
+    void sampleTest18(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "11.0.9");
+            backports.assertLabeled();
+
+            backports.addBackports("11.0.10-oracle");
+            backports.assertLabeled();
+        }
+    }
+
+    @Test
+    void sampleTest19(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "11.0.12-oracle");
+            backports.assertLabeled();
+
+            backports.addBackports("11.0.13-oracle", "11.0.11.0.1-oracle");
+            backports.assertLabeled("11.0.13-oracle");
+        }
+    }
+
+    @Test
+    void sampleTest20(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "11.0.13-oracle");
+            backports.assertLabeled();
+
+            backports.addBackports("11.0.14-oracle", "11.0.12.1-oracle");
+            backports.assertLabeled("11.0.13-oracle", "11.0.14-oracle");
+        }
+    }
+
+    @Test
+    void sampleTest21(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "11.0.13-oracle");
+            backports.assertLabeled();
+
+            backports.addBackports("11.0.14-oracle", "11.1.2");
+            backports.assertLabeled("11.0.14-oracle");
+        }
+    }
+
+    @Test
+    void sampleTest22(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "15");
+            backports.assertLabeled();
+
+            backports.addBackports("14.0.1", "14", "13.0.2", "11.0.7", "11.0.6-oracle", "11.0.6", "openjdk8u252", "openjdk8u242", "8u241");
+            backports.assertLabeled("15", "14.0.1", "11.0.7", "openjdk8u252");
+        }
+    }
+
+    @Test
+    void sampleTest23(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "17");
+            backports.assertLabeled();
+
+            backports.addBackports("11.0.11-oracle", "11.0.11", "8u291", "8u281/b31", "8u271/b60", "emb-8u291", "7u301");
+            backports.assertLabeled();
+        }
+    }
+
+    @Test
+    void sampleTest24(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "15");
+            backports.assertLabeled();
+
+            backports.addBackports("14u-cpu", "14.0.2", "13.0.7", "11.0.9-oracle", "11.0.9");
+            backports.assertLabeled();
+        }
+    }
+
+    @Test
+    void wontFix(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "14");
+            backports.assertLabeled();
+
+            backports.addBackports("15", "13.0.7", "11.0.12-oracle", "11.0.11-oracle#wontfix", "11.0.10");
+            backports.assertLabeled("15");
+        }
+    }
+
+    @Test
+    void testBpr(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "17");
+            backports.assertLabeled();
+
+            backports.addBackports("16.0.2", "16.0.1.0.1-oracle", "11.0.12-oracle", "11.0.11.0.1-oracle", "8u301", "8u291", "8u281");
+            backports.assertLabeled("8u291", "8u301");
         }
     }
 }

@@ -26,12 +26,10 @@ import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.forge.PullRequest;
 
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class CommentPosterWorkItem implements WorkItem {
@@ -39,9 +37,6 @@ public class CommentPosterWorkItem implements WorkItem {
     private final List<Email> newMessages;
     private final Consumer<RuntimeException> errorHandler;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
-
-    private final String bridgedMailMarker = "<!-- Bridged id (%s) -->";
-    private final Pattern bridgedMailId = Pattern.compile("^<!-- Bridged id \\(([=\\w]+)\\) -->");
 
     CommentPosterWorkItem(PullRequest pr, List<Email> newMessages, Consumer<RuntimeException> errorHandler) {
         this.pr = pr;
@@ -73,23 +68,6 @@ public class CommentPosterWorkItem implements WorkItem {
         return overlap.isEmpty();
     }
 
-    private void postNewMessage(Email email) {
-        var marker = String.format(bridgedMailMarker,
-                                 Base64.getEncoder().encodeToString(email.id().address().getBytes(StandardCharsets.UTF_8)));
-
-        var filteredEmail = QuoteFilter.stripLinkBlock(email.body(), pr.webUrl());
-        var body = marker + "\n" +
-                "*Mailing list message from [" + email.author().fullName().orElse(email.author().localPart()) +
-                "](mailto:" + email.author().address() + ") on [" + email.sender().localPart() +
-                "](mailto:" + email.sender().address() + "):*\n\n" +
-                TextToMarkdown.escapeFormatting(filteredEmail);
-        if (body.length() > 64000) {
-            body = body.substring(0, 64000) + "...\n\n" + "" +
-                    "This message was too large to bridge in full, and has been truncated. " +
-                    "Please check the mailing list archive to see the full text.";
-        }
-        pr.addComment(body);
-    }
 
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
@@ -97,15 +75,8 @@ public class CommentPosterWorkItem implements WorkItem {
 
         var alreadyBridged = new HashSet<EmailAddress>();
         for (var comment : comments) {
-            if (!comment.author().equals(pr.repository().forge().currentUser())) {
-                continue;
-            }
-            var matcher = bridgedMailId.matcher(comment.body());
-            if (!matcher.find()) {
-                continue;
-            }
-            var id = new String(Base64.getDecoder().decode(matcher.group(1)), StandardCharsets.UTF_8);
-            alreadyBridged.add(EmailAddress.from(id));
+            var bridged = BridgedComment.from(comment, pr.repository().forge().currentUser());
+            bridged.ifPresent(bridgedComment -> alreadyBridged.add(bridgedComment.messageId()));
         }
 
         for (var message : newMessages) {
@@ -115,7 +86,7 @@ public class CommentPosterWorkItem implements WorkItem {
             }
 
             log.info("Bridging new message from " + message.author() + " to " + pr);
-            postNewMessage(message);
+            BridgedComment.post(pr, message);
         }
         return List.of();
     }

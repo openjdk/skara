@@ -445,9 +445,9 @@ public class TestWorkItem implements WorkItem {
 
             var lines = List.of(
                     "<!-- TEST STARTED -->",
-                    "<!-- " + jobId + " -->",
+                    "<!-- " + job.id() + " -->",
                     "<!-- " + fetchHead.hex() + " -->",
-                    "A test job has been started with id: " + jobId
+                    "A test job has been started with id: " + job.id()
             );
             pr.addComment(String.join("\n", lines));
         } else {

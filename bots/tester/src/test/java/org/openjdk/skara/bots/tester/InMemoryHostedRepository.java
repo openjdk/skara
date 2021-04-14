@@ -154,6 +154,10 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
+    public void deleteBranch(String ref) {
+    }
+
+    @Override
     public List<CommitComment> commitComments(Hash commit) {
         return List.of();
     }

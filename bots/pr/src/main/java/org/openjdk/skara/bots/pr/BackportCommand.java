@@ -105,57 +105,64 @@ public class BackportCommand implements CommandHandler {
         try {
             var hash = commit.hash();
             var fork = bot.writeableForkOf(targetRepo);
-            var localRepoDir = scratchPath.resolve("backport-command")
-                                          .resolve(repoName)
-                                          .resolve("fork");
-            var localRepo = bot.hostedRepositoryPool()
-                               .orElseThrow(() -> new IllegalStateException("Missing repository pool for PR bot"))
-                               .materialize(fork, localRepoDir);
-            var fetchHead = localRepo.fetch(bot.repo().url(), hash.hex());
-            localRepo.checkout(targetBranch);
-            var head = localRepo.head();
-            var backportBranch = localRepo.branch(head, "backport-" + hash.abbreviate());
-            localRepo.checkout(backportBranch);
-            var didApply = localRepo.cherryPick(fetchHead);
-            if (!didApply) {
-                var lines = new ArrayList<String>();
-                lines.add("@" + username + " :warning: could not backport `" + hash.abbreviate() + "` to " +
-                          "[" + repoName + "](" + targetRepo.webUrl() + "] due to conflicts in the following files:");
-                lines.add("");
-                var unmerged = localRepo.status()
-                                        .stream()
-                                        .filter(e -> e.status().isUnmerged())
-                                        .map(e -> e.target().path().orElseGet(() -> e.source().path().orElseThrow()))
-                                        .collect(Collectors.toList());
-                for (var path : unmerged) {
-                    lines.add("- " + path.toString());
+            Hash backportHash = null;
+            var backportBranchName = "backport-" + hash.abbreviate();
+            var hostedBackportBranch = fork.branches().stream().filter(b -> b.name().equals(backportBranchName)).findAny();
+            if (hostedBackportBranch.isEmpty()) {
+                var localRepoDir = scratchPath.resolve("backport-command")
+                                              .resolve(repoName)
+                                              .resolve("fork");
+                var localRepo = bot.hostedRepositoryPool()
+                                   .orElseThrow(() -> new IllegalStateException("Missing repository pool for PR bot"))
+                                   .materialize(fork, localRepoDir);
+                var fetchHead = localRepo.fetch(bot.repo().url(), hash.hex(), false);
+                localRepo.checkout(targetBranch);
+                var head = localRepo.head();
+                var backportBranch = localRepo.branch(head, backportBranchName);
+                localRepo.checkout(backportBranch);
+                var didApply = localRepo.cherryPick(fetchHead);
+                if (!didApply) {
+                    var lines = new ArrayList<String>();
+                    lines.add("@" + username + " could **not** automatically backport `" + hash.abbreviate() + "` to " +
+                              "[" + repoName + "](" + targetRepo.webUrl() + ") due to conflicts in the following files:");
+                    lines.add("");
+                    var unmerged = localRepo.status()
+                                            .stream()
+                                            .filter(e -> e.status().isUnmerged())
+                                            .map(e -> e.target().path().orElseGet(() -> e.source().path().orElseThrow()))
+                                            .collect(Collectors.toList());
+                    for (var path : unmerged) {
+                        lines.add("- " + path.toString());
+                    }
+                    lines.add("");
+                    lines.add("To manually resolve these conflicts run the following commands in your personal fork of [" + repoName + "](" + targetRepo.webUrl() + "):");
+                    lines.add("");
+                    lines.add("```");
+                    lines.add("$ git checkout -b " + backportBranchName);
+                    lines.add("$ git fetch --no-tags " + bot.repo().webUrl() + " " + hash.hex());
+                    lines.add("$ git cherry-pick --no-commit " + hash.hex());
+                    lines.add("$ # Resolve conflicts");
+                    lines.add("$ git add files/with/resolved/conflicts");
+                    lines.add("$ git commit -m 'Backport " + hash.hex() + "'");
+                    lines.add("```");
+                    lines.add("");
+                    lines.add("Once you have resolved the conflicts as explained above continue with creating a pull request towards the [" + repoName + "](" + targetRepo.webUrl() + ") with the title `Backport " + hash.hex() + "`.");
+
+                    reply.println(String.join("\n", lines));
+                    localRepo.reset(head, true);
+                    return;
                 }
-                lines.add("");
-                lines.add("To manually resolve these conflicts run the following commands in your personal fork of [" + repoName + "](" + targetRepo.webUrl() + "):");
-                lines.add("");
-                lines.add("```");
-                lines.add("$ git checkout -b " + backportBranch.name());
-                lines.add("$ git fetch " + bot.repo().webUrl() + " " + hash.hex());
-                lines.add("$ git cherry-pick --no-commit " + hash.hex());
-                lines.add("$ # Resolve conflicts");
-                lines.add("$ git add files/with/resolved/conflicts");
-                lines.add("$ git commit -m 'Backport " + hash.hex() + "'");
-                lines.add("```");
-                lines.add("");
-                lines.add("Once you have resolved the conflicts as explained above continue with creating a pull request towards the [" + repoName + "](" + targetRepo.webUrl() + ") with the title \"Backport " + hash.hex() + "\".");
 
-                reply.println(String.join("\n", lines));
-                localRepo.reset(head, true);
-                return;
+                backportHash = localRepo.commit("Backport " + hash.hex(), "duke", "duke@openjdk.org");
+                localRepo.push(backportHash, fork.url(), backportBranchName, false);
+            } else {
+                backportHash = hostedBackportBranch.get().hash();
             }
-
-            var backportHash = localRepo.commit("Backport " + hash.hex(), "duke", "duke@openjdk.org");
-            localRepo.push(backportHash, fork.url(), backportBranch.name(), true);
 
             if (!fork.canPush(command.user())) {
                 fork.addCollaborator(command.user(), true);
             }
-            fork.restrictPushAccess(backportBranch, List.of(command.user()));
+            fork.restrictPushAccess(new Branch(backportBranchName), List.of(command.user()));
 
             var message = CommitMessageParsers.v1.parse(commit);
             var formatter = DateTimeFormatter.ofPattern("d MMM uuuu");
@@ -196,12 +203,12 @@ public class BackportCommand implements CommandHandler {
             body.add("> ");
             body.add("> Thanks!");
 
-            var createPrUrl = fork.createPullRequestUrl(targetRepo, targetBranch.name(), backportBranch.name());
+            var createPrUrl = fork.createPullRequestUrl(targetRepo, targetBranch.name(), backportBranchName);
             var targetBranchWebUrl = targetRepo.webUrl(targetBranch);
-            var backportBranchWebUrl = fork.webUrl(backportBranch);
+            var backportBranchWebUrl = fork.webUrl(new Branch(backportBranchName));
             var backportWebUrl = fork.webUrl(backportHash);
             reply.println("@" + command.user().username() + " the [backport](" + backportWebUrl + ")" +
-                          " was successfully created on the branch [" + backportBranch.name() + "](" +
+                          " was successfully created on the branch [" + backportBranchName + "](" +
                           backportBranchWebUrl + ") in my [personal fork](" + fork.webUrl() + ") of [" +
                           targetRepo.name() + "](" + targetRepo.webUrl() + "). To create a pull request " +
                           "with this backport targeting [" + targetRepo.name() + ":" + targetBranch.name() + "](" +
@@ -219,8 +226,8 @@ public class BackportCommand implements CommandHandler {
                           "[" + targetRepo.name() + "](" + targetRepo.webUrl() + "):\n" +
                           "\n" +
                           "```\n" +
-                          "$ git fetch " + fork.webUrl() + " " + backportBranch.name() + ":" + backportBranch.name() + "\n" +
-                          "$ git checkout " + backportBranch.name() + "\n" +
+                          "$ git fetch " + fork.webUrl() + " " + backportBranchName + ":" + backportBranchName + "\n" +
+                          "$ git checkout " + backportBranchName + "\n" +
                           "# make changes\n" +
                           "$ git add paths/to/changed/files\n" +
                           "$ git commit --message 'Describe additional changes made'\n" +

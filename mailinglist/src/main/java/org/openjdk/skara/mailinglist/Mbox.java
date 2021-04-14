@@ -83,7 +83,8 @@ public class Mbox {
 
     private static final Pattern inReplyToPattern = Pattern.compile("<(.*@.*?)>");
 
-    public static List<Conversation> parseConversations(List<Email> emails) {
+    public static List<Conversation> parseMbox(String mbox, EmailAddress sender) {
+        var emails = splitMbox(mbox, sender);
         var idToMail = emails.stream().collect(Collectors.toMap(Email::id, Function.identity(), (a, b) -> a));
         var idToConversation = idToMail.values().stream()
                                        .filter(email -> !email.hasHeader("In-Reply-To"))

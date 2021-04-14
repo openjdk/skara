@@ -22,16 +22,15 @@
  */
 package org.openjdk.skara.bots.mlbridge;
 
-import org.openjdk.skara.email.EmailAddress;
+import org.junit.jupiter.api.*;
+import org.openjdk.skara.email.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.json.JSON;
+import org.openjdk.skara.mailinglist.*;
 import org.openjdk.skara.network.URIBuilder;
-import org.openjdk.skara.mailinglist.MailingListServerFactory;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Repository;
-import org.openjdk.skara.json.JSON;
-
-import org.junit.jupiter.api.*;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -259,7 +258,7 @@ class MailingListBridgeBotTests {
 
             // Remove the rfr flag and post another comment
             pr.addLabel("rfr");
-            pr.addComment("This is another comment");
+            pr.addComment("@" + pr.author().username() +" This is another comment");
 
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
@@ -1178,7 +1177,7 @@ class MailingListBridgeBotTests {
 
             // The first comment should be quoted more often than the second
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertEquals(3, archiveContainsCount(archiveFolder.path(), "First comment"));
+            assertEquals(2, archiveContainsCount(archiveFolder.path(), "First comment"));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Second comment"));
         }
     }
@@ -1296,7 +1295,8 @@ class MailingListBridgeBotTests {
             // Make two comments from different authors
             var reviewPr = reviewer.pullRequest(pr.id());
             reviewPr.addComment("First comment\nsecond line");
-            pr.addComment("Second comment\nfourth line");
+            var authorPr = author.pullRequest(pr.id());
+            authorPr.addComment("Second comment\nfourth line");
 
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
@@ -1305,11 +1305,10 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
 
-            // The first comment should be quoted more often than the second
+            // The first comment should be replied to once, and the original post once
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertEquals(2, archiveContainsCount(archiveFolder.path(), "First comment"));
-            assertEquals(3, archiveContainsCount(archiveFolder.path(), "First comm"));
-            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Second comment"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), Pattern.quote(reviewPr.author().fullName()) + ".* wrote"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), Pattern.quote(pr.author().fullName()) + ".* wrote"));
         }
     }
 
@@ -1494,6 +1493,7 @@ class MailingListBridgeBotTests {
             pr.addComment("/integrate stuff");
             pr.addComment("the command is /hello there");
             pr.addComment("but this will be parsed\n/newline command");
+            pr.addComment("/multiline\nwill be dropped");
             TestBotRunner.runPeriodicItems(mlBot);
 
             // Run an archive pass
@@ -1514,6 +1514,8 @@ class MailingListBridgeBotTests {
             assertTrue(archiveContains(archiveFolder.path(), "/hello there"));
             assertTrue(archiveContains(archiveFolder.path(), "but this will be parsed"));
             assertFalse(archiveContains(archiveFolder.path(), "/newline"));
+            assertFalse(archiveContains(archiveFolder.path(), "/multiline"));
+            assertFalse(archiveContains(archiveFolder.path(), "will be dropped"));
         }
     }
 
@@ -2349,7 +2351,7 @@ class MailingListBridgeBotTests {
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
 
-            pr.addComment("Thanks for the review!");
+            pr.addComment("@" + reviewer.forge().currentUser().username() + " Thanks for the review!");
             TestBotRunner.runPeriodicItems(mlBot);
             listServer.processIncoming();
 
@@ -3104,7 +3106,7 @@ class MailingListBridgeBotTests {
 
             // Remove the rfr flag and post another comment
             pr.addLabel("rfr");
-            pr.addComment("This is another comment");
+            pr.addComment("@" + pr.author().username() + " This is another comment");
 
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
@@ -3284,6 +3286,76 @@ class MailingListBridgeBotTests {
 
             assertTrue(archiveContains(archiveFolder.path(), "Depends on:", pr.id()));
             assertFalse(archiveContains(archiveFolder.path(), "Depends on:", depPr.id()));
+        }
+    }
+
+    @Test
+    void commentWithQuoteFromBridged(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var archiveFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
+            var author = credentials.getHostedRepository();
+            var bridge = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id());
+            var from = EmailAddress.from("test", "test@test.mail");
+            var mlBot = MailingListBridgeBot.newBuilder()
+                                            .from(from)
+                                            .repo(author)
+                                            .archive(archive)
+                                            .censusRepo(censusBuilder.build())
+                                            .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
+                                            .listArchive(listServer.getArchive())
+                                            .smtpServer(listServer.getSMTP())
+                                            .webrevStorageHTMLRepository(archive)
+                                            .webrevStorageRef("webrev")
+                                            .webrevStorageBase(Path.of("test"))
+                                            .webrevStorageBaseUri(webrevServer.uri())
+                                            .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                                            .build();
+
+            // Populate the projects repository
+            var reviewFile = Path.of("reviewfile.txt");
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(), reviewFile);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
+            pr.setBody("This is now ready");
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // Simulate a bridged comment
+            var authorPr = author.pullRequest(pr.id());
+            var bridgedMail = Email.create("Re: " + pr.title(), "Mailing list comment\nFirst comment\nsecond line")
+                                   .id(EmailAddress.from("bridgedemailid@bridge.bridge"))
+                                   .author(EmailAddress.from("List User", "listuser@openjdk.org"))
+                                   .build();
+            BridgedComment.post(authorPr, bridgedMail);
+
+            // And a regular comment
+            pr.addComment("Second comment\nfourth line");
+
+            // Reply to the bridged one
+            pr.addComment(">First comm\n\nreply to first");
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // The first comment should be replied to once, and the original post once
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), Pattern.quote("List User <listuser@openjdk.org>") + ".* wrote"));
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), Pattern.quote(pr.author().fullName()) + ".* wrote"));
+
+            // There should have been a reply directed towards the bridged mail id
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), Pattern.quote("In-Reply-To: <bridgedemailid@bridge.bridge>")));
         }
     }
 }

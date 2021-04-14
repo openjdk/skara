@@ -296,15 +296,12 @@ class ArchiveItem {
         return Optional.empty();
     }
 
-    static ArchiveItem findParent(List<ArchiveItem> generated, Comment comment) {
-        ArchiveItem lastCommentOrReview = generated.get(0);
+    static ArchiveItem findParent(List<ArchiveItem> generated, List<BridgedComment> bridgedComments, Comment comment) {
         var eligible = new ArrayList<ArchiveItem>();
-        eligible.add(lastCommentOrReview);
         for (var item : generated) {
             if (item.id().startsWith("pc") || item.id().startsWith("rv")) {
-                if (item.createdAt().isBefore(comment.createdAt()) && item.createdAt().isAfter(lastCommentOrReview.createdAt())) {
-                    lastCommentOrReview = item;
-                    eligible.add(lastCommentOrReview);
+                if (item.createdAt().isBefore(comment.createdAt())) {
+                    eligible.add(item);
                 }
             }
         }
@@ -313,12 +310,28 @@ class ArchiveItem {
         if (lastMention.isPresent()) {
             return lastMention.get();
         }
+
+        // It is possible to quote a bridged comment when replying - make these eligible as well
+        for (var bridged : bridgedComments) {
+            var item = new ArchiveItem(generated.get(0), "br" + bridged.messageId().address(), bridged.created(), bridged.created(),
+                                       bridged.author(), null, generated.get(0).subject, null, bridged::body, null);
+            eligible.add(item);
+        }
+
         var lastQuoted = findLastQuoted(comment.body(), eligible);
         if (lastQuoted.isPresent()) {
             return lastQuoted.get();
         }
 
-        return lastCommentOrReview;
+        ArchiveItem lastRevisionItem = generated.get(0);
+        for (var item : generated) {
+            if (item.id().startsWith("ha")) {
+                if (item.createdAt().isBefore(comment.createdAt())) {
+                    lastRevisionItem = item;
+                }
+            }
+        }
+        return lastRevisionItem;
     }
 
     static ArchiveItem findRevisionItem(List<ArchiveItem> generated, Hash hash) {

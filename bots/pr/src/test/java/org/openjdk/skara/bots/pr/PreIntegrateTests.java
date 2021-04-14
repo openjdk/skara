@@ -109,6 +109,9 @@ public class PreIntegrateTests {
             // The bot should reply with an ok message
             assertLastCommentContains(pr, "Pushed as commit");
 
+            // The notifier will now retarget the follow up PR, simulate this
+            followUpPr.setTargetRef("master");
+
             // The second should now become ready
             TestBotRunner.runPeriodicItems(mergeBot);
             followUpPr = author.pullRequest(followUpPr.id());

@@ -27,7 +27,7 @@ import java.util.regex.*;
 public class MarkdownToText {
     private static final Pattern emojiPattern = Pattern.compile("(:([0-9a-z_+-]+):)");
     private static final Pattern suggestionPattern = Pattern.compile("^```suggestion$", Pattern.MULTILINE);
-    private static final Pattern codePattern = Pattern.compile("^```(?:\\w+)?\\R?", Pattern.MULTILINE);
+    private static final Pattern codePattern = Pattern.compile("^```+(?:\\w+)?$", Pattern.MULTILINE);
     private static final Pattern escapesPattern = Pattern.compile("\\\\([!\"#$%&'()*+,\\-./:;<=?@\\[\\]^_`{|}~])", Pattern.MULTILINE);
     private static final Pattern entitiesPattern = Pattern.compile("&#32;", Pattern.MULTILINE);
 

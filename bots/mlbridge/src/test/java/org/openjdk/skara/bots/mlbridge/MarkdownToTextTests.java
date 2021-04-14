@@ -24,7 +24,8 @@ package org.openjdk.skara.bots.mlbridge;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class MarkdownToTextTests {
     @Test
@@ -49,6 +50,8 @@ class MarkdownToTextTests {
         assertEquals("Just some text", MarkdownToText.removeFormatting("```\nJust some text\n```"));
         assertEquals("Multi\nline", MarkdownToText.removeFormatting("```\nMulti\nline\n```"));
         assertEquals("Script", MarkdownToText.removeFormatting("```bash\nScript\n```"));
+        assertEquals("Longer", MarkdownToText.removeFormatting("`````bash\nLonger\n`````"));
+        assertEquals("``bash\nShorter\n``", MarkdownToText.removeFormatting("``bash\nShorter\n``"));
     }
 
     @Test
@@ -64,5 +67,10 @@ class MarkdownToTextTests {
     @Test
     void entities() {
         assertEquals("space is here", MarkdownToText.removeFormatting("space&#32;is here"));
+    }
+
+    @Test
+    void singleLineCode() {
+        assertEquals("```assert_locked_or_safepoint(Threads_lock);```", MarkdownToText.removeFormatting("```assert_locked_or_safepoint(Threads_lock);```"));
     }
 }

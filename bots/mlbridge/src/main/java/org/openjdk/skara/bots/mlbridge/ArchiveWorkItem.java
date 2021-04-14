@@ -155,7 +155,7 @@ class ArchiveWorkItem implements WorkItem {
         comment += "### Webrevs" + "\n";
         comment += webrevListMarker + "\n";
         comment += " * " + String.format("%02d", index) + ": " + webrevDescriptions;
-        comment += " (" + pr.filesUrl(pr.headHash()) + ")\n";
+        comment += " ([" + pr.headHash().abbreviate() + "](" + pr.filesUrl(pr.headHash()) + "))\n";
 
         if (existing.isPresent()) {
             if (existing.get().body().contains(webrevDescriptions)) {
@@ -187,6 +187,9 @@ class ArchiveWorkItem implements WorkItem {
     private EmailAddress getAuthorAddress(CensusInstance censusInstance, HostUser originalAuthor) {
         if (bot.ignoredUsers().contains(originalAuthor.username())) {
             return bot.emailAddress();
+        }
+        if (BridgedComment.isBridgedUser(originalAuthor)) {
+            return EmailAddress.from(originalAuthor.fullName(), originalAuthor.email().orElseThrow());
         }
 
         var contributor = censusInstance.namespace().get(originalAuthor.id());

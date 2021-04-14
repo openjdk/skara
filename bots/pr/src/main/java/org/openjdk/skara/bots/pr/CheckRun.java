@@ -530,30 +530,30 @@ class CheckRun {
     private String reviewUsingGitHelp() {
         var repoUrl = pr.repository().webUrl();
         var firstTime =
-           "`$ git fetch " + repoUrl + " " + pr.fetchRef() + ":pull/" + pr.id() + "`\n" +
+           "`$ git fetch " + repoUrl + " " + pr.fetchRef() + ":pull/" + pr.id() + "` \\\n" +
            "`$ git checkout pull/" + pr.id() + "`\n";
         var updating =
-           "`$ git checkout pull/" + pr.id() + "`\n" +
+           "`$ git checkout pull/" + pr.id() + "` \\\n" +
            "`$ git pull " + repoUrl + " " + pr.fetchRef() + "`\n";
 
-        return "Checkout this PR locally:\n" +
+        return "Checkout this PR locally: \\\n" +
                 firstTime +
                 "\n" +
-                "Update a local copy of the PR:\n" +
+                "Update a local copy of the PR: \\\n" +
                 updating;
     }
 
     private String reviewUsingSkaraHelp() {
-        return "Checkout this PR locally:\n" +
+        return "Checkout this PR locally: \\\n" +
                 ("`$ git pr checkout " + pr.id() + "`\n") +
                 "\n" +
-                "View PR using the GUI difftool:\n" +
+                "View PR using the GUI difftool: \\\n" +
                 ("`$ git pr show -t " + pr.id() + "`\n");
     }
 
     private String reviewUsingDiffsHelp() {
         var diffUrl = pr.repository().webUrl() + "/pull/" + pr.id() + ".diff";
-        return "Download this PR as a diff file:\n" +
+        return "Download this PR as a diff file: \\\n" +
                 "<a href=\"" + diffUrl + "\">" + diffUrl + "</a>\n";
     }
 
