@@ -124,6 +124,57 @@ class LabelerTests {
     }
 
     @Test
+    void copy(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var labelConfiguration = LabelConfigurationJson.builder()
+                                                           .addMatchers("test1", List.of(Pattern.compile("a.txt")))
+                                                           .addMatchers("test2", List.of(Pattern.compile("b.txt")))
+                                                           .build();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addAuthor(author.forge().currentUser().id())
+                                           .addReviewer(reviewer.forge().currentUser().id());
+            var labelBot = PullRequestBot.newBuilder()
+                                         .repo(author)
+                                         .censusRepo(censusBuilder.build())
+                                         .labelConfiguration(labelConfiguration)
+                                         .build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path();
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Add an unrelated file to master
+            var fileB = localRepoFolder.resolve("b.txt");
+            Files.writeString(fileB, "Hello");
+            localRepo.add(fileB);
+            var hashB = localRepo.commit("test1", "test", "test@test");
+            localRepo.push(hashB, author.url(), "master");
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+
+            var fileA = localRepoFolder.resolve("a.txt");
+            Files.writeString(fileA, "Hello");
+            localRepo.add(fileA);
+            var hashA = localRepo.commit("test1", "test", "test@test");
+            localRepo.push(hashA, author.url(), "edit");
+
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Check the status - there should now be a test1 label
+            TestBotRunner.runPeriodicItems(labelBot);
+            assertEquals(Set.of("rfr", "test1"), new HashSet<>(pr.labelNames()));
+        }
+    }
+
+    @Test
     void initialLabelCommand(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
