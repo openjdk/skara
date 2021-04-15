@@ -7,7 +7,7 @@ import java.util.Set;
 
 /**
  * This class holds a static thread local hashmap to store temporary log
- * metadata which our custom LogStreamers can pick up and include in log
+ * metadata which our custom StreamHandlers can pick up and include in log
  * messages.
  */
 public class LogContextMap {
