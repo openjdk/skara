@@ -34,7 +34,7 @@ class BotLogstashHandlerTests {
     @Test
     void simple() throws IOException {
         try (var receiver = new RestReceiver()) {
-            var handler = new BotLogstashHandler(receiver.getEndpoint(), 100);
+            var handler = new BotLogstashHandler(receiver.getEndpoint());
             var record = new LogRecord(Level.INFO, "Hello");
             handler.publish(record);
 
@@ -48,7 +48,7 @@ class BotLogstashHandlerTests {
     @Test
     void simpleTask() throws IOException {
         try (var receiver = new RestReceiver()) {
-            var handler = new BotLogstashHandler(receiver.getEndpoint(), 100);
+            var handler = new BotLogstashHandler(receiver.getEndpoint());
 
             LoggingBot.runOnce(handler, log -> {
                 log.warning("Hello");
@@ -57,20 +57,23 @@ class BotLogstashHandlerTests {
             });
 
             var requests = receiver.getRequests();
-            assertEquals(1, requests.size(), requests.toString());
+            assertEquals(3, requests.size(), requests.toString());
             assertEquals(Level.WARNING.getName(), requests.get(0).get("level").asString());
             assertEquals(Level.WARNING.intValue(), requests.get(0).get("level_value").asInt());
-            assertTrue(requests.get(0).get("message").asString().contains("Hello"));
-            assertTrue(requests.get(0).get("message").asString().contains("Warning"));
-            assertTrue(requests.get(0).get("message").asString().contains("Bye"));
-            assertTrue(requests.get(0).get("message").asString().contains(Level.WARNING.toString()));
+            assertEquals("Hello", requests.get(0).get("message").asString());
+            assertEquals("Warning!", requests.get(1).get("message").asString());
+            assertEquals("Bye", requests.get(2).get("message").asString());
+            assertEquals(Level.WARNING.toString(), requests.get(0).get("level").asString());
+            assertNotNull(requests.get(0).get("work_id"), "work_id not set");
+            assertTrue(requests.get(0).get("work_item").asString().contains("LoggingBot@"),
+                    "work_item has bad value " + requests.get(0).get("work_item").asString());
         }
     }
 
     @Test
     void extraField() throws IOException {
         try (var receiver = new RestReceiver()) {
-            var handler = new BotLogstashHandler(receiver.getEndpoint(), 100);
+            var handler = new BotLogstashHandler(receiver.getEndpoint());
             handler.addExtraField("mandatory", "value");
             handler.addExtraField("optional1", "$1", "^H(ello)$");
             handler.addExtraField("optional2", "$1", "^(Not found)$");
@@ -88,7 +91,7 @@ class BotLogstashHandlerTests {
     @Test
     void extraFieldTask() throws IOException {
         try (var receiver = new RestReceiver()) {
-            var handler = new BotLogstashHandler(receiver.getEndpoint(), 100);
+            var handler = new BotLogstashHandler(receiver.getEndpoint());
             handler.addExtraField("mandatory", "value");
             handler.addExtraField("optional1", "$1", "^H(ello)$");
             handler.addExtraField("optional2", "$1", "^(Not found)$");
@@ -102,119 +105,11 @@ class BotLogstashHandlerTests {
             });
 
             var requests = receiver.getRequests();
-            assertEquals(1, requests.size(), requests.toString());
+            assertEquals(3, requests.size(), requests.toString());
             assertEquals("value", requests.get(0).get("mandatory").asString());
             assertEquals("ello", requests.get(0).get("optional1").asString());
             assertFalse(requests.get(0).contains("optional2"));
-            assertEquals("ye", requests.get(0).get("optional3").asString());
-            assertTrue(requests.get(0).get("greedy").asString().contains("Executing item"));
-        }
-    }
-
-    @Test
-    void filterLowLevels() throws IOException {
-        try (var receiver = new RestReceiver()) {
-            var handler = new BotLogstashHandler(receiver.getEndpoint(), 10);
-
-            LoggingBot.runOnce(handler, Level.FINER, log -> {
-                for (int i = 0; i < 5; ++i) {
-                    log.fine("Fine nr " + i);
-                }
-                for (int i = 0; i < 5; ++i) {
-                    log.finer("Finer nr " + i);
-                }
-            });
-
-            var requests = receiver.getRequests();
-            var aggregatedLines = requests.stream()
-                                          .filter(request -> request.get("message").asString().contains("Executing item"))
-                                          .findAny()
-                                          .orElseThrow()
-                                          .get("message")
-                                          .asString()
-                                          .lines()
-                                          .collect(Collectors.toList());
-
-            var fineLines = aggregatedLines.stream()
-                                           .filter(line -> line.contains("Fine nr"))
-                                           .collect(Collectors.toList());
-            var finerLines = aggregatedLines.stream()
-                                            .filter(line -> line.contains("Finer nr"))
-                                            .collect(Collectors.toList());
-            assertEquals(5, fineLines.size(), aggregatedLines.toString());
-            assertEquals(0, finerLines.size(), aggregatedLines.toString());
-        }
-    }
-
-    @Test
-    void filterLowestLevels() throws IOException {
-        try (var receiver = new RestReceiver()) {
-            var handler = new BotLogstashHandler(receiver.getEndpoint(), 15);
-
-            LoggingBot.runOnce(handler, Level.FINER, log -> {
-                for (int i = 0; i < 5; ++i) {
-                    log.fine("Fine nr " + i);
-                }
-                for (int i = 0; i < 5; ++i) {
-                    log.finer("Finer nr " + i);
-                }
-                for (int i = 0; i < 5; ++i) {
-                    log.finest("Finest nr " + i);
-                }
-            });
-
-            var requests = receiver.getRequests();
-            var aggregatedLines = requests.stream()
-                                          .filter(request -> request.get("message").asString().contains("Executing item"))
-                                          .findAny()
-                                          .orElseThrow()
-                                          .get("message")
-                                          .asString()
-                                          .lines()
-                                          .collect(Collectors.toList());
-
-            var fineLines = aggregatedLines.stream()
-                                           .filter(line -> line.contains("Fine nr"))
-                                           .collect(Collectors.toList());
-            var finerLines = aggregatedLines.stream()
-                                            .filter(line -> line.contains("Finer nr"))
-                                            .collect(Collectors.toList());
-            var finestLines = aggregatedLines.stream()
-                                             .filter(line -> line.contains("Finest nr"))
-                                             .collect(Collectors.toList());
-            assertEquals(5, fineLines.size(), aggregatedLines.toString());
-            assertEquals(5, finerLines.size(), aggregatedLines.toString());
-            assertEquals(0, finestLines.size(), aggregatedLines.toString());
-        }
-    }
-
-    @Test
-    void filterMiddle() throws IOException {
-        try (var receiver = new RestReceiver()) {
-            var handler = new BotLogstashHandler(receiver.getEndpoint(), 100);
-
-            LoggingBot.runOnce(handler, Level.FINER, log -> {
-                for (int i = 0; i < 100; ++i) {
-                    log.fine("Start nr " + i);
-                }
-                for (int i = 0; i < 100; ++i) {
-                    log.fine("Middle nr " + i);
-                }
-                for (int i = 0; i < 100; ++i) {
-                    log.fine("End nr " + i);
-                }
-            });
-
-            var requests = receiver.getRequests();
-            var aggregatedLines = requests.stream()
-                                          .filter(request -> request.get("message").asString().contains("Executing item"))
-                                          .findAny()
-                                          .orElseThrow()
-                                          .get("message")
-                                          .asString();
-            assertTrue(aggregatedLines.contains("Start nr"));
-            assertFalse(aggregatedLines.contains("Middle nr"));
-            assertTrue(aggregatedLines.contains("End nr"));
+            assertEquals("ye", requests.get(2).get("optional3").asString());
         }
     }
 }

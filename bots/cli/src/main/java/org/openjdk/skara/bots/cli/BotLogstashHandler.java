@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.bots.cli;
 
-import org.openjdk.skara.bot.BotTaskAggregationHandler;
+import org.openjdk.skara.bot.LogContextMap;
 import org.openjdk.skara.network.RestRequest;
 import org.openjdk.skara.json.JSON;
 
@@ -33,12 +33,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.logging.*;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
-public class BotLogstashHandler extends BotTaskAggregationHandler {
+public class BotLogstashHandler extends StreamHandler {
     private final RestRequest endpoint;
     private final DateTimeFormatter dateTimeFormatter;
-    private final int maxRecords;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.cli");
 
 
@@ -50,9 +48,8 @@ public class BotLogstashHandler extends BotTaskAggregationHandler {
 
     private final List<ExtraField> extraFields;
 
-    BotLogstashHandler(URI endpoint, int maxRecords) {
+    BotLogstashHandler(URI endpoint) {
         this.endpoint = new RestRequest(endpoint);
-        this.maxRecords = maxRecords;
         dateTimeFormatter = DateTimeFormatter.ISO_INSTANT
                 .withLocale(Locale.getDefault())
                 .withZone(ZoneId.systemDefault());
@@ -81,6 +78,10 @@ public class BotLogstashHandler extends BotTaskAggregationHandler {
             query.put("level_value", level.intValue());
             query.put("message", message);
 
+            for (Map.Entry<String, String> entry : LogContextMap.entrySet()) {
+                query.put(entry.getKey(), entry.getValue());
+            }
+
             for (var extraField : extraFields.entrySet()) {
                 query.put(extraField.getKey(), extraField.getValue());
             }
@@ -92,28 +93,6 @@ public class BotLogstashHandler extends BotTaskAggregationHandler {
             log.warning("Exception during logstash publishing: " + e.getMessage());
             log.throwing("BotSlackHandler", "publish", e);
         }
-    }
-
-    private String formatDuration(Duration duration) {
-        return String.format("[%02d:%02d]", duration.toMinutes(), duration.toSeconds() % 60);
-    }
-
-    private String formatRecord(Instant base, LogRecord record) {
-        var writer = new StringWriter();
-        var printer = new PrintWriter(writer);
-
-        printer.print(formatDuration(Duration.between(base, record.getInstant())));
-        printer.print("[");
-        printer.print(record.getLevel().getName());
-        printer.print("] ");
-        printer.print(record.getMessage());
-
-        var exception = record.getThrown();
-        if (exception != null) {
-            exception.printStackTrace(printer);
-        }
-
-        return writer.toString().stripTrailing();
     }
 
     private Map<String, String> getExtraFields(LogRecord record) {
@@ -132,57 +111,8 @@ public class BotLogstashHandler extends BotTaskAggregationHandler {
         return ret;
     }
 
-    // Remove every entry below minLevel
-    private List<LogRecord> filterRecords(List<LogRecord> records, Level minLevel) {
-        return records.stream()
-                .filter(entry -> entry.getLevel().intValue() >= minLevel.intValue())
-                .collect(Collectors.toList());
-    }
-
     @Override
-    public void publishAggregated(List<LogRecord> task) {
-        var maxLevel = task.stream()
-                           .max(Comparator.comparingInt(r -> r.getLevel().intValue()))
-                           .map(LogRecord::getLevel)
-                           .orElseThrow();
-        if (maxLevel.intValue() < getLevel().intValue()) {
-            return;
-        }
-
-        var start = task.get(0).getInstant();
-
-        // For duplicate keys, the first value seen is retained
-        var concatenatedFields = task.stream()
-                .map(this::getExtraFields)
-                .flatMap(extra -> extra.entrySet().stream())
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
-                                          (value1, value2) -> value1));
-
-        // First try to accommodate size limit by filtering out low level logging
-        if (task.size() > maxRecords) {
-            task = filterRecords(task, Level.FINER);
-        }
-        if (task.size() > maxRecords) {
-            task = filterRecords(task, Level.FINE);
-        }
-
-        // If there's still too many lines, strip out the middle
-        if (task.size() > maxRecords) {
-            var beginning = task.subList(0, maxRecords / 2);
-            var end = task.subList(task.size() - maxRecords / 2, task.size());
-            task = beginning;
-            task.addAll(end);
-        }
-
-        var concatenatedMessage = task.stream()
-                                      .map(record -> formatRecord(start, record))
-                                      .collect(Collectors.joining("\n"));
-
-        publishToLogstash(start, maxLevel, concatenatedMessage, concatenatedFields);
-    }
-
-    @Override
-    public void publishSingle(LogRecord record) {
+    public void publish(LogRecord record) {
         if (record.getLevel().intValue() < getLevel().intValue()) {
             return;
         }

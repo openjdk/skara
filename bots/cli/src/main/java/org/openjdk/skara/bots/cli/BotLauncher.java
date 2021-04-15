@@ -22,6 +22,9 @@
  */
 package org.openjdk.skara.bots.cli;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import org.openjdk.skara.args.*;
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.network.URIBuilder;
@@ -41,6 +44,7 @@ import java.util.stream.*;
 
 public class BotLauncher {
     private static Logger log;
+    private static final LocalDate START_TIME = LocalDate.now();
 
     private static void applyLogging(JSONObject config) {
         LogManager.getLogManager().reset();
@@ -81,11 +85,7 @@ public class BotLauncher {
         if (config.get("log").asObject().contains("logstash")) {
             var logstashConf = config.get("log").get("logstash").asObject();
             var level = Level.parse(logstashConf.get("level").asString());
-            var maxRecords = 100;
-            if (logstashConf.contains("maxrecords")) {
-                maxRecords = logstashConf.get("maxrecords").asInt();
-            }
-            var handler = new BotLogstashHandler(URIBuilder.base(logstashConf.get("endpoint").asString()).build(), maxRecords);
+            var handler = new BotLogstashHandler(URIBuilder.base(logstashConf.get("endpoint").asString()).build());
             if (logstashConf.contains("fields")) {
                 for (var field : logstashConf.get("fields").asArray()) {
                     if (field.asObject().contains("pattern")) {
@@ -99,6 +99,10 @@ public class BotLauncher {
                 }
             }
             handler.setLevel(level);
+            var dateTimeFormatter = DateTimeFormatter.ISO_INSTANT
+                    .withLocale(Locale.getDefault())
+                    .withZone(ZoneId.systemDefault());
+            handler.addExtraField("instance_start_time", START_TIME.format(dateTimeFormatter));
             log.addHandler(handler);
         }
     }
