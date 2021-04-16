@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.bots.cli;
 
-import java.time.LocalDate;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import org.openjdk.skara.args.*;
@@ -44,7 +44,7 @@ import java.util.stream.*;
 
 public class BotLauncher {
     private static Logger log;
-    private static final LocalDate START_TIME = LocalDate.now();
+    private static final Instant START_TIME = Instant.now();
 
     private static void applyLogging(JSONObject config) {
         LogManager.getLogManager().reset();
@@ -102,7 +102,7 @@ public class BotLauncher {
             var dateTimeFormatter = DateTimeFormatter.ISO_INSTANT
                     .withLocale(Locale.getDefault())
                     .withZone(ZoneId.systemDefault());
-            handler.addExtraField("instance_start_time", START_TIME.format(dateTimeFormatter));
+            handler.addExtraField("instance_start_time", dateTimeFormatter.format(START_TIME));
             log.addHandler(handler);
         }
     }
