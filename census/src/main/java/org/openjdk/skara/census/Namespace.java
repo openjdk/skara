@@ -27,6 +27,7 @@ import org.openjdk.skara.xml.XML;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
+import org.w3c.dom.Element;
 
 public class Namespace {
     private final String name;
@@ -51,15 +52,22 @@ public class Namespace {
         return reverse.get(contributor);
     }
 
-    static Namespace parse(Path p, Map<String, Contributor> contributors) throws IOException {
-        var mapping = new HashMap<String, Contributor>();
-        var reverse = new HashMap<Contributor, String>();
+    public Set<Map.Entry<String, Contributor>> entries() {
+        return mapping.entrySet();
+    }
 
+    static Namespace parse(Path p, Map<String, Contributor> contributors) throws IOException {
         var document = XML.parse(p);
         var namespace = XML.child(document, "namespace");
-        var name = XML.attribute(namespace, "name");
+        return parse(namespace, contributors);
+    }
 
-        for (var user : XML.children(namespace, "user")) {
+    static Namespace parse(Element ele, Map<String, Contributor> contributors) throws IOException {
+        var mapping = new HashMap<String, Contributor>();
+        var reverse = new HashMap<Contributor, String>();
+        var name = XML.attribute(ele, "name");
+
+        for (var user : XML.children(ele, "user")) {
             var id = XML.attribute(user, "id");
             var to = XML.attribute(user, "census");
 

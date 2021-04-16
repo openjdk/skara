@@ -125,6 +125,15 @@ public class CensusSyncUnifyBot implements Bot, WorkItem {
 
                     file.println("</project>");
                 }
+                for (var namespace : census.namespaces()) {
+                    file.println("<namespace name=\"" + namespace.name() + "\">");
+                    for (var entry : namespace.entries()) {
+                        var id = entry.getKey();
+                        var contributor = entry.getValue();
+                        file.println("  <user id=\"" + id + "\" census=\"" + contributor.username() + "\" />");
+                    }
+                    file.println("</namespace>");
+                }
                 file.println("</census>");
             }
             toRepo.add(censusXML);

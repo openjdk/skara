@@ -144,6 +144,10 @@ class CensusTests {
             "    <person role=\"lead\" ref=\"user1\" />",
             "    <person role=\"committer\" ref=\"user2\" />",
             "  </project>",
+            "  <namespace name=\"reverse\" >",
+            "    <user id=\"1resu\" census=\"user1\" />",
+            "    <user id=\"2resu\" census=\"user2\" />",
+            "  </namespace>",
             "</census>");
         var tmpFile = Files.createTempFile("census", ".xml");
         Files.write(tmpFile, contents);
@@ -164,6 +168,10 @@ class CensusTests {
         assertEquals(List.of(expectedProject), census.projects());
 
         assertEquals(0, census.version().format());
+        assertEquals(1, census.namespaces().size());
+        assertEquals(2, census.namespace("reverse").entries().size());
+        assertEquals("user1", census.namespace("reverse").get("1resu").username());
+        assertEquals("user2", census.namespace("reverse").get("2resu").username());
 
         Files.delete(tmpFile);
     }
