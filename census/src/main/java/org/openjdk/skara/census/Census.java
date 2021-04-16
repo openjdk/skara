@@ -173,7 +173,12 @@ public class Census {
             projects.add(Project.parse(ele, groups, contributors));
         }
 
-        return new Census(contributors, groups, projects, List.of(), version);
+        var namespaces = new ArrayList<Namespace>();
+        for (var ele : XML.children(census, "namespace")) {
+            namespaces.add(Namespace.parse(ele, contributors));
+        }
+
+        return new Census(contributors, groups, projects, namespaces, version);
     }
 
     private static Census parseSingleFile(Path p) throws IOException {
