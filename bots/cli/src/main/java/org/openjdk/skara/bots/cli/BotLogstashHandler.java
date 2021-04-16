@@ -78,7 +78,7 @@ public class BotLogstashHandler extends StreamHandler {
             query.put("level_value", level.intValue());
             query.put("message", message);
 
-            for (Map.Entry<String, String> entry : LogContextMap.entrySet()) {
+            for (var entry : LogContextMap.entrySet()) {
                 query.put(entry.getKey(), entry.getValue());
             }
 
