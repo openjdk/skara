@@ -23,6 +23,8 @@
 package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
+import org.openjdk.skara.census.Census;
+import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.*;
 import org.openjdk.skara.version.Version;
@@ -91,10 +93,26 @@ public class GitHgExport {
 
         var c = commit.get();
         var committer = c.committer();
-        if (committer.email() == null || !committer.email().endsWith("@openjdk.org")) {
-            die("committer is not an OpenJDK committer");
+        String username = null;
+        if (committer.email().endsWith("@openjdk.org")) {
+            username = committer.email().split("@")[0];
+        } else {
+            var jcheckConf = JCheckConfiguration.from(repo.get(), repo.get().head());
+            if (jcheckConf.isEmpty()) {
+                die("No .jcheck/conf file found");
+            }
+            var censusURI = jcheckConf.get().census().url();
+            var census = Census.from(censusURI);
+            var namespace = census.namespace("openjdk.org");
+            if (namespace == null) {
+                die("No namespace found for openjdk.org");
+            }
+            var localUsername = committer.email().split("@")[0];
+            username = namespace.get(localUsername).username();
+            if (username == null) {
+                die("No census name found for " + localUsername);
+            }
         }
-        var username = committer.email().split("@")[0];
         var date = c.committed();
         var dateFormatter = DateTimeFormatter.ofPattern("EE MMM HH:mm:ss yyyy xx");
 
