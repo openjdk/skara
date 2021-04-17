@@ -55,7 +55,8 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
             Map.entry("reviewer", new ReviewerCommand()),
             Map.entry("label", new LabelCommand()),
             Map.entry("cc", new LabelCommand("cc")),
-            Map.entry("clean", new CleanCommand())
+            Map.entry("clean", new CleanCommand()),
+            Map.entry("open", new OpenCommand())
     );
 
     public static final String VALID_BOT_COMMAND_MARKER = "<!-- Valid self-command -->";
