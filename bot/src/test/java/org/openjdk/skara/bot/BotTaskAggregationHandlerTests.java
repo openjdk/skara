@@ -155,9 +155,9 @@ class BotTaskAggregationHandlerTests {
 
         handler.taskRecords().stream()
                .flatMap(Collection::stream)
-               .forEach(record -> assertEquals(Integer.toString(record.getThreadID()), record.getMessage()));
+               .forEach(record -> assertEquals(Long.toString(record.getLongThreadID()), record.getMessage()));
         handler.nonTaskRecords()
-               .forEach(record -> assertEquals(Integer.toString(record.getThreadID()), record.getMessage()));
+               .forEach(record -> assertEquals(Long.toString(record.getLongThreadID()), record.getMessage()));
     }
 
 }
