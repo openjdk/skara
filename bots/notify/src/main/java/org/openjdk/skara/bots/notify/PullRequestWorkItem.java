@@ -169,33 +169,34 @@ public class PullRequestWorkItem implements WorkItem {
         return false;
     }
 
-    private void notifyNewIssue(String issueId) {
-        listeners.forEach(c -> c.onNewIssue(pr, new Issue(issueId, "")));
+    private void notifyNewIssue(String issueId, Path scratchPath) {
+        listeners.forEach(c -> c.onNewIssue(pr, scratchPath.resolve(c.name()), new Issue(issueId, "")));
     }
 
-    private void notifyRemovedIssue(String issueId) {
-        listeners.forEach(c -> c.onRemovedIssue(pr, new Issue(issueId, "")));
+    private void notifyRemovedIssue(String issueId, Path scratchPath) {
+        listeners.forEach(c -> c.onRemovedIssue(pr, scratchPath.resolve(c.name()), new Issue(issueId, "")));
     }
 
-    private void notifyNewPr(PullRequest pr) {
-        listeners.forEach(c -> c.onNewPullRequest(pr));
+    private void notifyNewPr(PullRequest pr, Path scratchPath) {
+        listeners.forEach(c -> c.onNewPullRequest(pr, scratchPath.resolve(c.name())));
     }
 
-    private void notifyIntegratedPr(PullRequest pr, Hash hash) {
-        listeners.forEach(c -> c.onIntegratedPullRequest(pr, hash));
+    private void notifyIntegratedPr(PullRequest pr, Hash hash, Path scratchPath) {
+        listeners.forEach(c -> c.onIntegratedPullRequest(pr, scratchPath.resolve(c.name()), hash));
     }
 
-    private void notifyHeadChange(PullRequest pr, Hash oldHead) {
-        listeners.forEach(c -> c.onHeadChange(pr, oldHead));
+    private void notifyHeadChange(PullRequest pr, Hash oldHead, Path scratchPath) {
+        listeners.forEach(c -> c.onHeadChange(pr, scratchPath.resolve(c.name()), oldHead));
     }
 
-    private void notifyStateChange(org.openjdk.skara.issuetracker.Issue.State oldState) {
-        listeners.forEach(c -> c.onStateChange(pr, oldState));
+    private void notifyStateChange(org.openjdk.skara.issuetracker.Issue.State oldState, Path scratchPath) {
+        listeners.forEach(c -> c.onStateChange(pr, scratchPath.resolve(c.name()), oldState));
     }
 
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
         var historyPath = scratchPath.resolve("notify").resolve("history");
+        var listenerScratchPath = scratchPath.resolve("notify").resolve("listener");
         var storage = prStateStorageBuilder
                 .serializer(this::serializePrState)
                 .deserializer(this::deserializePrState)
@@ -235,26 +236,26 @@ public class PullRequestWorkItem implements WorkItem {
             var storedIssues = storedState.get().issueIds();
             storedIssues.stream()
                         .filter(issue -> !issues.contains(issue))
-                        .forEach(this::notifyRemovedIssue);
+                        .forEach(issue -> notifyRemovedIssue(issue, listenerScratchPath));
             issues.stream()
                   .filter(issue -> !storedIssues.contains(issue))
-                  .forEach(this::notifyNewIssue);
+                  .forEach(issue -> notifyNewIssue(issue, listenerScratchPath));
 
             if (!storedState.get().head().equals(state.head())) {
-                notifyHeadChange(pr, storedState.get().head());
+                notifyHeadChange(pr, storedState.get().head(), listenerScratchPath);
             }
             var storedCommit = storedState.get().commitId();
             if (storedCommit.isEmpty() && state.commitId().isPresent()) {
-                notifyIntegratedPr(pr, state.commitId().get());
+                notifyIntegratedPr(pr, state.commitId().get(), listenerScratchPath);
             }
             if (!storedState.get().state().equals(state.state())) {
-                notifyStateChange(storedState.get().state());
+                notifyStateChange(storedState.get().state(), scratchPath);
             }
         } else {
-            notifyNewPr(pr);
-            issues.forEach(this::notifyNewIssue);
+            notifyNewPr(pr, listenerScratchPath);
+            issues.forEach(issue -> notifyNewIssue(issue, listenerScratchPath));
             if (state.commitId().isPresent()) {
-                notifyIntegratedPr(pr, state.commitId().get());
+                notifyIntegratedPr(pr, state.commitId().get(), listenerScratchPath);
             }
         }
 

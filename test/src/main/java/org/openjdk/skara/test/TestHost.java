@@ -22,7 +22,6 @@
  */
 package org.openjdk.skara.test;
 
-import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
@@ -133,14 +132,6 @@ public class TestHost implements Forge, IssueTracker {
     public Optional<HostUser> user(String username) {
         return data.users.stream()
                          .filter(user -> user.username().equals(username))
-                         .findAny();
-    }
-
-    Optional<HostUser> findUser(String findBy) {
-        var findByLocalPart = EmailAddress.parse(findBy).localPart();
-        return data.users.stream()
-                         .filter(user -> user.username().equals(findBy) ||
-                                 user.username().equals(findByLocalPart))
                          .findAny();
     }
 

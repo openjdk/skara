@@ -24,13 +24,13 @@ package org.openjdk.skara.bots.notify;
 
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.HostedRepository;
-import org.openjdk.skara.storage.StorageBuilder;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Tag;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.OpenJDKTag;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -50,8 +50,8 @@ public class UpdaterTests {
         }
 
         @Override
-        public void onNewCommits(HostedRepository repository, Repository localRepository, List<Commit> commits,
-                                  Branch branch) throws NonRetriableException {
+        public void onNewCommits(HostedRepository repository, Repository localRepository, Path scratchPath, List<Commit> commits,
+                                 Branch branch) throws NonRetriableException {
             updateCount++;
             if (shouldFail) {
                 if (idempotent) {
@@ -64,19 +64,19 @@ public class UpdaterTests {
 
         @Override
         public void onNewOpenJDKTagCommits(HostedRepository repository, Repository localRepository,
-         List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) {
+                                           Path scratchPath, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) {
             throw new RuntimeException("unexpected");
         }
 
         @Override
-        public void onNewTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag,
-         Tag.Annotated annotation) {
+        public void onNewTagCommit(HostedRepository repository, Repository localRepository, Path scratchPath, Commit commit, Tag tag,
+                                   Tag.Annotated annotation) {
             throw new RuntimeException("unexpected");
         }
 
         @Override
-        public void onNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits,
-         Branch parent, Branch branch) {
+        public void onNewBranch(HostedRepository repository, Repository localRepository, Path scratchPath, List<Commit> commits,
+                                Branch parent, Branch branch) {
             throw new RuntimeException("unexpected");
         }
 

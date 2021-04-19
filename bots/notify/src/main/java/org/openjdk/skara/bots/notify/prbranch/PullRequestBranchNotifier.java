@@ -67,14 +67,14 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
     }
 
     @Override
-    public void onNewPullRequest(PullRequest pr) {
+    public void onNewPullRequest(PullRequest pr, Path scratchPath) {
         if (pr.state() == Issue.State.OPEN) {
             pushBranch(pr);
         }
     }
 
     @Override
-    public void onStateChange(PullRequest pr, Issue.State oldState) {
+    public void onStateChange(PullRequest pr, Path scratchPath, Issue.State oldState) {
         if (pr.state() == Issue.State.CLOSED) {
             PreIntegrations.retargetDependencies(pr);
             deleteBranch(pr);
@@ -84,7 +84,12 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
     }
 
     @Override
-    public void onHeadChange(PullRequest pr, Hash oldHead) {
+    public String name() {
+        return "pullrequestbranch";
+    }
+
+    @Override
+    public void onHeadChange(PullRequest pr, Path scratchPath, Hash oldHead) {
         if (pr.state() == Issue.State.OPEN) {
             pushBranch(pr);
         }

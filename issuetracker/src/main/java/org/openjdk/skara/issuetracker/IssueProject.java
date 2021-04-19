@@ -22,7 +22,6 @@
  */
 package org.openjdk.skara.issuetracker;
 
-import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.json.JSONValue;
 
 import java.net.URI;
@@ -37,5 +36,4 @@ public interface IssueProject {
     List<Issue> issues();
     List<Issue> issues(ZonedDateTime updatedAfter);
     String name();
-    Optional<HostUser> findUser(String findBy);
 }

@@ -32,6 +32,7 @@ import org.openjdk.skara.network.*;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.List;
 import java.time.format.DateTimeFormatter;
 
@@ -53,7 +54,7 @@ class SlackNotifier implements Notifier, RepositoryListener, PullRequestListener
     }
 
     @Override
-    public void onNewPullRequest(PullRequest pr) {
+    public void onNewPullRequest(PullRequest pr, Path scratchPath) {
         if (prWebhook == null) {
             return;
         }
@@ -73,7 +74,7 @@ class SlackNotifier implements Notifier, RepositoryListener, PullRequestListener
     @Override
     public void onNewCommits(HostedRepository repository,
                              Repository localRepository,
-                             List<Commit> commits,
+                             Path scratchPath, List<Commit> commits,
                              Branch branch) throws NonRetriableException {
         if (commitWebhook == null) {
             return;

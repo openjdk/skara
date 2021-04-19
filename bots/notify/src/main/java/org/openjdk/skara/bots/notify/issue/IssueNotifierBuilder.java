@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.notify.issue;
 
+import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.issuetracker.IssueProject;
 
 import java.net.URI;
@@ -38,6 +39,9 @@ class IssueNotifierBuilder {
     private JbsVault vault = null;
     private boolean prOnly = true;
     private String buildName = null;
+    private HostedRepository censusRepository = null;
+    private String censusRef = null;
+    private String namespace = "openjdk.org";
 
     IssueNotifierBuilder issueProject(IssueProject issueProject) {
         this.issueProject = issueProject;
@@ -90,9 +94,25 @@ class IssueNotifierBuilder {
         return this;
     }
 
+    public IssueNotifierBuilder censusRepository(HostedRepository censusRepository) {
+        this.censusRepository = censusRepository;
+        return this;
+    }
+
+    public IssueNotifierBuilder censusRef(String censusRef) {
+        this.censusRef = censusRef;
+        return this;
+    }
+
+    public IssueNotifierBuilder namespace(String namespace) {
+        this.namespace = namespace;
+        return this;
+    }
+
     IssueNotifier build() {
         var jbsBackport = new JbsBackport(issueProject.webUrl(), vault);
         return new IssueNotifier(issueProject, reviewLink, reviewIcon, commitLink, commitIcon,
-                                 setFixVersion, fixVersions, jbsBackport, prOnly, buildName);
+                                 setFixVersion, fixVersions, jbsBackport, prOnly, buildName,
+                                 censusRepository, censusRef, namespace);
     }
 }

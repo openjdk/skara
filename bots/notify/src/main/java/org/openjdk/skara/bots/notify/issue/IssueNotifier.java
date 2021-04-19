@@ -50,12 +50,15 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     private final JbsBackport jbsBackport;
     private final boolean prOnly;
     private final String buildName;
+    private final HostedRepository censusRepository;
+    private final String censusRef;
+    private final String namespace;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
     IssueNotifier(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,
             boolean setFixVersion, Map<String, String> fixVersions, JbsBackport jbsBackport, boolean prOnly,
-                  String buildName) {
+                  String buildName, HostedRepository censusRepository, String censusRef, String namespace) {
         this.issueProject = issueProject;
         this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
@@ -66,20 +69,37 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         this.jbsBackport = jbsBackport;
         this.prOnly = prOnly;
         this.buildName = buildName;
+        this.censusRepository = censusRepository;
+        this.censusRef = censusRef;
+        this.namespace = namespace;
     }
 
     static IssueNotifierBuilder newBuilder() {
         return new IssueNotifierBuilder();
     }
 
-    private Optional<String> findIssueUsername(Commit commit) {
+    private Optional<String> findCensusUser(String user, Path scratchPath) {
+        if (censusRepository == null) {
+            return Optional.empty();
+        }
+        var censusInstance = CensusInstance.create(censusRepository, censusRef, scratchPath, namespace);
+        var ns = censusInstance.namespace();
+        for (var entry : ns.entries()) {
+            if (entry.getValue().username().equals(user)) {
+                return Optional.of(entry.getKey());
+            }
+        }
+        return Optional.empty();
+    }
+
+    private Optional<String> findIssueUsername(Commit commit, Path scratchPath) {
         var authorEmail = EmailAddress.from(commit.author().email());
-        if (authorEmail.domain().equals("openjdk.org")) {
+        if (authorEmail.domain().equals(namespace)) {
             return Optional.of(authorEmail.localPart());
         } else {
-            var user = issueProject.findUser(authorEmail.address());
+            var user = findCensusUser(authorEmail.localPart(), scratchPath);
             if (user.isPresent()) {
-                return Optional.of(user.get().username());
+                return user;
             }
         }
 
@@ -87,9 +107,9 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         if (committerEmail.domain().equals("openjdk.org")) {
             return Optional.of(committerEmail.localPart());
         } else {
-            var user = issueProject.findUser(committerEmail.address());
+            var user = findCensusUser(committerEmail.localPart(), scratchPath);
             if (user.isPresent()) {
-                return Optional.of(user.get().username());
+                return user;
             }
 
             log.warning("Cannot determine issue tracker user name from committer email: " + committerEmail);
@@ -106,7 +126,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     }
 
     @Override
-    public void onIntegratedPullRequest(PullRequest pr, Hash hash)  {
+    public void onIntegratedPullRequest(PullRequest pr, Path scratchPath, Hash hash)  {
         var repository = pr.repository();
         var commit = repository.commit(hash).orElseThrow(() ->
                 new IllegalStateException("Integrated commit " + hash +
@@ -137,7 +157,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 if (issue.state() == Issue.State.OPEN) {
                     issue.setState(Issue.State.RESOLVED);
                     if (issue.assignees().isEmpty()) {
-                        var username = findIssueUsername(commit);
+                        var username = findIssueUsername(commit, scratchPath);
                         if (username.isPresent()) {
                             var assignee = issueProject.issueTracker().user(username.get());
                             assignee.ifPresent(hostUser -> issue.setAssignees(List.of(hostUser)));
@@ -149,7 +169,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     }
 
     @Override
-    public void onNewIssue(PullRequest pr, org.openjdk.skara.vcs.openjdk.Issue issue) {
+    public void onNewIssue(PullRequest pr, Path scratchPath, org.openjdk.skara.vcs.openjdk.Issue issue) {
         var realIssue = issueProject.issue(issue.shortId());
         if (realIssue.isEmpty()) {
             log.warning("Pull request " + pr + " added unknown issue: " + issue.id());
@@ -169,7 +189,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     }
 
     @Override
-    public void onRemovedIssue(PullRequest pr, org.openjdk.skara.vcs.openjdk.Issue issue) {
+    public void onRemovedIssue(PullRequest pr, Path scratchPath, org.openjdk.skara.vcs.openjdk.Issue issue) {
         var realIssue = issueProject.issue(issue.shortId());
         if (realIssue.isEmpty()) {
             log.warning("Pull request " + pr + " removed unknown issue: " + issue.id());
@@ -181,11 +201,11 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     }
 
     @Override
-    public void onNewCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) {
+    public void onNewCommits(HostedRepository repository, Repository localRepository, Path scratchPath, List<Commit> commits, Branch branch) {
         for (var commit : commits) {
             var commitNotification = CommitFormatters.toTextBrief(repository, commit);
             var commitMessage = CommitMessageParsers.v1.parse(commit);
-            var username = findIssueUsername(commit);
+            var username = findIssueUsername(commit, scratchPath);
 
             for (var commitIssue : commitMessage.issues()) {
                 var optionalIssue = issueProject.issue(commitIssue.shortId());
@@ -274,7 +294,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     }
 
     @Override
-    public void onNewOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) throws NonRetriableException {
+    public void onNewOpenJDKTagCommits(HostedRepository repository, Repository localRepository, Path scratchPath, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotated) throws NonRetriableException {
         if (!setFixVersion) {
             return;
         }
