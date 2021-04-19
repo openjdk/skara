@@ -22,21 +22,34 @@
  */
 package org.openjdk.skara.bots.cli;
 
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.logging.*;
-import java.util.stream.Collectors;
+import java.net.http.HttpResponse;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class BotLogstashHandlerTests {
+
     @Test
-    void simple() throws IOException {
+    void simple() throws IOException, ExecutionException, InterruptedException {
         try (var receiver = new RestReceiver()) {
             var handler = new BotLogstashHandler(receiver.getEndpoint());
+            var futures = new ArrayList<Future<HttpResponse<Void>>>();
+            handler.setFuturesCollection(futures);
+
             var record = new LogRecord(Level.INFO, "Hello");
             handler.publish(record);
+
+            for (Future<HttpResponse<Void>> future : futures) {
+                future.get();
+            }
 
             var requests = receiver.getRequests();
             assertEquals(1, requests.size(), requests.toString());
@@ -46,9 +59,11 @@ class BotLogstashHandlerTests {
     }
 
     @Test
-    void simpleTask() throws IOException {
+    void simpleTask() throws IOException, ExecutionException, InterruptedException {
         try (var receiver = new RestReceiver()) {
             var handler = new BotLogstashHandler(receiver.getEndpoint());
+            var futures = new ArrayList<Future<HttpResponse<Void>>>();
+            handler.setFuturesCollection(futures);
 
             LoggingBot.runOnce(handler, log -> {
                 log.warning("Hello");
@@ -56,7 +71,15 @@ class BotLogstashHandlerTests {
                 log.warning("Bye");
             });
 
+            for (Future<HttpResponse<Void>> future : futures) {
+                future.get();
+            }
+
             var requests = receiver.getRequests();
+            // The async message sending means we may get results in any order. Sort on the
+            // timestamp to get the actual order.
+            requests.sort(Comparator.comparing(r -> r.get("@timestamp").toString()));
+
             assertEquals(3, requests.size(), requests.toString());
             assertEquals(Level.WARNING.getName(), requests.get(0).get("level").asString());
             assertEquals(Level.WARNING.intValue(), requests.get(0).get("level_value").asInt());
@@ -71,14 +94,21 @@ class BotLogstashHandlerTests {
     }
 
     @Test
-    void extraField() throws IOException {
+    void extraField() throws IOException, ExecutionException, InterruptedException {
         try (var receiver = new RestReceiver()) {
             var handler = new BotLogstashHandler(receiver.getEndpoint());
+            var futures = new ArrayList<Future<HttpResponse<Void>>>();
+            handler.setFuturesCollection(futures);
+
             handler.addExtraField("mandatory", "value");
             handler.addExtraField("optional1", "$1", "^H(ello)$");
             handler.addExtraField("optional2", "$1", "^(Not found)$");
             var record = new LogRecord(Level.INFO, "Hello");
             handler.publish(record);
+
+            for (Future<HttpResponse<Void>> future : futures) {
+                future.get();
+            }
 
             var requests = receiver.getRequests();
             assertEquals(1, requests.size(), requests.toString());
@@ -89,9 +119,12 @@ class BotLogstashHandlerTests {
     }
 
     @Test
-    void extraFieldTask() throws IOException {
+    void extraFieldTask() throws IOException, ExecutionException, InterruptedException {
         try (var receiver = new RestReceiver()) {
             var handler = new BotLogstashHandler(receiver.getEndpoint());
+            var futures = new ArrayList<Future<HttpResponse<Void>>>();
+            handler.setFuturesCollection(futures);
+
             handler.addExtraField("mandatory", "value");
             handler.addExtraField("optional1", "$1", "^H(ello)$");
             handler.addExtraField("optional2", "$1", "^(Not found)$");
@@ -104,7 +137,15 @@ class BotLogstashHandlerTests {
                 log.warning("Bye");
             });
 
+            for (Future<HttpResponse<Void>> future : futures) {
+                future.get();
+            }
+
             var requests = receiver.getRequests();
+            // The async message sending means we may get results in any order. Sort on the
+            // timestamp to get the actual order.
+            requests.sort(Comparator.comparing(r -> r.get("@timestamp").toString()));
+
             assertEquals(3, requests.size(), requests.toString());
             assertEquals("value", requests.get(0).get("mandatory").asString());
             assertEquals("ello", requests.get(0).get("optional1").asString());

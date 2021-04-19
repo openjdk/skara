@@ -33,6 +33,7 @@ module org.openjdk.skara.bots.cli {
     requires org.openjdk.skara.network;
     requires org.openjdk.skara.version;
 
+    requires java.net.http;
     requires java.sql;
 
     exports org.openjdk.skara.bots.cli;

@@ -23,22 +23,27 @@
 package org.openjdk.skara.bots.cli;
 
 import org.openjdk.skara.bot.LogContextMap;
-import org.openjdk.skara.network.RestRequest;
 import org.openjdk.skara.json.JSON;
 
-import java.io.*;
 import java.net.URI;
+import java.net.http.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.Future;
 import java.util.logging.*;
 import java.util.regex.Pattern;
 
+/**
+ * Handles logging to logstash. Be careful not to call anything that creates new
+ * log records from this class as that can cause infinite recursion.
+ */
 public class BotLogstashHandler extends StreamHandler {
-    private final RestRequest endpoint;
+    private final URI endpoint;
+    private final HttpClient httpClient;
     private final DateTimeFormatter dateTimeFormatter;
-    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.cli");
-
+    // Optionally store all futures for testing purposes
+    private Collection<Future<HttpResponse<Void>>> futures;
 
     private static class ExtraField {
         String name;
@@ -49,7 +54,11 @@ public class BotLogstashHandler extends StreamHandler {
     private final List<ExtraField> extraFields;
 
     BotLogstashHandler(URI endpoint) {
-        this.endpoint = new RestRequest(endpoint);
+        this.endpoint = endpoint;
+        this.httpClient = HttpClient.newBuilder()
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .connectTimeout(Duration.ofSeconds(30))
+                .build();
         dateTimeFormatter = DateTimeFormatter.ISO_INSTANT
                 .withLocale(Locale.getDefault())
                 .withZone(ZoneId.systemDefault());
@@ -71,27 +80,28 @@ public class BotLogstashHandler extends StreamHandler {
     }
 
     private void publishToLogstash(Instant time, Level level, String message, Map<String, String> extraFields) {
-        try {
-            var query = JSON.object();
-            query.put("@timestamp", dateTimeFormatter.format(time));
-            query.put("level", level.getName());
-            query.put("level_value", level.intValue());
-            query.put("message", message);
+        var query = JSON.object();
+        query.put("@timestamp", dateTimeFormatter.format(time));
+        query.put("level", level.getName());
+        query.put("level_value", level.intValue());
+        query.put("message", message);
 
-            for (var entry : LogContextMap.entrySet()) {
-                query.put(entry.getKey(), entry.getValue());
-            }
+        for (var entry : LogContextMap.entrySet()) {
+            query.put(entry.getKey(), entry.getValue());
+        }
 
-            for (var extraField : extraFields.entrySet()) {
-                query.put(extraField.getKey(), extraField.getValue());
-            }
+        for (var extraField : extraFields.entrySet()) {
+            query.put(extraField.getKey(), extraField.getValue());
+        }
 
-            endpoint.post("/")
-                    .body(query)
-                    .executeUnparsed();
-        } catch (RuntimeException | IOException e) {
-            log.warning("Exception during logstash publishing: " + e.getMessage());
-            log.throwing("BotSlackHandler", "publish", e);
+        var httpRequest = HttpRequest.newBuilder()
+                .uri(endpoint)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(query.toString()))
+                .build();
+        var future = httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.discarding());
+        if (futures != null) {
+            futures.add(future);
         }
     }
 
@@ -117,5 +127,9 @@ public class BotLogstashHandler extends StreamHandler {
             return;
         }
         publishToLogstash(record.getInstant(), record.getLevel(), record.getMessage(), getExtraFields(record));
+    }
+
+    void setFuturesCollection(Collection<Future<HttpResponse<Void>>> futures) {
+        this.futures = futures;
     }
 }
