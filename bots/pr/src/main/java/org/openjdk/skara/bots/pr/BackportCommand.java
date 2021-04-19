@@ -106,7 +106,7 @@ public class BackportCommand implements CommandHandler {
             var hash = commit.hash();
             var fork = bot.writeableForkOf(targetRepo);
             Hash backportHash = null;
-            var backportBranchName = "backport-" + hash.abbreviate();
+            var backportBranchName = username + "-backport-" + hash.abbreviate();
             var hostedBackportBranch = fork.branches().stream().filter(b -> b.name().equals(backportBranchName)).findAny();
             if (hostedBackportBranch.isEmpty()) {
                 var localRepoDir = scratchPath.resolve("backport-command")
