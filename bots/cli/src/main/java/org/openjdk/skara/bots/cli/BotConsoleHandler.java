@@ -54,7 +54,7 @@ class BotConsoleHandler extends StreamHandler {
         }
 
         var level = levelAbbreviations.getOrDefault(record.getLevel().intValue(), "?");
-        System.out.println("[" + dateTimeFormatter.format(record.getInstant().truncatedTo(ChronoUnit.SECONDS)) + "][" + record.getThreadID() + "][" +
+        System.out.println("[" + dateTimeFormatter.format(record.getInstant().truncatedTo(ChronoUnit.SECONDS)) + "][" + record.getLongThreadID() + "][" +
                 level + "] " + record.getMessage());
         var exception = record.getThrown();
         if (exception != null) {

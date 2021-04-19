@@ -97,6 +97,10 @@ public class RestRequest {
             return finalBody.toString();
         }
 
+        private boolean isJSON() {
+            return body != null || !bodyParams.isEmpty();
+        }
+
         /**
          * Pass a parameter through the url query mechanism.
          * @param key
@@ -309,7 +313,7 @@ public class RestRequest {
     }
 
     private HttpRequest.Builder createRequest(RequestType requestType, String endpoint, String body,
-                                      List<QueryBuilder.Param> params, Map<String, String> headers) {
+                                      List<QueryBuilder.Param> params, Map<String, String> headers, boolean isJSON) {
         var uriBuilder = URIBuilder.base(apiBase);
         if (endpoint != null && !endpoint.isEmpty()) {
             uriBuilder = uriBuilder.appendPath(endpoint);
@@ -321,8 +325,11 @@ public class RestRequest {
 
         var requestBuilder = HttpRequest.newBuilder()
                                         .uri(uri)
-                                        .timeout(Duration.ofSeconds(30))
-                                        .header("Content-type", "application/json");
+                                        .timeout(Duration.ofSeconds(30));
+
+        if (isJSON) {
+            requestBuilder = requestBuilder.header("Content-type", "application/json");
+        }
 
         if (body != null) {
             requestBuilder.method(requestType.name(), HttpRequest.BodyPublishers.ofString(body));
@@ -373,7 +380,7 @@ public class RestRequest {
 
     private JSONValue execute(QueryBuilder queryBuilder) throws IOException {
         var request = createRequest(queryBuilder.queryType, queryBuilder.endpoint, queryBuilder.composedBody(),
-                                    queryBuilder.params, queryBuilder.headers);
+                                    queryBuilder.params, queryBuilder.headers, queryBuilder.isJSON());
         var response = sendRequest(request);
         var errorTransform = transformBadResponse(response, queryBuilder);
         if (errorTransform.isPresent()) {
@@ -414,7 +421,7 @@ public class RestRequest {
 
     private String executeUnparsed(QueryBuilder queryBuilder) throws IOException {
         var request = createRequest(queryBuilder.queryType, queryBuilder.endpoint, queryBuilder.composedBody(),
-                                    queryBuilder.params, queryBuilder.headers);
+                                    queryBuilder.params, queryBuilder.headers, queryBuilder.isJSON());
         var response = sendRequest(request);
         if (response.statusCode() >= 400) {
             throw new IOException("Bad response: " + response.statusCode());

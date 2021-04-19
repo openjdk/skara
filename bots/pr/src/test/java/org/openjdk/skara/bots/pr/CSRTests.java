@@ -174,7 +174,7 @@ class CSRTests {
                                           "[compatibility and specification](https://wiki.openjdk.java.net/display/csr/Main) " +
                                           "(CSR) request is needed for this pull request.");
             assertLastCommentContains(pr, "this pull request must refer to an issue in [JBS]");
-            assertLastCommentContains(pr, "to be able to link it to a CSR request. To refer this pull request to an issue in JBS");
+            assertLastCommentContains(pr, "To refer this pull request to an issue in JBS");
             assertTrue(pr.labelNames().contains("csr"));
         }
     }
@@ -296,7 +296,7 @@ class CSRTests {
                                           "[compatibility and specification](https://wiki.openjdk.java.net/display/csr/Main) " +
                                           "(CSR) request is needed for this pull request.");
             assertLastCommentContains(pr, "this pull request must refer to an issue in [JBS]");
-            assertLastCommentContains(pr, "to be able to link it to a CSR request. To refer this pull request to an issue in JBS");
+            assertLastCommentContains(pr, "to be able to link it to a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request. To refer this pull request to an issue in JBS");
             assertTrue(pr.labelNames().contains("csr"));
         }
     }

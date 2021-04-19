@@ -106,7 +106,7 @@ public class BackportCommand implements CommandHandler {
             var hash = commit.hash();
             var fork = bot.writeableForkOf(targetRepo);
             Hash backportHash = null;
-            var backportBranchName = "backport-" + hash.abbreviate();
+            var backportBranchName = username + "-backport-" + hash.abbreviate();
             var hostedBackportBranch = fork.branches().stream().filter(b -> b.name().equals(backportBranchName)).findAny();
             if (hostedBackportBranch.isEmpty()) {
                 var localRepoDir = scratchPath.resolve("backport-command")
@@ -173,7 +173,7 @@ public class BackportCommand implements CommandHandler {
                       "[" + hash.abbreviate() + "](" + commit.url() + ") from the " +
                       "[" + currentRepoName + "](" + bot.repo().webUrl() + ") repository.");
             body.add(">");
-            var info = "The commit being backported was authored by " + commit.author().name() + " on " +
+            var info = "> The commit being backported was authored by " + commit.author().name() + " on " +
                         commit.committed().format(formatter);
             if (message.reviewers().isEmpty()) {
                 info += " and had no reviewers";
@@ -182,11 +182,7 @@ public class BackportCommand implements CommandHandler {
                                        .stream()
                                        .map(r -> censusInstance.census().contributor(r))
                                        .map(c -> {
-                                           var link = "[" + c.username() + "](https://openjdk.java.net/census#" +
-                                                      c.username() + ")";
-                                           return c.fullName().isPresent() ?
-                                                    c.fullName().get() + " (" + link + ")" :
-                                                    link;
+                                           return c.fullName().isPresent() ? c.fullName().get() : c.username();
                                        })
                                        .collect(Collectors.toList());
                 var numReviewers = reviewers.size();
@@ -221,6 +217,7 @@ public class BackportCommand implements CommandHandler {
                           "\n" +
                           String.join("\n", body) +
                           "\n" +
+                          "\n" +
                           "If you need to update the [source branch](" + backportBranchWebUrl + ") of the pull " +
                           "then run the following commands in a local clone of your personal fork of " +
                           "[" + targetRepo.name() + "](" + targetRepo.webUrl() + "):\n" +
@@ -231,7 +228,7 @@ public class BackportCommand implements CommandHandler {
                           "# make changes\n" +
                           "$ git add paths/to/changed/files\n" +
                           "$ git commit --message 'Describe additional changes made'\n" +
-                          "$ git push\n" +
+                          "$ git push " + fork.webUrl() + " " + backportBranchName + "\n" +
                           "```");
         } catch (IOException e) {
             throw new UncheckedIOException(e);
