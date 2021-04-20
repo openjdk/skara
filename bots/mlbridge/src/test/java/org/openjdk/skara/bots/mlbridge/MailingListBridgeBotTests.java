@@ -1516,6 +1516,18 @@ class MailingListBridgeBotTests {
             assertFalse(archiveContains(archiveFolder.path(), "/newline"));
             assertFalse(archiveContains(archiveFolder.path(), "/multiline"));
             assertFalse(archiveContains(archiveFolder.path(), "will be dropped"));
+
+            // There should not be consecutive empty lines due to a filtered multiline message
+            var lines = archiveContents(archiveFolder.path(), "").orElseThrow();
+            assertFalse(lines.contains("\n\n\n"), lines);
+
+            // And a stand-alone multiline comment should not cause another mail to be sent
+            pr.addComment("/another\nmultiline\nwill not cause another mail");
+            TestBotRunner.runPeriodicItems(mlBot);
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            lines = archiveContents(archiveFolder.path(), "").orElseThrow();
+            var mails = Mbox.splitMbox(lines, EmailAddress.from("duke@openjdk.org"));
+            assertEquals(2, mails.size());
         }
     }
 

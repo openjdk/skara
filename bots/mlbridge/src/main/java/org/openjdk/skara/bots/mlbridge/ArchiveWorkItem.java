@@ -114,7 +114,7 @@ class ArchiveWorkItem implements WorkItem {
         }
     }
 
-    private final static Pattern commandPattern = Pattern.compile("^\\s*/([A-Za-z]+).*$");
+    private static final Pattern commandPattern = Pattern.compile("^\\s*/([A-Za-z]+).*$", Pattern.MULTILINE | Pattern.DOTALL);
 
     private boolean ignoreComment(HostUser author, String body) {
         if (pr.repository().forge().currentUser().equals(author)) {
@@ -124,11 +124,12 @@ class ArchiveWorkItem implements WorkItem {
             return true;
         }
         // Check if this comment only contains command lines
-        var commandOnly = body.strip().lines()
-                              .map(commandPattern::matcher)
-                              .allMatch(Matcher::matches);
-        if (body.strip().lines().count() > 0 && commandOnly) {
-            return true;
+        var commandLineMatcher = commandPattern.matcher(body);
+        if (commandLineMatcher.find()) {
+            var filteredBody = commandLineMatcher.replaceAll("");
+            if (filteredBody.strip().isEmpty()) {
+                return true;
+            }
         }
         for (var ignoredCommentPattern : bot.ignoredComments()) {
             var ignoredCommentMatcher = ignoredCommentPattern.matcher(body);
