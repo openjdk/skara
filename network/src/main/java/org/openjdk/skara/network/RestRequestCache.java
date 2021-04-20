@@ -217,6 +217,14 @@ enum RestRequestCache {
             }
             try (var ignored = new LockWithTimeout(authLock)) {
                 return client.send(finalRequest, HttpResponse.BodyHandlers.ofString());
+            } finally {
+                // Invalidate any related GET caches
+                var postUriString = unauthenticatedRequest.uri().toString();
+                for (var cachedResponse : cachedResponses.keySet()) {
+                    if (cachedResponse.unauthenticatedRequest.uri().toString().startsWith(postUriString)) {
+                        cachedUpdated.put(cachedResponse, Instant.now().minus(Duration.ofDays(1)));
+                    }
+                }
             }
         }
     }

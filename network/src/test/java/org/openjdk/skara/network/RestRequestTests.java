@@ -269,6 +269,38 @@ class RestRequestTests {
     }
 
     @Test
+    void cacheFlush() throws IOException {
+        try (var receiver = new RestReceiver()) {
+            var request = new RestRequest(receiver.getEndpoint());
+            request.get("/test").execute();
+            assertFalse(receiver.usedCached());
+            request.post("/test").execute();
+            request.get("/test").execute();
+            assertFalse(receiver.usedCached());
+            var anotherRequest = new RestRequest(receiver.getEndpoint());
+            request.post("/test").execute();
+            anotherRequest.get("/test").execute();
+            assertFalse(receiver.usedCached());
+        }
+    }
+
+    @Test
+    void cacheFlushPartial() throws IOException {
+        try (var receiver = new RestReceiver()) {
+            var request = new RestRequest(receiver.getEndpoint());
+            request.get("/test?1").execute();
+            assertFalse(receiver.usedCached());
+            request.get("/test?1").execute();
+            assertTrue(receiver.usedCached());
+            request.post("/test").execute();
+            request.get("/test?1").execute();
+            assertFalse(receiver.usedCached());
+            request.get("/test?1").execute();
+            assertTrue(receiver.usedCached());
+        }
+    }
+
+    @Test
     void cachedSeparateAuth() throws IOException {
         try (var receiver = new RestReceiver()) {
             var plainRequest = new RestRequest(receiver.getEndpoint());
