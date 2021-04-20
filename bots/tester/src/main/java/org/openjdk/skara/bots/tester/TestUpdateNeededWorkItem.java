@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class TestUpdateNeededWorkItem implements WorkItem {
@@ -68,8 +69,7 @@ public class TestUpdateNeededWorkItem implements WorkItem {
             log.info("Getting test jobs for " + desc);
             jobs = ci.jobsFor(pr);
         } catch (IOException e) {
-            log.info("Could not retrieve test jobs for PR: " + desc);
-            log.throwing("TestBot", "getPeriodicItems", e);
+            log.log(Level.INFO, "Could not retrieve test jobs for PR: " + desc, e);
         }
 
         if (!jobs.isEmpty()) {

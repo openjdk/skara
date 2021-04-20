@@ -29,6 +29,7 @@ import java.net.URI;
 import java.nio.file.*;
 import java.time.*;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class HostedRepositoryPool {
@@ -121,8 +122,7 @@ public class HostedRepositoryPool {
                 try {
                     Files.move(path, preserved);
                 } catch (IOException e) {
-                    log.severe("Failed to preserve old clone at " + path);
-                    log.throwing("HostedRepositoryInstance", "preserveOldClone", e);
+                    log.log(Level.SEVERE, "Failed to preserve old clone at " + path, e);
                 } finally {
                     if (Files.exists(path)) {
                         clearDirectory(path);

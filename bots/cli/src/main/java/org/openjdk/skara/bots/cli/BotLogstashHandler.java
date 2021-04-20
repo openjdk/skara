@@ -25,6 +25,8 @@ package org.openjdk.skara.bots.cli;
 import org.openjdk.skara.bot.LogContextMap;
 import org.openjdk.skara.json.JSON;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.URI;
 import java.net.http.*;
 import java.time.*;
@@ -79,33 +81,6 @@ public class BotLogstashHandler extends StreamHandler {
         extraFields.add(extraField);
     }
 
-    private void publishToLogstash(Instant time, Level level, String message, Map<String, String> extraFields) {
-        var query = JSON.object();
-        query.put("@timestamp", dateTimeFormatter.format(time));
-        query.put("level", level.getName());
-        query.put("level_value", level.intValue());
-        query.put("message", message);
-
-        for (var entry : LogContextMap.entrySet()) {
-            query.put(entry.getKey(), entry.getValue());
-        }
-
-        for (var extraField : extraFields.entrySet()) {
-            query.put(extraField.getKey(), extraField.getValue());
-        }
-
-        var httpRequest = HttpRequest.newBuilder()
-                .uri(endpoint)
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(query.toString()))
-                .build();
-        var future = httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.discarding());
-        // Save futures in optional collection when running tests.
-        if (futures != null) {
-            futures.add(future);
-        }
-    }
-
     private Map<String, String> getExtraFields(LogRecord record) {
         var ret = new HashMap<String, String>();
         for (var extraField : extraFields) {
@@ -127,7 +102,42 @@ public class BotLogstashHandler extends StreamHandler {
         if (record.getLevel().intValue() < getLevel().intValue()) {
             return;
         }
-        publishToLogstash(record.getInstant(), record.getLevel(), record.getMessage(), getExtraFields(record));
+        Level level = record.getLevel();
+        var query = JSON.object();
+        query.put("@timestamp", dateTimeFormatter.format(record.getInstant()));
+        query.put("level", level.getName());
+        query.put("level_value", level.intValue());
+        query.put("message", record.getMessage());
+
+        if (record.getLoggerName() != null) {
+            query.put("logger_name", record.getLoggerName());
+        }
+
+        if (record.getThrown() != null) {
+            var writer = new StringWriter();
+            var printer = new PrintWriter(writer);
+            record.getThrown().printStackTrace(printer);
+            query.put("stack_trace", writer.toString());
+        }
+
+        for (var entry : LogContextMap.entrySet()) {
+            query.put(entry.getKey(), entry.getValue());
+        }
+
+        for (var extraField : getExtraFields(record).entrySet()) {
+            query.put(extraField.getKey(), extraField.getValue());
+        }
+
+        var httpRequest = HttpRequest.newBuilder()
+                .uri(endpoint)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(query.toString()))
+                .build();
+        var future = httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.discarding());
+        // Save futures in optional collection when running tests.
+        if (futures != null) {
+            futures.add(future);
+        }
     }
 
     void setFuturesCollection(Collection<Future<HttpResponse<Void>>> futures) {

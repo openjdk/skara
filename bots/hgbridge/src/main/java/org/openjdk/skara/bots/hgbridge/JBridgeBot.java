@@ -30,6 +30,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class JBridgeBot implements Bot, WorkItem {
@@ -128,8 +129,7 @@ public class JBridgeBot implements Bot, WorkItem {
                         repo.pushAll(destination.url());
                         storage.resolve(successfulPushMarker).toFile().createNewFile();
                     } catch (IOException e) {
-                        log.severe("Failed to push to " + destination.url());
-                        log.throwing("JBridgeBot", "run", e);
+                        log.log(Level.SEVERE, "Failed to push to " + destination.url(), e);
                         lastException = e;
                     }
                 } else {

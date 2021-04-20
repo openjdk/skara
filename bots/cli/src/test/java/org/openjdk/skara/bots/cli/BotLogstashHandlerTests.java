@@ -45,6 +45,7 @@ class BotLogstashHandlerTests {
             handler.setFuturesCollection(futures);
 
             var record = new LogRecord(Level.INFO, "Hello");
+            record.setLoggerName("my.logger");
             handler.publish(record);
 
             for (Future<HttpResponse<Void>> future : futures) {
@@ -53,8 +54,9 @@ class BotLogstashHandlerTests {
 
             var requests = receiver.getRequests();
             assertEquals(1, requests.size(), requests.toString());
-            assertTrue(requests.get(0).get("message").asString().contains("Hello"));
-            assertTrue(requests.get(0).get("level").asString().contains(Level.INFO.getName()));
+            assertEquals("Hello", requests.get(0).get("message").asString());
+            assertEquals(Level.INFO.getName(), requests.get(0).get("level").asString());
+            assertEquals("my.logger", requests.get(0).get("logger_name").asString());
         }
     }
 

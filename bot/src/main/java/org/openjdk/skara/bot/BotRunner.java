@@ -83,9 +83,8 @@ public class BotRunner {
                 try {
                     followUpItems = item.run(scratchPath);
                 } catch (RuntimeException e) {
-                    log.severe("Exception during item execution (" + item + "): " + e.getMessage());
+                    log.log(Level.SEVERE, "Exception during item execution (" + item + "): " + e.getMessage(), e);
                     item.handleRuntimeException(e);
-                    log.throwing(item.toString(), "run", e);
                 } finally {
                     log.log(Level.FINE, "Item " + item + " is now done", TaskPhases.END);
                 }
@@ -168,8 +167,7 @@ public class BotRunner {
                     try {
                         head.get();
                     } catch (InterruptedException | ExecutionException e) {
-                        log.warning("Exception during queue drain");
-                        log.throwing("BotRunner", "drain", e);
+                        log.log(Level.WARNING,"Exception during queue drain", e);
                     }
                 } else {
                     log.finest("Queue is now empty");
@@ -188,8 +186,7 @@ public class BotRunner {
             try {
                 Thread.sleep(1);
             } catch (InterruptedException e) {
-                log.warning("Exception during queue drain");
-                log.throwing("BotRunner", "drain", e);
+                log.log(Level.WARNING, "Exception during queue drain", e);
             }
         }
 
@@ -231,8 +228,7 @@ public class BotRunner {
                     }
                 }
             } catch (RuntimeException e) {
-                log.severe("Exception during periodic item checking: " + e.getMessage());
-                log.throwing("BotRunner", "checkPeriodicItems", e);
+                log.log(Level.SEVERE, "Exception during periodic item checking: " + e.getMessage(), e);
             } finally {
                 log.log(Level.FINE, "Done checking periodic items", TaskPhases.END);
             }
@@ -267,8 +263,7 @@ public class BotRunner {
                     }
                 }
             } catch (RuntimeException e) {
-                log.severe("Exception during rest request processing: " + e.getMessage());
-                log.throwing("BotRunner", "processRestRequest", e);
+                log.log(Level.SEVERE, "Exception during rest request processing: " + e.getMessage(), e);
             } finally {
                 log.log(Level.FINE, "Done processing incoming rest request", TaskPhases.END);
             }
@@ -289,8 +284,7 @@ public class BotRunner {
             try {
                 restReceiver = new RestReceiver(config.restReceiverPort().get(), this::processRestRequest);
             } catch (IOException e) {
-                log.warning("Failed to create RestReceiver");
-                log.throwing("BotRunner", "run", e);
+                log.log(Level.WARNING, "Failed to create RestReceiver", e);
             }
         }
 
