@@ -26,17 +26,20 @@ import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.vcs.Hash;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
+import java.nio.file.Path;
+
 public interface PullRequestListener {
-    default void onNewIssue(PullRequest pr, Issue issue) {
+    default void onNewIssue(PullRequest pr, Path scratchPath, Issue issue) {
     }
-    default void onRemovedIssue(PullRequest pr, Issue issue) {
+    default void onRemovedIssue(PullRequest pr, Path scratchPath, Issue issue) {
     }
-    default void onNewPullRequest(PullRequest pr) {
+    default void onNewPullRequest(PullRequest pr, Path scratchPath) {
     }
-    default void onIntegratedPullRequest(PullRequest pr, Hash hash) {
+    default void onIntegratedPullRequest(PullRequest pr, Path scratchPath, Hash hash) {
     }
-    default void onHeadChange(PullRequest pr, Hash oldHead) {
+    default void onHeadChange(PullRequest pr, Path scratchPath, Hash oldHead) {
     }
-    default void onStateChange(PullRequest pr, org.openjdk.skara.issuetracker.Issue.State oldState) {
+    default void onStateChange(PullRequest pr, Path scratchPath, org.openjdk.skara.issuetracker.Issue.State oldState) {
     }
+    String name();
 }

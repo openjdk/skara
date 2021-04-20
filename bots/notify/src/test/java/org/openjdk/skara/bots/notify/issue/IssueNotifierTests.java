@@ -54,7 +54,7 @@ public class IssueNotifierTests {
                     .collect(Collectors.toSet());
     }
 
-    private TestBotFactory testBotBuilder(HostedRepository hostedRepository, IssueProject issueProject, Path storagePath, JSONObject notifierConfig) throws IOException {
+    private TestBotFactory.TestBotFactoryBuilder testBotBuilderFactory(HostedRepository hostedRepository, IssueProject issueProject, Path storagePath, JSONObject notifierConfig) throws IOException {
         if (!notifierConfig.contains("project")) {
             notifierConfig.put("project", "issueproject");
         }
@@ -74,8 +74,11 @@ public class IssueNotifierTests {
                                                                    .put("hostedrepo", JSON.object()
                                                                                           .put("basename", "test")
                                                                                           .put("branches", "master|other")
-                                                                                          .put("issue", notifierConfig)))
-                             .build();
+                                                                                          .put("issue", notifierConfig)));
+    }
+
+    private TestBotFactory testBotBuilder(HostedRepository hostedRepository, IssueProject issueProject, Path storagePath, JSONObject notifierConfig) throws IOException {
+        return testBotBuilderFactory(hostedRepository, issueProject, storagePath, notifierConfig).build();
     }
 
     @Test
@@ -366,6 +369,73 @@ public class IssueNotifierTests {
 
             // And no comments should have been made
             assertEquals(0, issue.comments().size());
+        }
+    }
+
+    @Test
+    void testMultipleIssues(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var issueProject = credentials.getIssueProject();
+            var storageFolder = tempFolder.path().resolve("storage");
+            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object())
+                                        .put("buildname", "team");
+            var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and commit a fix
+            var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
+            var issue1 = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
+            var issue2 = issueProject.createIssue("This is another issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
+            var issue3 = issueProject.createIssue("This is yet another issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line",
+                                                               issue1.id() + ": Fix that issue\n" +
+                                                                       issue1.id() + ": Fix that issue\n" +
+                                                                       issue2.id() + ": And fix the other issue\n" +
+                                                                       issue3.id() + ": As well as this one\n",
+                                                               "Duke", authorEmailAddress);
+            localRepo.push(editHash, repo.url(), "master");
+            TestBotRunner.runPeriodicItems(notifyBot);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The changeset should be reflected in a comment
+            var updatedIssue1 = issueProject.issue(issue1.id()).orElseThrow();
+            var updatedIssue2 = issueProject.issue(issue2.id()).orElseThrow();
+            var updatedIssue3 = issueProject.issue(issue3.id()).orElseThrow();
+
+            var comments1 = updatedIssue1.comments();
+            assertEquals(1, comments1.size());
+            var comment1 = comments1.get(0);
+            assertTrue(comment1.body().contains(editHash.abbreviate()));
+            var comments2 = updatedIssue2.comments();
+            assertEquals(1, comments2.size());
+            var comment2 = comments2.get(0);
+            assertTrue(comment2.body().contains(editHash.abbreviate()));
+            var comments3 = updatedIssue3.comments();
+            assertEquals(1, comments3.size());
+            var comment3 = comments3.get(0);
+            assertTrue(comment3.body().contains(editHash.abbreviate()));
+
+            // As well as a fixVersion and a resolved in build
+            assertEquals(Set.of("0.1"), fixVersions(updatedIssue1));
+            assertEquals("team", updatedIssue1.properties().get("customfield_10006").asString());
+            assertEquals(Set.of("0.1"), fixVersions(updatedIssue2));
+            assertEquals("team", updatedIssue2.properties().get("customfield_10006").asString());
+
+            // The issue should be assigned and resolved
+            assertEquals(RESOLVED, updatedIssue1.state());
+            assertEquals(List.of(issueProject.issueTracker().currentUser()), updatedIssue1.assignees());
+            assertEquals(RESOLVED, updatedIssue2.state());
+            assertEquals(List.of(issueProject.issueTracker().currentUser()), updatedIssue2.assignees());
         }
     }
 
@@ -789,15 +859,22 @@ public class IssueNotifierTests {
             localRepo.pushAll(repo.url());
 
             var issueProject = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                                           .addReviewer(issueProject.issueTracker().currentUser().username());
+
             var storageFolder = tempFolder.path().resolve("storage");
-            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object());
-            var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
+            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object())
+                                        .put("census", JSON.of("census:master"))
+                                        .put("namespace", "test");
+            var notifyBotFactory = testBotBuilderFactory(repo, issueProject, storageFolder, jbsNotifierConfig);
+            notifyBotFactory.addHostedRepository("census", censusBuilder.build());
+            var notifyBot = notifyBotFactory.build().create("notify", JSON.object());
 
             // Initialize history
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Create an issue and commit a fix
-            var authorEmailAddress = issueProject.issueTracker().currentUser().email().orElse(issueProject.issueTracker().currentUser().username() + "@otherjdk.org");
+            var authorEmailAddress = "integrationreviewer1@otherjdk.org";
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
             localRepo.push(editHash, repo.url(), "master");

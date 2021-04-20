@@ -28,6 +28,7 @@ import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 
+import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -54,7 +55,7 @@ class CommitCommentNotifier implements Notifier, PullRequestListener {
     }
 
     @Override
-    public void onIntegratedPullRequest(PullRequest pr, Hash hash)  {
+    public void onIntegratedPullRequest(PullRequest pr, Path scratchPath, Hash hash)  {
         var repository = pr.repository();
         var commit = repository.commit(hash).orElseThrow(() ->
                 new IllegalStateException("Integrated commit " + hash +
@@ -77,5 +78,10 @@ class CommitCommentNotifier implements Notifier, PullRequestListener {
             }
         }
         repository.addCommitComment(hash, String.join("\n", comment));
+    }
+
+    @Override
+    public String name() {
+        return "commitcomment";
     }
 }

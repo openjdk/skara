@@ -30,6 +30,7 @@ import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.OpenJDKTag;
 
 import java.io.*;
+import java.nio.file.Path;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.logging.Logger;
@@ -229,7 +230,7 @@ class MailingListNotifier implements Notifier, RepositoryListener {
     }
 
     @Override
-    public void onNewCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch branch) throws NonRetriableException {
+    public void onNewCommits(HostedRepository repository, Repository localRepository, Path scratchPath, List<Commit> commits, Branch branch) throws NonRetriableException {
         if (mode == Mode.PR) {
             commits = filterPrCommits(repository, localRepository, commits, branch);
         }
@@ -237,12 +238,12 @@ class MailingListNotifier implements Notifier, RepositoryListener {
     }
 
     @Override
-    public void onNewOpenJDKTagCommits(HostedRepository repository, Repository localRepository, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotation) throws NonRetriableException {
+    public void onNewOpenJDKTagCommits(HostedRepository repository, Repository localRepository, Path scratchPath, List<Commit> commits, OpenJDKTag tag, Tag.Annotated annotation) throws NonRetriableException {
         if (!reportNewTags) {
             return;
         }
         if (!reportNewBuilds) {
-            onNewTagCommit(repository, localRepository, commits.get(commits.size() - 1), tag.tag(), annotation);
+            onNewTagCommit(repository, localRepository, scratchPath, commits.get(commits.size() - 1), tag.tag(), annotation);
             return;
         }
         var writer = new StringWriter();
@@ -285,7 +286,7 @@ class MailingListNotifier implements Notifier, RepositoryListener {
     }
 
     @Override
-    public void onNewTagCommit(HostedRepository repository, Repository localRepository, Commit commit, Tag tag, Tag.Annotated annotation) throws NonRetriableException {
+    public void onNewTagCommit(HostedRepository repository, Repository localRepository, Path scratchPath, Commit commit, Tag tag, Tag.Annotated annotation) throws NonRetriableException {
         if (!reportNewTags) {
             return;
         }
@@ -337,7 +338,7 @@ class MailingListNotifier implements Notifier, RepositoryListener {
     }
 
     @Override
-    public void onNewBranch(HostedRepository repository, Repository localRepository, List<Commit> commits, Branch parent, Branch branch) throws NonRetriableException {
+    public void onNewBranch(HostedRepository repository, Repository localRepository, Path scratchPath, List<Commit> commits, Branch parent, Branch branch) throws NonRetriableException {
         if (!reportNewBranches) {
             return;
         }

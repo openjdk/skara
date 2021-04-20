@@ -53,7 +53,7 @@ public class RepositoryWorkItem implements WorkItem {
         this.listeners = listeners;
     }
 
-    private void handleNewRef(Repository localRepo, Reference ref, Collection<Reference> allRefs, RepositoryListener listener) throws NonRetriableException {
+    private void handleNewRef(Repository localRepo, Reference ref, Collection<Reference> allRefs, RepositoryListener listener, Path scratchPath) throws NonRetriableException {
         // Figure out the best parent ref
         var candidates = new HashSet<>(allRefs);
         candidates.remove(ref);
@@ -84,15 +84,15 @@ public class RepositoryWorkItem implements WorkItem {
         }
         var branch = new Branch(ref.name());
         var parent = new Branch(bestParent.getKey().name());
-        listener.onNewBranch(repository, localRepo, bestParentCommits, parent, branch);
+        listener.onNewBranch(repository, localRepo, scratchPath, bestParentCommits, parent, branch);
     }
 
-    private void handleUpdatedRef(Repository localRepo, Reference ref, List<Commit> commits, RepositoryListener listener) throws NonRetriableException {
+    private void handleUpdatedRef(Repository localRepo, Reference ref, List<Commit> commits, RepositoryListener listener, Path scratchPath) throws NonRetriableException {
         var branch = new Branch(ref.name());
-        listener.onNewCommits(repository, localRepo, commits, branch);
+        listener.onNewCommits(repository, localRepo, scratchPath, commits, branch);
     }
 
-    private List<Throwable> handleRef(Repository localRepo, UpdateHistory history, Reference ref, Collection<Reference> allRefs) throws IOException {
+    private List<Throwable> handleRef(Repository localRepo, UpdateHistory history, Reference ref, Collection<Reference> allRefs, Path scratchPath) throws IOException {
         var errors = new ArrayList<Throwable>();
         var branch = new Branch(ref.name());
         for (var listener : listeners) {
@@ -101,7 +101,7 @@ public class RepositoryWorkItem implements WorkItem {
                 log.warning("No previous history found for branch '" + branch + "' and listener '" + listener.name() + " - resetting mark");
                 history.setBranchHash(branch, listener.name(), ref.hash());
                 try {
-                    handleNewRef(localRepo, ref, allRefs, listener);
+                    handleNewRef(localRepo, ref, allRefs, listener, scratchPath.resolve(listener.name()));
                 } catch (NonRetriableException e) {
                     errors.add(e.cause());
                 } catch (RuntimeException e) {
@@ -124,7 +124,7 @@ public class RepositoryWorkItem implements WorkItem {
                 var commits = localRepo.commits(lastHash.get() + ".." + ref.hash(), true).asList();
                 history.setBranchHash(branch, listener.name(), ref.hash());
                 try {
-                    handleUpdatedRef(localRepo, ref, commits, listener);
+                    handleUpdatedRef(localRepo, ref, commits, listener, scratchPath.resolve(listener.name()));
                 } catch (NonRetriableException e) {
                     log.log(Level.INFO, "Non retriable exception occurred", e);
                     errors.add(e.cause());
@@ -153,7 +153,7 @@ public class RepositoryWorkItem implements WorkItem {
         }
     }
 
-    private List<Throwable> handleTags(Repository localRepo, UpdateHistory history, RepositoryListener listener) throws IOException {
+    private List<Throwable> handleTags(Repository localRepo, UpdateHistory history, RepositoryListener listener, Path scratchPath) throws IOException {
         var errors = new ArrayList<Throwable>();
         var tags = localRepo.tags();
         var newTags = tags.stream()
@@ -210,7 +210,7 @@ public class RepositoryWorkItem implements WorkItem {
 
             history.addTags(List.of(tag.tag()), listener.name());
             try {
-                listener.onNewOpenJDKTagCommits(repository, localRepo, commits, tag, annotation.orElse(null));
+                listener.onNewOpenJDKTagCommits(repository, localRepo, scratchPath, commits, tag, annotation.orElse(null));
             } catch (NonRetriableException e) {
                 errors.add(e.cause());
             } catch (RuntimeException e) {
@@ -232,7 +232,7 @@ public class RepositoryWorkItem implements WorkItem {
 
             history.addTags(List.of(tag), listener.name());
             try {
-                listener.onNewTagCommit(repository, localRepo, commit.get(), tag, annotation.orElse(null));
+                listener.onNewTagCommit(repository, localRepo, scratchPath, commit.get(), tag, annotation.orElse(null));
             } catch (NonRetriableException e) {
                 errors.add(e.cause());
             } catch (RuntimeException e) {
@@ -260,6 +260,7 @@ public class RepositoryWorkItem implements WorkItem {
     public Collection<WorkItem> run(Path scratchPath) {
         var historyPath = scratchPath.resolve("notify").resolve("history");
         var repositoryPool = new HostedRepositoryPool(storagePath.resolve("seeds"));
+        var notifierScratchPath = scratchPath.resolve("notify").resolve("notifier");
 
         try {
             var localRepo = repositoryPool.materializeBare(repository, scratchPath.resolve("notify").resolve("repowi").resolve(repository.name()));
@@ -273,7 +274,7 @@ public class RepositoryWorkItem implements WorkItem {
             var errors = new ArrayList<Throwable>();
 
             for (var listener : listeners) {
-                errors.addAll(handleTags(localRepo, history, listener));
+                errors.addAll(handleTags(localRepo, history, listener, notifierScratchPath.resolve(listener.name())));
             }
 
             boolean hasBranchHistory = !history.isEmpty();
@@ -285,7 +286,7 @@ public class RepositoryWorkItem implements WorkItem {
                         history.setBranchHash(new Branch(ref.name()), listener.name(), ref.hash());
                     }
                 } else {
-                    errors.addAll(handleRef(localRepo, history, ref, knownRefs));
+                    errors.addAll(handleRef(localRepo, history, ref, knownRefs, scratchPath));
                 }
             }
             if (!errors.isEmpty()) {

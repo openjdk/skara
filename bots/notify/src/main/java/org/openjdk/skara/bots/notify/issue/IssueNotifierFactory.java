@@ -88,6 +88,14 @@ public class IssueNotifierFactory implements NotifierFactory {
             builder.prOnly(notifierConfiguration.get("pronly").asBoolean());
         }
 
+        if (notifierConfiguration.contains("census")) {
+            builder.censusRepository(botConfiguration.repository(notifierConfiguration.get("census").asString()));
+            builder.censusRef(botConfiguration.repositoryRef(notifierConfiguration.get("census").asString()));
+        }
+        if (notifierConfiguration.contains("namespace")) {
+            builder.namespace(notifierConfiguration.get("namespace").asString());
+        }
+
         return builder.build();
     }
 }
