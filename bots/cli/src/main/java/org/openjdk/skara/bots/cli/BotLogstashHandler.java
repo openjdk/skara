@@ -100,6 +100,7 @@ public class BotLogstashHandler extends StreamHandler {
                 .POST(HttpRequest.BodyPublishers.ofString(query.toString()))
                 .build();
         var future = httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.discarding());
+        // Save futures in optional collection when running tests.
         if (futures != null) {
             futures.add(future);
         }
