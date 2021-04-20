@@ -23,13 +23,16 @@
 package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.email.EmailAddress;
+import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.test.*;
-import org.openjdk.skara.vcs.Repository;
+import org.openjdk.skara.vcs.*;
 
 import org.junit.jupiter.api.*;
 
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -128,6 +131,98 @@ class WebrevStorageTests {
             assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/00/index.html")));
             assertTrue(Files.size(repoFolder.resolve("test/" + pr.id() + "/00/large.txt")) > 0);
             assertTrue(Files.size(repoFolder.resolve("test/" + pr.id() + "/00/large.txt")) < 1000);
+        }
+    }
+
+    private static class InterceptingHash extends Hash {
+        private final Path generatorPath;
+        private final Path scratchPath;
+        private final HostedRepository archive;
+        private final String ref;
+
+        private boolean hasIntercepted = false;
+
+        public InterceptingHash(String hex, Path generatorPath, Path scratchPath, HostedRepository archive, String ref) {
+            super(hex);
+
+            this.generatorPath = generatorPath;
+            this.scratchPath = scratchPath;
+            this.archive = archive;
+            this.ref = ref;
+        }
+
+        @Override
+        public String hex() {
+            if (Files.exists(generatorPath)) {
+                if (hasIntercepted) {
+                    return super.hex();
+                }
+
+                try {
+                    var repo = Repository.materialize(scratchPath, archive.url(), ref);
+                    Files.writeString(repo.root().resolve("intercept.txt"), UUID.randomUUID().toString(), StandardCharsets.UTF_8);
+                    repo.add(repo.root().resolve("intercept.txt"));
+                    var commit = repo.commit("Concurrent unrelated commit", "duke", "duke@openjdk.org");
+                    repo.push(commit, archive.url(), ref);
+                    hasIntercepted = true;
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+                System.out.println("Pushing an unrelated commit to the archive repo");
+            } else {
+                hasIntercepted = false;
+            }
+            return super.hex();
+        }
+    }
+
+    @Test
+    void retryConcurrentPush(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var webrevServer = new TestWebrevServer()) {
+            var author = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+
+            // Populate the projects repository
+            var reviewFile = Path.of("reviewfile.txt");
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, author.repositoryType(), reviewFile);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
+            pr.addLabel("rfr");
+            pr.setBody("This is now ready");
+
+            var from = EmailAddress.from("test", "test@test.mail");
+            var storage = new WebrevStorage(archive, "webrev", Path.of("test"),
+                                            webrevServer.uri(), from);
+
+            var prFolder = tempFolder.path().resolve("pr");
+            var prRepo = Repository.materialize(prFolder, pr.repository().url(), "edit");
+            var scratchFolder = tempFolder.path().resolve("scratch");
+            var generatorProgressMarker = scratchFolder.resolve("test/" + pr.id() + "/00/nanoduke.ico");
+            var generator = storage.generator(pr, prRepo, scratchFolder);
+
+            // Commit something during generation
+            var interceptFolder = tempFolder.path().resolve("intercept");
+            var interceptEditHash = new InterceptingHash(editHash.hex(),
+                                                         generatorProgressMarker,
+                                                         interceptFolder, archive, "webrev");
+            generator.generate(masterHash, interceptEditHash, "00", WebrevDescription.Type.FULL);
+
+            // Update the local repository and check that the webrev has been generated
+            var archiveRepo = Repository.materialize(repoFolder, archive.url(), "webrev");
+            assertTrue(Files.exists(repoFolder.resolve("test/" + pr.id() + "/00/index.html")));
+
+            // The intercepting commit should be present in the history
+            assertTrue(archiveRepo.commitMetadata().stream()
+                                  .anyMatch(cm -> cm.message().get(0).equals("Concurrent unrelated commit")));
         }
     }
 }
