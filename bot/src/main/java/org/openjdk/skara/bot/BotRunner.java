@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bot;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import org.openjdk.skara.json.JSONValue;
 
 import java.io.IOException;
@@ -49,6 +50,8 @@ public class BotRunner {
         END
     }
 
+    private AtomicInteger workIdCounter = new AtomicInteger();
+
     private class RunnableWorkItem implements Runnable {
         private final WorkItem item;
 
@@ -73,16 +76,19 @@ public class BotRunner {
                 scratchPath = scratchPaths.removeFirst();
             }
 
-            log.log(Level.FINE, "Executing item " + item + " on repository " + scratchPath, TaskPhases.BEGIN);
             Collection<WorkItem> followUpItems = null;
-            try {
-                followUpItems = item.run(scratchPath);
-            } catch (RuntimeException e) {
-                log.severe("Exception during item execution (" + item + "): " + e.getMessage());
-                item.handleRuntimeException(e);
-                log.throwing(item.toString(), "run", e);
-            } finally {
-                log.log(Level.FINE, "Item " + item + " is now done", TaskPhases.END);
+            try (var __ = new LogContext(Map.of("work_item", item.toString(),
+                    "work_id", String.valueOf(workIdCounter.incrementAndGet())))) {
+                log.log(Level.FINE, "Executing item " + item + " on repository " + scratchPath, TaskPhases.BEGIN);
+                try {
+                    followUpItems = item.run(scratchPath);
+                } catch (RuntimeException e) {
+                    log.severe("Exception during item execution (" + item + "): " + e.getMessage());
+                    item.handleRuntimeException(e);
+                    log.throwing(item.toString(), "run", e);
+                } finally {
+                    log.log(Level.FINE, "Item " + item + " is now done", TaskPhases.END);
+                }
             }
             if (followUpItems != null) {
                 followUpItems.forEach(BotRunner.this::submitOrSchedule);
@@ -215,19 +221,21 @@ public class BotRunner {
     }
 
     private void checkPeriodicItems() {
-        log.log(Level.FINE, "Starting of checking for periodic items", TaskPhases.BEGIN);
-        try {
-            for (var bot : bots) {
-                var items = bot.getPeriodicItems();
-                for (var item : items) {
-                    submitOrSchedule(item);
+        try (var __ = new LogContext("work_id", String.valueOf(workIdCounter.incrementAndGet()))) {
+            log.log(Level.FINE, "Starting of checking for periodic items", TaskPhases.BEGIN);
+            try {
+                for (var bot : bots) {
+                    var items = bot.getPeriodicItems();
+                    for (var item : items) {
+                        submitOrSchedule(item);
+                    }
                 }
+            } catch (RuntimeException e) {
+                log.severe("Exception during periodic item checking: " + e.getMessage());
+                log.throwing("BotRunner", "checkPeriodicItems", e);
+            } finally {
+                log.log(Level.FINE, "Done checking periodic items", TaskPhases.END);
             }
-        } catch (RuntimeException e) {
-            log.severe("Exception during periodic item checking: " + e.getMessage());
-            log.throwing("BotRunner", "checkPeriodicItems", e);
-        } finally {
-            log.log(Level.FINE, "Done checking periodic items", TaskPhases.END);
         }
     }
 
@@ -248,20 +256,22 @@ public class BotRunner {
     }
 
     private void processRestRequest(JSONValue request) {
-        log.log(Level.FINE, "Starting processing of incoming rest request", TaskPhases.BEGIN);
-        log.fine("Request: " + request);
-        try {
-            for (var bot : bots) {
-                var items = bot.processWebHook(request);
-                for (var item : items) {
-                    submitOrSchedule(item);
+        try (var __ = new LogContext("work_id", String.valueOf(workIdCounter.incrementAndGet()))) {
+            log.log(Level.FINE, "Starting processing of incoming rest request", TaskPhases.BEGIN);
+            log.fine("Request: " + request);
+            try {
+                for (var bot : bots) {
+                    var items = bot.processWebHook(request);
+                    for (var item : items) {
+                        submitOrSchedule(item);
+                    }
                 }
+            } catch (RuntimeException e) {
+                log.severe("Exception during rest request processing: " + e.getMessage());
+                log.throwing("BotRunner", "processRestRequest", e);
+            } finally {
+                log.log(Level.FINE, "Done processing incoming rest request", TaskPhases.END);
             }
-        } catch (RuntimeException e) {
-            log.severe("Exception during rest request processing: " + e.getMessage());
-            log.throwing("BotRunner", "processRestRequest", e);
-        } finally {
-            log.log(Level.FINE, "Done processing incoming rest request", TaskPhases.END);
         }
     }
 
