@@ -167,7 +167,7 @@ public class BotRunner {
                     try {
                         head.get();
                     } catch (InterruptedException | ExecutionException e) {
-                        log.log(Level.WARNING,"Exception during queue drain", e);
+                        log.log(Level.WARNING, "Exception during queue drain", e);
                     }
                 } else {
                     log.finest("Queue is now empty");
