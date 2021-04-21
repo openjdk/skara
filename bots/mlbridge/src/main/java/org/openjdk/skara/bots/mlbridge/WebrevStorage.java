@@ -221,7 +221,21 @@ class WebrevStorage {
                     // where some of the files have already been committed. Ignore it and continue.
                     continue;
                 }
-                localStorage.push(hash, remote, storageRef);
+                var retryCount = 0;
+                while (true) {
+                    try {
+                        localStorage.push(hash, remote, storageRef);
+                        break;
+                    } catch (IOException e) {
+                        retryCount++;
+                        if (retryCount > 5) {
+                            throw e;
+                        }
+                        var updated = localStorage.fetch(remote, storageRef);
+                        localStorage.rebase(updated, author.fullName().orElseThrow(), author.address());
+                        hash = localStorage.head();
+                    }
+                }
             }
         }
     }
