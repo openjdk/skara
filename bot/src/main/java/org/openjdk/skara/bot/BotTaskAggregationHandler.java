@@ -92,8 +92,7 @@ public abstract class BotTaskAggregationHandler extends StreamHandler {
             }
         }
         catch (RuntimeException e) {
-            log.severe("Exception during task notification posting: " + e.getMessage());
-            log.throwing("BotTaskAggregationHandler", "publish", e);
+            log.log(Level.SEVERE, "Exception during task notification posting: " + e.getMessage(), e);
         } finally {
             threadEntry.isPublishing = false;
         }

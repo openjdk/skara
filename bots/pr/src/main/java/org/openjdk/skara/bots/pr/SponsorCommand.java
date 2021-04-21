@@ -30,6 +30,7 @@ import java.io.*;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.stream.Stream;
 import java.util.stream.Collectors;
 import java.util.logging.Logger;
@@ -156,8 +157,7 @@ public class SponsorCommand implements CommandHandler {
                 reply.println("No push attempt will be made.");
             }
         } catch (IOException | CommitFailure e) {
-            log.severe("An error occurred during sponsored integration (" + pr.webUrl() + "): " + e.getMessage());
-            log.throwing("SponsorCommand", "handle", e);
+            log.log(Level.SEVERE, "An error occurred during sponsored integration (" + pr.webUrl() + "): " + e.getMessage(), e);
             reply.println("An unexpected error occurred during sponsored integration. No push attempt will be made. " +
                                   "The error has been logged and will be investigated. It is possible that this error " +
                                   "is caused by a transient issue; feel free to retry the operation.");

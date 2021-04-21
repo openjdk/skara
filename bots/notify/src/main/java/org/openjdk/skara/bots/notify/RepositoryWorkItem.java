@@ -290,7 +290,7 @@ public class RepositoryWorkItem implements WorkItem {
                 }
             }
             if (!errors.isEmpty()) {
-                errors.forEach(error -> log.throwing("RepositoryWorkItem", "run", error));
+                errors.forEach(error -> log.log(Level.WARNING, error.getMessage(), error));
                 throw new RuntimeException("Errors detected when processing repository notifications", errors.get(0));
             }
         } catch (IOException e) {

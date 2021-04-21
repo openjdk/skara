@@ -28,6 +28,7 @@ import org.openjdk.skara.vcs.*;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 class HostedRepositoryStorage<T> implements Storage<T> {
@@ -73,8 +74,7 @@ class HostedRepositoryStorage<T> implements Storage<T> {
                     Repository localRepository = Repository.init(localStorage, repository.repositoryType());
                     if (!localRepository.isEmpty()) {
                         // If the materialization failed but the local repository already contains data, do not initialize the ref
-                        log.warning("Materialization into existing local repository failed");
-                        log.throwing("HostedRepositoryStorage", "tryMaterialize", e2);
+                        log.log(Level.WARNING, "Materialization into existing local repository failed", e2);
                         lastException = e2;
                         retryCount++;
                         continue;

@@ -100,8 +100,7 @@ class BotSlackHandler extends BotTaskAggregationHandler {
 
             webhook.post("").body(query).executeUnparsed();
         } catch (RuntimeException | IOException e) {
-            log.warning("Exception during slack notification posting: " + e.getMessage());
-            log.throwing("BotSlackHandler", "publish", e);
+            log.log(Level.WARNING, "Exception during slack notification posting: " + e.getMessage(), e);
         }
     }
 

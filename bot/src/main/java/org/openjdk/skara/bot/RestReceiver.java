@@ -29,6 +29,7 @@ import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 class RestReceiver {
@@ -53,8 +54,7 @@ class RestReceiver {
                 var parsedInput = JSON.parse(input);
                 consumer.accept(parsedInput);
             } catch (RuntimeException e) {
-                log.warning("Failed to parse incoming request: " + input);
-                log.throwing("RestReceiver", "Handler", e);
+                log.log(Level.WARNING, "Failed to parse incoming request: " + input, e);
             }
         }
     }
