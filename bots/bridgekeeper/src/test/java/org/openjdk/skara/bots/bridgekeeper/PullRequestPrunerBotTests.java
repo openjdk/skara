@@ -79,6 +79,10 @@ class PullRequestPrunerBotTests {
             // There should now be no open PRs
             var prs = author.pullRequests();
             assertEquals(0, prs.size());
+
+            // There should be a mention on how to reopen
+            var comment = pr.comments().get(pr.comments().size() - 1).body();
+            assertTrue(comment.contains("`/open`"), comment);
         }
     }
 

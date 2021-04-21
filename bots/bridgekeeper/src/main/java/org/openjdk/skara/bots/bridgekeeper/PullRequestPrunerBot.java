@@ -40,7 +40,7 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
 
     PullRequestPrunerBotWorkItem(PullRequest pr, Duration maxAge) {
         this.pr = pr;
-        this.maxAge = maxAge;
+        this.maxAge = pr.isDraft() ? maxAge.multipliedBy(2) : maxAge;
     }
 
     @Override
@@ -83,7 +83,8 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
             if (lastComment.author().equals(pr.repository().forge().currentUser()) && lastComment.body().contains(noticeMarker)) {
                 var message = "@" + pr.author().username() + " This pull request has been inactive for more than " +
                         formatDuration(maxAge.multipliedBy(2)) + " and will now be automatically closed. If you would " +
-                        "like to continue working on this pull request in the future, feel free to reopen it!";
+                        "like to continue working on this pull request in the future, feel free to reopen it! This can be done " +
+                        "using the `/open` pull request command.";
                 log.fine("Posting prune message");
                 pr.addComment(message);
                 pr.setState(PullRequest.State.CLOSED);
