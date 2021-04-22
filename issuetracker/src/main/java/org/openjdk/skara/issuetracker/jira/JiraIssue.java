@@ -27,11 +27,11 @@ import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
 
-import java.net.URI;
+import java.net.*;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.logging.Logger;
+import java.util.logging.*;
 import java.util.regex.Pattern;
 import java.util.stream.*;
 
@@ -388,19 +388,26 @@ public class JiraIssue implements Issue {
         if (!titleMatcher.matches() || !urlMatcher.matches()) {
             return Optional.empty();
         }
-        var linkBuilder = Link.create(URI.create(urlMatcher.group(1)), titleMatcher.group(1));
-        for (int i = 2; i < lines.size(); ++i) {
-            var line = lines.get(i);
-            var summaryMatcher = summaryPattern.matcher(line);
-            if (summaryMatcher.matches()) {
-                linkBuilder.summary(summaryMatcher.group(1));
+        try {
+            var uri = URI.create(urlMatcher.group(1));
+            var linkBuilder = Link.create(uri, titleMatcher.group(1));
+            for (int i = 2; i < lines.size(); ++i) {
+                var line = lines.get(i);
+                var summaryMatcher = summaryPattern.matcher(line);
+                if (summaryMatcher.matches()) {
+                    linkBuilder.summary(summaryMatcher.group(1));
+                }
+                var relationshipMatcher = relationshipPattern.matcher(line);
+                if (relationshipMatcher.matches()) {
+                    linkBuilder.relationship(relationshipMatcher.group(1));
+                }
             }
-            var relationshipMatcher = relationshipPattern.matcher(line);
-            if (relationshipMatcher.matches()) {
-                linkBuilder.relationship(relationshipMatcher.group(1));
-            }
+            return Optional.of(linkBuilder.build());
+
+        } catch (IllegalArgumentException e) {
+            log.log(Level.WARNING, "Invalid link in web link comment: " + urlMatcher.group(1), e);
+            return Optional.empty();
         }
-        return Optional.of(linkBuilder.build());
     }
 
     private void addWebLinkAsComment(Link link) {
