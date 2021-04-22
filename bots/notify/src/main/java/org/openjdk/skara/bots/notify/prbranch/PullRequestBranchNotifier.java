@@ -85,7 +85,7 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
                     as belonging to this pull request, which may be confusing for reviewers. To remedy this situation, \
                     simply merge the latest changes from the target branch into this pull request by running commands \
                     similar to these in the local repository for your personal fork:
-                    
+
                     ```bash
                     git checkout %s
                     git fetch %s %s
