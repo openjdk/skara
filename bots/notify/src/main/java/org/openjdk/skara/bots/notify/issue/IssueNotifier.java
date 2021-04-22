@@ -257,9 +257,11 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
 
                 var existingComments = issue.comments();
                 var hashUrl = repository.webUrl(commit.hash()).toString();
+                // We used to store URLs with just the abbreviated hash, so need to check for both
+                var shortHashUrl = repository.webUrl(new Hash(commit.hash().abbreviate())).toString();
                 var alreadyPostedComment = existingComments.stream()
-                                                           .filter(comment -> comment.author().equals(issueProject.issueTracker().currentUser()))
-                                                           .anyMatch(comment -> comment.body().contains(hashUrl));
+                        .filter(comment -> comment.author().equals(issueProject.issueTracker().currentUser()))
+                        .anyMatch(comment -> comment.body().contains(hashUrl) || comment.body().contains(shortHashUrl));
                 if (!alreadyPostedComment) {
                     issue.addComment(commitNotification);
                 }
