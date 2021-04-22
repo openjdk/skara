@@ -83,7 +83,7 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
                     The dependent pull request has now been integrated, and the target branch of this pull request \
                     has been updated. This means that changes from the dependent pull request can start to show up \
                     as belonging to this pull request, which may be confusing for reviewers. To remedy this situation, \
-                    simply merge the latest changes from the target branch into this pull request by running commands \
+                    simply merge the latest changes from the new target branch into this pull request by running commands \
                     similar to these in the local repository for your personal fork:
 
                     ```bash
