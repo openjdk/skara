@@ -337,7 +337,7 @@ public class Backports {
 
         var version = fixVersion.get();
 
-        // 8u260 and 8u270 are a contingency releases
+        // 8u260 and 8u270 are contingency releases
         if (version.raw().equals("8u260")) {
             return true;
         }
