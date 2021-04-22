@@ -22,7 +22,7 @@
  */
 package org.openjdk.skara.forge;
 
-import java.util.Optional;
+import java.util.*;
 
 public class PreIntegrations {
     public static Optional<String> dependentPullRequestId(PullRequest pr) {
@@ -42,15 +42,18 @@ public class PreIntegrations {
         return "pr/" + pr.id();
     }
 
-    public static void retargetDependencies(PullRequest pr) {
+    public static Collection<PullRequest> retargetDependencies(PullRequest pr) {
+        var ret = new ArrayList<PullRequest>();
         var dependentRef = preIntegrateBranch(pr);
 
         var candidates = pr.repository().pullRequests();
         for (var candidate : candidates) {
             if (candidate.targetRef().equals(dependentRef)) {
                 candidate.setTargetRef(pr.targetRef());
+                ret.add(candidate);
             }
         }
+        return ret;
     }
 
     public static boolean isPreintegrationBranch(String name) {
