@@ -780,4 +780,15 @@ public class BackportsTests {
             backports.assertLabeled("8u291", "8u301");
         }
     }
+
+    @Test
+    void test8u270(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "8u270");
+            backports.assertLabeled();
+
+            backports.addBackports("8u271", "8u281");
+            backports.assertLabeled("8u281");
+        }
+    }
 }
