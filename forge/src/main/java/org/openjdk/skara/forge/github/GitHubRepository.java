@@ -541,6 +541,9 @@ public class GitHubRepository implements HostedRepository {
     @Override
     public boolean canPush(HostUser user) {
         var permission = request.get("collaborators/" + user.username())
+                                .onError(r -> r.statusCode() == 404 ?
+                                                  Optional.of(JSON.object().put("permission", "none")) :
+                                                  Optional.empty())
                                 .execute()
                                 .get("permission")
                                 .asString();
