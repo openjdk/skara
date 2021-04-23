@@ -232,6 +232,12 @@ public class PullRequestBranchNotifierTests {
             // The follow-up PR should have been retargeted
             followUpPr = repo.pullRequest(followUpPr.id());
             assertEquals("master", followUpPr.targetRef());
+
+            // Instructions on how to adapt to the newly integrated changes should have been posted
+            var lastComment = followUpPr.comments().get(followUpPr.comments().size() - 1);
+            assertTrue(lastComment.body().contains("The dependent pull request has now"), lastComment.body());
+            assertTrue(lastComment.body().contains("git checkout source"), lastComment.body());
+            assertTrue(lastComment.body().contains("git commit -m \"Merge master\""), lastComment.body());
         }
     }
 }
