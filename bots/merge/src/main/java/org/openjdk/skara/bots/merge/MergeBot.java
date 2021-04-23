@@ -43,7 +43,6 @@ import java.util.stream.Collectors;
 import java.util.logging.Logger;
 
 class MergeBot implements Bot, WorkItem {
-    private final String integrationCommand = "/integrate\n<!-- Valid self-command -->";
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final Path storage;
 
@@ -321,42 +320,6 @@ class MergeBot implements Bot, WorkItem {
                         // Yes, this could be optimized do a merge "this turn", but it is much simpler
                         // to just wait until the next time the bot runs
                         shouldMerge = false;
-
-                        if (pr.labelNames().contains("ready") && !pr.labelNames().contains("sponsor")) {
-                            var comments = pr.comments();
-                            var integrateComments =
-                                comments.stream()
-                                        .filter(c -> c.author().equals(currentUser))
-                                        .filter(c -> c.body().equals(integrationCommand))
-                                        .collect(Collectors.toList());
-                            if (integrateComments.isEmpty()) {
-                                pr.addComment(integrationCommand);
-                            } else {
-                                var lastIntegrateComment = integrateComments.get(integrateComments.size() - 1);
-                                var id = lastIntegrateComment.id();
-                                var botUserId = "43336822";
-                                var replyMarker = "<!-- Jmerge command reply message (" + id + ") -->";
-                                var replies = comments.stream()
-                                                      .filter(c -> c.author().id().equals(botUserId))
-                                                      .filter(c -> c.body().startsWith(replyMarker))
-                                                      .collect(Collectors.toList());
-                                if (replies.isEmpty()) {
-                                    // No reply yet, just wait
-                                } else {
-                                    // Got a reply and the "sponsor" label is not present, check for error
-                                    // and if we should add the `/integrate` command again
-                                    var lastReply = replies.get(replies.size() - 1);
-                                    var lines = lastReply.body().split("\n");
-                                    var errorPrefix = "@openjdk-bot Your integration request cannot be fulfilled at this time";
-                                    if (lines.length > 1 && lines[1].startsWith(errorPrefix)) {
-                                        // Try again
-                                        pr.addComment(integrationCommand);
-                                    }
-                                    // Other reply, potentially due to rebase issue, just
-                                    // wait for the labeler to add appropriate labels.
-                                }
-                            }
-                        }
                     }
                 }
 
@@ -617,6 +580,8 @@ class MergeBot implements Bot, WorkItem {
                     message.add("");
                     message.add("Thanks,");
                     message.add("J. Duke");
+                    message.add("");
+                    message.add("/integrate auto");
 
                     var prFromFork = fork.createPullRequest(prTarget,
                                                             toBranch.name(),
