@@ -1052,6 +1052,7 @@ public class IssueNotifierTests {
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
             localRepo.push(editHash, repo.url(), "master");
+
             // Add a comment for the fix with the old url hash format
             var lastCommit = localRepo.commits().stream().findFirst().orElseThrow();
             issue.addComment(CommitFormatters.toTextBrief(repo, lastCommit).replace(editHash.toString(), editHash.abbreviate()));
