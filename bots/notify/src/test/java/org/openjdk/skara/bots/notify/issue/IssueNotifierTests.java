@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.notify.issue;
 
 import org.junit.jupiter.api.*;
+import org.openjdk.skara.bots.notify.CommitFormatters;
 import org.openjdk.skara.bots.notify.NotifyBot;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.issuetracker.*;
@@ -415,15 +416,15 @@ public class IssueNotifierTests {
             var comments1 = updatedIssue1.comments();
             assertEquals(1, comments1.size());
             var comment1 = comments1.get(0);
-            assertTrue(comment1.body().contains(editHash.abbreviate()));
+            assertTrue(comment1.body().contains(editHash.toString()));
             var comments2 = updatedIssue2.comments();
             assertEquals(1, comments2.size());
             var comment2 = comments2.get(0);
-            assertTrue(comment2.body().contains(editHash.abbreviate()));
+            assertTrue(comment2.body().contains(editHash.toString()));
             var comments3 = updatedIssue3.comments();
             assertEquals(1, comments3.size());
             var comment3 = comments3.get(0);
-            assertTrue(comment3.body().contains(editHash.abbreviate()));
+            assertTrue(comment3.body().contains(editHash.toString()));
 
             // As well as a fixVersion and a resolved in build
             assertEquals(Set.of("0.1"), fixVersions(updatedIssue1));
@@ -472,7 +473,7 @@ public class IssueNotifierTests {
             var comments = updatedIssue.comments();
             assertEquals(1, comments.size());
             var comment = comments.get(0);
-            assertTrue(comment.body().contains(editHash.abbreviate()));
+            assertTrue(comment.body().contains(editHash.toString()));
 
             // As well as a fixVersion and a resolved in build
             assertEquals(Set.of("0.1"), fixVersions(updatedIssue));
@@ -530,7 +531,7 @@ public class IssueNotifierTests {
             var comments = updatedIssue.comments();
             assertEquals(1, comments.size());
             var comment = comments.get(0);
-            assertTrue(comment.body().contains(editHash.abbreviate()));
+            assertTrue(comment.body().contains(editHash.toString()));
 
             // As well as a fixVersion and a resolved in build
             assertEquals(Set.of("0.1"), fixVersions(updatedIssue));
@@ -618,7 +619,7 @@ public class IssueNotifierTests {
             var comments = updatedIssue.comments();
             assertEquals(1, comments.size());
             var comment = comments.get(0);
-            assertTrue(comment.body().contains(editHash.abbreviate()));
+            assertTrue(comment.body().contains(editHash.toString()));
 
             // As well as a fixVersion and a resolved in build
             assertEquals(Set.of("0.1"), fixVersions(updatedIssue));
@@ -699,12 +700,12 @@ public class IssueNotifierTests {
             var comments = updatedIssue.comments();
             assertEquals(1, comments.size());
             var comment = comments.get(0);
-            assertTrue(comment.body().contains(editHash.abbreviate()));
+            assertTrue(comment.body().contains(editHash.toString()));
 
             var backportComments = backportIssue.comments();
             assertEquals(1, backportComments.size());
             var backportComment = backportComments.get(0);
-            assertTrue(backportComment.body().contains(editHash.abbreviate()));
+            assertTrue(backportComment.body().contains(editHash.toString()));
 
             // As well as a fixVersion and a resolved in build
             assertEquals(Set.of("16.0.2"), fixVersions(updatedIssue));
@@ -789,7 +790,7 @@ public class IssueNotifierTests {
             var comments = updatedIssue.comments();
             assertEquals(1, comments.size());
             var comment = comments.get(0);
-            assertTrue(comment.body().contains(editHash.abbreviate()));
+            assertTrue(comment.body().contains(editHash.toString()));
 
             // As well as a fixVersion and a resolved in build
             assertEquals(Set.of("0.1"), fixVersions(updatedIssue));
@@ -886,7 +887,7 @@ public class IssueNotifierTests {
             var comments = updatedIssue.comments();
             assertEquals(1, comments.size());
             var comment = comments.get(0);
-            assertTrue(comment.body().contains(editHash.abbreviate()));
+            assertTrue(comment.body().contains(editHash.toString()));
 
             // As well as a fixVersion
             assertEquals(Set.of("0.1"), fixVersions(updatedIssue));
@@ -925,7 +926,7 @@ public class IssueNotifierTests {
             var comments = issue.comments();
             assertEquals(1, comments.size());
             var comment = comments.get(0);
-            assertTrue(comment.body().contains(editHash.abbreviate()));
+            assertTrue(comment.body().contains(editHash.toString()));
 
             // But not in the fixVersion
             assertEquals(Set.of(), fixVersions(issue));
@@ -960,7 +961,7 @@ public class IssueNotifierTests {
             var comments = issue.comments();
             assertEquals(1, comments.size());
             var comment = comments.get(0);
-            assertTrue(comment.body().contains(editHash.abbreviate()));
+            assertTrue(comment.body().contains(editHash.toString()));
 
             // As well as a fixVersion - but not the one from the repo
             assertEquals(Set.of("2.0"), fixVersions(issue));
@@ -1002,6 +1003,65 @@ public class IssueNotifierTests {
             var comments = issue.comments();
             assertEquals(1, comments.size());
             var comment = comments.get(0);
+            assertTrue(comment.body().contains(editHash.toString()));
+
+            // As well as a fixVersion
+            assertEquals(Set.of("0.1"), fixVersions(issue));
+
+            // Wipe the history
+            localRepo.push(historyState, repo.url(), "history", true);
+
+            // Run it again
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // There should be no new comments or fixVersions
+            var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            assertEquals(1, updatedIssue.comments().size());
+            assertEquals(Set.of("0.1"), fixVersions(updatedIssue));
+        }
+    }
+
+    /**
+     * The format used for commit URLs in bug comments and elsewhere was changed
+     * to use the full hash instead of an abbreviated hash. This test verifies
+     * that the idempotence of the IssueNotifier holds true even when
+     * encountering old bug comments containing the old commit URL format.
+     */
+    @Test
+    void testIssueIdempotenceOldUrlFormat(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var storageFolder = tempFolder.path().resolve("storage");
+            var issueProject = credentials.getIssueProject();
+            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object());
+            var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Save the state
+            var historyState = localRepo.fetch(repo.url(), "history");
+
+            // Create an issue and commit a fix
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
+            localRepo.push(editHash, repo.url(), "master");
+            // Add a comment for the fix with the old url hash format
+            var lastCommit = localRepo.commits().stream().findFirst().orElseThrow();
+            issue.addComment(CommitFormatters.toTextBrief(repo, lastCommit).replace(editHash.toString(), editHash.abbreviate()));
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Verify that the planted comment is still the only one
+            var comments = issue.comments();
+            assertEquals(1, comments.size());
+            var comment = comments.get(0);
+            // We expect the abbreviated hash in the planted comment
             assertTrue(comment.body().contains(editHash.abbreviate()));
 
             // As well as a fixVersion
