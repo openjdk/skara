@@ -39,7 +39,7 @@ public class BridgedComment {
     private final ZonedDateTime created;
 
     private final static String bridgedMailMarker = "<!-- Bridged id (%s) -->";
-    private final static Pattern bridgedMailId = Pattern.compile("^<!-- Bridged id \\(([=\\w]+)\\) -->");
+    final static Pattern bridgedMailId = Pattern.compile("^<!-- Bridged id \\(([=+/\\w]+)\\) -->");
     private final static Pattern bridgedSender = Pattern.compile("Mailing list message from \\[(.*?)]\\(mailto:(\\S+)\\)");
 
     private BridgedComment(String body, EmailAddress messageId, HostUser author, ZonedDateTime created) {
