@@ -1,8 +1,6 @@
 package org.openjdk.skara.bots.mlbridge;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.openjdk.skara.issuetracker.Comment;
 
 import static org.junit.jupiter.api.Assertions.*;
 
