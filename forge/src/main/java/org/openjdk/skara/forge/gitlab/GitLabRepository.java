@@ -199,7 +199,7 @@ public class GitLabRepository implements HostedRepository {
     @Override
     public URI webUrl(Hash hash) {
         return URIBuilder.base(gitLabHost.getUri())
-                         .setPath("/" + projectName + "/commit/" + hash.abbreviate())
+                         .setPath("/" + projectName + "/commit/" + hash)
                          .build();
     }
 

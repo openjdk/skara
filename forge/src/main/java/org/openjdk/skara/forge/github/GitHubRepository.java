@@ -208,7 +208,7 @@ public class GitHubRepository implements HostedRepository {
 
     @Override
     public URI webUrl(Hash hash) {
-        var endpoint = "/" + repository + "/commit/" + hash.abbreviate();
+        var endpoint = "/" + repository + "/commit/" + hash;
         return gitHubHost.getWebURI(endpoint);
     }
 
