@@ -551,13 +551,19 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
-    public void restrictPushAccess(Branch branch, List<HostUser> users) {
-        var usernames = JSON.array();
-        for (var user : users) {
-            usernames.add(user.username());
-        }
-        var query = JSON.object()
-                        .put("restrictions", JSON.object().put("users", usernames));
+    public void restrictPushAccess(Branch branch, HostUser user) {
+        var restrictions =
+            JSON.object()
+                .put("users", JSON.array().add(user.username()))
+                .put("teams", JSON.array())
+                .put("apps", JSON.array());
+        var query =
+            JSON.object()
+                .put("required_status_checks", JSON.of())
+                .put("enforce_admins", JSON.of())
+                .put("required_pull_request_reviews", JSON.of())
+                .put("restrictions", restrictions);
+
         request.put("branches/" + branch.name() + "/protection")
                .body(query)
                .execute();

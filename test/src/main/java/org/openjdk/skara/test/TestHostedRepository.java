@@ -304,7 +304,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
-    public void restrictPushAccess(Branch branch, List<HostUser> users) {
+    public void restrictPushAccess(Branch branch, HostUser user) {
         // Not possible to simulate
     }
 
