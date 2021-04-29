@@ -66,6 +66,12 @@ public class JdkVersionTests {
     }
 
     @Test
+    void openjfx11() {
+        assertEquals(List.of("openjfx11", "0", "12"), from("openjfx11.0.12").components());
+        assertEquals(List.of("openjfx17", "3", "4", "5", "6"), from("openjfx17.3.4.5.6").components());
+    }
+
+    @Test
     void order() {
         assertEquals(0, from("5.0u45").compareTo(from("5.0u45")));
         assertEquals(0, from("11.0.3").compareTo(from("11.0.3")));
@@ -83,6 +89,7 @@ public class JdkVersionTests {
         assertEquals(-1, from("emb-8u71").compareTo(from("emb-8u170")));
         assertEquals(-1, from("openjdk7").compareTo(from("openjdk7u42")));
         assertEquals(-1, from("hs22.4").compareTo(from("hs23")));
+        assertEquals(-1, from("openjfx11.0.12").compareTo(from("openjfx17.3.4.5.6")));
     }
 
     @Test
