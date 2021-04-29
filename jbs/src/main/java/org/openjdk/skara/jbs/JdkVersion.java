@@ -38,6 +38,8 @@ public class JdkVersion implements Comparable<JdkVersion> {
     private final static Pattern ojVersionPattern = Pattern.compile("(openjdk[1-9][0-9]?)(u([0-9]{1,3}))?$");
     private final static Pattern fxVersionPattern = Pattern.compile("(openjfx[1-9][0-9]?)(u([0-9]{1,3}))?$");
 
+    private final static Pattern prefixPattern = Pattern.compile("([a-z]+)([0-9.]+)$");
+
     private final static Pattern legacyPrefixPattern = Pattern.compile("^([^\\d]*)\\d+$");
 
     private static List<String> splitComponents(String raw) {
@@ -63,6 +65,12 @@ public class JdkVersion implements Comparable<JdkVersion> {
                 optional = raw.substring(optionalStart + 1);
                 raw = raw.substring(0, optionalStart);
             }
+            var prefixMatcher = prefixPattern.matcher(raw);
+            String prefix = null;
+            if (prefixMatcher.matches()) {
+                prefix = prefixMatcher.group(1);
+                raw = prefixMatcher.group(2);
+            }
 
             finalComponents.addAll(Arrays.asList(raw.split("\\.")));
 
@@ -72,6 +80,10 @@ public class JdkVersion implements Comparable<JdkVersion> {
             if (optional != null) {
                 finalComponents.add(null);
                 finalComponents.add(optional);
+            }
+
+            if (prefix != null) {
+                finalComponents.set(0, prefix + finalComponents.get(0));
             }
         }
 
