@@ -162,7 +162,7 @@ public class BackportCommand implements CommandHandler {
             if (!fork.canPush(command.user())) {
                 fork.addCollaborator(command.user(), true);
             }
-            fork.restrictPushAccess(new Branch(backportBranchName), List.of(command.user()));
+            fork.restrictPushAccess(new Branch(backportBranchName), command.user());
 
             var message = CommitMessageParsers.v1.parse(commit);
             var formatter = DateTimeFormatter.ofPattern("d MMM uuuu");

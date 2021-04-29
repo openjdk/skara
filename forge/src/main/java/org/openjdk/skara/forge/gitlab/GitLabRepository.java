@@ -589,7 +589,7 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
-    public void restrictPushAccess(Branch branch, List<HostUser> users) {
+    public void restrictPushAccess(Branch branch, HostUser user) {
         // Not possible to implement using GitLab Community Edition.
         // Must work around in admin web UI using groups.
     }
