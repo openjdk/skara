@@ -791,4 +791,18 @@ public class BackportsTests {
             backports.assertLabeled("8u281");
         }
     }
+
+    /**
+     * Verify that a release such as 16u-cpu does not ever get labeled.
+     */
+    @Test
+    void uCpu(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "17");
+            backports.assertLabeled();
+
+            backports.addBackports("16", "16.0.2", "16u-cpu");
+            backports.assertLabeled("16.0.2", "17");
+        }
+    }
 }
