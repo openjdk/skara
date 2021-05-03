@@ -50,10 +50,12 @@ class GitCombinedDiffParser {
 
         var filename = line.substring("diff --combined ".length());
         var isRenamedWithRegardsToAllParents = headers.stream().allMatch(h -> h.status().isRenamed());
-        if (isRenamedWithRegardsToAllParents) {
-            // git diff -c does not give a "diff --combined" line, nor hunks, for a rename without modifications
+        var isCopiedWithRegardsToAllParents = headers.stream().allMatch(h -> h.status().isCopied());
+        if (isRenamedWithRegardsToAllParents || isCopiedWithRegardsToAllParents) {
+            // git diff -c does not give a "diff --combined" line, nor hunks, for a rename or copy without
+            // modifications.
             if (headers.stream().noneMatch(h -> filename.equals(h.targetPath().toString()))) {
-                // This diff is for another file, this must have been a rename without modifications
+                // This diff is for another file, this must have been a rename or copy without modifications.
                 var result = new ArrayList<List<Hunk>>();
                 for (int i = 0; i < numParents; i++) {
                     result.add(List.of());
@@ -247,7 +249,6 @@ class GitCombinedDiffParser {
         int headerIndex = 0;
         while (line != null && !line.equals(delimiter)) {
             var headersForFile = headersForFiles.get(headerIndex);
-            var isRenamedWithRegardsToAllParents = headersForFile.stream().allMatch(h -> h.status().isRenamed());
             var hunksPerParentForFile = parseSingleFileMultiParentDiff(reader, headersForFile);
 
             if (hunksPerParentForFile.size() != numParents) {
