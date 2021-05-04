@@ -525,7 +525,7 @@ public class GitHubRepository implements HostedRepository {
     @Override
     public URI createPullRequestUrl(HostedRepository target, String targetRef, String sourceRef) {
         var sourceGroup = repository.split("/")[0];
-        var endpoint = "/" + target.name() + "/" + targetRef + "..." + sourceGroup + ":" + sourceRef;
+        var endpoint = "/" + target.name() + "/pull/" + targetRef + "..." + sourceGroup + ":" + sourceRef;
         return gitHubHost.getWebURI(endpoint);
     }
 
