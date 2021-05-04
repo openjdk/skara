@@ -71,6 +71,15 @@ public class JdkVersionTests {
         assertEquals(List.of("openjfx17", "3", "4", "5", "6"), from("openjfx17.3.4.5.6").components());
     }
 
+
+    @Test
+    void futureUpdates() {
+        assertEquals(List.of("16u"), from("16u").components());
+        var jdk16uCpu = from("16u-cpu");
+        assertEquals(List.of("16u"), jdk16uCpu.components());
+        assertEquals("cpu", jdk16uCpu.opt().orElseThrow());
+    }
+
     @Test
     void order() {
         assertEquals(0, from("5.0u45").compareTo(from("5.0u45")));
@@ -93,10 +102,15 @@ public class JdkVersionTests {
     }
 
     @Test
+    void cpuOrder() {
+        assertEquals(-1, from("16").compareTo(from("16u-cpu")));
+        assertEquals(-1, from("16.0.2").compareTo(from("16u-cpu")));
+        assertEquals(1, from("17").compareTo(from("16u-cpu")));
+    }
+
+    @Test
     void nonConforming() {
         assertEquals(Optional.empty(), JdkVersion.parse("bla"));
         assertEquals(Optional.empty(), JdkVersion.parse(""));
-        assertEquals(Optional.empty(), JdkVersion.parse("12u-cpu"));
-        assertEquals(Optional.empty(), JdkVersion.parse("13u-open"));
     }
 }
