@@ -1368,6 +1368,9 @@ public class GitRepository implements Repository {
         if (seed != null) {
             cmd.add("--reference-if-able");
             cmd.add(seed.toString());
+            // It's not safe to keep an alternates pointer back to the seed repo as we sometimes
+            // delete objects, which will cause clones to become corrupt.
+            cmd.add("--dissociate");
         }
         cmd.addAll(List.of(from.toString(), to.toString()));
         try (var p = capture(Path.of("").toAbsolutePath(), cmd)) {

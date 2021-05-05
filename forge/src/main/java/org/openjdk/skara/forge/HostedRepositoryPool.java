@@ -117,7 +117,7 @@ public class HostedRepositoryPool {
 
         private void removeOldClone(Path path, String reason) {
             if (Files.exists(path)) {
-                var preserved = path.resolveSibling(seed.getFileName().toString() + "-" + reason + "-" + UUID.randomUUID());
+                var preserved = path.resolveSibling(path.getFileName().toString() + "-" + reason + "-" + UUID.randomUUID());
                 log.severe("Invalid local repository detected (" + reason + ") - preserved in: " + preserved);
                 try {
                     Files.move(path, preserved);
