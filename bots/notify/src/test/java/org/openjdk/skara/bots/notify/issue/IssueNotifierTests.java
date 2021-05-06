@@ -691,6 +691,8 @@ public class IssueNotifierTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
             localRepo.push(editHash, repo.url(), "master");
             localRepo.push(editHash, repo.url(), "other");
+            // Add an extra branch that is not configured with any fixVersion
+            localRepo.push(editHash, repo.url(), "extra");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The changeset should be reflected in a comment in the issue and in a new backport
