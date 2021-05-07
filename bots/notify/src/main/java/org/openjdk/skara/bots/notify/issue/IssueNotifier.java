@@ -352,13 +352,16 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                         }
                     }
                     if (requestedVersion == null) {
-                        throw new RuntimeException("Failed to determine requested fixVersion for " + issue.id());
+                        log.info("Cannot update \"Resolved In Build\" for issue: " + issue.id() + ", branch: "
+                                + tagBranch + " - no fixVersion configured");
+                        continue;
                     }
                     var fixVersion = JdkVersion.parse(requestedVersion).orElseThrow();
                     var existing = Backports.findIssue(issue, fixVersion);
                     if (existing.isEmpty()) {
-                        log.severe("Cannot find a properly resolved issue for: " + issue.id() + " - will not update resolved in build");
-                        return;
+                        log.info("Cannot update \"Resolved in Build\" for issue: " + issue.id() + ", branch: "
+                                + tagBranch + " - no suitable backport found");
+                        continue;
                     } else {
                         issue = existing.get();
                     }
