@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021 Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,50 +26,47 @@ import com.sun.net.httpserver.*;
 import org.openjdk.skara.json.*;
 
 import java.io.*;
-import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-class RestReceiver {
-    private final HttpServer server;
-    private final Consumer<JSONValue> consumer;
-    private final Logger log = Logger.getLogger("org.openjdk.skara.bot");
+class WebhookHandler implements HttpHandler {
+    private final static Logger log = Logger.getLogger("org.openjdk.skara.bot");
+    private final BotRunner runner;
 
-    class Handler implements HttpHandler {
+    private WebhookHandler(BotRunner runner) {
+        this.runner = runner;
+    }
 
-        @Override
-        public void handle(HttpExchange exchange) throws IOException {
-            var input = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+        var input = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
 
-            // Reply immediately
-            var response = "{}";
-            exchange.sendResponseHeaders(200, response.length());
-            OutputStream outputStream = exchange.getResponseBody();
-            outputStream.write(response.getBytes());
-            outputStream.close();
-
-            try {
-                var parsedInput = JSON.parse(input);
-                consumer.accept(parsedInput);
-            } catch (RuntimeException e) {
-                log.log(Level.WARNING, "Failed to parse incoming request: " + input, e);
-            }
+        JSONValue json = null;
+        try {
+            json = JSON.parse(input);
+        } catch (Exception e) {
+            log.log(Level.WARNING, "Failed to parse incoming request: " + input, e);
+            exchange.sendResponseHeaders(400, 0);
+            exchange.getResponseBody().close();
+            return;
         }
+
+        // Reply immediately
+        var response = "{}";
+        exchange.sendResponseHeaders(200, response.length());
+        var output = exchange.getResponseBody();
+        output.write(response.getBytes(StandardCharsets.UTF_8));
+        output.close();
+
+        runner.processWebhook(json);
     }
 
-    RestReceiver(int port, Consumer<JSONValue> consumer) throws IOException
-    {
-        this.consumer = consumer;
-        InetSocketAddress address = new InetSocketAddress(port);
-        server = HttpServer.create(address, 0);
-        server.createContext("/", new Handler());
-        server.setExecutor(null);
-        server.start();
+    static String name() {
+        return "webhook";
     }
 
-    void close() {
-        server.stop(0);
+    static WebhookHandler create(BotRunner runner, JSONObject configuration) {
+        return new WebhookHandler(runner);
     }
 }

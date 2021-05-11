@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021 Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,11 +27,14 @@ import org.openjdk.skara.json.JSONValue;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.net.*;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.*;
 import java.util.stream.Collectors;
+
+import com.sun.net.httpserver.*;
 
 class BotRunnerError extends RuntimeException {
     BotRunnerError(String msg) {
@@ -196,8 +199,9 @@ public class BotRunner {
     private final BotRunnerConfiguration config;
     private final List<Bot> bots;
     private final ScheduledThreadPoolExecutor executor;
-    private final Logger log;
     private final BotWatchdog botWatchdog;
+
+    private static final Logger log = Logger.getLogger("org.openjdk.skara.bot");
 
     public BotRunner(BotRunnerConfiguration config, List<Bot> bots) {
         this.config = config;
@@ -214,7 +218,6 @@ public class BotRunner {
 
         executor = new ScheduledThreadPoolExecutor(config.concurrency());
         botWatchdog = new BotWatchdog(Duration.ofMinutes(10));
-        log = Logger.getLogger("org.openjdk.skara.bot");
     }
 
     private void checkPeriodicItems() {
@@ -251,7 +254,7 @@ public class BotRunner {
         }
     }
 
-    private void processRestRequest(JSONValue request) {
+    void processWebhook(JSONValue request) {
         try (var __ = new LogContext("work_id", String.valueOf(workIdCounter.incrementAndGet()))) {
             log.log(Level.FINE, "Starting processing of incoming rest request", TaskPhases.BEGIN);
             log.fine("Request: " + request);
@@ -278,13 +281,20 @@ public class BotRunner {
         log.info("Periodic task interval: " + config.scheduledExecutionPeriod());
         log.info("Concurrency: " + config.concurrency());
 
-        RestReceiver restReceiver = null;
-        if (config.restReceiverPort().isPresent()) {
-            log.info("Listening for webhooks on port: " + config.restReceiverPort().get());
+        HttpServer server = null;
+        var serverConfig = config.httpServer(this);
+        if (serverConfig.isPresent()) {
             try {
-                restReceiver = new RestReceiver(config.restReceiverPort().get(), this::processRestRequest);
+                var port = serverConfig.get().port();
+                var address = new InetSocketAddress(port);
+                server = HttpServer.create(address, 0);
+                server.setExecutor(null);
+                for (var context : serverConfig.get().contexts()) {
+                    server.createContext(context.path(), context.handler());
+                }
+                server.start();
             } catch (IOException e) {
-                log.log(Level.WARNING, "Failed to create RestReceiver", e);
+                log.log(Level.WARNING, "Failed to create HTTP server", e);
             }
         }
 
@@ -299,8 +309,8 @@ public class BotRunner {
             e.printStackTrace();
         }
 
-        if (restReceiver != null) {
-            restReceiver.close();
+        if (server != null) {
+            server.stop(0);
         }
         executor.shutdown();
     }

@@ -37,7 +37,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.Duration;
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.logging.Logger;
+
+import com.sun.net.httpserver.HttpHandler;
 
 public class BotRunnerConfiguration {
     private final Logger log;
@@ -345,11 +348,65 @@ public class BotRunnerConfiguration {
         return Paths.get(config.get("scratch").get("path").asString());
     }
 
-    Optional<Integer> restReceiverPort() {
-        if (!config.contains("webhooks")) {
+    static class HttpContextConfiguration {
+        private final String path;
+        private final HttpHandler handler;
+
+        private HttpContextConfiguration(String path, HttpHandler handler) {
+            this.path = path;
+            this.handler = handler;
+        }
+
+        String path() {
+            return path;
+        }
+
+        HttpHandler handler() {
+            return handler;
+        }
+    }
+
+    static class HttpServerConfiguration {
+        private final int port;
+        private final List<HttpContextConfiguration> contexts;
+
+        private HttpServerConfiguration(int port, List<HttpContextConfiguration> contexts) {
+            this.port = port;
+            this.contexts = contexts;
+        }
+
+        int port() {
+            return port;
+        }
+
+        List<HttpContextConfiguration> contexts() {
+            return contexts;
+        }
+    }
+
+    Optional<HttpServerConfiguration> httpServer(BotRunner runner) {
+        if (!config.contains("http-server")) {
             return Optional.empty();
         }
-        return Optional.of(config.get("webhooks").get("port").asInt());
+
+        Map<String, BiFunction<BotRunner, JSONObject, HttpHandler>> factories = Map.of(
+            WebhookHandler.name(), WebhookHandler::create
+        );
+        var contexts = new ArrayList<HttpContextConfiguration>();
+        var port = config.get("http-server").get("port").asInt();
+        for (var field : config.get("http-server").fields()) {
+            if (field.name().startsWith("/")) {
+                var path = field.name();
+                var type = field.value().get("type").asString();
+                if (!factories.containsKey(type)) {
+                    throw new RuntimeException("Unknown kind of HTTP handler: " + type);
+                }
+                var handler = factories.get(type).apply(runner, field.value().asObject());
+                contexts.add(new HttpContextConfiguration(path, handler));
+            }
+        }
+
+        return Optional.of(new HttpServerConfiguration(port, contexts));
     }
 
     Duration watchdogTimeout() {
