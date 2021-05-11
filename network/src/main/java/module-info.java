@@ -23,6 +23,7 @@
 module org.openjdk.skara.network {
     requires java.logging;
     requires org.openjdk.skara.json;
+    requires org.openjdk.skara.metrics;
     requires java.net.http;
 
     exports org.openjdk.skara.network;

@@ -50,6 +50,7 @@ dependencies {
     implementation project(':storage')
     implementation project(':mailinglist')
     implementation project(':jbs')
+    implementation project(':metrics')
 
     testImplementation project(':test')
 }

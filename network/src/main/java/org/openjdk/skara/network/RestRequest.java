@@ -23,6 +23,7 @@
 package org.openjdk.skara.network;
 
 import org.openjdk.skara.json.*;
+import org.openjdk.skara.metrics.Counter;
 
 import java.io.*;
 import java.net.URI;
@@ -35,6 +36,14 @@ import java.util.stream.Collectors;
 
 public class RestRequest {
     private RestRequestCache cache = RestRequestCache.INSTANCE;
+    private final static Counter.WithOneLabel requestCounter =
+        Counter.name("skara_http_requests")
+               .labels("method")
+               .register();
+    private final static Counter.WithOneLabel responseCounter =
+        Counter.name("skara_http_responses")
+               .labels("code")
+               .register();
 
     private enum RequestType {
         GET,
@@ -381,7 +390,9 @@ public class RestRequest {
     private JSONValue execute(QueryBuilder queryBuilder) throws IOException {
         var request = createRequest(queryBuilder.queryType, queryBuilder.endpoint, queryBuilder.composedBody(),
                                     queryBuilder.params, queryBuilder.headers, queryBuilder.isJSON());
+        requestCounter.labels(queryBuilder.queryType.toString()).inc();
         var response = sendRequest(request);
+        responseCounter.labels(Integer.toString(response.statusCode())).inc();
         var errorTransform = transformBadResponse(response, queryBuilder);
         if (errorTransform.isPresent()) {
             return errorTransform.get();

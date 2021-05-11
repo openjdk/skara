@@ -68,6 +68,7 @@ dependencies {
     implementation project(':args')
     implementation project(':proxy')
     implementation project(':version')
+    implementation project(':metrics')
 
     testImplementation project(':test')
 }

@@ -38,6 +38,7 @@ dependencies {
     implementation project(':vcs')
     implementation project(':json')
     implementation project(':census')
+    implementation project(':metrics')
 }
 
 publishing {
