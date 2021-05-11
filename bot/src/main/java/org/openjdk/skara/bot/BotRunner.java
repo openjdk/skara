@@ -237,6 +237,10 @@ public class BotRunner {
         return isReady;
     }
 
+    boolean isHealthy() {
+        return true;
+    }
+
     private void checkPeriodicItems() {
         try (var __ = new LogContext("work_id", String.valueOf(workIdCounter.incrementAndGet()))) {
             log.log(Level.FINE, "Starting of checking for periodic items", TaskPhases.BEGIN);
