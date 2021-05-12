@@ -116,6 +116,7 @@ public class HostedRepositoryPool {
             log.info("Using seed folder " + seed + " when cloning into " + path + " from " + remote + (bare ? " (bare)" : ""));
             var tmpClonePath = path.resolveSibling(path.getFileName() + CLONE_TMP_SUFFIX);
             if (Files.exists(tmpClonePath)) {
+                log.fine("Found previous clone attempt " + tmpClonePath + " - deleting");
                 clearDirectory(tmpClonePath);
             }
             Repository.clone(remote, tmpClonePath, bare, seed);
