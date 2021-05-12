@@ -38,6 +38,7 @@ dependencies {
     implementation project(':email')
     implementation project(':mailinglist')
     implementation project(':proxy')
+    implementation project(':metrics')
 
     implementation 'org.junit.jupiter:junit-jupiter-api:5.6.2'
     implementation 'org.junit.jupiter:junit-jupiter-params:5.6.2'

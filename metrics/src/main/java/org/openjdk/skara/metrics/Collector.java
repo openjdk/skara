@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,27 +20,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package org.openjdk.skara.metrics;
 
-module {
-    name = 'org.openjdk.skara.bots.merge'
-    test {
-        requires 'org.junit.jupiter.api'
-        requires 'org.openjdk.skara.test'
-        opens 'org.openjdk.skara.bots.merge' to 'org.junit.platform.commons'
-    }
-}
+import java.util.List;
 
-dependencies {
-    implementation project(':ci')
-    implementation project(':host')
-    implementation project(':forge')
-    implementation project(':issuetracker')
-    implementation project(':bot')
-    implementation project(':census')
-    implementation project(':json')
-    implementation project(':vcs')
-    implementation project(':jcheck')
-    implementation project(':metrics')
-
-    testImplementation project(':test')
+public interface Collector {
+    List<Metric> collect();
 }

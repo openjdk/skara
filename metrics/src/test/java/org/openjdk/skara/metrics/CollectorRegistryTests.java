@@ -20,30 +20,34 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package org.openjdk.skara.metrics;
 
-module {
-    name = 'org.openjdk.skara.bots.synclabel'
-    test {
-        requires 'org.junit.jupiter.api'
-        requires 'org.openjdk.skara.test'
-        opens 'org.openjdk.skara.bots.synclabel' to 'org.junit.platform.commons'
+import org.junit.jupiter.api.*;
+
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class CollectorRegistryTests {
+    @Test
+    void register() {
+        var registry = new CollectorRegistry();
+        var counter = Counter.name("counter").register(registry);
+        var gauge = Gauge.name("gauge").register(registry);
+        var metrics = registry.scrape();
+        assertEquals(2, metrics.size());
+        assertEquals("counter", metrics.get(0).name());
+        assertEquals(Metric.Type.COUNTER, metrics.get(0).type());
+        assertEquals("gauge", metrics.get(1).name());
+        assertEquals(Metric.Type.GAUGE, metrics.get(1).type());
     }
-}
 
-dependencies {
-    implementation project(':bot')
-    implementation project(':ci')
-    implementation project(':vcs')
-    implementation project(':host')
-    implementation project(':forge')
-    implementation project(':issuetracker')
-    implementation project(':census')
-    implementation project(':process')
-    implementation project(':json')
-    implementation project(':network')
-    implementation project(':storage')
-    implementation project(':jbs')
-    implementation project(':metrics')
-
-    testImplementation project(':test')
+    @Test
+    void unregister() {
+        var registry = new CollectorRegistry();
+        var counter = Counter.name("test").register(registry);
+        assertEquals(1, registry.scrape().size());
+        registry.unregister(counter);
+        assertEquals(0, registry.scrape().size());
+    }
 }

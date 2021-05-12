@@ -43,6 +43,7 @@ dependencies {
     implementation project(':network')
     implementation project(':storage')
     implementation project(':xml')
+    implementation project(':metrics')
 
     testImplementation project(':test')
 }

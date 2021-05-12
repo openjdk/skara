@@ -45,6 +45,7 @@ dependencies {
     implementation project(':email')
     implementation project(':webrev')
     implementation project(':version')
+    implementation project(':metrics')
 
     testImplementation project(':test')
 }

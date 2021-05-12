@@ -43,6 +43,7 @@ dependencies {
     implementation project(':process')
     implementation project(':json')
     implementation project(':email')
+    implementation project(':metrics')
 
     testImplementation project(':test')
 }

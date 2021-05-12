@@ -42,6 +42,7 @@ dependencies {
     implementation project(':json')
     implementation project(':network')
     implementation project(':storage')
+    implementation project(':metrics')
 
     testImplementation project(':test')
 }
