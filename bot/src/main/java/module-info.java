@@ -27,6 +27,7 @@ module org.openjdk.skara.bot {
     requires transitive org.openjdk.skara.forge;
     requires transitive org.openjdk.skara.json;
     requires transitive org.openjdk.skara.census;
+    requires transitive org.openjdk.skara.metrics;
     requires org.openjdk.skara.network;
     requires org.openjdk.skara.vcs;
     requires java.logging;
