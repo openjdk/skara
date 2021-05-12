@@ -57,4 +57,9 @@ abstract class PullRequestWorkItem implements WorkItem {
     public final void handleRuntimeException(RuntimeException e) {
         errorHandler.accept(e);
     }
+
+    @Override
+    public String botName() {
+        return bot.name();
+    }
 }

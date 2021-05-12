@@ -82,4 +82,9 @@ public class SyncLabelBot implements Bot {
         }
         return ret;
     }
+
+    @Override
+    public String name() {
+        return SyncLabelBotFactory.NAME;
+    }
 }

@@ -406,4 +406,9 @@ class ArchiveWorkItem implements WorkItem {
     public void handleRuntimeException(RuntimeException e) {
         exceptionConsumer.accept(e);
     }
+
+    @Override
+    public String botName() {
+        return MailingListBridgeBotFactory.NAME;
+    }
 }

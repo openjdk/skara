@@ -34,9 +34,10 @@ import java.util.logging.Logger;
 public class ForwardBotFactory implements BotFactory {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
 
+    static final String NAME = "forward";
     @Override
     public String name() {
-        return "forward";
+        return NAME;
     }
 
     @Override

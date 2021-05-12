@@ -36,9 +36,10 @@ import java.util.stream.Collectors;
 public class NotifyBotFactory implements BotFactory {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
 
+    static final String NAME = "notify";
     @Override
     public String name() {
-        return "notify";
+        return NAME;
     }
 
     private JSONObject combineConfiguration(JSONObject global, JSONObject specific) {

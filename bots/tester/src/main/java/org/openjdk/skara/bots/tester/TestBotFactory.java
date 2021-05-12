@@ -34,9 +34,10 @@ import java.util.stream.Collectors;
 import java.net.URI;
 
 public class TestBotFactory implements BotFactory {
+    static final String NAME = "test";
     @Override
     public String name() {
-        return "test";
+        return NAME;
     }
 
     @Override

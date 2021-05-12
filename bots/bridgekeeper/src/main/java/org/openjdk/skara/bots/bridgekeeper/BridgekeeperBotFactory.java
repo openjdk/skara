@@ -29,9 +29,10 @@ import java.time.Duration;
 import java.util.*;
 
 public class BridgekeeperBotFactory implements BotFactory {
+    static final String NAME = "bridgekeeper";
     @Override
     public String name() {
-        return "bridgekeeper";
+        return NAME;
     }
 
     @Override

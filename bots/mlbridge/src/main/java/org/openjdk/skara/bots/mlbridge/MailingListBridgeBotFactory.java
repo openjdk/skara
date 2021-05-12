@@ -36,9 +36,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class MailingListBridgeBotFactory implements BotFactory {
+    static final String NAME = "mlbridge";
     @Override
     public String name() {
-        return "mlbridge";
+        return NAME;
     }
 
     private MailingListConfiguration parseList(JSONObject configuration) {

@@ -154,4 +154,14 @@ public class CheckoutBot implements Bot, WorkItem {
         }
         return List.of();
     }
+
+    @Override
+    public String name() {
+        return CheckoutBotFactory.NAME;
+    }
+
+    @Override
+    public String botName() {
+        return name();
+    }
 }

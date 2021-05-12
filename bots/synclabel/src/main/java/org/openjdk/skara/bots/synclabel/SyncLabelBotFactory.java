@@ -31,9 +31,10 @@ import java.util.regex.Pattern;
 public class SyncLabelBotFactory implements BotFactory {
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");
 
+    static final String NAME = "synclabel";
     @Override
     public String name() {
-        return "synclabel";
+        return NAME;
     }
 
     @Override

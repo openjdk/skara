@@ -144,4 +144,15 @@ public class JBridgeBot implements Bot, WorkItem {
         }
         return List.of();
     }
+
+    @Override
+    public String name() {
+        return JBridgeBotFactory.NAME;
+    }
+
+    @Override
+    public String botName() {
+        return name();
+    }
+
 }

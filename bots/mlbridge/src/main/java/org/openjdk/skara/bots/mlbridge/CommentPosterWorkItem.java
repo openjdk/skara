@@ -95,4 +95,9 @@ public class CommentPosterWorkItem implements WorkItem {
     public void handleRuntimeException(RuntimeException e) {
         errorHandler.accept(e);
     }
+
+    @Override
+    public String botName() {
+        return MailingListBridgeBotFactory.NAME;
+    }
 }

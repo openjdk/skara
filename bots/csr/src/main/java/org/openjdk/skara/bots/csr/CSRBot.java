@@ -142,4 +142,14 @@ class CSRBot implements Bot, WorkItem {
     public List<WorkItem> getPeriodicItems() {
         return List.of(this);
     }
+
+    @Override
+    public String botName() {
+        return name();
+    }
+
+    @Override
+    public String name() {
+        return CSRBotFactory.NAME;
+    }
 }

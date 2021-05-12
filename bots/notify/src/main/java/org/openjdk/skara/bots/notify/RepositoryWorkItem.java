@@ -303,4 +303,9 @@ public class RepositoryWorkItem implements WorkItem {
     public String toString() {
         return "RepositoryWorkItem@" + repository.name();
     }
+
+    @Override
+    public String botName() {
+        return NotifyBotFactory.NAME;
+    }
 }

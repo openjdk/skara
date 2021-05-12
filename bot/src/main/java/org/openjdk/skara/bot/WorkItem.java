@@ -41,6 +41,8 @@ public interface WorkItem {
      */
     Collection<WorkItem> run(Path scratchPath);
 
+    String botName();
+
     /**
      * The BotRunner will catch <code>RuntimeException</code>s, implementing this method allows a WorkItem to
      * perform additional cleanup if necessary (avoiding the need for catching and rethrowing the exception).

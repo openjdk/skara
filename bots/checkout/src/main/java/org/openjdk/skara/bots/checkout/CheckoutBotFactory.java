@@ -34,9 +34,10 @@ import java.util.logging.Logger;
 public class CheckoutBotFactory implements BotFactory {
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");
 
+    static final String NAME = "checkout";
     @Override
     public String name() {
-        return "checkout";
+        return NAME;
     }
 
     @Override

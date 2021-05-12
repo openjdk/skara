@@ -35,9 +35,10 @@ import java.util.stream.Collectors;
 public class TopologicalBotFactory implements BotFactory {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");
 
+    static final String NAME = "topological";
     @Override
     public String name() {
-        return "topological";
+        return NAME;
     }
 
     @Override

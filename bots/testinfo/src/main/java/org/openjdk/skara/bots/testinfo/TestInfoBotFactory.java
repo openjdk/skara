@@ -30,9 +30,10 @@ import java.util.logging.Logger;
 public class TestInfoBotFactory implements BotFactory {
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");
 
+    static final String NAME = "testinfo";
     @Override
     public String name() {
-        return "testinfo";
+        return NAME;
     }
 
     @Override

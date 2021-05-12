@@ -103,4 +103,14 @@ class ForwardBot implements Bot, WorkItem {
     public List<WorkItem> getPeriodicItems() {
         return List.of(this);
     }
+
+    @Override
+    public String name() {
+        return ForwardBotFactory.NAME;
+    }
+
+    @Override
+    public String botName() {
+        return name();
+    }
 }

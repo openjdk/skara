@@ -101,4 +101,9 @@ public class SubmitBotWorkItem implements WorkItem {
 
         return List.of();
     }
+
+    @Override
+    public String botName() {
+        return SubmitBotFactory.NAME;
+    }
 }

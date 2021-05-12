@@ -66,4 +66,9 @@ public class TestInfoBot implements Bot {
         }
         return ret;
     }
+
+    @Override
+    public String name() {
+        return TestInfoBotFactory.NAME;
+    }
 }

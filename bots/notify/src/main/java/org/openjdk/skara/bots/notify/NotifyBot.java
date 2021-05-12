@@ -143,4 +143,9 @@ public class NotifyBot implements Bot, Emitter {
 
         return ret;
     }
+
+    @Override
+    public String name() {
+        return NotifyBotFactory.NAME;
+    }
 }

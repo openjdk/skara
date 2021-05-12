@@ -41,9 +41,10 @@ public class JBridgeBotFactory implements BotFactory {
         return ret;
     }
 
+    static final String NAME = "hgbridge";
     @Override
     public String name() {
-        return "hgbridge";
+        return NAME;
     }
 
     @Override

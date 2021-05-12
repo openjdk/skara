@@ -72,6 +72,11 @@ class TestWorkItem implements WorkItem {
     public String toString() {
         return description != null ? description : super.toString();
     }
+
+    @Override
+    public String botName() {
+        return "test-bot";
+    }
 }
 
 class TestWorkItemChild extends TestWorkItem {
@@ -120,6 +125,11 @@ class TestBlockedWorkItem implements WorkItem {
         System.out.println("Done waiting");
         return List.of();
     }
+
+    @Override
+    public String botName() {
+        return "test-blocked";
+    }
 }
 
 class TestBot implements Bot {
@@ -143,6 +153,11 @@ class TestBot implements Bot {
         } else {
             return itemSupplier.get();
         }
+    }
+
+    @Override
+    public String name() {
+        return "test-bot";
     }
 }
 

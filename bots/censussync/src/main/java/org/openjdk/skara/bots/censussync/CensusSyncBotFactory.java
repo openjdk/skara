@@ -31,9 +31,10 @@ import java.util.logging.Logger;
 public class CensusSyncBotFactory implements BotFactory {
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots");
 
+    static final String NAME = "censussync";
     @Override
     public String name() {
-        return "censussync";
+        return NAME;
     }
 
     @Override

@@ -272,4 +272,9 @@ public class PullRequestWorkItem implements WorkItem {
     public void handleRuntimeException(RuntimeException e) {
         errorHandler.accept(e);
     }
+
+    @Override
+    public String botName() {
+        return NotifyBotFactory.NAME;
+    }
 }

@@ -300,4 +300,9 @@ class PullRequestBot implements Bot {
     public Set<String> integrators() {
         return integrators;
     }
+
+    @Override
+    public String name() {
+        return PullRequestBotFactory.NAME;
+    }
 }

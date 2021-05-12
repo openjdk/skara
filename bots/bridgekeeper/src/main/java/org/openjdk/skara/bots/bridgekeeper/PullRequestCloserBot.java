@@ -110,6 +110,11 @@ class PullRequestCloserBotWorkItem implements WorkItem {
     public String toString() {
         return "PullRequestCloserBotWorkItem@" + repository.name() + "#" + pr.id();
     }
+
+    @Override
+    public String botName() {
+        return BridgekeeperBotFactory.NAME;
+    }
 }
 
 public class PullRequestCloserBot implements Bot {
@@ -139,5 +144,10 @@ public class PullRequestCloserBot implements Bot {
         }
 
         return ret;
+    }
+
+    @Override
+    public String name() {
+        return BridgekeeperBotFactory.NAME;
     }
 }

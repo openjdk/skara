@@ -145,4 +145,14 @@ public class CensusSyncUnifyBot implements Bot, WorkItem {
         }
         return List.of();
     }
+
+    @Override
+    public String name() {
+        return CensusSyncBotFactory.NAME;
+    }
+
+    @Override
+    public String botName() {
+        return name();
+    }
 }

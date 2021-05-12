@@ -105,4 +105,9 @@ class CommitCommentsWorkItem implements WorkItem {
     public String toString() {
         return "CommitCommentsWorkItem@" + repo.name();
     }
+
+    @Override
+    public String botName() {
+        return PullRequestBotFactory.NAME;
+    }
 }
