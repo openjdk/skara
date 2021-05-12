@@ -182,7 +182,7 @@ public final class Counter implements Collector {
         public WithOneLabel(String name, String label) {
             this.name = name;
             this.label = label;
-            this.value = new ConcurrentHashMap<String, DoubleAdder>();
+            this.value = new ConcurrentHashMap<>();
         }
 
         public Incrementer labels(String labelValue) {

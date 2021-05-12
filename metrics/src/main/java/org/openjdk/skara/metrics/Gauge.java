@@ -210,7 +210,7 @@ public final class Gauge implements Collector {
         public WithOneLabel(String name, String label) {
             this.name = name;
             this.label = label;
-            this.value = new ConcurrentHashMap<String, DoubleAdder>();
+            this.value = new ConcurrentHashMap<>();
         }
 
         public Adjuster labels(String labelValue) {
