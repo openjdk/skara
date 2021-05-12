@@ -211,6 +211,7 @@ public class BotRunner {
     private final List<Bot> bots;
     private final ScheduledThreadPoolExecutor executor;
     private final BotWatchdog botWatchdog;
+    private volatile boolean isReady;
 
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bot");
 
@@ -229,6 +230,11 @@ public class BotRunner {
 
         executor = new ScheduledThreadPoolExecutor(config.concurrency());
         botWatchdog = new BotWatchdog(Duration.ofMinutes(10));
+        isReady = false;
+    }
+
+    boolean isReady() {
+        return isReady;
     }
 
     private void checkPeriodicItems() {
@@ -309,6 +315,7 @@ public class BotRunner {
             }
         }
 
+        isReady = true;
         executor.scheduleAtFixedRate(this::itemWatchdog, 0,
                                      config.scheduledExecutionPeriod().toMillis(), TimeUnit.MILLISECONDS);
         executor.scheduleAtFixedRate(this::checkPeriodicItems, 0,
