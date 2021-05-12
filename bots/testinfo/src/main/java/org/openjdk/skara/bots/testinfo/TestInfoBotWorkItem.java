@@ -127,4 +127,9 @@ public class TestInfoBotWorkItem implements WorkItem {
 
         return List.of();
     }
+
+    @Override
+    public String botName() {
+        return TestInfoBotFactory.NAME;
+    }
 }

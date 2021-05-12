@@ -31,9 +31,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class SubmitBotFactory implements BotFactory {
+    static final String NAME = "submit";
     @Override
     public String name() {
-        return "submit";
+        return NAME;
     }
 
     @Override

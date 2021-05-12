@@ -31,9 +31,10 @@ import java.util.logging.Logger;
 public class CSRBotFactory implements BotFactory {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
 
+    static final String NAME = "csr";
     @Override
     public String name() {
-        return "csr";
+        return NAME;
     }
 
     @Override

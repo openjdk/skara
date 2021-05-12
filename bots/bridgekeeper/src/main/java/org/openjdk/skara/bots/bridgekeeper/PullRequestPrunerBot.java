@@ -106,6 +106,11 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
     public String toString() {
         return "PullRequestPrunerBotWorkItem@" + pr.repository().name() + "#" + pr.id();
     }
+
+    @Override
+    public String botName() {
+        return BridgekeeperBotFactory.NAME;
+    }
 }
 
 public class PullRequestPrunerBot implements Bot {
@@ -162,5 +167,10 @@ public class PullRequestPrunerBot implements Bot {
         }
 
         return ret;
+    }
+
+    @Override
+    public String name() {
+        return BridgekeeperBotFactory.NAME;
     }
 }

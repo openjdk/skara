@@ -51,4 +51,9 @@ public class SubmitBot implements Bot {
     HostedRepository repository() {
         return repository;
     }
+
+    @Override
+    public String name() {
+        return SubmitBotFactory.NAME;
+    }
 }

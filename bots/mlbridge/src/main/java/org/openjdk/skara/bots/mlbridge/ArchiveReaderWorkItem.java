@@ -64,4 +64,9 @@ public class ArchiveReaderWorkItem implements WorkItem {
         }
         return List.of();
     }
+
+    @Override
+    public String botName() {
+        return MailingListBridgeBotFactory.NAME;
+    }
 }

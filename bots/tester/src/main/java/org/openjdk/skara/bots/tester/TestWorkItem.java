@@ -460,4 +460,9 @@ public class TestWorkItem implements WorkItem {
     public String toString() {
         return "TestWorkItem@" + pr.repository().name() + "#" + pr.id();
     }
+
+    @Override
+    public String botName() {
+        return TestBotFactory.NAME;
+    }
 }

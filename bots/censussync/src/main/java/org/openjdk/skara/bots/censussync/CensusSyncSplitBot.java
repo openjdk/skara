@@ -251,4 +251,14 @@ public class CensusSyncSplitBot implements Bot, WorkItem {
         }
         return List.of();
     }
+
+    @Override
+    public String name() {
+        return CensusSyncBotFactory.NAME;
+    }
+
+    @Override
+    public String botName() {
+        return name();
+    }
 }

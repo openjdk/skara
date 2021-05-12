@@ -184,4 +184,9 @@ public class CommitCommandWorkItem implements WorkItem {
     public String toString() {
         return "CommitCommandWorkItem@" + bot.repo().name() + ":" + commitComment.commit().abbreviate();
     }
+
+    @Override
+    public String botName() {
+        return PullRequestBotFactory.NAME;
+    }
 }

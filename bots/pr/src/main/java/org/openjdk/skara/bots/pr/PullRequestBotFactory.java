@@ -32,9 +32,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class PullRequestBotFactory implements BotFactory {
+    static final String NAME = "pr";
     @Override
     public String name() {
-        return "pr";
+        return NAME;
     }
 
     @Override

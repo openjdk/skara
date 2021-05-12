@@ -37,9 +37,10 @@ import java.util.logging.Logger;
 public class MergeBotFactory implements BotFactory {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
 
+    static final String NAME = "merge";
     @Override
     public String name() {
-        return "merge";
+        return NAME;
     }
 
     private static MergeBot.Spec.Frequency.Interval toInterval(String s) {

@@ -102,4 +102,8 @@ public class TestUpdateNeededWorkItem implements WorkItem {
         return "TestUpdateNeededWorkItem@" + pr.repository().name() + "#" + pr.id();
     }
 
+    @Override
+    public String botName() {
+        return TestBotFactory.NAME;
+    }
 }

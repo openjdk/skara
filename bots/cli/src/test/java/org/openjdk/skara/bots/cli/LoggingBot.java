@@ -80,4 +80,14 @@ public class LoggingBot implements Bot, WorkItem {
         runnable.accept(logger);
         return List.of();
     }
+
+    @Override
+    public String name() {
+        return "logging";
+    }
+
+    @Override
+    public String botName() {
+        return name();
+    }
 }

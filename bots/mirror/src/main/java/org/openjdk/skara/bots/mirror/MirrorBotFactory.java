@@ -34,9 +34,10 @@ import java.util.logging.Logger;
 public class MirrorBotFactory implements BotFactory {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
 
+    static final String NAME = "mirror";
     @Override
     public String name() {
-        return "mirror";
+        return NAME;
     }
 
     @Override

@@ -31,4 +31,5 @@ public interface Bot {
     default List<WorkItem> processWebHook(JSONValue body) {
         return List.of();
     };
+    String name();
 }

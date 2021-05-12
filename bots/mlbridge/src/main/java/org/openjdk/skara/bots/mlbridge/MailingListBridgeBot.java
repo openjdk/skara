@@ -219,4 +219,9 @@ public class MailingListBridgeBot implements Bot {
 
         return ret;
     }
+
+    @Override
+    public String name() {
+        return MailingListBridgeBotFactory.NAME;
+    }
 }
