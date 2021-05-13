@@ -33,6 +33,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class HostedRepositoryPool {
+    private static final String CLONE_TMP_SUFFIX = ".clone-tmp";
+
     private final Path seedStorage;
     private final Logger log = Logger.getLogger("org.openjdk.skara.forge");
 
@@ -112,7 +114,14 @@ public class HostedRepositoryPool {
             refreshSeed(true);
             var remote = allowStale ? seedUri() : hostedRepository.url();
             log.info("Using seed folder " + seed + " when cloning into " + path + " from " + remote + (bare ? " (bare)" : ""));
-            return Repository.clone(remote, path, bare, seed);
+            var tmpClonePath = path.resolveSibling(path.getFileName() + CLONE_TMP_SUFFIX);
+            if (Files.exists(tmpClonePath)) {
+                log.fine("Found previous clone attempt " + tmpClonePath + " - deleting");
+                clearDirectory(tmpClonePath);
+            }
+            Repository.clone(remote, tmpClonePath, bare, seed);
+            Files.move(tmpClonePath, path);
+            return Repository.get(path).orElseThrow();
         }
 
         private void removeOldClone(Path path, String reason) {
