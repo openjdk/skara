@@ -392,7 +392,8 @@ public class BotRunnerConfiguration {
         Map<String, BiFunction<BotRunner, JSONObject, HttpHandler>> factories = Map.of(
             WebhookHandler.name(), WebhookHandler::create,
             MetricsHandler.name(), MetricsHandler::create,
-            ReadinessHandler.name(), ReadinessHandler::create
+            ReadinessHandler.name(), ReadinessHandler::create,
+            LivenessHandler.name(), LivenessHandler::create
         );
         var contexts = new ArrayList<HttpContextConfiguration>();
         var port = config.get("http-server").get("port").asInt();
