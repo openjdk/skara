@@ -263,7 +263,7 @@ public class BotRunner {
         synchronized (executor) {
             for (var activeItem : active.entrySet()) {
                 var activeDuration = Duration.between(activeItem.getValue(), Instant.now());
-                if (activeDuration.compareTo(config.watchdogTimeout()) > 0) {
+                if (activeDuration.compareTo(config.watchdogWarnTimeout()) > 0) {
                     log.severe("Item " + activeItem.getKey() + " has been active more than " + activeDuration +
                                        " - this may be an error!");
                     // Reset the counter to avoid continuous reporting - once every watchdogTimeout is enough

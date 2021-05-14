@@ -313,7 +313,7 @@ class BotRunnerTests {
         var countdownLatch = new CountDownLatch(1);
         var item = new TestBlockedWorkItem(countdownLatch);
         var bot = new TestBot(item);
-        var runner = new BotRunner(config("{ \"runner\": { \"watchdog\": \"PT0.01S\", \"interval\": \"PT0.001S\" } }"), List.of(bot));
+        var runner = new BotRunner(config("{ \"runner\": { \"watchdog_warn\": \"PT0.01S\", \"interval\": \"PT0.001S\" } }"), List.of(bot));
 
         var errors = new ArrayList<String>();
         var log = Logger.getLogger("org.openjdk.skara.bot");

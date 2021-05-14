@@ -420,4 +420,13 @@ public class BotRunnerConfiguration {
             return Duration.parse(config.get("runner").get("watchdog").asString());
         }
     }
+
+    Duration watchdogWarnTimeout() {
+        if (!config.contains("runner") || !config.get("runner").contains("watchdog_warn")) {
+            log.info("No WorkItem watchdog_warn timeout defined, using watchdog value");
+            return watchdogTimeout();
+        } else {
+            return Duration.parse(config.get("runner").get("watchdog_warn").asString());
+        }
+    }
 }
