@@ -163,20 +163,21 @@ public class BotLauncher {
 
         applyLogging(jsonConfig);
         var log = Logger.getLogger("org.openjdk.skara.bots.cli");
+        log.info("Starting BotLauncher");
 
         BotRunnerConfiguration runnerConfig = null;
         try {
             runnerConfig = BotRunnerConfiguration.parse(jsonConfig, jsonFile.getParent());
         } catch (ConfigurationError configurationError) {
-            System.out.println("Failed to parse configuration file: " + jsonFile);
-            System.out.println("Error message: " + configurationError.getMessage());
+            log.severe("Failed to parse configuration file: " + jsonFile
+                    + " error message: " + configurationError.getMessage());
             System.exit(1);
         }
 
         var botFactories = BotFactory.getBotFactories().stream()
                                      .collect(Collectors.toMap(BotFactory::name, Function.identity()));
         if (botFactories.size() == 0) {
-            System.out.println("Error: no bot factories found. Make sure the module path is correct. Exiting...");
+            log.severe("Error: no bot factories found. Make sure the module path is correct. Exiting...");
             System.exit(1);
         }
 

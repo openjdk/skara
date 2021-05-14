@@ -27,6 +27,7 @@ import java.time.Duration;
 public class BotWatchdog {
     private final Thread watchThread;
     private final long maxWaitMillis;
+    private final Duration maxWait;
     private volatile boolean hasBeenPinged = false;
 
     private void threadMain() {
@@ -34,7 +35,7 @@ public class BotWatchdog {
             try {
                 Thread.sleep(maxWaitMillis);
                 if (!hasBeenPinged) {
-                    System.out.println("No watchdog ping detected - exiting...");
+                    System.out.println("No watchdog ping detected for " + maxWait + " - exiting...");
                     System.exit(1);
                 }
                 hasBeenPinged = false;
@@ -44,6 +45,7 @@ public class BotWatchdog {
     }
 
     BotWatchdog(Duration maxWait) {
+        this.maxWait = maxWait;
         maxWaitMillis = maxWait.toMillis();
         watchThread = new Thread(this::threadMain);
         watchThread.setName("BotWatchdog");

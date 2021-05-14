@@ -415,7 +415,7 @@ public class BotRunnerConfiguration {
     Duration watchdogTimeout() {
         if (!config.contains("runner") || !config.get("runner").contains("watchdog")) {
             log.info("No WorkItem watchdog timeout defined, using default value");
-            return Duration.ofHours(1);
+            return Duration.ofMinutes(30);
         } else {
             return Duration.parse(config.get("runner").get("watchdog").asString());
         }

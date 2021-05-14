@@ -229,7 +229,7 @@ public class BotRunner {
         }
 
         executor = new ScheduledThreadPoolExecutor(config.concurrency());
-        botWatchdog = new BotWatchdog(Duration.ofMinutes(10));
+        botWatchdog = new BotWatchdog(config.watchdogTimeout());
         isReady = false;
     }
 
@@ -271,6 +271,7 @@ public class BotRunner {
                 }
             }
             // Inform the global watchdog that the scheduler is still executing items
+            log.fine("Pinging Watchdog");
             botWatchdog.ping();
         }
     }
