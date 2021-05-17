@@ -93,7 +93,7 @@ public class LaunchersTask extends DefaultTask {
                     w.write("@echo off\r\n");
                     w.write("set DIR=%~dp0\r\n");
                     w.write("set JAVA_HOME=%DIR%..\\image\r\n");
-                    w.write("\"%JAVA_HOME%\\bin\\java.exe\" " + optionString + " --module " + clazz + " %*\r\n");
+                    w.write("\"%JAVA_HOME%\\bin\\java.exe\" %SKARA_JAVA_OPTS% " + optionString + " --module " + clazz + " %*\r\n");
                 }
             } else {
                 var file = dest.resolve(filename);
@@ -101,7 +101,7 @@ public class LaunchersTask extends DefaultTask {
                     w.write("#!/bin/sh\n");
                     w.write("DIR=$(dirname \"$0\")\n");
                     w.write("export JAVA_HOME=\"${DIR}/../image\"\n");
-                    w.write("\"${JAVA_HOME}/bin/java\" " + optionString + " --module " + clazz + " \"$@\"\n");
+                    w.write("\"${JAVA_HOME}/bin/java\" $SKARA_JAVA_OPTS " + optionString + " --module " + clazz + " \"$@\"\n");
                 }
                 if (file.getFileSystem().supportedFileAttributeViews().contains("posix")) {
                     var permissions = PosixFilePermissions.fromString("rwxr-xr-x");
