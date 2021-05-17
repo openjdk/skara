@@ -109,7 +109,7 @@ public class BotLauncher {
 
     private static JSONObject readConfiguration(Path jsonFile) {
         try {
-            return JSON.parse(Files.readString(jsonFile, StandardCharsets.UTF_8)).asObject();
+            return JWCC.parse(Files.readString(jsonFile, StandardCharsets.UTF_8)).asObject();
         } catch (IOException e) {
             throw new RuntimeException("Failed to open configuration file: " + jsonFile);
         }

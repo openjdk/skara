@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,8 +27,16 @@ import java.util.*;
 class JSONParser {
     private int pos = 0;
     private String input;
+    private final boolean allowComments;
+    private final boolean allowTrailingCommas;
 
     JSONParser() {
+        this(false, false);
+    }
+
+    JSONParser(boolean allowComments, boolean allowTrailingCommas) {
+        this.allowComments = allowComments;
+        this.allowTrailingCommas = allowTrailingCommas;
     }
 
     private IllegalStateException failure(String message) {
@@ -37,6 +45,12 @@ class JSONParser {
 
     private char current() {
         return input.charAt(pos);
+    }
+
+    private Optional<Character> next() {
+        var nextPos = pos + 1;
+        return nextPos < input.length() ?
+            Optional.of(input.charAt(nextPos)) : Optional.empty();
     }
 
     private void advance() {
@@ -237,7 +251,11 @@ class JSONParser {
         var list = new ArrayList<JSONValue>();
 
         advance(); // step beyond opening '['
-        consumeWhitespace();
+        if (allowComments) {
+            consumeCommentsAndWhitespace();
+        } else {
+            consumeWhitespace();
+        }
         expectMoreInput(error);
 
         while (current() != ']') {
@@ -247,6 +265,13 @@ class JSONParser {
             expectMoreInput(error);
             if (current() == ',') {
                 advance();
+                if (allowTrailingCommas) {
+                    if (allowComments) {
+                        consumeCommentsAndWhitespace();
+                    } else {
+                        consumeWhitespace();
+                    }
+                }
             }
             expectMoreInput(error);
         }
@@ -268,7 +293,11 @@ class JSONParser {
         var map = new HashMap<String, JSONValue>();
 
         advance(); // step beyond opening '{'
-        consumeWhitespace();
+        if (allowComments) {
+            consumeCommentsAndWhitespace();
+        } else {
+            consumeWhitespace();
+        }
         expectMoreInput(error);
 
         while (current() != '}') {
@@ -288,6 +317,13 @@ class JSONParser {
             expectMoreInput(error);
             if (current() == ',') {
                 advance();
+                if (allowTrailingCommas) {
+                    if (allowComments) {
+                        consumeCommentsAndWhitespace();
+                    } else {
+                        consumeWhitespace();
+                    }
+                }
             }
             expectMoreInput(error);
         }
@@ -340,6 +376,41 @@ class JSONParser {
         return c == '{';
     }
 
+    private void consumeCommentsAndWhitespace() {
+        while (hasInput() && (isWhitespace(current()) || isComment())) {
+            consumeWhitespace();
+            consumeComment();
+        }
+    }
+
+    private boolean isComment() {
+        return hasInput() &&
+               current() == '/' &&
+               (next().equals(Optional.of('*')) || next().equals(Optional.of('/')));
+    }
+
+    private void consumeComment() {
+        if (isComment()) {
+            advance();
+            if (current() == '/') {
+                advance();
+                while (hasInput() && current() != '\n') {
+                    advance();
+                }
+            } else {
+                advance();
+                while (hasInput()) {
+                    if (current() == '*' && next().equals(Optional.of('/'))) {
+                        advance();
+                        advance();
+                        break;
+                    }
+                    advance();
+                }
+            }
+        }
+    }
+
     private void consumeWhitespace() {
         while (hasInput() && isWhitespace(current())) {
             advance();
@@ -349,7 +420,11 @@ class JSONParser {
     public JSONValue parseValue() {
         JSONValue ret = null;
 
-        consumeWhitespace();
+        if (allowComments) {
+            consumeCommentsAndWhitespace();
+        } else {
+            consumeWhitespace();
+        }
         if (hasInput()) {
             var c = current();
 
@@ -369,7 +444,11 @@ class JSONParser {
                 throw failure("not a valid start of a JSON value");
             }
         }
-        consumeWhitespace();
+        if (allowComments) {
+            consumeCommentsAndWhitespace();
+        } else {
+            consumeWhitespace();
+        }
 
         return ret;
     }
