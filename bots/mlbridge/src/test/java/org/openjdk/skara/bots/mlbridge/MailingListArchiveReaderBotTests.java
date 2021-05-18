@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.mailinglist.*;
 import org.openjdk.skara.test.*;
@@ -281,6 +282,71 @@ class MailingListArchiveReaderBotTests {
             assertTrue(updated.get(1).body().contains("[Commenter](mailto:c@test.test)"));
             assertTrue(updated.get(1).body().contains("[test](mailto:test@" + listAddress.domain() + ")"));
             assertTrue(updated.get(1).body().contains("This message was too large"));
+        }
+    }
+
+    /**
+     * Verify that we don't throw exceptions if the target branch of a PR is missing after
+     * being closed.
+     */
+    @Test
+    void branchMissing(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
+            var author = credentials.getHostedRepository();
+            var archive = credentials.getHostedRepository();
+            var ignored = credentials.getHostedRepository();
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id());
+            var from = EmailAddress.from("test", "test@test.mail");
+            var mlBot = MailingListBridgeBot.newBuilder()
+                    .from(from)
+                    .repo(author)
+                    .archive(archive)
+                    .censusRepo(censusBuilder.build())
+                    .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
+                    .ignoredUsers(Set.of(ignored.forge().currentUser().username()))
+                    .listArchive(listServer.getArchive())
+                    .smtpServer(listServer.getSMTP())
+                    .webrevStorageHTMLRepository(archive)
+                    .webrevStorageRef("webrev")
+                    .webrevStorageBase(Path.of("test"))
+                    .webrevStorageBaseUri(webrevServer.uri())
+                    .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                    .build();
+
+            // The mailing list as well
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(),
+                    Duration.ZERO);
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var readerBot = new MailingListArchiveReaderBot(from, mailmanList, Set.of(archive));
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, author.url(), "to_be_deleted", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "A simple change",
+                    "Change msg\n\nWith several lines");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(archive, "to_be_deleted", "edit", "This is a pull request");
+            pr.setBody("This should now be ready");
+
+            // Run an archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // Delete the branch and close the PR
+            author.deleteBranch("to_be_deleted");
+            pr.setState(Issue.State.CLOSED);
+
+            TestBotRunner.runPeriodicItems(mlBot);
         }
     }
 }

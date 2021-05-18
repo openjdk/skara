@@ -179,9 +179,13 @@ class ReviewArchive {
                 var hash = findIntegratedHash();
                 if (hash.isPresent()) {
                     var commit = localRepo.lookup(hash.get());
-                    if (!hasLegacyIntegrationNotice(localRepo, commit.orElseThrow())) {
-                        var reply = ArchiveItem.integratedNotice(pr, localRepo, commit.orElseThrow(), hostUserToEmailAuthor, parent, subjectPrefix);
-                        generated.add(reply);
+                    if (commit.isPresent()) {
+                        if (!hasLegacyIntegrationNotice(localRepo, commit.get())) {
+                            var reply = ArchiveItem.integratedNotice(pr, localRepo, commit.get(), hostUserToEmailAuthor, parent, subjectPrefix);
+                            generated.add(reply);
+                        }
+                    } else {
+                        log.warning("Target commit for PR no longer exists, can't post or verify integration notice: " + hash.get());
                     }
                 } else {
                     throw new RuntimeException("PR " + pr.webUrl() + " has integrated label but no integration comment");
