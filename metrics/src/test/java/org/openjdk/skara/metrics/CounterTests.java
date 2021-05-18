@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class CounterTests {
     @Test
     void inc() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var counter = Counter.name("test").register(registry);
         assertEquals(0, counter.collect().get(0).value());
         counter.inc();
@@ -38,7 +38,7 @@ class CounterTests {
 
     @Test
     void incTwice() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var counter = Counter.name("test").register(registry);
         assertEquals(0, counter.collect().get(0).value());
         counter.inc();
@@ -52,7 +52,7 @@ class CounterTests {
 
     @Test
     void incWithValue() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var counter = Counter.name("test").register(registry);
         assertEquals(0, counter.collect().get(0).value());
         counter.inc(17);
@@ -61,7 +61,7 @@ class CounterTests {
 
     @Test
     void incWithValueMixedWithInc() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var counter = Counter.name("test").register(registry);
         assertEquals(0, counter.collect().get(0).value());
         counter.inc(17);
@@ -74,7 +74,7 @@ class CounterTests {
 
     @Test
     void incAndReset() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var counter = Counter.name("test").register(registry);
         assertEquals(0, counter.collect().get(0).value());
         counter.inc(17);
@@ -87,7 +87,7 @@ class CounterTests {
 
     @Test
     void oneLabel() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var counter = Counter.name("test").labels("a").register(registry);
         counter.labels("1").inc(17);
         assertEquals(1, counter.collect().size());
@@ -99,7 +99,7 @@ class CounterTests {
 
     @Test
     void twoLabels() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var counter = Counter.name("test").labels("a", "b").register(registry);
         counter.labels("1", "2").inc(17);
         assertEquals(1, counter.collect().size());
@@ -113,7 +113,7 @@ class CounterTests {
 
     @Test
     void threeLabels() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var counter = Counter.name("test").labels("a", "b", "c").register(registry);
         counter.labels("1", "2", "3").inc(17);
         assertEquals(1, counter.collect().size());
@@ -129,7 +129,7 @@ class CounterTests {
 
     @Test
     void threeLabelsIncAndReset() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var counter = Counter.name("test").labels("a", "b", "c").register(registry);
         counter.labels("1", "2", "3").inc();
         assertEquals(1, counter.collect().get(0).value());
@@ -143,7 +143,7 @@ class CounterTests {
 
     @Test
     void oneLabelMultiple() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var counter = Counter.name("test").labels("a").register(registry);
         counter.labels("1").inc(17);
         counter.labels("2").inc(19);

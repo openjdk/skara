@@ -25,13 +25,14 @@ package org.openjdk.skara.metrics;
 import org.junit.jupiter.api.*;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class CollectorRegistryTests {
     @Test
     void register() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var counter = Counter.name("counter").register(registry);
         var gauge = Gauge.name("gauge").register(registry);
         var metrics = registry.scrape();
@@ -44,10 +45,32 @@ class CollectorRegistryTests {
 
     @Test
     void unregister() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var counter = Counter.name("test").register(registry);
         assertEquals(1, registry.scrape().size());
         registry.unregister(counter);
         assertEquals(0, registry.scrape().size());
+    }
+
+    @Test
+    void hotspotMetrics() {
+        var registry = new CollectorRegistry(true);
+        var metrics = registry.scrape();
+        var metricNames = metrics.stream().map(Metric::name).collect(Collectors.toSet());
+        assertTrue(metricNames.contains("hotspot_memory_max"));
+        assertTrue(metricNames.contains("hotspot_memory_used"));
+        assertTrue(metricNames.contains("hotspot_memory_committed"));
+        assertTrue(metricNames.contains("hotspot_memory_init"));
+        assertTrue(metricNames.contains("hotspot_threads"));
+        assertTrue(metricNames.contains("hotspot_uptime"));
+        assertTrue(metricNames.contains("hotspot_gc_count"));
+        assertTrue(metricNames.contains("hotspot_gc_time"));
+        assertTrue(metricNames.contains("hotspot_memory_pool_max"));
+        assertTrue(metricNames.contains("hotspot_memory_pool_used"));
+        assertTrue(metricNames.contains("hotspot_memory_pool_committed"));
+        assertTrue(metricNames.contains("hotspot_memory_pool_init"));
+        assertTrue(metricNames.contains("hotspot_classes_loaded"));
+        assertTrue(metricNames.contains("hotspot_classes_unloaded"));
+
     }
 }
