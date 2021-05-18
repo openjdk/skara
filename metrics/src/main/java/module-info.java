@@ -21,6 +21,7 @@
  * questions.
  */
 module org.openjdk.skara.metrics {
+    requires java.management;
     exports org.openjdk.skara.metrics;
 }
 

@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class GaugeTests {
     @Test
     void inc() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var gauge = Gauge.name("test").register(registry);
         gauge.inc();
         assertEquals(1, gauge.collect().get(0).value());
@@ -37,7 +37,7 @@ class GaugeTests {
 
     @Test
     void dec() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var gauge = Gauge.name("test").register(registry);
         gauge.inc();
         assertEquals(1, gauge.collect().get(0).value());
@@ -49,7 +49,7 @@ class GaugeTests {
 
     @Test
     void incWithValue() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var gauge = Gauge.name("test").register(registry);
         gauge.inc(17);
         assertEquals(17, gauge.collect().get(0).value());
@@ -57,7 +57,7 @@ class GaugeTests {
 
     @Test
     void decWithValue() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var gauge = Gauge.name("test").register(registry);
         gauge.dec(17);
         assertEquals(-17, gauge.collect().get(0).value());
@@ -65,7 +65,7 @@ class GaugeTests {
 
     @Test
     void incAndDecWithValue() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var gauge = Gauge.name("test").register(registry);
         gauge.inc(17);
         assertEquals(17, gauge.collect().get(0).value());
@@ -75,7 +75,7 @@ class GaugeTests {
 
     @Test
     void set() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var gauge = Gauge.name("test").register(registry);
         gauge.set(1337);
         assertEquals(1337, gauge.collect().get(0).value());
@@ -85,7 +85,7 @@ class GaugeTests {
 
     @Test
     void oneLabel() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var gauge = Gauge.name("test").labels("a").register(registry);
         gauge.labels("1").inc();
         assertEquals(1, gauge.collect().size());
@@ -97,7 +97,7 @@ class GaugeTests {
 
     @Test
     void oneLabelIncDecSet() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var gauge = Gauge.name("test").labels("a").register(registry);
         gauge.labels("1").inc(17);
         assertEquals(1, gauge.collect().size());
@@ -113,7 +113,7 @@ class GaugeTests {
 
     @Test
     void twoLabels() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var gauge = Gauge.name("test").labels("a", "b").register(registry);
         gauge.labels("1", "2").inc();
         assertEquals(1, gauge.collect().size());
@@ -127,7 +127,7 @@ class GaugeTests {
 
     @Test
     void twoLabelsIncDecSet() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var gauge = Gauge.name("test").labels("a", "b").register(registry);
         gauge.labels("1", "2").inc(17);
         assertEquals(1, gauge.collect().size());
@@ -145,7 +145,7 @@ class GaugeTests {
 
     @Test
     void threeLabels() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var gauge = Gauge.name("test").labels("a", "b", "c").register(registry);
         gauge.labels("1", "2", "3").inc();
         assertEquals(1, gauge.collect().size());
@@ -161,7 +161,7 @@ class GaugeTests {
 
     @Test
     void threeLabelsIncDecSet() {
-        var registry = new CollectorRegistry();
+        var registry = new CollectorRegistry(false);
         var gauge = Gauge.name("test").labels("a", "b", "c").register(registry);
         gauge.labels("1", "2", "3").inc(17);
         assertEquals(1, gauge.collect().size());
