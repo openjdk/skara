@@ -271,6 +271,14 @@ class ArchiveWorkItem implements WorkItem {
             }
         }
 
+        // If the PR is closed and the target ref no longer exists, we cannot process it
+        if (pr.isClosed()) {
+            if (pr.repository().branches().stream().noneMatch(n -> n.name().equals(pr.targetRef()))) {
+                log.warning("Target branch of PR '" + pr.targetRef() + "' no longer exists, cannot process further");
+                return List.of();
+            }
+        }
+
         // Also inspect comments before making the first post
         var comments = pr.comments();
         if (sentMails.isEmpty()) {
