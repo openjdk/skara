@@ -195,6 +195,19 @@ class CheckRun {
                             ret.add("Title mismatch between PR and JBS for issue " + issueString);
                             setExpiration(Duration.ofMinutes(10));
                         }
+
+                        var properties = iss.get().properties();
+                        if (!properties.containsKey("issuetype")) {
+                            var issueString = "[" + iss.get().id() + "](" + iss.get().webUrl() + ")";
+                            ret.add("Issue " + issueString + " does not contain property `issuetype`");
+                            setExpiration(Duration.ofMinutes(10));
+                        } else {
+                            var issueType = properties.get("issuetype").asString();
+                            if (!primaryTypes.contains(issueType)) {
+                                ret.add("Issue of type `" + issueType + "` is not allowed for integrations");
+                                setExpiration(Duration.ofMinutes(10));
+                            }
+                        }
                     } else {
                         log.warning("Failed to retrieve information on issue " + currentIssue.id());
                         setExpiration(Duration.ofMinutes(10));
@@ -477,10 +490,6 @@ class CheckRun {
                                 if (!pr.labelNames().contains("backport")) {
                                     progressBody.append(" ⚠️ Issue is not open.");
                                 }
-                            }
-                            if (properties.containsKey("issuetype") && !primaryTypes.contains(properties.get("issuetype").asString())) {
-                                progressBody.append(" ⚠️ Unexpected issue type `").append(properties.get("issuetype").asString()).append("`.");
-                                setExpiration(Duration.ofMinutes(10));
                             }
                             progressBody.append("\n");
                         } else {

@@ -378,7 +378,7 @@ public class HostCredentials implements AutoCloseable {
     }
 
     public Issue createIssue(IssueProject issueProject, String title) {
-        var issue = issueProject.createIssue(title, List.of(), Map.of());
+        var issue = issueProject.createIssue(title, List.of(), Map.of("issuetype", JSON.of("Bug")));
         issuesToBeClosed.add(issue);
         return issue;
     }
