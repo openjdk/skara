@@ -970,7 +970,7 @@ class CheckTests {
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.push(masterHash, author.url(), "master", true);
 
-            var issue1 = issues.createIssue("My first issue", List.of("Hello"), Map.of());
+            var issue1 = issues.createIssue("My first issue", List.of("Hello"), Map.of("issuetype", JSON.of("Bug")));
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
@@ -990,7 +990,7 @@ class CheckTests {
             assertTrue(pr.body().contains("My first issue"));
 
             // Change the issue
-            var issue2 = issues.createIssue("My second issue", List.of("Body"), Map.of());
+            var issue2 = issues.createIssue("My second issue", List.of("Body"), Map.of("issuetype", JSON.of("Bug")));
             pr.setTitle(issue2.id() + ": This is a pull request");
 
             // Check the status again
@@ -1067,7 +1067,7 @@ class CheckTests {
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.push(masterHash, author.url(), "master", true);
 
-            var issue1 = issues.createIssue("My first issue", List.of("Hello"), Map.of());
+            var issue1 = issues.createIssue("My first issue", List.of("Hello"), Map.of("issuetype", JSON.of("Bug")));
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
@@ -1087,7 +1087,7 @@ class CheckTests {
             assertTrue(pr.body().contains("My first issue"));
 
             // Change the issue
-            var issue2 = issues.createIssue("My second issue", List.of("Body"), Map.of());
+            var issue2 = issues.createIssue("My second issue", List.of("Body"), Map.of("issuetype", JSON.of("Bug")));
             pr.setTitle(issue2.id() + ": This is a pull request");
 
             // Check the status again
@@ -1507,8 +1507,8 @@ class CheckTests {
 
             var bug = issues.createIssue("My first bug", List.of("A bug"),
                                          Map.of("issuetype", JSON.of("Bug")));
-            var feature = issues.createIssue("My first feature", List.of("A feature"),
-                                             Map.of("issuetype", JSON.of("Backport")));
+            var backport = issues.createIssue("My first feature", List.of("A feature"),
+                                              Map.of("issuetype", JSON.of("Backport")));
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -1531,17 +1531,17 @@ class CheckTests {
             assertEquals(CheckStatus.SUCCESS, bugCheck.status());
 
             // Make a change with a corresponding PR
-            var featureHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(featureHash, author.url(), "feature", true);
-            var featurePR = credentials.createPullRequest(author, "master", "feature",
-                                                          feature.id() + ": My first feature", true);
+            var backportHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(backportHash, author.url(), "backport", true);
+            var backportPR = credentials.createPullRequest(author, "master", "backport",
+                                                           backport.id() + ": My first backport", true);
 
             // Check the status
             TestBotRunner.runPeriodicItems(checkBot);
-            assertTrue(featurePR.body().contains(feature.id()));
-            assertTrue(featurePR.body().contains("My first feature"));
-            assertTrue(featurePR.body().contains("## Issue\n"));
-            assertTrue(featurePR.body().contains("Unexpected issue type"));
+            assertTrue(backportPR.body().contains(backport.id()));
+            assertTrue(backportPR.body().contains("My first feature"));
+            assertTrue(backportPR.body().contains("### Integration blocker"));
+            assertTrue(backportPR.body().contains("Issue of type `Backport` is not allowed for integrations"));
         }
     }
 
