@@ -408,7 +408,8 @@ public class BotRunnerConfiguration {
             MetricsHandler.name(), MetricsHandler::create,
             ReadinessHandler.name(), ReadinessHandler::create,
             LivenessHandler.name(), LivenessHandler::create,
-            ProfileHandler.name(), ProfileHandler::create
+            ProfileHandler.name(), ProfileHandler::create,
+            VersionHandler.name(), VersionHandler::create
         );
         var contexts = new ArrayList<HttpContextConfiguration>();
         var port = config.get("http-server").get("port").asInt();

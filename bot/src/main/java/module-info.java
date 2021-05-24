@@ -30,6 +30,7 @@ module org.openjdk.skara.bot {
     requires transitive org.openjdk.skara.metrics;
     requires org.openjdk.skara.network;
     requires org.openjdk.skara.vcs;
+    requires org.openjdk.skara.version;
     requires java.logging;
     requires java.management;
     requires jdk.management;
