@@ -213,6 +213,7 @@ public class BotRunner {
     private final BotWatchdog botWatchdog;
     private final Duration watchdogWarnTimeout;
     private volatile boolean isReady;
+    private volatile boolean isHealthy;
 
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bot");
 
@@ -230,9 +231,10 @@ public class BotRunner {
         }
 
         executor = new ScheduledThreadPoolExecutor(config.concurrency());
-        botWatchdog = new BotWatchdog(config.watchdogTimeout());
+        botWatchdog = new BotWatchdog(config.watchdogTimeout(), () -> isHealthy = false);
         watchdogWarnTimeout = config.watchdogWarnTimeout();
         isReady = false;
+        isHealthy = true;
     }
 
     boolean isReady() {
@@ -240,7 +242,7 @@ public class BotRunner {
     }
 
     boolean isHealthy() {
-        return true;
+        return isHealthy;
     }
 
     private void checkPeriodicItems() {
