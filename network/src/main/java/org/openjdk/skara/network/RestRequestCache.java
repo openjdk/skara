@@ -22,6 +22,9 @@
  */
 package org.openjdk.skara.network;
 
+import org.openjdk.skara.metrics.Counter;
+import org.openjdk.skara.metrics.Gauge;
+
 import javax.net.ssl.SSLSession;
 import java.io.IOException;
 import java.net.URI;
@@ -34,6 +37,9 @@ import java.util.logging.Logger;
 
 enum RestRequestCache {
     INSTANCE;
+
+    private final static Gauge cachedEntriesGauge = Gauge.name("skara_response_cache_size").register();
+    private final static Counter cacheHitsCounter = Counter.name("skara_response_cache_hits").register();
 
     private static class RequestContext {
         private final String authId;
@@ -191,11 +197,13 @@ enum RestRequestCache {
                 response = client.send(finalRequest, HttpResponse.BodyHandlers.ofString());
             }
             if (response.statusCode() == 304) {
+                cacheHitsCounter.inc();
                 log.finer("Using cached response for " + finalRequest + " (" + authId + ")");
                 return new CachedHttpResponse<>(cached, response);
             } else {
                 cachedResponses.put(requestContext, response);
                 cachedUpdated.put(requestContext, Instant.now());
+                cachedEntriesGauge.set(cachedResponses.size());
                 log.finer("Updating response cache for " + finalRequest + " (" + authId + ")");
                 return response;
             }
