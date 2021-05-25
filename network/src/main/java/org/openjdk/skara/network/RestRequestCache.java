@@ -235,9 +235,12 @@ enum RestRequestCache {
             } finally {
                 // Invalidate any related GET caches
                 var postUriString = unauthenticatedRequest.uri().toString();
-                for (var request : cachedResponses.keySet()) {
-                    if (request.unauthenticatedRequest.uri().toString().startsWith(postUriString)) {
-                        cachedResponses.remove(request);
+                var iterator = cachedResponses.entrySet().iterator();
+                while (iterator.hasNext()) {
+                    var entry = iterator.next();
+                    if (entry.getKey().unauthenticatedRequest.uri().toString().startsWith(postUriString)) {
+                        iterator.remove();
+                        cachedEntriesGauge.set(cachedResponses.size());
                     }
                 }
             }
@@ -250,7 +253,8 @@ enum RestRequestCache {
     public void evictOldData() {
         var now = Instant.now();
         var iterator = cachedResponses.entrySet().iterator();
-        for (var entry = iterator.next(); iterator.hasNext(); entry = iterator.next()) {
+        while (iterator.hasNext()) {
+            var entry = iterator.next();
             if (entry.getValue().callTime.isBefore(now.minus(maxAllowedAge(entry.getKey())))) {
                 iterator.remove();
                 cachedEntriesGauge.set(cachedResponses.size());
