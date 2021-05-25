@@ -326,12 +326,14 @@ public class BotRunner {
         }
 
         isReady = true;
-        executor.scheduleAtFixedRate(this::itemWatchdog, 0,
-                                     config.scheduledExecutionPeriod().toMillis(), TimeUnit.MILLISECONDS);
-        executor.scheduleAtFixedRate(this::checkPeriodicItems, 0,
-                                     config.scheduledExecutionPeriod().toMillis(), TimeUnit.MILLISECONDS);
-        executor.scheduleAtFixedRate(RestRequest::evictOldCacheData, 0,
-                                     config.scheduledExecutionPeriod().toMillis(), TimeUnit.MILLISECONDS);
+
+        var schedulingInterval = config.scheduledExecutionPeriod().toMillis();
+        executor.scheduleAtFixedRate(this::itemWatchdog, 0, schedulingInterval, TimeUnit.MILLISECONDS);
+        executor.scheduleAtFixedRate(this::checkPeriodicItems, 0, schedulingInterval, TimeUnit.MILLISECONDS);
+
+        var cacheEvictionInterval = config.cacheEvictionInterval().toMillis();
+        executor.scheduleAtFixedRate(RestRequest::evictOldCacheData, cacheEvictionInterval,
+                cacheEvictionInterval, TimeUnit.MILLISECONDS);
 
         try {
             executor.awaitTermination(timeout.toMillis(), TimeUnit.MILLISECONDS);
