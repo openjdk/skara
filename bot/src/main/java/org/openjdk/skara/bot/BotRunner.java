@@ -36,6 +36,7 @@ import java.util.logging.*;
 import java.util.stream.Collectors;
 
 import com.sun.net.httpserver.*;
+import org.openjdk.skara.network.RestRequest;
 
 class BotRunnerError extends RuntimeException {
     BotRunnerError(String msg) {
@@ -328,6 +329,8 @@ public class BotRunner {
         executor.scheduleAtFixedRate(this::itemWatchdog, 0,
                                      config.scheduledExecutionPeriod().toMillis(), TimeUnit.MILLISECONDS);
         executor.scheduleAtFixedRate(this::checkPeriodicItems, 0,
+                                     config.scheduledExecutionPeriod().toMillis(), TimeUnit.MILLISECONDS);
+        executor.scheduleAtFixedRate(RestRequest::evictOldCacheData, 0,
                                      config.scheduledExecutionPeriod().toMillis(), TimeUnit.MILLISECONDS);
 
         try {

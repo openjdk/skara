@@ -479,4 +479,8 @@ public class RestRequest {
     public QueryBuilder delete() {
         return delete(null);
     }
+
+    public static void evictOldCacheData() {
+        RestRequestCache.INSTANCE.evictOldData();
+    }
 }

@@ -74,12 +74,21 @@ enum RestRequestCache {
         }
     }
 
-    private final Map<RequestContext, HttpResponse<String>> cachedResponses = new ConcurrentHashMap<>();
+    private class CacheEntry {
+        private final HttpResponse<String> response;
+        private final Instant callTime;
+
+        public CacheEntry(HttpResponse<String> response, Instant callTime) {
+            this.response = response;
+            this.callTime = callTime;
+        }
+    }
+
+    private final Map<RequestContext, CacheEntry> cachedResponses = new ConcurrentHashMap<>();
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final Logger log = Logger.getLogger("org.openjdk.skara.network");
     private final ConcurrentHashMap<String, Lock> authLocks = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Instant> lastUpdates = new ConcurrentHashMap<>();
-    private final Map<RequestContext, Instant> cachedUpdated = new ConcurrentHashMap<>();
 
     private static class LockWithTimeout implements AutoCloseable {
         private final Lock lock;
@@ -182,9 +191,8 @@ enum RestRequestCache {
         if (unauthenticatedRequest.method().equals("GET")) {
             var cached = cachedResponses.get(requestContext);
             if (cached != null) {
-                var created = cachedUpdated.get(requestContext);
-                if (Instant.now().minus(maxAllowedAge(requestContext)).isBefore(created)) {
-                    var tag = cached.headers().firstValue("ETag");
+                if (Instant.now().minus(maxAllowedAge(requestContext)).isBefore(cached.callTime)) {
+                    var tag = cached.response.headers().firstValue("ETag");
                     tag.ifPresent(value -> requestBuilder.header("If-None-Match", value));
                 } else {
                     log.finer("Expired response cache for " + requestContext.unauthenticatedRequest.uri() + " (" + requestContext.authId + ")");
@@ -196,13 +204,12 @@ enum RestRequestCache {
                 // Perform requests using a certain account serially
                 response = client.send(finalRequest, HttpResponse.BodyHandlers.ofString());
             }
-            if (response.statusCode() == 304) {
+            if (cached != null && response.statusCode() == 304) {
                 cacheHitsCounter.inc();
                 log.finer("Using cached response for " + finalRequest + " (" + authId + ")");
-                return new CachedHttpResponse<>(cached, response);
+                return new CachedHttpResponse<>(cached.response, response);
             } else {
-                cachedResponses.put(requestContext, response);
-                cachedUpdated.put(requestContext, Instant.now());
+                cachedResponses.put(requestContext, new CacheEntry(response, Instant.now()));
                 cachedEntriesGauge.set(cachedResponses.size());
                 log.finer("Updating response cache for " + finalRequest + " (" + authId + ")");
                 return response;
@@ -228,11 +235,25 @@ enum RestRequestCache {
             } finally {
                 // Invalidate any related GET caches
                 var postUriString = unauthenticatedRequest.uri().toString();
-                for (var cachedResponse : cachedResponses.keySet()) {
-                    if (cachedResponse.unauthenticatedRequest.uri().toString().startsWith(postUriString)) {
-                        cachedUpdated.put(cachedResponse, Instant.now().minus(Duration.ofDays(1)));
+                for (var request : cachedResponses.keySet()) {
+                    if (request.unauthenticatedRequest.uri().toString().startsWith(postUriString)) {
+                        cachedResponses.remove(request);
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * This method should be run from time to time to keep the cache from growing indefinitely.
+     */
+    public void evictOldData() {
+        var now = Instant.now();
+        var iterator = cachedResponses.entrySet().iterator();
+        for (var entry = iterator.next(); iterator.hasNext(); entry = iterator.next()) {
+            if (entry.getValue().callTime.isBefore(now.minus(maxAllowedAge(entry.getKey())))) {
+                iterator.remove();
+                cachedEntriesGauge.set(cachedResponses.size());
             }
         }
     }
