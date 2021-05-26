@@ -318,4 +318,9 @@ class CheckWorkItem extends PullRequestWorkItem {
         var updatedPR = pr.repository().pullRequest(pr.id());
         return List.of(new PullRequestCommandWorkItem(bot, updatedPR, errorHandler));
     }
+
+    @Override
+    public String workItemName() {
+        return "check";
+    }
 }

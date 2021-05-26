@@ -173,4 +173,9 @@ public class LabelerWorkItem extends PullRequestWorkItem {
         }
         return List.of();
     }
+
+    @Override
+    public String workItemName() {
+        return "labeler";
+    }
 }

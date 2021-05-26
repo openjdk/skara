@@ -90,4 +90,9 @@ public class LoggingBot implements Bot, WorkItem {
     public String botName() {
         return name();
     }
+
+    @Override
+    public String workItemName() {
+        return botName();
+    }
 }

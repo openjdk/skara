@@ -74,4 +74,9 @@ public class SyncLabelBotFindMainIssueWorkItem implements WorkItem {
     public String botName() {
         return SyncLabelBotFactory.NAME;
     }
+
+    @Override
+    public String workItemName() {
+        return "find-main-issue";
+    }
 }

@@ -111,6 +111,11 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
     public String botName() {
         return BridgekeeperBotFactory.NAME;
     }
+
+    @Override
+    public String workItemName() {
+        return "pruner";
+    }
 }
 
 public class PullRequestPrunerBot implements Bot {

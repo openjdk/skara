@@ -240,4 +240,9 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     public String toString() {
         return "PullRequestCommandWorkItem@" + pr.repository().name() + "#" + pr.id();
     }
+
+    @Override
+    public String workItemName() {
+        return "pr-command";
+    }
 }

@@ -106,4 +106,9 @@ public class TestUpdateNeededWorkItem implements WorkItem {
     public String botName() {
         return TestBotFactory.NAME;
     }
+
+    @Override
+    public String workItemName() {
+        return "updater";
+    }
 }

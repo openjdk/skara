@@ -132,4 +132,9 @@ public class TestInfoBotWorkItem implements WorkItem {
     public String botName() {
         return TestInfoBotFactory.NAME;
     }
+
+    @Override
+    public String workItemName() {
+        return botName();
+    }
 }

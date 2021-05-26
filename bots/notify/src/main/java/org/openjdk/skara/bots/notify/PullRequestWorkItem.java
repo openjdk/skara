@@ -277,4 +277,9 @@ public class PullRequestWorkItem implements WorkItem {
     public String botName() {
         return NotifyBotFactory.NAME;
     }
+
+    @Override
+    public String workItemName() {
+        return "pr";
+    }
 }
