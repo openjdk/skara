@@ -320,6 +320,20 @@ public class BotRunnerConfiguration {
     }
 
     /**
+     * The amount of time to wait between runs of the RestResponseCache evictions.
+     * @return
+     */
+    Duration cacheEvictionInterval() {
+        if (!config.contains("runner") || !config.get("runner").contains("cache_eviction_interval")) {
+            var defaultValue = Duration.ofMinutes(5);
+            log.info("No cache eviction interval defined, using default value " + defaultValue);
+            return defaultValue;
+        } else {
+            return Duration.parse(config.get("runner").get("cache_eviction_interval").asString());
+        }
+    }
+
+    /**
      * Number of WorkItems to execute in parallel.
      * @return
      */
