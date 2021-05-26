@@ -31,6 +31,8 @@ module org.openjdk.skara.bot {
     requires org.openjdk.skara.network;
     requires org.openjdk.skara.vcs;
     requires java.logging;
+    requires java.management;
+    requires jdk.management;
     requires jdk.httpserver;
 
     exports org.openjdk.skara.bot;
