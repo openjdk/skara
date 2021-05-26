@@ -140,6 +140,8 @@ class Utils {
             return "FAILED";
         } else if (checkStatus == CheckStatus.CANCELLED) {
             return "CANCELLED";
+        } else if (checkStatus == CheckStatus.STALE) {
+            return "STALE";
         }
 
         return "UNKNOWN";

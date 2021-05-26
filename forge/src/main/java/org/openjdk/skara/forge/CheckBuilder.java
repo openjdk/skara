@@ -142,6 +142,12 @@ public class CheckBuilder {
         return this;
     }
 
+    public CheckBuilder stale() {
+        status = CheckStatus.STALE;
+        completedAt = ZonedDateTime.now();
+        return this;
+    }
+
     public Check build() {
         return new Check(name, hash, status, startedAt, completedAt, metadata, title, summary, annotations, details);
     }

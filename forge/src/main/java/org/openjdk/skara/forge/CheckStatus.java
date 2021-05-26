@@ -27,5 +27,6 @@ public enum CheckStatus {
     SUCCESS,
     FAILURE,
     CANCELLED,
-    SKIPPED
+    SKIPPED,
+    STALE
 }
