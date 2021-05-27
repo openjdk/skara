@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class CollectorRegistryTests {
     @Test
     void register() {
-        var registry = new CollectorRegistry(false);
+        var registry = new CollectorRegistry(false, false);
         var counter = Counter.name("counter").register(registry);
         var gauge = Gauge.name("gauge").register(registry);
         var metrics = registry.scrape();
@@ -45,7 +45,7 @@ class CollectorRegistryTests {
 
     @Test
     void unregister() {
-        var registry = new CollectorRegistry(false);
+        var registry = new CollectorRegistry(false, false);
         var counter = Counter.name("test").register(registry);
         assertEquals(1, registry.scrape().size());
         registry.unregister(counter);
@@ -54,7 +54,7 @@ class CollectorRegistryTests {
 
     @Test
     void hotspotMetrics() {
-        var registry = new CollectorRegistry(true);
+        var registry = new CollectorRegistry(true, false);
         var metrics = registry.scrape();
         var metricNames = metrics.stream().map(Metric::name).collect(Collectors.toSet());
         assertTrue(metricNames.contains("hotspot_memory_max"));
@@ -71,6 +71,13 @@ class CollectorRegistryTests {
         assertTrue(metricNames.contains("hotspot_memory_pool_init"));
         assertTrue(metricNames.contains("hotspot_classes_loaded"));
         assertTrue(metricNames.contains("hotspot_classes_unloaded"));
+    }
 
+    @Test
+    void processMetrics() {
+        var registry = new CollectorRegistry(false, true);
+        var metrics = registry.scrape();
+        var metricNames = metrics.stream().map(Metric::name).collect(Collectors.toSet());
+        assertTrue(metricNames.contains("process_start_time_seconds"));
     }
 }
