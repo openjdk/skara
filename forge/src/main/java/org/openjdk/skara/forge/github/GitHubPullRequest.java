@@ -407,7 +407,7 @@ public class GitHubPullRequest implements PullRequest {
                             var completed = c.get("status").asString().equals("completed");
                             if (completed) {
                                 var conclusion = c.get("conclusion").asString();
-                                String completedAtString = c.get("completed_at").asString();
+                                var completedAtString = c.get("completed_at").asString();
                                 var completedAt = completedAtString != null ? ZonedDateTime.parse(completedAtString) : null;
                                 switch (conclusion) {
                                     case "cancelled" -> checkBuilder.cancel(completedAt);
