@@ -24,7 +24,7 @@ package org.openjdk.skara.bot;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import org.openjdk.skara.json.JSONValue;
-import org.openjdk.skara.metrics.Counter;
+import org.openjdk.skara.metrics.*;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -34,6 +34,8 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.*;
 import java.util.stream.Collectors;
+import java.lang.management.ManagementFactory;
+import com.sun.management.ThreadMXBean;
 
 import com.sun.net.httpserver.*;
 import org.openjdk.skara.network.RestRequest;
@@ -60,6 +62,13 @@ public class BotRunner {
     private class RunnableWorkItem implements Runnable {
         private static final Counter.WithThreeLabels EXCEPTIONS_COUNTER =
             Counter.name("skara_runner_exceptions").labels("bot", "work-item", "exception").register();
+        private static final Gauge.WithTwoLabels CPU_TIME_GAUGE =
+            Gauge.name("skara_runner_cpu_time").labels("bot", "work-item").register();
+        private static final Gauge.WithTwoLabels USER_TIME_GAUGE =
+            Gauge.name("skara_runner_user_time").labels("bot", "work-item").register();
+        private static final Gauge.WithTwoLabels ALLOCATED_BYTES_GAUGE =
+            Gauge.name("skara_runner_allocated_bytes").labels("bot", "work-item").register();
+
         private final WorkItem item;
 
         RunnableWorkItem(WorkItem wrappedItem) {
@@ -70,8 +79,92 @@ public class BotRunner {
             return item;
         }
 
+        private static Optional<ThreadMXBean> getThreadMXBean() {
+            var bean = ManagementFactory.getThreadMXBean();
+            return bean instanceof ThreadMXBean ?
+                Optional.of((ThreadMXBean) bean) : Optional.empty();
+        }
+
+        private static void enableThreadCpuTime() {
+            var bean = getThreadMXBean();
+            if (bean.get().isCurrentThreadCpuTimeSupported() && !bean.get().isThreadCpuTimeEnabled()) {
+                bean.get().setThreadCpuTimeEnabled(true);
+            }
+        }
+
+        private static long getCurrentThreadCpuTime() {
+            var bean = getThreadMXBean();
+            if (bean.isEmpty()) {
+                return -1L;
+            }
+            return bean.get().isCurrentThreadCpuTimeSupported()?
+                bean.get().getCurrentThreadCpuTime() :
+                -1L;
+        }
+
+        private static long getCurrentThreadUserTime() {
+            var bean = getThreadMXBean();
+            if (bean.isEmpty()) {
+                return -1L;
+            }
+            return bean.get().isCurrentThreadCpuTimeSupported()?
+                bean.get().getCurrentThreadUserTime() :
+                -1L;
+        }
+
+        private static long getCurrentThreadAllocatedBytes() {
+            var bean = getThreadMXBean();
+            if (bean.isEmpty()) {
+                return -1L;
+            }
+
+            if (!bean.get().isThreadAllocatedMemorySupported()) {
+                return -1L;
+            }
+
+            if (!bean.get().isThreadAllocatedMemoryEnabled()) {
+                bean.get().setThreadAllocatedMemoryEnabled(true);
+            }
+
+            return bean.get().getCurrentThreadAllocatedBytes();
+        }
+
         @Override
         public void run() {
+            enableThreadCpuTime();
+            long startCpuTimeNs = getCurrentThreadCpuTime();
+            long startUserTimeNs = getCurrentThreadUserTime();
+            long startAllocatedBytes = getCurrentThreadAllocatedBytes();
+
+            try {
+                runMeasured();
+            } finally {
+                long stopCpuTimeNs = getCurrentThreadCpuTime();
+                long stopUserTimeNs = getCurrentThreadUserTime();
+                long stopAllocatedBytes = getCurrentThreadAllocatedBytes();
+
+                var cpuTimeNs = (startCpuTimeNs == -1L && stopCpuTimeNs == -1L)?
+                    -1L : stopCpuTimeNs - startCpuTimeNs;
+                var userTimeNs = (startUserTimeNs == -1L && stopUserTimeNs == -1L)?
+                    -1L : stopUserTimeNs - startUserTimeNs;
+                var allocatedBytes = (startAllocatedBytes == -1L && stopAllocatedBytes == -1L)?
+                    -1L : stopAllocatedBytes - startAllocatedBytes;
+
+                if (cpuTimeNs != -1L) {
+                    double cpuTimeSeconds = cpuTimeNs / 1_000_000_000.0;
+                    CPU_TIME_GAUGE.labels(item.botName(), item.workItemName()).set(cpuTimeSeconds);
+                }
+                if (userTimeNs != -1L) {
+                    double userTimeSeconds = userTimeNs / 1_000_000_000.0;
+                    USER_TIME_GAUGE.labels(item.botName(), item.workItemName()).set(userTimeSeconds);
+                }
+                if (allocatedBytes != -1L) {
+                    ALLOCATED_BYTES_GAUGE.labels(item.botName(), item.workItemName()).set(allocatedBytes);
+                }
+            }
+        }
+
+        private void runMeasured() {
             Path scratchPath;
 
             synchronized (executor) {
