@@ -150,11 +150,11 @@ public class BotRunner {
                     -1L : stopAllocatedBytes - startAllocatedBytes;
 
                 if (cpuTimeNs != -1L) {
-                    double cpuTimeSeconds = cpuTimeNs / 1_000_000.0;
+                    double cpuTimeSeconds = cpuTimeNs / 1_000_000_000.0;
                     CPU_TIME_GAUGE.labels(item.botName(), item.workItemName()).set(cpuTimeSeconds);
                 }
                 if (userTimeNs != -1L) {
-                    double userTimeSeconds = userTimeNs / 1_000_000.0;
+                    double userTimeSeconds = userTimeNs / 1_000_000_000.0;
                     USER_TIME_GAUGE.labels(item.botName(), item.workItemName()).set(userTimeSeconds);
                 }
                 if (allocatedBytes != -1L) {
