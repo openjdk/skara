@@ -557,7 +557,8 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public void push(Hash hash, URI uri, String ref, boolean force) throws IOException {
+    public void push(Hash hash, URI uri, String ref, boolean force, boolean includeTags) throws IOException {
+        // ignore includeTags, hg always pushes tags
         var cmd = new ArrayList<>(List.of("hg", "push", "--rev=" + hash.hex()));
         if (force) {
             cmd.add("--force");

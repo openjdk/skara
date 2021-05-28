@@ -585,14 +585,24 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public void push(Hash hash, URI uri, String ref, boolean force) throws IOException {
+    public void push(Hash hash, URI uri, String ref, boolean force, boolean includeTags) throws IOException {
+        var cmd = new ArrayList<String>();
+        cmd.addAll(List.of("git", "push"));
+
+        if (includeTags) {
+            cmd.add("--tags");
+        }
+
+        cmd.add(uri.toString());
+
         String refspec = force ? "+" : "";
         if (!ref.startsWith("refs/")) {
             ref = "refs/heads/" + ref;
         }
         refspec += hash.hex() + ":" + ref;
+        cmd.add(refspec);
 
-        try (var p = capture("git", "push", uri.toString(), refspec)) {
+        try (var p = capture(cmd)) {
             await(p);
         }
     }

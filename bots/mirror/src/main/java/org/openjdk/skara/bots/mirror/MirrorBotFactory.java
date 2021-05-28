@@ -64,9 +64,10 @@ public class MirrorBotFactory implements BotFactory {
                                  .map(Branch::new)
                                  .collect(Collectors.toList());
 
+            var includeTags = repo.contains("tags") && repo.get("tags").asBoolean();
 
             log.info("Setting up mirroring from " + fromRepo.name() + "to " + toRepo.name());
-            bots.add(new MirrorBot(storage, fromRepo, toRepo, branches));
+            bots.add(new MirrorBot(storage, fromRepo, toRepo, branches, includeTags));
         }
         return bots;
     }
