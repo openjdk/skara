@@ -100,4 +100,9 @@ public class CommentPosterWorkItem implements WorkItem {
     public String botName() {
         return MailingListBridgeBotFactory.NAME;
     }
+
+    @Override
+    public String workItemName() {
+        return "comment-poster";
+    }
 }

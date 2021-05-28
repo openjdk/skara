@@ -155,4 +155,8 @@ public class JBridgeBot implements Bot, WorkItem {
         return name();
     }
 
+    @Override
+    public String workItemName() {
+        return botName();
+    }
 }

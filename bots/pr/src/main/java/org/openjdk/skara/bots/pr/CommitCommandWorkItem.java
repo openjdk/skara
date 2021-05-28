@@ -189,4 +189,9 @@ public class CommitCommandWorkItem implements WorkItem {
     public String botName() {
         return PullRequestBotFactory.NAME;
     }
+
+    @Override
+    public String workItemName() {
+        return "commit-command";
+    }
 }

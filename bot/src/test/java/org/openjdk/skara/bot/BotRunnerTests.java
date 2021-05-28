@@ -77,6 +77,11 @@ class TestWorkItem implements WorkItem {
     public String botName() {
         return "test-bot";
     }
+
+    @Override
+    public String workItemName() {
+        return botName();
+    }
 }
 
 class TestWorkItemChild extends TestWorkItem {
@@ -129,6 +134,11 @@ class TestBlockedWorkItem implements WorkItem {
     @Override
     public String botName() {
         return "test-blocked";
+    }
+
+    @Override
+    public String workItemName() {
+        return botName();
     }
 }
 

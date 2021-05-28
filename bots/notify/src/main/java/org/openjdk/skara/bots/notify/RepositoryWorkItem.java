@@ -308,4 +308,9 @@ public class RepositoryWorkItem implements WorkItem {
     public String botName() {
         return NotifyBotFactory.NAME;
     }
+
+    @Override
+    public String workItemName() {
+        return "repository";
+    }
 }

@@ -97,4 +97,9 @@ public class SyncLabelBotUpdateLabelWorkItem implements WorkItem {
     public String botName() {
         return SyncLabelBotFactory.NAME;
     }
+
+    @Override
+    public String workItemName() {
+        return "update-label";
+    }
 }

@@ -121,6 +121,11 @@ class MirrorBot implements Bot, WorkItem {
     }
 
     @Override
+    public String workItemName() {
+        return botName();
+    }
+
+    @Override
     public String botName() {
         return name();
     }

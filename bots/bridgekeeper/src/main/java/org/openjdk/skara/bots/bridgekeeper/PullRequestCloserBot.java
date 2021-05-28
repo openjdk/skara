@@ -115,6 +115,11 @@ class PullRequestCloserBotWorkItem implements WorkItem {
     public String botName() {
         return BridgekeeperBotFactory.NAME;
     }
+
+    @Override
+    public String workItemName() {
+        return "closer";
+    }
 }
 
 public class PullRequestCloserBot implements Bot {

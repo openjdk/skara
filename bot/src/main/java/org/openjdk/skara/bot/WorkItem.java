@@ -42,6 +42,7 @@ public interface WorkItem {
     Collection<WorkItem> run(Path scratchPath);
 
     String botName();
+    String workItemName();
 
     /**
      * The BotRunner will catch <code>RuntimeException</code>s, implementing this method allows a WorkItem to
