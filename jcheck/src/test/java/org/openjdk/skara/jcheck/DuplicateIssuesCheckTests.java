@@ -143,4 +143,32 @@ class DuplicateIssuesCheckTests {
             assertTrue(issue.hashes().contains(third));
         }
     }
+
+    @Test
+    void duplicatedIssuesInSeparateBranchesShouldPass() throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var r = TestableRepository.init(dir.path(), VCS.GIT);
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, world!"));
+            r.add(readme);
+            var first = r.commit("1: Added README and .jcheck/conf", "duke", "duke@openjdk.java.net");
+
+            Files.write(readme, List.of("One more line"), WRITE, APPEND);
+            r.add(readme);
+            var second = r.commit("2: Modified README", "duke", "duke@openjdk.java.net");
+
+            var myBranch = r.branch(first, "myBranch");
+            r.checkout(myBranch);
+
+            Files.write(readme, List.of("Another line"), WRITE, APPEND);
+            r.add(readme);
+            var third = r.commit("2: Modified README", "duke", "duke@openjdk.java.net");
+            var check = new DuplicateIssuesCheck(r);
+
+            var commit = r.lookup(third).orElseThrow();
+            var issues = toList(check.check(commit, message(commit), conf(), null));
+            assertEquals(List.of(), issues);
+        }
+    }
 }

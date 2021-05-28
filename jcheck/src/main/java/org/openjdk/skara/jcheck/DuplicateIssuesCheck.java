@@ -74,10 +74,28 @@ public class DuplicateIssuesCheck extends CommitCheck {
         var issues = new ArrayList<org.openjdk.skara.jcheck.Issue>();
         for (var issue : message.issues()) {
             var hashes = issuesToHashes.get(issue.id());
-            if (hashes != null && hashes.size() > 1) {
-                log.finer("issue: the JBS issue " + issue.toString() + " has been used in multiple commits");
-                var uniqueHashes = new ArrayList<>(new HashSet<>(hashes));
-                issues.add(new DuplicateIssuesIssue(issue, uniqueHashes, metadata));
+            if (hashes != null) {
+                // Check if any of the found hashes is an ancestor of the current commit
+                var duplicateHashes = new ArrayList<Hash>();
+                for (var hash : hashes) {
+                    if (hash.equals(commit.hash())) {
+                        duplicateHashes.add(hash);
+                    } else {
+                        try {
+                            if (repo.isAncestor(hash, commit.hash())) {
+                                duplicateHashes.add(hash);
+                            }
+                        } catch (IOException e) {
+                            throw new UncheckedIOException(e);
+                        }
+                    }
+                }
+                // If more than one commit is found for the issue, we have duplicates
+                if (duplicateHashes.size() > 1) {
+                    log.finer("issue: the JBS issue " + issue.toString() + " has been used in multiple commits");
+                    var uniqueHashes = new ArrayList<>(new HashSet<>(hashes));
+                    issues.add(new DuplicateIssuesIssue(issue, uniqueHashes, metadata));
+                }
             }
         }
         return issues.iterator();
