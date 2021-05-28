@@ -37,11 +37,13 @@ class ProfileHandler implements HttpHandler {
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bot");
     private final Path configurationPath;
     private final int maxDuration;
+    private final String token;
     private final ReentrantLock lock = new ReentrantLock();
 
-    private ProfileHandler(Path configurationPath, int maxDuration) {
+    private ProfileHandler(Path configurationPath, int maxDuration, String token) {
         this.configurationPath = configurationPath;
         this.maxDuration = maxDuration;
+        this.token = token;
     }
 
     private static Map<String, String> parameters(HttpExchange exchange) {
@@ -108,6 +110,27 @@ class ProfileHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
+        var authHeader = exchange.getRequestHeaders().getFirst("Authorization");
+        if (authHeader == null) {
+            log.log(Level.WARNING, "Authorization HTTP header missing");
+            exchange.sendResponseHeaders(401, 0);
+            exchange.getResponseBody().close();
+            return;
+        }
+        var authParts = authHeader.split(" ");
+        if (authParts.length != 2 || authParts[0].equals("token")) {
+            log.log(Level.WARNING, "Authorization HTTP header has wrong format");
+            exchange.sendResponseHeaders(401, 0);
+            exchange.getResponseBody().close();
+            return;
+        }
+        if (!authParts[1].equals(token)) {
+            log.log(Level.WARNING, "Wrong authorization token: " + authParts[1]);
+            exchange.sendResponseHeaders(401, 0);
+            exchange.getResponseBody().close();
+            return;
+        }
+
         // Only allow one recording at a time.
         lock.lock();
         try {
@@ -120,7 +143,8 @@ class ProfileHandler implements HttpHandler {
     static ProfileHandler create(BotRunner runner, JSONObject configuration) {
         var configurationPath = Path.of(configuration.get("configuration").asString());
         var maxDuration = configuration.get("max-duration").asInt();
-        return new ProfileHandler(configurationPath, maxDuration);
+        var token = configuration.get("token").asString();
+        return new ProfileHandler(configurationPath, maxDuration, token);
     }
 
     static String name() {
