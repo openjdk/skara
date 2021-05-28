@@ -118,7 +118,7 @@ class ProfileHandler implements HttpHandler {
             return;
         }
         var authParts = authHeader.split(" ");
-        if (authParts.length != 2 || authParts[0].equals("token")) {
+        if (authParts.length != 2 || !authParts[0].equals("token")) {
             log.log(Level.WARNING, "Authorization HTTP header has wrong format");
             exchange.sendResponseHeaders(401, 0);
             exchange.getResponseBody().close();
