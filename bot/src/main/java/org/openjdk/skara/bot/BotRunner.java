@@ -58,8 +58,8 @@ public class BotRunner {
     private AtomicInteger workIdCounter = new AtomicInteger();
 
     private class RunnableWorkItem implements Runnable {
-        private static final Counter.WithOneLabel EXCEPTIONS_COUNTER =
-            Counter.name("skara_runner_exceptions").labels("bot").register();
+        private static final Counter.WithTwoLabels EXCEPTIONS_COUNTER =
+            Counter.name("skara_runner_exceptions").labels("bot", "work-item").register();
         private final WorkItem item;
 
         RunnableWorkItem(WorkItem wrappedItem) {
@@ -90,7 +90,7 @@ public class BotRunner {
                 try {
                     followUpItems = item.run(scratchPath);
                 } catch (RuntimeException e) {
-                    EXCEPTIONS_COUNTER.labels(item.botName()).inc();
+                    EXCEPTIONS_COUNTER.labels(item.botName(), item.workItemName()).inc();
                     log.log(Level.SEVERE, "Exception during item execution (" + item + "): " + e.getMessage(), e);
                     item.handleRuntimeException(e);
                 } finally {
@@ -138,13 +138,13 @@ public class BotRunner {
     private final Map<WorkItem, Instant> active;
     private final Deque<Path> scratchPaths;
 
-    private static final Counter.WithOneLabel SCHEDULED_COUNTER =
-        Counter.name("skara_runner_scheduled").labels("bot").register();
-    private static final Counter.WithOneLabel DISCARDED_COUNTER =
-        Counter.name("skara_runner_discarded").labels("bot").register();
+    private static final Counter.WithTwoLabels SCHEDULED_COUNTER =
+        Counter.name("skara_runner_scheduled").labels("bot", "work-item").register();
+    private static final Counter.WithTwoLabels DISCARDED_COUNTER =
+        Counter.name("skara_runner_discarded").labels("bot", "work-item").register();
 
     private void submitOrSchedule(WorkItem item) {
-        SCHEDULED_COUNTER.labels(item.botName()).inc();
+        SCHEDULED_COUNTER.labels(item.botName(), item.workItemName()).inc();
         synchronized (executor) {
             for (var activeItem : active.keySet()) {
                 if (!activeItem.concurrentWith(item)) {
@@ -154,7 +154,7 @@ public class BotRunner {
                         if (pendingItem.getKey().getClass().equals(item.getClass()) && !pendingItem.getKey().concurrentWith(item)) {
                             log.finer("Discarding obsoleted item " + pendingItem.getKey() +
                                               " in favor of item " + item);
-                            DISCARDED_COUNTER.labels(item.botName()).inc();
+                            DISCARDED_COUNTER.labels(item.botName(), item.workItemName()).inc();
                             pending.remove(pendingItem.getKey());
                             // There can't be more than one
                             break;
