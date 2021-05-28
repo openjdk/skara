@@ -58,8 +58,8 @@ public class BotRunner {
     private AtomicInteger workIdCounter = new AtomicInteger();
 
     private class RunnableWorkItem implements Runnable {
-        private static final Counter.WithTwoLabels EXCEPTIONS_COUNTER =
-            Counter.name("skara_runner_exceptions").labels("bot", "work-item").register();
+        private static final Counter.WithThreeLabels EXCEPTIONS_COUNTER =
+            Counter.name("skara_runner_exceptions").labels("bot", "work-item", "exception").register();
         private final WorkItem item;
 
         RunnableWorkItem(WorkItem wrappedItem) {
@@ -90,7 +90,7 @@ public class BotRunner {
                 try {
                     followUpItems = item.run(scratchPath);
                 } catch (RuntimeException e) {
-                    EXCEPTIONS_COUNTER.labels(item.botName(), item.workItemName()).inc();
+                    EXCEPTIONS_COUNTER.labels(item.botName(), item.workItemName(), e.getClass().getName()).inc();
                     log.log(Level.SEVERE, "Exception during item execution (" + item + "): " + e.getMessage(), e);
                     item.handleRuntimeException(e);
                 } finally {
