@@ -25,17 +25,24 @@ package org.openjdk.skara.metrics;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryType;
 import java.lang.management.MemoryUsage;
+import com.sun.management.UnixOperatingSystemMXBean;
+import com.sun.management.OperatingSystemMXBean;
 
 public final class CollectorRegistry {
-    private static final CollectorRegistry DEFAULT = new CollectorRegistry(true);
+    private static final CollectorRegistry DEFAULT = new CollectorRegistry(true, true);
     private final ConcurrentLinkedQueue<Collector> collectors = new ConcurrentLinkedQueue<>();
     private final boolean includeHotspotMetrics;
+    private final boolean includeProcessMetrics;
 
-    public CollectorRegistry(boolean includeHotspotMetrics) {
+    public CollectorRegistry(boolean includeHotspotMetrics, boolean includeProcessMetrics) {
         this.includeHotspotMetrics = includeHotspotMetrics;
+        this.includeProcessMetrics = includeProcessMetrics;
     }
 
     public void register(Collector c) {
@@ -111,6 +118,77 @@ public final class CollectorRegistry {
         return result;
     }
 
+    private static List<Metric> processMetrics() {
+        var result = new ArrayList<Metric>();
+        if (System.getProperty("os.name").toLowerCase().startsWith("linux")) {
+            List<String> status = List.of();
+            try {
+                status = Files.readAllLines(Path.of("/proc/self/status"));
+            } catch (IOException e) {
+                // ignore
+            }
+            for (var line : status) {
+                if (line.startsWith("VmRSS:")) {
+                    var parts = line.split("\\s+");
+                    if (parts.length == 3) {
+                        var rssInKb = Long.parseLong(parts[1]);
+                        var rssBytes = rssInKb * 1024;
+                        result.add(new Metric(Metric.Type.GAUGE, "process_resident_memory_bytes", List.of(), rssBytes));
+                    }
+                } else if (line.startsWith("VmSize:")) {
+                    var parts = line.split("\\s+");
+                    if (parts.length == 3) {
+                        var vmSizeInKb = Long.parseLong(parts[1]);
+                        var vmBytes = vmSizeInKb * 1024;
+                        result.add(new Metric(Metric.Type.GAUGE, "process_virtual_memory_bytes", List.of(), vmBytes));
+                    }
+                }
+            }
+
+            List<String> maps = List.of();
+            try {
+                maps = Files.readAllLines(Path.of("/proc/self/maps"));
+            } catch (IOException e) {
+                // ignore
+            }
+            var heapBytes = maps.stream()
+                                .filter(l -> l.endsWith("[heap]"))
+                                .map(l -> l.split("\\s+")[0])
+                                .mapToLong(range -> {
+                                    var parts = range.split("-");
+                                    var start = Long.parseLong(parts[0], 16);
+                                    var end = Long.parseLong(parts[1], 16);
+                                    return end - start;
+                                })
+                                .sum();
+            result.add(new Metric(Metric.Type.GAUGE, "process_heap_bytes", List.of(), heapBytes));
+        }
+
+        var bean = ManagementFactory.getOperatingSystemMXBean();
+        if (bean instanceof UnixOperatingSystemMXBean) {
+            var osBean = (UnixOperatingSystemMXBean) bean;
+            var numOpenFds = osBean.getOpenFileDescriptorCount();
+            result.add(new Metric(Metric.Type.GAUGE, "process_open_fds", List.of(), numOpenFds));
+            var maxFds = osBean.getMaxFileDescriptorCount();
+            result.add(new Metric(Metric.Type.GAUGE, "process_max_fds", List.of(), maxFds));
+        }
+
+        if (bean instanceof OperatingSystemMXBean) {
+            var osBean = (OperatingSystemMXBean) bean;
+            var vmMaxBytes = osBean.getCommittedVirtualMemorySize();
+            result.add(new Metric(Metric.Type.GAUGE, "process_virtual_memory_max_bytes", List.of(), vmMaxBytes));
+
+            var cpuTimeNs = osBean.getProcessCpuTime();
+            var cpuTimeSec = cpuTimeNs / 1_000_000_000.0;
+            result.add(new Metric(Metric.Type.COUNTER, "process_cpu_seconds_total", List.of(), cpuTimeSec));
+        }
+
+        var startTimeMillis = ManagementFactory.getRuntimeMXBean().getStartTime();
+        result.add(new Metric(Metric.Type.COUNTER, "process_start_time_seconds", List.of(), startTimeMillis / 1000.0));
+
+        return result;
+    }
+
     public List<Metric> scrape() {
         var result = new ArrayList<Metric>();
         for (var collector : collectors) {
@@ -118,6 +196,9 @@ public final class CollectorRegistry {
         }
         if (includeHotspotMetrics) {
             result.addAll(hotspotMetrics());
+        }
+        if (includeProcessMetrics) {
+            result.addAll(processMetrics());
         }
         return result;
     }

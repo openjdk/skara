@@ -22,6 +22,7 @@
  */
 module org.openjdk.skara.metrics {
     requires java.management;
+    requires jdk.management;
     exports org.openjdk.skara.metrics;
 }
 
