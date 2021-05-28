@@ -34,6 +34,7 @@ module org.openjdk.skara.bot {
     requires java.management;
     requires jdk.management;
     requires jdk.httpserver;
+    requires jdk.jfr;
 
     exports org.openjdk.skara.bot;
 
