@@ -61,13 +61,13 @@ public class BotRunner {
 
     private class RunnableWorkItem implements Runnable {
         private static final Counter.WithThreeLabels EXCEPTIONS_COUNTER =
-            Counter.name("skara_runner_exceptions").labels("bot", "work-item", "exception").register();
+            Counter.name("skara_runner_exceptions").labels("bot", "work_item", "exception").register();
         private static final Gauge.WithTwoLabels CPU_TIME_GAUGE =
-            Gauge.name("skara_runner_cpu_time").labels("bot", "work-item").register();
+            Gauge.name("skara_runner_cpu_time").labels("bot", "work_item").register();
         private static final Gauge.WithTwoLabels USER_TIME_GAUGE =
-            Gauge.name("skara_runner_user_time").labels("bot", "work-item").register();
+            Gauge.name("skara_runner_user_time").labels("bot", "work_item").register();
         private static final Gauge.WithTwoLabels ALLOCATED_BYTES_GAUGE =
-            Gauge.name("skara_runner_allocated_bytes").labels("bot", "work-item").register();
+            Gauge.name("skara_runner_allocated_bytes").labels("bot", "work_item").register();
 
         private final WorkItem item;
 
@@ -232,9 +232,9 @@ public class BotRunner {
     private final Deque<Path> scratchPaths;
 
     private static final Counter.WithTwoLabels SCHEDULED_COUNTER =
-        Counter.name("skara_runner_scheduled").labels("bot", "work-item").register();
+        Counter.name("skara_runner_scheduled").labels("bot", "work_item").register();
     private static final Counter.WithTwoLabels DISCARDED_COUNTER =
-        Counter.name("skara_runner_discarded").labels("bot", "work-item").register();
+        Counter.name("skara_runner_discarded").labels("bot", "work_item").register();
 
     private void submitOrSchedule(WorkItem item) {
         SCHEDULED_COUNTER.labels(item.botName(), item.workItemName()).inc();
