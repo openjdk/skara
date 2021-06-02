@@ -75,9 +75,26 @@ public class DuplicateIssuesCheck extends CommitCheck {
         for (var issue : message.issues()) {
             var hashes = issuesToHashes.get(issue.id());
             if (hashes != null && hashes.size() > 1) {
-                log.finer("issue: the JBS issue " + issue.toString() + " has been used in multiple commits");
-                var uniqueHashes = new ArrayList<>(new HashSet<>(hashes));
-                issues.add(new DuplicateIssuesIssue(issue, uniqueHashes, metadata));
+                // Check if any of the found hashes is an ancestor of the current commit
+                var ancestorHashes = new ArrayList<Hash>();
+                for (var hash : hashes) {
+                    if (hash.equals(commit.hash())) {
+                        ancestorHashes.add(hash);
+                    } else {
+                        try {
+                            if (repo.isAncestor(hash, commit.hash())) {
+                                ancestorHashes.add(hash);
+                            }
+                        } catch (IOException e) {
+                            throw new UncheckedIOException(e);
+                        }
+                    }
+                }
+                if (ancestorHashes.size() > 1) {
+                    log.finer("issue: the JBS issue " + issue.toString() + " has been used in multiple commits");
+                    var uniqueHashes = new ArrayList<>(new HashSet<>(hashes));
+                    issues.add(new DuplicateIssuesIssue(issue, uniqueHashes, metadata));
+                }
             }
         }
         return issues.iterator();
