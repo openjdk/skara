@@ -74,7 +74,7 @@ public class DuplicateIssuesCheck extends CommitCheck {
         var issues = new ArrayList<org.openjdk.skara.jcheck.Issue>();
         for (var issue : message.issues()) {
             var hashes = issuesToHashes.get(issue.id());
-            if (hashes != null) {
+            if (hashes != null && hashes.size() > 1) {
                 // Check if any of the found hashes is an ancestor of the current commit
                 var ancestorHashes = new ArrayList<Hash>();
                 for (var hash : hashes) {
