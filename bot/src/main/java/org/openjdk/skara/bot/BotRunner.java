@@ -39,6 +39,7 @@ import com.sun.management.ThreadMXBean;
 
 import com.sun.net.httpserver.*;
 import org.openjdk.skara.network.RestRequest;
+import org.openjdk.skara.network.UncheckedRestException;
 
 class BotRunnerError extends RuntimeException {
     BotRunnerError(String msg) {
@@ -182,6 +183,12 @@ public class BotRunner {
                 log.log(Level.FINE, "Executing item " + item + " on repository " + scratchPath, TaskPhases.BEGIN);
                 try {
                     followUpItems = item.run(scratchPath);
+                } catch (UncheckedRestException e) {
+                    EXCEPTIONS_COUNTER.labels(item.botName(), item.workItemName(), e.getClass().getName()).inc();
+                    // Log as WARNING to avoid triggering alarms. Failed REST calls are tracked
+                    // using metrics.
+                    log.log(Level.WARNING, "RestException during item execution (" + item + ")", e);
+                    item.handleRuntimeException(e);
                 } catch (RuntimeException e) {
                     EXCEPTIONS_COUNTER.labels(item.botName(), item.workItemName(), e.getClass().getName()).inc();
                     log.log(Level.SEVERE, "Exception during item execution (" + item + "): " + e.getMessage(), e);
@@ -349,6 +356,10 @@ public class BotRunner {
                         submitOrSchedule(item);
                     }
                 }
+            } catch (UncheckedRestException e) {
+                // Log as WARNING to avoid triggering alarms. Failed REST calls are tracked
+                // using metrics.
+                log.log(Level.WARNING, "RestException during periodic item checking", e);
             } catch (RuntimeException e) {
                 log.log(Level.SEVERE, "Exception during periodic item checking: " + e.getMessage(), e);
             } finally {
