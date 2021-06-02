@@ -198,7 +198,7 @@ public class RestRequest {
 
         @Override
         public String toString() {
-            return "type: " + queryType +
+            return "QueryBuilder: type: " + queryType +
                     ", endpoint: " + endpoint +
                     ", body: " + composedBody();
         }
