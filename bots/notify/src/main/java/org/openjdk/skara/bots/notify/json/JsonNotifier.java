@@ -116,4 +116,9 @@ class JsonNotifier implements Notifier, RepositoryListener {
     public String name() {
         return "json";
     }
+
+    @Override
+    public boolean idempotent() {
+        return false;
+    }
 }

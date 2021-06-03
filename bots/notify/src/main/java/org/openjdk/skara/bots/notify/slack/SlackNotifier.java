@@ -111,4 +111,9 @@ class SlackNotifier implements Notifier, RepositoryListener, PullRequestListener
     public String name() {
         return "slack";
     }
+
+    @Override
+    public boolean idempotent() {
+        return false;
+    }
 }

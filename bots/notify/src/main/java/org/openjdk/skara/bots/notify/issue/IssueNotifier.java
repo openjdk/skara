@@ -383,4 +383,9 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     public String name() {
         return "issue";
     }
+
+    @Override
+    public boolean idempotent() {
+        return true;
+    }
 }
