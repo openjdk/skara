@@ -40,9 +40,9 @@ public class RestRequest {
         Counter.name("skara_http_requests")
                .labels("method")
                .register();
-    private final static Counter.WithOneLabel responseCounter =
+    private final static Counter.WithTwoLabels responseCounter =
         Counter.name("skara_http_responses")
-               .labels("code")
+               .labels("code", "error_handled")
                .register();
 
     private enum RequestType {
@@ -195,6 +195,13 @@ public class RestRequest {
         public String executeUnparsed() throws IOException {
             return RestRequest.this.executeUnparsed(this);
         }
+
+        @Override
+        public String toString() {
+            return "QueryBuilder: type: " + queryType +
+                    ", endpoint: " + endpoint +
+                    ", body: " + composedBody();
+        }
     }
 
     private final URI apiBase;
@@ -313,9 +320,10 @@ public class RestRequest {
                     return transformed;
                 }
             }
-            log.warning(queryBuilder.toString());
-            log.warning(response.body());
-            throw new RuntimeException("Request returned bad status: " + response.statusCode());
+            log.warning("Request returned bad status: " + response.statusCode());
+            log.info(queryBuilder.toString());
+            log.info(response.body());
+            throw new UncheckedRestException("Request returned bad status: " + response.statusCode());
         } else {
             return Optional.empty();
         }
@@ -392,8 +400,8 @@ public class RestRequest {
                                     queryBuilder.params, queryBuilder.headers, queryBuilder.isJSON());
         requestCounter.labels(queryBuilder.queryType.toString()).inc();
         var response = sendRequest(request);
-        responseCounter.labels(Integer.toString(response.statusCode())).inc();
         var errorTransform = transformBadResponse(response, queryBuilder);
+        responseCounter.labels(Integer.toString(response.statusCode()), Boolean.toString(errorTransform.isPresent())).inc();
         if (errorTransform.isPresent()) {
             return errorTransform.get();
         }
@@ -412,10 +420,12 @@ public class RestRequest {
         while (links.containsKey("next") && ret.size() < queryBuilder.maxPages) {
             var uri = URI.create(links.get("next"));
             request = getHttpRequestBuilder(uri).GET();
+            requestCounter.labels(queryBuilder.queryType.toString()).inc();
             response = sendRequest(request);
 
             // If an error occurs during paginated parsing, we have to discard all previous data
             errorTransform = transformBadResponse(response, queryBuilder);
+            responseCounter.labels(Integer.toString(response.statusCode()), Boolean.toString(errorTransform.isPresent())).inc();
             if (errorTransform.isPresent()) {
                 return errorTransform.get();
             }
@@ -433,7 +443,9 @@ public class RestRequest {
     private String executeUnparsed(QueryBuilder queryBuilder) throws IOException {
         var request = createRequest(queryBuilder.queryType, queryBuilder.endpoint, queryBuilder.composedBody(),
                                     queryBuilder.params, queryBuilder.headers, queryBuilder.isJSON());
+        requestCounter.labels(queryBuilder.queryType.toString()).inc();
         var response = sendRequest(request);
+        responseCounter.labels(Integer.toString(response.statusCode()), Boolean.toString(false)).inc();
         if (response.statusCode() >= 400) {
             throw new IOException("Bad response: " + response.statusCode());
         }
