@@ -387,6 +387,75 @@ class BackportTests {
         }
     }
 
+    /**
+     * Tests that setting a backport title to points to the head commit of the PR
+     * itself is handled as an error.
+     */
+    @Test
+    void prHeadCommit(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var pushedFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(integrator.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var bot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            var releaseBranch = localRepo.branch(masterHash, "release");
+            localRepo.checkout(releaseBranch);
+            var newFile = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile, "hello");
+            localRepo.add(newFile);
+            var issue1 = credentials.createIssue(issues, "An issue");
+            var issue1Number = issue1.id().split("-")[1];
+            var originalMessage = issue1Number + ": An issue\n" +
+                    "\n" +
+                    "Reviewed-by: integrationreviewer2";
+            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            localRepo.push(releaseHash, author.url(), "refs/heads/release", true);
+
+            // "backport" the new file to the master branch
+            localRepo.checkout(localRepo.defaultBranch());
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            var newFile2 = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile2, "hello");
+            localRepo.add(newFile2);
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            // Create the backport with the hash from the PR branch
+            var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + editHash.hex());
+
+            // The bot should detect the bad hash
+            // The bot should reply with a backport error
+            TestBotRunner.runPeriodicItems(bot);
+            assertLastCommentContains(pr, "<!-- backport error -->");
+            assertLastCommentContains(pr, ":warning:");
+            assertLastCommentContains(pr, "the given backport hash");
+            assertLastCommentContains(pr, "points to the head of your proposed change.");
+            assertFalse(pr.labelNames().contains("backport"));
+
+            // Re-running the bot should not cause any more error comments
+            TestBotRunner.runPeriodicItems(bot);
+            assertEquals(1, pr.comments().size());
+        }
+    }
+
     @Test
     void cleanBackport(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
