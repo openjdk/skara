@@ -25,6 +25,7 @@ package org.openjdk.skara.bots.pr;
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.test.*;
+import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.Repository;
 
 import java.io.IOException;
@@ -530,10 +531,14 @@ class IntegrateTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an ok message
-            var pushed = pr.comments().stream()
-                           .filter(comment -> comment.body().contains("Pushed as commit"))
+            var prePush = pr.comments().stream()
+                           .filter(comment -> comment.body().contains("Going to push as commit"))
                            .filter(comment -> comment.body().contains("commit was automatically rebased without conflicts"))
                            .count();
+            assertEquals(1, prePush);
+            var pushed = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .count();
             assertEquals(1, pushed);
 
             // The change should now be present on the master branch
@@ -1096,6 +1101,173 @@ class IntegrateTests {
 
             // Ready label should have been removed
             assertFalse(pr.labelNames().contains("ready"));
+        }
+    }
+
+    /**
+     * Tests recovery after successfully pushing the commit, but failing to update the PR
+     */
+    @Test
+    void retryAfterInterrupt(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var censusFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(integrator.forge().currentUser().id());
+            var censusRepo = censusBuilder.build();
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusRepo).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Approve it as another user
+            var approvalPr = integrator.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // Let the bot check it
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // Attempt a merge
+            pr.addComment("/integrate");
+
+            // Let it integrate
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // Remove some labels and the commit comment to simulate that last attempt was interrupted
+            pr.removeLabel("integrated");
+            pr.addLabel("ready");
+            pr.addLabel("rfr");
+            var commitComment = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .findAny().orElseThrow();
+            ((TestPullRequest) pr).removeComment(commitComment);
+
+            // The bot should now retry
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an ok message
+            var pushed = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .count();
+            assertEquals(1, pushed, "Commit comment not found");
+            assertFalse(pr.labelNames().contains("ready"), "ready label not removed");
+            assertFalse(pr.labelNames().contains("rfr"), "rfr label not removed");
+            assertTrue(pr.labelNames().contains("integrated"), "integrated label not added");
+
+            // Just remove the commit comment and repeat the test
+            var commitComment2 = pr.comments().stream()
+                    .filter(comment -> comment.body().equals(commitComment.body()))
+                    .findAny().orElseThrow();
+            ((TestPullRequest) pr).removeComment(commitComment2);
+
+            // The bot should now retry
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an ok message
+            pushed = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .count();
+            assertEquals(1, pushed, "Commit comment not found");
+            assertFalse(pr.labelNames().contains("ready"), "ready label not removed");
+            assertFalse(pr.labelNames().contains("rfr"), "rfr label not removed");
+            assertTrue(pr.labelNames().contains("integrated"), "integrated label not added");
+
+            // Add another command and verify that no further action is taken
+            pr.addComment("/integrate");
+            var numComments = pr.comments().size();
+
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            assertTrue(pr.comments().get(pr.comments().size() - 1).body()
+                    .contains("can only be used in open pull requests"));
+        }
+    }
+
+    /**
+     * Tests recovery after successfully pushing the commit, but failing to update the PR,
+     * and an extra commit has been integrated to the target before retrying.
+     */
+    @Test
+    void retryAfterInterruptExtraChange(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var censusFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(integrator.forge().currentUser().id());
+            var censusRepo = censusBuilder.build();
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusRepo).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Approve it as another user
+            var approvalPr = integrator.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // Let the bot check it
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // Attempt a merge
+            pr.addComment("/integrate");
+
+            // Let it integrate
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // Remove some labels and the commit comment to simulate that last attempt was interrupted
+            pr.removeLabel("integrated");
+            pr.addLabel("ready");
+            pr.addLabel("rfr");
+            var commitComment = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .findAny().orElseThrow();
+            ((TestPullRequest) pr).removeComment(commitComment);
+
+            // Add a new commit to master branch
+            localRepo.checkout(new Branch("master"));
+            localRepo.fetch(author.url(), "master");
+            localRepo.merge(new Branch("FETCH_HEAD"));
+            var integratedHash = localRepo.resolve("master");
+            var newMasterHash = CheckableRepository.appendAndCommit(localRepo, "Another line",
+                    "New master commit");
+            localRepo.push(newMasterHash, author.url(), "master", true);
+
+            // The bot should now retry
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an ok message
+            var pushed = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit " + integratedHash.orElseThrow()))
+                    .count();
+            assertEquals(1, pushed, "Commit comment not found");
+            assertFalse(pr.labelNames().contains("ready"), "ready label not removed");
+            assertFalse(pr.labelNames().contains("rfr"), "rfr label not removed");
+            assertTrue(pr.labelNames().contains("integrated"), "integrated label not added");
         }
     }
 }

@@ -163,6 +163,11 @@ public class PullRequestUtils {
         return localRepo;
     }
 
+    public static boolean isAncestorOfTarget(Repository localRepo, Hash hash) throws IOException {
+        Optional<Hash> targetHash = localRepo.resolve("prutils_targetref");
+        return localRepo.isAncestor(hash, targetHash.orElseThrow());
+    }
+
     public static boolean isMerge(PullRequest pr) {
         return pr.title().startsWith("Merge");
     }

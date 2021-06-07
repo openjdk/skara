@@ -24,6 +24,7 @@ package org.openjdk.skara.test;
 
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
+import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.vcs.Diff;
@@ -261,5 +262,9 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     @Override
     public URI filesUrl(Hash hash) {
         return URI.create(webUrl().toString() + "/files/" + hash.hex());
+    }
+
+    public void removeComment(Comment comment) {
+        data.comments.remove(comment);
     }
 }

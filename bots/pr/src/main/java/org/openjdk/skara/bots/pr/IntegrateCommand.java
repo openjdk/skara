@@ -40,6 +40,8 @@ import java.util.regex.Matcher;
 public class IntegrateCommand implements CommandHandler {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     private static final Pattern BACKPORT_PATTERN = Pattern.compile("<!-- backport ([0-9a-z]{40}) -->");
+    private static final String PRE_PUSH_MARKER = "<!-- prepush %s -->";
+    private static final Pattern PRE_PUSH_PATTERN = Pattern.compile("<!-- prepush ([0-9a-z]{40}) -->");
 
     private void showHelp(PrintWriter reply) {
         reply.println("usage: `/integrate [auto|manual|<hash>]`");
@@ -110,6 +112,39 @@ public class IntegrateCommand implements CommandHandler {
             }
         }
 
+        var botUser = pr.repository().forge().currentUser();
+
+        // Check if a prepush comment has been created already. This could happen if
+        // the bot got interrupted after pushing, but before finishing closing the PR
+        // and adding the final push comment.
+        var prePushHashes = allComments.stream()
+                .filter(c -> c.author().equals(botUser))
+                .map(Comment::body)
+                .map(PRE_PUSH_PATTERN::matcher)
+                .filter(Matcher::find)
+                .map(m -> m.group(1))
+                .collect(Collectors.toList());
+        if (!prePushHashes.isEmpty()) {
+            var path = scratchPath.resolve("integrate").resolve(pr.repository().name());
+            var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
+            var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
+            try {
+                var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, path);
+                for (String prePushHash : prePushHashes) {
+                    Hash hash = new Hash(prePushHash);
+                    if (PullRequestUtils.isAncestorOfTarget(localRepo, hash)) {
+                        // A previous attempt at pushing this PR was successful, but didn't finish
+                        // closing the PR
+                        log.info("Found previous successful push in prepush comment: " + hash.hex());
+                        markIntegratedAndClosed(pr, hash, reply);
+                        return;
+                    }
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+
         var problem = checkProblem(pr.checks(pr.headHash()), "jcheck", pr);
         if (problem.isPresent()) {
             reply.print("Your integration request cannot be fulfilled at this time, as ");
@@ -124,7 +159,6 @@ public class IntegrateCommand implements CommandHandler {
         }
 
         // Run a final jcheck to ensure the change has been properly reviewed
-        var success = false;
         try (var integrationLock = IntegrationLock.create(pr, Duration.ofMinutes(10))) {
             if (!integrationLock.isLocked()) {
                 log.severe("Unable to acquire the integration lock for " + pr.webUrl());
@@ -159,8 +193,7 @@ public class IntegrateCommand implements CommandHandler {
                 return;
             }
 
-            var botUser = pr.repository().forge().currentUser();
-            var backportLines = pr.comments()
+            var backportLines = allComments
                                   .stream()
                                   .filter(c -> c.author().equals(botUser))
                                   .flatMap(c -> Stream.of(c.body().split("\n")))
@@ -196,20 +229,9 @@ public class IntegrateCommand implements CommandHandler {
             // Rebase and push it!
             if (!localHash.equals(PullRequestUtils.targetHash(pr, localRepo))) {
                 var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
+                addPrePushComment(pr, amendedHash, rebaseMessage.toString());
                 localRepo.push(amendedHash, pr.repository().url(), pr.targetRef());
-                success = true;
-
-                var finalRebaseMessage = rebaseMessage.toString();
-                if (!finalRebaseMessage.isBlank()) {
-                    reply.println(rebaseMessage.toString());
-                }
-                reply.println("Pushed as commit " + amendedHash.hex() + ".");
-                reply.println();
-                reply.println(":bulb: You may see a message that your pull request was closed with unmerged commits. This can be safely ignored.");
-                pr.setState(PullRequest.State.CLOSED);
-                pr.addLabel("integrated");
-                pr.removeLabel("ready");
-                pr.removeLabel("rfr");
+                markIntegratedAndClosed(pr, amendedHash, reply);
             } else {
                 reply.print("Warning! Your commit did not result in any changes! ");
                 reply.println("No push attempt will be made.");
@@ -220,6 +242,27 @@ public class IntegrateCommand implements CommandHandler {
                                   "The error has been logged and will be investigated. It is possible that this error " +
                                   "is caused by a transient issue; feel free to retry the operation.");
         }
+    }
+
+    private void addPrePushComment(PullRequest pr, Hash hash, String extraMessage) {
+        var commentBody = new StringWriter();
+        var writer = new PrintWriter(commentBody);
+        writer.println(PRE_PUSH_MARKER.formatted(hash.hex()));
+        writer.println("Going to push as commit " + hash.hex() + ".");
+        if (!extraMessage.isBlank()) {
+            writer.println(extraMessage);
+        }
+        pr.addComment(commentBody.toString());
+    }
+
+    private void markIntegratedAndClosed(PullRequest pr, Hash hash, PrintWriter reply) {
+        pr.setState(PullRequest.State.CLOSED);
+        pr.addLabel("integrated");
+        pr.removeLabel("ready");
+        pr.removeLabel("rfr");
+        reply.println("Pushed as commit " + hash.hex() + ".");
+        reply.println();
+        reply.println(":bulb: You may see a message that your pull request was closed with unmerged commits. This can be safely ignored.");
     }
 
     @Override
