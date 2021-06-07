@@ -277,12 +277,21 @@ class PullRequestBot implements Bot {
         return Optional.of(URI.create(censusLink.replace("{{contributor}}", contributor.username())));
     }
 
-    HostedRepository writeableForkOf(HostedRepository upstream) {
+    Optional<HostedRepository> writeableForkOf(HostedRepository upstream) {
         var fork = forks.get(upstream.name());
         if (fork == null) {
-            throw new IllegalArgumentException("No writeable fork for " + upstream.name());
+            return Optional.empty();
         }
-        return fork;
+        return Optional.of(fork);
+    }
+
+    /**
+     * Returns a list of all repo names that have a fork configured for them
+     */
+    List<String> forkRepoNames() {
+        return forks.keySet().stream()
+                .map(k -> k.substring(k.lastIndexOf('/') + 1))
+                .toList();
     }
 
     public boolean isAutoLabelled(PullRequest pr) {

@@ -89,7 +89,9 @@ public class BackportCommand implements CommandHandler {
 
         var potentialTargetRepo = forge.repository(repoName);
         if (potentialTargetRepo.isEmpty()) {
-            reply.println("@" + username + " the target repository `" + repoName + "` does not exist");
+            reply.println("@" + username + " the target repository `" + repoName + "` does not exist. ");
+            reply.print("List of valid repositories: ");
+            reply.println(String.join(", ", bot.forkRepoNames()));
             return;
         }
         var targetRepo = potentialTargetRepo.get();
@@ -104,7 +106,14 @@ public class BackportCommand implements CommandHandler {
 
         try {
             var hash = commit.hash();
-            var fork = bot.writeableForkOf(targetRepo);
+            var optionalFork = bot.writeableForkOf(targetRepo);
+            if (optionalFork.isEmpty()) {
+                reply.print("@" + username + " [" + repoName + "](" + targetRepo.webUrl() + ") is not a valid target for backports. ");
+                reply.print("List of valid repositories: ");
+                reply.println(String.join(", ", bot.forkRepoNames()));
+                return;
+            }
+            var fork = optionalFork.get();
             Hash backportHash = null;
             var backportBranchName = username + "-backport-" + hash.abbreviate();
             var hostedBackportBranch = fork.branches().stream().filter(b -> b.name().equals(backportBranchName)).findAny();
