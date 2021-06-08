@@ -912,15 +912,17 @@ class CheckRun {
                 localHash = baseHash;
             }
             PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor(localHash);
-            if (!localHash.equals(baseHash)) {
+            if (localHash.equals(baseHash)) {
+                if (additionalErrors.isEmpty()) {
+                    additionalErrors = List.of("This PR contains no changes");
+                }
+            } else if (localHash.equals(PullRequestUtils.targetHash(pr, localRepo))) {
+                additionalErrors = List.of("This PR only contains changes already present in the target");
+            } else {
                 // Determine current status
                 var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), comments);
                 checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration);
                 additionalErrors = botSpecificChecks(localHash);
-            } else {
-                if (additionalErrors.isEmpty()) {
-                    additionalErrors = List.of("This PR contains no changes");
-                }
             }
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
             updateReadyForReview(visitor, additionalErrors);

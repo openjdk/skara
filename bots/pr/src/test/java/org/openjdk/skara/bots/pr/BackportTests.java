@@ -447,7 +447,7 @@ class BackportTests {
             assertLastCommentContains(pr, "<!-- backport error -->");
             assertLastCommentContains(pr, ":warning:");
             assertLastCommentContains(pr, "the given backport hash");
-            assertLastCommentContains(pr, "points to the head of your proposed change.");
+            assertLastCommentContains(pr, "is an ancestor of your proposed change.");
             assertFalse(pr.labelNames().contains("backport"));
 
             // Re-running the bot should not cause any more error comments
