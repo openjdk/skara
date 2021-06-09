@@ -1374,6 +1374,46 @@ class CheckTests {
     }
 
     @Test
+    void redundantCommit(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var checkBot = PullRequestBot.newBuilder().repo(author).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make the same change with different messages in master and edit
+            String identicalChangeBody = "identical change";
+            var editHash = CheckableRepository.appendAndCommit(localRepo, identicalChangeBody, "edit message");
+            localRepo.push(editHash, author.url(), "edit", true);
+            localRepo.checkout(masterHash, true);
+            masterHash = CheckableRepository.appendAndCommit(localRepo, identicalChangeBody, "master message");
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Create PR
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Check the status
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that the check failed
+            var checks = pr.checks(editHash);
+            assertEquals(1, checks.size());
+            var check = checks.get("jcheck");
+            assertEquals(CheckStatus.FAILURE, check.status());
+            assertEquals("- This PR only contains changes already present in the target", check.summary().orElseThrow());
+        }
+    }
+
+    @Test
     void ignoreStale(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
