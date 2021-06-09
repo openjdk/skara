@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.Review;
+import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Repository;
 import org.openjdk.skara.vcs.Branch;
@@ -380,10 +381,14 @@ class SponsorTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an ok message
+            var prePush = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("Going to push as commit"))
+                    .filter(comment -> comment.body().contains("commit was automatically rebased without conflicts"))
+                    .count();
+            assertEquals(1, prePush);
             var pushed = pr.comments().stream()
-                           .filter(comment -> comment.body().contains("Pushed as commit"))
-                           .filter(comment -> comment.body().contains("commit was automatically rebased without conflicts"))
-                           .count();
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .count();
             assertEquals(1, pushed);
 
             // The change should now be present on the master branch
@@ -766,4 +771,144 @@ class SponsorTests {
         }
     }
 
+    /**
+     * Tests recovery after successfully pushing the commit, but failing to update the PR
+     */
+    @Test
+    void retryAfterInterrupt(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addAuthor(author.forge().currentUser().id());
+
+            var censusRepo = censusBuilder.build();
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusRepo).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var authorFullName = author.forge().currentUser().fullName();
+            var authorEmail = "ta@none.none";
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "This is a new line", "Append commit", authorFullName, authorEmail);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Approve it as another user
+            var approvalPr = reviewer.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // Let the bot check it
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // Issue a merge command without being a Committer
+            pr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply that a sponsor is required
+            var sponsor = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("sponsor"))
+                    .filter(comment -> comment.body().contains("your change"))
+                    .count();
+            assertEquals(1, sponsor);
+
+            // The bot should not have pushed the commit
+            var notPushed = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .count();
+            assertEquals(0, notPushed);
+
+            // Reviewer now agrees to sponsor
+            var reviewerPr = reviewer.pullRequest(pr.id());
+            reviewerPr.addComment("/sponsor");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // Simulate that interruption occurred after prePush comment was added, but before change was
+            // pushed
+            pr.setState(Issue.State.OPEN);
+            pr.removeLabel("integrated");
+            pr.addLabel("ready");
+            pr.addLabel("rfr");
+            pr.addLabel("sponsor");
+            var commitComment = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .findAny().orElseThrow();
+            ((TestPullRequest) pr).removeComment(commitComment);
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // The bot should now retry
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an ok message
+            var pushed = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .count();
+            assertEquals(1, pushed, "Commit comment not found");
+            assertFalse(pr.labelNames().contains("ready"), "ready label not removed");
+            assertFalse(pr.labelNames().contains("rfr"), "rfr label not removed");
+            assertFalse(pr.labelNames().contains("sponsor"), "sponsor label not removed");
+            assertTrue(pr.labelNames().contains("integrated"), "integrated label not added");
+
+            // Remove some labels and the commit comment to simulate that last attempt was interrupted
+            // after the push was made and the PR was closed
+            pr.removeLabel("integrated");
+            pr.addLabel("ready");
+            pr.addLabel("rfr");
+            pr.addLabel("sponsor");
+            var commitComment2 = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .findAny().orElseThrow();
+            ((TestPullRequest) pr).removeComment(commitComment2);
+
+            // The bot should now retry
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an ok message
+            pushed = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .count();
+            assertEquals(1, pushed, "Commit comment not found");
+            assertFalse(pr.labelNames().contains("ready"), "ready label not removed");
+            assertFalse(pr.labelNames().contains("rfr"), "rfr label not removed");
+            assertFalse(pr.labelNames().contains("sponsor"), "sponsor label not removed");
+            assertTrue(pr.labelNames().contains("integrated"), "integrated label not added");
+
+            // Simulate that interruption happened just before the commit comment was added
+            var commitComment3 = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .findAny().orElseThrow();
+            ((TestPullRequest) pr).removeComment(commitComment3);
+
+            // The bot should now retry
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an ok message
+            pushed = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .count();
+            assertEquals(1, pushed, "Commit comment not found");
+            assertFalse(pr.labelNames().contains("ready"), "ready label not removed");
+            assertFalse(pr.labelNames().contains("rfr"), "rfr label not removed");
+            assertFalse(pr.labelNames().contains("sponsor"), "sponsor label not removed");
+            assertTrue(pr.labelNames().contains("integrated"), "integrated label not added");
+
+            // Add another command and verify that no further action is taken
+            pr.addComment("/integrate");
+            var numComments = pr.comments().size();
+
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            assertTrue(pr.comments().get(pr.comments().size() - 1).body()
+                    .contains("can only be used in open pull requests"));
+        }
+    }
 }

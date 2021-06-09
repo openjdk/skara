@@ -25,6 +25,7 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.Hash;
+import org.openjdk.skara.vcs.Repository;
 
 import java.io.*;
 import java.nio.file.Path;
@@ -38,7 +39,7 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
 public class IntegrateCommand implements CommandHandler {
-    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
+    private final static Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     private static final Pattern BACKPORT_PATTERN = Pattern.compile("<!-- backport ([0-9a-z]{40}) -->");
     private static final String PRE_PUSH_MARKER = "<!-- prepush %s -->";
     private static final Pattern PRE_PUSH_PATTERN = Pattern.compile("<!-- prepush ([0-9a-z]{40}) -->");
@@ -112,37 +113,10 @@ public class IntegrateCommand implements CommandHandler {
             }
         }
 
-        var botUser = pr.repository().forge().currentUser();
-
-        // Check if a prepush comment has been created already. This could happen if
-        // the bot got interrupted after pushing, but before finishing closing the PR
-        // and adding the final push comment.
-        var prePushHashes = allComments.stream()
-                .filter(c -> c.author().equals(botUser))
-                .map(Comment::body)
-                .map(PRE_PUSH_PATTERN::matcher)
-                .filter(Matcher::find)
-                .map(m -> m.group(1))
-                .collect(Collectors.toList());
-        if (!prePushHashes.isEmpty()) {
-            var path = scratchPath.resolve("integrate").resolve(pr.repository().name());
-            var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
-            var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
-            try {
-                var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, path);
-                for (String prePushHash : prePushHashes) {
-                    Hash hash = new Hash(prePushHash);
-                    if (PullRequestUtils.isAncestorOfTarget(localRepo, hash)) {
-                        // A previous attempt at pushing this PR was successful, but didn't finish
-                        // closing the PR
-                        log.info("Found previous successful push in prepush comment: " + hash.hex());
-                        markIntegratedAndClosed(pr, hash, reply);
-                        return;
-                    }
-                }
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
+        Optional<Hash> prepushHash = checkForPrePushHash(bot, pr, scratchPath, allComments, "integrate");
+        if (prepushHash.isPresent()) {
+            markIntegratedAndClosed(pr, prepushHash.get(), reply);
+            return;
         }
 
         var problem = checkProblem(pr.checks(pr.headHash()), "jcheck", pr);
@@ -169,10 +143,7 @@ public class IntegrateCommand implements CommandHandler {
             // Now that we have the integration lock, refresh the PR metadata
             pr = pr.repository().pullRequest(pr.id());
 
-            var path = scratchPath.resolve("integrate").resolve(pr.repository().name());
-            var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
-            var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
-            var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, path);
+            Repository localRepo = materializeLocalRepo(bot, pr, scratchPath, "integrate");
             var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews(),
                                                        bot.confOverrideRepository().orElse(null),
                                                        bot.confOverrideName(),
@@ -193,7 +164,8 @@ public class IntegrateCommand implements CommandHandler {
                 return;
             }
 
-            var backportLines = allComments
+            var botUser = pr.repository().forge().currentUser();
+            var backportLines = pr.comments()
                                   .stream()
                                   .filter(c -> c.author().equals(botUser))
                                   .flatMap(c -> Stream.of(c.body().split("\n")))
@@ -244,7 +216,51 @@ public class IntegrateCommand implements CommandHandler {
         }
     }
 
-    private void addPrePushComment(PullRequest pr, Hash hash, String extraMessage) {
+    static Repository materializeLocalRepo(PullRequestBot bot, PullRequest pr, Path scratchPath, String subdir) throws IOException {
+        var path = scratchPath.resolve(subdir).resolve(pr.repository().name());
+        var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
+        var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
+        return PullRequestUtils.materialize(hostedRepositoryPool, pr, path);
+    }
+
+    /**
+     * Checks if a prepush comment has been created already. This could happen if
+     * the bot got interrupted after pushing, but before finishing closing the PR
+     * and adding the final push comment.
+     */
+    static Optional<Hash> checkForPrePushHash(PullRequestBot bot, PullRequest pr, Path scratchPath,
+                                              List<Comment> allComments, String subdir) {
+        var botUser = pr.repository().forge().currentUser();
+        var prePushHashes = allComments.stream()
+                .filter(c -> c.author().equals(botUser))
+                .map(Comment::body)
+                .map(PRE_PUSH_PATTERN::matcher)
+                .filter(Matcher::find)
+                .map(m -> m.group(1))
+                .collect(Collectors.toList());
+        if (!prePushHashes.isEmpty()) {
+            var path = scratchPath.resolve("integrate").resolve(pr.repository().name());
+            var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
+            var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
+            try {
+                var localRepo = materializeLocalRepo(bot, pr, scratchPath, subdir);
+                for (String prePushHash : prePushHashes) {
+                    Hash hash = new Hash(prePushHash);
+                    if (PullRequestUtils.isAncestorOfTarget(localRepo, hash)) {
+                        // A previous attempt at pushing this PR was successful, but didn't finish
+                        // closing the PR
+                        log.info("Found previous successful push in prepush comment: " + hash.hex());
+                        return Optional.of(hash);
+                    }
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+        return Optional.empty();
+    }
+
+    static void addPrePushComment(PullRequest pr, Hash hash, String extraMessage) {
         var commentBody = new StringWriter();
         var writer = new PrintWriter(commentBody);
         writer.println(PRE_PUSH_MARKER.formatted(hash.hex()));
@@ -255,7 +271,7 @@ public class IntegrateCommand implements CommandHandler {
         pr.addComment(commentBody.toString());
     }
 
-    private void markIntegratedAndClosed(PullRequest pr, Hash hash, PrintWriter reply) {
+    static void markIntegratedAndClosed(PullRequest pr, Hash hash, PrintWriter reply) {
         pr.setState(PullRequest.State.CLOSED);
         pr.addLabel("integrated");
         pr.removeLabel("ready");

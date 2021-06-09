@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.pr;
 
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.*;
+import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.Repository;
@@ -1145,7 +1146,9 @@ class IntegrateTests {
             // Let it integrate
             TestBotRunner.runPeriodicItems(mergeBot);
 
-            // Remove some labels and the commit comment to simulate that last attempt was interrupted
+            // Simulate that interruption occurred after prePush comment was added, but before change was
+            // pushed
+            pr.setState(Issue.State.OPEN);
             pr.removeLabel("integrated");
             pr.addLabel("ready");
             pr.addLabel("rfr");
@@ -1153,6 +1156,7 @@ class IntegrateTests {
                     .filter(comment -> comment.body().contains("Pushed as commit"))
                     .findAny().orElseThrow();
             ((TestPullRequest) pr).removeComment(commitComment);
+            localRepo.push(masterHash, author.url(), "master", true);
 
             // The bot should now retry
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -1166,11 +1170,33 @@ class IntegrateTests {
             assertFalse(pr.labelNames().contains("rfr"), "rfr label not removed");
             assertTrue(pr.labelNames().contains("integrated"), "integrated label not added");
 
-            // Just remove the commit comment and repeat the test
+            // Remove some labels and the commit comment to simulate that last attempt was interrupted
+            // after the push was made and the PR was closed
+            pr.removeLabel("integrated");
+            pr.addLabel("ready");
+            pr.addLabel("rfr");
             var commitComment2 = pr.comments().stream()
-                    .filter(comment -> comment.body().equals(commitComment.body()))
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
                     .findAny().orElseThrow();
             ((TestPullRequest) pr).removeComment(commitComment2);
+
+            // The bot should now retry
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should reply with an ok message
+            pushed = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .count();
+            assertEquals(1, pushed, "Commit comment not found");
+            assertFalse(pr.labelNames().contains("ready"), "ready label not removed");
+            assertFalse(pr.labelNames().contains("rfr"), "rfr label not removed");
+            assertTrue(pr.labelNames().contains("integrated"), "integrated label not added");
+
+            // Simulate that interruption happened just before the commit comment was added
+            var commitComment3 = pr.comments().stream()
+                    .filter(comment -> comment.body().equals(commitComment2.body()))
+                    .findAny().orElseThrow();
+            ((TestPullRequest) pr).removeComment(commitComment3);
 
             // The bot should now retry
             TestBotRunner.runPeriodicItems(mergeBot);
