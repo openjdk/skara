@@ -27,6 +27,7 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.Hash;
+import org.openjdk.skara.vcs.Repository;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 
 import java.io.*;
@@ -229,6 +230,19 @@ class CheckWorkItem extends PullRequestWorkItem {
             var m = BACKPORT_TITLE_PATTERN.matcher(pr.title());
             if (m.matches()) {
                 var hash = new Hash(m.group(1));
+                try {
+                    var localRepo = materializeLocalRepo(scratchPath, hostedRepositoryPool);
+                    if (localRepo.isAncestor(hash, pr.headHash())) {
+                        var text = "<!-- backport error -->\n" +
+                                ":warning: @" + pr.author().username() + " the given backport hash `" + hash.hex() +
+                                "` is an ancestor of your proposed change. Please update the title with the hash for" +
+                                " the change you are backporting.";
+                        addBackportErrorComment(text, comments);
+                        return List.of();
+                    }
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
                 var metadata = pr.repository().forge().search(hash);
                 if (metadata.isPresent()) {
                     var message = CommitMessageParsers.v1.parse(metadata.get().message());
@@ -239,7 +253,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                                    ":warning: @" + pr.author().username() + " the commit `" + hash.hex() + "`" +
                                    " does not refer to an issue in project [" +
                                    bot.issueProject().name() + "](" + bot.issueProject().webUrl() + ").";
-                        pr.addComment(text);
+                        addBackportErrorComment(text, comments);
                         return List.of();
                     }
 
@@ -250,7 +264,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                                    ":warning: @" + pr.author().username() + " the issue with id `" + id + "` from commit " +
                                    "`" + hash.hex() + "` does not exist in project [" +
                                    bot.issueProject().name() + "](" + bot.issueProject().webUrl() + ").";
-                        pr.addComment(text);
+                        addBackportErrorComment(text, comments);
                         return List.of();
                     }
                     pr.setTitle(id + ": " + issue.get().title());
@@ -277,17 +291,10 @@ class CheckWorkItem extends PullRequestWorkItem {
                     return List.of(new CheckWorkItem(bot, pr.repository().pullRequest(pr.id()), errorHandler));
                 } else {
                     var botUser = pr.repository().forge().currentUser();
-                    var isErrorPresent = pr.comments()
-                                           .stream()
-                                           .filter(c -> c.author().equals(botUser))
-                                           .flatMap(c -> Stream.of(c.body().split("\n")))
-                                           .anyMatch(l -> l.equals("<!-- backport error -->"));
-                    if (!isErrorPresent) {
-                        var text = "<!-- backport error -->\n" +
-                                   ":warning: @" + pr.author().username() + " could not find any commit with hash `" +
-                                   hash.hex() + "`. Please update the title with the hash for an existing commit.";
-                        pr.addComment(text);
-                    }
+                    var text = "<!-- backport error -->\n" +
+                            ":warning: @" + pr.author().username() + " could not find any commit with hash `" +
+                            hash.hex() + "`. Please update the title with the hash for an existing commit.";
+                    addBackportErrorComment(text, comments);
                     return List.of();
                 }
             }
@@ -298,8 +305,7 @@ class CheckWorkItem extends PullRequestWorkItem {
             }
 
             try {
-                var localRepoPath = scratchPath.resolve("pr").resolve("check").resolve(pr.repository().name());
-                var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, localRepoPath);
+                Repository localRepo = materializeLocalRepo(scratchPath, hostedRepositoryPool);
 
                 var expiresAt = CheckRun.execute(this, pr, localRepo, comments, allReviews, activeReviews, labels, census, bot.ignoreStaleReviews(), bot.integrators());
                 if (expiresAt.isPresent()) {
@@ -317,6 +323,29 @@ class CheckWorkItem extends PullRequestWorkItem {
         // Must re-fetch PR after executing CheckRun
         var updatedPR = pr.repository().pullRequest(pr.id());
         return List.of(new PullRequestCommandWorkItem(bot, updatedPR, errorHandler));
+    }
+
+    /**
+     * Only adds comment if not already present
+     */
+    private void addBackportErrorComment(String text, List<Comment> comments) {
+        var botUser = pr.repository().forge().currentUser();
+        if (comments.stream()
+                .filter(c -> c.author().equals(botUser))
+                .noneMatch((c -> c.body().equals(text)))) {
+            pr.addComment(text);
+        }
+    }
+
+    // Lazily initiated
+    private Repository localRepo;
+
+    private Repository materializeLocalRepo(Path scratchPath, HostedRepositoryPool hostedRepositoryPool) throws IOException {
+        if (localRepo == null) {
+            var localRepoPath = scratchPath.resolve("pr").resolve("check").resolve(pr.repository().name());
+            localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, localRepoPath);
+        }
+        return localRepo;
     }
 
     @Override

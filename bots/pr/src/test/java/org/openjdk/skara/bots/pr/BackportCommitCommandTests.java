@@ -110,6 +110,48 @@ public class BackportCommitCommandTests {
             var botReply = recentCommitComments.get(0);
             assertTrue(botReply.body().contains("target repository"));
             assertTrue(botReply.body().contains("does not exist"));
+            assertTrue(botReply.body().contains("List of valid repositories: test"));
+            assertEquals(List.of(), author.pullRequests());
+        }
+    }
+
+    @Test
+    void unknownTargetRepoFork(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var bot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .censusLink("https://census.com/{{contributor}}-profile")
+                    .seedStorage(seedFolder)
+                    .forks(Map.of("foobar/other-repo", author))
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change in another branch
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit");
+
+            // Add a backport command
+            author.addCommitComment(editHash, "/backport " + author.name());
+            TestBotRunner.runPeriodicItems(bot);
+
+            var recentCommitComments = author.recentCommitComments();
+            assertEquals(2, recentCommitComments.size());
+            var botReply = recentCommitComments.get(0);
+            assertTrue(botReply.body().contains("is not a valid target for backports"));
+            assertTrue(botReply.body().contains("List of valid repositories: other-repo"));
             assertEquals(List.of(), author.pullRequests());
         }
     }
