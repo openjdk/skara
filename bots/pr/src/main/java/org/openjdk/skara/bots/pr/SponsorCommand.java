@@ -52,6 +52,12 @@ public class SponsorCommand implements CommandHandler {
             return;
         }
 
+        Optional<Hash> prePushHash = IntegrateCommand.checkForPrePushHash(bot, pr, scratchPath, allComments, "sponsor");
+        if (prePushHash.isPresent()) {
+            markIntegratedAndClosed(pr, prePushHash.get(), reply);
+            return;
+        }
+
         var readyHash = ReadyForSponsorTracker.latestReadyForSponsor(pr.repository().forge().currentUser(), allComments);
         if (!pr.labelNames().contains("auto") && readyHash.isEmpty()) {
             reply.println("The change author (@" + pr.author().username() + ") must issue an `integrate` command before the integration can be sponsored.");
@@ -85,17 +91,13 @@ public class SponsorCommand implements CommandHandler {
             // Now that we have the integration lock, refresh the PR metadata
             pr = pr.repository().pullRequest(pr.id());
 
-            var path = scratchPath.resolve("sponsor").resolve(pr.repository().name());
-            var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
-            var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
-            var localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, path);
+            var localRepo = IntegrateCommand.materializeLocalRepo(bot, pr, scratchPath, "sponsor");
             var checkablePr = new CheckablePullRequest(pr, localRepo, bot.ignoreStaleReviews(),
                                                        bot.confOverrideRepository().orElse(null),
                                                        bot.confOverrideName(),
                                                        bot.confOverrideRef());
 
             // Validate the target hash if requested
-            var rebaseMessage = new StringWriter();
             if (!command.args().isBlank()) {
                 var wantedHash = new Hash(command.args());
                 if (!PullRequestUtils.targetHash(pr, localRepo).equals(wantedHash)) {
@@ -106,6 +108,7 @@ public class SponsorCommand implements CommandHandler {
             }
 
             // Now rebase onto the target hash
+            var rebaseMessage = new StringWriter();
             var rebaseWriter = new PrintWriter(rebaseMessage);
             var rebasedHash = checkablePr.mergeTarget(rebaseWriter);
             if (rebasedHash.isEmpty()) {
@@ -139,19 +142,9 @@ public class SponsorCommand implements CommandHandler {
 
             if (!localHash.equals(PullRequestUtils.targetHash(pr, localRepo))) {
                 var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
+                IntegrateCommand.addPrePushComment(pr, amendedHash, rebaseMessage.toString());
                 localRepo.push(amendedHash, pr.repository().url(), pr.targetRef());
-                var finalRebaseMessage = rebaseMessage.toString();
-                if (!finalRebaseMessage.isBlank()) {
-                    reply.println(rebaseMessage.toString());
-                }
-                reply.println("Pushed as commit " + amendedHash.hex() + ".");
-                reply.println();
-                reply.println(":bulb: You may see a message that your pull request was closed with unmerged commits. This can be safely ignored.");
-                pr.setState(PullRequest.State.CLOSED);
-                pr.addLabel("integrated");
-                pr.removeLabel("sponsor");
-                pr.removeLabel("ready");
-                pr.removeLabel("rfr");
+                markIntegratedAndClosed(pr, amendedHash, reply);
             } else {
                 reply.print("Warning! This commit did not result in any changes! ");
                 reply.println("No push attempt will be made.");
@@ -162,6 +155,11 @@ public class SponsorCommand implements CommandHandler {
                                   "The error has been logged and will be investigated. It is possible that this error " +
                                   "is caused by a transient issue; feel free to retry the operation.");
         }
+    }
+
+    private void markIntegratedAndClosed(PullRequest pr, Hash amendedHash, PrintWriter reply) {
+        IntegrateCommand.markIntegratedAndClosed(pr, amendedHash, reply);
+        pr.removeLabel("sponsor");
     }
 
     @Override

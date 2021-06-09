@@ -223,7 +223,10 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         var command = nextCommand.get();
         log.info("Processing command: " + command.id() + " - " + command.name());
 
-        if (!pr.labelNames().contains("integrated")) {
+        // We can't trust just the integrated label as that gets set before the commit comment.
+        // If marked as integrated but there is no commit comment, any integrate command needs
+        // to run again to correct the state of the PR.
+        if (!pr.labelNames().contains("integrated") || resultingCommitHash(comments).isEmpty()) {
             processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), command, comments, false);
             // Must re-fetch PR after running the command, the command might have updated the PR
             var updatedPR = pr.repository().pullRequest(pr.id());
