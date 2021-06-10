@@ -32,7 +32,6 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
 import java.util.logging.Level;
-import java.util.stream.Stream;
 import java.util.stream.Collectors;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -40,7 +39,6 @@ import java.util.regex.Matcher;
 
 public class IntegrateCommand implements CommandHandler {
     private final static Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
-    private static final Pattern BACKPORT_PATTERN = Pattern.compile("<!-- backport ([0-9a-z]{40}) -->");
     private static final String PRE_PUSH_MARKER = "<!-- prepush %s -->";
     private static final Pattern PRE_PUSH_PATTERN = Pattern.compile("<!-- prepush ([0-9a-z]{40}) -->");
 
@@ -149,9 +147,9 @@ public class IntegrateCommand implements CommandHandler {
                                                        bot.confOverrideName(),
                                                        bot.confOverrideRef());
 
-            if (targetHash != null && !PullRequestUtils.targetHash(pr, localRepo).equals(targetHash)) {
+            if (targetHash != null && !checkablePr.targetHash().equals(targetHash)) {
                 reply.print("The head of the target branch is no longer at the requested hash " + targetHash);
-                reply.println(" - it has moved to " + PullRequestUtils.targetHash(pr, localRepo) + ". Aborting integration.");
+                reply.println(" - it has moved to " + checkablePr.targetHash() + ". Aborting integration.");
                 return;
             }
 
@@ -160,30 +158,14 @@ public class IntegrateCommand implements CommandHandler {
             var rebaseWriter = new PrintWriter(rebaseMessage);
             var rebasedHash = checkablePr.mergeTarget(rebaseWriter);
             if (rebasedHash.isEmpty()) {
-                reply.println(rebaseMessage.toString());
+                reply.println(rebaseMessage);
                 return;
             }
 
-            var botUser = pr.repository().forge().currentUser();
-            var backportLines = pr.comments()
-                                  .stream()
-                                  .filter(c -> c.author().equals(botUser))
-                                  .flatMap(c -> Stream.of(c.body().split("\n")))
-                                  .map(l -> BACKPORT_PATTERN.matcher(l))
-                                  .filter(Matcher::find)
-                                  .collect(Collectors.toList());
-            var original = backportLines.isEmpty() ? null : new Hash(backportLines.get(0).group(1));
+            var original = checkablePr.findOriginalBackportHash();
             var localHash = checkablePr.commit(rebasedHash.get(), censusInstance.namespace(), censusInstance.configuration().census().domain(), null, original);
 
-            var issues = checkablePr.createVisitor(localHash);
-            var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), allComments);
-            checkablePr.executeChecks(localHash, censusInstance, issues, additionalConfiguration);
-            if (!issues.messages().isEmpty()) {
-                reply.print("Your integration request cannot be fulfilled at this time, as ");
-                reply.println("your changes failed the final jcheck:");
-                issues.messages().stream()
-                      .map(line -> " * " + line)
-                      .forEach(reply::println);
+            if (runJcheck(pr, censusInstance, allComments, reply, localRepo, checkablePr, localHash)) {
                 return;
             }
 
@@ -199,7 +181,7 @@ public class IntegrateCommand implements CommandHandler {
             }
 
             // Rebase and push it!
-            if (!localHash.equals(PullRequestUtils.targetHash(pr, localRepo))) {
+            if (!localHash.equals(checkablePr.targetHash())) {
                 var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
                 addPrePushComment(pr, amendedHash, rebaseMessage.toString());
                 localRepo.push(amendedHash, pr.repository().url(), pr.targetRef());
@@ -214,6 +196,25 @@ public class IntegrateCommand implements CommandHandler {
                                   "The error has been logged and will be investigated. It is possible that this error " +
                                   "is caused by a transient issue; feel free to retry the operation.");
         }
+    }
+
+    /**
+     * Runs the checks adding to the reply message and returns true if any of them failed
+     */
+    static boolean runJcheck(PullRequest pr, CensusInstance censusInstance, List<Comment> allComments, PrintWriter reply,
+                      Repository localRepo, CheckablePullRequest checkablePr, Hash localHash) throws IOException {
+        var issues = checkablePr.createVisitor();
+        var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), allComments);
+        checkablePr.executeChecks(localHash, censusInstance, issues, additionalConfiguration);
+        if (!issues.messages().isEmpty()) {
+            reply.print("Your integration request cannot be fulfilled at this time, as ");
+            reply.println("your changes failed the final jcheck:");
+            issues.messages().stream()
+                  .map(line -> " * " + line)
+                  .forEach(reply::println);
+            return true;
+        }
+        return false;
     }
 
     static Repository materializeLocalRepo(PullRequestBot bot, PullRequest pr, Path scratchPath, String subdir) throws IOException {
@@ -239,9 +240,6 @@ public class IntegrateCommand implements CommandHandler {
                 .map(m -> m.group(1))
                 .collect(Collectors.toList());
         if (!prePushHashes.isEmpty()) {
-            var path = scratchPath.resolve("integrate").resolve(pr.repository().name());
-            var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
-            var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
             try {
                 var localRepo = materializeLocalRepo(bot, pr, scratchPath, subdir);
                 for (String prePushHash : prePushHashes) {
