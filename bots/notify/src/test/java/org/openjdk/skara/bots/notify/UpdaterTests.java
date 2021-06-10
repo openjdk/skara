@@ -86,6 +86,11 @@ public class UpdaterTests {
         }
 
         @Override
+        public boolean idempotent() {
+            return idempotent;
+        }
+
+        @Override
         public void attachTo(Emitter e) {
             e.registerRepositoryListener(this);
         }

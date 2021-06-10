@@ -39,4 +39,10 @@ public interface RepositoryListener {
     default void onNewBranch(HostedRepository repository, Repository localRepository, Path scratchPath, List<Commit> commits, Branch parent, Branch branch) throws NonRetriableException {
     }
     String name();
+
+    /**
+     * Returns true if this listener can handle being called with the same
+     * data multiple times without generating multiple notifications
+     */
+    boolean idempotent();
 }

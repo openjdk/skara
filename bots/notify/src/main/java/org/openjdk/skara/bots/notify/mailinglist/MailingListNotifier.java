@@ -380,4 +380,9 @@ class MailingListNotifier implements Notifier, RepositoryListener {
     public String name() {
         return "ml";
     }
+
+    @Override
+    public boolean idempotent() {
+        return false;
+    }
 }

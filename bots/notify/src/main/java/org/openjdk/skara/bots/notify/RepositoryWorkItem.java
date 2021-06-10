@@ -35,6 +35,23 @@ import java.util.logging.*;
 import java.util.regex.Pattern;
 import java.util.stream.*;
 
+/**
+ * A RepositoryWorkItem acts on changes to a particular repository. Multiple kinds
+ * of listeners can be notified about various types of changes. Some listeners can
+ * handle being called multiple times with the same update while others cannot. To
+ * avoid sending multiple emails or slack messages, we will never call such
+ * listeners multiple times with the same update.
+ *
+ * This is achieved with a combination of declaring a listener idempotent and
+ * throwing NonRetriableException. For a listener that is declared idempotent, we
+ * will not update the history repository until after a successful notification,
+ * which means the bot will retry until successful. For a listener that is not
+ * idempotent, we will update the history repo before attempting to notify the
+ * listener. If the listener fails without throwing NonRetriableException, we will
+ * attempt a rollback of the history repo, which means the bot will likely retry
+ * in the future, but it is not guaranteed as the bot could be killed at any time
+ * and the state could then be lost.
+ */
 public class RepositoryWorkItem implements WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final HostedRepository repository;
@@ -99,14 +116,21 @@ public class RepositoryWorkItem implements WorkItem {
             var lastHash = history.branchHash(branch, listener.name());
             if (lastHash.isEmpty()) {
                 log.warning("No previous history found for branch '" + branch + "' and listener '" + listener.name() + " - resetting mark");
-                history.setBranchHash(branch, listener.name(), ref.hash());
+                if (!listener.idempotent()) {
+                    history.setBranchHash(branch, listener.name(), ref.hash());
+                }
                 try {
                     handleNewRef(localRepo, ref, allRefs, listener, scratchPath.resolve(listener.name()));
                 } catch (NonRetriableException e) {
                     errors.add(e.cause());
+                    continue;
                 } catch (RuntimeException e) {
-                    // FIXME: Attempt rollback?
+                    // FIXME: Attempt rollback? No current listener that would use it
                     errors.add(e);
+                    continue;
+                }
+                if (listener.idempotent()) {
+                    history.setBranchHash(branch, listener.name(), ref.hash());
                 }
             } else {
                 var commitMetadata = localRepo.commitMetadata(lastHash.get() + ".." + ref.hash());
@@ -122,17 +146,26 @@ public class RepositoryWorkItem implements WorkItem {
                 }
 
                 var commits = localRepo.commits(lastHash.get() + ".." + ref.hash(), true).asList();
-                history.setBranchHash(branch, listener.name(), ref.hash());
+                if (!listener.idempotent()) {
+                    history.setBranchHash(branch, listener.name(), ref.hash());
+                }
                 try {
                     handleUpdatedRef(localRepo, ref, commits, listener, scratchPath.resolve(listener.name()));
                 } catch (NonRetriableException e) {
                     log.log(Level.INFO, "Non retriable exception occurred", e);
                     errors.add(e.cause());
+                    continue;
                 } catch (RuntimeException e) {
                     // Attempt to roll back
-                    log.log(Level.INFO, "Retriable exception occurred", e);
-                    history.setBranchHash(branch, listener.name(), lastHash.get());
+                    if (!listener.idempotent()) {
+                        log.log(Level.INFO, "Retriable exception occurred", e);
+                        history.setBranchHash(branch, listener.name(), lastHash.get());
+                    }
                     errors.add(e);
+                    continue;
+                }
+                if (listener.idempotent()) {
+                    history.setBranchHash(branch, listener.name(), ref.hash());
                 }
             }
         }
@@ -208,14 +241,23 @@ public class RepositoryWorkItem implements WorkItem {
             Collections.reverse(commits);
             var annotation = localRepo.annotate(tag.tag());
 
-            history.addTags(List.of(tag.tag()), listener.name());
+            if (!listener.idempotent()) {
+                history.addTags(List.of(tag.tag()), listener.name());
+            }
             try {
                 listener.onNewOpenJDKTagCommits(repository, localRepo, scratchPath, commits, tag, annotation.orElse(null));
             } catch (NonRetriableException e) {
                 errors.add(e.cause());
+                continue;
             } catch (RuntimeException e) {
                 errors.add(e);
-                history.retryTagUpdate(tag.tag(), listener.name());
+                if (!listener.idempotent()) {
+                    history.retryTagUpdate(tag.tag(), listener.name());
+                }
+                continue;
+            }
+            if (listener.idempotent()) {
+                history.addTags(List.of(tag.tag()), listener.name());
             }
         }
 
@@ -230,14 +272,23 @@ public class RepositoryWorkItem implements WorkItem {
 
             var annotation = localRepo.annotate(tag);
 
-            history.addTags(List.of(tag), listener.name());
+            if (!listener.idempotent()) {
+                history.addTags(List.of(tag), listener.name());
+            }
             try {
                 listener.onNewTagCommit(repository, localRepo, scratchPath, commit.get(), tag, annotation.orElse(null));
             } catch (NonRetriableException e) {
                 errors.add(e.cause());
+                continue;
             } catch (RuntimeException e) {
                 errors.add(e);
-                history.retryTagUpdate(tag, listener.name());
+                if (!listener.idempotent()) {
+                    history.retryTagUpdate(tag, listener.name());
+                }
+                continue;
+            }
+            if (listener.idempotent()) {
+                history.addTags(List.of(tag), listener.name());
             }
         }
 
