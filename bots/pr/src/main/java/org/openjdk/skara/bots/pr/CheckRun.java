@@ -58,11 +58,8 @@ class CheckRun {
     private static final String outdatedHelpMarker = "<!-- PullRequestBot outdated help comment -->";
     private static final String sourceBranchWarningMarker = "<!-- PullRequestBot source branch warning comment -->";
     private static final String mergeCommitWarningMarker = "<!-- PullRequestBot merge commit warning comment -->";
-    private static final String emptyPrBodyMarker = """
-            <!--
-            Replace this text with a description of your pull request (also remove the surrounding HTML comment markers).
-            If in doubt, feel free to delete everything in this edit box first, the bot will restore the progress section as needed.
-            -->""";
+    private static final String emptyPrBodyMarker = "<!--\nReplace this text with a description of your pull request (also remove the surrounding HTML comment markers).\n" +
+            "If in doubt, feel free to delete everything in this edit box first, the bot will restore the progress section as needed.\n-->";
     private static final String fullNameWarningMarker = "<!-- PullRequestBot full name warning comment -->";
     private final static Set<String> primaryTypes = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
     private final Set<String> newLabels;
