@@ -45,7 +45,7 @@ class CheckWorkItem extends PullRequestWorkItem {
     private final Pattern metadataComments = Pattern.compile("<!-- (?:(add|remove) (?:contributor|reviewer))|(?:summary: ')|(?:solves: ')|(?:additional required reviewers)");
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     static final Pattern ISSUE_ID_PATTERN = Pattern.compile("^(?:(?<prefix>[A-Za-z][A-Za-z0-9]+)-)?(?<id>[0-9]+)(?::\\s+(?<title>.+))?$");
-    private static final Pattern BACKPORT_SHA_TITLE_PATTERN = Pattern.compile("^Backport\\s*([0-9a-z]{40})\\s*$");
+    private static final Pattern BACKPORT_HASH_TITLE_PATTERN = Pattern.compile("^Backport\\s*([0-9a-z]{40})\\s*$");
     private static final Pattern BACKPORT_ISSUE_TITLE_PATTERN = Pattern.compile("^Backport\\s*(?:(?<prefix>[A-Za-z][A-Za-z0-9]+)-)?(?<id>[0-9]+)\\s*$");
     private static final String ELLIPSIS = "…";
 
@@ -227,9 +227,9 @@ class CheckWorkItem extends PullRequestWorkItem {
                 return List.of();
             }
 
-            var backportShaMatcher = BACKPORT_SHA_TITLE_PATTERN.matcher(pr.title());
-            if (backportShaMatcher.matches()) {
-                var hash = new Hash(backportShaMatcher.group(1));
+            var backportHashMatcher = BACKPORT_HASH_TITLE_PATTERN.matcher(pr.title());
+            if (backportHashMatcher.matches()) {
+                var hash = new Hash(backportHashMatcher.group(1));
                 try {
                     var localRepo = materializeLocalRepo(scratchPath, hostedRepositoryPool);
                     if (localRepo.isAncestor(hash, pr.headHash())) {
