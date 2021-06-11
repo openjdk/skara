@@ -35,7 +35,6 @@ import java.time.*;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.*;
 
 class CheckRun {
@@ -62,7 +61,6 @@ class CheckRun {
     private static final String emptyPrBodyMarker = "<!--\nReplace this text with a description of your pull request (also remove the surrounding HTML comment markers).\n" +
             "If in doubt, feel free to delete everything in this edit box first, the bot will restore the progress section as needed.\n-->";
     private static final String fullNameWarningMarker = "<!-- PullRequestBot full name warning comment -->";
-    private static final Pattern BACKPORT_PATTERN = Pattern.compile("<!-- backport ([0-9a-z]{40}) -->");
     private final static Set<String> primaryTypes = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
     private final Set<String> newLabels;
 
@@ -138,7 +136,7 @@ class CheckRun {
     }
 
     // Additional bot-specific checks that are not handled by JCheck
-    private List<String> botSpecificChecks(Hash finalHash) throws IOException {
+    private List<String> botSpecificChecks() {
         var ret = new ArrayList<String>();
 
         if (bodyWithoutStatus().isBlank()) {
@@ -291,19 +289,10 @@ class CheckRun {
     }
 
     private Optional<HostedCommit> backportedFrom() {
-        var botUser = pr.repository().forge().currentUser();
-        var backportLines = pr.comments()
-                              .stream()
-                              .filter(c -> c.author().equals(botUser))
-                              .flatMap(c -> Stream.of(c.body().split("\n")))
-                              .map(l -> BACKPORT_PATTERN.matcher(l))
-                              .filter(Matcher::find)
-                              .collect(Collectors.toList());
-        if (backportLines.isEmpty()) {
+        var hash = checkablePullRequest.findOriginalBackportHash();
+        if (hash == null) {
             return Optional.empty();
         }
-
-        var hash = new Hash(backportLines.get(0).group(1));
         var commit = pr.repository().forge().search(hash);
         if (commit.isEmpty()) {
             throw new IllegalStateException("Backport comment for PR " + pr.id() + " contains bad hash: " + hash.hex());
@@ -339,7 +328,7 @@ class CheckRun {
             ret.append(contributor.fullName().orElse(contributor.username()));
             if (censusLink.isPresent()) {
                 ret.append("](");
-                ret.append(censusLink.get().toString());
+                ret.append(censusLink.get());
                 ret.append(")");
             }
             ret.append(" (@");
@@ -475,7 +464,6 @@ class CheckRun {
                     try {
                         var iss = issueProject.issue(currentIssue.shortId());
                         if (iss.isPresent()) {
-                            var properties = iss.get().properties();
                             progressBody.append("[");
                             progressBody.append(iss.get().id());
                             progressBody.append("](");
@@ -594,16 +582,11 @@ class CheckRun {
     }
 
     private String verdictToString(Review.Verdict verdict) {
-        switch (verdict) {
-            case APPROVED:
-                return "changes are approved";
-            case DISAPPROVED:
-                return "more changes needed";
-            case NONE:
-                return "comment added";
-            default:
-                throw new RuntimeException("Unknown verdict: " + verdict);
-        }
+        return switch (verdict) {
+            case APPROVED -> "changes are approved";
+            case DISAPPROVED -> "more changes needed";
+            case NONE -> "comment added";
+        };
     }
 
     private void updateReviewedMessages(List<Comment> comments, List<Review> reviews) {
@@ -636,7 +619,7 @@ class CheckRun {
 
         try {
             var hasContributingFile =
-                !localRepo.files(PullRequestUtils.targetHash(pr, localRepo), Path.of("CONTRIBUTING.md")).isEmpty();
+                !localRepo.files(checkablePullRequest.targetHash(), Path.of("CONTRIBUTING.md")).isEmpty();
             if (hasContributingFile) {
                 message.append("\n\nℹ️ This project also has non-automated pre-integration requirements. Please see the file ");
                 message.append("[CONTRIBUTING.md](https://github.com/");
@@ -724,7 +707,6 @@ class CheckRun {
 
         if (!censusInstance.isCommitter(pr.author())) {
             message.append("\n");
-            var contributor = censusInstance.namespace().get(pr.author().id());
             message.append("As you do not have [Committer](https://openjdk.java.net/bylaws#committer) status in ");
             message.append("[this project](https://openjdk.java.net/census#");
             message.append(censusInstance.project().name());
@@ -811,7 +793,7 @@ class CheckRun {
         }
     }
 
-    private void addSourceBranchWarningComment(List<Comment> comments) throws IOException {
+    private void addSourceBranchWarningComment(List<Comment> comments) {
         var existing = findComment(comments, sourceBranchWarningMarker);
         if (existing.isPresent()) {
             // Only add the comment once per PR
@@ -822,7 +804,7 @@ class CheckRun {
             "a branch with the same name as the source branch for this pull request (`" + branch + "`) " +
             "is present in the [target repository](" + pr.repository().nonTransformedWebUrl() + "). " +
             "If you eventually integrate this pull request then the branch `" + branch + "` " +
-            "in your [personal fork](" + pr.sourceRepository().get().nonTransformedWebUrl() + ") will diverge once you sync " +
+            "in your [personal fork](" + pr.sourceRepository().orElseThrow().nonTransformedWebUrl() + ") will diverge once you sync " +
             "your personal fork with the upstream repository.\n" +
             "\n" +
             "To avoid this situation, create a new branch for your changes and reset the `" + branch + "` branch. " +
@@ -911,18 +893,18 @@ class CheckRun {
                 additionalErrors = List.of(e.getMessage());
                 localHash = baseHash;
             }
-            PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor(localHash);
+            PullRequestCheckIssueVisitor visitor = checkablePullRequest.createVisitor();
             if (localHash.equals(baseHash)) {
                 if (additionalErrors.isEmpty()) {
                     additionalErrors = List.of("This PR contains no changes");
                 }
-            } else if (localHash.equals(PullRequestUtils.targetHash(pr, localRepo))) {
+            } else if (localHash.equals(checkablePullRequest.targetHash())) {
                 additionalErrors = List.of("This PR only contains changes already present in the target");
             } else {
                 // Determine current status
                 var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), comments);
                 checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration);
-                additionalErrors = botSpecificChecks(localHash);
+                additionalErrors = botSpecificChecks();
             }
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
             updateReadyForReview(visitor, additionalErrors);

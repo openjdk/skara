@@ -34,20 +34,21 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class PullRequestUtils {
-    private static Hash commitSquashed(PullRequest pr, Repository localRepo, Hash finalHead, Author author, Author committer, String commitMessage) throws IOException {
+    private static Hash commitSquashed(Repository localRepo, Hash finalHead, Author author, Author committer, String commitMessage) throws IOException {
         return localRepo.commit(commitMessage, author.name(), author.email(), ZonedDateTime.now(),
-                                committer.name(), committer.email(), ZonedDateTime.now(), List.of(targetHash(pr, localRepo)), localRepo.tree(finalHead));
+                                committer.name(), committer.email(), ZonedDateTime.now(), List.of(targetHash(localRepo)), localRepo.tree(finalHead));
     }
 
     private final static Pattern mergeSourcePattern = Pattern.compile("^Merge ([-/\\w:+]+)$");
     private final static Pattern hashSourcePattern = Pattern.compile("[0-9a-fA-F]{6,40}");
 
-    private static Optional<Hash> fetchRef(Repository localRepo, URI uri, String ref) throws IOException {
+    private static Optional<Hash> fetchRef(Repository localRepo, URI uri, String ref) {
         // Just a plain name - is this a branch?
         try {
             var hash = localRepo.fetch(uri, "+" + ref + ":refs/heads/merge_source", false);
             return Optional.of(hash);
         } catch (IOException e) {
+            // Ignored
         }
 
         // Perhaps it is an actual tag object - it cannot be fetched to a branch ref
@@ -55,6 +56,7 @@ public class PullRequestUtils {
             var hash = localRepo.fetch(uri, "+" + ref + ":refs/tags/merge_source_tag", false);
             return Optional.of(hash);
         } catch (IOException e) {
+            // Ignored
         }
 
         return Optional.empty();
@@ -64,7 +66,7 @@ public class PullRequestUtils {
         var sourceMatcher = mergeSourcePattern.matcher(pr.title());
         if (!sourceMatcher.matches()) {
             throw new CommitFailure("Could not determine the source for this merge. A Merge PR title must be specified in the format: `" +
-                                            mergeSourcePattern.toString() + "` to allow verification of the merge contents.");
+                                            mergeSourcePattern + "` to allow verification of the merge contents.");
         }
         var source = sourceMatcher.group(1);
 
@@ -74,7 +76,7 @@ public class PullRequestUtils {
             var hash = localRepo.resolve(source);
             if (hash.isPresent()) {
                 // A valid merge source hash cannot be an ancestor of the target branch (if so it would not need to be merged)
-                var prTargetHash = PullRequestUtils.targetHash(pr, localRepo);
+                var prTargetHash = PullRequestUtils.targetHash(localRepo);
                 if (!localRepo.isAncestor(hash.get(), prTargetHash)) {
                     return hash.get();
                 }
@@ -127,7 +129,7 @@ public class PullRequestUtils {
 
         // Ensure that the source and the target are related
         try {
-            localRepo.mergeBase(targetHash(pr, localRepo), sourceHead);
+            localRepo.mergeBase(targetHash(localRepo), sourceHead);
         } catch (IOException e) {
             throw new CommitFailure("The target and the source branches do not share common history - cannot merge them.");
         }
@@ -147,13 +149,13 @@ public class PullRequestUtils {
     private static Hash commitMerge(PullRequest pr, Repository localRepo, Hash finalHead, Author author, Author committer, String commitMessage) throws IOException, CommitFailure {
         var commits = localRepo.commitMetadata(baseHash(pr, localRepo), finalHead);
         var sourceHash = findSourceHash(pr, localRepo, commits);
-        var parents = List.of(localRepo.mergeBase(targetHash(pr, localRepo), finalHead), sourceHash);
+        var parents = List.of(localRepo.mergeBase(targetHash(localRepo), finalHead), sourceHash);
 
         return localRepo.commit(commitMessage, author.name(), author.email(), ZonedDateTime.now(),
                 committer.name(), committer.email(), ZonedDateTime.now(), parents, localRepo.tree(finalHead));
     }
 
-    public static Hash targetHash(PullRequest pr, Repository localRepo) throws IOException {
+    public static Hash targetHash(Repository localRepo) throws IOException {
         return localRepo.resolve("prutils_targetref").orElseThrow(() -> new IllegalStateException("Must materialize PR first"));
     }
 
@@ -175,7 +177,7 @@ public class PullRequestUtils {
     public static Hash createCommit(PullRequest pr, Repository localRepo, Hash finalHead, Author author, Author committer, String commitMessage) throws IOException, CommitFailure {
         Hash commit;
         if (!isMerge(pr)) {
-            commit = commitSquashed(pr, localRepo, finalHead, author, committer, commitMessage);
+            commit = commitSquashed(localRepo, finalHead, author, committer, commitMessage);
         } else {
             commit = commitMerge(pr, localRepo, finalHead, author, committer, commitMessage);
         }
@@ -184,7 +186,7 @@ public class PullRequestUtils {
     }
 
     public static Hash baseHash(PullRequest pr, Repository localRepo) throws IOException {
-        return localRepo.mergeBase(targetHash(pr, localRepo), pr.headHash());
+        return localRepo.mergeBase(targetHash(localRepo), pr.headHash());
     }
 
     public static Set<Path> changedFiles(PullRequest pr, Repository localRepo) throws IOException {
@@ -217,7 +219,7 @@ public class PullRequestUtils {
                                   .flatMap(commit -> commit.parents().stream().skip(1))
                                   .collect(Collectors.toList());
         for (var mergeParent : mergeParents) {
-            if (!localRepo.mergeBase(targetHash(pr, localRepo), mergeParent).equals(mergeParent)) {
+            if (!localRepo.mergeBase(targetHash(localRepo), mergeParent).equals(mergeParent)) {
                 return true;
             }
         }

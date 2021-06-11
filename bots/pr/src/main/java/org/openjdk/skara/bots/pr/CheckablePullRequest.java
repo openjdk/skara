@@ -32,10 +32,14 @@ import org.openjdk.skara.vcs.openjdk.Issue;
 
 import java.io.*;
 import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class CheckablePullRequest {
+    private static final Pattern BACKPORT_PATTERN = Pattern.compile("<!-- backport ([0-9a-z]{40}) -->");
+
     private final PullRequest pr;
     private final Repository localRepo;
     private final boolean ignoreStaleReviews;
@@ -121,8 +125,6 @@ public class CheckablePullRequest {
     /**
      * The Review list is in chronological order, the latest one from a particular reviewer is the
      * one that is "active".
-     * @param allReviews
-     * @return
      */
     static List<Review> filterActiveReviews(List<Review> allReviews) {
         var reviewPerUser = new LinkedHashMap<HostUser, Review>();
@@ -142,7 +144,7 @@ public class CheckablePullRequest {
                 throw new CommitFailure("Merge PRs can only be created by known OpenJDK authors.");
             }
 
-            var head = localRepo.lookup(pr.headHash()).get();
+            var head = localRepo.lookup(pr.headHash()).orElseThrow();
             author = head.author();
         } else {
             author = new Author(contributor.fullName().orElseThrow(), contributor.username() + "@" + censusDomain);
@@ -172,8 +174,8 @@ public class CheckablePullRequest {
         }
     }
 
-    PullRequestCheckIssueVisitor createVisitor(Hash localHash) throws IOException {
-        var checks = JCheck.checksFor(localRepo, PullRequestUtils.targetHash(pr, localRepo));
+    PullRequestCheckIssueVisitor createVisitor() throws IOException {
+        var checks = JCheck.checksFor(localRepo, targetHash());
         return new PullRequestCheckIssueVisitor(checks);
     }
 
@@ -182,10 +184,10 @@ public class CheckablePullRequest {
         if (confOverride != null) {
             conf = JCheck.parseConfiguration(confOverride, additionalConfiguration);
         } else {
-            conf = JCheck.parseConfiguration(localRepo, PullRequestUtils.targetHash(pr, localRepo), additionalConfiguration);
+            conf = JCheck.parseConfiguration(localRepo, targetHash(), additionalConfiguration);
         }
         if (conf.isEmpty()) {
-            throw new RuntimeException("Failed to parse jcheck configuration at: " + PullRequestUtils.targetHash(pr, localRepo) + " with extra: " + additionalConfiguration);
+            throw new RuntimeException("Failed to parse jcheck configuration at: " + targetHash() + " with extra: " + additionalConfiguration);
         }
         try (var issues = JCheck.check(localRepo, censusInstance.census(), CommitMessageParsers.v1, localHash,
                                        conf.get())) {
@@ -201,8 +203,8 @@ public class CheckablePullRequest {
 
     private List<CommitMetadata> divergingCommits(Hash commitHash) {
         try {
-            var updatedBase = localRepo.mergeBase(PullRequestUtils.targetHash(pr, localRepo), commitHash);
-            return localRepo.commitMetadata(updatedBase, PullRequestUtils.targetHash(pr, localRepo));
+            var updatedBase = localRepo.mergeBase(targetHash(), commitHash);
+            return localRepo.commitMetadata(updatedBase, targetHash());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -227,7 +229,7 @@ public class CheckablePullRequest {
                             .forEach(c -> reply.println(" * " + c.hash().hex() + ": " + c.message().get(0)));
             if (divergingCommits.size() > 10) {
                 try {
-                    var baseHash = localRepo.mergeBase(PullRequestUtils.targetHash(pr, localRepo), pr.headHash());
+                    var baseHash = localRepo.mergeBase(targetHash(), pr.headHash());
                     reply.println(" * ... and " + (divergingCommits.size() - 10) + " more: " +
                                           pr.repository().webUrl(baseHash.hex(), pr.targetRef()));
                 } catch (IOException e) {
@@ -240,11 +242,11 @@ public class CheckablePullRequest {
                 localRepo.checkout(pr.headHash(), true);
                 Hash hash;
                 try {
-                    localRepo.merge(PullRequestUtils.targetHash(pr, localRepo));
+                    localRepo.merge(targetHash());
                     hash = localRepo.commit("Automatic merge with latest target", "duke", "duke@openjdk.org");
                 } catch (IOException e) {
                     localRepo.abortMerge();
-                    localRepo.rebase(PullRequestUtils.targetHash(pr, localRepo), "duke", "duke@openjdk.org");
+                    localRepo.rebase(targetHash(), "duke", "duke@openjdk.org");
                     hash = localRepo.head();
                 }
                 reply.println();
@@ -263,4 +265,25 @@ public class CheckablePullRequest {
         }
     }
 
+    Hash findOriginalBackportHash() {
+        var botUser = pr.repository().forge().currentUser();
+        var backportLines = pr.comments()
+                .stream()
+                .filter(c -> c.author().equals(botUser))
+                .flatMap(c -> Stream.of(c.body().split("\n")))
+                .map(BACKPORT_PATTERN::matcher)
+                .filter(Matcher::find)
+                .collect(Collectors.toList());
+        return backportLines.isEmpty() ? null : new Hash(backportLines.get(0).group(1));
+    }
+
+    // Lazily initiated
+    private Hash targetHash;
+
+    public Hash targetHash() throws IOException {
+        if (targetHash == null) {
+            targetHash = PullRequestUtils.targetHash(localRepo);
+        }
+        return targetHash;
+    }
 }

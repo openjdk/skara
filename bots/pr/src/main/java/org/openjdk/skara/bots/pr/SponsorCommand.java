@@ -31,15 +31,10 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
 import java.util.logging.Level;
-import java.util.stream.Stream;
-import java.util.stream.Collectors;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 
 public class SponsorCommand implements CommandHandler {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
-    private static final Pattern BACKPORT_PATTERN = Pattern.compile("<!-- backport ([0-9a-z]{40}) -->");
 
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
@@ -64,7 +59,7 @@ public class SponsorCommand implements CommandHandler {
             return;
         }
 
-        var acceptedHash = readyHash.get();
+        var acceptedHash = readyHash.orElseThrow();
         if (!pr.labelNames().contains("auto") && !pr.headHash().equals(acceptedHash)) {
             reply.print("The PR has been updated since the change author (@" + pr.author().username() + ") ");
             reply.println("issued the `integrate` command - the author must perform this command again.");
@@ -100,9 +95,9 @@ public class SponsorCommand implements CommandHandler {
             // Validate the target hash if requested
             if (!command.args().isBlank()) {
                 var wantedHash = new Hash(command.args());
-                if (!PullRequestUtils.targetHash(pr, localRepo).equals(wantedHash)) {
+                if (!checkablePr.targetHash().equals(wantedHash)) {
                     reply.print("The head of the target branch is no longer at the requested hash " + wantedHash);
-                    reply.println(" - it has moved to " + PullRequestUtils.targetHash(pr, localRepo) + ". Aborting integration.");
+                    reply.println(" - it has moved to " + checkablePr.targetHash() + ". Aborting integration.");
                     return;
                 }
             }
@@ -112,35 +107,19 @@ public class SponsorCommand implements CommandHandler {
             var rebaseWriter = new PrintWriter(rebaseMessage);
             var rebasedHash = checkablePr.mergeTarget(rebaseWriter);
             if (rebasedHash.isEmpty()) {
-                reply.println(rebaseMessage.toString());
+                reply.println(rebaseMessage);
                 return;
             }
 
-            var botUser = pr.repository().forge().currentUser();
-            var backportLines = pr.comments()
-                                  .stream()
-                                  .filter(c -> c.author().equals(botUser))
-                                  .flatMap(c -> Stream.of(c.body().split("\n")))
-                                  .map(l -> BACKPORT_PATTERN.matcher(l))
-                                  .filter(Matcher::find)
-                                  .collect(Collectors.toList());
-            var original = backportLines.isEmpty() ? null : new Hash(backportLines.get(0).group(1));
+            var original = checkablePr.findOriginalBackportHash();
             var localHash = checkablePr.commit(rebasedHash.get(), censusInstance.namespace(), censusInstance.configuration().census().domain(),
                     command.user().id(), original);
 
-            var issues = checkablePr.createVisitor(localHash);
-            var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), allComments);
-            checkablePr.executeChecks(localHash, censusInstance, issues, additionalConfiguration);
-            if (!issues.messages().isEmpty()) {
-                reply.print("Your integration request cannot be fulfilled at this time, as ");
-                reply.println("your changes failed the final jcheck:");
-                issues.messages().stream()
-                      .map(line -> " * " + line)
-                      .forEach(reply::println);
+            if (IntegrateCommand.runJcheck(pr, censusInstance, allComments, reply, localRepo, checkablePr, localHash)) {
                 return;
             }
 
-            if (!localHash.equals(PullRequestUtils.targetHash(pr, localRepo))) {
+            if (!localHash.equals(checkablePr.targetHash())) {
                 var amendedHash = checkablePr.amendManualReviewers(localHash, censusInstance.namespace(), original);
                 IntegrateCommand.addPrePushComment(pr, amendedHash, rebaseMessage.toString());
                 localRepo.push(amendedHash, pr.repository().url(), pr.targetRef());
