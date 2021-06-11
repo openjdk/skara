@@ -1347,4 +1347,115 @@ class BackportTests {
             assertFalse(pr.labelNames().contains("backport"));
         }
     }
+
+    @Test
+    void noShaOnlyIssue(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(integrator.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var bot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            var issue1 = credentials.createIssue(issues, "An issue");
+            var issue1Number = issue1.id().split("-")[1];
+
+            // Create change
+            localRepo.checkout(localRepo.defaultBranch());
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            var newFile2 = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile2, "hello");
+            localRepo.add(newFile2);
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+
+            // Create various kinds of bad pull request titles
+            // Use a bad project
+            var pr = credentials.createPullRequest(author, "master", "edit",
+                    "Backport " + "FOO-" + issue1.id().split("-")[1]);
+            TestBotRunner.runPeriodicItems(bot);
+            var backportComment = pr.comments().get(0).body();
+            assertTrue(backportComment.contains("does not match project"));
+            assertFalse(pr.labelNames().contains("backport"));
+
+            // Use bad issue ID
+            pr.setTitle("Backport TEST-4711");
+            TestBotRunner.runPeriodicItems(bot);
+            backportComment = pr.comments().get(1).body();
+            assertTrue(backportComment.contains("does not exist in project"));
+            assertFalse(pr.labelNames().contains("backport"));
+
+            // Use different kinds of good titles
+            // Use the full issue ID
+            pr.setTitle("Backport " + issue1.id());
+            TestBotRunner.runPeriodicItems(bot);
+            backportComment = pr.comments().get(2).body();
+            assertTrue(backportComment.contains("This backport pull request has now been updated with the original issue"));
+            assertEquals(issue1Number + ": An issue", pr.title());
+            assertTrue(pr.labelNames().contains("backport"));
+
+            // Set the title without project name
+            pr.setTitle("Backport " + issue1.id().split("-")[1]);
+            TestBotRunner.runPeriodicItems(bot);
+            backportComment = pr.comments().get(3).body();
+            assertTrue(backportComment.contains("This backport pull request has now been updated with the original issue"));
+            assertEquals(issue1Number + ": An issue", pr.title());
+            assertTrue(pr.labelNames().contains("backport"));
+
+            // Approve PR and re-run bot
+            var prAsReviewer = reviewer.pullRequest(pr.id());
+            prAsReviewer.addReview(Review.Verdict.APPROVED, "Looks good");
+            TestBotRunner.runPeriodicItems(bot);
+            assertLastCommentContains(pr, "This change now passes all *automated* pre-integration checks");
+
+            // Integrate
+            var prAsCommitter = author.pullRequest(pr.id());
+            prAsCommitter.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(bot);
+
+            // Find the commit
+            assertLastCommentContains(pr, "Pushed as commit");
+
+            String hex = null;
+            var comment = pr.comments().get(pr.comments().size() - 1);
+            var lines = comment.body().split("\n");
+            var pattern = Pattern.compile(".* Pushed as commit ([0-9a-z]{40}).*");
+            for (var line : lines) {
+                var m = pattern.matcher(line);
+                if (m.matches()) {
+                    hex = m.group(1);
+                    break;
+                }
+            }
+            assertNotNull(hex);
+            assertEquals(40, hex.length());
+            localRepo.checkout(localRepo.defaultBranch());
+            localRepo.pull(author.url().toString(), "master", false);
+            var commit = localRepo.lookup(new Hash(hex)).orElseThrow();
+
+            var message = CommitMessageParsers.v1.parse(commit);
+            assertEquals(1, message.issues().size());
+            assertEquals("An issue", message.issues().get(0).description());
+            assertEquals(List.of("integrationreviewer3"), message.reviewers());
+            assertEquals(List.of(), message.contributors());
+            assertEquals(List.of(), message.summaries());
+            assertEquals(List.of(), message.additional());
+        }
+    }
 }

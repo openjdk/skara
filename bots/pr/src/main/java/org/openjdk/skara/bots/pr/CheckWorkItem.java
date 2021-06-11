@@ -40,13 +40,13 @@ import java.util.function.Consumer;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 class CheckWorkItem extends PullRequestWorkItem {
     private final Pattern metadataComments = Pattern.compile("<!-- (?:(add|remove) (?:contributor|reviewer))|(?:summary: ')|(?:solves: ')|(?:additional required reviewers)");
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
     static final Pattern ISSUE_ID_PATTERN = Pattern.compile("^(?:(?<prefix>[A-Za-z][A-Za-z0-9]+)-)?(?<id>[0-9]+)(?::\\s+(?<title>.+))?$");
-    private static final Pattern BACKPORT_TITLE_PATTERN = Pattern.compile("^Backport\\s*([0-9a-z]{40})\\s*$");
+    private static final Pattern BACKPORT_SHA_TITLE_PATTERN = Pattern.compile("^Backport\\s*([0-9a-z]{40})\\s*$");
+    private static final Pattern BACKPORT_ISSUE_TITLE_PATTERN = Pattern.compile("^Backport\\s*(?:(?<prefix>[A-Za-z][A-Za-z0-9]+)-)?(?<id>[0-9]+)\\s*$");
     private static final String ELLIPSIS = "…";
 
     CheckWorkItem(PullRequestBot bot, PullRequest pr, Consumer<RuntimeException> errorHandler) {
@@ -227,9 +227,9 @@ class CheckWorkItem extends PullRequestWorkItem {
                 return List.of();
             }
 
-            var m = BACKPORT_TITLE_PATTERN.matcher(pr.title());
-            if (m.matches()) {
-                var hash = new Hash(m.group(1));
+            var backportShaMatcher = BACKPORT_SHA_TITLE_PATTERN.matcher(pr.title());
+            if (backportShaMatcher.matches()) {
+                var hash = new Hash(backportShaMatcher.group(1));
                 try {
                     var localRepo = materializeLocalRepo(scratchPath, hostedRepositoryPool);
                     if (localRepo.isAncestor(hash, pr.headHash())) {
@@ -297,6 +297,37 @@ class CheckWorkItem extends PullRequestWorkItem {
                     addBackportErrorComment(text, comments);
                     return List.of();
                 }
+            }
+
+            // Check for a title on the form Backport <issueid>
+            var backportIssueMatcher = BACKPORT_ISSUE_TITLE_PATTERN.matcher(pr.title());
+            if (backportIssueMatcher.matches()) {
+                var prefix = getMatchGroup(backportIssueMatcher, "prefix");
+                var id = getMatchGroup(backportIssueMatcher, "id");
+                var project = bot.issueProject();
+
+                if (!prefix.isEmpty() && !prefix.equalsIgnoreCase(project.name())) {
+                    var text = "<!-- backport error -->\n" +
+                            ":warning: @" + pr.author().username() + " the issue prefix `" + prefix + "` does not" +
+                            " match project [" + project.name() + "](" + project.webUrl() + ").";
+                    addBackportErrorComment(text, comments);
+                    return List.of();
+                }
+                var issue = project.issue(id);
+                if (issue.isEmpty()) {
+                    var text = "<!-- backport error -->\n" +
+                            ":warning: @" + pr.author().username() + " the issue with id `" + id + "` " +
+                            "does not exist in project [" + project.name() + "](" + project.webUrl() + ").";
+                    addBackportErrorComment(text, comments);
+                    return List.of();
+                }
+                pr.setTitle(id + ": " + issue.get().title());
+                var text = "This backport pull request has now been updated with the original issue," +
+                        " but not the original commit. If you have the original commit hash, please update" +
+                        " the pull request title with `Backport <hash>`.";
+                pr.addComment(text);
+                pr.addLabel("backport");
+                return List.of(new CheckWorkItem(bot, pr.repository().pullRequest(pr.id()), errorHandler));
             }
 
             // If the title needs updating, we run the check again
