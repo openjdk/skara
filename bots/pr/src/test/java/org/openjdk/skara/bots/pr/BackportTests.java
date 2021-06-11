@@ -1349,7 +1349,7 @@ class BackportTests {
     }
 
     @Test
-    void noShaOnlyIssue(TestInfo testInfo) throws IOException {
+    void noHashOnlyIssue(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
 
@@ -1453,6 +1453,7 @@ class BackportTests {
             assertEquals(1, message.issues().size());
             assertEquals("An issue", message.issues().get(0).description());
             assertEquals(List.of("integrationreviewer3"), message.reviewers());
+            assertEquals(Optional.empty(), message.original());
             assertEquals(List.of(), message.contributors());
             assertEquals(List.of(), message.summaries());
             assertEquals(List.of(), message.additional());

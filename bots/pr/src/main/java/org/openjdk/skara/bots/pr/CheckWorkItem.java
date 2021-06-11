@@ -299,7 +299,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                 }
             }
 
-            // Check for a title on the form Backport <issueid>
+            // Check for a title of the form Backport <issueid>
             var backportIssueMatcher = BACKPORT_ISSUE_TITLE_PATTERN.matcher(pr.title());
             if (backportIssueMatcher.matches()) {
                 var prefix = getMatchGroup(backportIssueMatcher, "prefix");
