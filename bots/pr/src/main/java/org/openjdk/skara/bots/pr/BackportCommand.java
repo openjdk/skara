@@ -23,7 +23,6 @@
 package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.HostedCommit;
-import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
@@ -114,7 +113,7 @@ public class BackportCommand implements CommandHandler {
                 return;
             }
             var fork = optionalFork.get();
-            Hash backportHash = null;
+            Hash backportHash;
             var backportBranchName = username + "-backport-" + hash.abbreviate();
             var hostedBackportBranch = fork.branches().stream().filter(b -> b.name().equals(backportBranchName)).findAny();
             if (hostedBackportBranch.isEmpty()) {
@@ -190,9 +189,7 @@ public class BackportCommand implements CommandHandler {
                 var reviewers = message.reviewers()
                                        .stream()
                                        .map(r -> censusInstance.census().contributor(r))
-                                       .map(c -> {
-                                           return c.fullName().isPresent() ? c.fullName().get() : c.username();
-                                       })
+                                       .map(c -> c.fullName().isPresent() ? c.fullName().get() : c.username())
                                        .collect(Collectors.toList());
                 var numReviewers = reviewers.size();
                 var listing = numReviewers == 1 ?
