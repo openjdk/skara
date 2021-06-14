@@ -266,6 +266,10 @@ public class CheckablePullRequest {
     }
 
     Hash findOriginalBackportHash() {
+        return findOriginalBackportHash(pr);
+    }
+
+    static Hash findOriginalBackportHash(PullRequest pr) {
         var botUser = pr.repository().forge().currentUser();
         var backportLines = pr.comments()
                 .stream()
