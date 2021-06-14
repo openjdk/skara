@@ -61,8 +61,10 @@ public class CleanCommand implements CommandHandler {
             return;
         }
 
-        if (!pr.labelNames().contains("backport")) {
-            reply.println("@" + username + " can only mark [backport pull requests](https://wiki.openjdk.java.net/display/SKARA/Backports#Backports-BackportPullRequests) as clean");
+        if (!pr.labelNames().contains("backport") || CheckablePullRequest.findOriginalBackportHash(pr) == null) {
+            reply.println("@" + username + " can only mark [backport pull requests]" +
+                    "(https://wiki.openjdk.java.net/display/SKARA/Backports#Backports-BackportPullRequests)," +
+                    " with an original hash, as clean");
             return;
         }
 

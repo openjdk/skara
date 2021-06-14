@@ -73,7 +73,7 @@ public class CleanCommandTests {
             assertFalse(pr.labelNames().contains("backport"));
             assertFalse(pr.labelNames().contains("clean"));
             assertLastCommentContains(pr, "can only mark [backport pull requests]");
-            assertLastCommentContains(pr, "as clean");
+            assertLastCommentContains(pr, ", with an original hash, as clean");
         }
     }
 
@@ -295,6 +295,51 @@ public class CleanCommandTests {
             assertFalse(pr.labelNames().contains("clean"));
             assertLastCommentContains(pr, "only OpenJDK [Committers]");
             assertLastCommentContains(pr, "can use the `/clean` command");
+        }
+    }
+
+    @Test
+    void missingBackportHash(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(integrator.forge().currentUser().id());
+            var issues = credentials.getIssueProject();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            var issue = credentials.createIssue(issues, "An issue");
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + issue.id());
+            TestBotRunner.runPeriodicItems(prBot);
+
+            assertTrue(pr.labelNames().contains("backport"));
+            assertFalse(pr.labelNames().contains("clean"));
+
+            // Try to issue the "/clean" PR command, should not work
+            pr.addComment("/clean");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.labelNames().contains("backport"));
+            assertFalse(pr.labelNames().contains("clean"));
+            assertLastCommentContains(pr, "can only mark [backport pull requests]");
+            assertLastCommentContains(pr, ", with an original hash, as clean");
         }
     }
 }
