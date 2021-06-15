@@ -26,6 +26,7 @@ import org.junit.jupiter.api.*;
 import org.openjdk.skara.test.*;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -33,9 +34,11 @@ public class BackportCommitCommandTests {
     @Test
     void simple(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
+             var forkCredentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
+            var fork = forkCredentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
@@ -46,13 +49,16 @@ public class BackportCommitCommandTests {
                                     .censusRepo(censusBuilder.build())
                                     .censusLink("https://census.com/{{contributor}}-profile")
                                     .seedStorage(seedFolder)
-                                    .forks(Map.of(author.name(), author))
+                                    .forks(Map.of(author.name(), fork))
                                     .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
             var masterHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(masterHash, author.url(), "master", true);
+
+            // Initiate the fork repo
+            localRepo.push(masterHash, fork.url(), "master", true);
 
             // Make a change in another branch
             var editHash = CheckableRepository.appendAndCommit(localRepo);
@@ -199,9 +205,11 @@ public class BackportCommitCommandTests {
     @Test
     void backportDoesNotApply(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
+             var forkCredentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
+            var fork = forkCredentials.getHostedRepository();
 
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id())
@@ -212,19 +220,23 @@ public class BackportCommitCommandTests {
                                     .censusRepo(censusBuilder.build())
                                     .censusLink("https://census.com/{{contributor}}-profile")
                                     .seedStorage(seedFolder)
-                                    .forks(Map.of(author.name(), author))
+                                    .forks(Map.of(author.name(), fork))
                                     .build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
-            var masterHash = CheckableRepository.appendAndCommit(localRepo);
-            localRepo.push(masterHash, author.url(), "master", true);
+            var initialHash = localRepo.head();
 
-            // Make a change push it to edit branch
+            // Initiate the fork repository
+            localRepo.push(initialHash, fork.url(), "master", true);
+
+            // Make a change and push it to edit branch
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.url(), "edit", true);
 
-            var masterHash2 = CheckableRepository.appendAndCommit(localRepo);
+            // Add another conflicting change in the master branch
+            localRepo.checkout(initialHash);
+            var masterHash2 = CheckableRepository.appendAndCommit(localRepo, "a different line");
             localRepo.push(masterHash2, author.url(), "master", true);
 
             // Add a backport command
@@ -286,6 +298,75 @@ public class BackportCommitCommandTests {
             recentCommitComments = author.recentCommitComments();
             assertEquals(4, recentCommitComments.size());
             botReply = recentCommitComments.get(0);
+            assertTrue(botReply.body().contains("backport"));
+            assertTrue(botReply.body().contains("was successfully created"));
+            assertTrue(botReply.body().contains("To create a pull request"));
+            assertTrue(botReply.body().contains("with this backport"));
+        }
+    }
+
+    /**
+     * Tests backport with unrelated change in target and a common dependency
+     * change in both target and source
+     */
+    @Test
+    void complex(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var forkCredentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var fork = forkCredentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var bot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .censusLink("https://census.com/{{contributor}}-profile")
+                    .seedStorage(seedFolder)
+                    .forks(Map.of(author.name(), fork))
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Initiate the fork repo
+            localRepo.push(masterHash, fork.url(), "master", true);
+
+            // Make an unrelated change in master
+            var unrelated = localRepo.root().resolve("unrelated.txt");
+            Files.writeString(unrelated, "Hello");
+            localRepo.add(unrelated);
+            var unrelatedHash = localRepo.commit("Unrelated", "X", "x@y.z");
+            localRepo.push(unrelatedHash, author.url(), "master");
+
+            // Make a change in edit branch, without the unrelated change
+            localRepo.checkout(masterHash);
+            var editHashCommon = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHashCommon, author.url(), "edit");
+
+            // Make the same change in master
+            localRepo.checkout(unrelatedHash);
+            var masterHashCommon = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(masterHashCommon, author.url(), "master");
+
+            // Make another change in edit branch that will be the source of the backport
+            localRepo.checkout(editHashCommon);
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit");
+
+            // Add a backport command
+            author.addCommitComment(editHash, "/backport " + author.name());
+            TestBotRunner.runPeriodicItems(bot);
+
+            var recentCommitComments = author.recentCommitComments();
+            assertEquals(2, recentCommitComments.size());
+            var botReply = recentCommitComments.get(0);
             assertTrue(botReply.body().contains("backport"));
             assertTrue(botReply.body().contains("was successfully created"));
             assertTrue(botReply.body().contains("To create a pull request"));
