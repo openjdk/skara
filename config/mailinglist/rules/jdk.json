@@ -501,6 +501,10 @@
             "test/jdk/sun/util/resources/cldr/",
             "test/jdk/tools/jlink/plugins/\\w*locales"
         ],
+        "ide-support": [
+            "bin/idea.sh",
+            "make/ide/"
+        ],
         "javadoc": [
             "make/data/docs-resources/resources",
             "make/jdk/src/classes/build/tools/taglet/",
