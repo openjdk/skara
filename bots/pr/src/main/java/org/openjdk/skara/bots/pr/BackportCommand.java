@@ -122,7 +122,7 @@ public class BackportCommand implements CommandHandler {
                                               .resolve("fork");
                 var localRepo = bot.hostedRepositoryPool()
                                    .orElseThrow(() -> new IllegalStateException("Missing repository pool for PR bot"))
-                                   .materialize(fork, localRepoDir);
+                                   .materialize(targetRepo, localRepoDir);
                 var fetchHead = localRepo.fetch(bot.repo().url(), hash.hex(), false);
                 localRepo.checkout(targetBranch);
                 var head = localRepo.head();
