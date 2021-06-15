@@ -29,7 +29,6 @@ import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -41,8 +40,7 @@ class BackportTests {
     @Test
     void simple(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -102,7 +100,7 @@ class BackportTests {
             assertLastCommentContains(pr, "This change now passes all *automated* pre-integration checks");
 
             // Integrate
-            var prAsCommitter = author.pullRequest(pr.id());
+            author.pullRequest(pr.id());
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(bot);
 
@@ -140,8 +138,7 @@ class BackportTests {
     @Test
     void withSummary(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -204,7 +201,7 @@ class BackportTests {
             assertLastCommentContains(pr, "This change now passes all *automated* pre-integration checks");
 
             // Integrate
-            var prAsCommitter = author.pullRequest(pr.id());
+            author.pullRequest(pr.id());
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(bot);
 
@@ -242,8 +239,7 @@ class BackportTests {
     @Test
     void withMultipleIssues(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -308,7 +304,7 @@ class BackportTests {
             assertLastCommentContains(pr, "This change now passes all *automated* pre-integration checks");
 
             // Integrate
-            var prAsCommitter = author.pullRequest(pr.id());
+            author.pullRequest(pr.id());
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(bot);
 
@@ -347,8 +343,7 @@ class BackportTests {
     @Test
     void nonExitingCommit(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -394,8 +389,7 @@ class BackportTests {
     @Test
     void prHeadCommit(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -463,8 +457,7 @@ class BackportTests {
     @Test
     void prAncestorOfHeadCommit(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -531,8 +524,7 @@ class BackportTests {
     @Test
     void cleanBackport(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory(false);
-             var pushedFolder = new TemporaryDirectory(false)) {
+             var tempFolder = new TemporaryDirectory(false)) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -594,8 +586,7 @@ class BackportTests {
     @Test
     void fuzzyCleanBackport(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory(false);
-             var pushedFolder = new TemporaryDirectory(false)) {
+             var tempFolder = new TemporaryDirectory(false)) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -665,8 +656,7 @@ class BackportTests {
     @Test
     void notCleanBackport(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory(false);
-             var pushedFolder = new TemporaryDirectory(false)) {
+             var tempFolder = new TemporaryDirectory(false)) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -736,8 +726,7 @@ class BackportTests {
     @Test
     void notCleanBackportAdditionalFile(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory(false);
-             var pushedFolder = new TemporaryDirectory(false)) {
+             var tempFolder = new TemporaryDirectory(false)) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -810,8 +799,7 @@ class BackportTests {
     @Test
     void cleanBackportFromCommitterCanBeIntegrated(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -869,7 +857,7 @@ class BackportTests {
             assertTrue(pr.labelNames().contains("backport"));
 
             // Integrate
-            var prAsCommitter = author.pullRequest(pr.id());
+            author.pullRequest(pr.id());
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(bot);
 
@@ -907,8 +895,7 @@ class BackportTests {
     @Test
     void cleanBackportFromAuthorCanBeIntegrated(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -1017,8 +1004,7 @@ class BackportTests {
     @Test
     void whitespaceInMiddle(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -1076,8 +1062,7 @@ class BackportTests {
     @Test
     void whitespaceAtEnd(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -1135,8 +1120,7 @@ class BackportTests {
     @Test
     void noWhitespace(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -1194,8 +1178,7 @@ class BackportTests {
     @Test
     void commitWithMismatchingIssueTitle(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
@@ -1255,7 +1238,7 @@ class BackportTests {
             assertLastCommentContains(pr, "This change now passes all *automated* pre-integration checks");
 
             // Integrate
-            var prAsCommitter = author.pullRequest(pr.id());
+            author.pullRequest(pr.id());
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(bot);
 
@@ -1293,8 +1276,7 @@ class BackportTests {
     @Test
     void badIssueInOriginal(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
-             var tempFolder = new TemporaryDirectory();
-             var pushedFolder = new TemporaryDirectory()) {
+             var tempFolder = new TemporaryDirectory()) {
 
             var author = credentials.getHostedRepository();
             var integrator = credentials.getHostedRepository();
