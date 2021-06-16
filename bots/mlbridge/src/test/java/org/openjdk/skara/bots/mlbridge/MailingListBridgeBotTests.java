@@ -791,7 +791,7 @@ class MailingListBridgeBotTests {
             assertTrue(archiveContains(archiveFolder.path(), "This is now ready"));
             assertTrue(archiveContains(archiveFolder.path(), "Review comment"));
             assertTrue(archiveContains(archiveFolder.path(), "> This is now ready"));
-            assertTrue(archiveContains(archiveFolder.path(), reviewFile.toString()));
+            assertTrue(archiveContains(archiveFolder.path(), reviewFile + " line 2:"));
             assertFalse(archiveContains(archiveFolder.path(), "Don't mind me"));
 
             // The mailing list as well
@@ -821,6 +821,16 @@ class MailingListBridgeBotTests {
                 assertEquals(noreplyAddress(archive), newMail.author().address());
                 assertEquals(listAddress, newMail.sender());
             }
+
+            // Add a file comment (on line 0)
+            var fileComment = pr.addReviewComment(masterHash, editHash, reviewFile.toString(), 0, "File review comment");
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // The archive should contain the additional comment
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertTrue(archiveContains(archiveFolder.path(), "File review comment"));
+            assertTrue(archiveContains(archiveFolder.path(), reviewFile + ":"));
         }
     }
 

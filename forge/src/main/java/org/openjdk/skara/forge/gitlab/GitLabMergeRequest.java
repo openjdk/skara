@@ -210,15 +210,25 @@ public class GitLabMergeRequest implements PullRequest {
         String path;
         Hash hash;
 
-        // Is the comment on the old or the new version of the file?
-        if (note.get("position").get("new_line").isNull()) {
-            line = note.get("position").get("old_line").asInt();
-            path = note.get("position").get("old_path").asString();
-            hash = new Hash(note.get("position").get("start_sha").asString());
+        var position = note.get("position");
+        // Is this a line comment?
+        if (position.get("new_line") != null) {
+            // Is the comment on the old or the new version of the file?
+            if (position.get("new_line").isNull()) {
+                line = position.get("old_line").asInt();
+                path = position.get("old_path").asString();
+                hash = new Hash(position.get("start_sha").asString());
+            } else {
+                line = position.get("new_line").asInt();
+                path = position.get("new_path").asString();
+                hash = new Hash(position.get("head_sha").asString());
+            }
         } else {
-            line = note.get("position").get("new_line").asInt();
-            path = note.get("position").get("new_path").asString();
-            hash = new Hash(note.get("position").get("head_sha").asString());
+            // This comment does not have a line. Gitlab seems to only allow file comments
+            // on the new file
+            line = 0;
+            path = position.get("new_path").asString();
+            hash = new Hash(position.get("head_sha").asString());
         }
 
         var comment = new ReviewComment(parent,
