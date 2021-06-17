@@ -212,6 +212,8 @@ public class GitLabMergeRequest implements PullRequest {
 
         var position = note.get("position");
         // Is this a line comment?
+        // For line comments, this field is always set, either to a value or null, but
+        // for file comments there is no new_line field at all.
         if (position.get("new_line") != null) {
             // Is the comment on the old or the new version of the file?
             if (position.get("new_line").isNull()) {
