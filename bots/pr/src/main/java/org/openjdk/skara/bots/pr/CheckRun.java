@@ -549,7 +549,7 @@ class CheckRun {
     }
 
     private String reviewUsingDiffsHelp() {
-        var diffUrl = pr.repository().webUrl() + "/pull/" + pr.id() + ".diff";
+        var diffUrl = pr.repository().diffUrl(pr.id());
         return "Download this PR as a diff file: \\\n" +
                 "<a href=\"" + diffUrl + "\">" + diffUrl + "</a>\n";
     }

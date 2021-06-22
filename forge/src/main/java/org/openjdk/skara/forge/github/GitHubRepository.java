@@ -219,6 +219,12 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
+    public URI diffUrl(String prId) {
+        var endpoint = "/" + repository + "/pull/" + prId + ".diff";
+        return gitHubHost.getWebURI(endpoint);
+    }
+
+    @Override
     public VCS repositoryType() {
         return VCS.GIT;
     }

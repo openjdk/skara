@@ -147,6 +147,11 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     }
 
     @Override
+    public URI diffUrl(String prId) {
+        return webUrl();
+    }
+
+    @Override
     public VCS repositoryType() {
         return VCS.GIT;
     }

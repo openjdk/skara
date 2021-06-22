@@ -211,6 +211,13 @@ public class GitLabRepository implements HostedRepository {
     }
 
     @Override
+    public URI diffUrl(String prId) {
+        return URIBuilder.base(gitLabHost.getUri())
+                .setPath("/" + projectName + "/-/merge_requests/" + prId + ".diff")
+                .build();
+    }
+
+    @Override
     public VCS repositoryType() {
         return VCS.GIT;
     }

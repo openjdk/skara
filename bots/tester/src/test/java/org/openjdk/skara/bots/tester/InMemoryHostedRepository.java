@@ -109,6 +109,11 @@ class InMemoryHostedRepository implements HostedRepository {
     }
 
     @Override
+    public URI diffUrl(String prId) {
+        return webUrl();
+    }
+
+    @Override
     public VCS repositoryType() {
         return null;
     }
