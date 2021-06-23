@@ -46,6 +46,11 @@ public class GitHubRepository implements HostedRepository {
     private JSONValue cachedJSON;
     private List<HostedBranch> branches;
 
+    GitHubRepository(GitHubHost gitHubHost, String repository, JSONValue json) {
+        this(gitHubHost, repository);
+        cachedJSON = json;
+    }
+
     GitHubRepository(GitHubHost gitHubHost, String repository) {
         this.gitHubHost = gitHubHost;
         this.repository = repository;
@@ -69,14 +74,14 @@ public class GitHubRepository implements HostedRepository {
             }
             return headers;
         });
-        this.cachedJSON = null;
         var urlPattern = gitHubHost.getWebURI("/" + repository + "/pull/").toString();
         pullRequestPattern = Pattern.compile(urlPattern + "(\\d+)");
     }
 
     private JSONValue json() {
         if (cachedJSON == null) {
-            cachedJSON = gitHubHost.getProjectInfo(repository);
+            cachedJSON = gitHubHost.getProjectInfo(repository)
+                    .orElseThrow(() -> new RuntimeException("Project not found: " + repository));
         }
         return cachedJSON;
     }

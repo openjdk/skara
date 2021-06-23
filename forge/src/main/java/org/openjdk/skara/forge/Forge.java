@@ -32,6 +32,14 @@ import java.util.stream.Collectors;
 
 public interface Forge extends Host {
     String name();
+
+    /**
+     * Gets a HostedRepository on this Forge. This method should verify that the
+     * repository exists.
+     * @param name Name of repository to get
+     * @return Optional containing the repository, or empty if the repository
+     *         does not exist on the Forge.
+     */
     Optional<HostedRepository> repository(String name);
     boolean supportsReviewBody();
     Optional<HostedCommit> search(Hash hash);
