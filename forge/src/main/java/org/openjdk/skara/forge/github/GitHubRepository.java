@@ -81,7 +81,7 @@ public class GitHubRepository implements HostedRepository {
     private JSONValue json() {
         if (cachedJSON == null) {
             cachedJSON = gitHubHost.getProjectInfo(repository)
-                    .orElseThrow(() -> new RuntimeException("Project not found: " + repository));
+                    .orElseThrow(() -> new RuntimeException("Repository not found: " + repository));
         }
         return cachedJSON;
     }
