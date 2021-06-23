@@ -582,4 +582,37 @@ public class GitHubRepository implements HostedRepository {
                       .map(o -> new Label(o.get("name").asString(), o.get("description").asString()))
                       .collect(Collectors.toList());
     }
+
+    @Override
+    public void addLabel(Label label) {
+        var params = JSON.object()
+                .put("name", label.name())
+                // Color is Gray and matches all current labels
+                .put("color", "ededed");
+        if (label.description().isPresent()) {
+            params.put("description", label.description().get());
+        }
+        request.post("labels")
+                .body(params)
+                .execute();
+    }
+
+    @Override
+    public void updateLabel(Label label) {
+        var params = JSON.object();
+        if (label.description().isPresent()) {
+            params.put("description", label.description().get());
+        } else {
+            params.put("description", JSONValue.fromNull());
+        }
+        request.post("labels/" + label.name())
+                .body(params)
+                .execute();
+    }
+
+    @Override
+    public void deleteLabel(Label label) {
+        request.delete("labels/" + label.name())
+                .execute();
+    }
 }

@@ -602,4 +602,38 @@ public class GitLabRepository implements HostedRepository {
                       .map(o -> new Label(o.get("name").asString(), o.get("description").asString()))
                       .collect(Collectors.toList());
     }
+
+    @Override
+    public void addLabel(Label label) {
+        var params = JSON.object()
+                .put("name", label.name())
+                // Color is Blue-Gray and matches all current labels
+                .put("color", "#428BCA");
+        if (label.description().isPresent()) {
+            params.put("description", label.description().get());
+        }
+        request.post("labels")
+                .body(params)
+                .execute();
+    }
+
+    @Override
+    public void updateLabel(Label label) {
+        var params = JSON.object()
+                .put("new_name", label.name());
+        if (label.description().isPresent()) {
+            params.put("description", label.description().get());
+        } else {
+            throw new UnsupportedOperationException("Gitlab does not support clearing the description");
+        }
+        request.put("labels/" + label.name())
+                .body(params)
+                .execute();
+    }
+
+    @Override
+    public void deleteLabel(Label label) {
+        request.delete("labels/" + label.name())
+                .execute();
+    }
 }

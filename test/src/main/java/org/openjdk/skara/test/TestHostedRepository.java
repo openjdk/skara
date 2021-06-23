@@ -44,6 +44,7 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
     private final Pattern pullRequestPattern;
     private final Map<Hash, List<CommitComment>> commitComments;
     private Map<String, Boolean> collaborators = new HashMap<>();
+    private List<Label> labels = new ArrayList<>();
 
     public TestHostedRepository(TestHost host, String projectName, Repository localRepository) {
         super(host, projectName);
@@ -314,6 +315,24 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
 
     @Override
     public List<Label> labels() {
-        return List.of();
+        return labels;
+    }
+
+    @Override
+    public void addLabel(Label label) {
+        labels.add(label);
+    }
+
+    @Override
+    public void updateLabel(Label label) {
+        var existingLabel = labels.stream().filter(l -> l.name().equals(label.name())).findAny();
+        existingLabel.ifPresent(value -> labels.remove(value));
+        labels.add(label);
+    }
+
+    @Override
+    public void deleteLabel(Label label) {
+        var existingLabel = labels.stream().filter(l -> l.name().equals(label.name())).findAny();
+        existingLabel.ifPresent(value -> labels.remove(value));
     }
 }

@@ -90,6 +90,9 @@ public interface HostedRepository {
     boolean canPush(HostUser user);
     void restrictPushAccess(Branch branch, HostUser users);
     List<Label> labels();
+    void addLabel(Label label);
+    void updateLabel(Label label);
+    void deleteLabel(Label label);
 
     default PullRequest createPullRequest(HostedRepository target,
                                           String targetRef,
