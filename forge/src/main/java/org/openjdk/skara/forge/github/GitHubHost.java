@@ -31,7 +31,6 @@ import org.openjdk.skara.vcs.*;
 import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -239,10 +238,14 @@ public class GitHubHost implements Forge {
         }
     }
 
-    JSONObject getProjectInfo(String name) {
+    Optional<JSONObject> getProjectInfo(String name) {
         var project = request.get("repos/" + name)
-                             .execute();
-        return project.asObject();
+                .onError(r -> r.statusCode() == 404 ? Optional.of(JSON.object().put("NOT_FOUND", true)) : Optional.empty())
+                .execute();
+        if (project.contains("NOT_FOUND")) {
+            return Optional.empty();
+        }
+        return Optional.of(project.asObject());
     }
 
     JSONObject runSearch(String category, String query) {
@@ -268,11 +271,8 @@ public class GitHubHost implements Forge {
 
     @Override
     public Optional<HostedRepository> repository(String name) {
-        try {
-            return Optional.of(new GitHubRepository(this, name));
-        } catch (Throwable t) {
-            return Optional.empty();
-        }
+        return getProjectInfo(name)
+                .map(jsonObject -> new GitHubRepository(this, name, jsonObject));
     }
 
     @Override

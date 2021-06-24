@@ -138,11 +138,8 @@ public class GitLabHost implements Forge {
 
     @Override
     public Optional<HostedRepository> repository(String name) {
-        try {
-            return Optional.of(new GitLabRepository(this, name));
-        } catch (Throwable t) {
-            return Optional.empty();
-        }
+        return getProjectInfo(name)
+                .map(jsonObject -> new GitLabRepository(this, jsonObject));
     }
 
     HostUser parseAuthorField(JSONValue json) {
