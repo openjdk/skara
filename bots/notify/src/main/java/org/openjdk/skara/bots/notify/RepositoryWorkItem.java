@@ -208,6 +208,12 @@ public class RepositoryWorkItem implements WorkItem {
             return errors;
         }
 
+        // Filter for tags that appear in non pr-branches
+        var branches = repository.branches();
+        newTags = newTags.stream()
+                .filter(tag -> tagInNonPrBranch(tag, branches, localRepo))
+                .toList();
+
         var allJdkTags = tags.stream()
                              .map(OpenJDKTag::create)
                              .filter(Optional::isPresent)
@@ -293,6 +299,22 @@ public class RepositoryWorkItem implements WorkItem {
         }
 
         return errors;
+    }
+
+    private boolean tagInNonPrBranch(Tag tag, List<HostedBranch> branches, Repository localRepository) {
+        try {
+            for (var branch : branches) {
+                if (!PreIntegrations.isPreintegrationBranch(branch.name())) {
+                    var hash = localRepository.resolve(tag).orElseThrow();
+                    if (localRepository.isAncestor(hash, branch.hash())) {
+                        return true;
+                    }
+                }
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return false;
     }
 
     @Override
