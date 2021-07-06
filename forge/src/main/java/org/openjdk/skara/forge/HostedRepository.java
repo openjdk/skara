@@ -64,6 +64,7 @@ public interface HostedRepository {
     URI webUrl(Branch branch);
     URI webUrl(Tag tag);
     URI webUrl(String baseRef, String headRef);
+    URI diffUrl(String prId);
     VCS repositoryType();
     String fileContents(String filename, String ref);
     String namespace();
