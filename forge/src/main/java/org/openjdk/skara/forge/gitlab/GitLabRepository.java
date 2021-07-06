@@ -212,8 +212,10 @@ public class GitLabRepository implements HostedRepository {
 
     @Override
     public URI diffUrl(String prId) {
+        // GitLab is too smart for it's own best and mangles URLs that contain a
+        // partial hit with the base MR, hence the double slash.
         return URIBuilder.base(gitLabHost.getUri())
-                .setPath("/" + projectName + "/-/merge_requests/" + prId + ".diff")
+                .setPath("/" + projectName + "/-/merge_requests//" + prId + ".diff")
                 .build();
     }
 
