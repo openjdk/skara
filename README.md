@@ -229,7 +229,7 @@ the terminal, which will download a suitable JDK. Configure IntelliJ to use it
 at `File → Project Structure → Platform Settings → SDKs → + → Add JDK...` and
 browse to the downloaded JDK found in `<skara-folder>/.jdk/`. For example, on
 macOS, select the
-`<skara-folder>/.jdk/openjdk-15.0.1_osx-x64_bin/jdk-15.0.1.jdk/Contents/Home`
+`<skara-folder>/.jdk/openjdk-16_osx-x64_bin/jdk-16.jdk/Contents/Home`
 folder.
 
 ### Vim
