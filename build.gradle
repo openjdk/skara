@@ -61,6 +61,10 @@ configure(subprojects.findAll() { it.name != 'bots' }) {
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.7.1'
     }
 
+    tasks.withType(JavaCompile).configureEach {
+        options.release.set(16)
+    }
+
     compileJava.options.encoding = 'UTF-8'
     compileTestJava.options.encoding = 'UTF-8'
 
