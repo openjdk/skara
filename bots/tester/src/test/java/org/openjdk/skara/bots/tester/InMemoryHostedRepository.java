@@ -228,4 +228,16 @@ class InMemoryHostedRepository implements HostedRepository {
     public List<Label> labels() {
         return List.of();
     }
+
+    @Override
+    public void addLabel(Label label) {
+    }
+
+    @Override
+    public void updateLabel(Label label) {
+    }
+
+    @Override
+    public void deleteLabel(Label label) {
+    }
 }

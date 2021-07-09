@@ -61,14 +61,19 @@ class ArchiveWorkItem implements WorkItem {
 
     @Override
     public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof ArchiveWorkItem)) {
+        if (!(other instanceof ArchiveWorkItem otherArchiveItem)) {
+            if (!(other instanceof LabelsUpdaterWorkItem otherLabelsUpdaterItem)) {
+                return true;
+            }
+            if (!bot.equals(otherLabelsUpdaterItem.bot())) {
+                return true;
+            }
+            return false;
+        }
+        if (!pr.id().equals(otherArchiveItem.pr.id())) {
             return true;
         }
-        ArchiveWorkItem otherItem = (ArchiveWorkItem)other;
-        if (!pr.id().equals(otherItem.pr.id())) {
-            return true;
-        }
-        if (!bot.codeRepo().name().equals(otherItem.bot.codeRepo().name())) {
+        if (!bot.codeRepo().name().equals(otherArchiveItem.bot.codeRepo().name())) {
             return true;
         }
         return false;

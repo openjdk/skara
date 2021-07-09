@@ -25,6 +25,7 @@ module {
     name = 'org.openjdk.skara.forge'
     test {
         requires 'org.openjdk.skara.test'
+        requires 'org.openjdk.skara.proxy'
         requires 'org.junit.jupiter.api'
         requires 'jdk.httpserver'
         opens 'org.openjdk.skara.forge' to 'org.junit.platform.commons'
@@ -45,6 +46,7 @@ dependencies {
     implementation project(':issuetracker')
 
     testImplementation project(':test')
+    testImplementation project(':proxy')
 }
 
 publishing {

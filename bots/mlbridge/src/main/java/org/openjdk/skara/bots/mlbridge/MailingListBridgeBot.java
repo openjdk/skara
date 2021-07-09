@@ -62,6 +62,7 @@ public class MailingListBridgeBot implements Bot {
 
     private ZonedDateTime lastPartialUpdate;
     private ZonedDateTime lastFullUpdate;
+    private volatile boolean labelsUpdated = false;
 
     MailingListBridgeBot(EmailAddress from, HostedRepository repo, HostedRepository archive, String archiveRef,
                          HostedRepository censusRepo, String censusRef, List<MailingListConfiguration> lists,
@@ -188,9 +189,22 @@ public class MailingListBridgeBot implements Bot {
         return Optional.ofNullable(seedStorage);
     }
 
+    public boolean labelsUpdated() {
+        return labelsUpdated;
+    }
+
+    public void setLabelsUpdated(boolean labelsUpdated) {
+        this.labelsUpdated = labelsUpdated;
+    }
+
     @Override
     public List<WorkItem> getPeriodicItems() {
         List<WorkItem> ret = new LinkedList<>();
+
+        if (!labelsUpdated) {
+            ret.add(new LabelsUpdaterWorkItem(this));
+        }
+
         List<PullRequest> prs;
 
         if (lastFullUpdate == null || lastFullUpdate.isBefore(ZonedDateTime.now().minus(Duration.ofMinutes(10)))) {

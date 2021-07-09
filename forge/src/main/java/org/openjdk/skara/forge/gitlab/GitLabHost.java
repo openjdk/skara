@@ -46,7 +46,7 @@ public class GitLabHost implements Forge {
 
     private HostUser cachedCurrentUser = null;
 
-    GitLabHost(String name, URI uri, boolean useSsh, Credential pat, Set<String> groups) {
+    public GitLabHost(String name, URI uri, boolean useSsh, Credential pat, Set<String> groups) {
         this.name = name;
         this.uri = uri;
         this.useSsh = useSsh;
