@@ -46,7 +46,7 @@ public class LabelsUpdaterWorkItem implements WorkItem {
 
         var configuredLabels = bot.lists().stream()
                 .flatMap(configuration -> configuration.labels().stream()
-                        .map(labelName -> new Label(labelName, configuration.list().toString())))
+                        .map(labelName -> new Label(labelName, configuration.list().address())))
                 .toList();
 
         for (Label configuredLabel : configuredLabels) {
@@ -61,7 +61,7 @@ public class LabelsUpdaterWorkItem implements WorkItem {
             }
         }
 
-        log.fine("Done updating labels for: " + bot.codeRepo());
+        log.fine("Done updating labels for: " + bot.codeRepo().name());
         bot.setLabelsUpdated(true);
         return List.of();
     }
