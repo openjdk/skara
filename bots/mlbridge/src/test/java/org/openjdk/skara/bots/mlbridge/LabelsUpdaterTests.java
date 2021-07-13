@@ -32,10 +32,10 @@ public class LabelsUpdaterTests {
 
             assertEquals(2, targetRepo.labels().size(), "Wrong number of labels");
             assertTrue(targetRepo.labels().stream()
-                    .anyMatch(l -> l.name().equals("foo") && l.description().orElseThrow().equals(listAddress.toString())),
+                    .anyMatch(l -> l.name().equals("foo") && l.description().orElseThrow().equals(listAddress.address())),
                     "No label 'foo' found");
             assertTrue(targetRepo.labels().stream()
-                            .anyMatch(l -> l.name().equals("bar") && l.description().orElseThrow().equals(listAddress.toString())),
+                            .anyMatch(l -> l.name().equals("bar") && l.description().orElseThrow().equals(listAddress.address())),
                     "No label 'bar' found");
 
             // Run again and expect no change
@@ -65,7 +65,7 @@ public class LabelsUpdaterTests {
 
             assertEquals(1, targetRepo.labels().size(), "Wrong number of labels");
             assertTrue(targetRepo.labels().stream()
-                            .anyMatch(l -> l.name().equals("foo") && l.description().orElseThrow().equals(listAddress.toString())),
+                            .anyMatch(l -> l.name().equals("foo") && l.description().orElseThrow().equals(listAddress.address())),
                     "No label 'foo' found");
 
             var mlBot2 = MailingListBridgeBot.newBuilder()
@@ -78,7 +78,7 @@ public class LabelsUpdaterTests {
 
             assertEquals(1, targetRepo.labels().size(), "Wrong number of labels");
             assertTrue(targetRepo.labels().stream()
-                            .anyMatch(l -> l.name().equals("foo") && l.description().orElseThrow().equals(listAddress2.toString())),
+                            .anyMatch(l -> l.name().equals("foo") && l.description().orElseThrow().equals(listAddress2.address())),
                     "No label 'foo' found");
         }
     }
