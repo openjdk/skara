@@ -719,6 +719,7 @@ class BackportTests {
             assertTrue(backportComment.contains("<!-- backport " + upstreamHash.hex() + " -->"));
             assertEquals(issue2Number + ": Another issue", pr.title());
             assertTrue(pr.labelNames().contains("backport"));
+            assertTrue(pr.body().contains(ReviewersCheck.DESCRIPTION), "Reviewer requirement not found in pr body");
 
             // The bot should not have added the "clean" label
             assertFalse(pr.labelNames().contains("clean"));
