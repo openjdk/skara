@@ -75,6 +75,13 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
                                                       check -> !failedChecks.containsKey(check.getClass())));
     }
 
+    Map<String, Boolean> getReadyForReviewChecks() {
+        return enabledChecks.stream()
+                            .filter(check -> displayedChecks.contains(check.getClass()))
+                            .filter(check -> !(check instanceof ReviewersCheck))
+                            .collect(Collectors.toMap(Check::description,
+                                                      check -> !failedChecks.containsKey(check.getClass())));
+    }
 
     List<CheckAnnotation> getAnnotations() { return annotations; }
 

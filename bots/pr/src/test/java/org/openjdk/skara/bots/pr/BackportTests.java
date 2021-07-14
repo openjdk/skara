@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.pr;
 
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.*;
+import org.openjdk.skara.jcheck.ReviewersCheck;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
@@ -577,6 +578,7 @@ class BackportTests {
             assertTrue(backportComment.contains("<!-- backport " + releaseHash.hex() + " -->"));
             assertEquals(issue1Number + ": An issue", pr.title());
             assertTrue(pr.labelNames().contains("backport"));
+            assertFalse(pr.body().contains(ReviewersCheck.DESCRIPTION), "Reviewer requirement found in pr body");
 
             // The bot should have added the "clean" label
             assertTrue(pr.labelNames().contains("clean"));
