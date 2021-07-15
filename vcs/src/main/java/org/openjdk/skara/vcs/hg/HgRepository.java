@@ -195,7 +195,7 @@ public class HgRepository implements Repository {
 
     @Override
     public Optional<Hash> resolve(String ref) throws IOException {
-        try (var p = capture("hg", "log", "--rev=" + ref, "--template={node}\n")) {
+        try (var p = capture("hg", "--config", "defaults.log=", "log", "--rev=" + ref, "--template={node}\n")) {
             var res = p.await();
             if (res.status() == 0 && res.stdout().size() == 1) {
                 return Optional.of(new Hash(res.stdout().get(0)));
