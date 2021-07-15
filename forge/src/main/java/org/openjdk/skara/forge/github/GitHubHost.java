@@ -360,8 +360,13 @@ public class GitHubHost implements Forge {
         if (items.isEmpty()) {
             return Optional.empty();
         }
-        var first = items.get(0);
-        var repo = repository(first.get("repository").get("full_name").asString());
-        return repo.get().commit(hash);
+        // When searching for a commit, there may be hits in multiple repositories.
+        // There is no good way of knowing for sure which repository we would rather
+        // get the commit from, but a reasonable default is to go by the shortest
+        // name as that is most likely the main repository of the project.
+        var shortestName = items.stream()
+                .map(o -> o.get("repository").get("full_name").asString())
+                .min(Comparator.comparing(String::length));
+        return shortestName.flatMap(this::repository).flatMap(r -> r.commit(hash));
     }
 }
