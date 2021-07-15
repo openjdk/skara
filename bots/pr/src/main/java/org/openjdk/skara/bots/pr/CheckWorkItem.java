@@ -44,7 +44,8 @@ import java.util.stream.Collectors;
 class CheckWorkItem extends PullRequestWorkItem {
     private final Pattern metadataComments = Pattern.compile("<!-- (?:(add|remove) (?:contributor|reviewer))|(?:summary: ')|(?:solves: ')|(?:additional required reviewers)");
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
-    static final Pattern ISSUE_ID_PATTERN = Pattern.compile("^(?:(?<prefix>[A-Za-z][A-Za-z0-9]+)-)?(?<id>[0-9]+)(?::\\s+(?<title>.+))?$");
+    static final Pattern ISSUE_ID_PATTERN = Pattern.compile("^(?:(?<prefix>[A-Za-z][A-Za-z0-9]+)-)?(?<id>[0-9]+)"
+            + "(?::(?<space>[\\s\u00A0\u2007\u202F]+)(?<title>.+))?$");
     private static final Pattern BACKPORT_HASH_TITLE_PATTERN = Pattern.compile("^Backport\\s*([0-9a-z]{40})\\s*$");
     private static final Pattern BACKPORT_ISSUE_TITLE_PATTERN = Pattern.compile("^Backport\\s*(?:(?<prefix>[A-Za-z][A-Za-z0-9]+)-)?(?<id>[0-9]+)\\s*$");
     private static final String ELLIPSIS = "…";
@@ -161,6 +162,7 @@ class CheckWorkItem extends PullRequestWorkItem {
         if (m.matches() && project != null) {
             var prefix = getMatchGroup(m, "prefix");
             var id = getMatchGroup(m,"id");
+            var space = getMatchGroup(m, "space");
             var title = getMatchGroup(m,"title");
 
             if (!prefix.isEmpty() && !prefix.equalsIgnoreCase(project.name())) {
@@ -196,6 +198,13 @@ class CheckWorkItem extends PullRequestWorkItem {
                         return true;
                     }
                 }
+            }
+
+            if (!space.equals(" ")) {
+                // If the space separating the issue and the title is not a single space, rewrite it
+                var newPrTitle = id + ": " + title;
+                pr.setTitle(newPrTitle);
+                return true;
             }
         }
 
