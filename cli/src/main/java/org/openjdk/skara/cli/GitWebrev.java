@@ -397,8 +397,11 @@ public class GitWebrev {
             if (path.equals(Path.of("-"))) {
                 var reader = new BufferedReader(new InputStreamReader(System.in));
                 files = reader.lines().map(Path::of).collect(Collectors.toList());
-            } else {
+            } else if (Files.exists(path) && !Files.isDirectory(path) && Files.isReadable(path)) {
                 files = Files.readAllLines(path).stream().map(Path::of).collect(Collectors.toList());
+            } else {
+                System.err.println(String.format("error: '%s' is not a readable file", path));
+                System.exit(1);
             }
         }
 
