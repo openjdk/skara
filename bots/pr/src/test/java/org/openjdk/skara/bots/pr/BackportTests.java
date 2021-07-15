@@ -568,7 +568,7 @@ class BackportTests {
             localRepo.add(newFile2);
             var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + releaseHash.hex());
+            var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + releaseHash.hex(), List.of());
 
             // The bot should reply with a backport message
             TestBotRunner.runPeriodicItems(bot);
@@ -579,6 +579,7 @@ class BackportTests {
             assertEquals(issue1Number + ": An issue", pr.title());
             assertTrue(pr.labelNames().contains("backport"));
             assertFalse(pr.body().contains(ReviewersCheck.DESCRIPTION), "Reviewer requirement found in pr body");
+            assertFalse(pr.body().contains(CheckRun.MSG_EMPTY_BODY), "Body not empty requirement found in pr body");
 
             // The bot should have added the "clean" label
             assertTrue(pr.labelNames().contains("clean"));
