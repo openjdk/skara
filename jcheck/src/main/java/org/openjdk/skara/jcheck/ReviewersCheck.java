@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import java.util.logging.Logger;
 
 public class ReviewersCheck extends CommitCheck {
+    public static final String DESCRIPTION = "Change must be properly reviewed";
     private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck.reviewers");
     private final Utilities utils;
 
@@ -169,6 +170,6 @@ public class ReviewersCheck extends CommitCheck {
 
     @Override
     public String description() {
-        return "Change must be properly reviewed";
+        return DESCRIPTION;
     }
 }

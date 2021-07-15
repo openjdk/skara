@@ -68,6 +68,9 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
                            .collect(Collectors.toList());
     }
 
+    /**
+     * Get all the displayed checks with results.
+     */
     Map<String, Boolean> getChecks() {
         return enabledChecks.stream()
                             .filter(check -> displayedChecks.contains(check.getClass()))
@@ -75,6 +78,17 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
                                                       check -> !failedChecks.containsKey(check.getClass())));
     }
 
+    /**
+     * Get all the displayed checks with results that were used to decide if this change is ready for
+     * review.
+     */
+    Map<String, Boolean> getReadyForReviewChecks() {
+        return enabledChecks.stream()
+                            .filter(check -> displayedChecks.contains(check.getClass()))
+                            .filter(check -> !(check instanceof ReviewersCheck))
+                            .collect(Collectors.toMap(Check::description,
+                                                      check -> !failedChecks.containsKey(check.getClass())));
+    }
 
     List<CheckAnnotation> getAnnotations() { return annotations; }
 

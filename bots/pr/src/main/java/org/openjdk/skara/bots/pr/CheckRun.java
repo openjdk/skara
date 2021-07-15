@@ -340,10 +340,11 @@ class CheckRun {
         }
     }
 
-    private String getChecksList(PullRequestCheckIssueVisitor visitor) {
-        return visitor.getChecks().entrySet().stream()
-                      .map(entry -> "- [" + (entry.getValue() ? "x" : " ") + "] " + entry.getKey())
-                      .collect(Collectors.joining("\n"));
+    private String getChecksList(PullRequestCheckIssueVisitor visitor, boolean isCleanBackport) {
+        var checks = isCleanBackport ? visitor.getReadyForReviewChecks() : visitor.getChecks();
+        return checks.entrySet().stream()
+                .map(entry -> "- [" + (entry.getValue() ? "x" : " ") + "] " + entry.getKey())
+                .collect(Collectors.joining("\n"));
     }
 
     private String warningListToText(List<String> additionalErrors) {
@@ -417,11 +418,12 @@ class CheckRun {
     }
 
     private String getStatusMessage(List<Comment> comments, List<Review> reviews, PullRequestCheckIssueVisitor visitor,
-                                    List<String> additionalErrors, List<String> integrationBlockers) {
+                                    List<String> additionalErrors, List<String> integrationBlockers,
+                                    boolean isCleanBackport) {
         var progressBody = new StringBuilder();
         progressBody.append("---------\n");
         progressBody.append("### Progress\n");
-        progressBody.append(getChecksList(visitor));
+        progressBody.append(getChecksList(visitor, isCleanBackport));
 
         var allAdditionalErrors = Stream.concat(visitor.hiddenMessages().stream(), additionalErrors.stream())
                                         .sorted()
@@ -917,7 +919,7 @@ class CheckRun {
             var integrationBlockers = botSpecificIntegrationBlockers();
 
             // Calculate and update the status message if needed
-            var statusMessage = getStatusMessage(comments, activeReviews, visitor, additionalErrors, integrationBlockers);
+            var statusMessage = getStatusMessage(comments, activeReviews, visitor, additionalErrors, integrationBlockers, isCleanBackport);
             var updatedBody = updateStatusMessage(statusMessage);
             var title = pr.title();
 
