@@ -351,9 +351,9 @@ public class GitHubHost implements Forge {
 
     @Override
     public Optional<HostedCommit> search(Hash hash) {
-        var orgsToSearch = orgs.stream().map(o -> "org:" + o).collect(Collectors.joining("+"));
+        var orgsToSearch = orgs.stream().map(o -> "org:" + o).collect(Collectors.joining(" "));
         if (!orgsToSearch.isEmpty()) {
-            orgsToSearch = "+" + orgsToSearch;
+            orgsToSearch = " " + orgsToSearch;
         }
         var result = runSearch("commits", "hash:" + hash.hex() + orgsToSearch);
         var items = result.get("items").asArray();
