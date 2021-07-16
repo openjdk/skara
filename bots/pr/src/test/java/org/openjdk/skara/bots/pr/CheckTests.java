@@ -1719,6 +1719,46 @@ class CheckTests {
     }
 
     @Test
+    void removeNonBreakableSpaceInTitle(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var checkBot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .build();
+
+            var bug = issues.createIssue("My first bug", List.of("A bug"), Map.of());
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var bugHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(bugHash, author.url(), "bug", true);
+            var bugPR = credentials.createPullRequest(author, "master", "bug",
+                    bug.id() + ":\u00A0" + bug.title(), true);
+
+            // Check the status (should expand title)
+            TestBotRunner.runPeriodicItems(checkBot);
+
+            // Verify that the title is expanded
+            bugPR = author.pullRequest(bugPR.id());
+            var numericId = bug.id().split("-")[1];
+            assertEquals(numericId + ": " + bug.title(), bugPR.title());
+        }
+    }
+
+    @Test
     void overrideJcheckConf(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
