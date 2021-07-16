@@ -232,6 +232,11 @@ public class GitLabHost implements Forge {
             var ids = request.get("groups/" + group + "/projects")
                                   .execute()
                                   .stream()
+                                  // When searching for a commit, there may be hits in multiple repositories.
+                                  // There is no good way of knowing for sure which repository we would rather
+                                  // get the commit from, but a reasonable default is to go by the shortest
+                                  // path name as that is most likely the main repository of the project.
+                                  .sorted(Comparator.comparing(o -> o.get("path").asString().length()))
                                   .map(o -> o.get("id").asInt())
                                   .collect(Collectors.toList());
             for (var id : ids) {
