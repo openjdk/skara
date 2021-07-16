@@ -336,12 +336,20 @@ class MailingListBridgeBotTests {
             // Add a comment quickly before integration - it should not be combined with the integration message
             pr.addComment("I will now integrate this PR");
 
-            // Now it has been integrated
+            // Mark it as integrated but skip adding the integration comment for now
             var ignoredPr = ignored.pullRequest(pr.id());
             ignoredPr.setBody("This has been integrated");
             ignoredPr.addLabel("integrated");
-            ignoredPr.addComment("Pushed as commit " + editHash + ".");
             ignoredPr.setState(Issue.State.CLOSED);
+
+            // Run another archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+
+            // Verify that no integration message was added to the archive
+            assertFalse(archiveContains(archiveFolder.path(), "Subject: Integrated:"));
+
+            // Add the integration comment
+            ignoredPr.addComment("Pushed as commit " + editHash + ".");
 
             // Run another archive pass
             TestBotRunner.runPeriodicItems(mlBot);
