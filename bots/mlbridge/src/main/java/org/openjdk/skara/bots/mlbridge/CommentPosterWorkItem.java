@@ -55,7 +55,7 @@ public class CommentPosterWorkItem implements WorkItem {
             return true;
         }
         CommentPosterWorkItem otherItem = (CommentPosterWorkItem) other;
-        if (!pr.equals(otherItem.pr)) {
+        if (!pr.isSame(otherItem.pr)) {
             return true;
         }
         var otherItemIds = otherItem.newMessages.stream()
