@@ -55,6 +55,10 @@ public interface HostedRepository {
     List<PullRequest> pullRequests(ZonedDateTime updatedAfter);
     List<PullRequest> findPullRequestsWithComment(String author, String body);
     Optional<PullRequest> parsePullRequestUrl(String url);
+
+    /**
+     * The full name of the repository, including any namespace/group/organization prefix
+     */
     String name();
     Optional<HostedRepository> parent();
     URI url();
