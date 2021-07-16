@@ -38,6 +38,8 @@ import java.util.regex.Matcher;
 import java.util.stream.*;
 
 class CheckRun {
+    public static final String MSG_EMPTY_BODY = "The pull request body must not be empty.";
+
     private final CheckWorkItem workItem;
     private final PullRequest pr;
     private final Repository localRepo;
@@ -136,12 +138,11 @@ class CheckRun {
     }
 
     // Additional bot-specific checks that are not handled by JCheck
-    private List<String> botSpecificChecks() {
+    private List<String> botSpecificChecks(boolean iscleanBackport) {
         var ret = new ArrayList<String>();
 
-        if (bodyWithoutStatus().isBlank()) {
-            var error = "The pull request body must not be empty.";
-            ret.add(error);
+        if (bodyWithoutStatus().isBlank() && !iscleanBackport) {
+            ret.add(MSG_EMPTY_BODY);
         }
 
         if (!isTargetBranchAllowed()) {
@@ -885,6 +886,12 @@ class CheckRun {
                 rebasePossible = false;
             }
 
+            var original = backportedFrom();
+            var isCleanBackport = false;
+            if (original.isPresent()) {
+                isCleanBackport = updateClean(original.get());
+            }
+
             List<String> additionalErrors = List.of();
             Hash localHash;
             try {
@@ -906,15 +913,10 @@ class CheckRun {
                 // Determine current status
                 var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), comments);
                 checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration);
-                additionalErrors = botSpecificChecks();
+                additionalErrors = botSpecificChecks(isCleanBackport);
             }
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
             updateReadyForReview(visitor, additionalErrors);
-            var original = backportedFrom();
-            var isCleanBackport = false;
-            if (original.isPresent()) {
-                isCleanBackport = updateClean(original.get());
-            }
 
             var integrationBlockers = botSpecificIntegrationBlockers();
 

@@ -662,12 +662,12 @@ class CheckTests {
             assertEquals(1, checks.size());
             var check = checks.get("jcheck");
             assertEquals(CheckStatus.FAILURE, check.status());
-            assertTrue(check.summary().orElseThrow().contains("The pull request body must not be empty."));
+            assertTrue(check.summary().orElseThrow().contains(CheckRun.MSG_EMPTY_BODY));
 
             // Additional errors should be displayed in the body
             var updatedPr = author.pullRequest(pr.id());
             assertTrue(updatedPr.body().contains("## Error"));
-            assertTrue(updatedPr.body().contains("The pull request body must not be empty."));
+            assertTrue(updatedPr.body().contains(CheckRun.MSG_EMPTY_BODY));
 
             // There should be an indicator of where the pr body should be entered
             assertTrue(updatedPr.body().contains("Replace this text with a description of your pull request"));
@@ -687,7 +687,7 @@ class CheckTests {
             // The additional errors should be gone
             updatedPr = author.pullRequest(pr.id());
             assertFalse(updatedPr.body().contains("## Error"));
-            assertFalse(updatedPr.body().contains("The pull request body must not be empty."));
+            assertFalse(updatedPr.body().contains(CheckRun.MSG_EMPTY_BODY));
 
             // And no new helper marker
             assertFalse(updatedPr.body().contains("Replace this text with a description of your pull request"));
