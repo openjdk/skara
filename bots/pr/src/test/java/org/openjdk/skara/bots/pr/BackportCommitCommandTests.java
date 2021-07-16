@@ -94,7 +94,7 @@ public class BackportCommitCommandTests {
                                     .censusRepo(censusBuilder.build())
                                     .censusLink("https://census.com/{{contributor}}-profile")
                                     .seedStorage(seedFolder)
-                                    .forks(Map.of(author.name(), author))
+                                    .forks(Map.of(author.name(), author, "foobar/other-repo", author))
                                     .build();
 
             // Populate the projects repository
@@ -107,15 +107,15 @@ public class BackportCommitCommandTests {
             localRepo.push(editHash, author.url(), "edit");
 
             // Add a backport command
-            author.addCommitComment(editHash, "/backport non-existing-repo");
+            author.addCommitComment(editHash, "/backport foobar/non-existing-repo");
             TestBotRunner.runPeriodicItems(bot);
 
             var recentCommitComments = author.recentCommitComments();
             assertEquals(2, recentCommitComments.size());
             var botReply = recentCommitComments.get(0);
             assertTrue(botReply.body().contains("target repository"));
-            assertTrue(botReply.body().contains("does not exist"));
-            assertTrue(botReply.body().contains("List of valid repositories: test"));
+            assertTrue(botReply.body().contains("is not a valid target for backports"));
+            assertTrue(botReply.body().contains("List of valid target repositories: foobar/other-repo, test"));
             assertEquals(List.of(), author.pullRequests());
         }
     }
@@ -156,7 +156,7 @@ public class BackportCommitCommandTests {
             assertEquals(2, recentCommitComments.size());
             var botReply = recentCommitComments.get(0);
             assertTrue(botReply.body().contains("is not a valid target for backports"));
-            assertTrue(botReply.body().contains("List of valid repositories: other-repo"));
+            assertTrue(botReply.body().contains("List of valid target repositories: foobar/other-repo"));
             assertEquals(List.of(), author.pullRequests());
         }
     }

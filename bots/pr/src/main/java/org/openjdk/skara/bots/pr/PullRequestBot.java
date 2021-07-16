@@ -278,20 +278,11 @@ class PullRequestBot implements Bot {
     }
 
     Optional<HostedRepository> writeableForkOf(HostedRepository upstream) {
-        var fork = forks.get(upstream.name());
-        if (fork == null) {
-            return Optional.empty();
-        }
-        return Optional.of(fork);
+        return Optional.ofNullable(forks.get(upstream.name()));
     }
 
-    /**
-     * Returns a list of all repo names that have a fork configured for them
-     */
-    List<String> forkRepoNames() {
-        return forks.keySet().stream()
-                .map(k -> k.substring(k.lastIndexOf('/') + 1))
-                .toList();
+    public Map<String, HostedRepository> forks() {
+        return forks;
     }
 
     public boolean isAutoLabelled(PullRequest pr) {
