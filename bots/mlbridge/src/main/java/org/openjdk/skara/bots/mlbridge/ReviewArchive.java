@@ -188,7 +188,8 @@ class ReviewArchive {
                         log.warning("Target commit for PR no longer exists, can't post or verify integration notice: " + hash.get());
                     }
                 } else {
-                    throw new RuntimeException("PR " + pr.webUrl() + " has integrated label but no integration comment");
+                    log.info("PR " + pr.webUrl() + " has integrated label but no integration comment, " +
+                            "can't post integration notice until it does");
                 }
             } else if (threadPrefix.equals("RFR")) {
                 var reply = ArchiveItem.closedNotice(pr, hostUserToEmailAuthor, parent, subjectPrefix);
