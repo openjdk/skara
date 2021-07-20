@@ -629,6 +629,7 @@
             "test/hotspot/jtreg/compiler/cpuflags/\\w*aes",
             "test/hotspot/jtreg/runtime/JVMDoPrivileged/",
             "test/jdk/com/sun/crypto/",
+            "test/jdk/com/sun/org/apache/xml/internal/security/",
             "test/jdk/com/sun/security/",
             "test/jdk/java/lang/System/AllowSecurityManager.java",
             "test/jdk/java/security/",
