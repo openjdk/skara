@@ -376,6 +376,7 @@
             "src/hotspot/cpu/\\w+/(\\w*interpreter|frame|macroassembler|rdtsc|vm_version)",
             "src/hotspot/os/",
             "src/hotspot/os_cpu/",
+            "src/hotspot/share/cds/",
             "src/hotspot/share/classfile/",
             "src/hotspot/share/include/",
             "src/hotspot/share/include/jvm.h",
