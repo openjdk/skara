@@ -49,7 +49,10 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
             return true;
         }
         PullRequestPrunerBotWorkItem otherItem = (PullRequestPrunerBotWorkItem) other;
-        if (!pr.isSame(otherItem.pr)) {
+        if (!pr.id().equals(otherItem.pr.id())) {
+            return true;
+        }
+        if (!pr.repository().name().equals(otherItem.pr.repository().name())) {
             return true;
         }
         return false;

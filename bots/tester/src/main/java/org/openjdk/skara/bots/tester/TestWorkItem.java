@@ -71,10 +71,10 @@ public class TestWorkItem implements WorkItem {
             return true;
         }
         var o = (TestWorkItem) other;
-        if (!pr.isSame(o.pr)) {
+        if (!repository.url().equals(o.repository.url())) {
             return true;
         }
-        return false;
+        return !pr.id().equals(o.pr.id());
     }
 
 

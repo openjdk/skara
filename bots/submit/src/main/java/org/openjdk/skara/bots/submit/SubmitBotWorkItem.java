@@ -58,7 +58,10 @@ public class SubmitBotWorkItem implements WorkItem {
         if (!executor.checkName().equals(otherItem.executor.checkName())) {
             return true;
         }
-        if (!pr.isSame(otherItem.pr)) {
+        if (!pr.id().equals(otherItem.pr.id())) {
+            return true;
+        }
+        if (!bot.repository().name().equals(otherItem.bot.repository().name())) {
             return true;
         }
         return false;
