@@ -70,7 +70,10 @@ class ArchiveWorkItem implements WorkItem {
             }
             return false;
         }
-        if (!pr.isSame(otherArchiveItem.pr)) {
+        if (!pr.id().equals(otherArchiveItem.pr.id())) {
+            return true;
+        }
+        if (!bot.codeRepo().name().equals(otherArchiveItem.bot.codeRepo().name())) {
             return true;
         }
         return false;
