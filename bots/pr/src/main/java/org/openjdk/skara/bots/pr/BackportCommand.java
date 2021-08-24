@@ -125,7 +125,7 @@ public class BackportCommand implements CommandHandler {
                                    .materialize(targetRepo, localRepoDir);
                 var fetchHead = localRepo.fetch(bot.repo().url(), hash.hex(), false);
                 localRepo.checkout(targetBranch);
-                var head = localRepo.head();
+                var head = localRepo.fetch(targetRepo.url(), targetBranchName, false);
                 var backportBranch = localRepo.branch(head, backportBranchName);
                 localRepo.checkout(backportBranch);
                 var didApply = localRepo.cherryPick(fetchHead);
