@@ -44,7 +44,10 @@ public interface Repository extends ReadOnlyRepository {
     default Hash fetch(URI uri, String refspec) throws IOException {
         return fetch(uri, refspec, true);
     }
-    Hash fetch(URI uri, String refspec, boolean includeTags) throws IOException;
+    default Hash fetch(URI uri, String refspec, boolean includeTags) throws IOException {
+        return fetch(uri, refspec, includeTags, false);
+    }
+    Hash fetch(URI uri, String refspec, boolean includeTags, boolean forceUpdateTags) throws IOException;
     default void fetchAll(URI uri) throws IOException {
         fetchAll(uri, true);
     }
@@ -135,7 +138,10 @@ public interface Repository extends ReadOnlyRepository {
     default Tag tag(Hash hash, String tagName, String message, String authorName, String authorEmail) throws IOException {
         return tag(hash, tagName, message, authorName, authorEmail, null);
     }
-    Tag tag(Hash hash, String tagName, String message, String authorName, String authorEmail, ZonedDateTime date) throws IOException;
+    default Tag tag(Hash hash, String tagName, String message, String authorName, String authorEmail, ZonedDateTime date) throws IOException {
+        return tag(hash, tagName, message, authorName, authorEmail, date, false);
+    }
+    Tag tag(Hash hash, String tagName, String message, String authorName, String authorEmail, ZonedDateTime date, boolean force) throws IOException;
     Branch branch(Hash hash, String branchName) throws IOException;
     void prune(Branch branch, String remote) throws IOException;
     void delete(Branch b) throws IOException;

@@ -181,7 +181,7 @@ public class HostedRepositoryPool {
         var localClone = hostedRepositoryInstance.materializeClone(path, true, false);
         var remote = allowStale ? hostedRepositoryInstance.seedUri() : hostedRepository.url();
         log.info("Updating local repository from: " + remote);
-        var refHash = localClone.fetch(remote, "+" + ref + ":hostedrepositorypool");
+        var refHash = localClone.fetch(remote, "+" + ref + ":hostedrepositorypool", true, true);
         try {
             localClone.checkout(refHash, true);
         } catch (IOException e) {
