@@ -77,23 +77,29 @@ public class BackportCommand implements CommandHandler {
         }
 
         var forge = bot.repo().forge();
-        var repoName = parts[0].replace("http://", "")
+        var repoNameArg = parts[0].replace("http://", "")
                                .replace("https://", "")
                                .replace(forge.hostname() + "/", "");
-        var currentRepoName = bot.repo().name();
-        if (!currentRepoName.equals(repoName) && !repoName.contains("/")) {
-            var group = bot.repo().name().split("/")[0];
-            repoName = group + "/" + repoName;
-        }
+        // If the arg is given with a namespace prefix, look for an exact match,
+        // otherwise cut off the namespace prefix before comparing with the forks
+        // config.
+        var includesNamespace = repoNameArg.contains("/");
+        var repoName = bot.forks().keySet().stream()
+                .filter(s -> includesNamespace
+                        ? s.equals(repoNameArg)
+                        : s.substring(s.indexOf("/") + 1).equals(repoNameArg))
+                .findAny();
 
-        var potentialTargetRepo = forge.repository(repoName);
+        var potentialTargetRepo = repoName.flatMap(forge::repository);
         if (potentialTargetRepo.isEmpty()) {
-            reply.println("@" + username + " the target repository `" + repoName + "` does not exist. ");
-            reply.print("List of valid repositories: ");
-            reply.println(String.join(", ", bot.forkRepoNames()));
+            reply.println("@" + username + " the target repository `" + repoNameArg + "` is not a valid target for backports. ");
+            reply.print("List of valid target repositories: ");
+            reply.println(String.join(", ", bot.forks().keySet().stream().sorted().toList()) + ".");
+            reply.println("Supplying the organization/group prefix is optional.");
             return;
         }
         var targetRepo = potentialTargetRepo.get();
+        var fork = bot.forks().get(targetRepo.name());
 
         var targetBranchName = parts.length == 2 ? parts[1] : "master";
         var targetBranches = targetRepo.branches();
@@ -105,20 +111,12 @@ public class BackportCommand implements CommandHandler {
 
         try {
             var hash = commit.hash();
-            var optionalFork = bot.writeableForkOf(targetRepo);
-            if (optionalFork.isEmpty()) {
-                reply.print("@" + username + " [" + repoName + "](" + targetRepo.webUrl() + ") is not a valid target for backports. ");
-                reply.print("List of valid repositories: ");
-                reply.println(String.join(", ", bot.forkRepoNames()));
-                return;
-            }
-            var fork = optionalFork.get();
             Hash backportHash;
             var backportBranchName = username + "-backport-" + hash.abbreviate();
             var hostedBackportBranch = fork.branches().stream().filter(b -> b.name().equals(backportBranchName)).findAny();
             if (hostedBackportBranch.isEmpty()) {
                 var localRepoDir = scratchPath.resolve("backport-command")
-                                              .resolve(repoName)
+                                              .resolve(targetRepo.name())
                                               .resolve("fork");
                 var localRepo = bot.hostedRepositoryPool()
                                    .orElseThrow(() -> new IllegalStateException("Missing repository pool for PR bot"))
@@ -178,7 +176,7 @@ public class BackportCommand implements CommandHandler {
             body.add("> ");
             body.add("> this pull request contains a backport of commit " +
                       "[" + hash.abbreviate() + "](" + commit.url() + ") from the " +
-                      "[" + currentRepoName + "](" + bot.repo().webUrl() + ") repository.");
+                      "[" + bot.repo().name() + "](" + bot.repo().webUrl() + ") repository.");
             body.add(">");
             var info = "> The commit being backported was authored by " + commit.author().name() + " on " +
                         commit.committed().format(formatter);
