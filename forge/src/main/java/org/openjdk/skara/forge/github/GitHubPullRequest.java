@@ -87,7 +87,11 @@ public class GitHubPullRequest implements PullRequest {
                              .filter(obj -> !(obj.get("state").asString().equals("COMMENTED") && obj.get("body").asString().isEmpty()))
                              .map(obj -> {
                                  var reviewer = host.parseUserField(obj);
-                                 var hash = new Hash(obj.get("commit_id").asString());
+                                 var commitId = obj.get("commit_id");
+                                 Hash hash = null;
+                                 if (commitId != null) {
+                                     hash = new Hash(commitId.asString());
+                                 }
                                  Review.Verdict verdict;
                                  switch (obj.get("state").asString()) {
                                      case "APPROVED":
@@ -190,7 +194,11 @@ public class GitHubPullRequest implements PullRequest {
         var threadId = parent == null ? reviewJson.get("id").toString() : parent.threadId();
 
         int line = reviewJson.get("original_line").asInt();
-        var hash = new Hash(reviewJson.get("original_commit_id").asString());
+        var originalCommitId = reviewJson.get("original_commit_id");
+        Hash hash = null;
+        if (originalCommitId != null) {
+            hash = new Hash(originalCommitId.asString());
+        }
         var path = reviewJson.get("path").asString();
 
         if (reviewJson.get("side").asString().equals("LEFT")) {

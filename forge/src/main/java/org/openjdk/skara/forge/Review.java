@@ -57,8 +57,12 @@ public class Review {
         return verdict;
     }
 
-    public Hash hash() {
-        return hash;
+    /**
+     * The hash for the commit for which this review was created. Can be null if the commit
+     * no longer exists.
+     */
+    public Optional<Hash> hash() {
+        return Optional.ofNullable(hash);
     }
 
     public int id() {

@@ -334,15 +334,20 @@ class ArchiveItem {
         return lastRevisionItem;
     }
 
-    static ArchiveItem findRevisionItem(List<ArchiveItem> generated, Hash hash) {
+    private static ArchiveItem findRevisionItem(List<ArchiveItem> generated, Hash hash) {
         // Parent is revision update mail with the hash
         ArchiveItem lastRevisionItem = generated.get(0);
-        for (var item : generated) {
-            if (item.id().startsWith("ha")) {
-                lastRevisionItem = item;
-            }
-            if (item.id().equals("ha" + hash.hex())) {
-                return item;
+        // If no hash is given, that means the commit for the review/comment no longer exists.
+        // This means that no properly valid parent exists, but as we need to return one, just
+        // return the first element.
+        if (hash != null) {
+            for (var item : generated) {
+                if (item.id().startsWith("ha")) {
+                    lastRevisionItem = item;
+                }
+                if (item.id().equals("ha" + hash.hex())) {
+                    return item;
+                }
             }
         }
         return lastRevisionItem;
@@ -358,7 +363,7 @@ class ArchiveItem {
     }
 
     static ArchiveItem findParent(List<ArchiveItem> generated, Review review) {
-        return findRevisionItem(generated, review.hash());
+        return findRevisionItem(generated, review.hash().orElse(null));
     }
 
     static ArchiveItem findParent(List<ArchiveItem> generated, List<ReviewComment> reviewComments, ReviewComment reviewComment) {
@@ -379,7 +384,7 @@ class ArchiveItem {
         }
 
         if (previousComment == null) {
-            return findRevisionItem(generated, reviewComment.hash());
+            return findRevisionItem(generated, reviewComment.hash().orElse(null));
         } else {
             var mentionedParent = findLastMention(reviewComment.body(), eligible);
             if (mentionedParent.isPresent()) {

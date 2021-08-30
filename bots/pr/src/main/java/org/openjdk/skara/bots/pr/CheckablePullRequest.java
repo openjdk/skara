@@ -60,7 +60,10 @@ public class CheckablePullRequest {
 
     private String commitMessage(Hash head, List<Review> activeReviews, Namespace namespace, boolean manualReviewers, Hash original) throws IOException {
         var eligibleReviews = activeReviews.stream()
-                                           .filter(review -> !ignoreStaleReviews || review.hash().equals(pr.headHash()))
+                                           // Reviews without a hash are never valid as they referred to no longer
+                                           // existing commits.
+                                           .filter(review -> review.hash().isPresent())
+                                           .filter(review -> !ignoreStaleReviews || review.hash().orElseThrow().equals(pr.headHash()))
                                            .filter(review -> review.verdict() == Review.Verdict.APPROVED)
                                            .collect(Collectors.toList());
         var reviewers = PullRequestUtils.reviewerNames(eligibleReviews, namespace);

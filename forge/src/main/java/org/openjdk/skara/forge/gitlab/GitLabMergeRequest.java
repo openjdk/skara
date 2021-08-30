@@ -120,7 +120,7 @@ public class GitLabMergeRequest implements PullRequest {
                                    var createdAt = ZonedDateTime.parse(obj.get("created_at").asString());
 
                                    // Find the latest commit that isn't created after our review
-                                   var hash = commits.get(0).hash;
+                                   Hash hash = null;
                                    for (var cd : commits) {
                                        if (createdAt.isAfter(cd.date)) {
                                            hash = cd.hash;

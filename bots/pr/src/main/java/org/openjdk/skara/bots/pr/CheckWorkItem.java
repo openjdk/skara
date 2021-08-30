@@ -75,7 +75,8 @@ class CheckWorkItem extends PullRequestWorkItem {
         try {
             var approverString = reviews.stream()
                                         .filter(review -> review.verdict() == Review.Verdict.APPROVED)
-                                        .map(review -> encodeReviewer(review.reviewer(), censusInstance) + review.hash().hex())
+                                        .filter(review -> review.hash().isPresent())
+                                        .map(review -> encodeReviewer(review.reviewer(), censusInstance) + review.hash().orElseThrow().hex())
                                         .sorted()
                                         .collect(Collectors.joining());
             var commentString = comments.stream()
