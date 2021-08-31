@@ -359,9 +359,9 @@ public class BotRunner {
             } catch (UncheckedRestException e) {
                 // Log as WARNING to avoid triggering alarms. Failed REST calls are tracked
                 // using metrics.
-                log.log(Level.WARNING, "RestException during periodic item checking", e);
+                log.log(Level.WARNING, "RestException during periodic items checking", e);
             } catch (RuntimeException e) {
-                log.log(Level.SEVERE, "Exception during periodic item checking: " + e.getMessage(), e);
+                log.log(Level.SEVERE, "Exception during periodic items checking: " + e.getMessage(), e);
             } finally {
                 log.log(Level.FINE, "Done checking periodic items", TaskPhases.END);
             }
