@@ -58,7 +58,7 @@ public class Review {
     }
 
     /**
-     * The hash for the commit for which this review was created. Can be null if the commit
+     * The hash for the commit for which this review was created. Can be empty if the commit
      * no longer exists.
      */
     public Optional<Hash> hash() {
