@@ -360,12 +360,17 @@ class CheckRun {
                                .filter(review -> review.verdict() == Review.Verdict.APPROVED)
                                .map(review -> {
                                    var entry = " * " + formatReviewer(review.reviewer());
-                                   if (!review.hash().equals(pr.headHash())) {
-                                       if (ignoreStaleReviews) {
-                                           entry += " 🔄 Re-review required (review applies to " + review.hash() + ")";
-                                       } else {
-                                           entry += " ⚠️ Review applies to " + review.hash();
+                                   var hash = review.hash();
+                                   if (hash.isPresent()) {
+                                       if (!hash.get().equals(pr.headHash())) {
+                                           if (ignoreStaleReviews) {
+                                               entry += " 🔄 Re-review required (review applies to " + hash.get() + ")";
+                                           } else {
+                                               entry += " ⚠️ Review applies to " + hash.get();
+                                           }
                                        }
+                                   } else {
+                                       entry += " 🔄 Re-review required (review applies to a commit that is no longer present)";
                                    }
                                    return entry;
                                })

@@ -50,8 +50,12 @@ public class ReviewComment extends Comment {
         return Optional.ofNullable(parent);
     }
 
-    public Hash hash() {
-        return hash;
+    /**
+     * The hash for the commit for which this review comment was created. Can be empty if the commit
+     * no longer exists.
+     */
+    public Optional<Hash> hash() {
+        return Optional.ofNullable(hash);
     }
 
     public String path() {

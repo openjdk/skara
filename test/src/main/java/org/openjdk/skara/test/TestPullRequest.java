@@ -125,7 +125,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
         if (parent.parent().isPresent()) {
             throw new RuntimeException("Can only reply to top-level review comments");
         }
-        var comment = new ReviewComment(parent, parent.threadId(), parent.hash(), parent.path(), parent.line(), String.valueOf(data.reviewComments.size()), body, user, ZonedDateTime.now(), ZonedDateTime.now());
+        var comment = new ReviewComment(parent, parent.threadId(), parent.hash().orElseThrow(), parent.path(), parent.line(), String.valueOf(data.reviewComments.size()), body, user, ZonedDateTime.now(), ZonedDateTime.now());
         data.reviewComments.add(comment);
         data.lastUpdate = ZonedDateTime.now();
         return comment;
