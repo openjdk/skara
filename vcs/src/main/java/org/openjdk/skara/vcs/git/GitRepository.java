@@ -487,11 +487,14 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public Hash fetch(URI uri, String refspec, boolean includeTags) throws IOException {
+    public Hash fetch(URI uri, String refspec, boolean includeTags, boolean forceUpdateTags) throws IOException {
         var cmd = new ArrayList<String>();
         cmd.addAll(List.of("git", "fetch", "--recurse-submodules=on-demand"));
         if (includeTags) {
             cmd.add("--tags");
+            if (forceUpdateTags) {
+                cmd.add("--force");
+            }
         } else {
             cmd.add("--no-tags");
         }
@@ -499,7 +502,7 @@ public class GitRepository implements Repository {
         cmd.add(refspec);
         try (var p = capture(cmd)) {
             await(p);
-            return resolve("FETCH_HEAD").get();
+            return resolve("FETCH_HEAD").orElseThrow();
         }
     }
 
@@ -873,8 +876,12 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public Tag tag(Hash hash, String name, String message, String authorName, String authorEmail, ZonedDateTime date) throws IOException {
-        var cmd = Process.capture("git", "tag", "--annotate", "--message=" + message, name, hash.hex())
+    public Tag tag(Hash hash, String name, String message, String authorName, String authorEmail, ZonedDateTime date, boolean force) throws IOException {
+        var cmdLine = new ArrayList<>(List.of("git", "tag", "--annotate", "--message=" + message, name, hash.hex()));
+        if (force) {
+            cmdLine.add("--force");
+        }
+        var cmd = Process.capture(cmdLine.toArray(new String[0]))
                          .workdir(dir)
                          .environ(currentEnv)
                          .environ("GIT_AUTHOR_NAME", authorName)

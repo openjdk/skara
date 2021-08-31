@@ -834,6 +834,50 @@ public class RepositoryTests {
 
     @ParameterizedTest
     @EnumSource(VCS.class)
+    void testFetchUpdatedTag(VCS vcs) throws IOException {
+        try (var dir = new TemporaryDirectory()) {
+            var upstream = TestableRepository.init(dir.path(), vcs);
+
+            if (vcs == VCS.GIT) {
+                Files.write(upstream.root().resolve(".git").resolve("config"),
+                        List.of("[receive]", "denyCurrentBranch=ignore"),
+                        WRITE, APPEND);
+            }
+
+            var readme = dir.path().resolve("README");
+            Files.write(readme, List.of("Hello, readme!"));
+
+            upstream.add(readme);
+            var firstHash = upstream.commit("Add README", "duke", "duke@openjdk.java.net");
+
+            var firstTag = upstream.tag(firstHash, "my-tag", "First tag message", "duke", "duke@openjdk.java.net");
+
+            try (var dir2 = new TemporaryDirectory()) {
+                var downstream = TestableRepository.init(dir2.path(), vcs);
+
+                // note: forcing unix path separators for URI
+                var upstreamURI = URI.create("file:///" + dir.toString().replace('\\', '/'));
+
+                downstream.fetch(upstreamURI, downstream.defaultBranch().name());
+                var tagHash = downstream.resolve(firstTag).orElseThrow();
+                downstream.checkout(tagHash, false);
+
+                Files.write(readme, List.of("Readme change"), WRITE, APPEND);
+                upstream.add(readme);
+                var secondHash = upstream.commit("Modify README", "duke", "duke@openjdk.java.net");
+                var secondTag = upstream.tag(secondHash, "my-tag", "Second tag message","duke",
+                        "duke@openjdk.java.net", null, true);
+
+                downstream.fetch(upstreamURI, downstream.defaultBranch().name(), true, true);
+                tagHash = downstream.resolve(secondTag).orElseThrow();
+                downstream.checkout(tagHash, false);
+                assertEquals(secondHash, tagHash, "Tag not updated to second hash");
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(VCS.class)
     void testClean(VCS vcs) throws IOException {
         try (var dir = new TemporaryDirectory()) {
             var r = TestableRepository.init(dir.path(), vcs);

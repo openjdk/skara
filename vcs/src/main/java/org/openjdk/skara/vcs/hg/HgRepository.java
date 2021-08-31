@@ -460,8 +460,8 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public Hash fetch(URI uri, String refspec, boolean includeTags) throws IOException {
-        // Ignore includeTags, Mercurial always fetches tags
+    public Hash fetch(URI uri, String refspec, boolean includeTags, boolean forceUpdateTags) throws IOException {
+        // Ignore includeTags and forceUpdateTags, Mercurial always fetches tags
         return fetch(uri != null ? uri.toString() : null, refspec);
     }
 
@@ -731,7 +731,7 @@ public class HgRepository implements Repository {
     }
 
     @Override
-    public Tag tag(Hash hash, String name, String message, String authorName, String authorEmail, ZonedDateTime date) throws IOException {
+    public Tag tag(Hash hash, String name, String message, String authorName, String authorEmail, ZonedDateTime date, boolean force) throws IOException {
         var user = authorEmail != null ?
             authorName + " <" + authorEmail + ">" :
             authorName;
@@ -743,6 +743,9 @@ public class HgRepository implements Repository {
         if (date != null) {
             cmd.add("--date");
             cmd.add(date.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+        }
+        if (force) {
+            cmd.add("--force");
         }
         cmd.add(name);
         try (var p = capture(cmd)) {
