@@ -54,10 +54,10 @@ public class TestUpdateNeededWorkItem implements WorkItem {
             return true;
         }
         var o = (TestUpdateNeededWorkItem) other;
-        if (!pr.repository().url().equals(o.pr.repository().url())) {
+        if (!pr.isSame(o.pr)) {
             return true;
         }
-        return !pr.id().equals(o.pr.id());
+        return false;
     }
 
     @Override

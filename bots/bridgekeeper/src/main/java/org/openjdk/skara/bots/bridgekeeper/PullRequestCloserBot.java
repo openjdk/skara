@@ -86,10 +86,7 @@ class PullRequestCloserBotWorkItem implements WorkItem {
             return true;
         }
         PullRequestCloserBotWorkItem otherItem = (PullRequestCloserBotWorkItem)other;
-        if (!pr.id().equals(otherItem.pr.id())) {
-            return true;
-        }
-        if (!repository.name().equals(otherItem.repository.name())) {
+        if (!pr.isSame(otherItem.pr)) {
             return true;
         }
         return false;
