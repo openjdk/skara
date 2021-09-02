@@ -89,43 +89,70 @@ public class Mbox {
                                        .filter(email -> !email.hasHeader("In-Reply-To"))
                                        .collect(Collectors.toMap(Email::id, Conversation::new));
 
-        var outOfOrder = new ArrayList<Email>();
-        var lastOutOfOrderCount = -1;
-        while (outOfOrder.size() != lastOutOfOrderCount) {
-            lastOutOfOrderCount = outOfOrder.size();
-            outOfOrder.clear();
+        var unhandledEmails = emails;
+        var lastUnhandledCount = 0;
+        while (unhandledEmails.size() != lastUnhandledCount) {
+            lastUnhandledCount = unhandledEmails.size();
+            var emailsToCheck = unhandledEmails;
+            unhandledEmails = new ArrayList<>();
 
-            for (var email : emails) {
-                if (email.hasHeader("In-Reply-To")) {
-                    var inReplyToMatcher = inReplyToPattern.matcher(email.headerValue("In-Reply-To"));
-                    if (!inReplyToMatcher.find()) {
-                        log.info("Cannot parse In-Reply-To header: " + email.headerValue("In-Reply-To"));
-                        continue;
-                    }
-                    var inReplyTo = EmailAddress.from(inReplyToMatcher.group(1));
-                    if (!idToMail.containsKey(inReplyTo)) {
-                        log.info("Can't find parent: " + inReplyTo + " - discarding");
-                        continue;
-                    }
-                    var parent = idToMail.get(inReplyTo);
-                    if (!idToConversation.containsKey(inReplyTo)) {
-                        outOfOrder.add(email);
-                    } else {
-                        var conversation = idToConversation.get(inReplyTo);
-                        conversation.addReply(parent, email);
-                        idToConversation.put(email.id(), conversation);
+            for (var email : emailsToCheck) {
+                if (email.id().toString().contains("<VtLlAA6xMBK-6Ib-4SbkYZJssOuyqPl5Dr7kdiJUf6A=.9c549bc6-867f-4ba6-8727-efafe7cc18e2@github.com>")) {
+                    log.warning("Found first email of jdk#5300 in mbox");
+                }
+                if (!idToConversation.containsKey(email.id())) {
+                    EmailAddress inReplyTo = findInReplyTo(idToMail, email);
+                    if (inReplyTo != null) {
+                        if (!idToConversation.containsKey(inReplyTo)) {
+                            unhandledEmails.add(email);
+                        } else {
+                            var conversation = idToConversation.get(inReplyTo);
+                            var parent = idToMail.get(inReplyTo);
+                            conversation.addReply(parent, email);
+                            idToConversation.put(email.id(), conversation);
+                        }
                     }
                 }
             }
         }
-        if (!outOfOrder.isEmpty()) {
-            log.info("Out of order remaining: " + outOfOrder.size());
-            outOfOrder.forEach(oo -> log.info("  " + oo.id()));
+        if (!unhandledEmails.isEmpty()) {
+            log.info("Out of order remaining: " + unhandledEmails.size());
+            unhandledEmails.forEach(oo -> log.info("  " + oo.id()));
         }
 
         return idToConversation.values().stream()
                                .distinct()
                                .collect(Collectors.toList());
+    }
+
+    private static EmailAddress findInReplyTo(Map<EmailAddress, Email> idToMail, Email email) {
+        if (email.hasHeader("In-Reply-To")) {
+            var inReplyToMatcher = inReplyToPattern.matcher(email.headerValue("In-Reply-To"));
+            if (!inReplyToMatcher.find()) {
+                log.info("Cannot parse In-Reply-To header: " + email.headerValue("In-Reply-To"));
+            } else {
+                var inReplyTo = EmailAddress.from(inReplyToMatcher.group(1));
+                if (idToMail.containsKey(inReplyTo)) {
+                    return inReplyTo;
+                }
+            }
+        }
+        if (email.hasHeader("References")) {
+            var references = email.headerValue("References");
+            var referenceList = Arrays.asList(references.split("\\s+"));
+            Collections.reverse(referenceList);
+            for (String reference : referenceList) {
+                var referenceMatcher = inReplyToPattern.matcher(reference);
+                if (referenceMatcher.find()) {
+                    var referenceAddress = EmailAddress.from(referenceMatcher.group(1));
+                    if (idToMail.containsKey(referenceAddress)) {
+                        return referenceAddress;
+                    }
+                }
+            }
+        }
+        log.info("Can't find parent for: " + email.id() + " - discarding");
+        return null;
     }
 
     public static String fromMail(Email mail) {

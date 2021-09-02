@@ -40,7 +40,7 @@ public class ArchiveReaderWorkItem implements WorkItem {
 
     @Override
     public String toString() {
-        return "ArchiveReaderWorkItem@" + list;
+        return "ArchiveReaderWorkItem@" + bot.repository().name();
     }
 
     @Override
@@ -53,6 +53,17 @@ public class ArchiveReaderWorkItem implements WorkItem {
             return true;
         }
         return false;
+    }
+
+    /**
+     * An ArchiveReaderWorkItem can't run concurrently with another item that shares the same
+     * MailingListReader, but it only replaces an item that acts on the same repository.
+     */
+    @Override
+    public boolean replaces(WorkItem other) {
+        return !concurrentWith(other)
+                && (other instanceof ArchiveReaderWorkItem archiveReaderWorkItem)
+                && bot.repository().name().equals(archiveReaderWorkItem.bot.repository().name());
     }
 
     @Override

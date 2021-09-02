@@ -251,7 +251,7 @@ public class BotRunner {
 
                     for (var pendingItem : pending.entrySet()) {
                         // If there are pending items of the same type that we cannot run concurrently with, replace them.
-                        if (pendingItem.getKey().getClass().equals(item.getClass()) && !pendingItem.getKey().concurrentWith(item)) {
+                        if (item.replaces(pendingItem.getKey())) {
                             log.finer("Discarding obsoleted item " + pendingItem.getKey() +
                                               " in favor of item " + item);
                             DISCARDED_COUNTER.labels(item.botName(), item.workItemName()).inc();
