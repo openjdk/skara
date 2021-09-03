@@ -122,6 +122,8 @@ public class MailingListBridgeBotFactory implements BotFactory {
                                                          .map(EmailAddress::localPart)
                                                          .collect(Collectors.toList());
 
+                // Reuse MailingListReaders with the exact same set of mailing lists between bots
+                // to benefit more from cached results.
                 if (!mailingListReaderMap.containsKey(listsForReading)) {
                     mailingListReaderMap.put(listsForReading, mailmanServer.getListReader(listsForReading.toArray(new String[0])));
                 }
