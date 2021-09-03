@@ -24,7 +24,7 @@ package org.openjdk.skara.bots.mlbridge;
 
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.email.EmailAddress;
-import org.openjdk.skara.forge.HostedRepository;
+import org.openjdk.skara.mailinglist.MailingListReader;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.mailinglist.MailingListServerFactory;
@@ -89,8 +89,6 @@ public class MailingListBridgeBotFactory implements BotFactory {
         var archiveRef = configuration.repositoryRef(specific.get("archive").asString());
         var issueTracker = URIBuilder.base(specific.get("issues").asString()).build();
 
-        var allRepositories = new HashSet<HostedRepository>();
-
         var readyLabels = specific.get("ready").get("labels").stream()
                 .map(JSONValue::asString)
                 .collect(Collectors.toSet());
@@ -101,8 +99,11 @@ public class MailingListBridgeBotFactory implements BotFactory {
         var cooldown = specific.contains("cooldown") ? Duration.parse(specific.get("cooldown").asString()) : Duration.ofMinutes(1);
         var mailmanServer = MailingListServerFactory.createMailmanServer(listArchive, listSmtp, Duration.ZERO);
 
+        var mailingListReaderMap = new HashMap<List<String>, MailingListReader>();
+
         for (var repoConfig : specific.get("repositories").asArray()) {
             var repo = repoConfig.get("repository").asString();
+            var hostedRepository = configuration.repository(repo);
             var censusRepo = configuration.repository(repoConfig.get("census").asString());
             var censusRef = configuration.repositoryRef(repoConfig.get("census").asString());
 
@@ -120,7 +121,13 @@ public class MailingListBridgeBotFactory implements BotFactory {
                 var listsForReading = listNamesForReading.stream()
                                                          .map(EmailAddress::localPart)
                                                          .collect(Collectors.toList());
-                var bot = new MailingListArchiveReaderBot(from, mailmanServer.getListReader(listsForReading.toArray(new String[0])), allRepositories);
+
+                // Reuse MailingListReaders with the exact same set of mailing lists between bots
+                // to benefit more from cached results.
+                if (!mailingListReaderMap.containsKey(listsForReading)) {
+                    mailingListReaderMap.put(listsForReading, mailmanServer.getListReader(listsForReading.toArray(new String[0])));
+                }
+                var bot = new MailingListArchiveReaderBot(mailingListReaderMap.get(listsForReading), hostedRepository);
                 ret.add(bot);
             }
 
@@ -137,7 +144,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
                                      repoConfig.get("webrevs").get("json").asBoolean();
 
             var botBuilder = MailingListBridgeBot.newBuilder().from(from)
-                                                 .repo(configuration.repository(repo))
+                                                 .repo(hostedRepository)
                                                  .archive(archiveRepo)
                                                  .archiveRef(archiveRef)
                                                  .censusRepo(censusRepo)
@@ -169,8 +176,6 @@ public class MailingListBridgeBotFactory implements BotFactory {
                 botBuilder.branchInSubject(Pattern.compile(repoConfig.get("branchname").asString()));
             }
             ret.add(botBuilder.build());
-
-            allRepositories.add(configuration.repository(repo));
         }
 
         return ret;

@@ -34,6 +34,15 @@ public interface WorkItem {
     boolean concurrentWith(WorkItem other);
 
     /**
+     * Returns true if this item should replace the other item in the queue. By default
+     * this is true if both items are of the same type, and cannot run concurrently with
+     * each other. In some cases we need a more specific condition.
+     */
+    default boolean replaces(WorkItem other) {
+        return this.getClass().equals(other.getClass()) && !concurrentWith(other);
+    }
+
+    /**
      * Execute the appropriate tasks with the provided scratch folder. Optionally return follow-up work items
      * that will be scheduled for execution.
      * @param scratchPath

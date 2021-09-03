@@ -35,9 +35,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class MailingListArchiveReaderBot implements Bot {
-    private final EmailAddress archivePoster;
     private final MailingListReader list;
-    private final Set<HostedRepository> repositories;
+    private final HostedRepository repository;
     private final Map<EmailAddress, String> parsedConversations = new HashMap<>();
     private final Map<EmailAddress, PullRequest> resolvedPullRequests = new HashMap<>();
     private final Set<EmailAddress> parsedEmailIds = new HashSet<>();
@@ -45,10 +44,13 @@ public class MailingListArchiveReaderBot implements Bot {
     private final Pattern pullRequestLinkPattern = Pattern.compile("^(?:PR: |Pull request:\\R)(.*?)$", Pattern.MULTILINE);
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.mlbridge");
 
-    MailingListArchiveReaderBot(EmailAddress archivePoster, MailingListReader list, Set<HostedRepository> repositories) {
-        this.archivePoster = archivePoster;
+    MailingListArchiveReaderBot(MailingListReader list, HostedRepository repository) {
         this.list = list;
-        this.repositories = repositories;
+        this.repository = repository;
+    }
+
+    public HostedRepository repository() {
+        return repository;
     }
 
     private synchronized void invalidate(List<Email> messages) {
@@ -103,10 +105,7 @@ public class MailingListArchiveReaderBot implements Bot {
             if (prLink.equals("invalid")) {
                 return;
             }
-            var foundPr = repositories.stream()
-                                      .map(repository -> repository.parsePullRequestUrl(prLink))
-                                      .filter(Optional::isPresent)
-                                      .map(Optional::get).findAny();
+            var foundPr = repository.parsePullRequestUrl(prLink);
             if (foundPr.isEmpty()) {
                 log.info("PR link that can't be matched to an actual PR: " + prLink);
                 parsedConversations.put(first.id(), "invalid");
