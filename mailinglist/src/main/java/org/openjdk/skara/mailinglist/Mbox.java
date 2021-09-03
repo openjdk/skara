@@ -97,9 +97,6 @@ public class Mbox {
             unhandledEmails = new ArrayList<>();
 
             for (var email : emailsToCheck) {
-                if (email.id().toString().contains("<VtLlAA6xMBK-6Ib-4SbkYZJssOuyqPl5Dr7kdiJUf6A=.9c549bc6-867f-4ba6-8727-efafe7cc18e2@github.com>")) {
-                    log.warning("Found first email of jdk#5300 in mbox");
-                }
                 if (!idToConversation.containsKey(email.id())) {
                     EmailAddress inReplyTo = findInReplyTo(idToMail, email);
                     if (inReplyTo != null) {
