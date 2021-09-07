@@ -78,6 +78,7 @@ public class JdkVersionTests {
         var jdk16uCpu = from("16u-cpu");
         assertEquals(List.of("16u"), jdk16uCpu.components());
         assertEquals("cpu", jdk16uCpu.opt().orElseThrow());
+        assertEquals(List.of("openjdk7u"), from("openjdk7u").components());
     }
 
     @Test
@@ -112,5 +113,6 @@ public class JdkVersionTests {
     void nonConforming() {
         assertEquals(Optional.empty(), JdkVersion.parse("bla"));
         assertEquals(Optional.empty(), JdkVersion.parse(""));
+        assertEquals(Optional.empty(), JdkVersion.parse("foobar7u"));
     }
 }

@@ -805,4 +805,15 @@ public class BackportsTests {
             backports.assertLabeled("16.0.2", "17");
         }
     }
+
+    @Test
+    void openjdk7u(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "17");
+            backports.assertLabeled();
+
+            backports.addBackports("openjdk7u", "7u321", "openjdk8u302", "openjdk8u312");
+            backports.assertLabeled("openjdk8u312");
+        }
+    }
 }
