@@ -128,22 +128,19 @@ public class MailmanListReader implements MailingListReader {
 
                 if (useCached.get(name)) {
                     var cachedResponse = pageCache.get(mboxUri);
-                    if (cachedResponse == null) {
-                        break;
-                    } else {
+                    if (cachedResponse != null) {
                         emails.addAll(0, Mbox.splitMbox(cachedResponse.body(), sender));
                     }
                 } else {
                     var mboxResponse = getPage(mboxUri);
-                    if (mboxResponse.isEmpty()) {
-                        break;
-                    }
-                    if (mboxResponse.get().statusCode() == 304) {
-                        emails.addAll(0, Mbox.splitMbox(pageCache.get(mboxUri).body(), sender));
-                        useCached.put(name, true);
-                    } else {
-                        emails.addAll(0, Mbox.splitMbox(mboxResponse.get().body(), sender));
-                        newContent = true;
+                    if (mboxResponse.isPresent()) {
+                        if (mboxResponse.get().statusCode() == 304) {
+                            emails.addAll(0, Mbox.splitMbox(pageCache.get(mboxUri).body(), sender));
+                            useCached.put(name, true);
+                        } else {
+                            emails.addAll(0, Mbox.splitMbox(mboxResponse.get().body(), sender));
+                            newContent = true;
+                        }
                     }
                 }
             }

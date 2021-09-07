@@ -88,7 +88,7 @@ class MailingListArchiveReaderBotTests {
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(),
                                                                              Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
-            var readerBot = new MailingListArchiveReaderBot(from, mailmanList, Set.of(archive));
+            var readerBot = new MailingListArchiveReaderBot(mailmanList, archive);
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -164,7 +164,7 @@ class MailingListArchiveReaderBotTests {
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(),
                                                                              Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
-            var readerBot = new MailingListArchiveReaderBot(from, mailmanList, Set.of(archive));
+            var readerBot = new MailingListArchiveReaderBot(mailmanList, archive);
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -197,7 +197,7 @@ class MailingListArchiveReaderBotTests {
             var updated = pr.comments();
             assertEquals(2, updated.size());
 
-            var newReaderBot = new MailingListArchiveReaderBot(from, mailmanList, Set.of(archive));
+            var newReaderBot = new MailingListArchiveReaderBot(mailmanList, archive);
             TestBotRunner.runPeriodicItems(newReaderBot);
             TestBotRunner.runPeriodicItems(newReaderBot);
 
@@ -240,7 +240,7 @@ class MailingListArchiveReaderBotTests {
             var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(),
                                                                              Duration.ZERO);
             var mailmanList = mailmanServer.getListReader(listAddress.address());
-            var readerBot = new MailingListArchiveReaderBot(from, mailmanList, Set.of(archive));
+            var readerBot = new MailingListArchiveReaderBot(mailmanList, archive);
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -317,12 +317,6 @@ class MailingListArchiveReaderBotTests {
                     .webrevStorageBaseUri(webrevServer.uri())
                     .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
                     .build();
-
-            // The mailing list as well
-            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(),
-                    Duration.ZERO);
-            var mailmanList = mailmanServer.getListReader(listAddress.address());
-            var readerBot = new MailingListArchiveReaderBot(from, mailmanList, Set.of(archive));
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());

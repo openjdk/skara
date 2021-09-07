@@ -251,7 +251,7 @@ public class BotRunner {
 
                     for (var pendingItem : pending.entrySet()) {
                         // If there are pending items of the same type that we cannot run concurrently with, replace them.
-                        if (pendingItem.getKey().getClass().equals(item.getClass()) && !pendingItem.getKey().concurrentWith(item)) {
+                        if (item.replaces(pendingItem.getKey())) {
                             log.finer("Discarding obsoleted item " + pendingItem.getKey() +
                                               " in favor of item " + item);
                             DISCARDED_COUNTER.labels(item.botName(), item.workItemName()).inc();
@@ -359,9 +359,9 @@ public class BotRunner {
             } catch (UncheckedRestException e) {
                 // Log as WARNING to avoid triggering alarms. Failed REST calls are tracked
                 // using metrics.
-                log.log(Level.WARNING, "RestException during periodic item checking", e);
+                log.log(Level.WARNING, "RestException during periodic items checking", e);
             } catch (RuntimeException e) {
-                log.log(Level.SEVERE, "Exception during periodic item checking: " + e.getMessage(), e);
+                log.log(Level.SEVERE, "Exception during periodic items checking: " + e.getMessage(), e);
             } finally {
                 log.log(Level.FINE, "Done checking periodic items", TaskPhases.END);
             }

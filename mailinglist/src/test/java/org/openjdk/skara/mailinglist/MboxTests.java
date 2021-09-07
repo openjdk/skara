@@ -378,4 +378,43 @@ class MboxTests {
             assertEquals(3, conversation.allMessages().size());
         }
     }
+
+    /**
+     * Tests that fallback on References field works when In-Reply-To points to a non
+     * existing email.
+     */
+    @Test
+    void middleMessageMissing() throws IOException {
+        try (var folder = new TemporaryDirectory()) {
+            var rawMbox1 = folder.path().resolve("test1.mbox");
+            Files.writeString(rawMbox1, """
+                                      From test at example.com  Wed Aug 21 17:22:50 2019
+                                      From: test at example.com (test at example.com)
+                                      Date: Wed, 21 Aug 2019 17:22:50 +0000
+                                      Subject: this is a test
+                                      Message-ID: <abc123@example.com>
+
+                                      First message
+
+                                      From test3 at example.com  Wed Aug 21 17:42:50 2019
+                                      From: test3 at example.com (test3 at example.com)
+                                      Date: Wed, 21 Aug 2019 17:42:50 +0000
+                                      Subject: Re: this is a test
+                                      In-Reply-To: <def456@example.com>
+                                      References: <foo999@example.com>
+                                        <abc123@example.com>
+                                        <def456@example.com>
+                                      Message-ID: <ghi789@example.com>
+
+                                      Third message
+                                      """,
+                    StandardCharsets.UTF_8);
+            var mbox = MailingListServerFactory.createMboxFileServer(folder.path());
+            var list = mbox.getListReader("test1");
+            var conversations = list.conversations(Duration.ofDays(365 * 100));
+            assertEquals(1, conversations.size());
+            var conversation = conversations.get(0);
+            assertEquals(2, conversation.allMessages().size());
+        }
+    }
 }

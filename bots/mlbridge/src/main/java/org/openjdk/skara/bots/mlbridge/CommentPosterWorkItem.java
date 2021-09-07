@@ -55,7 +55,7 @@ public class CommentPosterWorkItem implements WorkItem {
             return true;
         }
         CommentPosterWorkItem otherItem = (CommentPosterWorkItem) other;
-        if (!pr.equals(otherItem.pr)) {
+        if (!pr.isSame(otherItem.pr)) {
             return true;
         }
         var otherItemIds = otherItem.newMessages.stream()
@@ -81,11 +81,11 @@ public class CommentPosterWorkItem implements WorkItem {
 
         for (var message : newMessages) {
             if (alreadyBridged.contains(message.id())) {
-                log.fine("Message from " + message.author() + " to " + pr + " has already been bridged - skipping!");
+                log.fine("Message " + message.id() + " from " + message.author() + " to " + pr + " has already been bridged - skipping!");
                 continue;
             }
 
-            log.info("Bridging new message from " + message.author() + " to " + pr);
+            log.info("Bridging new message " + message.id() + " from " + message.author() + " to " + pr);
             BridgedComment.post(pr, message);
         }
         return List.of();
