@@ -10,7 +10,7 @@
             "test/jdk/build/",
             "test/make/"
         ],
-        "client-libs": [
+        "client": [
             "make/\\w+(Demos|X11)",
             "make/autoconf/lib-(font|freetype|x11)",
             "make/data/(font|x11)",
