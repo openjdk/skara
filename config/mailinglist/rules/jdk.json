@@ -14,7 +14,7 @@
             "make/\\w+(Demos|X11)",
             "make/autoconf/lib-(alsa|cups|font|freetype|x11)",
             "make/data/(font|x11)",
-            "make/jdk/src/classes/build/tools/(generatenimbus/|x11wrappergen)",
+            "make/jdk/src/classes/build/tools/(generatenimbus|x11wrappergen)",
             "make/modules/java.desktop/",
             "make/modules/java.datatransfer/",
             "make/modules/jdk.accessibility/",
