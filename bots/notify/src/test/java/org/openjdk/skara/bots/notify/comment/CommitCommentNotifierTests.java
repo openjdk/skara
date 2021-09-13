@@ -165,4 +165,61 @@ public class CommitCommentNotifierTests {
             assertEquals("- [" + issue.id() + "](" + issue.webUrl() + ")", lines[7]);
         }
     }
+
+    /**
+     * Test that the CommitCommentNotifier never repeates the exact same comment
+     */
+    @Test
+    void testNoRepeatedCommitComment(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var tagStorage = createTagStorage(repo);
+            var branchStorage = createBranchStorage(repo);
+            var prStateStorage = createPullRequestStateStorage(repo);
+            var storageFolder = tempFolder.path().resolve("storage");
+
+            var issueProject = credentials.getIssueProject();
+            var notifyBot = NotifyBot.newBuilder()
+                    .repository(repo)
+                    .storagePath(storageFolder)
+                    .branches(Pattern.compile("master"))
+                    .tagStorageBuilder(tagStorage)
+                    .branchStorageBuilder(branchStorage)
+                    .prStateStorageBuilder(prStateStorage)
+                    .integratorId(repo.forge().currentUser().id())
+                    .build();
+            var notifier = new CommitCommentNotifier(issueProject);
+            notifier.attachTo(notifyBot);
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Save the state
+            var historyState = localRepo.fetch(repo.url(), "history");
+
+            // Commit a fix
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", "Fix an issue");
+            localRepo.push(editHash, repo.url(), "master");
+            var pr = credentials.createPullRequest(repo, "master", "master", "Fix an issue");
+            pr.setBody("I made a fix");
+            pr.addLabel("integrated");
+            pr.addComment("@user Pushed as commit " + editHash.hex() + ".");
+
+            // Run the notifier manually to add a comment
+            notifier.onIntegratedPullRequest(pr, storageFolder, editHash);
+
+            // Run the bot officially
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Check that we only have 1 commit comment
+            var comments = repo.commitComments(editHash);
+            assertEquals(1, comments.size());
+        }
+    }
 }

@@ -30,9 +30,12 @@ import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 
 import java.nio.file.Path;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 class CommitCommentNotifier implements Notifier, PullRequestListener {
+    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
+
     private final IssueProject issueProject;
 
     CommitCommentNotifier(IssueProject issueProject) {
@@ -77,7 +80,13 @@ class CommitCommentNotifier implements Notifier, PullRequestListener {
                 comment.add("- [" + issue.id() + "](" + issue.webUrl() + ")");
             }
         }
-        repository.addCommitComment(hash, String.join("\n", comment));
+        var existingComments = repository.commitComments(hash);
+        var commentBody = String.join("\n", comment);
+        if (existingComments.stream().anyMatch(c -> c.body().equals(commentBody))) {
+            log.warning("Commit comment for " + hash + " already posted");
+        } else {
+            repository.addCommitComment(hash, commentBody);
+        }
     }
 
     @Override
