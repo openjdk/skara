@@ -432,7 +432,7 @@ public class RestRequest {
 
             link = response.headers().firstValue("Link");
             links = parseLink(link.orElseThrow(
-                    () -> new RuntimeException("Initial paginated response no longer paginated")));
+                    () -> new UncheckedRestException("Initial paginated response no longer paginated for query: " + queryBuilder)));
 
             parsedResponse = parseResponse(response);
             ret.add(parsedResponse);
