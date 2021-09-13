@@ -75,4 +75,9 @@ public class LabelsUpdaterWorkItem implements WorkItem {
     public String workItemName() {
         return "labels-updater";
     }
+
+    @Override
+    public String toString() {
+        return "LabelsUpdaterWorkItem@" + bot.codeRepo().name();
+    }
 }

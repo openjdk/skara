@@ -210,10 +210,10 @@ public class MailingListBridgeBot implements Bot {
         if (lastFullUpdate == null || lastFullUpdate.isBefore(ZonedDateTime.now().minus(Duration.ofMinutes(10)))) {
             lastFullUpdate = ZonedDateTime.now();
             lastPartialUpdate = lastFullUpdate;
-            log.info("Fetching all open pull requests");
+            log.info("Fetching all open pull requests for " + codeRepo.name());
             prs = codeRepo.pullRequests();
         } else {
-            log.info("Fetching recently updated pull requests (open and closed)");
+            log.info("Fetching recently updated pull requests (open and closed) for " + codeRepo.name());
             prs = codeRepo.pullRequests(ZonedDateTime.now().minus(Duration.ofDays(14)));
             lastPartialUpdate = ZonedDateTime.now();
         }
