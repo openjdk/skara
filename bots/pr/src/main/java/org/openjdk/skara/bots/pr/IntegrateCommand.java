@@ -42,8 +42,15 @@ public class IntegrateCommand implements CommandHandler {
     private static final String PRE_PUSH_MARKER = "<!-- prepush %s -->";
     private static final Pattern PRE_PUSH_PATTERN = Pattern.compile("<!-- prepush ([0-9a-z]{40}) -->");
 
+    private enum Command {
+        auto,
+        manual,
+        defer,
+        undefer
+    }
+
     private void showHelp(PrintWriter reply) {
-        reply.println("usage: `/integrate [auto|manual|<hash>]`");
+        reply.println("usage: `/integrate [auto|manual|defer|undefer|<hash>]`");
     }
 
     private Optional<String> checkProblem(Map<String, Check> performedChecks, String checkName, PullRequest pr) {
@@ -66,22 +73,9 @@ public class IntegrateCommand implements CommandHandler {
 
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
-        if (!command.user().equals(pr.author()) && !command.user().equals(pr.repository().forge().currentUser())) {
-            reply.print("Only the author (@" + pr.author().username() + ") is allowed to issue the `integrate` command.");
-
-            // If the command author is allowed to sponsor this change, suggest that command
-            var readyHash = ReadyForSponsorTracker.latestReadyForSponsor(pr.repository().forge().currentUser(), allComments);
-            if (readyHash.isPresent()) {
-                if (censusInstance.isCommitter(command.user())) {
-                    reply.print(" As this PR is ready to be sponsored, and you are an eligible sponsor, did you mean to issue the `/sponsor` command?");
-                    return;
-                }
-            }
-            reply.println();
-            return;
-        }
-
+        // Parse any argument given
         Hash targetHash = null;
+        Command commandArg = null;
         if (!command.args().isEmpty()) {
             var args = command.args().split(" ");
             if (args.length != 1) {
@@ -90,25 +84,72 @@ public class IntegrateCommand implements CommandHandler {
             }
 
             var arg = args[0].trim();
-            if (arg.equals("auto")) {
-                pr.addLabel("auto");
-                reply.println("This pull request will be automatically integrated when it is ready");
-                return;
-            } else if (arg.equals("manual")) {
-                if (pr.labelNames().contains("auto")) {
-                    pr.removeLabel("auto");
+            for (Command value : Command.values()) {
+                if (value.name().equals(arg)) {
+                    commandArg = value;
                 }
-                reply.println("This pull request will have to be integrated manually using the "+
-                              "[/integrate](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) pull request command.");
-                return;
-            } else {
-                // Validate the target hash if requested
+            }
+            if (commandArg == null) {
                 targetHash = new Hash(arg);
                 if (!targetHash.isValid()) {
                     reply.println("The given argument, `" + arg + "`, is not a valid hash.");
                     return;
                 }
             }
+        }
+
+        if (!command.user().equals(pr.author()) && !command.user().equals(pr.repository().forge().currentUser())) {
+            if (pr.labelNames().contains("deferred")) {
+                // Check that the command user is a committer
+                if (!censusInstance.isCommitter(command.user())) {
+                    reply.print("Only project committers are allowed to issue the `integrate` command on a deferred pull request.");
+                    return;
+                }
+                // Check that no extra arguments are added
+                if (!command.args().isEmpty()) {
+                    reply.print("Only the author (@\" + pr.author().username() + \") is allowed to issue the `integrate` command with arguments.");
+                    return;
+                }
+            } else {
+                reply.print("Only the author (@" + pr.author().username() + ") is allowed to issue the `integrate` command.");
+
+                // If the command author is allowed to sponsor this change, suggest that command
+                var readyHash = ReadyForSponsorTracker.latestReadyForSponsor(pr.repository().forge().currentUser(), allComments);
+                if (readyHash.isPresent()) {
+                    if (censusInstance.isCommitter(command.user())) {
+                        reply.print(" As this pull request is ready to be sponsored, and you are an eligible sponsor, did you mean to issue the `/sponsor` command?");
+                        return;
+                    }
+                }
+                reply.println();
+                return;
+            }
+        }
+
+        if (commandArg == Command.auto) {
+            pr.addLabel("auto");
+            reply.println("This pull request will be automatically integrated when it is ready");
+            return;
+        } else if (commandArg == Command.manual) {
+            if (pr.labelNames().contains("auto")) {
+                pr.removeLabel("auto");
+            }
+            reply.println("This pull request will have to be integrated manually using the " +
+                    "[/integrate](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) pull request command.");
+            return;
+        } else if (commandArg == Command.defer) {
+            pr.addLabel("deferred");
+            reply.println("Integration of this pull request has been deferred and may be completed by any project committer using the " +
+                    "[/integrate](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) pull request command.");
+            return;
+        } else if (commandArg == Command.undefer) {
+            if (pr.labelNames().contains("deferred")) {
+                reply.println("Integration of this pull request is no longer deferred and may only be integrated by the author (@" + pr.author().username() + ")using the " +
+                        "[/integrate](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) pull request command.");
+                pr.removeLabel("deferred");
+            }
+            reply.println("This pull request may now only be integrated by the author");
+            return;
         }
 
         Optional<Hash> prepushHash = checkForPrePushHash(bot, pr, scratchPath, allComments, "integrate");
@@ -126,7 +167,7 @@ public class IntegrateCommand implements CommandHandler {
 
         var labels = new HashSet<>(pr.labelNames());
         if (!labels.contains("ready")) {
-            reply.println("This PR has not yet been marked as ready for integration.");
+            reply.println("This pull request has not yet been marked as ready for integration.");
             return;
         }
 
@@ -163,7 +204,14 @@ public class IntegrateCommand implements CommandHandler {
             }
 
             var original = checkablePr.findOriginalBackportHash();
-            var localHash = checkablePr.commit(rebasedHash.get(), censusInstance.namespace(), censusInstance.configuration().census().domain(), null, original);
+            // If someone other than the author or the bot issued the /integrate command, then that person
+            // should be set as sponsor/integrator. Otherwise pass null to use the default author.
+            String committerId = null;
+            if (!command.user().equals(pr.author()) && !command.user().equals(pr.repository().forge().currentUser())) {
+                committerId = command.user().id();
+            }
+            var localHash = checkablePr.commit(rebasedHash.get(), censusInstance.namespace(),
+                    censusInstance.configuration().census().domain(), committerId, original);
 
             if (runJcheck(pr, censusInstance, allComments, reply, localRepo, checkablePr, localHash)) {
                 return;
@@ -274,6 +322,9 @@ public class IntegrateCommand implements CommandHandler {
         pr.addLabel("integrated");
         pr.removeLabel("ready");
         pr.removeLabel("rfr");
+        if (pr.labelNames().contains("deferred")) {
+            pr.removeLabel("deferred");
+        }
         reply.println("Pushed as commit " + hash.hex() + ".");
         reply.println();
         reply.println(":bulb: You may see a message that your pull request was closed with unmerged commits. This can be safely ignored.");

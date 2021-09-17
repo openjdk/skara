@@ -187,7 +187,8 @@ public class HostCredentials implements AutoCloseable {
                 HostUser.create(1, "user1", "User Number 1"),
                 HostUser.create(2, "user2", "User Number 2"),
                 HostUser.create(3, "user3", "User Number 3"),
-                HostUser.create(4, "user4", "User Number 4")
+                HostUser.create(4, "user4", "User Number 4"),
+                HostUser.create(5, "user5", "User Number 5")
         );
 
         private TestHost createHost(int userIndex) {

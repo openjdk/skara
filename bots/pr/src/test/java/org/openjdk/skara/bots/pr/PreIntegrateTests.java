@@ -92,7 +92,7 @@ public class PreIntegrateTests {
             // Try to integrate it
             followUpPr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertLastCommentContains(followUpPr, "This PR has not yet been marked as ready for integration");
+            assertLastCommentContains(followUpPr, "This pull request has not yet been marked as ready for integration");
 
             // Push something unrelated to the target
             localRepo.checkout(masterHash, true);
