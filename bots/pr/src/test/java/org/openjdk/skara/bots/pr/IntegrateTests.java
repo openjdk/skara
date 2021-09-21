@@ -1357,19 +1357,29 @@ class IntegrateTests {
             assertEquals(1, undeferred, "Missing undeferred message");
             assertFalse(authorPr.labelNames().contains("deferred"));
 
+            // Try integrating as another committer, which should fails since the PR is currently not deferred
+            // Try to integrate by committer
+            var integratorPr = integrator.pullRequest(authorPr.id());
+            integratorPr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(mergeBot);
+            var nonAuthor = authorPr.comments().stream()
+                    .filter(comment -> comment.body().contains("Only the author")
+                            && comment.body().contains("is allowed to issue the `integrate` command"))
+                    .count();
+            assertEquals(1, nonAuthor, "Missing only author can integrate message");
+
             // Defer again
             authorPr.addComment("/integrate defer");
             TestBotRunner.runPeriodicItems(mergeBot);
             assertTrue(authorPr.labelNames().contains("deferred"));
 
             // Try to issue /integrate with an invalid command for a non author
-            var integratorPr = integrator.pullRequest(authorPr.id());
             integratorPr.addComment("/integrate auto");
             TestBotRunner.runPeriodicItems(mergeBot);
             var invalid = authorPr.comments().stream()
                     .filter(comment -> comment.body().contains("Only the author"))
                     .count();
-            assertEquals(1, invalid, "Missing error message");
+            assertEquals(2, invalid, "Missing error message");
 
             // Try to integrate by committer
             integratorPr.addComment("/integrate");
@@ -1382,14 +1392,15 @@ class IntegrateTests {
             var headHash = pushedRepo.resolve("HEAD").orElseThrow();
             var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
 
-            // Author and committer should be the same
+            // Verify that the author and committer of the change are the correct users
+            // The number is implied from the order the add* methods of CensusBuilder were called above.
             assertEquals("Generated Committer 1", headCommit.author().name());
             assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
             assertEquals("Generated Committer 4", headCommit.committer().name());
             assertEquals("integrationcommitter4@openjdk.java.net", headCommit.committer().email());
             assertTrue(authorPr.labelNames().contains("integrated"));
 
-            // Ready label should have been removed
+            // Ready and deferred labels should have been removed
             assertFalse(authorPr.labelNames().contains("ready"));
             assertFalse(authorPr.labelNames().contains("deferred"));
         }
