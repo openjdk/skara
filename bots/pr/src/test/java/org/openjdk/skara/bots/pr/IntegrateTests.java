@@ -1357,8 +1357,7 @@ class IntegrateTests {
             assertEquals(1, undeferred, "Missing undeferred message");
             assertFalse(authorPr.labelNames().contains("deferred"));
 
-            // Try integrating as another committer, which should fails since the PR is currently not deferred
-            // Try to integrate by committer
+            // Try integrating as another committer, which should fail since the PR is currently not deferred
             var integratorPr = integrator.pullRequest(authorPr.id());
             integratorPr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(mergeBot);
