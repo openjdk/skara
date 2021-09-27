@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,7 +24,6 @@ package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
 import org.openjdk.skara.vcs.*;
-import org.openjdk.skara.forge.*;
 import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.version.Version;
 
@@ -107,6 +106,10 @@ public class GitSync {
                   .fullname("fast-forward")
                   .helptext("Fast forward all local branches where possible")
                   .optional(),
+            Switch.shortcut("n")
+                   .fullname("dry-run")
+                   .helptext("Only simulate behavior, do no actual changes")
+                   .optional(),
             Switch.shortcut("")
                   .fullname("verbose")
                   .helptext("Turn on verbose output")
@@ -217,7 +220,7 @@ public class GitSync {
         var canonicalPushPath = Remote.toWebURI(Remote.canonicalize(toPushPath).toString());
         var canonicalPullPath = Remote.toWebURI(Remote.canonicalize(fromPullPath).toString());
         if (canonicalPushPath.equals(canonicalPullPath)) {
-            System.err.println("error: --from and --to refer to the same repository: " + canonicalPushPath.toString());
+            System.err.println("error: --from and --to refer to the same repository: " + canonicalPushPath);
             System.exit(1);
         }
 
@@ -285,26 +288,44 @@ public class GitSync {
                 }
                 continue;
             }
-            System.out.print("Syncing " + from + "/" + name + " to " + to + "/" + name + "... ");
+
+            System.out.println("Syncing " + from + "/" + name + " to " + to + "/" + name + "... ");
             System.out.flush();
-            var fetchHead = repo.fetch(fromPullPath, branch.name());
-            repo.push(fetchHead, toPushPath, name);
-            System.out.println("done");
+
+            Hash fetchHead = null;
+            if (arguments.contains("verbose")) {
+                System.out.println("Fetching branch " + branch.name() + " from  " + fromPullPath);
+            }
+            if (!arguments.contains("dry-run")) {
+                fetchHead = repo.fetch(fromPullPath, branch.name());
+            }
+            if (arguments.contains("verbose")) {
+                System.out.println("Pushing to " + toPushPath);
+            }
+            if (!arguments.contains("dry-run")) {
+                repo.push(fetchHead, toPushPath, name);
+            }
+            System.out.println("Done syncing");
         }
 
         var shouldPull = arguments.contains("pull");
         if (!shouldPull) {
             var lines = repo.config("sync.pull");
-            shouldPull = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
+            shouldPull = lines.size() == 1 && lines.get(0).equalsIgnoreCase("true");
         }
         if (shouldPull) {
             var currentBranch = repo.currentBranch();
             if (currentBranch.isPresent()) {
                 var upstreamBranch = repo.upstreamFor(currentBranch.get());
                 if (upstreamBranch.isPresent()) {
-                    int err = pull(repo);
-                    if (err != 0) {
-                        System.exit(err);
+                    if (arguments.contains("verbose")) {
+                        System.out.println("Pulling from " + repo);
+                    }
+                    if (!arguments.contains("dry-run")) {
+                        int err = pull(repo);
+                        if (err != 0) {
+                            System.exit(err);
+                        }
                     }
                 }
             }
@@ -313,13 +334,18 @@ public class GitSync {
         var shouldFastForward = arguments.contains("fast-forward");
         if (!shouldFastForward) {
             var lines = repo.config("sync.fast-forward");
-            shouldFastForward = lines.size() == 1 && lines.get(0).toLowerCase().equals("true");
+            shouldFastForward = lines.size() == 1 && lines.get(0).equalsIgnoreCase("true");
         }
         if (shouldFastForward) {
             if (!remotes.contains(to)) {
                 die("error: --fast-forward can only be used when --to is the name of a remote");
             }
-            repo.fetchRemote(to);
+            if (arguments.contains("verbose")) {
+                System.out.println("Fetching from remote " + to);
+            }
+            if (!arguments.contains("dry-run")) {
+                repo.fetchRemote(to);
+            }
 
             var remoteBranchNames = new HashSet<String>();
             for (var branch : remoteBranches) {
@@ -336,11 +362,26 @@ public class GitSync {
                     if (localHash.isPresent() && upstreamHash.isPresent() &&
                         !upstreamHash.equals(localHash) &&
                         repo.isAncestor(localHash.get(), upstreamHash.get())) {
-                        var err = currentBranch.isPresent() && branch.equals(currentBranch.get()) ?
-                            mergeFastForward(repo, upstreamBranch.get()) :
-                            moveBranch(repo, branch, upstreamHash.get());
-                        if (err != 0) {
-                            System.exit(1);
+                        if (currentBranch.isPresent() && branch.equals(currentBranch.get())) {
+                            if (!arguments.contains("dry-run")) {
+                                if (arguments.contains("verbose")) {
+                                    System.out.println("Fast-forwarding current branch");
+                                }
+                                var err = mergeFastForward(repo, upstreamBranch.get());
+                                if (err != 0) {
+                                    System.exit(1);
+                                }
+                            }
+                        } else {
+                            if (!arguments.contains("dry-run")) {
+                                if (arguments.contains("verbose")) {
+                                    System.out.println("Fast-forwarding branch " + upstreamBranch.get());
+                                }
+                                var err = moveBranch(repo, branch, upstreamHash.get());
+                                if (err != 0) {
+                                    System.exit(1);
+                                }
+                            }
                         }
                     }
                 }
@@ -351,7 +392,7 @@ public class GitSync {
     public static void main(String[] args) throws IOException, InterruptedException {
         var cwd = Paths.get("").toAbsolutePath();
         var repo = Repository.get(cwd).orElseThrow(() ->
-                die("error: no repository found at " + cwd.toString())
+                die("error: no repository found at " + cwd)
         );
 
         sync(repo, args);
