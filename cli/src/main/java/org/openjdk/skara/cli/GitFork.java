@@ -47,16 +47,25 @@ public class GitFork {
         isMercurial = arguments.contains("mercurial");
     }
 
-    private static void exit(String message) {
-        System.err.println(message);
-        System.exit(1);
-    }
+    private String gitConfig(String key) {
+        try {
+            var pb = new ProcessBuilder("git", "config", key);
+            pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
+            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
+            var p = pb.start();
 
-    private static <T> Supplier<T> die(String message) {
-        return () -> {
-            exit(message);
+            var output = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            var res = p.waitFor();
+            if (res != 0) {
+                return null;
+            }
+
+            return output.replace("\n", "");
+        } catch (InterruptedException e) {
             return null;
-        };
+        } catch (IOException e) {
+            return null;
+        }
     }
 
     private String getOption(String name, String subsection) {
@@ -79,27 +88,6 @@ public class GitFork {
         return option != null && option.equalsIgnoreCase("true");
     }
 
-    private static String gitConfig(String key) {
-        try {
-            var pb = new ProcessBuilder("git", "config", key);
-            pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
-            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
-            var p = pb.start();
-
-            var output = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            var res = p.waitFor();
-            if (res != 0) {
-                return null;
-            }
-
-            return output.replace("\n", "");
-        } catch (InterruptedException e) {
-            return null;
-        } catch (IOException e) {
-            return null;
-        }
-    }
-
     private Repository clone(List<String> args, String to, boolean isMercurial) throws IOException {
         try {
             var vcs = isMercurial ? "hg" : "git";
@@ -119,93 +107,6 @@ public class GitFork {
         } catch (InterruptedException e) {
             throw new IOException(e);
         }
-    }
-
-    public static void main(String[] args) throws IOException, InterruptedException {
-        GitFork commandExecutor = new GitFork(parseArguments(args));
-        commandExecutor.fork();
-    }
-
-    private static Arguments parseArguments(String[] args) {
-        var flags = List.of(
-            Option.shortcut("u")
-                  .fullname("username")
-                  .describe("NAME")
-                  .helptext("Username on host")
-                  .optional(),
-            Option.shortcut("")
-                  .fullname("reference")
-                  .describe("DIR")
-                  .helptext("Same as the 'git clone' flags 'reference-if-able' + 'dissociate'")
-                  .optional(),
-            Option.shortcut("")
-                  .fullname("depth")
-                  .describe("N")
-                  .helptext("Same as the 'git clone' flag 'depth'")
-                  .optional(),
-            Option.shortcut("")
-                  .fullname("shallow-since")
-                  .describe("DATE")
-                  .helptext("Same as the 'git clone' flag 'shallow-since'")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("setup-pre-push-hook")
-                  .helptext("Setup a pre-push hook that runs git-jcheck")
-                  .optional(),
-            Option.shortcut("")
-                  .fullname("host")
-                  .describe("HOSTNAME")
-                  .helptext("Hostname for the forge")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("no-clone")
-                  .helptext("Just fork the repository, do not clone it")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("no-remote")
-                  .helptext("Do not add an additional git remote")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("ssh")
-                  .helptext("Use the ssh:// protocol when cloning")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("https")
-                  .helptext("Use the https:// protocol when cloning")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("sync")
-                  .helptext("Sync with the upstream repository after successful fork")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("verbose")
-                  .helptext("Turn on verbose output")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("debug")
-                  .helptext("Turn on debugging output")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("version")
-                  .helptext("Print the version of this tool")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("mercurial")
-                  .helptext("Force use of mercurial")
-                  .optional());
-
-        var inputs = List.of(
-            Input.position(0)
-                 .describe("URI")
-                 .singular()
-                 .optional(),
-            Input.position(1)
-                 .describe("NAME")
-                 .singular()
-                 .optional());
-
-        var parser = new ArgumentParser("git fork", flags, inputs);
-        return parser.parse(args);
     }
 
     public void fork() throws IOException, InterruptedException {
@@ -392,5 +293,104 @@ public class GitFork {
                 }
             }
         }
+    }
+
+    private static void exit(String message) {
+        System.err.println(message);
+        System.exit(1);
+    }
+
+    private static <T> Supplier<T> die(String message) {
+        return () -> {
+            exit(message);
+            return null;
+        };
+    }
+
+    private static Arguments parseArguments(String[] args) {
+        var flags = List.of(
+                Option.shortcut("u")
+                        .fullname("username")
+                        .describe("NAME")
+                        .helptext("Username on host")
+                        .optional(),
+                Option.shortcut("")
+                        .fullname("reference")
+                        .describe("DIR")
+                        .helptext("Same as the 'git clone' flags 'reference-if-able' + 'dissociate'")
+                        .optional(),
+                Option.shortcut("")
+                        .fullname("depth")
+                        .describe("N")
+                        .helptext("Same as the 'git clone' flag 'depth'")
+                        .optional(),
+                Option.shortcut("")
+                        .fullname("shallow-since")
+                        .describe("DATE")
+                        .helptext("Same as the 'git clone' flag 'shallow-since'")
+                        .optional(),
+                Switch.shortcut("")
+                        .fullname("setup-pre-push-hook")
+                        .helptext("Setup a pre-push hook that runs git-jcheck")
+                        .optional(),
+                Option.shortcut("")
+                        .fullname("host")
+                        .describe("HOSTNAME")
+                        .helptext("Hostname for the forge")
+                        .optional(),
+                Switch.shortcut("")
+                        .fullname("no-clone")
+                        .helptext("Just fork the repository, do not clone it")
+                        .optional(),
+                Switch.shortcut("")
+                        .fullname("no-remote")
+                        .helptext("Do not add an additional git remote")
+                        .optional(),
+                Switch.shortcut("")
+                        .fullname("ssh")
+                        .helptext("Use the ssh:// protocol when cloning")
+                        .optional(),
+                Switch.shortcut("")
+                        .fullname("https")
+                        .helptext("Use the https:// protocol when cloning")
+                        .optional(),
+                Switch.shortcut("")
+                        .fullname("sync")
+                        .helptext("Sync with the upstream repository after successful fork")
+                        .optional(),
+                Switch.shortcut("")
+                        .fullname("verbose")
+                        .helptext("Turn on verbose output")
+                        .optional(),
+                Switch.shortcut("")
+                        .fullname("debug")
+                        .helptext("Turn on debugging output")
+                        .optional(),
+                Switch.shortcut("")
+                        .fullname("version")
+                        .helptext("Print the version of this tool")
+                        .optional(),
+                Switch.shortcut("")
+                        .fullname("mercurial")
+                        .helptext("Force use of mercurial")
+                        .optional());
+
+        var inputs = List.of(
+                Input.position(0)
+                        .describe("URI")
+                        .singular()
+                        .optional(),
+                Input.position(1)
+                        .describe("NAME")
+                        .singular()
+                        .optional());
+
+        var parser = new ArgumentParser("git fork", flags, inputs);
+        return parser.parse(args);
+    }
+
+    public static void main(String[] args) throws IOException, InterruptedException {
+        GitFork commandExecutor = new GitFork(parseArguments(args));
+        commandExecutor.fork();
     }
 }
