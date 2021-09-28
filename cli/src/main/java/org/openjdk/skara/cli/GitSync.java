@@ -66,6 +66,17 @@ public class GitSync {
         return pb.start().waitFor();
     }
 
+    private URI getRemoteURI(String name) throws IOException {
+        if (name != null) {
+            if (remotes.contains(name)) {
+                return Remote.toURI(repo.pullPath(name));
+            } else {
+                return Remote.toURI(name);
+            }
+        }
+        return null;
+    }
+
     private String getOption(String name) throws IOException {
         if (arguments.contains(name)) {
             return arguments.get(name).asString();
@@ -93,42 +104,15 @@ public class GitSync {
 
         HttpProxy.setup();
 
-        String targetFromOptions = null;
-        if (arguments.contains("to")) {
-            targetFromOptions = arguments.get("to").asString();
-        } else {
-            var lines = repo.config("sync.to");
-            if (lines.size() == 1) {
-                if (!remotes.contains(lines.get(0))) {
-                    die("the given remote to push to, " + lines.get(0) + ", does not exist");
-                } else {
-                    targetFromOptions = lines.get(0);
-                }
-            }
-        }
+        String targetFromOptions = getOption("to");
+        URI targetFromOptionsURI = getRemoteURI(targetFromOptions);
 
-        String sourceFromOptions = null;
-        if (arguments.contains("from")) {
-            sourceFromOptions = arguments.get("from").asString();
-        } else {
-            var lines = repo.config("sync.from");
-            if (lines.size() == 1 && remotes.contains(lines.get(0))) {
-                sourceFromOptions = lines.get(0);
-            }
-        }
+        String sourceFromOptions = getOption("from");
+        URI sourceFromOptionsURI = getRemoteURI(sourceFromOptions);;
 
         // Find push target repo
         String targetName;
         URI targetURI;
-        URI targetFromOptionsURI = null;
-        if (targetFromOptions != null) {
-            if (remotes.contains(targetFromOptions)) {
-                targetFromOptionsURI = Remote.toURI(repo.pullPath(targetFromOptions));
-
-            } else {
-                targetFromOptionsURI = Remote.toURI(targetFromOptions);
-            }
-        }
 
         if (!remotes.contains("origin")) {
             if (targetFromOptions != null) {
@@ -180,7 +164,7 @@ public class GitSync {
                 // Unless we force a different recipient repo, we are not allowed to have an error here
                 die("cannot get parent repo from Git Forge provider for " + forgeWebURI);
             }
-            sourceParentURI = null; // Make compiler quiet
+            sourceParentURI = null;
             sourceParentName = null;
         }
 
@@ -210,9 +194,6 @@ public class GitSync {
 
         // Find pull source as given by command line options
         if (sourceFromOptions != null) {
-            var sourceFromOptionsURI = repo.remotes().contains(sourceFromOptions) ?
-                    Remote.toURI(repo.pullPath(sourceFromOptions)) : Remote.toURI(sourceFromOptions);
-
             if (!equalsCanonicalized(sourceFromOptionsURI, sourceURI)) {
                 if (arguments.contains("force")) {
                     // Use the value from the option instead
