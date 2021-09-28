@@ -38,6 +38,7 @@ public class GitSync {
     private final Repository repo;
     private final Arguments arguments;
     private final List<String> remotes;
+    private final boolean isDryRun;
     private String targetName;
     private URI targetURI;
     private String sourceName;
@@ -47,6 +48,13 @@ public class GitSync {
         this.repo = repo;
         this.arguments = arguments;
         this.remotes = repo.remotes();
+        this.isDryRun = arguments.contains("dry-run");
+    }
+
+    private void logVerbose(String message) {
+        if (arguments.contains("verbose") || arguments.contains("debug")) {
+            System.out.println(message);
+        }
     }
 
     private URI getRemoteURI(String name) throws IOException {
@@ -69,25 +77,60 @@ public class GitSync {
         return lines.size() == 1 ? lines.get(0) : null;
     }
 
-    private int pull() throws IOException, InterruptedException {
+    private void syncBranch(String name) throws IOException {
+        Hash fetchHead = null;
+        logVerbose("Fetching branch " + name + " from  " + sourceURI);
+        if (!isDryRun) {
+            fetchHead = repo.fetch(sourceURI, name);
+        }
+        logVerbose("Pushing to " + targetURI);
+        if (!isDryRun) {
+            repo.push(fetchHead, targetURI, name);
+        }
+    }
+
+    private void fetchTarget() throws IOException {
+        if (isDryRun) return;
+
+        repo.fetchRemote(targetName);
+    }
+
+    private void pull() throws IOException, InterruptedException {
+        if (isDryRun) return;
+
         var pb = new ProcessBuilder("git", "pull");
         pb.directory(repo.root().toFile());
         pb.inheritIO();
-        return pb.start().waitFor();
+        var result = pb.start().waitFor();
+        if (result != 0) {
+            die("Failure running git pull, exit code " + result);
+        }
     }
 
-    private int mergeFastForward(String ref) throws IOException, InterruptedException {
+    private void mergeFastForward(String ref) throws IOException, InterruptedException {
+        if (isDryRun) return;
+
         var pb = new ProcessBuilder("git", "merge", "--ff-only", "--quiet", ref);
         pb.directory(repo.root().toFile());
         pb.inheritIO();
-        return pb.start().waitFor();
+        var result = pb.start().waitFor();
+
+        if (result != 0) {
+            die("Failure running git merge, exit code " + result);
+        }
     }
 
-    private int moveBranch(Branch branch, Hash to) throws IOException, InterruptedException {
+    private void moveBranch(Branch branch, Hash to) throws IOException, InterruptedException {
+        if (isDryRun) return;
+
         var pb = new ProcessBuilder("git", "branch", "--force", branch.name(), to.hex());
         pb.directory(repo.root().toFile());
         pb.inheritIO();
-        return pb.start().waitFor();
+        var result = pb.start().waitFor();
+
+        if (result != 0) {
+            die("Failure running git branch, exit code " + result);
+        }
     }
 
     private void setupTargetAndSource() throws IOException {
@@ -112,9 +155,7 @@ public class GitSync {
             if (targetFromOptions != null) {
                 if (!equalsCanonicalized(targetFromOptionsURI, targetURI)) {
                     if (arguments.contains("force")) {
-                        if (arguments.contains("verbose") || arguments.contains("debug")) {
-                            System.out.println("Overriding target 'origin' with " + targetFromOptions + " due to --force");
-                        }
+                        logVerbose("Overriding target 'origin' with " + targetFromOptions + " due to --force");
                         targetName = targetFromOptions;
                         targetURI = targetFromOptionsURI;
                     } else {
@@ -135,9 +176,7 @@ public class GitSync {
                     .map(p -> p.webUrl())
                     .orElse(null);
             sourceParentName = sourceParentURI.toString();
-            if (arguments.contains("verbose") || arguments.contains("debug")) {
-                System.out.println("Git Forge reports upstream parent is " + sourceParentURI);
-            }
+            logVerbose("Git Forge reports upstream parent is " + sourceParentURI);
         } catch (Throwable e) {
             if (arguments.contains("debug")) {
                 e.printStackTrace();
@@ -160,9 +199,7 @@ public class GitSync {
             if (!equalsCanonicalized(sourceUpstreamURI, sourceParentURI)) {
                 if (arguments.contains("force")) {
                     sourceURI = sourceUpstreamURI;
-                    if (arguments.contains("verbose") || arguments.contains("debug")) {
-                        System.out.println("Replacing Git Forge parent with " + sourceUpstreamURI + " from 'upstream' remote");
-                    }
+                    logVerbose("Replacing Git Forge parent with " + sourceUpstreamURI + " from 'upstream' remote");
                 } else {
                     System.err.println("error: git 'upstream' remote and the parent fork given by the Git Forge differ");
                     System.err.println("       Git 'upstream' remote is " + sourceUpstreamURI);
@@ -181,9 +218,7 @@ public class GitSync {
                     // Use the value from the option instead
                     sourceName = sourceFromOptions;
                     sourceURI = sourceFromOptionsURI;
-                    if (arguments.contains("verbose") || arguments.contains("debug")) {
-                        System.out.println("Replacing source repo with " + sourceFromOptionsURI + " from command line options");
-                    }
+                    logVerbose("Replacing source repo with " + sourceFromOptionsURI + " from command line options");
                 } else {
                     die("Git Forge parent and git sync '--from' option do not match");
                 }
@@ -291,34 +326,16 @@ public class GitSync {
         for (var branch : remoteBranches) {
             var name = branch.name();
             if (!branches.isEmpty() && !branches.contains(name)) {
-                if (arguments.contains("verbose") || arguments.contains("debug")) {
-                    System.out.println("Skipping branch " + name);
-                }
+                logVerbose("Skipping branch " + name);
                 continue;
             }
             if (ignore.matcher(name).matches()) {
-                if (arguments.contains("verbose") || arguments.contains("debug")) {
-                    System.out.println("Skipping branch " + name);
-                }
+                logVerbose("Skipping branch " + name);
                 continue;
             }
 
             System.out.println("Syncing " + sourceName + "/" + name + " to " + targetName + "/" + name + "... ");
-            System.out.flush();
-
-            Hash fetchHead = null;
-            if (arguments.contains("verbose")) {
-                System.out.println("Fetching branch " + branch.name() + " from  " + sourceURI);
-            }
-            if (!arguments.contains("dry-run")) {
-                fetchHead = repo.fetch(sourceURI, branch.name());
-            }
-            if (arguments.contains("verbose")) {
-                System.out.println("Pushing to " + targetURI);
-            }
-            if (!arguments.contains("dry-run")) {
-                repo.push(fetchHead, targetURI, name);
-            }
+            syncBranch(name);
             System.out.println("Done syncing");
         }
 
@@ -332,15 +349,8 @@ public class GitSync {
             if (currentBranch.isPresent()) {
                 var upstreamBranch = repo.upstreamFor(currentBranch.get());
                 if (upstreamBranch.isPresent()) {
-                    if (arguments.contains("verbose")) {
-                        System.out.println("Pulling from " + repo);
-                    }
-                    if (!arguments.contains("dry-run")) {
-                        int err = pull();
-                        if (err != 0) {
-                            System.exit(err);
-                        }
-                    }
+                    logVerbose("Pulling from " + repo);
+                    pull();
                 }
             }
         }
@@ -354,12 +364,8 @@ public class GitSync {
             if (!remotes.contains(targetName)) {
                 die("--fast-forward can only be used when --to is the name of a remote");
             }
-            if (arguments.contains("verbose")) {
-                System.out.println("Fetching from remote " + targetName);
-            }
-            if (!arguments.contains("dry-run")) {
-                repo.fetchRemote(targetName);
-            }
+            logVerbose("Fetching from remote " + targetName);
+            fetchTarget();
 
             var remoteBranchNames = new HashSet<String>();
             for (var branch : remoteBranches) {
@@ -377,25 +383,11 @@ public class GitSync {
                         !upstreamHash.equals(localHash) &&
                         repo.isAncestor(localHash.get(), upstreamHash.get())) {
                         if (currentBranch.isPresent() && branch.equals(currentBranch.get())) {
-                            if (!arguments.contains("dry-run")) {
-                                if (arguments.contains("verbose")) {
-                                    System.out.println("Fast-forwarding current branch");
-                                }
-                                var err = mergeFastForward(upstreamBranch.get());
-                                if (err != 0) {
-                                    System.exit(1);
-                                }
-                            }
+                            logVerbose("Fast-forwarding current branch");
+                            mergeFastForward(upstreamBranch.get());
                         } else {
-                            if (!arguments.contains("dry-run")) {
-                                if (arguments.contains("verbose")) {
-                                    System.out.println("Fast-forwarding branch " + upstreamBranch.get());
-                                }
-                                var err = moveBranch(branch, upstreamHash.get());
-                                if (err != 0) {
-                                    System.exit(1);
-                                }
-                            }
+                            logVerbose("Fast-forwarding branch " + upstreamBranch.get());
+                            moveBranch(branch, upstreamHash.get());
                         }
                     }
                 }
