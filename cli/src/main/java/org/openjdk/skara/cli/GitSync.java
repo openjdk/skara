@@ -75,6 +75,11 @@ public class GitSync {
         return lines.size() == 1 ? lines.get(0) : null;
     }
 
+    public static void sync(Repository repo, String[] args) throws IOException, InterruptedException {
+        GitSync syncer = new GitSync(repo, parseArguments(args));
+        syncer.sync();
+    }
+
     public void sync() throws IOException, InterruptedException {
         if (arguments.contains("version")) {
             System.out.println("git-sync version: " + Version.fromManifest().orElse("unknown"));
