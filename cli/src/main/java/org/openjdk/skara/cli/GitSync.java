@@ -62,7 +62,11 @@ public class GitSync {
             if (remotes.contains(name)) {
                 return Remote.toURI(repo.pullPath(name));
             } else {
-                return Remote.toURI(name);
+                try {
+                    return Remote.toURI(name);
+                } catch (IOException e) {
+                    die(name + " is not a known git remote, nor a proper git URI");
+                }
             }
         }
         return null;
@@ -285,6 +289,10 @@ public class GitSync {
         if (arguments.contains("verbose") || arguments.contains("debug")) {
             var level = arguments.contains("debug") ? Level.FINER : Level.FINE;
             Logging.setup(level);
+        }
+
+        if (isDryRun) {
+            System.out.println("Running in dry-run mode. No actual changes will be performed");
         }
 
         HttpProxy.setup();
