@@ -496,8 +496,8 @@ public class GitSync {
     }
 
     public static void sync(Repository repo, String[] args) throws IOException, InterruptedException {
-        GitSync syncer = new GitSync(repo, parseArguments(args));
-        syncer.sync();
+        GitSync commandExecutor = new GitSync(repo, parseArguments(args));
+        commandExecutor.sync();
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
