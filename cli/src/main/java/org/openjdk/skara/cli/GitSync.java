@@ -213,6 +213,14 @@ public class GitSync {
                     System.exit(1);
                 }
             }
+        } else {
+            // Repo is badly configured, fix it unless instructed not to
+            if (!arguments.contains("no-remote")) {
+                System.out.println("Setting 'upstream' remote to " + sourceParentURI);
+                if (!isDryRun) {
+                    repo.addRemote("upstream", sourceParentURI.toString());
+                }
+            }
         }
 
         // Find pull source as given by command line options
@@ -457,6 +465,10 @@ public class GitSync {
                   .fullname("fast-forward")
                   .helptext("Fast forward all local branches where possible")
                   .optional(),
+            Switch.shortcut("N")
+                   .fullname("no-remote")
+                   .helptext("Do not add an additional git remote")
+                   .optional(),
             Switch.shortcut("n")
                    .fullname("dry-run")
                    .helptext("Only simulate behavior, do no actual changes")
