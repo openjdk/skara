@@ -41,10 +41,12 @@ import java.util.logging.Level;
 public class GitFork {
     private final Arguments arguments;
     private final boolean isDryRun;
+    private final String sourceUri;
 
     public GitFork(Arguments arguments) {
         this.arguments = arguments;
         this.isDryRun = arguments.contains("dry-run");
+        this.sourceUri = arguments.at(0).asString();
     }
 
     private String gitConfig(String key) {
@@ -88,6 +90,38 @@ public class GitFork {
         return option != null && option.equalsIgnoreCase("true");
     }
 
+    private URI getUriFromArgs(String subsection) {
+        URI uri;
+        var hostname = getOption("host", subsection);
+
+        var uriArg = sourceUri;
+        if (hostname != null) {
+            var extraSlash = uriArg.startsWith("/") ? "" : "/";
+            uri = URI.create("https://" + hostname + extraSlash + uriArg);
+        } else {
+            var argURI = URI.create(uriArg);
+            uri = argURI.getScheme() == null ?
+                    URI.create("https://" + argURI.getHost() + argURI.getPath()) :
+                    argURI;
+        }
+
+        if (uri == null) {
+            exit("error: not a valid URI: " + uri);
+        }
+        return uri;
+    }
+
+    private String getTargetDir(URI cloneURI) {
+        var defaultTargetDir = Path.of(cloneURI.getPath()).getFileName().toString();
+        if (defaultTargetDir.endsWith(".git")) {
+            defaultTargetDir = defaultTargetDir.substring(0, defaultTargetDir.length() - ".git".length());
+        }
+        String targetDir = arguments.at(1).isPresent() ?
+                arguments.at(1).asString() :
+                defaultTargetDir;
+        return targetDir;
+    }
+
     private Repository clone(List<String> args, URI cloneURI, String targetDir) throws IOException {
         try {
             var command = new ArrayList<String>();
@@ -128,95 +162,78 @@ public class GitFork {
 
         HttpProxy.setup();
 
-        var subsection = arguments.at(0).isPresent() ? arguments.at(0).asString() : null;
+        var subsection = sourceUri;
 
-        boolean useSSH = getSwitch("ssh", subsection);
-        var hostname = getOption("host", subsection);
+        URI upstreamURI = getUriFromArgs(subsection);
 
-        URI uri;
-        var uriArg = arguments.at(0).asString();
-        if (hostname != null) {
-            var extraSlash = uriArg.startsWith("/") ? "" : "/";
-            uri = URI.create("https://" + hostname + extraSlash + uriArg);
-        } else {
-            var argURI = URI.create(uriArg);
-            uri = argURI.getScheme() == null ?
-                URI.create("https://" + argURI.getHost() + argURI.getPath()) :
-                argURI;
-        }
-
-        if (uri == null) {
-            exit("error: not a valid URI: " + uri);
-        }
-
-        var webURI = Remote.toWebURI(uri.toString());
-        var token = System.getenv("GIT_TOKEN");
-        var username = getOption("username", subsection);
-        var credentials = GitCredentials.fill(webURI.getHost(), webURI.getPath(), username, token, webURI.getScheme());
-
-        if (credentials.password() == null) {
-            exit("error: no personal access token found, use git-credentials or the environment variable GIT_TOKEN");
-        }
-        if (credentials.username() == null) {
-            exit("error: no username for " + webURI.getHost() + " found, use git-credentials or the flag --username");
-        }
-
-        var host = ForgeUtils.from(webURI, new Credential(credentials.username(), credentials.password()));
-        if (host.isEmpty()) {
-            exit("error: could not connect to host " + webURI.getHost());
-        }
-
-        var repositoryPath = webURI.getPath().substring(1);
+        var upstreamWebURI = Remote.toWebURI(upstreamURI.toString());
+        var repositoryPath = upstreamWebURI.getPath().substring(1);
 
         if (repositoryPath.endsWith("/")) {
             repositoryPath = repositoryPath.substring(0, repositoryPath.length() - 1);
         }
 
-        var hostedRepo = host.get().repository(repositoryPath).orElseThrow(() ->
-            new IOException("Could not find repository at " + webURI)
+        var token = System.getenv("GIT_TOKEN");
+        var username = getOption("username", subsection);
+
+        var credentials = GitCredentials.fill(upstreamWebURI.getHost(), upstreamWebURI.getPath(), username, token, upstreamWebURI.getScheme());
+
+        if (credentials.password() == null) {
+            exit("error: no personal access token found, use git-credentials or the environment variable GIT_TOKEN");
+        }
+        if (credentials.username() == null) {
+            exit("error: no username for " + upstreamWebURI.getHost() + " found, use git-credentials or the flag --username");
+        }
+
+        var host = ForgeUtils.from(upstreamWebURI, new Credential(credentials.username(), credentials.password()));
+        if (host.isEmpty()) {
+            exit("error: could not connect to host " + upstreamWebURI.getHost());
+        }
+
+        var upstreamHostedRepo = host.get().repository(repositoryPath).orElseThrow(() ->
+            new IOException("Could not find repository at " + upstreamWebURI)
         );
 
         // Create fork at Git Forge
-        var fork = hostedRepo.fork();
+        var originHostedRepo = upstreamHostedRepo.fork();
         if (token == null) {
             GitCredentials.approve(credentials);
         }
 
-        var forkWebUrl = fork.webUrl();
+        var originWebURI = originHostedRepo.webUrl();
 
         boolean noClone = getSwitch("no-clone", subsection);
         if (!noClone) {
-            createLocalClone(subsection, useSSH, hostname, webURI, forkWebUrl);
+            createLocalClone(subsection, upstreamWebURI, originWebURI);
         }
     }
 
-    private void createLocalClone(String subsection, boolean useSSH, String hostname, URI webURI, URI forkWebUrl) throws IOException, InterruptedException {
-        boolean noRemote = getSwitch("no-remote", subsection);
-        boolean shouldSync = getSwitch("sync", subsection);
+    private void createLocalClone(String subsection, URI upstreamWebURI, URI originWebURI) throws IOException, InterruptedException {
+        boolean useSSH = getSwitch("ssh", subsection);
+        URI cloneURI;
+        if (getOption("host", subsection) != null) {
+            if (useSSH) {
+                cloneURI = URI.create("ssh://git@" + originWebURI.getHost() + originWebURI.getPath() + ".git");
+            } else {
+                cloneURI = URI.create("https://" + originWebURI.getHost() + originWebURI.getPath());
+            }
+        } else {
+            if (useSSH) {
+                cloneURI = URI.create("ssh://git@" + originWebURI.getHost() + originWebURI.getPath() + ".git");
+            } else {
+                cloneURI = originWebURI;
+            }
+        }
+
+        System.out.println("Fork available at: " + originWebURI);
+        System.out.println("Cloning " + cloneURI + "...");
+
         var reference = getOption("reference", subsection);
         if (reference != null && reference.startsWith("~" + File.separator)) {
             reference = System.getProperty("user.home") + reference.substring(1);
         }
         var depth = getOption("depth", subsection);
         var shallowSince = getOption("shallow-since", subsection);
-
-        URI cloneURI;
-        if (hostname != null) {
-            if (useSSH) {
-                cloneURI = URI.create("ssh://git@" + forkWebUrl.getHost() + forkWebUrl.getPath() + ".git");
-            } else {
-                cloneURI = URI.create("https://" + forkWebUrl.getHost() + forkWebUrl.getPath());
-            }
-        } else {
-            if (useSSH) {
-                cloneURI = URI.create("ssh://git@" + forkWebUrl.getHost() + forkWebUrl.getPath() + ".git");
-            } else {
-                cloneURI = forkWebUrl;
-            }
-        }
-
-        System.out.println("Fork available at: " + forkWebUrl);
-        System.out.println("Cloning " + cloneURI + "...");
 
         var cloneArgs = new ArrayList<String>();
         if (reference != null) {
@@ -230,26 +247,18 @@ public class GitFork {
             cloneArgs.add("--shallow-since=" + shallowSince);
         }
 
-        var defaultTargetDir = Path.of(cloneURI.getPath()).getFileName().toString();
-        if (defaultTargetDir.endsWith(".git")) {
-            defaultTargetDir = defaultTargetDir.substring(0, defaultTargetDir.length() - ".git".length());
-        }
-        String targetDir = arguments.at(1).isPresent() ?
-            arguments.at(1).asString() :
-            defaultTargetDir;
+        String targetDir = getTargetDir(cloneURI);
         var repo = clone(cloneArgs, cloneURI, targetDir);
 
-        if (!noRemote) {
-            var remoteWord = "remote";
-            System.out.print("Adding " + remoteWord + " 'upstream' for " + webURI + "...");
-            var upstreamUrl = webURI.toString();
+        if (!getSwitch("no-remote", subsection)) {
+            System.out.print("Adding remote 'upstream' for " + upstreamWebURI + "...");
             if (!isDryRun) {
-                repo.addRemote("upstream", upstreamUrl);
+                repo.addRemote("upstream", upstreamWebURI.toString());
             }
 
             System.out.println("done");
 
-            if (shouldSync) {
+            if (getSwitch("sync", subsection)) {
                 if (!isDryRun) {
                     GitSync.sync(repo, new String[] {"--from", "upstream", "--to", "origin", "--fast-forward"});
                 }
