@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,39 +23,32 @@
 package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
-import org.openjdk.skara.forge.Forge;
-import org.openjdk.skara.host.*;
-import org.openjdk.skara.vcs.Repository;
+import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.proxy.HttpProxy;
+import org.openjdk.skara.vcs.Repository;
 import org.openjdk.skara.version.Version;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.net.URI;
-import java.nio.file.*;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 
 public class GitFork {
-    private static void exit(String fmt, Object...args) {
-        System.err.println(String.format(fmt, args));
+    private static void exit(String message) {
+        System.err.println(message);
         System.exit(1);
     }
 
-    private static <T> Supplier<T> die(String fmt, Object... args) {
+    private static <T> Supplier<T> die(String message) {
         return () -> {
-            exit(fmt, args);
+            exit(message);
             return null;
         };
-    }
-
-    private static void sleep(int ms) {
-        try {
-            Thread.sleep(ms);
-        } catch (InterruptedException e) {
-            // do nothing
-        }
     }
 
     private static String getOption(String name, String subsection, Arguments arguments) {
@@ -74,19 +67,8 @@ public class GitFork {
     }
 
     private static boolean getSwitch(String name, String subsection, Arguments arguments) {
-        if (arguments.contains(name)) {
-            return true;
-        }
-
-        if (subsection != null && !subsection.isEmpty()) {
-            var subsectionSpecific = gitConfig("fork." + subsection + "." + name);
-            if (subsectionSpecific != null) {
-                return subsectionSpecific.toLowerCase().equals("true");
-            }
-        }
-
-        var sectionSpecific = gitConfig("fork." + name);
-        return sectionSpecific != null && sectionSpecific.toLowerCase().equals("true");
+        var option = getOption(name, subsection, arguments);
+        return option != null && option.equalsIgnoreCase("true");
     }
 
     private static String gitConfig(String key) {
@@ -102,7 +84,7 @@ public class GitFork {
                 return null;
             }
 
-            return output == null ? null : output.replace("\n", "");
+            return output.replace("\n", "");
         } catch (InterruptedException e) {
             return null;
         } catch (IOException e) {
@@ -228,10 +210,9 @@ public class GitFork {
         var subsection = arguments.at(0).isPresent() ? arguments.at(0).asString() : null;
 
         boolean useSSH = getSwitch("ssh", subsection, arguments);
-        boolean useHTTPS = getSwitch("https", subsection, arguments);
         var hostname = getOption("host", subsection, arguments);
 
-        URI uri = null;
+        URI uri;
         if (arguments.at(0).isPresent()) {
             var arg = arguments.at(0).asString();
             if (hostname != null) {
@@ -273,12 +254,11 @@ public class GitFork {
         var repositoryPath = webURI.getPath().substring(1);
 
         if (repositoryPath.endsWith("/")) {
-            repositoryPath =
-                    repositoryPath.substring(0, repositoryPath.length() - 1);
+            repositoryPath = repositoryPath.substring(0, repositoryPath.length() - 1);
         }
 
         var hostedRepo = host.get().repository(repositoryPath).orElseThrow(() ->
-            new IOException("Could not find repository at " + webURI.toString())
+            new IOException("Could not find repository at " + webURI)
         );
 
         var fork = hostedRepo.fork();
@@ -326,7 +306,7 @@ public class GitFork {
             var depth = getOption("depth", subsection, arguments);
             var shallowSince = getOption("shallow-since", subsection, arguments);
 
-            URI cloneURI = null;
+            URI cloneURI;
             if (hostname != null) {
                 if (useSSH) {
                     cloneURI = URI.create("ssh://git@" + forkWebUrl.getHost() + forkWebUrl.getPath() + ".git");
@@ -368,7 +348,7 @@ public class GitFork {
 
             if (!noRemote) {
                 var remoteWord = isMercurial ? "path" : "remote";
-                System.out.print("Adding " + remoteWord + " 'upstream' for " + webURI.toString() + "...");
+                System.out.print("Adding " + remoteWord + " 'upstream' for " + webURI + "...");
                 var upstreamUrl = webURI.toString();
                 if (isMercurial) {
                     upstreamUrl = "git+" + upstreamUrl;
