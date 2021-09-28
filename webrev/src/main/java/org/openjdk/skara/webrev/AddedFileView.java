@@ -125,11 +125,13 @@ class AddedFileView implements FileView {
 
         if (patch.isTextual()) {
             w.write("<blockquote>\n");
-            w.write("  <pre>\n");
-            w.write(commits.stream()
-                           .map(formatter::format)
-                           .collect(Collectors.joining("\n")));
-            w.write("  </pre>\n");
+            if (!commits.isEmpty()) {
+                w.write("  <pre>\n");
+                w.write(commits.stream()
+                        .map(formatter::format)
+                        .collect(Collectors.joining("\n")));
+                w.write("  </pre>\n");
+            }
             w.write("  <span class=\"stat\">\n");
             w.write(stats.toString());
             w.write("  </span>");
