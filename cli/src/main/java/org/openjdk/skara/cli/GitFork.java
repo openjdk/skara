@@ -247,19 +247,10 @@ public class GitFork {
     }
 
     private URI getCloneURI(URI originWebURI) {
-        boolean useSSH = getSwitch("ssh");
-        if (getOption("host") != null) {
-            if (useSSH) {
-                return URI.create("ssh://git@" + originWebURI.getHost() + originWebURI.getPath() + ".git");
-            } else {
-                return URI.create("https://" + originWebURI.getHost() + originWebURI.getPath());
-            }
+        if (getSwitch("ssh")) {
+            return URI.create("ssh://git@" + originWebURI.getHost() + originWebURI.getPath() + ".git");
         } else {
-            if (useSSH) {
-                return URI.create("ssh://git@" + originWebURI.getHost() + originWebURI.getPath() + ".git");
-            } else {
-                return originWebURI;
-            }
+            return originWebURI;
         }
     }
 
@@ -357,11 +348,7 @@ public class GitFork {
                         .optional(),
                 Switch.shortcut("")
                         .fullname("ssh")
-                        .helptext("Use the ssh:// protocol when cloning")
-                        .optional(),
-                Switch.shortcut("")
-                        .fullname("https")
-                        .helptext("Use the https:// protocol when cloning")
+                        .helptext("Use the ssh:// protocol when cloning (instead of https)")
                         .optional(),
                 Switch.shortcut("")
                         .fullname("sync")
