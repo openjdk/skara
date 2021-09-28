@@ -465,7 +465,7 @@ public class GitSync {
                   .fullname("fast-forward")
                   .helptext("Fast forward all local branches where possible")
                   .optional(),
-            Switch.shortcut("N")
+            Switch.shortcut("")
                    .fullname("no-remote")
                    .helptext("Do not add an additional git remote")
                    .optional(),
