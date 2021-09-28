@@ -212,20 +212,20 @@ public class GitFork {
                 repo.addRemote("upstream", upstreamWebURI.toString());
             }
             System.out.println("done");
+        }
 
-            if (getSwitch("sync")) {
-                if (!isDryRun) {
-                    GitSync.sync(repo, new String[] {"--from", "upstream", "--to", "origin", "--fast-forward"});
-                }
+        if (getSwitch("sync")) {
+            if (!isDryRun) {
+                GitSync.sync(repo, new String[] {"--from", "upstream", "--to", "origin", "--fast-forward"});
             }
+        }
 
-            var setupPrePushHooksOption = getSwitch("setup-pre-push-hook");
-            if (setupPrePushHooksOption) {
-                if (!isDryRun) {
-                    var res = GitJCheck.run(repo, new String[] {"--setup-pre-push-hook"});
-                    if (res != 0) {
-                        System.exit(res);
-                    }
+        var setupPrePushHooksOption = getSwitch("setup-pre-push-hook");
+        if (setupPrePushHooksOption) {
+            if (!isDryRun) {
+                var res = GitJCheck.run(repo, new String[] {"--setup-pre-push-hook"});
+                if (res != 0) {
+                    System.exit(res);
                 }
             }
         }
