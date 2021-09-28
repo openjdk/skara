@@ -59,7 +59,7 @@ public class GitFork {
         };
     }
 
-    private static String getOption(String name, String subsection, Arguments arguments) {
+    private String getOption(String name, String subsection) {
         if (arguments.contains(name)) {
             return arguments.get(name).asString();
         }
@@ -74,8 +74,8 @@ public class GitFork {
         return gitConfig("fork." + name);
     }
 
-    private static boolean getSwitch(String name, String subsection, Arguments arguments) {
-        var option = getOption(name, subsection, arguments);
+    private boolean getSwitch(String name, String subsection) {
+        var option = getOption(name, subsection);
         return option != null && option.equalsIgnoreCase("true");
     }
 
@@ -100,7 +100,7 @@ public class GitFork {
         }
     }
 
-    private static Repository clone(List<String> args, String to, boolean isMercurial) throws IOException {
+    private Repository clone(List<String> args, String to, boolean isMercurial) throws IOException {
         try {
             var vcs = isMercurial ? "hg" : "git";
             var command = new ArrayList<String>();
@@ -136,17 +136,17 @@ public class GitFork {
             Option.shortcut("")
                   .fullname("reference")
                   .describe("DIR")
-                  .helptext("Same as git clone's flags 'reference-if-able' + 'dissociate'")
+                  .helptext("Same as the 'git clone' flags 'reference-if-able' + 'dissociate'")
                   .optional(),
             Option.shortcut("")
                   .fullname("depth")
                   .describe("N")
-                  .helptext("Same as git clones flag 'depth'")
+                  .helptext("Same as the 'git clone' flag 'depth'")
                   .optional(),
             Option.shortcut("")
                   .fullname("shallow-since")
                   .describe("DATE")
-                  .helptext("Same as git clones flag 'shallow-since'")
+                  .helptext("Same as the 'git clone' flag 'shallow-since'")
                   .optional(),
             Switch.shortcut("")
                   .fullname("setup-pre-push-hook")
@@ -208,7 +208,7 @@ public class GitFork {
         return parser.parse(args);
     }
 
-    private void fork() throws IOException, InterruptedException {
+    public void fork() throws IOException, InterruptedException {
         if (arguments.contains("version")) {
             System.out.println("git-fork version: " + Version.fromManifest().orElse("unknown"));
             System.exit(0);
@@ -223,8 +223,8 @@ public class GitFork {
 
         var subsection = arguments.at(0).isPresent() ? arguments.at(0).asString() : null;
 
-        boolean useSSH = getSwitch("ssh", subsection, arguments);
-        var hostname = getOption("host", subsection, arguments);
+        boolean useSSH = getSwitch("ssh", subsection);
+        var hostname = getOption("host", subsection);
 
         URI uri;
         if (arguments.at(0).isPresent()) {
@@ -250,7 +250,7 @@ public class GitFork {
 
         var webURI = Remote.toWebURI(uri.toString());
         var token = isMercurial ? System.getenv("HG_TOKEN") : System.getenv("GIT_TOKEN");
-        var username = getOption("username", subsection, arguments);
+        var username = getOption("username", subsection);
         var credentials = GitCredentials.fill(webURI.getHost(), webURI.getPath(), username, token, webURI.getScheme());
 
         if (credentials.password() == null) {
@@ -285,9 +285,9 @@ public class GitFork {
             forkWebUrl = URI.create("git+" + forkWebUrl.toString());
         }
 
-        boolean noClone = getSwitch("no-clone", subsection, arguments);
-        boolean noRemote = getSwitch("no-remote", subsection, arguments);
-        boolean shouldSync = getSwitch("sync", subsection, arguments);
+        boolean noClone = getSwitch("no-clone", subsection);
+        boolean noRemote = getSwitch("no-remote", subsection);
+        boolean shouldSync = getSwitch("sync", subsection);
         if (noClone || !arguments.at(0).isPresent()) {
             doWithoutLocalClone(useSSH, forkWebUrl, noRemote, shouldSync);
         } else {
@@ -296,12 +296,12 @@ public class GitFork {
     }
 
     private void doWithLocalClone(String subsection, boolean useSSH, String hostname, URI webURI, URI forkWebUrl, boolean noRemote, boolean shouldSync) throws IOException, InterruptedException {
-        var reference = getOption("reference", subsection, arguments);
+        var reference = getOption("reference", subsection);
         if (reference != null && reference.startsWith("~" + File.separator)) {
             reference = System.getProperty("user.home") + reference.substring(1);
         }
-        var depth = getOption("depth", subsection, arguments);
-        var shallowSince = getOption("shallow-since", subsection, arguments);
+        var depth = getOption("depth", subsection);
+        var shallowSince = getOption("shallow-since", subsection);
 
         URI cloneURI;
         if (hostname != null) {
@@ -355,12 +355,12 @@ public class GitFork {
             System.out.println("done");
 
             if (shouldSync) {
-                GitSync.sync(repo, new String[]{"--from", "upstream", "--to", "origin", "--fast-forward"});
+                GitSync.sync(repo, new String[] {"--from", "upstream", "--to", "origin", "--fast-forward"});
             }
 
-            var setupPrePushHooksOption = getOption("setup-pre-push-hook", subsection, arguments);
-            if (setupPrePushHooksOption != null) {
-                var res = GitJCheck.run(repo, new String[]{"--setup-pre-push-hook"});
+            var setupPrePushHooksOption = getSwitch("setup-pre-push-hook", subsection);
+            if (setupPrePushHooksOption) {
+                var res = GitJCheck.run(repo, new String[] {"--setup-pre-push-hook"});
                 if (res != 0) {
                     System.exit(res);
                 }
@@ -388,7 +388,7 @@ public class GitFork {
                 System.out.println("done");
 
                 if (shouldSync) {
-                    GitSync.sync(repo, new String[]{"--from", "origin", "--to", "fork"});
+                    GitSync.sync(repo, new String[] {"--from", "origin", "--to", "fork"});
                 }
             }
         }
