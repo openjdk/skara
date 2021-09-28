@@ -38,11 +38,35 @@ public class GitSync {
     private final Repository repo;
     private final Arguments arguments;
     private final List<String> remotes;
+    private String targetName;
+    private URI targetURI;
+    private String sourceName;
+    private URI sourceURI;
 
     private GitSync(Repository repo, Arguments arguments) throws IOException {
         this.repo = repo;
         this.arguments = arguments;
         this.remotes = repo.remotes();
+    }
+
+    private URI getRemoteURI(String name) throws IOException {
+        if (name != null) {
+            if (remotes.contains(name)) {
+                return Remote.toURI(repo.pullPath(name));
+            } else {
+                return Remote.toURI(name);
+            }
+        }
+        return null;
+    }
+
+    private String getOption(String name) throws IOException {
+        if (arguments.contains(name)) {
+            return arguments.get(name).asString();
+        }
+
+        var lines = repo.config("sync." + name);
+        return lines.size() == 1 ? lines.get(0) : null;
     }
 
     private int pull() throws IOException, InterruptedException {
@@ -66,54 +90,14 @@ public class GitSync {
         return pb.start().waitFor();
     }
 
-    private URI getRemoteURI(String name) throws IOException {
-        if (name != null) {
-            if (remotes.contains(name)) {
-                return Remote.toURI(repo.pullPath(name));
-            } else {
-                return Remote.toURI(name);
-            }
-        }
-        return null;
-    }
-
-    private String getOption(String name) throws IOException {
-        if (arguments.contains(name)) {
-            return arguments.get(name).asString();
-        }
-
-        var lines = repo.config("sync." + name);
-        return lines.size() == 1 ? lines.get(0) : null;
-    }
-
-    public static void sync(Repository repo, String[] args) throws IOException, InterruptedException {
-        GitSync syncer = new GitSync(repo, parseArguments(args));
-        syncer.sync();
-    }
-
-    public void sync() throws IOException, InterruptedException {
-        if (arguments.contains("version")) {
-            System.out.println("git-sync version: " + Version.fromManifest().orElse("unknown"));
-            System.exit(0);
-        }
-
-        if (arguments.contains("verbose") || arguments.contains("debug")) {
-            var level = arguments.contains("debug") ? Level.FINER : Level.FINE;
-            Logging.setup(level);
-        }
-
-        HttpProxy.setup();
-
+    private void setupTargetAndSource() throws IOException {
         String targetFromOptions = getOption("to");
         URI targetFromOptionsURI = getRemoteURI(targetFromOptions);
 
         String sourceFromOptions = getOption("from");
-        URI sourceFromOptionsURI = getRemoteURI(sourceFromOptions);;
+        URI sourceFromOptionsURI = getRemoteURI(sourceFromOptions);
 
         // Find push target repo
-        String targetName;
-        URI targetURI;
-
         if (!remotes.contains("origin")) {
             if (targetFromOptions != null) {
                 // If 'origin' is missing but we have command line arguments, use these instead
@@ -121,8 +105,6 @@ public class GitSync {
                 targetURI = targetFromOptionsURI;
             } else {
                 die("repo does not have an 'origin' remote defined");
-                targetName = null; // Make compiler quiet
-                targetURI = null;
             }
         } else {
             targetName = "origin";
@@ -168,8 +150,8 @@ public class GitSync {
             sourceParentName = null;
         }
 
-        var sourceURI = sourceParentURI;
-        var sourceName = sourceParentName;
+        sourceURI = sourceParentURI;
+        sourceName = sourceParentName;
 
         // Find pull source as given by Git's 'upstream' remote
         if (remotes.contains("upstream")) {
@@ -218,19 +200,18 @@ public class GitSync {
             System.err.println("error: --from and --to refer to the same repository: " + targetURI);
             System.exit(1);
         }
+    }
 
-        System.out.println("Will sync changes from " + sourceURI + " to " + targetURI);
-
-        // Assure we have proper credentials for pull and push operations
+    private void setupCredentials() throws IOException {
         var sourceScheme = sourceURI.getScheme();
         if (sourceScheme.equals("https") || sourceScheme.equals("http")) {
             var token = System.getenv("GIT_TOKEN");
             var username = getOption("username");
             var credentials = GitCredentials.fill(sourceURI.getHost(),
-                                                  sourceURI.getPath(),
-                                                  username,
-                                                  token,
-                                                  sourceScheme);
+                    sourceURI.getPath(),
+                    username,
+                    token,
+                    sourceScheme);
             if (credentials.password() != null && credentials.username() != null && token != null) {
                 sourceURI = URI.create(sourceScheme + "://" + credentials.username() + ":" + credentials.password() + "@" + sourceURI.getHost() + sourceURI.getPath());
             }
@@ -241,10 +222,10 @@ public class GitSync {
             var token = System.getenv("GIT_TOKEN");
             var username = getOption("username");
             var credentials = GitCredentials.fill(targetURI.getHost(),
-                                                  targetURI.getPath(),
-                                                  username,
-                                                  token,
-                                                  targetScheme);
+                    targetURI.getPath(),
+                    username,
+                    token,
+                    targetScheme);
             if (credentials.password() == null) {
                 die("no personal access token found, use git-credentials or the environment variable GIT_TOKEN");
             }
@@ -253,11 +234,32 @@ public class GitSync {
             }
             if (token != null) {
                 targetURI = URI.create(targetScheme + "://" + credentials.username() + ":" + credentials.password() + "@" +
-                                        targetURI.getHost() + targetURI.getPath());
+                        targetURI.getHost() + targetURI.getPath());
             } else {
                 GitCredentials.approve(credentials);
             }
         }
+    }
+
+    public void sync() throws IOException, InterruptedException {
+        if (arguments.contains("version")) {
+            System.out.println("git-sync version: " + Version.fromManifest().orElse("unknown"));
+            System.exit(0);
+        }
+
+        if (arguments.contains("verbose") || arguments.contains("debug")) {
+            var level = arguments.contains("debug") ? Level.FINER : Level.FINE;
+            Logging.setup(level);
+        }
+
+        HttpProxy.setup();
+
+        // Setup source (from, upstream) and target (to, origin) repo names and URIs
+        setupTargetAndSource();
+        System.out.println("Will sync changes from " + sourceURI + " to " + targetURI);
+
+        // Assure we have proper credentials for pull and push operations
+        setupCredentials();
 
         var branches = new HashSet<String>();
         if (arguments.contains("branches")) {
@@ -285,7 +287,6 @@ public class GitSync {
             }
         }
 
-        System.out.println("source name is " + sourceName);
         var remoteBranches = repo.remoteBranches(sourceName);
         for (var branch : remoteBranches) {
             var name = branch.name();
@@ -480,6 +481,11 @@ public class GitSync {
 
         var parser = new ArgumentParser("git sync", flags);
         return parser.parse(args);
+    }
+
+    public static void sync(Repository repo, String[] args) throws IOException, InterruptedException {
+        GitSync syncer = new GitSync(repo, parseArguments(args));
+        syncer.sync();
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
