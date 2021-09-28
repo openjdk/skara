@@ -31,6 +31,7 @@ import org.openjdk.skara.version.Version;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -63,9 +64,7 @@ public class GitFork {
             }
 
             return output.replace("\n", "");
-        } catch (InterruptedException e) {
-            return null;
-        } catch (IOException e) {
+        } catch (InterruptedException | IOException e) {
             return null;
         }
     }
@@ -88,46 +87,53 @@ public class GitFork {
         return option != null && option.equalsIgnoreCase("true");
     }
 
-    private URI getUriFromArgs() {
-        URI uri;
+    private URI getURIFromArgs() {
         var hostname = getOption("host");
 
-        var uriArg = sourceArg;
-        if (hostname != null) {
-            var extraSlash = uriArg.startsWith("/") ? "" : "/";
-            uri = URI.create("https://" + hostname + extraSlash + uriArg);
+        try {
+            if (hostname != null) {
+                // Assume command line argument is just the path component
+                var extraSlash = sourceArg.startsWith("/") ? "" : "/";
+                return new URI("https://" + hostname + extraSlash + sourceArg);
+            } else {
+                var uri = new URI(sourceArg);
+                if (uri.getScheme() == null) {
+                    return new URI("https://" + uri.getHost() + uri.getPath());
+                } else {
+                    return uri;
+                }
+            }
+        } catch (URISyntaxException e) {
+            exit("error: could not form a valid URI from argument: " + sourceArg);
+            return null; // make compiler quiet
+        }
+    }
+
+    private Path getTargetDir(URI cloneURI) {
+        if (arguments.at(1).isPresent()) {
+            // If user provided an explicit name for target dir, use it
+            return Path.of(arguments.at(1).asString());
         } else {
-            var argURI = URI.create(uriArg);
-            uri = argURI.getScheme() == null ?
-                    URI.create("https://" + argURI.getHost() + argURI.getPath()) :
-                    argURI;
-        }
+            // Otherwise get the base name from the URI
+            var targetDir = Path.of(cloneURI.getPath()).getFileName();
+            var targetDirStr = targetDir.toString();
 
-        if (uri == null) {
-            exit("error: not a valid URI: " + uri);
+            if (targetDirStr.endsWith(".git")) {
+                return Path.of(targetDirStr.substring(0, targetDirStr.length() - ".git".length()));
+            } else {
+                return targetDir;
+            }
         }
-        return uri;
     }
 
-    private String getTargetDir(URI cloneURI) {
-        var defaultTargetDir = Path.of(cloneURI.getPath()).getFileName().toString();
-        if (defaultTargetDir.endsWith(".git")) {
-            defaultTargetDir = defaultTargetDir.substring(0, defaultTargetDir.length() - ".git".length());
-        }
-        String targetDir = arguments.at(1).isPresent() ?
-                arguments.at(1).asString() :
-                defaultTargetDir;
-        return targetDir;
-    }
-
-    private Repository clone(List<String> args, URI cloneURI, String targetDir) throws IOException {
+    private Repository clone(List<String> args, URI cloneURI, Path targetDir) throws IOException {
         try {
             var command = new ArrayList<String>();
             command.add("git");
             command.add("clone");
             command.addAll(args);
             command.add(cloneURI.toString());
-            command.add(targetDir);
+            command.add(targetDir.toString());
             if (!isDryRun) {
                 var pb = new ProcessBuilder(command);
                 pb.inheritIO();
@@ -137,7 +143,7 @@ public class GitFork {
                     exit("error: '" + "git" + " clone " + String.join(" ", args) + "' failed with exit code: " + res);
                 }
             }
-            return Repository.get(Path.of(targetDir)).orElseThrow(() -> new IOException("Could not find repository"));
+            return Repository.get(targetDir).orElseThrow(() -> new IOException("Could not find repository"));
         } catch (InterruptedException e) {
             throw new IOException(e);
         }
@@ -160,7 +166,9 @@ public class GitFork {
 
         HttpProxy.setup();
 
-        var upstreamURI = getUriFromArgs();
+        // Get the upstream repo user specified on the command line
+        var upstreamURI = getURIFromArgs();
+
         var upstreamWebURI = Remote.toWebURI(upstreamURI.toString());
 
         var token = System.getenv("GIT_TOKEN");
@@ -185,7 +193,7 @@ public class GitFork {
             new IOException("Could not find repository at " + upstreamWebURI)
         );
 
-        // Create fork at Git Forge
+        // Create personal fork ("origin" from now on) at Git Forge
         var originHostedRepo = upstreamHostedRepo.fork();
         if (token == null) {
             GitCredentials.approve(credentials);
@@ -193,19 +201,17 @@ public class GitFork {
         var originWebURI = originHostedRepo.webUrl();
         System.out.println("Fork available at: " + originWebURI);
 
-        if (!getSwitch("no-clone")) {
-            createLocalClone(upstreamWebURI, originWebURI);
+        if (getSwitch("no-clone")) {
+            // We're done here, if we should not create a local clone
+            return;
         }
-    }
 
-    private void createLocalClone(URI upstreamWebURI, URI originWebURI) throws IOException, InterruptedException {
+        // Create a local clone
         var cloneURI = getCloneURI(originWebURI);
-        var cloneArgs = getCloneArgs();
-        var targetDir = getTargetDir(cloneURI);
-
         System.out.println("Cloning " + cloneURI + "...");
-        var repo = clone(cloneArgs, cloneURI, targetDir);
+        var repo = clone(getCloneArgs(), cloneURI, getTargetDir(cloneURI));
 
+        // Setup git remote
         if (!getSwitch("no-remote")) {
             System.out.print("Adding remote 'upstream' for " + upstreamWebURI + "...");
             if (!isDryRun) {
@@ -214,14 +220,23 @@ public class GitFork {
             System.out.println("done");
         }
 
+        // Sync the fork from upstream
         if (getSwitch("sync")) {
+            var syncArgs = new ArrayList<String>();
+            syncArgs.add("--fast-forward");
+            if (getSwitch("no-remote")) {
+                // Propagate --no-remote; and also specify the remote for git sync to work
+                syncArgs.add("--no-remote");
+                syncArgs.add("--from");
+                syncArgs.add(upstreamWebURI.toString());
+            }
             if (!isDryRun) {
-                GitSync.sync(repo, new String[] {"--from", "upstream", "--to", "origin", "--fast-forward"});
+                GitSync.sync(repo, (String[]) syncArgs.toArray());
             }
         }
 
-        var setupPrePushHooksOption = getSwitch("setup-pre-push-hook");
-        if (setupPrePushHooksOption) {
+        // Setup jcheck hooks
+        if (getSwitch("setup-pre-push-hook")) {
             if (!isDryRun) {
                 var res = GitJCheck.run(repo, new String[] {"--setup-pre-push-hook"});
                 if (res != 0) {
@@ -271,6 +286,7 @@ public class GitFork {
     }
 
     private static String expandPath(String path) {
+        // FIXME: Why is this not done from the shell? It should not be needed.
         if (path.startsWith("~" + File.separator)) {
             return System.getProperty("user.home") + path.substring(1);
         } else {
