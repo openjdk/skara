@@ -40,10 +40,12 @@ import java.util.logging.Level;
 
 public class GitFork {
     private final Arguments arguments;
+    private final boolean isDryRun;
     private final boolean isMercurial;
 
     public GitFork(Arguments arguments) {
         this.arguments = arguments;
+        this.isDryRun = arguments.contains("dry-run");
         isMercurial = arguments.contains("mercurial");
     }
 
@@ -88,7 +90,7 @@ public class GitFork {
         return option != null && option.equalsIgnoreCase("true");
     }
 
-    private Repository clone(List<String> args, String to, boolean isMercurial) throws IOException {
+    private Repository clone(List<String> args, String to) throws IOException {
         try {
             var vcs = isMercurial ? "hg" : "git";
             var command = new ArrayList<String>();
@@ -96,12 +98,14 @@ public class GitFork {
             command.add("clone");
             command.addAll(args);
             command.add(to);
-            var pb = new ProcessBuilder(command);
-            pb.inheritIO();
-            var p = pb.start();
-            var res = p.waitFor();
-            if (res != 0) {
-                exit("error: '" + vcs + " clone " + String.join(" ", args) + "' failed with exit code: " + res);
+            if (!isDryRun) {
+                var pb = new ProcessBuilder(command);
+                pb.inheritIO();
+                var p = pb.start();
+                var res = p.waitFor();
+                if (res != 0) {
+                    exit("error: '" + vcs + " clone " + String.join(" ", args) + "' failed with exit code: " + res);
+                }
             }
             return Repository.get(Path.of(to)).orElseThrow(() -> new IOException("Could not find repository"));
         } catch (InterruptedException e) {
@@ -118,6 +122,10 @@ public class GitFork {
         if (arguments.contains("verbose") || arguments.contains("debug")) {
             var level = arguments.contains("debug") ? Level.FINER : Level.FINE;
             Logging.setup(level);
+        }
+
+        if (isDryRun) {
+            System.out.println("Running in dry-run mode. No actual changes will be performed");
         }
 
         HttpProxy.setup();
@@ -190,7 +198,9 @@ public class GitFork {
         boolean noRemote = getSwitch("no-remote", subsection);
         boolean shouldSync = getSwitch("sync", subsection);
         if (noClone || !arguments.at(0).isPresent()) {
-            doWithoutLocalClone(useSSH, forkWebUrl, noRemote, shouldSync);
+            if (!arguments.at(0).isPresent()) {
+                doWithoutLocalClone(useSSH, forkWebUrl, noRemote, shouldSync);
+            }
         } else {
             doWithLocalClone(subsection, useSSH, hostname, webURI, forkWebUrl, noRemote, shouldSync);
         }
@@ -235,14 +245,14 @@ public class GitFork {
         }
         cloneArgs.add(cloneURI.toString());
 
-        var defaultTo = Path.of(cloneURI.getPath()).getFileName().toString();
-        if (defaultTo.endsWith(".git")) {
-            defaultTo = defaultTo.substring(0, defaultTo.length() - ".git".length());
+        var defaultTargetDir = Path.of(cloneURI.getPath()).getFileName().toString();
+        if (defaultTargetDir.endsWith(".git")) {
+            defaultTargetDir = defaultTargetDir.substring(0, defaultTargetDir.length() - ".git".length());
         }
-        String to = arguments.at(1).isPresent() ?
+        String targetDir = arguments.at(1).isPresent() ?
             arguments.at(1).asString() :
-            defaultTo;
-        var repo = clone(cloneArgs, to, isMercurial);
+            defaultTargetDir;
+        var repo = clone(cloneArgs, targetDir);
 
         if (!noRemote) {
             var remoteWord = isMercurial ? "path" : "remote";
@@ -251,44 +261,52 @@ public class GitFork {
             if (isMercurial) {
                 upstreamUrl = "git+" + upstreamUrl;
             }
-            repo.addRemote("upstream", upstreamUrl);
+            if (!isDryRun) {
+                repo.addRemote("upstream", upstreamUrl);
+            }
 
             System.out.println("done");
 
             if (shouldSync) {
-                GitSync.sync(repo, new String[] {"--from", "upstream", "--to", "origin", "--fast-forward"});
+                if (!isDryRun) {
+                    GitSync.sync(repo, new String[] {"--from", "upstream", "--to", "origin", "--fast-forward"});
+                }
             }
 
             var setupPrePushHooksOption = getSwitch("setup-pre-push-hook", subsection);
             if (setupPrePushHooksOption) {
-                var res = GitJCheck.run(repo, new String[] {"--setup-pre-push-hook"});
-                if (res != 0) {
-                    System.exit(res);
+                if (!isDryRun) {
+                    var res = GitJCheck.run(repo, new String[] {"--setup-pre-push-hook"});
+                    if (res != 0) {
+                        System.exit(res);
+                    }
                 }
             }
         }
     }
 
     private void doWithoutLocalClone(boolean useSSH, URI forkWebUrl, boolean noRemote, boolean shouldSync) throws IOException, InterruptedException {
-        if (!arguments.at(0).isPresent()) {
-            var cwd = Path.of("").toAbsolutePath();
-            var repo = Repository.get(cwd).orElseGet(die("error: no git repository found at " + cwd));
+        var cwd = Path.of("").toAbsolutePath();
+        var repo = Repository.get(cwd).orElseGet(die("error: no git repository found at " + cwd));
 
-            var forkURL = useSSH ?
-                "ssh://git@" + forkWebUrl.getHost() + forkWebUrl.getPath() :
-                forkWebUrl.toString();
-            System.out.println(forkURL);
+        var forkURL = useSSH ?
+            "ssh://git@" + forkWebUrl.getHost() + forkWebUrl.getPath() :
+            forkWebUrl.toString();
+        System.out.println(forkURL);
 
-            if (!noRemote) {
-                var remoteWord = isMercurial ? "path" : "remote";
-                System.out.print("Adding " + remoteWord + " 'clone' for " + forkURL + "...");
-                if (isMercurial) {
-                    forkURL = "git+" + forkURL;
-                }
+        if (!noRemote) {
+            var remoteWord = isMercurial ? "path" : "remote";
+            System.out.print("Adding " + remoteWord + " 'clone' for " + forkURL + "...");
+            if (isMercurial) {
+                forkURL = "git+" + forkURL;
+            }
+            if (!isDryRun) {
                 repo.addRemote("fork", forkURL);
-                System.out.println("done");
+            }
+            System.out.println("done");
 
-                if (shouldSync) {
+            if (shouldSync) {
+                if (!isDryRun) {
                     GitSync.sync(repo, new String[] {"--from", "origin", "--to", "fork"});
                 }
             }
@@ -357,6 +375,10 @@ public class GitFork {
                 Switch.shortcut("")
                         .fullname("sync")
                         .helptext("Sync with the upstream repository after successful fork")
+                        .optional(),
+                Switch.shortcut("n")
+                        .fullname("dry-run")
+                        .helptext("Only simulate behavior, do no actual changes")
                         .optional(),
                 Switch.shortcut("")
                         .fullname("verbose")
