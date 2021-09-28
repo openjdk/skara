@@ -39,6 +39,14 @@ import java.util.function.Supplier;
 import java.util.logging.Level;
 
 public class GitFork {
+    private final Arguments arguments;
+    private final boolean isMercurial;
+
+    public GitFork(Arguments arguments) {
+        this.arguments = arguments;
+        isMercurial = arguments.contains("mercurial");
+    }
+
     private static void exit(String message) {
         System.err.println(message);
         System.exit(1);
@@ -114,6 +122,11 @@ public class GitFork {
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
+        GitFork commandExecutor = new GitFork(parseArguments(args));
+        commandExecutor.fork();
+    }
+
+    private static Arguments parseArguments(String[] args) {
         var flags = List.of(
             Option.shortcut("u")
                   .fullname("username")
@@ -191,10 +204,11 @@ public class GitFork {
                  .singular()
                  .optional());
 
-        var parser = new ArgumentParser("git-fork", flags, inputs);
-        var arguments = parser.parse(args);
-        var isMercurial = arguments.contains("mercurial");
+        var parser = new ArgumentParser("git fork", flags, inputs);
+        return parser.parse(args);
+    }
 
+    private void fork() throws IOException, InterruptedException {
         if (arguments.contains("version")) {
             System.out.println("git-fork version: " + Version.fromManifest().orElse("unknown"));
             System.exit(0);
@@ -275,98 +289,106 @@ public class GitFork {
         boolean noRemote = getSwitch("no-remote", subsection, arguments);
         boolean shouldSync = getSwitch("sync", subsection, arguments);
         if (noClone || !arguments.at(0).isPresent()) {
-            if (!arguments.at(0).isPresent()) {
-                var cwd = Path.of("").toAbsolutePath();
-                var repo = Repository.get(cwd).orElseGet(die("error: no git repository found at " + cwd));
+            doWithoutLocalClone(useSSH, forkWebUrl, noRemote, shouldSync);
+        } else {
+            doWithLocalClone(subsection, useSSH, hostname, webURI, forkWebUrl, noRemote, shouldSync);
+        }
+    }
 
-                var forkURL = useSSH ?
-                    "ssh://git@" + forkWebUrl.getHost() + forkWebUrl.getPath() :
-                    forkWebUrl.toString();
-                System.out.println(forkURL);
+    private void doWithLocalClone(String subsection, boolean useSSH, String hostname, URI webURI, URI forkWebUrl, boolean noRemote, boolean shouldSync) throws IOException, InterruptedException {
+        var reference = getOption("reference", subsection, arguments);
+        if (reference != null && reference.startsWith("~" + File.separator)) {
+            reference = System.getProperty("user.home") + reference.substring(1);
+        }
+        var depth = getOption("depth", subsection, arguments);
+        var shallowSince = getOption("shallow-since", subsection, arguments);
 
-                if (!noRemote) {
-                    var remoteWord = isMercurial ? "path" : "remote";
-                    System.out.print("Adding " + remoteWord + " 'clone' for " + forkURL + "...");
-                    if (isMercurial) {
-                        forkURL = "git+" + forkURL;
-                    }
-                    repo.addRemote("fork", forkURL);
-                    System.out.println("done");
-
-                    if (shouldSync) {
-                        GitSync.sync(repo, new String[]{"--from", "origin", "--to", "fork"});
-                    }
-                }
+        URI cloneURI;
+        if (hostname != null) {
+            if (useSSH) {
+                cloneURI = URI.create("ssh://git@" + forkWebUrl.getHost() + forkWebUrl.getPath() + ".git");
+            } else {
+                cloneURI = URI.create("https://" + forkWebUrl.getHost() + forkWebUrl.getPath());
             }
         } else {
-            var reference = getOption("reference", subsection, arguments);
-            if (reference != null && reference.startsWith("~" + File.separator)) {
-                reference = System.getProperty("user.home") + reference.substring(1);
-            }
-            var depth = getOption("depth", subsection, arguments);
-            var shallowSince = getOption("shallow-since", subsection, arguments);
-
-            URI cloneURI;
-            if (hostname != null) {
-                if (useSSH) {
-                    cloneURI = URI.create("ssh://git@" + forkWebUrl.getHost() + forkWebUrl.getPath() + ".git");
-                } else {
-                    cloneURI = URI.create("https://" + forkWebUrl.getHost() + forkWebUrl.getPath());
-                }
+            if (useSSH) {
+                cloneURI = URI.create("ssh://git@" + forkWebUrl.getHost() + forkWebUrl.getPath() + ".git");
             } else {
-                if (useSSH) {
-                    cloneURI = URI.create("ssh://git@" + forkWebUrl.getHost() + forkWebUrl.getPath() + ".git");
-                } else {
-                    cloneURI = forkWebUrl;
+                cloneURI = forkWebUrl;
+            }
+        }
+
+        System.out.println("Fork available at: " + forkWebUrl);
+        System.out.println("Cloning " + cloneURI + "...");
+
+        var cloneArgs = new ArrayList<String>();
+        if (reference != null) {
+            cloneArgs.add("--reference-if-able=" + reference);
+            cloneArgs.add("--dissociate");
+        }
+        if (depth != null) {
+            cloneArgs.add("--depth=" + depth);
+        }
+        if (shallowSince != null) {
+            cloneArgs.add("--shallow-since=" + shallowSince);
+        }
+        cloneArgs.add(cloneURI.toString());
+
+        var defaultTo = Path.of(cloneURI.getPath()).getFileName().toString();
+        if (defaultTo.endsWith(".git")) {
+            defaultTo = defaultTo.substring(0, defaultTo.length() - ".git".length());
+        }
+        String to = arguments.at(1).isPresent() ?
+            arguments.at(1).asString() :
+            defaultTo;
+        var repo = clone(cloneArgs, to, isMercurial);
+
+        if (!noRemote) {
+            var remoteWord = isMercurial ? "path" : "remote";
+            System.out.print("Adding " + remoteWord + " 'upstream' for " + webURI + "...");
+            var upstreamUrl = webURI.toString();
+            if (isMercurial) {
+                upstreamUrl = "git+" + upstreamUrl;
+            }
+            repo.addRemote("upstream", upstreamUrl);
+
+            System.out.println("done");
+
+            if (shouldSync) {
+                GitSync.sync(repo, new String[]{"--from", "upstream", "--to", "origin", "--fast-forward"});
+            }
+
+            var setupPrePushHooksOption = getOption("setup-pre-push-hook", subsection, arguments);
+            if (setupPrePushHooksOption != null) {
+                var res = GitJCheck.run(repo, new String[]{"--setup-pre-push-hook"});
+                if (res != 0) {
+                    System.exit(res);
                 }
             }
+        }
+    }
 
-            System.out.println("Fork available at: " + forkWebUrl);
-            System.out.println("Cloning " + cloneURI + "...");
+    private void doWithoutLocalClone(boolean useSSH, URI forkWebUrl, boolean noRemote, boolean shouldSync) throws IOException, InterruptedException {
+        if (!arguments.at(0).isPresent()) {
+            var cwd = Path.of("").toAbsolutePath();
+            var repo = Repository.get(cwd).orElseGet(die("error: no git repository found at " + cwd));
 
-            var cloneArgs = new ArrayList<String>();
-            if (reference != null) {
-                cloneArgs.add("--reference-if-able=" + reference);
-                cloneArgs.add("--dissociate");
-            }
-            if (depth != null) {
-                cloneArgs.add("--depth=" + depth);
-            }
-            if (shallowSince != null) {
-                cloneArgs.add("--shallow-since=" + shallowSince);
-            }
-            cloneArgs.add(cloneURI.toString());
-
-            var defaultTo = Path.of(cloneURI.getPath()).getFileName().toString();
-            if (defaultTo.endsWith(".git")) {
-                defaultTo = defaultTo.substring(0, defaultTo.length() - ".git".length());
-            }
-            String to = arguments.at(1).isPresent() ?
-                arguments.at(1).asString() :
-                defaultTo;
-            var repo = clone(cloneArgs, to, isMercurial);
+            var forkURL = useSSH ?
+                "ssh://git@" + forkWebUrl.getHost() + forkWebUrl.getPath() :
+                forkWebUrl.toString();
+            System.out.println(forkURL);
 
             if (!noRemote) {
                 var remoteWord = isMercurial ? "path" : "remote";
-                System.out.print("Adding " + remoteWord + " 'upstream' for " + webURI + "...");
-                var upstreamUrl = webURI.toString();
+                System.out.print("Adding " + remoteWord + " 'clone' for " + forkURL + "...");
                 if (isMercurial) {
-                    upstreamUrl = "git+" + upstreamUrl;
+                    forkURL = "git+" + forkURL;
                 }
-                repo.addRemote("upstream", upstreamUrl);
-
+                repo.addRemote("fork", forkURL);
                 System.out.println("done");
 
                 if (shouldSync) {
-                    GitSync.sync(repo, new String[]{"--from", "upstream", "--to", "origin", "--fast-forward"});
-                }
-
-                var setupPrePushHooksOption = getOption("setup-pre-push-hook", subsection, arguments);
-                if (setupPrePushHooksOption != null) {
-                    var res = GitJCheck.run(repo, new String[]{"--setup-pre-push-hook"});
-                    if (res != 0) {
-                        System.exit(res);
-                    }
+                    GitSync.sync(repo, new String[]{"--from", "origin", "--to", "fork"});
                 }
             }
         }
