@@ -36,9 +36,22 @@ import java.util.logging.*;
 
 public class GitSync {
     private static IOException die(String message) {
-        System.err.println(message);
+        System.err.println("error: " + message);
         System.exit(1);
         return new IOException("will never reach here");
+    }
+
+    private static boolean equalsCanonicalized(URI a, URI b) throws IOException {
+        if (a == null || b == null) {
+            if (a == null && b == null) {
+                return true;
+            }
+            return false;
+        }
+
+        var canonicalA = Remote.toWebURI(Remote.canonicalize(a).toString());
+        var canonicalB = Remote.toWebURI(Remote.canonicalize(b).toString());
+        return canonicalA.equals(canonicalB);
     }
 
     private static int pull(Repository repo) throws IOException, InterruptedException {
@@ -111,6 +124,10 @@ public class GitSync {
                    .helptext("Only simulate behavior, do no actual changes")
                    .optional(),
             Switch.shortcut("")
+                   .fullname("force")
+                   .helptext("Force syncing even between unrelated repos (beware!)")
+                   .optional(),
+            Switch.shortcut("")
                   .fullname("verbose")
                   .helptext("Turn on verbose output")
                   .optional(),
@@ -137,111 +154,190 @@ public class GitSync {
             Logging.setup(level);
         }
 
-
         HttpProxy.setup();
 
         var remotes = repo.remotes();
 
-        String from = null;
+        String targetFromOptions = null;
+        if (arguments.contains("to")) {
+            targetFromOptions = arguments.get("to").asString();
+        } else {
+            var lines = repo.config("sync.to");
+            if (lines.size() == 1) {
+                if (!remotes.contains(lines.get(0))) {
+                    die("the given remote to push to, " + lines.get(0) + ", does not exist");
+                } else {
+                    targetFromOptions = lines.get(0);
+                }
+            }
+        }
+
+        String sourceFromOptions = null;
         if (arguments.contains("from")) {
-            from = arguments.get("from").asString();
+            sourceFromOptions = arguments.get("from").asString();
         } else {
             var lines = repo.config("sync.from");
             if (lines.size() == 1 && remotes.contains(lines.get(0))) {
-                from = lines.get(0);
+                sourceFromOptions = lines.get(0);
+            }
+        }
+
+        // Find push target repo
+        String targetName;
+        URI targetURI;
+        URI targetFromOptionsURI = null;
+        if (targetFromOptions != null) {
+            if (remotes.contains(targetFromOptions)) {
+                targetFromOptionsURI = Remote.toURI(repo.pullPath(targetFromOptions));
+
             } else {
-                if (remotes.contains("upstream")) {
-                    from = "upstream";
-                } else if (remotes.contains("origin")) {
-                    if (remotes.contains("fork")) {
-                        from = "origin";
-                    } else {
-                        var originPullPath = repo.pullPath("origin");
-                        try {
-                            var uri = Remote.toWebURI(originPullPath);
-                            from = ForgeUtils.from(uri)
-                                             .flatMap(f -> f.repository(uri.getPath().substring(1)))
-                                             .flatMap(r -> r.parent())
-                                             .map(p -> p.webUrl().toString())
-                                             .orElse(null);
-                        } catch (Throwable e) {
-                            from = null;
+                targetFromOptionsURI = Remote.toURI(targetFromOptions);
+            }
+        }
+
+        if (!remotes.contains("origin")) {
+            if (targetFromOptions != null) {
+                // If 'origin' is missing but we have command line arguments, use these instead
+                targetName = targetFromOptions;
+                targetURI = targetFromOptionsURI;
+            } else {
+                die("repo does not have an 'origin' remote defined");
+                targetName = null; // Make compiler quiet
+                targetURI = null;
+            }
+        } else {
+            targetName = "origin";
+            targetURI = Remote.toURI(repo.pullPath(targetName));
+            if (targetFromOptions != null) {
+                if (!equalsCanonicalized(targetFromOptionsURI, targetURI)) {
+                    if (arguments.contains("force")) {
+                        if (arguments.contains("verbose") || arguments.contains("debug")) {
+                            System.out.println("Overriding target 'origin' with " + targetFromOptions + " due to --force");
                         }
+                        targetName = targetFromOptions;
+                        targetURI = targetFromOptionsURI;
+                    } else {
+                        die("git 'origin' remote and '--to' argument differ. Consider using --force.");
                     }
                 }
             }
         }
 
-        if (from == null) {
+        // Find pull source as given by the Git Forge as the repository's parent
+        var forgeWebURI = Remote.toWebURI(targetURI.toString());
+        URI sourceParentURI;
+        String sourceParentName;
+        try {
+            sourceParentURI = ForgeUtils.from(forgeWebURI)
+                    .flatMap(f -> f.repository(forgeWebURI.getPath().substring(1)))
+                    .flatMap(r -> r.parent())
+                    .map(p -> p.webUrl())
+                    .orElse(null);
+            sourceParentName = sourceParentURI.toString();
+            if (arguments.contains("verbose") || arguments.contains("debug")) {
+                System.out.println("Git Forge reports upstream parent is " + sourceParentURI);
+            }
+        } catch (Throwable e) {
+            if (arguments.contains("debug")) {
+                e.printStackTrace();
+            }
+            if (!arguments.contains("force")) {
+                // Unless we force a different recipient repo, we are not allowed to have an error here
+                die("cannot get parent repo from Git Forge provider for " + forgeWebURI);
+            }
+            sourceParentURI = null; // Make compiler quiet
+            sourceParentName = null;
+        }
+
+        var sourceURI = sourceParentURI;
+        var sourceName = sourceParentName;
+
+        // Find pull source as given by Git's 'upstream' remote
+        if (remotes.contains("upstream")) {
+            sourceName = "upstream";
+            var sourceUpstreamURI = Remote.toURI(repo.pullPath("upstream"));
+            if (!equalsCanonicalized(sourceUpstreamURI, sourceParentURI)) {
+                if (arguments.contains("force")) {
+                    sourceURI = sourceUpstreamURI;
+                    if (arguments.contains("verbose") || arguments.contains("debug")) {
+                        System.out.println("Replacing Git Forge parent with " + sourceUpstreamURI + " from 'upstream' remote");
+                    }
+                } else {
+                    System.err.println("error: git 'upstream' remote and the parent fork given by the Git Forge differ");
+                    System.err.println("       Git 'upstream' remote is " + sourceUpstreamURI);
+                    System.err.println("       Git Forge parent is " + sourceParentURI);
+                    System.err.println("       Remove incorrect 'upstream' remote with 'git remote remove upstream'");
+                    System.err.println("       or run with --force to use 'upstream' remote anyway");
+                    System.exit(1);
+                }
+            }
+        }
+
+        // Find pull source as given by command line options
+        if (sourceFromOptions != null) {
+            var sourceFromOptionsURI = repo.remotes().contains(sourceFromOptions) ?
+                    Remote.toURI(repo.pullPath(sourceFromOptions)) : Remote.toURI(sourceFromOptions);
+
+            if (!equalsCanonicalized(sourceFromOptionsURI, sourceURI)) {
+                if (arguments.contains("force")) {
+                    // Use the value from the option instead
+                    sourceName = sourceFromOptions;
+                    sourceURI = sourceFromOptionsURI;
+                    if (arguments.contains("verbose") || arguments.contains("debug")) {
+                        System.out.println("Replacing source repo with " + sourceFromOptionsURI + " from command line options");
+                    }
+                } else {
+                    die("Git Forge parent and git sync '--from' option do not match");
+                }
+            }
+        }
+
+        if (sourceURI == null) {
             System.err.println("error: could not find repository to sync from, please specify one with --from");
             System.err.println("       or add a remote named 'upstream'");
             System.exit(1);
         }
 
-        var fromPullPath = remotes.contains(from) ?
-            Remote.toURI(repo.pullPath(from)) : Remote.toURI(from);
-        var fromScheme = fromPullPath.getScheme();
-        if (fromScheme.equals("https") || fromScheme.equals("http")) {
-            var token = System.getenv("GIT_TOKEN");
-            var username = getOption("username", arguments, repo);
-            var credentials = GitCredentials.fill(fromPullPath.getHost(),
-                                                  fromPullPath.getPath(),
-                                                  username,
-                                                  token,
-                                                  fromScheme);
-            if (credentials.password() != null && credentials.username() != null && token != null) {
-                fromPullPath = URI.create(fromScheme + "://" + credentials.username() + ":" + credentials.password() + "@" + fromPullPath.getHost() + fromPullPath.getPath());
-            }
-        }
-
-        String to = null;
-        if (arguments.contains("to")) {
-            to = arguments.get("to").asString();
-        } else {
-            var lines = repo.config("sync.to");
-            if (lines.size() == 1) {
-                if (!remotes.contains(lines.get(0))) {
-                    die("The given remote to push to, " + lines.get(0) + ", does not exist");
-                } else {
-                    to = lines.get(0);
-                }
-            } else {
-                if (remotes.contains("fork")) {
-                    to = "fork";
-                } else {
-                    to = "origin";
-                }
-            }
-        }
-
-        var toPushPath = remotes.contains(to) ?
-            Remote.toURI(repo.pullPath(to)) : Remote.toURI(to);
-
-        var canonicalPushPath = Remote.toWebURI(Remote.canonicalize(toPushPath).toString());
-        var canonicalPullPath = Remote.toWebURI(Remote.canonicalize(fromPullPath).toString());
-        if (canonicalPushPath.equals(canonicalPullPath)) {
-            System.err.println("error: --from and --to refer to the same repository: " + canonicalPushPath);
+        if (equalsCanonicalized(targetURI, sourceURI)) {
+            System.err.println("error: --from and --to refer to the same repository: " + targetURI);
             System.exit(1);
         }
 
-        var toScheme = toPushPath.getScheme();
-        if (toScheme.equals("https") || toScheme.equals("http")) {
+        System.out.println("Will sync changes from " + sourceURI + " to " + targetURI);
+
+        // Assure we have proper credentials for pull and push operations
+        var sourceScheme = sourceURI.getScheme();
+        if (sourceScheme.equals("https") || sourceScheme.equals("http")) {
             var token = System.getenv("GIT_TOKEN");
             var username = getOption("username", arguments, repo);
-            var credentials = GitCredentials.fill(toPushPath.getHost(),
-                                                  toPushPath.getPath(),
+            var credentials = GitCredentials.fill(sourceURI.getHost(),
+                                                  sourceURI.getPath(),
                                                   username,
                                                   token,
-                                                  toScheme);
+                                                  sourceScheme);
+            if (credentials.password() != null && credentials.username() != null && token != null) {
+                sourceURI = URI.create(sourceScheme + "://" + credentials.username() + ":" + credentials.password() + "@" + sourceURI.getHost() + sourceURI.getPath());
+            }
+        }
+
+        var targetScheme = targetURI.getScheme();
+        if (targetScheme.equals("https") || targetScheme.equals("http")) {
+            var token = System.getenv("GIT_TOKEN");
+            var username = getOption("username", arguments, repo);
+            var credentials = GitCredentials.fill(targetURI.getHost(),
+                                                  targetURI.getPath(),
+                                                  username,
+                                                  token,
+                                                  targetScheme);
             if (credentials.password() == null) {
-                die("error: no personal access token found, use git-credentials or the environment variable GIT_TOKEN");
+                die("no personal access token found, use git-credentials or the environment variable GIT_TOKEN");
             }
             if (credentials.username() == null) {
-                die("error: no username for " + toPushPath.getHost() + " found, use git-credentials or the flag --username");
+                die("no username for " + targetURI.getHost() + " found, use git-credentials or the flag --username");
             }
             if (token != null) {
-                toPushPath = URI.create(toScheme + "://" + credentials.username() + ":" + credentials.password() + "@" +
-                                        toPushPath.getHost() + toPushPath.getPath());
+                targetURI = URI.create(targetScheme + "://" + credentials.username() + ":" + credentials.password() + "@" +
+                                        targetURI.getHost() + targetURI.getPath());
             } else {
                 GitCredentials.approve(credentials);
             }
@@ -273,7 +369,8 @@ public class GitSync {
             }
         }
 
-        var remoteBranches = repo.remoteBranches(from);
+        System.out.println("source name is " + sourceName);
+        var remoteBranches = repo.remoteBranches(sourceName);
         for (var branch : remoteBranches) {
             var name = branch.name();
             if (!branches.isEmpty() && !branches.contains(name)) {
@@ -289,21 +386,21 @@ public class GitSync {
                 continue;
             }
 
-            System.out.println("Syncing " + from + "/" + name + " to " + to + "/" + name + "... ");
+            System.out.println("Syncing " + sourceName + "/" + name + " to " + targetName + "/" + name + "... ");
             System.out.flush();
 
             Hash fetchHead = null;
             if (arguments.contains("verbose")) {
-                System.out.println("Fetching branch " + branch.name() + " from  " + fromPullPath);
+                System.out.println("Fetching branch " + branch.name() + " from  " + sourceURI);
             }
             if (!arguments.contains("dry-run")) {
-                fetchHead = repo.fetch(fromPullPath, branch.name());
+                fetchHead = repo.fetch(sourceURI, branch.name());
             }
             if (arguments.contains("verbose")) {
-                System.out.println("Pushing to " + toPushPath);
+                System.out.println("Pushing to " + targetURI);
             }
             if (!arguments.contains("dry-run")) {
-                repo.push(fetchHead, toPushPath, name);
+                repo.push(fetchHead, targetURI, name);
             }
             System.out.println("Done syncing");
         }
@@ -337,19 +434,19 @@ public class GitSync {
             shouldFastForward = lines.size() == 1 && lines.get(0).equalsIgnoreCase("true");
         }
         if (shouldFastForward) {
-            if (!remotes.contains(to)) {
-                die("error: --fast-forward can only be used when --to is the name of a remote");
+            if (!remotes.contains(targetName)) {
+                die("--fast-forward can only be used when --to is the name of a remote");
             }
             if (arguments.contains("verbose")) {
-                System.out.println("Fetching from remote " + to);
+                System.out.println("Fetching from remote " + targetName);
             }
             if (!arguments.contains("dry-run")) {
-                repo.fetchRemote(to);
+                repo.fetchRemote(targetName);
             }
 
             var remoteBranchNames = new HashSet<String>();
             for (var branch : remoteBranches) {
-                remoteBranchNames.add(to + "/" + branch.name());
+                remoteBranchNames.add(targetName + "/" + branch.name());
             }
 
             var currentBranch = repo.currentBranch();
@@ -392,7 +489,7 @@ public class GitSync {
     public static void main(String[] args) throws IOException, InterruptedException {
         var cwd = Paths.get("").toAbsolutePath();
         var repo = Repository.get(cwd).orElseThrow(() ->
-                die("error: no repository found at " + cwd)
+                die("no repository found at " + cwd)
         );
 
         sync(repo, args);
