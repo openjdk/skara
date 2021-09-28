@@ -81,11 +81,10 @@ public class CommitCommandWorkItem implements WorkItem {
 
     @Override
     public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof CommitCommandWorkItem)) {
+        if (!(other instanceof CommitCommandWorkItem otherItem)) {
             return true;
         }
-        CommitCommandWorkItem otherItem = (CommitCommandWorkItem) other;
-        if (!bot.repo().webUrl().equals(otherItem.bot.repo().webUrl())) {
+        if (!bot.repo().isSame(otherItem.bot.repo())) {
             return true;
         }
         if (!commitComment.id().equals(otherItem.commitComment.id())) {

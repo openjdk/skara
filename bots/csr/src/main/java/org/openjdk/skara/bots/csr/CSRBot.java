@@ -53,7 +53,7 @@ class CSRBot implements Bot, WorkItem {
             return true;
         }
 
-        return !repo.webUrl().equals(((CSRBot) other).repo.webUrl());
+        return !repo.isSame(((CSRBot) other).repo);
     }
 
     private String describe(PullRequest pr) {

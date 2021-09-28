@@ -131,4 +131,11 @@ public interface HostedRepository {
 
         return null;
     }
+
+    /**
+     * Returns true if this HostedRepository represents the same repo as the other.
+     */
+    default boolean isSame(HostedRepository other) {
+        return name().equals(other.name()) && forge().name().equals(other.forge().name());
+    }
 }
