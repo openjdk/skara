@@ -28,6 +28,9 @@ import org.openjdk.skara.metrics.Counter;
 import java.io.*;
 import java.net.URI;
 import java.net.http.*;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.*;
 import java.util.*;
 import java.util.logging.*;
@@ -55,7 +58,7 @@ public class RestRequest {
 
     @FunctionalInterface
     public interface AuthenticationGenerator {
-        List<String> getAuthHeaders();
+        List<String> getAuthHeaders(HttpRequest.Builder request);
     }
 
     @FunctionalInterface
@@ -79,6 +82,7 @@ public class RestRequest {
         private String rawBody;
         private int maxPages;
         private ErrorTransform onError;
+        private String sha256Header;
 
         private QueryBuilder(RequestType queryType, String endpoint) {
             this.queryType = queryType;
@@ -184,6 +188,15 @@ public class RestRequest {
             return this;
         }
 
+        /**
+         * Optionally name a header where a sha256 hash of the contents will be added.
+         * This is commonly used by cloud vendors as part of verifying requests.
+         */
+        public QueryBuilder sha256Header(String name) {
+            sha256Header = name;
+            return this;
+        }
+
         public JSONValue execute() {
             try {
                 return RestRequest.this.execute(this);
@@ -280,7 +293,7 @@ public class RestRequest {
         while (true) {
             try {
                 if (authGen != null) {
-                    request.headers(authGen.getAuthHeaders().toArray(new String[0]));
+                    request.headers(authGen.getAuthHeaders(request).toArray(new String[0]));
                 }
                 response = cache.send(authId, request);
                 break;
@@ -330,7 +343,8 @@ public class RestRequest {
     }
 
     private HttpRequest.Builder createRequest(RequestType requestType, String endpoint, String body,
-                                      List<QueryBuilder.Param> params, Map<String, String> headers, boolean isJSON) {
+                                              List<QueryBuilder.Param> params, Map<String, String> headers,
+                                              boolean isJSON, String sha256Header) {
         var uriBuilder = URIBuilder.base(apiBase);
         if (endpoint != null && !endpoint.isEmpty()) {
             uriBuilder = uriBuilder.appendPath(endpoint);
@@ -350,6 +364,16 @@ public class RestRequest {
 
         if (body != null) {
             requestBuilder.method(requestType.name(), HttpRequest.BodyPublishers.ofString(body));
+            if (sha256Header != null) {
+                try {
+                    var digest = MessageDigest.getInstance("SHA-256");
+                    var hash = digest.digest(body.getBytes(StandardCharsets.UTF_8));
+                    var encoded  = new String(Base64.getEncoder().encode(hash), StandardCharsets.UTF_8);
+                    requestBuilder.header(sha256Header, encoded);
+                } catch (NoSuchAlgorithmException e) {
+                    throw new Error("SHA-256 algorithm not found");
+                }
+            }
         }
         headers.forEach(requestBuilder::header);
         return requestBuilder;
@@ -397,7 +421,7 @@ public class RestRequest {
 
     private JSONValue execute(QueryBuilder queryBuilder) throws IOException {
         var request = createRequest(queryBuilder.queryType, queryBuilder.endpoint, queryBuilder.composedBody(),
-                                    queryBuilder.params, queryBuilder.headers, queryBuilder.isJSON());
+                queryBuilder.params, queryBuilder.headers, queryBuilder.isJSON(), queryBuilder.sha256Header);
         requestCounter.labels(queryBuilder.queryType.toString()).inc();
         var response = sendRequest(request);
         var errorTransform = transformBadResponse(response, queryBuilder);
@@ -432,7 +456,7 @@ public class RestRequest {
 
             link = response.headers().firstValue("Link");
             links = parseLink(link.orElseThrow(
-                    () -> new UncheckedRestException("Initial paginated response no longer paginated for query: " + queryBuilder)));
+                    () -> new RuntimeException("Initial paginated response no longer paginated")));
 
             parsedResponse = parseResponse(response);
             ret.add(parsedResponse);
@@ -442,7 +466,7 @@ public class RestRequest {
 
     private String executeUnparsed(QueryBuilder queryBuilder) throws IOException {
         var request = createRequest(queryBuilder.queryType, queryBuilder.endpoint, queryBuilder.composedBody(),
-                                    queryBuilder.params, queryBuilder.headers, queryBuilder.isJSON());
+                queryBuilder.params, queryBuilder.headers, queryBuilder.isJSON(), queryBuilder.sha256Header);
         requestCounter.labels(queryBuilder.queryType.toString()).inc();
         var response = sendRequest(request);
         responseCounter.labels(Integer.toString(response.statusCode()), Boolean.toString(false)).inc();
