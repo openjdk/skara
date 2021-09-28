@@ -88,13 +88,14 @@ public class GitFork {
         return option != null && option.equalsIgnoreCase("true");
     }
 
-    private Repository clone(List<String> args, String to) throws IOException {
+    private Repository clone(List<String> args, URI cloneURI, String targetDir) throws IOException {
         try {
             var command = new ArrayList<String>();
             command.add("git");
             command.add("clone");
             command.addAll(args);
-            command.add(to);
+            command.add(cloneURI.toString());
+            command.add(targetDir);
             if (!isDryRun) {
                 var pb = new ProcessBuilder(command);
                 pb.inheritIO();
@@ -104,7 +105,7 @@ public class GitFork {
                     exit("error: '" + "git" + " clone " + String.join(" ", args) + "' failed with exit code: " + res);
                 }
             }
-            return Repository.get(Path.of(to)).orElseThrow(() -> new IOException("Could not find repository"));
+            return Repository.get(Path.of(targetDir)).orElseThrow(() -> new IOException("Could not find repository"));
         } catch (InterruptedException e) {
             throw new IOException(e);
         }
@@ -133,21 +134,15 @@ public class GitFork {
         var hostname = getOption("host", subsection);
 
         URI uri;
-        if (arguments.at(0).isPresent()) {
-            var arg = arguments.at(0).asString();
-            if (hostname != null) {
-                var extraSlash = arg.startsWith("/") ? "" : "/";
-                uri = URI.create("https://" + hostname + extraSlash + arg);
-            } else {
-                var argURI = URI.create(arg);
-                uri = argURI.getScheme() == null ?
-                    URI.create("https://" + argURI.getHost() + argURI.getPath()) :
-                    argURI;
-            }
+        var uriArg = arguments.at(0).asString();
+        if (hostname != null) {
+            var extraSlash = uriArg.startsWith("/") ? "" : "/";
+            uri = URI.create("https://" + hostname + extraSlash + uriArg);
         } else {
-            var cwd = Path.of("").toAbsolutePath();
-            var repo = Repository.get(cwd).orElseGet(die("error: no git repository found at " + cwd));
-            uri = URI.create(repo.pullPath("origin"));
+            var argURI = URI.create(uriArg);
+            uri = argURI.getScheme() == null ?
+                URI.create("https://" + argURI.getHost() + argURI.getPath()) :
+                argURI;
         }
 
         if (uri == null) {
@@ -181,6 +176,7 @@ public class GitFork {
             new IOException("Could not find repository at " + webURI)
         );
 
+        // Create fork at Git Forge
         var fork = hostedRepo.fork();
         if (token == null) {
             GitCredentials.approve(credentials);
@@ -189,18 +185,14 @@ public class GitFork {
         var forkWebUrl = fork.webUrl();
 
         boolean noClone = getSwitch("no-clone", subsection);
-        boolean noRemote = getSwitch("no-remote", subsection);
-        boolean shouldSync = getSwitch("sync", subsection);
-        if (noClone || !arguments.at(0).isPresent()) {
-            if (!arguments.at(0).isPresent()) {
-                doWithoutLocalClone(useSSH, forkWebUrl, noRemote, shouldSync);
-            }
-        } else {
-            doWithLocalClone(subsection, useSSH, hostname, webURI, forkWebUrl, noRemote, shouldSync);
+        if (!noClone) {
+            createLocalClone(subsection, useSSH, hostname, webURI, forkWebUrl);
         }
     }
 
-    private void doWithLocalClone(String subsection, boolean useSSH, String hostname, URI webURI, URI forkWebUrl, boolean noRemote, boolean shouldSync) throws IOException, InterruptedException {
+    private void createLocalClone(String subsection, boolean useSSH, String hostname, URI webURI, URI forkWebUrl) throws IOException, InterruptedException {
+        boolean noRemote = getSwitch("no-remote", subsection);
+        boolean shouldSync = getSwitch("sync", subsection);
         var reference = getOption("reference", subsection);
         if (reference != null && reference.startsWith("~" + File.separator)) {
             reference = System.getProperty("user.home") + reference.substring(1);
@@ -237,7 +229,6 @@ public class GitFork {
         if (shallowSince != null) {
             cloneArgs.add("--shallow-since=" + shallowSince);
         }
-        cloneArgs.add(cloneURI.toString());
 
         var defaultTargetDir = Path.of(cloneURI.getPath()).getFileName().toString();
         if (defaultTargetDir.endsWith(".git")) {
@@ -246,7 +237,7 @@ public class GitFork {
         String targetDir = arguments.at(1).isPresent() ?
             arguments.at(1).asString() :
             defaultTargetDir;
-        var repo = clone(cloneArgs, targetDir);
+        var repo = clone(cloneArgs, cloneURI, targetDir);
 
         if (!noRemote) {
             var remoteWord = "remote";
@@ -271,31 +262,6 @@ public class GitFork {
                     if (res != 0) {
                         System.exit(res);
                     }
-                }
-            }
-        }
-    }
-
-    private void doWithoutLocalClone(boolean useSSH, URI forkWebUrl, boolean noRemote, boolean shouldSync) throws IOException, InterruptedException {
-        var cwd = Path.of("").toAbsolutePath();
-        var repo = Repository.get(cwd).orElseGet(die("error: no git repository found at " + cwd));
-
-        var forkURL = useSSH ?
-            "ssh://git@" + forkWebUrl.getHost() + forkWebUrl.getPath() :
-            forkWebUrl.toString();
-        System.out.println(forkURL);
-
-        if (!noRemote) {
-            var remoteWord = "remote";
-            System.out.print("Adding " + remoteWord + " 'clone' for " + forkURL + "...");
-            if (!isDryRun) {
-                repo.addRemote("fork", forkURL);
-            }
-            System.out.println("done");
-
-            if (shouldSync) {
-                if (!isDryRun) {
-                    GitSync.sync(repo, new String[] {"--from", "origin", "--to", "fork"});
                 }
             }
         }
@@ -385,7 +351,7 @@ public class GitFork {
                 Input.position(0)
                         .describe("URI")
                         .singular()
-                        .optional(),
+                        .required(),
                 Input.position(1)
                         .describe("NAME")
                         .singular()
