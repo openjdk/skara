@@ -506,7 +506,7 @@ public class GitSync {
                 die("no repository found at " + cwd)
         );
 
-        GitSync syncer = new GitSync(repo, parseArguments(args));
-        syncer.sync();
+        GitSync commandExecutor = new GitSync(repo, parseArguments(args));
+        commandExecutor.sync();
     }
 }
