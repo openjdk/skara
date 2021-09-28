@@ -41,12 +41,12 @@ import java.util.logging.Level;
 public class GitFork {
     private final Arguments arguments;
     private final boolean isDryRun;
-    private final String sourceUri;
+    private final String sourceArg;
 
     public GitFork(Arguments arguments) {
         this.arguments = arguments;
         this.isDryRun = arguments.contains("dry-run");
-        this.sourceUri = arguments.at(0).asString();
+        this.sourceArg = arguments.at(0).asString();
     }
 
     private String gitConfig(String key) {
@@ -70,31 +70,29 @@ public class GitFork {
         }
     }
 
-    private String getOption(String name, String subsection) {
+    private String getOption(String name) {
         if (arguments.contains(name)) {
             return arguments.get(name).asString();
         }
 
-        if (subsection != null && !subsection.isEmpty()) {
-            var subsectionSpecific = gitConfig("fork." + subsection + "." + name);
-            if (subsectionSpecific != null) {
-                return subsectionSpecific;
-            }
+        var subsectionSpecific = gitConfig("fork." + sourceArg + "." + name);
+        if (subsectionSpecific != null) {
+            return subsectionSpecific;
         }
 
         return gitConfig("fork." + name);
     }
 
-    private boolean getSwitch(String name, String subsection) {
-        var option = getOption(name, subsection);
+    private boolean getSwitch(String name) {
+        var option = getOption(name);
         return option != null && option.equalsIgnoreCase("true");
     }
 
-    private URI getUriFromArgs(String subsection) {
+    private URI getUriFromArgs() {
         URI uri;
-        var hostname = getOption("host", subsection);
+        var hostname = getOption("host");
 
-        var uriArg = sourceUri;
+        var uriArg = sourceArg;
         if (hostname != null) {
             var extraSlash = uriArg.startsWith("/") ? "" : "/";
             uri = URI.create("https://" + hostname + extraSlash + uriArg);
@@ -162,19 +160,11 @@ public class GitFork {
 
         HttpProxy.setup();
 
-        var subsection = sourceUri;
-
-        URI upstreamURI = getUriFromArgs(subsection);
-
+        var upstreamURI = getUriFromArgs();
         var upstreamWebURI = Remote.toWebURI(upstreamURI.toString());
-        var repositoryPath = upstreamWebURI.getPath().substring(1);
-
-        if (repositoryPath.endsWith("/")) {
-            repositoryPath = repositoryPath.substring(0, repositoryPath.length() - 1);
-        }
 
         var token = System.getenv("GIT_TOKEN");
-        var username = getOption("username", subsection);
+        var username = getOption("username");
 
         var credentials = GitCredentials.fill(upstreamWebURI.getHost(), upstreamWebURI.getPath(), username, token, upstreamWebURI.getScheme());
 
@@ -190,6 +180,7 @@ public class GitFork {
             exit("error: could not connect to host " + upstreamWebURI.getHost());
         }
 
+        var repositoryPath = getTrimmedPath(upstreamWebURI);
         var upstreamHostedRepo = host.get().repository(repositoryPath).orElseThrow(() ->
             new IOException("Could not find repository at " + upstreamWebURI)
         );
@@ -199,72 +190,36 @@ public class GitFork {
         if (token == null) {
             GitCredentials.approve(credentials);
         }
-
         var originWebURI = originHostedRepo.webUrl();
+        System.out.println("Fork available at: " + originWebURI);
 
-        boolean noClone = getSwitch("no-clone", subsection);
-        if (!noClone) {
-            createLocalClone(subsection, upstreamWebURI, originWebURI);
+        if (!getSwitch("no-clone")) {
+            createLocalClone(upstreamWebURI, originWebURI);
         }
     }
 
-    private void createLocalClone(String subsection, URI upstreamWebURI, URI originWebURI) throws IOException, InterruptedException {
-        boolean useSSH = getSwitch("ssh", subsection);
-        URI cloneURI;
-        if (getOption("host", subsection) != null) {
-            if (useSSH) {
-                cloneURI = URI.create("ssh://git@" + originWebURI.getHost() + originWebURI.getPath() + ".git");
-            } else {
-                cloneURI = URI.create("https://" + originWebURI.getHost() + originWebURI.getPath());
-            }
-        } else {
-            if (useSSH) {
-                cloneURI = URI.create("ssh://git@" + originWebURI.getHost() + originWebURI.getPath() + ".git");
-            } else {
-                cloneURI = originWebURI;
-            }
-        }
+    private void createLocalClone(URI upstreamWebURI, URI originWebURI) throws IOException, InterruptedException {
+        var cloneURI = getCloneURI(originWebURI);
+        var cloneArgs = getCloneArgs();
+        var targetDir = getTargetDir(cloneURI);
 
-        System.out.println("Fork available at: " + originWebURI);
         System.out.println("Cloning " + cloneURI + "...");
-
-        var reference = getOption("reference", subsection);
-        if (reference != null && reference.startsWith("~" + File.separator)) {
-            reference = System.getProperty("user.home") + reference.substring(1);
-        }
-        var depth = getOption("depth", subsection);
-        var shallowSince = getOption("shallow-since", subsection);
-
-        var cloneArgs = new ArrayList<String>();
-        if (reference != null) {
-            cloneArgs.add("--reference-if-able=" + reference);
-            cloneArgs.add("--dissociate");
-        }
-        if (depth != null) {
-            cloneArgs.add("--depth=" + depth);
-        }
-        if (shallowSince != null) {
-            cloneArgs.add("--shallow-since=" + shallowSince);
-        }
-
-        String targetDir = getTargetDir(cloneURI);
         var repo = clone(cloneArgs, cloneURI, targetDir);
 
-        if (!getSwitch("no-remote", subsection)) {
+        if (!getSwitch("no-remote")) {
             System.out.print("Adding remote 'upstream' for " + upstreamWebURI + "...");
             if (!isDryRun) {
                 repo.addRemote("upstream", upstreamWebURI.toString());
             }
-
             System.out.println("done");
 
-            if (getSwitch("sync", subsection)) {
+            if (getSwitch("sync")) {
                 if (!isDryRun) {
                     GitSync.sync(repo, new String[] {"--from", "upstream", "--to", "origin", "--fast-forward"});
                 }
             }
 
-            var setupPrePushHooksOption = getSwitch("setup-pre-push-hook", subsection);
+            var setupPrePushHooksOption = getSwitch("setup-pre-push-hook");
             if (setupPrePushHooksOption) {
                 if (!isDryRun) {
                     var res = GitJCheck.run(repo, new String[] {"--setup-pre-push-hook"});
@@ -273,6 +228,63 @@ public class GitFork {
                     }
                 }
             }
+        }
+    }
+
+    private URI getCloneURI(URI originWebURI) {
+        boolean useSSH = getSwitch("ssh");
+        if (getOption("host") != null) {
+            if (useSSH) {
+                return URI.create("ssh://git@" + originWebURI.getHost() + originWebURI.getPath() + ".git");
+            } else {
+                return URI.create("https://" + originWebURI.getHost() + originWebURI.getPath());
+            }
+        } else {
+            if (useSSH) {
+                return URI.create("ssh://git@" + originWebURI.getHost() + originWebURI.getPath() + ".git");
+            } else {
+                return originWebURI;
+            }
+        }
+    }
+
+    private ArrayList<String> getCloneArgs() {
+        var cloneArgs = new ArrayList<String>();
+
+        var reference = getOption("reference");
+        if (reference != null) {
+            cloneArgs.add("--reference-if-able=" + expandPath(reference));
+            cloneArgs.add("--dissociate");
+        }
+
+        var depth = getOption("depth");
+        if (depth != null) {
+            cloneArgs.add("--depth=" + depth);
+        }
+
+        var shallowSince = getOption("shallow-since");
+        if (shallowSince != null) {
+            cloneArgs.add("--shallow-since=" + shallowSince);
+        }
+
+        return cloneArgs;
+    }
+
+    private static String expandPath(String path) {
+        if (path.startsWith("~" + File.separator)) {
+            return System.getProperty("user.home") + path.substring(1);
+        } else {
+            return path;
+        }
+    }
+
+    private static String getTrimmedPath(URI uri) {
+        var repositoryPath = uri.getPath().substring(1);
+
+        if (repositoryPath.endsWith("/")) {
+            return repositoryPath.substring(0, repositoryPath.length() - 1);
+        } else {
+            return repositoryPath;
         }
     }
 
