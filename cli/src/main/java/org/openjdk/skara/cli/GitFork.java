@@ -41,12 +41,10 @@ import java.util.logging.Level;
 public class GitFork {
     private final Arguments arguments;
     private final boolean isDryRun;
-    private final boolean isMercurial;
 
     public GitFork(Arguments arguments) {
         this.arguments = arguments;
         this.isDryRun = arguments.contains("dry-run");
-        isMercurial = arguments.contains("mercurial");
     }
 
     private String gitConfig(String key) {
@@ -92,9 +90,8 @@ public class GitFork {
 
     private Repository clone(List<String> args, String to) throws IOException {
         try {
-            var vcs = isMercurial ? "hg" : "git";
             var command = new ArrayList<String>();
-            command.add(vcs);
+            command.add("git");
             command.add("clone");
             command.addAll(args);
             command.add(to);
@@ -104,7 +101,7 @@ public class GitFork {
                 var p = pb.start();
                 var res = p.waitFor();
                 if (res != 0) {
-                    exit("error: '" + vcs + " clone " + String.join(" ", args) + "' failed with exit code: " + res);
+                    exit("error: '" + "git" + " clone " + String.join(" ", args) + "' failed with exit code: " + res);
                 }
             }
             return Repository.get(Path.of(to)).orElseThrow(() -> new IOException("Could not find repository"));
@@ -158,7 +155,7 @@ public class GitFork {
         }
 
         var webURI = Remote.toWebURI(uri.toString());
-        var token = isMercurial ? System.getenv("HG_TOKEN") : System.getenv("GIT_TOKEN");
+        var token = System.getenv("GIT_TOKEN");
         var username = getOption("username", subsection);
         var credentials = GitCredentials.fill(webURI.getHost(), webURI.getPath(), username, token, webURI.getScheme());
 
@@ -190,9 +187,6 @@ public class GitFork {
         }
 
         var forkWebUrl = fork.webUrl();
-        if (isMercurial) {
-            forkWebUrl = URI.create("git+" + forkWebUrl.toString());
-        }
 
         boolean noClone = getSwitch("no-clone", subsection);
         boolean noRemote = getSwitch("no-remote", subsection);
@@ -255,12 +249,9 @@ public class GitFork {
         var repo = clone(cloneArgs, targetDir);
 
         if (!noRemote) {
-            var remoteWord = isMercurial ? "path" : "remote";
+            var remoteWord = "remote";
             System.out.print("Adding " + remoteWord + " 'upstream' for " + webURI + "...");
             var upstreamUrl = webURI.toString();
-            if (isMercurial) {
-                upstreamUrl = "git+" + upstreamUrl;
-            }
             if (!isDryRun) {
                 repo.addRemote("upstream", upstreamUrl);
             }
@@ -295,11 +286,8 @@ public class GitFork {
         System.out.println(forkURL);
 
         if (!noRemote) {
-            var remoteWord = isMercurial ? "path" : "remote";
+            var remoteWord = "remote";
             System.out.print("Adding " + remoteWord + " 'clone' for " + forkURL + "...");
-            if (isMercurial) {
-                forkURL = "git+" + forkURL;
-            }
             if (!isDryRun) {
                 repo.addRemote("fork", forkURL);
             }
@@ -391,10 +379,6 @@ public class GitFork {
                 Switch.shortcut("")
                         .fullname("version")
                         .helptext("Print the version of this tool")
-                        .optional(),
-                Switch.shortcut("")
-                        .fullname("mercurial")
-                        .helptext("Force use of mercurial")
                         .optional());
 
         var inputs = List.of(
