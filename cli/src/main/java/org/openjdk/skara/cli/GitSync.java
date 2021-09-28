@@ -35,47 +35,38 @@ import java.util.regex.Pattern;
 import java.util.logging.*;
 
 public class GitSync {
-    private static IOException die(String message) {
-        System.err.println("error: " + message);
-        System.exit(1);
-        return new IOException("will never reach here");
+    private final Repository repo;
+    private final Arguments arguments;
+    private final List<String> remotes;
+
+    private GitSync(Repository repo, Arguments arguments) throws IOException {
+        this.repo = repo;
+        this.arguments = arguments;
+        this.remotes = repo.remotes();
     }
 
-    private static boolean equalsCanonicalized(URI a, URI b) throws IOException {
-        if (a == null || b == null) {
-            if (a == null && b == null) {
-                return true;
-            }
-            return false;
-        }
-
-        var canonicalA = Remote.toWebURI(Remote.canonicalize(a).toString());
-        var canonicalB = Remote.toWebURI(Remote.canonicalize(b).toString());
-        return canonicalA.equals(canonicalB);
-    }
-
-    private static int pull(Repository repo) throws IOException, InterruptedException {
+    private int pull() throws IOException, InterruptedException {
         var pb = new ProcessBuilder("git", "pull");
         pb.directory(repo.root().toFile());
         pb.inheritIO();
         return pb.start().waitFor();
     }
 
-    private static int mergeFastForward(Repository repo, String ref) throws IOException, InterruptedException {
+    private int mergeFastForward(String ref) throws IOException, InterruptedException {
         var pb = new ProcessBuilder("git", "merge", "--ff-only", "--quiet", ref);
         pb.directory(repo.root().toFile());
         pb.inheritIO();
         return pb.start().waitFor();
     }
 
-    private static int moveBranch(Repository repo, Branch branch, Hash to) throws IOException, InterruptedException {
+    private int moveBranch(Branch branch, Hash to) throws IOException, InterruptedException {
         var pb = new ProcessBuilder("git", "branch", "--force", branch.name(), to.hex());
         pb.directory(repo.root().toFile());
         pb.inheritIO();
         return pb.start().waitFor();
     }
 
-    private static String getOption(String name, Arguments arguments, ReadOnlyRepository repo) throws IOException {
+    private String getOption(String name) throws IOException {
         if (arguments.contains(name)) {
             return arguments.get(name).asString();
         }
@@ -84,66 +75,7 @@ public class GitSync {
         return lines.size() == 1 ? lines.get(0) : null;
     }
 
-    static void sync(Repository repo, String[] args) throws IOException, InterruptedException {
-        var flags = List.of(
-            Option.shortcut("")
-                  .fullname("from")
-                  .describe("REMOTE")
-                  .helptext("Fetch changes from this remote")
-                  .optional(),
-            Option.shortcut("")
-                  .fullname("to")
-                  .describe("REMOTE")
-                  .helptext("Push changes to this remote")
-                  .optional(),
-            Option.shortcut("")
-                  .fullname("branches")
-                  .describe("BRANCHES")
-                  .helptext("Comma separated list of branches to sync")
-                  .optional(),
-            Option.shortcut("")
-                  .fullname("ignore")
-                  .describe("PATTERN")
-                  .helptext("Regular expression of branches to ignore")
-                  .optional(),
-            Option.shortcut("u")
-                  .fullname("username")
-                  .describe("NAME")
-                  .helptext("Username on forge")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("pull")
-                  .helptext("Pull current branch from origin after successful sync")
-                  .optional(),
-            Switch.shortcut("ff")
-                  .fullname("fast-forward")
-                  .helptext("Fast forward all local branches where possible")
-                  .optional(),
-            Switch.shortcut("n")
-                   .fullname("dry-run")
-                   .helptext("Only simulate behavior, do no actual changes")
-                   .optional(),
-            Switch.shortcut("")
-                   .fullname("force")
-                   .helptext("Force syncing even between unrelated repos (beware!)")
-                   .optional(),
-            Switch.shortcut("")
-                  .fullname("verbose")
-                  .helptext("Turn on verbose output")
-                  .optional(),
-            Switch.shortcut("")
-                  .fullname("debug")
-                  .helptext("Turn on debugging output")
-                  .optional(),
-            Switch.shortcut("v")
-                  .fullname("version")
-                  .helptext("Print the version of this tool")
-                  .optional()
-        );
-
-        var parser = new ArgumentParser("git sync", flags);
-        var arguments = parser.parse(args);
-
+    public void sync() throws IOException, InterruptedException {
         if (arguments.contains("version")) {
             System.out.println("git-sync version: " + Version.fromManifest().orElse("unknown"));
             System.exit(0);
@@ -155,8 +87,6 @@ public class GitSync {
         }
 
         HttpProxy.setup();
-
-        var remotes = repo.remotes();
 
         String targetFromOptions = null;
         if (arguments.contains("to")) {
@@ -309,7 +239,7 @@ public class GitSync {
         var sourceScheme = sourceURI.getScheme();
         if (sourceScheme.equals("https") || sourceScheme.equals("http")) {
             var token = System.getenv("GIT_TOKEN");
-            var username = getOption("username", arguments, repo);
+            var username = getOption("username");
             var credentials = GitCredentials.fill(sourceURI.getHost(),
                                                   sourceURI.getPath(),
                                                   username,
@@ -323,7 +253,7 @@ public class GitSync {
         var targetScheme = targetURI.getScheme();
         if (targetScheme.equals("https") || targetScheme.equals("http")) {
             var token = System.getenv("GIT_TOKEN");
-            var username = getOption("username", arguments, repo);
+            var username = getOption("username");
             var credentials = GitCredentials.fill(targetURI.getHost(),
                                                   targetURI.getPath(),
                                                   username,
@@ -419,7 +349,7 @@ public class GitSync {
                         System.out.println("Pulling from " + repo);
                     }
                     if (!arguments.contains("dry-run")) {
-                        int err = pull(repo);
+                        int err = pull();
                         if (err != 0) {
                             System.exit(err);
                         }
@@ -464,7 +394,7 @@ public class GitSync {
                                 if (arguments.contains("verbose")) {
                                     System.out.println("Fast-forwarding current branch");
                                 }
-                                var err = mergeFastForward(repo, upstreamBranch.get());
+                                var err = mergeFastForward(upstreamBranch.get());
                                 if (err != 0) {
                                     System.exit(1);
                                 }
@@ -474,7 +404,7 @@ public class GitSync {
                                 if (arguments.contains("verbose")) {
                                     System.out.println("Fast-forwarding branch " + upstreamBranch.get());
                                 }
-                                var err = moveBranch(repo, branch, upstreamHash.get());
+                                var err = moveBranch(branch, upstreamHash.get());
                                 if (err != 0) {
                                     System.exit(1);
                                 }
@@ -486,12 +416,93 @@ public class GitSync {
         }
     }
 
+    private static IOException die(String message) {
+        System.err.println("error: " + message);
+        System.exit(1);
+        return new IOException("will never reach here");
+    }
+
+    private static boolean equalsCanonicalized(URI a, URI b) throws IOException {
+        if (a == null || b == null) {
+            if (a == null && b == null) {
+                return true;
+            }
+            return false;
+        }
+
+        var canonicalA = Remote.toWebURI(Remote.canonicalize(a).toString());
+        var canonicalB = Remote.toWebURI(Remote.canonicalize(b).toString());
+        return canonicalA.equals(canonicalB);
+    }
+
+    private static Arguments parseArguments(String[] args) {
+        var flags = List.of(
+            Option.shortcut("")
+                  .fullname("from")
+                  .describe("REMOTE")
+                  .helptext("Fetch changes from this remote")
+                  .optional(),
+            Option.shortcut("")
+                  .fullname("to")
+                  .describe("REMOTE")
+                  .helptext("Push changes to this remote")
+                  .optional(),
+            Option.shortcut("")
+                  .fullname("branches")
+                  .describe("BRANCHES")
+                  .helptext("Comma separated list of branches to sync")
+                  .optional(),
+            Option.shortcut("")
+                  .fullname("ignore")
+                  .describe("PATTERN")
+                  .helptext("Regular expression of branches to ignore")
+                  .optional(),
+            Option.shortcut("u")
+                  .fullname("username")
+                  .describe("NAME")
+                  .helptext("Username on forge")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("pull")
+                  .helptext("Pull current branch from origin after successful sync")
+                  .optional(),
+            Switch.shortcut("ff")
+                  .fullname("fast-forward")
+                  .helptext("Fast forward all local branches where possible")
+                  .optional(),
+            Switch.shortcut("n")
+                   .fullname("dry-run")
+                   .helptext("Only simulate behavior, do no actual changes")
+                   .optional(),
+            Switch.shortcut("")
+                   .fullname("force")
+                   .helptext("Force syncing even between unrelated repos (beware!)")
+                   .optional(),
+            Switch.shortcut("")
+                  .fullname("verbose")
+                  .helptext("Turn on verbose output")
+                  .optional(),
+            Switch.shortcut("")
+                  .fullname("debug")
+                  .helptext("Turn on debugging output")
+                  .optional(),
+            Switch.shortcut("v")
+                  .fullname("version")
+                  .helptext("Print the version of this tool")
+                  .optional()
+        );
+
+        var parser = new ArgumentParser("git sync", flags);
+        return parser.parse(args);
+    }
+
     public static void main(String[] args) throws IOException, InterruptedException {
         var cwd = Paths.get("").toAbsolutePath();
         var repo = Repository.get(cwd).orElseThrow(() ->
                 die("no repository found at " + cwd)
         );
 
-        sync(repo, args);
+        GitSync syncer = new GitSync(repo, parseArguments(args));
+        syncer.sync();
     }
 }
