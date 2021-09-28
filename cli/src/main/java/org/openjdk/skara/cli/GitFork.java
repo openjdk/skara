@@ -168,36 +168,21 @@ public class GitFork {
 
         // Get the upstream repo user specified on the command line
         var upstreamURI = getURIFromArgs();
-
         var upstreamWebURI = Remote.toWebURI(upstreamURI.toString());
+        var credentials = setupCredentials(upstreamWebURI);
 
-        var token = System.getenv("GIT_TOKEN");
-        var username = getOption("username");
-
-        var credentials = GitCredentials.fill(upstreamWebURI.getHost(), upstreamWebURI.getPath(), username, token, upstreamWebURI.getScheme());
-
-        if (credentials.password() == null) {
-            exit("error: no personal access token found, use git-credentials or the environment variable GIT_TOKEN");
-        }
-        if (credentials.username() == null) {
-            exit("error: no username for " + upstreamWebURI.getHost() + " found, use git-credentials or the flag --username");
-        }
-
-        var host = ForgeUtils.from(upstreamWebURI, new Credential(credentials.username(), credentials.password()));
-        if (host.isEmpty()) {
+        var gitForge = ForgeUtils.from(upstreamWebURI, credentials);
+        if (gitForge.isEmpty()) {
             exit("error: could not connect to host " + upstreamWebURI.getHost());
         }
 
         var repositoryPath = getTrimmedPath(upstreamWebURI);
-        var upstreamHostedRepo = host.get().repository(repositoryPath).orElseThrow(() ->
+        var upstreamHostedRepo = gitForge.get().repository(repositoryPath).orElseThrow(() ->
             new IOException("Could not find repository at " + upstreamWebURI)
         );
 
         // Create personal fork ("origin" from now on) at Git Forge
         var originHostedRepo = upstreamHostedRepo.fork();
-        if (token == null) {
-            GitCredentials.approve(credentials);
-        }
         var originWebURI = originHostedRepo.webUrl();
         System.out.println("Fork available at: " + originWebURI);
 
@@ -244,6 +229,24 @@ public class GitFork {
                 }
             }
         }
+    }
+
+    private Credential setupCredentials(URI upstreamWebURI) throws IOException {
+        var token = System.getenv("GIT_TOKEN");
+        var username = getOption("username");
+
+        var credentials = GitCredentials.fill(upstreamWebURI.getHost(), upstreamWebURI.getPath(), username, token, upstreamWebURI.getScheme());
+
+        if (credentials.password() == null) {
+            exit("error: no personal access token found, use git-credentials or the environment variable GIT_TOKEN");
+        }
+        if (credentials.username() == null) {
+            exit("error: no username for " + upstreamWebURI.getHost() + " found, use git-credentials or the flag --username");
+        }
+        if (token == null) {
+            GitCredentials.approve(credentials);
+        }
+        return new Credential(credentials.username(), credentials.password());
     }
 
     private URI getCloneURI(URI originWebURI) {
