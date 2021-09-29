@@ -176,7 +176,7 @@ public class BotRunner {
             synchronized (executor) {
                 if (scratchPaths.isEmpty()) {
                     log.finer("No scratch paths available - postponing " + item);
-                    pending.put(item, Optional.empty());
+                    addPending(item, null);
                     return;
                 }
                 scratchPath = scratchPaths.removeFirst();
@@ -208,7 +208,7 @@ public class BotRunner {
 
             synchronized (executor) {
                 scratchPaths.addLast(scratchPath);
-                active.remove(item);
+                done(item);
 
                 // Some of the pending items may now be eligible for execution
                 var candidateItems = pending.entrySet().stream()
@@ -229,10 +229,8 @@ public class BotRunner {
                     }
 
                     if (maySubmit) {
-                        pending.remove(candidate);
-                        RunnableWorkItem runnableWorkItem = new RunnableWorkItem(candidate);
-                        executor.submit(runnableWorkItem);
-                        active.put(candidate, runnableWorkItem);
+                        removePending(candidate);
+                        submit(candidate);
                         log.finer("Submitting candidate: " + candidate);
                     }
                 }
@@ -250,6 +248,16 @@ public class BotRunner {
         Counter.name("skara_runner_scheduled").labels("bot", "work_item").register();
     private static final Counter.WithTwoLabels DISCARDED_COUNTER =
         Counter.name("skara_runner_discarded").labels("bot", "work_item").register();
+    /**
+     * Gauge that tracks the number of active WorkItems for each kind
+     */
+    private final Gauge.WithTwoLabels activeGauge =
+            Gauge.name("skara_runner_active").labels("bot", "work_item").register();
+    /**
+     * Gauge that tracks the number of pending WorkItems for each kind
+     */
+    private final Gauge.WithTwoLabels pendingGauge =
+            Gauge.name("skara_runner_pending").labels("bot", "work_item").register();
 
     private void submitOrSchedule(WorkItem item) {
         SCHEDULED_COUNTER.labels(item.botName(), item.workItemName()).inc();
@@ -263,21 +271,55 @@ public class BotRunner {
                             log.finer("Discarding obsoleted item " + pendingItem +
                                               " in favor of item " + item);
                             DISCARDED_COUNTER.labels(item.botName(), item.workItemName()).inc();
-                            pending.remove(pendingItem);
+                            removePending(pendingItem);
                             // There can't be more than one
                             break;
                         }
                     }
 
-                    pending.put(item, Optional.of(activeItem));
+                    addPending(item, activeItem);
                     return;
                 }
             }
 
-            RunnableWorkItem runnableWorkItem = new RunnableWorkItem(item);
-            executor.submit(runnableWorkItem);
-            active.put(item, runnableWorkItem);
+            submit(item);
         }
+    }
+
+    /**
+     * Called to add a WorkItem to the pending queue
+     * @param item Item to queue
+     * @param activeItem Optional active item that this item is waiting for
+     */
+    private void addPending(WorkItem item, WorkItem activeItem) {
+        pending.put(item, Optional.ofNullable(activeItem));
+        pendingGauge.labels(item.botName(), item.workItemName()).inc();
+    }
+
+    /**
+     * Called to remove an item from the pending queue.
+     */
+    private void removePending(WorkItem item) {
+        pending.remove(item);
+        pendingGauge.labels(item.botName(), item.workItemName()).dec();
+    }
+
+    /**
+     * Called to submit a WorkItem for execution
+     */
+    private void submit(WorkItem item) {
+        RunnableWorkItem runnableWorkItem = new RunnableWorkItem(item);
+        executor.submit(runnableWorkItem);
+        active.put(item, runnableWorkItem);
+        activeGauge.labels(item.botName(), item.workItemName()).inc();
+    }
+
+    /**
+     * Called when a WorkItem is done executing
+     */
+    private void done(WorkItem item) {
+        active.remove(item);
+        activeGauge.labels(item.botName(), item.workItemName()).dec();
     }
 
     private void drain(Duration timeout) throws TimeoutException {

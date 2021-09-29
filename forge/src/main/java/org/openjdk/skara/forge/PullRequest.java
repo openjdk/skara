@@ -168,8 +168,6 @@ public interface PullRequest extends Issue {
      * Returns true if this PullRequest represents the same pull request as the other.
      */
     default boolean isSame(PullRequest other) {
-        return id().equals(other.id())
-                && repository().name().equals(other.repository().name())
-                && repository().forge().name().equals(other.repository().forge().name());
+        return id().equals(other.id()) && repository().isSame(other.repository());
     }
 }

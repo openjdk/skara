@@ -49,7 +49,13 @@ class CommitCommentsWorkItem implements WorkItem {
 
     @Override
     public boolean concurrentWith(WorkItem other) {
-        return true;
+        if (!(other instanceof CommitCommentsWorkItem otherItem)) {
+            return true;
+        }
+        if (!repo.isSame(otherItem.repo)) {
+            return true;
+        }
+        return false;
     }
 
     private boolean isAncestor(ReadOnlyRepository repo, Hash ancestor, Hash descendant) {
