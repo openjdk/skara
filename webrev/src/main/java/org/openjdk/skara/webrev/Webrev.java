@@ -84,7 +84,7 @@ public class Webrev {
         private String version;
         private List<Path> files = List.of();
         private int similarity = 90;
-        private boolean noComments;
+        private boolean comments;
 
         Builder(ReadOnlyRepository repository, Path output) {
             this.repository = repository;
@@ -163,8 +163,8 @@ public class Webrev {
             return this;
         }
 
-        public Builder noComments(boolean noComments) {
-            this.noComments = noComments;
+        public Builder comments(boolean comments) {
+            this.comments = comments;
             return this;
         }
 
@@ -390,7 +390,7 @@ public class Webrev {
                 var path = status.isDeleted() ?
                     patch.source().path().get() :
                     patch.target().path().get();
-                var commits = noComments ? Collections.<CommitMetadata>emptyList() : repository.commitMetadata(tailEnd, headHash, List.of(path));
+                var commits = comments ? repository.commitMetadata(tailEnd, headHash, List.of(path)) : Collections.<CommitMetadata>emptyList();
                 if (status.isModified() || status.isRenamed() || status.isCopied()) {
                     var nav = navigations.removeFirst();
                     fileViews.add(new ModifiedFileView(repository, tailEnd, head, commits, formatter, patch, output, nav));
