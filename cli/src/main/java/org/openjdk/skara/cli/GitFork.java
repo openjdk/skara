@@ -169,6 +169,7 @@ public class GitFork {
         // Get the upstream repo user specified on the command line
         var upstreamURI = getURIFromArgs();
         var upstreamWebURI = Remote.toWebURI(upstreamURI.toString());
+        System.out.println("Creating fork of " + upstreamWebURI);
         var credentials = setupCredentials(upstreamWebURI);
 
         var gitForge = ForgeUtils.from(upstreamWebURI, credentials);
@@ -184,29 +185,31 @@ public class GitFork {
         // Create personal fork ("origin" from now on) at Git Forge
         var originHostedRepo = upstreamHostedRepo.fork();
         var originWebURI = originHostedRepo.webUrl();
-        System.out.println("Fork available at: " + originWebURI);
+        System.out.println("Personal fork available at " + originWebURI);
 
         if (getSwitch("no-clone")) {
             // We're done here, if we should not create a local clone
+            logVerbose("Not cloning fork due to --no-clone");
             return;
         }
 
         // Create a local clone
         var cloneURI = getCloneURI(originWebURI);
-        System.out.println("Cloning " + cloneURI + "...");
+        System.out.println("Cloning personal fork...");
         var repo = clone(getCloneArgs(), cloneURI, getTargetDir(cloneURI));
+        System.out.println("Done cloning");
 
         // Setup git remote
         if (!getSwitch("no-remote")) {
-            System.out.print("Adding remote 'upstream' for " + upstreamWebURI + "...");
+            System.out.println("Adding remote 'upstream' for " + upstreamWebURI);
             if (!isDryRun) {
                 repo.addRemote("upstream", upstreamWebURI.toString());
             }
-            System.out.println("done");
         }
 
         // Sync the fork from upstream
         if (getSwitch("sync")) {
+            logVerbose("Syncing personal fork with upstream");
             var syncArgs = new ArrayList<String>();
             syncArgs.add("--fast-forward");
             if (getSwitch("no-remote")) {
@@ -216,12 +219,13 @@ public class GitFork {
                 syncArgs.add(upstreamWebURI.toString());
             }
             if (!isDryRun) {
-                GitSync.sync(repo, (String[]) syncArgs.toArray());
+                GitSync.sync(repo, syncArgs.toArray(new String[] {}));
             }
         }
 
         // Setup jcheck hooks
         if (getSwitch("setup-pre-push-hook")) {
+            logVerbose("Setting up jcheck hooks");
             if (!isDryRun) {
                 var res = GitJCheck.run(repo, new String[] {"--setup-pre-push-hook"});
                 if (res != 0) {
@@ -298,6 +302,12 @@ public class GitFork {
         }
     }
 
+    private void logVerbose(String message) {
+        if (arguments.contains("verbose") || arguments.contains("debug")) {
+            System.out.println(message);
+        }
+    }
+
     private static void exit(String message) {
         System.err.println(message);
         System.exit(1);
@@ -347,7 +357,7 @@ public class GitFork {
                         .optional(),
                 Switch.shortcut("")
                         .fullname("no-remote")
-                        .helptext("Do not add an additional git remote")
+                        .helptext("Do not add an upstream git remote")
                         .optional(),
                 Switch.shortcut("")
                         .fullname("ssh")
