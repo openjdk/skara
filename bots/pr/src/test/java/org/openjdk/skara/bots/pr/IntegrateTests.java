@@ -44,14 +44,13 @@ class IntegrateTests {
              var tempFolder = new TemporaryDirectory();
              var pushedFolder = new TemporaryDirectory()) {
 
+            var botUser = credentials.getHostedRepository();
             var author = credentials.getHostedRepository();
-            var integrator = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
             var censusBuilder = credentials.getCensusBuilder()
                                            .addCommitter(author.forge().currentUser().id())
-                                           .addReviewer(integrator.forge().currentUser().id())
                                            .addReviewer(reviewer.forge().currentUser().id());
-            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+            var mergeBot = PullRequestBot.newBuilder().repo(botUser).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
@@ -65,8 +64,8 @@ class IntegrateTests {
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
             // Approve it as another user
-            var approvalPr = integrator.pullRequest(pr.id());
-            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+            var reviewerPr = reviewer.pullRequest(pr.id());
+            reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
 
             // The bot should reply with integration message
             TestBotRunner.runPeriodicItems(mergeBot);
@@ -234,7 +233,7 @@ class IntegrateTests {
             TestBotRunner.runPeriodicItems(mergeBot);
 
             // The bot should reply with an error message
-            assertLastCommentContains(pr, "PR has not yet been marked as ready for integration");
+            assertLastCommentContains(pr, "pull request has not yet been marked as ready for integration");
         }
     }
 
@@ -651,7 +650,7 @@ class IntegrateTests {
 
             // The bot should reply with an error message
             TestBotRunner.runPeriodicItems(mergeBot);
-            assertLastCommentContains(pr, "PR has not yet been marked as ready for integration");
+            assertLastCommentContains(pr, "pull request has not yet been marked as ready for integration");
         }
     }
 
@@ -1294,6 +1293,115 @@ class IntegrateTests {
             assertFalse(pr.labelNames().contains("ready"), "ready label not removed");
             assertFalse(pr.labelNames().contains("rfr"), "rfr label not removed");
             assertTrue(pr.labelNames().contains("integrated"), "integrated label not added");
+        }
+    }
+
+    @Test
+    void defer(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var pushedFolder = new TemporaryDirectory()) {
+
+            var botUser = credentials.getHostedRepository();
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var badIntegrator = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id())
+                    .addAuthor(badIntegrator.forge().currentUser().id())
+                    .addCommitter(integrator.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(botUser).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var authorPr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Approve it as another user
+            var reviewerPr = reviewer.pullRequest(authorPr.id());
+            reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // Issue /integrate defer command and verify the PR gets deferred
+            authorPr.addComment("/integrate defer");
+            TestBotRunner.runPeriodicItems(mergeBot);
+            var deferred = authorPr.comments().stream()
+                    .filter(comment -> comment.body().contains("Integration of this pull request has been deferred"))
+                    .count();
+            assertEquals(1, deferred, "Missing deferred message");
+            assertTrue(authorPr.labelNames().contains("deferred"));
+
+            // Try to integrate by non committer
+            var badIntegratorPr = badIntegrator.pullRequest(authorPr.id());
+            badIntegratorPr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(mergeBot);
+            var onlyCommitters = authorPr.comments().stream()
+                    .filter(comment -> comment.body()
+                            .contains("Only project committers are allowed to issue the `integrate` command on a deferred pull request."))
+                    .count();
+            assertEquals(1, onlyCommitters, "Missing error about only committers can integrate");
+
+            // Issue /integrate undefer and verify the PR is no longer deferred
+            authorPr.addComment("/integrate undefer");
+            TestBotRunner.runPeriodicItems(mergeBot);
+            var undeferred = authorPr.comments().stream()
+                    .filter(comment -> comment.body().contains("Integration of this pull request is no longer deferred and may only be integrated by the author"))
+                    .count();
+            assertEquals(1, undeferred, "Missing undeferred message");
+            assertFalse(authorPr.labelNames().contains("deferred"));
+
+            // Try integrating as another committer, which should fail since the PR is currently not deferred
+            var integratorPr = integrator.pullRequest(authorPr.id());
+            integratorPr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(mergeBot);
+            var nonAuthor = authorPr.comments().stream()
+                    .filter(comment -> comment.body().contains("Only the author")
+                            && comment.body().contains("is allowed to issue the `integrate` command"))
+                    .count();
+            assertEquals(1, nonAuthor, "Missing only author can integrate message");
+
+            // Defer again
+            authorPr.addComment("/integrate defer");
+            TestBotRunner.runPeriodicItems(mergeBot);
+            assertTrue(authorPr.labelNames().contains("deferred"));
+
+            // Try to issue /integrate with an invalid command for a non author
+            integratorPr.addComment("/integrate auto");
+            TestBotRunner.runPeriodicItems(mergeBot);
+            var invalid = authorPr.comments().stream()
+                    .filter(comment -> comment.body().contains("Only the author"))
+                    .count();
+            assertEquals(2, invalid, "Missing error message");
+
+            // Try to integrate by committer
+            integratorPr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The change should now be present on the master branch
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
+            assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
+
+            var headHash = pushedRepo.resolve("HEAD").orElseThrow();
+            var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
+
+            // Verify that the author and committer of the change are the correct users
+            // The number is implied from the order the add* methods of CensusBuilder were called above.
+            assertEquals("Generated Committer 1", headCommit.author().name());
+            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
+            assertEquals("Generated Committer 4", headCommit.committer().name());
+            assertEquals("integrationcommitter4@openjdk.java.net", headCommit.committer().email());
+            assertTrue(authorPr.labelNames().contains("integrated"));
+
+            // Ready and deferred labels should have been removed
+            assertFalse(authorPr.labelNames().contains("ready"));
+            assertFalse(authorPr.labelNames().contains("deferred"));
         }
     }
 }
