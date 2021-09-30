@@ -106,12 +106,6 @@ class MailingListBridgeBotTests {
         return Pattern.compile(substring).matcher(string).results().count();
     }
 
-    private String noreplyAddress(HostedRepository repository) {
-        return "test+" + repository.forge().currentUser().id() + "+" +
-                repository.forge().currentUser().username() +
-                "@openjdk.java.net";
-    }
-
     @Test
     void simpleArchive(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
@@ -220,7 +214,7 @@ class MailingListBridgeBotTests {
             var mail = conversations.get(0).first();
             assertEquals("RFR: 1234: This is a pull request", mail.subject());
             assertEquals(pr.author().fullName(), mail.author().fullName().orElseThrow());
-            assertEquals(noreplyAddress(archive), mail.author().address());
+            assertEquals(from.address(), mail.author().address());
             assertEquals(listAddress, mail.sender());
             assertEquals("val1", mail.headerValue("Extra1"));
             assertEquals("val2", mail.headerValue("Extra2"));
@@ -273,7 +267,7 @@ class MailingListBridgeBotTests {
             assertEquals(1, conversations.size());
             assertEquals(3, conversations.get(0).allMessages().size());
             for (var newMail : conversations.get(0).allMessages()) {
-                assertEquals(noreplyAddress(archive), newMail.author().address());
+                assertEquals(from.address(), newMail.author().address());
                 assertEquals(listAddress, newMail.sender());
             }
             assertTrue(conversations.get(0).allMessages().get(2).body().contains("This is a comment 😄"));
@@ -675,9 +669,9 @@ class MailingListBridgeBotTests {
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Subject: Re: RFR: 1234: This is a pull request"));
 
             // The closer should be the bot account - not the PR creator nor the closer
-            assertEquals(2, archiveContainsCount(archiveFolder.path(), Pattern.quote("From: test+2+user2 at openjdk.java.net (User Number 2)")));
+            assertEquals(2, archiveContainsCount(archiveFolder.path(), Pattern.quote("From: test at test.mail (User Number 2)")));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), Pattern.quote("From: test at test.mail (test)")));
-            assertEquals(0, archiveContainsCount(archiveFolder.path(), Pattern.quote("From: test+3+user3 at openjdk.java.net (User Number 3)")));
+            assertEquals(0, archiveContainsCount(archiveFolder.path(), Pattern.quote("From: test at test.mail (User Number 3)")));
         }
     }
 
@@ -826,7 +820,7 @@ class MailingListBridgeBotTests {
             assertEquals(1, conversations.size());
             assertEquals(3, conversations.get(0).allMessages().size());
             for (var newMail : conversations.get(0).allMessages()) {
-                assertEquals(noreplyAddress(archive), newMail.author().address());
+                assertEquals(from.address(), newMail.author().address());
                 assertEquals(listAddress, newMail.sender());
             }
 
@@ -1035,7 +1029,7 @@ class MailingListBridgeBotTests {
             assertFalse(thread1.body().contains("Another review comment"), thread1.body());
             var thread1reply1 = conversations.get(0).replies(thread1).get(0);
             assertTrue(thread1reply1.body().contains("I agree"));
-            assertEquals(noreplyAddress(archive), thread1reply1.author().address());
+            assertEquals(from.address(), thread1reply1.author().address());
             assertEquals(archive.forge().currentUser().fullName(), thread1reply1.author().fullName().orElseThrow());
             var thread1reply2 = conversations.get(0).replies(thread1reply1).get(0);
             assertTrue(thread1reply2.body().contains("Great"));
@@ -1641,7 +1635,7 @@ class MailingListBridgeBotTests {
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             for (var newMail : conversations.get(0).allMessages()) {
-                assertEquals(noreplyAddress(archive), newMail.author().address());
+                assertEquals(from.address(), newMail.author().address());
                 assertEquals(listAddress, newMail.sender());
             }
 
@@ -1768,7 +1762,7 @@ class MailingListBridgeBotTests {
             var conversations = mailmanList.conversations(Duration.ofDays(1));
             assertEquals(1, conversations.size());
             for (var newMail : conversations.get(0).allMessages()) {
-                assertEquals(noreplyAddress(archive), newMail.author().address());
+                assertEquals(sender.address(), newMail.author().address());
                 assertEquals(listAddress, newMail.sender());
                 assertFalse(newMail.hasHeader("PR-Head-Hash"));
             }
@@ -2935,7 +2929,7 @@ class MailingListBridgeBotTests {
             var mail = conversations.get(0).first();
             assertEquals("RFR: 1234: This is a pull request", mail.subject());
             assertEquals(pr.author().fullName(), mail.author().fullName().orElseThrow());
-            assertEquals(noreplyAddress(archive), mail.author().address());
+            assertEquals(from.address(), mail.author().address());
             assertEquals(listAddress1, mail.sender());
             assertEquals(List.of(listAddress1), mail.recipients());
 
@@ -2951,7 +2945,7 @@ class MailingListBridgeBotTests {
             var reply = conversations.get(0).replies(conversations.get(0).first()).get(0);
             assertEquals("RFR: 1234: This is a pull request", reply.subject());
             assertEquals(pr.author().fullName(), reply.author().fullName().orElseThrow());
-            assertEquals(noreplyAddress(archive), reply.author().address());
+            assertEquals(from.address(), reply.author().address());
             assertEquals(listAddress1, reply.sender());
             assertEquals(List.of(listAddress1, listAddress2), reply.recipients());
         }
@@ -3067,7 +3061,7 @@ class MailingListBridgeBotTests {
             var mail = conversations.get(0).first();
             assertEquals("RFR: 1234: This is a pull request", mail.subject());
             assertEquals(pr.author().fullName(), mail.author().fullName().orElseThrow());
-            assertEquals(noreplyAddress(archive), mail.author().address());
+            assertEquals(from.address(), mail.author().address());
             assertEquals(listAddress, mail.sender());
             assertEquals("val1", mail.headerValue("Extra1"));
             assertEquals("val2", mail.headerValue("Extra2"));
@@ -3151,7 +3145,7 @@ class MailingListBridgeBotTests {
             assertEquals(1, conversations.size());
             assertEquals(3, conversations.get(0).allMessages().size());
             for (var newMail : conversations.get(0).allMessages()) {
-                assertEquals(noreplyAddress(archive), newMail.author().address());
+                assertEquals(from.address(), newMail.author().address());
                 assertEquals(listAddress, newMail.sender());
             }
             assertTrue(conversations.get(0).allMessages().get(2).body().contains("This is a comment 😄"));
