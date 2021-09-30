@@ -518,6 +518,7 @@
             "test/micro/org/openjdk/bench/java/net/"
         ],
         "nio": [
+            "src/java.base/\\w+/classes/java/nio/",
             "src/java.base/\\w+/classes/sun/nio/",
             "src/java.base/\\w+/native/libnio/",
             "src/jdk.nio.mapmode/",
