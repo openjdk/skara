@@ -259,6 +259,8 @@ public class GitWebrev {
             }
         }
 
+        var comments = !arguments.contains("no-comments");
+
         if (arguments.contains("base") && arguments.contains("rev")) {
             System.err.println("error: cannot combine --base and --rev options");
             System.exit(1);
@@ -449,6 +451,7 @@ public class GitWebrev {
                   .version(version)
                   .files(files)
                   .similarity(similarity)
+                  .comments(comments)
                   .generate(base, head);
         }
     }
