@@ -65,7 +65,7 @@ public class GitHubHost implements Forge {
                 .setPath("/")
                 .build();
 
-        request = new RestRequest(baseApi, application.authId(), () -> Arrays.asList(
+        request = new RestRequest(baseApi, application.authId(), (r) -> Arrays.asList(
                 "Authorization", "token " + getInstallationToken().orElseThrow(),
                 "Accept", "application/vnd.github.machine-man-preview+json",
                 "Accept", "application/vnd.github.antiope-preview+json",
@@ -76,7 +76,7 @@ public class GitHubHost implements Forge {
                 .appendSubDomain("api")
                 .setPath("/graphql")
                 .build();
-        graphQL = new RestRequest(graphQLAPI, application.authId(), () -> Arrays.asList(
+        graphQL = new RestRequest(graphQLAPI, application.authId(), (r) -> Arrays.asList(
                 "Authorization", "bearer " + getInstallationToken().orElseThrow(),
                 "Accept", "application/vnd.github.machine-man-preview+json",
                 "Accept", "application/vnd.github.antiope-preview+json",
@@ -106,7 +106,7 @@ public class GitHubHost implements Forge {
                                 .setPath("/")
                                 .build();
 
-        request = new RestRequest(baseApi, pat.username(), () -> Arrays.asList(
+        request = new RestRequest(baseApi, pat.username(), (r) -> Arrays.asList(
                 "Authorization", "token " + getInstallationToken().orElseThrow(),
                 "Accept", "application/vnd.github.machine-man-preview+json",
                 "Accept", "application/vnd.github.antiope-preview+json",
@@ -117,7 +117,7 @@ public class GitHubHost implements Forge {
                 .appendSubDomain("api")
                 .setPath("/graphql")
                 .build();
-        graphQL = new RestRequest(graphQLAPI, pat.username(), () -> Arrays.asList(
+        graphQL = new RestRequest(graphQLAPI, pat.username(), (r) -> Arrays.asList(
                 "Authorization", "bearer " + getInstallationToken().orElseThrow(),
                 "Accept", "application/vnd.github.machine-man-preview+json",
                 "Accept", "application/vnd.github.antiope-preview+json",

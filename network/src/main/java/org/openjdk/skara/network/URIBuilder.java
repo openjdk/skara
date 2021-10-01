@@ -137,6 +137,11 @@ public class URIBuilder {
         return this;
     }
 
+    public URIBuilder setQuery(String query) {
+        current.query = query;
+        return this;
+    }
+
     public URIBuilder setQuery(Map<String, String> parameters) {
         var query = parameters.entrySet().stream()
                 .map(p -> {

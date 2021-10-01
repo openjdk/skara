@@ -56,7 +56,7 @@ public class GitLabHost implements Forge {
         var baseApi = URIBuilder.base(uri)
                                 .setPath("/api/v4/")
                                 .build();
-        request = new RestRequest(baseApi, pat.username(), () -> Arrays.asList("Private-Token", pat.password()));
+        request = new RestRequest(baseApi, pat.username(), (r) -> Arrays.asList("Private-Token", pat.password()));
     }
 
     GitLabHost(String name, URI uri, boolean useSsh, Set<String> groups) {

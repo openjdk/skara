@@ -41,7 +41,7 @@ public class JbsBackport {
 
     JbsBackport(URI uri, JbsVault vault) {
         if (vault != null) {
-            backportRequest = new RestRequest(backportRequest(uri), vault.authId(), () -> Arrays.asList("Cookie", vault.getCookie()));
+            backportRequest = new RestRequest(backportRequest(uri), vault.authId(), (r) -> Arrays.asList("Cookie", vault.getCookie()));
         } else {
             backportRequest = null;
         }

@@ -51,7 +51,7 @@ class JiraVault {
 
     JiraVault(URI vaultUri, String vaultToken, URI jiraUri) {
         authId = checksum(vaultToken);
-        request = new RestRequest(vaultUri, authId, () -> Arrays.asList(
+        request = new RestRequest(vaultUri, authId, (r) -> Arrays.asList(
                 "X-Vault-Token", vaultToken
         ));
         this.authProbe = URIBuilder.base(jiraUri).setPath("/rest/api/2/myself").build();
@@ -59,7 +59,7 @@ class JiraVault {
 
     String getCookie() {
         if (cookie != null) {
-            var authProbeRequest = new RestRequest(authProbe, authId, () -> Arrays.asList("Cookie", cookie));
+            var authProbeRequest = new RestRequest(authProbe, authId, (r) -> Arrays.asList("Cookie", cookie));
             var res = authProbeRequest.get()
                     .onError(error -> error.statusCode() >= 400 ? Optional.of(JSON.of("AUTH_ERROR")) : Optional.empty())
                     .execute();

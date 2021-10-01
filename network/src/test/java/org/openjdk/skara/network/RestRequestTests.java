@@ -304,8 +304,8 @@ class RestRequestTests {
     void cachedSeparateAuth() throws IOException {
         try (var receiver = new RestReceiver()) {
             var plainRequest = new RestRequest(receiver.getEndpoint());
-            var authRequest1 = new RestRequest(receiver.getEndpoint(), "id1", () -> List.of("user", "1"));
-            var authRequest2 = new RestRequest(receiver.getEndpoint(), "id2", () -> List.of("user", "2"));
+            var authRequest1 = new RestRequest(receiver.getEndpoint(), "id1", (r) -> List.of("user", "1"));
+            var authRequest2 = new RestRequest(receiver.getEndpoint(), "id2", (r) -> List.of("user", "2"));
 
             plainRequest.get("/test").execute();
             assertFalse(receiver.usedCached());
