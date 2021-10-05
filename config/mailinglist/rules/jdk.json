@@ -225,6 +225,7 @@
             "test/micro/org/openjdk/bench/vm/lang/"
         ],
         "hotspot": [
+            "doc/hotspot-.*",
             "src/hotspot/share/prims/",
             "src/hotspot/share/utilities/",
             "test/hotspot/gtest/utilities/",
