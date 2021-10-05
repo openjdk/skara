@@ -61,13 +61,12 @@ public class TagCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, HostedCommit commit, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         try {
-            var username = command.user().username();
             if (censusInstance.contributor(command.user()).isEmpty()) {
-                reply.println("@" + username + " only OpenJDK [contributors](https://openjdk.java.net/bylaws#contributor) can use the `/tag` command.");
+                reply.println("Only OpenJDK [contributors](https://openjdk.java.net/bylaws#contributor) can use the `/tag` command.");
                 return;
             }
-            if (!bot.integrators().contains(username)) {
-                reply.println("@" + username + " only integrators for this repository are allowed to use the `/tag` command.");
+            if (!bot.integrators().contains(command.user().username())) {
+                reply.println("Only integrators for this repository are allowed to use the `/tag` command.");
                 return;
             }
 
@@ -95,14 +94,14 @@ public class TagCommand implements CommandHandler {
                 var hash = localRepo.resolve(tagName).orElseThrow(() ->
                         new IllegalStateException("Cannot resolve tag with name " + tagName + " in repo " + bot.repo().name()));
                 var hashUrl = bot.repo().webUrl(hash);
-                reply.println("@" + username + " a tag with name `" + tagName + "` already exists that refers to commit [" + hash.abbreviate() + "](" + hashUrl + "].");
+                reply.println("A tag with name `" + tagName + "` already exists that refers to commit [" + hash.abbreviate() + "](" + hashUrl + "].");
                 return;
             }
 
             var jcheckConf = JCheckConfiguration.from(localRepo, commit.hash());
             var tagPattern = jcheckConf.isPresent() ? jcheckConf.get().repository().tags() : null;
             if (tagPattern != null && !tagName.matches(tagPattern)) {
-                reply.println("@" + username + " the given tag name `" + tagName + "` is not of the form `" + tagPattern + "`.");
+                reply.println("The given tag name `" + tagName + "` is not of the form `" + tagPattern + "`.");
                 return;
             }
 
@@ -112,7 +111,7 @@ public class TagCommand implements CommandHandler {
             var message = "Added tag " + tagName + " for changeset " + commit.hash().abbreviate();
             var tag = localRepo.tag(commit.hash(), tagName, message, contributor.username(), email);
             localRepo.push(tag, bot.repo().url(), false);
-            reply.println("@" + username + " the tag [" + tag.name() + "](" + bot.repo().webUrl(tag) + ") was successfully created.");
+            reply.println("The tag [" + tag.name() + "](" + bot.repo().webUrl(tag) + ") was successfully created.");
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

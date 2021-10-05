@@ -56,19 +56,18 @@ public class OpenCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply)
     {
-        var user = command.user();
-        if (!user.equals(pr.author())) {
-            reply.println("@" + user + " only the pull request author can set the pull request state to \"open\"");
+        if (!command.user().equals(pr.author())) {
+            reply.println("Only the pull request author can set the pull request state to \"open\"");
             return;
         }
 
         if (pr.isOpen()) {
-            reply.println("@" + user + " this pull request is already open");
+            reply.println("This pull request is already open");
             return;
 
         }
 
         pr.setState(Issue.State.OPEN);
-        reply.println("@" + user + " this pull request is now open");
+        reply.println("This pull request is now open");
     }
 }

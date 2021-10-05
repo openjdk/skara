@@ -55,25 +55,24 @@ public class CleanCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply)
     {
-        var username = command.user().username();
         if (!censusInstance.isCommitter(command.user())) {
-            reply.println("@" + username + " only OpenJDK [Committers](https://openjdk.java.net/bylaws#committer) can use the `/clean` command");
+            reply.println("Only OpenJDK [Committers](https://openjdk.java.net/bylaws#committer) can use the `/clean` command");
             return;
         }
 
         if (!pr.labelNames().contains("backport") || CheckablePullRequest.findOriginalBackportHash(pr) == null) {
-            reply.println("@" + username + " can only mark [backport pull requests]" +
+            reply.println("Can only mark [backport pull requests]" +
                     "(https://wiki.openjdk.java.net/display/SKARA/Backports#Backports-BackportPullRequests)," +
                     " with an original hash, as clean");
             return;
         }
 
         if (pr.labelNames().contains("clean")) {
-            reply.println("@" + username + " this backport pull request is already marked as clean");
+            reply.println("This backport pull request is already marked as clean");
             return;
         }
 
         pr.addLabel("clean");
-        reply.println("@" + username + " this backport pull request is now marked as clean");
+        reply.println("This backport pull request is now marked as clean");
     }
 }
