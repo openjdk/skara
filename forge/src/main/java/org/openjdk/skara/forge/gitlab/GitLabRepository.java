@@ -580,8 +580,8 @@ public class GitLabRepository implements HostedRepository {
     public void addCollaborator(HostUser user, boolean canPush) {
         var accessLevel = canPush ? "30" : "20";
         request.post("members")
-                .body("user_id", user.id())
-                .body("access_level", accessLevel)
+               .body("user_id", user.id())
+               .body("access_level", accessLevel)
                .execute();
     }
 
