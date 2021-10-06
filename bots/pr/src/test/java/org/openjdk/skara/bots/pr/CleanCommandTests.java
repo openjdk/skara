@@ -72,7 +72,7 @@ public class CleanCommandTests {
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.labelNames().contains("backport"));
             assertFalse(pr.labelNames().contains("clean"));
-            assertLastCommentContains(pr, "can only mark [backport pull requests]");
+            assertLastCommentContains(pr, "Can only mark [backport pull requests]");
             assertLastCommentContains(pr, ", with an original hash, as clean");
         }
     }
@@ -140,7 +140,7 @@ public class CleanCommandTests {
             pr.addComment("/clean");
             TestBotRunner.runPeriodicItems(bot);
             assertTrue(pr.labelNames().contains("clean"));
-            assertLastCommentContains(pr, "this backport pull request is already marked as clean");
+            assertLastCommentContains(pr, "This backport pull request is already marked as clean");
         }
     }
 
@@ -215,7 +215,7 @@ public class CleanCommandTests {
             pr.addComment("/clean");
             TestBotRunner.runPeriodicItems(bot);
             assertTrue(pr.labelNames().contains("clean"));
-            assertLastCommentContains(pr, "this backport pull request is now marked as clean");
+            assertLastCommentContains(pr, "This backport pull request is now marked as clean");
         }
     }
 
@@ -293,7 +293,7 @@ public class CleanCommandTests {
             prAsAuthor.addComment("/clean");
             TestBotRunner.runPeriodicItems(bot);
             assertFalse(pr.labelNames().contains("clean"));
-            assertLastCommentContains(pr, "only OpenJDK [Committers]");
+            assertLastCommentContains(pr, "Only OpenJDK [Committers]");
             assertLastCommentContains(pr, "can use the `/clean` command");
         }
     }
@@ -338,7 +338,7 @@ public class CleanCommandTests {
             TestBotRunner.runPeriodicItems(prBot);
             assertTrue(pr.labelNames().contains("backport"));
             assertFalse(pr.labelNames().contains("clean"));
-            assertLastCommentContains(pr, "can only mark [backport pull requests]");
+            assertLastCommentContains(pr, "Can only mark [backport pull requests]");
             assertLastCommentContains(pr, ", with an original hash, as clean");
         }
     }

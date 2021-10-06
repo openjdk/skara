@@ -246,7 +246,7 @@ public class BackportCommitCommandTests {
             var recentCommitComments = author.recentCommitComments();
             assertEquals(2, recentCommitComments.size());
             var botReply = recentCommitComments.get(0);
-            assertTrue(botReply.body().contains("could **not** automatically backport"));
+            assertTrue(botReply.body().contains("Could **not** automatically backport"));
             assertEquals(List.of(), author.pullRequests());
         }
     }

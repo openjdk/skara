@@ -74,7 +74,7 @@ public class OpenCommandTests {
             pr.addComment("/open");
             TestBotRunner.runPeriodicItems(prBot);
             assertTrue(pr.isOpen());
-            assertLastCommentContains(pr, "this pull request is now open");
+            assertLastCommentContains(pr, "This pull request is now open");
         }
     }
 
@@ -119,7 +119,7 @@ public class OpenCommandTests {
             prAsOther.addComment("/open");
             TestBotRunner.runPeriodicItems(prBot);
             assertTrue(prAsOther.isClosed());
-            assertLastCommentContains(prAsOther, "only the pull request author can set the pull request state to \"open\"");
+            assertLastCommentContains(prAsOther, "Only the pull request author can set the pull request state to \"open\"");
         }
     }
 
@@ -157,7 +157,7 @@ public class OpenCommandTests {
             pr.addComment("/open");
             TestBotRunner.runPeriodicItems(prBot);
             assertTrue(pr.isOpen());
-            assertLastCommentContains(pr, "this pull request is already open");
+            assertLastCommentContains(pr, "This pull request is already open");
         }
     }
 }

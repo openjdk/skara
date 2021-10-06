@@ -212,7 +212,7 @@ public class TagCommitCommandTests {
             recentCommitComments = author.recentCommitComments();
             assertEquals(4, recentCommitComments.size());
             botReply = recentCommitComments.get(0);
-            assertTrue(botReply.body().contains("a tag with name `v1.0` already exists"));
+            assertTrue(botReply.body().contains("A tag with name `v1.0` already exists"));
         }
     }
 
@@ -247,7 +247,7 @@ public class TagCommitCommandTests {
             var recentCommitComments = author.recentCommitComments();
             assertEquals(2, recentCommitComments.size());
             var botReply = recentCommitComments.get(0);
-            assertTrue(botReply.body().contains("only integrators for this repository are allowed to use the `/tag` command"));
+            assertTrue(botReply.body().contains("Only integrators for this repository are allowed to use the `/tag` command"));
 
             var localAuthorRepoDir = tempFolder.path().resolve("author");
             var localAuthorRepo = Repository.clone(author.url(), localAuthorRepoDir);
@@ -293,7 +293,7 @@ public class TagCommitCommandTests {
             assertEquals(2, recentCommitComments.size());
             var botReply = recentCommitComments.get(0);
             System.out.println(botReply);
-            assertTrue(botReply.body().contains("the given tag name `bar` is not of the form `foo`"));
+            assertTrue(botReply.body().contains("The given tag name `bar` is not of the form `foo`"));
 
             var localAuthorRepoDir = tempFolder.path().resolve("author");
             var localAuthorRepo = Repository.clone(author.url(), localAuthorRepoDir);
