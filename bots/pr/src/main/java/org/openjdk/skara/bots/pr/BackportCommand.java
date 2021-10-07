@@ -58,9 +58,8 @@ public class BackportCommand implements CommandHandler {
 
     @Override
     public void handle(PullRequestBot bot, HostedCommit commit, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
-        var username = command.user().username();
         if (censusInstance.contributor(command.user()).isEmpty()) {
-            reply.println("@" + username + " only OpenJDK [contributors](https://openjdk.java.net/bylaws#contributor) can use the `/backport` command");
+            reply.println("Only OpenJDK [contributors](https://openjdk.java.net/bylaws#contributor) can use the `/backport` command");
             return;
         }
 
@@ -92,7 +91,7 @@ public class BackportCommand implements CommandHandler {
 
         var potentialTargetRepo = repoName.flatMap(forge::repository);
         if (potentialTargetRepo.isEmpty()) {
-            reply.println("@" + username + " the target repository `" + repoNameArg + "` is not a valid target for backports. ");
+            reply.println("The target repository `" + repoNameArg + "` is not a valid target for backports. ");
             reply.print("List of valid target repositories: ");
             reply.println(String.join(", ", bot.forks().keySet().stream().sorted().toList()) + ".");
             reply.println("Supplying the organization/group prefix is optional.");
@@ -104,7 +103,7 @@ public class BackportCommand implements CommandHandler {
         var targetBranchName = parts.length == 2 ? parts[1] : "master";
         var targetBranches = targetRepo.branches();
         if (targetBranches.stream().noneMatch(b -> b.name().equals(targetBranchName))) {
-            reply.println("@" + username + " the target branch `" + targetBranchName + "` does not exist");
+            reply.println("The target branch `" + targetBranchName + "` does not exist");
             return;
         }
         var targetBranch = new Branch(targetBranchName);
@@ -112,7 +111,7 @@ public class BackportCommand implements CommandHandler {
         try {
             var hash = commit.hash();
             Hash backportHash;
-            var backportBranchName = username + "-backport-" + hash.abbreviate();
+            var backportBranchName = command.user().username() + "-backport-" + hash.abbreviate();
             var hostedBackportBranch = fork.branches().stream().filter(b -> b.name().equals(backportBranchName)).findAny();
             if (hostedBackportBranch.isEmpty()) {
                 var localRepoDir = scratchPath.resolve("backport-command")
@@ -128,7 +127,7 @@ public class BackportCommand implements CommandHandler {
                 var didApply = localRepo.cherryPick(fetchHead);
                 if (!didApply) {
                     var lines = new ArrayList<String>();
-                    lines.add("@" + username + " could **not** automatically backport `" + hash.abbreviate() + "` to " +
+                    lines.add("Could **not** automatically backport `" + hash.abbreviate() + "` to " +
                               "[" + repoName + "](" + targetRepo.webUrl() + ") due to conflicts in the following files:");
                     lines.add("");
                     var unmerged = localRepo.status()

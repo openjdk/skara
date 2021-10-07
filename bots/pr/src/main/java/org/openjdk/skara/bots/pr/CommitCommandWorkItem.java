@@ -120,6 +120,9 @@ public class CommitCommandWorkItem implements WorkItem {
         var printer = new PrintWriter(writer);
 
         printer.println(String.format(commandReplyMarker, command.id()));
+        printer.print("@");
+        printer.print(command.user().username());
+        printer.print(" ");
 
         var handler = command.handler();
         if (handler.isPresent()) {
