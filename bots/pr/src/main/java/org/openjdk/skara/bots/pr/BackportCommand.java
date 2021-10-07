@@ -84,13 +84,14 @@ public class BackportCommand implements CommandHandler {
         // otherwise cut off the namespace prefix before comparing with the forks
         // config.
         var includesNamespace = repoNameArg.contains("/");
-        var repoName = bot.forks().keySet().stream()
+        var repoNameOptional = bot.forks().keySet().stream()
                 .filter(s -> includesNamespace
                         ? s.equals(repoNameArg)
                         : s.substring(s.indexOf("/") + 1).equals(repoNameArg))
                 .findAny();
+        String repoName = repoNameOptional.orElse("<not found>");
 
-        var potentialTargetRepo = repoName.flatMap(forge::repository);
+        var potentialTargetRepo = repoNameOptional.flatMap(forge::repository);
         if (potentialTargetRepo.isEmpty()) {
             reply.println("@" + username + " the target repository `" + repoNameArg + "` is not a valid target for backports. ");
             reply.print("List of valid target repositories: ");
