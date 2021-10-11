@@ -75,7 +75,9 @@ public class JdkVersion implements Comparable<JdkVersion> {
 
         // If no legacy match, use the JEP322 scheme
         if (finalComponents.isEmpty()) {
-            var optionalStart = raw.lastIndexOf("-");
+            // The input strings here never contain a $PRE string, but the $OPT string
+            // may contain '-' so matching on first '-' is necessary.
+            var optionalStart = raw.indexOf("-");
             String optional = null;
             if (optionalStart >= 0) {
                 optional = raw.substring(optionalStart + 1);

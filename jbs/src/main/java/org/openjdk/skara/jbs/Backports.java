@@ -119,21 +119,23 @@ public class Backports {
     }
 
     /**
-     * Return true if the issue's fixVersionList is a match for fixVersion, using "-pool" or "-open".
+     * Return true if the issue's fixVersionList is a match for fixVersion, using "-pool[-<opt>]".
+     * If the fixVersion has an opt string, then the pool record needs to have the same opt
+     * string suffix.
      *
      * If fixVersion has a major release of <N>, it matches the fixVersionList has an
-     * <N>-pool or <N>-open entry and all other entries are scratch values.
+     * <N>-pool entry and all other entries are scratch values.
      */
     private static boolean matchPoolVersion(Issue issue, JdkVersion fixVersion) {
         var majorVersion = fixVersion.feature();
-        var poolVersion = JdkVersion.parse(majorVersion + "-pool");
-        var openVersion = JdkVersion.parse(majorVersion + "-open");
+        var poolSuffix = fixVersion.opt().map((o) -> "-pool-" + o).orElse("-pool");
+        var poolVersion = JdkVersion.parse(majorVersion + poolSuffix);
 
         var mainVersion = mainFixVersion(issue);
         if (mainVersion.isEmpty()) {
             return false;
         }
-        return mainVersion.get().equals(poolVersion.orElseThrow()) || mainVersion.get().equals(openVersion.orElseThrow());
+        return mainVersion.get().equals(poolVersion.orElseThrow());
     }
 
     /**
@@ -151,8 +153,8 @@ public class Backports {
      *
      * If the main issue       has the correct fixVersion, use it.
      * If an existing Backport has the correct fixVersion, use it.
-     * If the main issue       has a matching <N>-pool/open fixVersion, use it.
-     * If an existing Backport has a matching <N>-pool/open fixVersion, use it.
+     * If the main issue       has a matching <N>-pool fixVersion, use it.
+     * If an existing Backport has a matching <N>-pool fixVersion, use it.
      * If the main issue       has a "scratch" fixVersion, use it.
      * If an existing Backport has a "scratch" fixVersion, use it.
      *

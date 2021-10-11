@@ -49,6 +49,9 @@ public class JdkVersionTests {
         assertEquals("oracle", from("11.0.2.0.1-oracle").opt().orElseThrow());
         assertEquals(List.of("11", "0", "3"), from("11.0.3-oracle").components());
         assertEquals("oracle", from("11.0.3-oracle").opt().orElseThrow());
+        var fooVersion = from("11.0.12-foo-bar");
+        assertEquals(List.of("11", "0", "12"), fooVersion.components());
+        assertEquals("foo-bar", fooVersion.opt().orElseThrow());
     }
 
     @Test
