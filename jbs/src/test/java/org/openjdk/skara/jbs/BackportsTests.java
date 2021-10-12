@@ -806,6 +806,20 @@ public class BackportsTests {
         }
     }
 
+    /**
+     * Verify that the special jdk-cpu version does not ever get labeled.
+     */
+    @Test
+    void cpu(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "17");
+            backports.assertLabeled();
+
+            backports.addBackports("16", "16.0.2", "jdk-cpu");
+            backports.assertLabeled("16.0.2", "17");
+        }
+    }
+
     @Test
     void openjdk7u(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {

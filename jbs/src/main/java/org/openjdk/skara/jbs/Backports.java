@@ -225,7 +225,7 @@ public class Backports {
                     .collect(Collectors.toList());
     }
 
-    private static final Pattern featureFamilyPattern = Pattern.compile("^([^\\d]*)(\\d+)$");
+    private static final Pattern featureFamilyPattern = Pattern.compile("^([^\\d]*)(\\d*)$");
 
     /**
      * Classifies a given version as belonging to one or more release streams.
@@ -354,10 +354,12 @@ public class Backports {
         var featureFamilyMatcher = featureFamilyPattern.matcher(version.feature());
         if (featureFamilyMatcher.matches()) {
             var featureVersion = featureFamilyMatcher.group(2);
-            var numericFeature = Integer.parseInt(featureVersion);
+            if (featureVersion.length() > 0) {
+                var numericFeature = Integer.parseInt(featureVersion);
 
-            if (numericFeature >= 9 && version.interim().isPresent() && !version.interim().get().equals("0")) {
-                return true;
+                if (numericFeature >= 9 && version.interim().isPresent() && !version.interim().get().equals("0")) {
+                    return true;
+                }
             }
         }
 

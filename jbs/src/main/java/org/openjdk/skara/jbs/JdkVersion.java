@@ -81,25 +81,30 @@ public class JdkVersion implements Comparable<JdkVersion> {
                 optional = raw.substring(optionalStart + 1);
                 raw = raw.substring(0, optionalStart);
             }
-            var prefixMatcher = prefixPattern.matcher(raw);
             String prefix = null;
-            if (prefixMatcher.matches()) {
-                prefix = prefixMatcher.group(1);
-                raw = prefixMatcher.group(2);
+            if ("jdk".equals(raw) && "cpu".equals(optional)) {
+                // Special case of jdk-cpu. This symbolic version has no set numbers
+                finalComponents.add("jdk");
+            } else {
+                var prefixMatcher = prefixPattern.matcher(raw);
+                if (prefixMatcher.matches()) {
+                    prefix = prefixMatcher.group(1);
+                    raw = prefixMatcher.group(2);
+                }
+
+                finalComponents.addAll(Arrays.asList(raw.split("\\.")));
+
+                // All components except the optional one must be numeric
+                finalComponents.forEach(Integer::parseUnsignedInt);
+
+                if (prefix != null) {
+                    finalComponents.set(0, prefix + finalComponents.get(0));
+                }
             }
-
-            finalComponents.addAll(Arrays.asList(raw.split("\\.")));
-
-            // All components except the optional one must be numeric
-            finalComponents.forEach(Integer::parseUnsignedInt);
 
             if (optional != null) {
                 finalComponents.add(null);
                 finalComponents.add(optional);
-            }
-
-            if (prefix != null) {
-                finalComponents.set(0, prefix + finalComponents.get(0));
             }
         }
 
