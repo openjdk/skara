@@ -26,7 +26,7 @@ import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.issuetracker.IssueProject;
 
 import java.net.URI;
-import java.util.Map;
+import java.util.*;
 
 class IssueNotifierBuilder {
     private IssueProject issueProject;
@@ -36,6 +36,7 @@ class IssueNotifierBuilder {
     private URI commitIcon = null;
     private boolean setFixVersion = false;
     private Map<String, String> fixVersions = null;
+    private Map<String, List<String>> altFixVersions = null;
     private JbsVault vault = null;
     private boolean prOnly = true;
     private String buildName = null;
@@ -79,6 +80,11 @@ class IssueNotifierBuilder {
         return this;
     }
 
+    public IssueNotifierBuilder altFixVersions(Map<String, List<String>> altFixVersions) {
+        this.altFixVersions = altFixVersions;
+        return this;
+    }
+
     public IssueNotifierBuilder vault(JbsVault vault) {
         this.vault = vault;
         return this;
@@ -112,7 +118,7 @@ class IssueNotifierBuilder {
     IssueNotifier build() {
         var jbsBackport = new JbsBackport(issueProject.webUrl(), vault);
         return new IssueNotifier(issueProject, reviewLink, reviewIcon, commitLink, commitIcon,
-                                 setFixVersion, fixVersions, jbsBackport, prOnly, buildName,
+                                 setFixVersion, fixVersions, altFixVersions, jbsBackport, prOnly, buildName,
                                  censusRepository, censusRef, namespace);
     }
 }

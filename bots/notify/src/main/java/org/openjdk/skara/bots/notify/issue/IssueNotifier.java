@@ -47,6 +47,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     private final URI commitIcon;
     private final boolean setFixVersion;
     private final Map<String, String> fixVersions;
+    private final Map<String, List<String>> altFixVersions;
     private final JbsBackport jbsBackport;
     private final boolean prOnly;
     private final String buildName;
@@ -57,8 +58,9 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
     IssueNotifier(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,
-            boolean setFixVersion, Map<String, String> fixVersions, JbsBackport jbsBackport, boolean prOnly,
-                  String buildName, HostedRepository censusRepository, String censusRef, String namespace) {
+                  boolean setFixVersion, Map<String, String> fixVersions, Map<String, List<String>> altFixVersions,
+                  JbsBackport jbsBackport, boolean prOnly, String buildName, HostedRepository censusRepository,
+                  String censusRef, String namespace) {
         this.issueProject = issueProject;
         this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
@@ -66,6 +68,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         this.commitIcon = commitIcon;
         this.setFixVersion = setFixVersion;
         this.fixVersions = fixVersions;
+        this.altFixVersions = altFixVersions;
         this.jbsBackport = jbsBackport;
         this.prOnly = prOnly;
         this.buildName = buildName;
@@ -245,12 +248,19 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                     }
 
                     if (requestedVersion != null) {
-                        var fixVersion = JdkVersion.parse(requestedVersion).orElseThrow();
-                        var existing = Backports.findIssue(issue, fixVersion);
-                        if (existing.isEmpty()) {
-                            issue = jbsBackport.createBackport(issue, requestedVersion, username.orElse(null));
+                        var altFixedVersionIssue = findAltFixedVersionIssue(issue, branch);
+                        if (altFixedVersionIssue.isPresent()) {
+                            log.info("Found an already fixed backport " + altFixedVersionIssue.get().id() + " for " + issue.id()
+                                    + " with fixVersion " + Backports.mainFixVersion(altFixedVersionIssue.get()).orElseThrow());
+                            return;
                         } else {
-                            issue = existing.get();
+                            var fixVersion = JdkVersion.parse(requestedVersion).orElseThrow();
+                            var existing = Backports.findIssue(issue, fixVersion);
+                            if (existing.isEmpty()) {
+                                issue = jbsBackport.createBackport(issue, requestedVersion, username.orElse(null));
+                            } else {
+                                issue = existing.get();
+                            }
                         }
                     }
                 }
@@ -293,6 +303,21 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 }
             }
         }
+    }
+
+    private Optional<Issue> findAltFixedVersionIssue(Issue issue, Branch branch) {
+        if (altFixVersions != null) {
+            for (var altFixVersionString : altFixVersions.getOrDefault(branch.name(), List.of())) {
+                var altFixVersion = JdkVersion.parse(altFixVersionString).orElseThrow();
+                var backport = Backports.findIssue(issue, altFixVersion);
+                if (backport.isPresent()) {
+                    if (backport.get().isResolved()) {
+                        return backport;
+                    }
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     @Override

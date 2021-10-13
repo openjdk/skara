@@ -133,7 +133,8 @@ public class Backports {
         if (mainVersion.isEmpty()) {
             return false;
         }
-        return mainVersion.get().equals(poolVersion.orElseThrow()) || mainVersion.get().equals(openVersion.orElseThrow());
+        return (poolVersion.isPresent() && mainVersion.get().equals(poolVersion.get()))
+                || (openVersion.isPresent() && mainVersion.get().equals(openVersion.get()));
     }
 
     /**
