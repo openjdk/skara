@@ -46,8 +46,8 @@ external Git source code hosting providers are available:
 
 ## Building
 
-[JDK 16](http://jdk.java.net/16/) or later and [Gradle](https://gradle.org/)
-7.0 or later is required for building. To build the project on macOS or
+[JDK 17](http://jdk.java.net/17/) or later and [Gradle](https://gradle.org/)
+7.2 or later is required for building. To build the project on macOS or
 GNU/Linux x64, just run the following command from the source tree root:
 
 ```bash
@@ -69,7 +69,7 @@ also want to build the bot images run `sh gradlew images` on GNU/Linux or
 
 If you want to build on an operating system other than GNU/Linux, macOS or
 Windows _or_ if you want to build on a CPU architecture other than x64, then
-ensure that you have JDK 16 or later installed locally and JAVA_HOME set to
+ensure that you have JDK 17 or later installed locally and JAVA_HOME set to
 point to it. You can then run the following command from the source tree root:
 
 ```bash
@@ -84,8 +84,8 @@ tree root.
 If you don't want the build to automatically download any dependencies, then
 you must ensure that you have installed the following software locally:
 
-- JDK 16 or later
-- Gradle 7.0 or later
+- JDK 17 or later
+- Gradle 7.2 or later
 
 To create a build then run the command:
 
@@ -224,12 +224,12 @@ or IDE.
 If you choose to use [IntelliJ IDEA](https://www.jetbrains.com/idea/) as your
 IDE when working on Skara you can simply open the root folder and the project
 should be automatically imported. You will need to configure a Platform SDK that
-is JDK 16 or above. Either set this up manually, or [build](#building) once from
+is JDK 17 or above. Either set this up manually, or [build](#building) once from
 the terminal, which will download a suitable JDK. Configure IntelliJ to use it
 at `File → Project Structure → Platform Settings → SDKs → + → Add JDK...` and
 browse to the downloaded JDK found in `<skara-folder>/.jdk/`. For example, on
 macOS, select the
-`<skara-folder>/.jdk/openjdk-16_osx-x64_bin/jdk-16.jdk/Contents/Home`
+`<skara-folder>/.jdk/openjdk-17_osx-x64_bin/jdk-17.jdk/Contents/Home`
 folder.
 
 ### Vim
