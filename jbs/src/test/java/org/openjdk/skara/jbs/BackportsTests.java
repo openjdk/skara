@@ -165,7 +165,7 @@ public class BackportsTests {
             assertEquals(backport, Backports.findIssue(issue, JdkVersion.parse("12.2").orElseThrow()).orElseThrow());
             assertEquals(backportFoo, Backports.findIssue(issue, JdkVersion.parse("12.2-foo").orElseThrow()).orElseThrow());
             assertEquals(Optional.empty(), Backports.findIssue(issue, JdkVersion.parse("13.3").orElseThrow()));
-            assertEquals(Optional.empty(), Backports.findIssue(issue, JdkVersion.parse("11.1-foo").orElseThrow()));
+            assertEquals(issue, Backports.findIssue(issue, JdkVersion.parse("11.1-foo").orElseThrow()).orElseThrow());
 
             issue.setProperty("fixVersions", JSON.array().add("tbd"));
             assertEquals(issue, Backports.findIssue(issue, JdkVersion.parse("11.1").orElseThrow()).orElseThrow());
