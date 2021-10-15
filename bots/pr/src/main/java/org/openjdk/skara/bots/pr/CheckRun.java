@@ -489,17 +489,20 @@ class CheckRun {
                                     progressBody.append(" ⚠️ Issue is not open.");
                                 }
                             }
-                            progressBody.append("\n");
+                        } else {
+                            progressBody.append("⚠️ Failed to retrieve information on issue `");
+                            progressBody.append(currentIssue.id());
+                            progressBody.append("`.");
+                            setExpiration(Duration.ofMinutes(10));
                         }
-                        // Issue not being present is already treated as an integration blocker
                     } catch (RuntimeException e) {
                         progressBody.append("⚠️ Temporary failure when trying to retrieve information on issue `");
                         progressBody.append(currentIssue.id());
                         progressBody.append("`.");
                         setExpiration(Duration.ofMinutes(30));
-                        progressBody.append("\n");
                     }
                 }
+                progressBody.append("\n");
             }
         }
 
