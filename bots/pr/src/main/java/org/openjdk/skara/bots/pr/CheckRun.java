@@ -208,11 +208,13 @@ class CheckRun {
                             }
                         }
                     } else {
-                        log.warning("Failed to retrieve information on issue " + currentIssue.id());
+                        ret.add("Failed to retrieve information on issue `" + currentIssue.id() +
+                                "`. Please make sure it exists and is accessible.");
                         setExpiration(Duration.ofMinutes(10));
                     }
                 } catch (RuntimeException e) {
-                    log.warning("Temporary failure when trying to retrieve information on issue " + currentIssue.id());
+                    ret.add("Failed to retrieve information on issue `" + currentIssue.id() +
+                            "`. This may be a temporary failure and will be retried.");
                     setExpiration(Duration.ofMinutes(30));
                 }
             }
@@ -488,13 +490,8 @@ class CheckRun {
                                 }
                             }
                             progressBody.append("\n");
-                        } else {
-                            progressBody.append("⚠️ Failed to retrieve information on issue `");
-                            progressBody.append(currentIssue.id());
-                            progressBody.append("`.");
-                            setExpiration(Duration.ofMinutes(10));
-                            progressBody.append("\n");
                         }
+                        // Issue not being present is already treated as an integration blocker
                     } catch (RuntimeException e) {
                         progressBody.append("⚠️ Temporary failure when trying to retrieve information on issue `");
                         progressBody.append(currentIssue.id());
