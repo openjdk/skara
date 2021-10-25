@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class JdkVersionTests {
     private JdkVersion from(String raw) {
@@ -85,6 +86,13 @@ public class JdkVersionTests {
     }
 
     @Test
+    void jdkCpu() {
+        var jdkCpu = from("jdk-cpu");
+        assertEquals(List.of("jdk"), jdkCpu.components());
+        assertEquals("cpu", jdkCpu.opt().orElseThrow());
+    }
+
+    @Test
     void order() {
         assertEquals(0, from("5.0u45").compareTo(from("5.0u45")));
         assertEquals(0, from("11.0.3").compareTo(from("11.0.3")));
@@ -110,6 +118,13 @@ public class JdkVersionTests {
         assertEquals(-1, from("16").compareTo(from("16u-cpu")));
         assertEquals(-1, from("16.0.2").compareTo(from("16u-cpu")));
         assertEquals(1, from("17").compareTo(from("16u-cpu")));
+    }
+
+    @Test
+    void jdkCpuOrder() {
+        assertTrue(from("16").compareTo(from("jdk-cpu")) < 0);
+        assertTrue(from("16.0.2").compareTo(from("jdk-cpu")) < 0);
+        assertTrue(from("17").compareTo(from("jdk-cpu")) < 0);
     }
 
     @Test

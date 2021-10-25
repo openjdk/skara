@@ -26,6 +26,7 @@ import org.openjdk.skara.bot.BotConfiguration;
 import org.openjdk.skara.bots.notify.*;
 import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.json.JSONObject;
+import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.network.URIBuilder;
 
 import java.net.URI;
@@ -66,6 +67,13 @@ public class IssueNotifierFactory implements NotifierFactory {
             builder.fixVersions(notifierConfiguration.get("fixversions").fields().stream()
                                                       .collect(Collectors.toMap(JSONObject.Field::name,
                                                                                 f -> f.value().asString())));
+        }
+        if (notifierConfiguration.contains("altfixversions")) {
+            builder.altFixVersions(notifierConfiguration.get("altfixversions").fields().stream()
+                    .collect(Collectors.toMap(JSONObject.Field::name,
+                            f -> f.value().asArray().stream()
+                                    .map(JSONValue::asString)
+                                    .toList())));
         }
         if (notifierConfiguration.contains("buildname")) {
             builder.buildName(notifierConfiguration.get("buildname").asString());
