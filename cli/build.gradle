@@ -54,6 +54,11 @@ dependencies {
     testImplementation project(':test')
 }
 
+// Load deps.env and remove all double quotes
+def depsEnv = new Properties()
+file("../deps.env").withInputStream { { depsEnv.load(it)}}
+depsEnv.entrySet().forEach(e -> e.setValue(((String) e.getValue()).replaceAll("\"", "")))
+
 images {
     ext.launchers = [
         'git-jcheck': 'org.openjdk.skara.cli/org.openjdk.skara.cli.GitJCheck',
@@ -80,8 +85,8 @@ images {
         launchers = ext.launchers
         bundles = ['zip', 'tar.gz']
         jdk {
-            url = 'https://download.java.net/java/GA/jdk16/7863447f0ab643c585b9bdebf67c69db/36/GPL/openjdk-16_windows-x64_bin.zip'
-            sha256 = 'a78bdeaad186297601edac6772d931224d7af6f682a43372e693c37020bd37d6'
+            url = depsEnv.getProperty("JDK_WINDOWS_X64_URL")
+            sha256 = depsEnv.getProperty("JDK_WINDOWS_X64_SHA256")
         }
     }
 
@@ -91,8 +96,8 @@ images {
         man = 'cli/resources/man'
         bundles = ['zip', 'tar.gz']
         jdk {
-            url = 'https://download.java.net/java/GA/jdk16/7863447f0ab643c585b9bdebf67c69db/36/GPL/openjdk-16_linux-x64_bin.tar.gz'
-            sha256 = 'e952958f16797ad7dc7cd8b724edd69ec7e0e0434537d80d6b5165193e33b931'
+            url = depsEnv.getProperty("JDK_LINUX_X64_URL")
+            sha256 = depsEnv.getProperty("JDK_LINUX_X64_SHA256")
         }
     }
 
@@ -102,8 +107,8 @@ images {
         man = 'cli/resources/man'
         bundles = ['zip', 'tar.gz']
         jdk {
-            url = 'https://download.java.net/java/GA/jdk16/7863447f0ab643c585b9bdebf67c69db/36/GPL/openjdk-16_osx-x64_bin.tar.gz'
-            sha256 = '16f3e39a31e86f3f51b0b4035a37494a47ed3c4ead760eafc6afd7afdf2ad9f2'
+            url = depsEnv.getProperty("JDK_MACOS_X64_URL")
+            sha256 = depsEnv.getProperty("JDK_MACOS_X64_SHA256")
         }
     }
 
