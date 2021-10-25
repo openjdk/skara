@@ -154,12 +154,18 @@ public class BackportsTests {
             backport.setProperty("issuetype", JSON.of("Backport"));
             backport.setState(Issue.State.RESOLVED);
             issue.addLink(Link.create(backport, "backported by").build());
+            var backportFoo = credentials.createIssue(issueProject, "Backport Foo");
+            backportFoo.setProperty("issuetype", JSON.of("Backport"));
+            issue.addLink(Link.create(backportFoo, "backported by").build());
 
             issue.setProperty("fixVersions", JSON.array().add("11-pool"));
             backport.setProperty("fixVersions", JSON.array().add("12-pool"));
+            backportFoo.setProperty("fixVersions", JSON.array().add("12-pool-foo"));
             assertEquals(issue, Backports.findIssue(issue, JdkVersion.parse("11.1").orElseThrow()).orElseThrow());
             assertEquals(backport, Backports.findIssue(issue, JdkVersion.parse("12.2").orElseThrow()).orElseThrow());
+            assertEquals(backportFoo, Backports.findIssue(issue, JdkVersion.parse("12.2-foo").orElseThrow()).orElseThrow());
             assertEquals(Optional.empty(), Backports.findIssue(issue, JdkVersion.parse("13.3").orElseThrow()));
+            assertEquals(issue, Backports.findIssue(issue, JdkVersion.parse("11.1-foo").orElseThrow()).orElseThrow());
 
             issue.setProperty("fixVersions", JSON.array().add("tbd"));
             assertEquals(issue, Backports.findIssue(issue, JdkVersion.parse("11.1").orElseThrow()).orElseThrow());

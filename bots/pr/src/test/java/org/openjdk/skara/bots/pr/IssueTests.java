@@ -186,38 +186,40 @@ class IssueTests {
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.url(), "edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
-
-            var issue1 = credentials.createIssue(issues, "First");
+            var issue1 = credentials.createIssue(issues, "Main");
             var issue1Number = Integer.parseInt(issue1.id().split("-")[1]);
+            var pr = credentials.createPullRequest(author, "master", "edit", issue1Number + ": Main");
+
             var issue2 = credentials.createIssue(issues, "Second");
             var issue2Number = Integer.parseInt(issue2.id().split("-")[1]);
+            var issue3 = credentials.createIssue(issues, "Third");
+            var issue3Number = Integer.parseInt(issue3.id().split("-")[1]);
 
             // Add a single issue with the shorthand syntax
-            pr.addComment("/solves " + issue2Number);
+            pr.addComment("/solves " + issue3Number);
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(pr, "Adding additional issue to solves list");
-            assertLastCommentContains(pr, ": Second");
+            assertLastCommentContains(pr, ": Third");
 
             // And remove it
-            pr.addComment("/solves delete " + issue2Number);
+            pr.addComment("/solves delete " + issue3Number);
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "Removing additional issue from solves list: `" + issue2Number + "`");
+            assertLastCommentContains(pr, "Removing additional issue from solves list: `" + issue3Number + "`");
 
             // Add two issues with the shorthand syntax
-            pr.addComment("/issue " + issue1.id() + "," + issue2Number);
+            pr.addComment("/issue " + issue2.id() + "," + issue3Number);
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should add both
             assertLastCommentContains(pr, "Adding additional issue to issue list");
-            assertLastCommentContains(pr, ": First");
             assertLastCommentContains(pr, ": Second");
+            assertLastCommentContains(pr, ": Third");
 
             // Remove one
-            pr.addComment("/issue remove " + issue1.id());
+            pr.addComment("/issue remove " + issue2.id());
             TestBotRunner.runPeriodicItems(prBot);
 
-            assertLastCommentContains(pr, "Removing additional issue from issue list: `" + issue1Number + "`");
+            assertLastCommentContains(pr, "Removing additional issue from issue list: `" + issue2Number + "`");
 
             // Approve it as another user
             var approvalPr = integrator.pullRequest(pr.id());
@@ -231,9 +233,9 @@ class IssueTests {
                             .map(Comment::body)
                             .findFirst()
                             .orElseThrow();
-            assertTrue(preview.contains("123: This is a pull request"));
-            assertTrue(preview.contains(issue2Number + ": Second"));
-            assertFalse(preview.contains("First"));
+            assertTrue(preview.contains(issue1Number + ": Main"));
+            assertTrue(preview.contains(issue3Number + ": Third"));
+            assertFalse(preview.contains("Second"));
 
             // Integrate
             pr.addComment("/integrate");
@@ -251,8 +253,8 @@ class IssueTests {
             var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
 
             // The additional issues should be present in the commit message
-            assertEquals(List.of("123: This is a pull request",
-                                 "2: Second",
+            assertEquals(List.of(issue1Number + ": Main",
+                                 issue3Number + ": Third",
                                  "",
                                  "Reviewed-by: integrationreviewer1"), headCommit.message());
         }
@@ -681,6 +683,54 @@ class IssueTests {
             assertTrue(comments.get(0).body().contains("current title does not contain an issue reference"));
             assertTrue(comments.get(1).body().contains("Adding additional issue to"));
             assertTrue(comments.get(2).body().contains("Adding additional issue to"));
+        }
+    }
+
+    @Test
+    void issueMissing(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(integrator.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .issueProject(issues)
+                    .build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR with a non-existing issue ID
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a PR");
+
+            // Approve it as another user
+            var approvalPr = integrator.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+            TestBotRunner.runPeriodicItems(prBot);
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // There should be no commit preview message
+            var previewComment = pr.comments().stream()
+                    .map(Comment::body)
+                    .filter(body -> body.contains("the commit message for the final commit will be"))
+                    .findFirst();
+            assertEquals(Optional.empty(), previewComment, "Preview comment should not have been posted");
+            // Body should contain integration blocker
+            assertTrue(pr.body().contains("Integration blocker"), "Body does not report integration blocker");
+            assertTrue(pr.body().contains("Failed to retrieve information on issue `123`"),
+                    "Body does not contain specific message");
         }
     }
 }

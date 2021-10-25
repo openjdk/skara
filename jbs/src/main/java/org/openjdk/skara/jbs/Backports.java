@@ -119,22 +119,42 @@ public class Backports {
     }
 
     /**
-     * Return true if the issue's fixVersionList is a match for fixVersion, using "-pool" or "-open".
-     *
-     * If fixVersion has a major release of <N>, it matches the fixVersionList has an
-     * <N>-pool or <N>-open entry and all other entries are scratch values.
+     * If fixVersion has a major release of <N>, and opt string of <opt> it matches if
+     * the fixVersionList has an <N>-pool-<opt> entry.
+     */
+    private static boolean matchOptPoolVersion(Issue issue, JdkVersion fixVersion) {
+        var majorVersion = fixVersion.feature();
+        if (fixVersion.opt().isPresent()) {
+            var poolSuffix = "-pool-" + fixVersion.opt().get();
+            var poolVersion = JdkVersion.parse(majorVersion + poolSuffix);
+            // fixVersion may be something that doesn't parse into a valid pool version
+            if (poolVersion.isPresent()) {
+                var mainVersion = mainFixVersion(issue);
+                if (mainVersion.isEmpty()) {
+                    return false;
+                }
+                return mainVersion.get().equals(poolVersion.get());
+            }
+        }
+        return false;
+    }
+
+    /**
+     * If fixVersion has a major release of <N>, it matches if the fixVersionList has an
+     * <N>-pool entry.
      */
     private static boolean matchPoolVersion(Issue issue, JdkVersion fixVersion) {
         var majorVersion = fixVersion.feature();
         var poolVersion = JdkVersion.parse(majorVersion + "-pool");
-        var openVersion = JdkVersion.parse(majorVersion + "-open");
-
-        var mainVersion = mainFixVersion(issue);
-        if (mainVersion.isEmpty()) {
-            return false;
+        // fixVersion may be something that doesn't parse into a valid pool version
+        if (poolVersion.isPresent()) {
+            var mainVersion = mainFixVersion(issue);
+            if (mainVersion.isEmpty()) {
+                return false;
+            }
+            return mainVersion.get().equals(poolVersion.get());
         }
-        return (poolVersion.isPresent() && mainVersion.get().equals(poolVersion.get()))
-                || (openVersion.isPresent() && mainVersion.get().equals(openVersion.get()));
+        return false;
     }
 
     /**
@@ -152,8 +172,8 @@ public class Backports {
      *
      * If the main issue       has the correct fixVersion, use it.
      * If an existing Backport has the correct fixVersion, use it.
-     * If the main issue       has a matching <N>-pool/open fixVersion, use it.
-     * If an existing Backport has a matching <N>-pool/open fixVersion, use it.
+     * If the main issue       has a matching <N>-pool fixVersion, use it.
+     * If an existing Backport has a matching <N>-pool fixVersion, use it.
      * If the main issue       has a "scratch" fixVersion, use it.
      * If an existing Backport has a "scratch" fixVersion, use it.
      *
@@ -171,6 +191,14 @@ public class Backports {
         if (matchingVersionIssue.isPresent()) {
             log.fine("Issue " + matchingVersionIssue.get().id() + " has a correct fixVersion");
             return matchingVersionIssue;
+        }
+
+        var matchingOptPoolVersionIssue = candidates.stream()
+                .filter(i -> matchOptPoolVersion(i, fixVersion))
+                .findFirst();
+        if (matchingOptPoolVersionIssue.isPresent()) {
+            log.fine("Issue " + matchingOptPoolVersionIssue.get().id() + " has a matching opt pool version");
+            return matchingOptPoolVersionIssue;
         }
 
         var matchingPoolVersionIssue = candidates.stream()
