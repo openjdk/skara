@@ -249,8 +249,9 @@ public class Backports {
                     .filter(l -> l.relationship().get().equals("backported by"))
                     .map(l -> l.issue().get())
                     .filter(i -> !fixedOnly || isFixed(i))
-                    .filter(i -> i.properties().containsKey("issuetype"))
-                    .filter(i -> i.properties().get("issuetype").asString().equals("Backport"))
+                    // We used to filter out any issues not of 'backport' type here, but
+                    // Jira allows linking of any issues with a 'backported by' link, so we
+                    // have to accept them, even if it's weird.
                     .collect(Collectors.toList());
     }
 
