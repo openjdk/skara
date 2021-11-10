@@ -174,7 +174,7 @@ public class BackportCommand implements CommandHandler {
             var body = new ArrayList<String>();
             body.add("> Hi all,");
             body.add("> ");
-            body.add("> this pull request contains a backport of commit " +
+            body.add("> This pull request contains a backport of commit " +
                       "[" + hash.abbreviate() + "](" + commit.url() + ") from the " +
                       "[" + bot.repo().name() + "](" + bot.repo().webUrl() + ") repository.");
             body.add(">");
@@ -206,7 +206,7 @@ public class BackportCommand implements CommandHandler {
             var targetBranchWebUrl = targetRepo.webUrl(targetBranch);
             var backportBranchWebUrl = fork.webUrl(new Branch(backportBranchName));
             var backportWebUrl = fork.webUrl(backportHash);
-            reply.println("@" + command.user().username() + " the [backport](" + backportWebUrl + ")" +
+            reply.println("the [backport](" + backportWebUrl + ")" +
                           " was successfully created on the branch [" + backportBranchName + "](" +
                           backportBranchWebUrl + ") in my [personal fork](" + fork.webUrl() + ") of [" +
                           targetRepo.name() + "](" + targetRepo.webUrl() + "). To create a pull request " +

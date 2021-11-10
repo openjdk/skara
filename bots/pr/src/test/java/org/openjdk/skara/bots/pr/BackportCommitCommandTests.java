@@ -75,6 +75,8 @@ public class BackportCommitCommandTests {
             assertTrue(botReply.body().contains("was successfully created"));
             assertTrue(botReply.body().contains("To create a pull request"));
             assertTrue(botReply.body().contains("with this backport"));
+            assertTrue(botReply.body().contains("@" + botReply.author().username()));
+            assertEquals(botReply.body().indexOf("@" + botReply.author().username()), botReply.body().lastIndexOf("@" + botReply.author().username()));
         }
     }
 
