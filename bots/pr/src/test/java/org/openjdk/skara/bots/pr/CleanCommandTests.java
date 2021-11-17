@@ -214,8 +214,10 @@ public class CleanCommandTests {
             // Use the "/clean" pull request command to mark the backport PR as clean
             pr.addComment("/clean");
             TestBotRunner.runPeriodicItems(bot);
-            assertTrue(pr.labelNames().contains("clean"));
-            assertLastCommentContains(pr, "This backport pull request is now marked as clean");
+            assertTrue(pr.labelNames().contains("clean"), "PR not marked clean");
+            assertTrue(pr.comments().stream()
+                    .anyMatch(c -> c.body().contains("This backport pull request is now marked as clean")));
+            assertTrue(pr.labelNames().contains("ready"), "PR not marked ready");
         }
     }
 

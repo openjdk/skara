@@ -288,7 +288,7 @@ class CheckRun {
             pr.removeLabel("clean");
         }
 
-        return isClean;
+        return isClean || isCleanLabelManuallyAdded;
     }
 
     private Optional<HostedCommit> backportedFrom() {
