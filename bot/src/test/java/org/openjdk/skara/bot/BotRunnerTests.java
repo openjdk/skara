@@ -306,6 +306,7 @@ class BotRunnerTests {
         var item6 = new TestWorkItemChild(i -> false, "Item 6");
         var item7 = new TestWorkItemChild(i -> false, "Item 7");
         var bot = new TestBot(item1, item2, item3, item4, item5, item6, item7);
+
         var config = config("{\"runner\": { \"concurrency\": 1 } }");
         var runner = new BotRunner(config, List.of(bot));
 
