@@ -94,7 +94,7 @@ public class TagCommand implements CommandHandler {
                 var hash = localRepo.resolve(tagName).orElseThrow(() ->
                         new IllegalStateException("Cannot resolve tag with name " + tagName + " in repo " + bot.repo().name()));
                 var hashUrl = bot.repo().webUrl(hash);
-                reply.println("A tag with name `" + tagName + "` already exists that refers to commit [" + hash.abbreviate() + "](" + hashUrl + "].");
+                reply.println("A tag with name `" + tagName + "` already exists that refers to commit [" + hash.abbreviate() + "](" + hashUrl + ").");
                 return;
             }
 
