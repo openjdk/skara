@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -68,7 +68,10 @@ public class NotifyBot implements Bot, Emitter {
 
     private boolean isOfInterest(PullRequest pr) {
         var labels = new HashSet<>(pr.labelNames());
-        if (!(labels.contains("rfr") || labels.contains("integrated"))) {
+        var branchExists = pr.repository().branches().stream()
+                            .map(HostedBranch::name)
+                            .anyMatch(name -> name.equals(PreIntegrations.preIntegrateBranch(pr)));
+        if (!(labels.contains("rfr") || labels.contains("integrated") || branchExists)) {
             log.fine("PR is not yet ready - needs either 'rfr' or 'integrated' label");
             return false;
         }
