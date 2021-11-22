@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -184,12 +184,14 @@ class CSRTests {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var author = credentials.getHostedRepository();
+            var anotherPerson = credentials.getHostedRepository();
             var reviewer = credentials.getHostedRepository();
             var bot = credentials.getHostedRepository();
             var issues = credentials.getIssueProject();
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
-                                           .addCommitter(author.forge().currentUser().id());
+                                           .addCommitter(author.forge().currentUser().id())
+                                           .addCommitter(anotherPerson.forge().currentUser().id());
             var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).build();
 
             // Populate the projects repository
@@ -203,6 +205,21 @@ class CSRTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Just a patch");
+
+            // Require CSR from another person who is not a reviewer and is not the author
+            var prAsAnother = anotherPerson.pullRequest(pr.id());
+            prAsAnother.addComment("/csr");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(prAsAnother, "only the pull request author and [Reviewers]");
+            assertLastCommentContains(prAsAnother, "are allowed to use the `csr` command.");
+            assertFalse(prAsAnother.labelNames().contains("csr"));
+
+            // Stating that a CSR is not needed should not work
+            prAsAnother.addComment("/csr unneeded");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(prAsAnother, "only the pull request author and [Reviewers]");
+            assertLastCommentContains(prAsAnother, "are allowed to use the `csr` command.");
+            assertFalse(prAsAnother.labelNames().contains("csr"));
 
             // Require CSR as committer
             pr.addComment("/csr");
@@ -220,6 +237,13 @@ class CSRTests {
             assertLastCommentContains(pr, "only [Reviewers]");
             assertLastCommentContains(pr, "can determine that a CSR is not needed.");
             assertTrue(pr.labelNames().contains("csr"));
+
+            // Stating that a CSR is not needed should not work
+            prAsAnother.addComment("/csr unneeded");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(prAsAnother, "only the pull request author and [Reviewers]");
+            assertLastCommentContains(prAsAnother, "are allowed to use the `csr` command.");
+            assertTrue(prAsAnother.labelNames().contains("csr"));
         }
     }
 
