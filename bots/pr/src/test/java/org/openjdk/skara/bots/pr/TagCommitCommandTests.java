@@ -213,7 +213,7 @@ public class TagCommitCommandTests {
             assertEquals(4, recentCommitComments.size());
             botReply = recentCommitComments.get(0);
             assertTrue(botReply.body().contains("A tag with name `v1.0` already exists"));
-            assertTrue(botReply.body().matches("[.*](.*)"));
+            assertTrue(botReply.body().matches("(.|\n)*\\[.*\\]\\(.*\\)(.|\n)*"));
         }
     }
 
