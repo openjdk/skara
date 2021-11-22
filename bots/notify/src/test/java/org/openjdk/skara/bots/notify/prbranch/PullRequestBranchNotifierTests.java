@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -92,6 +92,61 @@ public class PullRequestBranchNotifierTests {
 
             // Reopen the PR
             pr.setState(Issue.State.OPEN);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The branch should have reappeared
+            hash = localRepo.fetch(repo.url(), PreIntegrations.preIntegrateBranch(pr));
+            assertEquals(editHash, hash);
+        }
+    }
+
+    @Test
+    void rfrMissing(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var storageFolder = tempFolder.path().resolve("storage");
+            var notifyBot = testBotBuilder(repo, storageFolder).create("notify", JSON.object());
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create a PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line");
+            localRepo.push(editHash, repo.url(), "source", true);
+            var pr = credentials.createPullRequest(repo, "master", "source", "This is a PR", false);
+            pr.addLabel("rfr");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The target repo should now contain the new branch
+            var hash = localRepo.fetch(repo.url(), PreIntegrations.preIntegrateBranch(pr));
+            assertEquals(editHash, hash);
+
+            // remove label `rfr`
+            pr.removeLabel("rfr");
+
+            // Close the PR
+            pr.setState(Issue.State.CLOSED);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The target repo should no longer contain the branch
+            assertThrows(IOException.class, () -> localRepo.fetch(repo.url(), PreIntegrations.preIntegrateBranch(pr)));
+
+            // Reopen the PR
+            pr.setState(Issue.State.OPEN);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The target repo should not contain the branch, because the pr doesn't have label `rfr`.
+            assertThrows(IOException.class, () -> localRepo.fetch(repo.url(), PreIntegrations.preIntegrateBranch(pr)));
+
+            // add label `rfr`
+            pr.addLabel("rfr");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // The branch should have reappeared
