@@ -33,7 +33,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
+import java.util.regex.Pattern;
 import java.util.*;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TagCommitCommandTests {
@@ -213,7 +215,8 @@ public class TagCommitCommandTests {
             assertEquals(4, recentCommitComments.size());
             botReply = recentCommitComments.get(0);
             assertTrue(botReply.body().contains("A tag with name `v1.0` already exists"));
-            assertTrue(botReply.body().matches("(.|\n)*\\[.*\\]\\(.*\\)(.|\n)*"));
+            Pattern compilePattern = Pattern.compile(".*\\[.*\\]\\(.*\\).*", Pattern.MULTILINE | Pattern.DOTALL);
+            assertTrue(compilePattern.matcher(botReply.body()).matches());
         }
     }
 
