@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.pr;
 
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.*;
+import org.openjdk.skara.issuetracker.Link;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.*;
 
@@ -1123,6 +1124,53 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
             assertFalse(pr.body().contains("Title mismatch"));
             assertFalse(pr.body().contains("Integration blocker"));
+        }
+    }
+
+    @Test
+    void issueWithCsr(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                                .addAuthor(author.forge().currentUser().id())
+                                .addReviewer(reviewer.forge().currentUser().id());
+            var checkBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues)
+                                            .censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
+                                    Path.of("appendable.txt"), Set.of("issues"), null);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            var mainIssue = issues.createIssue("The main issue", List.of("main"), Map.of("issuetype", JSON.of("Bug")));
+            var csrIssue = issues.createIssue("The csr issue", List.of("csr"), Map.of("issuetype", JSON.of("CSR")));
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", mainIssue.id() + ": " + mainIssue.title());
+
+            // PR should have one issue
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertTrue(pr.body().contains("### Issue"));
+            assertFalse(pr.body().contains("### Issues"));
+            assertTrue(pr.body().contains("The main issue"));
+            assertFalse(pr.body().contains("The csr issue"));
+
+            // Require CSR
+            mainIssue.addLink(Link.create(csrIssue, "csr for").build());
+            pr.addComment("/csr");
+
+            // PR should have two issues
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertTrue(pr.body().contains("### Issues"));
+            assertTrue(pr.body().contains("The main issue"));
+            assertTrue(pr.body().contains("The csr issue"));
         }
     }
 

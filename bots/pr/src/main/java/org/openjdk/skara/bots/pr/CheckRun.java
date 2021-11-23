@@ -116,9 +116,30 @@ class CheckRun {
             var issues = new ArrayList<Issue>();
             issues.add(issue.get());
             issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments));
+            getCsrIssue(issue.get()).ifPresent(issues::add);
             return issues;
         }
         return List.of();
+    }
+
+    private Optional<Issue> getCsrIssue(Issue issue) {
+        var jbsIssue = issueProject().issue(issue.shortId());
+        if (jbsIssue.isEmpty()) {
+            return Optional.empty();
+        }
+        org.openjdk.skara.issuetracker.Issue csr = null;
+        for (var link : jbsIssue.get().links()) {
+            var relationship = link.relationship();
+            if (relationship.isPresent() && relationship.get().equals("csr for")) {
+                csr = link.issue().orElseThrow(
+                        () -> new IllegalStateException("Link with title 'csr for' does not contain issue")
+                );
+            }
+        }
+        if (csr != null) {
+            return Issue.fromStringRelaxed(csr.id() + ": " + csr.title());
+        }
+        return Optional.empty();
     }
 
     private IssueProject issueProject() {
