@@ -1160,7 +1160,7 @@ class CheckTests {
             assertTrue(pr.body().contains("### Issue"));
             assertFalse(pr.body().contains("### Issues"));
             assertTrue(pr.body().contains("The main issue"));
-            assertFalse(pr.body().contains("The csr issue"));
+            assertFalse(pr.body().contains("The csr issue (**CSR**)"));
 
             // Require CSR
             mainIssue.addLink(Link.create(csrIssue, "csr for").build());
@@ -1170,7 +1170,7 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(checkBot);
             assertTrue(pr.body().contains("### Issues"));
             assertTrue(pr.body().contains("The main issue"));
-            assertTrue(pr.body().contains("The csr issue"));
+            assertTrue(pr.body().contains("The csr issue (**CSR**)"));
         }
     }
 
