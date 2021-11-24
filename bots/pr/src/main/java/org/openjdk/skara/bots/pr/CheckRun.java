@@ -123,21 +123,24 @@ class CheckRun {
     }
 
     private Optional<Issue> getCsrIssue(Issue issue) {
-        var jbsIssue = issueProject().issue(issue.shortId());
-        if (jbsIssue.isEmpty()) {
-            return Optional.empty();
-        }
-        org.openjdk.skara.issuetracker.Issue csr = null;
-        for (var link : jbsIssue.get().links()) {
-            var relationship = link.relationship();
-            if (relationship.isPresent() && relationship.get().equals("csr for")) {
-                csr = link.issue().orElseThrow(
-                        () -> new IllegalStateException("Link with title 'csr for' does not contain issue")
-                );
+        var issueProject = issueProject();
+        if (issueProject != null) {
+            var jbsIssue = issueProject.issue(issue.shortId());
+            if (jbsIssue.isEmpty()) {
+                return Optional.empty();
             }
-        }
-        if (csr != null) {
-            return Issue.fromStringRelaxed(csr.id() + ": " + csr.title());
+            org.openjdk.skara.issuetracker.Issue csr = null;
+            for (var link : jbsIssue.get().links()) {
+                var relationship = link.relationship();
+                if (relationship.isPresent() && relationship.get().equals("csr for")) {
+                    csr = link.issue().orElseThrow(
+                            () -> new IllegalStateException("Link with title 'csr for' does not contain issue")
+                    );
+                }
+            }
+            if (csr != null) {
+                return Issue.fromStringRelaxed(csr.id() + ": " + csr.title());
+            }
         }
         return Optional.empty();
     }
