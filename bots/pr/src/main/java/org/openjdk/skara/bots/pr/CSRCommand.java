@@ -28,6 +28,7 @@ import org.openjdk.skara.json.JSON;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 public class CSRCommand implements CommandHandler {
@@ -76,7 +77,28 @@ public class CSRCommand implements CommandHandler {
                 return;
             }
 
+            // Change the CSR link relationship from `csr for` to `relates to`
+            // so that the CSRBot won't add the `csr` label automatically.
             if (labels.contains(CSR_LABEL)) {
+                var issueProject = bot.issueProject();
+                var issue = org.openjdk.skara.vcs.openjdk.Issue.fromStringRelaxed(pr.title());
+                if (issueProject != null && issue.isPresent()) {
+                    var jbsIssue = issueProject.issue(issue.get().shortId());
+                    if (jbsIssue.isPresent()) {
+                        List<Link> csrLinks = new ArrayList<>();
+                        for (var link : jbsIssue.get().links()) {
+                            var relationship = link.relationship();
+                            if (relationship.isPresent() && relationship.get().equals("csr for")) {
+                                csrLinks.add(link);
+                            }
+                        }
+                        for (var link : csrLinks) {
+                            jbsIssue.get().removeLink(link);
+                            Link newLink = Link.create(link, "relates to").build();
+                            jbsIssue.get().addLink(newLink);
+                        }
+                    }
+                }
                 pr.removeLabel(CSR_LABEL);
             }
             reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +

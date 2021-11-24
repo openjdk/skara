@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,16 +22,66 @@
  */
 package org.openjdk.skara.issuetracker;
 
+import java.net.URI;
+
 public class IssueLinkBuilder {
-    private final Issue linked;
+    private URI uri;
+    private String title;
     private final String relationship;
+    private String summary;
+    private URI iconUrl;
+    private String iconTitle;
+    private URI statusIconUrl;
+    private String statusIconTitle;
+    private boolean resolved;
+    private final Issue linked;
 
     IssueLinkBuilder(Issue issue, String relationship) {
         this.linked = issue;
         this.relationship = relationship;
     }
 
+    public IssueLinkBuilder uri(URI uri) {
+        this.uri = uri;
+        return this;
+    }
+
+    public IssueLinkBuilder title(String title) {
+        this.title = title;
+        return this;
+    }
+
+    public IssueLinkBuilder summary(String summary) {
+        this.summary = summary;
+        return this;
+    }
+
+    public IssueLinkBuilder iconUrl(URI iconUrl) {
+        this.iconUrl = iconUrl;
+        return this;
+    }
+
+    public IssueLinkBuilder iconTitle(String iconTitle) {
+        this.iconTitle = iconTitle;
+        return this;
+    }
+
+    public IssueLinkBuilder statusIconUrl(URI statusIconUrl) {
+        this.statusIconUrl = statusIconUrl;
+        return this;
+    }
+
+    public IssueLinkBuilder statusIconTitle(String statusIconTitle) {
+        this.statusIconTitle = statusIconTitle;
+        return this;
+    }
+
+    public IssueLinkBuilder resolved(boolean resolved) {
+        this.resolved = resolved;
+        return this;
+    }
+
     public Link build() {
-        return new Link(null, null, relationship, null, null, null, null, null, false, linked);
+        return new Link(uri, title, relationship, summary, iconUrl, iconTitle, statusIconUrl, statusIconTitle, resolved, linked);
     }
 }

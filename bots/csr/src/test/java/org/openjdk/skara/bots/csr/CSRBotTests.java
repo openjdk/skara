@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -162,13 +162,19 @@ class CSRBotTests {
             localRepo.push(editHash, repo.url(), "edit", true);
             var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
 
+            // Run bot
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The bot should have kept the CSR label
+            assertTrue(pr.labelNames().contains("csr"));
+
             // Add CSR label
             pr.addLabel("csr");
 
             // Run bot
             TestBotRunner.runPeriodicItems(bot);
 
-            // The bot should have removed the CSR label
+            // The bot should have kept the CSR label
             assertTrue(pr.labelNames().contains("csr"));
         }
     }
@@ -199,11 +205,20 @@ class CSRBotTests {
             localRepo.push(editHash, repo.url(), "edit", true);
             var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
 
+            // Run bot
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The bot should have kept the CSR label
+            assertTrue(pr.labelNames().contains("csr"));
+
             // Add CSR label
             pr.addLabel("csr");
 
             // Run bot, should *not* throw NPE
             TestBotRunner.runPeriodicItems(bot);
+
+            // The bot should have kept the CSR label
+            assertTrue(pr.labelNames().contains("csr"));
         }
     }
 
@@ -234,11 +249,20 @@ class CSRBotTests {
             localRepo.push(editHash, repo.url(), "edit", true);
             var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
 
+            // Run bot
+            TestBotRunner.runPeriodicItems(bot);
+
+            // The bot should have kept the CSR label
+            assertTrue(pr.labelNames().contains("csr"));
+
             // Add CSR label
             pr.addLabel("csr");
 
             // Run bot, should *not* throw NPE
             TestBotRunner.runPeriodicItems(bot);
+
+            // The bot should have kept the CSR label
+            assertTrue(pr.labelNames().contains("csr"));
         }
     }
 }

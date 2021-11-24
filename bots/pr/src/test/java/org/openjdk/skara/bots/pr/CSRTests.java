@@ -415,6 +415,18 @@ class CSRTests {
             assertLastCommentContains(pr, "this pull request will not be integrated until the [CSR]");
             assertLastCommentContains(pr, "for issue ");
             assertLastCommentContains(pr, "has been approved.");
+
+            // Don't require CSR
+            prAsReviewer.addComment("/csr unneeded");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a message that a CSR is no longer needed
+            assertLastCommentContains(pr, "determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
+                    "is not needed for this pull request.");
+            assertFalse(pr.labelNames().contains("csr"));
+
+            // The bot should change the CSR link relationship from `csr for` to `relates to`
+            assertEquals("relates to", issue.links().get(0).relationship().orElseThrow());
         }
     }
 
@@ -458,6 +470,18 @@ class CSRTests {
             assertLastCommentContains(pr, "this pull request will not be integrated until the [CSR]");
             assertLastCommentContains(pr, "for issue ");
             assertLastCommentContains(pr, "has been approved.");
+
+            // Don't require CSR
+            prAsReviewer.addComment("/csr unneeded");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a message that a CSR is no longer needed
+            assertLastCommentContains(pr, "determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
+                    "is not needed for this pull request.");
+            assertFalse(pr.labelNames().contains("csr"));
+
+            // The bot should change the CSR link relationship from `csr for` to `relates to`
+            assertEquals("relates to", issue.links().get(0).relationship().orElseThrow());
         }
     }
 
