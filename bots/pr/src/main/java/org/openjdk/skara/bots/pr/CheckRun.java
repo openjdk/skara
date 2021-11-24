@@ -136,6 +136,9 @@ class CheckRun {
                 var relationship = link.relationship();
                 if (relationship.isPresent() && relationship.get().equals("csr for")) {
                     csr = link.issue().orElse(null);
+                    if (csr == null) {
+                        log.warning("The CSR " + link + " of the issue " + issue + " does not exist");
+                    }
                 }
             }
             if (csr != null) {
