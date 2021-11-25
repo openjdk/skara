@@ -92,33 +92,41 @@ class CSRBot implements Bot, WorkItem {
 
                     var resolution = csr.properties().get("resolution");
                     if (resolution == null || resolution.isNull()) {
-                        log.info("CSR issue resolution is null for " + describe(pr) + ", not removing CSR label");
                         if (!pr.labelNames().contains(CSR_LABEL)) {
+                            log.info("CSR issue resolution is null for " + describe(pr) + ", adding the CSR label");
                             pr.addLabel(CSR_LABEL);
+                        } else {
+                            log.info("CSR issue resolution is null for " + describe(pr) + ", not removing the CSR label");
                         }
                         continue;
                     }
                     var name = resolution.get("name");
                     if (name == null || name.isNull()) {
-                        log.info("CSR issue resolution name is null for " + describe(pr) + ", not removing CSR label");
                         if (!pr.labelNames().contains(CSR_LABEL)) {
+                            log.info("CSR issue resolution name is null for " + describe(pr) + ", adding the CSR label");
                             pr.addLabel(CSR_LABEL);
+                        } else {
+                            log.info("CSR issue resolution name is null for " + describe(pr) + ", not removing the CSR label");
                         }
                         continue;
                     }
 
                     if (csr.state() != Issue.State.CLOSED) {
-                        log.info("CSR issue state is not closed for " + describe(pr) + ", not removing CSR label");
                         if (!pr.labelNames().contains(CSR_LABEL)) {
+                            log.info("CSR issue state is not closed for " + describe(pr) + ", adding the CSR label");
                             pr.addLabel(CSR_LABEL);
+                        } else {
+                            log.info("CSR issue state is not closed for " + describe(pr) + ", not removing the CSR label");
                         }
                         continue;
                     }
 
                     if (!name.asString().equals("Approved")) {
-                        log.info("CSR issue resolution is not 'Approved' for " + describe(pr) + ", not removing CSR label");
                         if (!pr.labelNames().contains(CSR_LABEL)) {
+                            log.info("CSR issue resolution is not 'Approved' for " + describe(pr) + ", adding the CSR label");
                             pr.addLabel(CSR_LABEL);
+                        } else {
+                            log.info("CSR issue resolution is not 'Approved' for " + describe(pr) + ", not removing the CSR label");
                         }
                         continue;
                     }
