@@ -28,7 +28,6 @@ import org.openjdk.skara.json.JSON;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 
 public class CSRCommand implements CommandHandler {
@@ -77,25 +76,33 @@ public class CSRCommand implements CommandHandler {
                 return;
             }
 
-            // Change the CSR link relationship from `csr for` to `relates to`
-            // so that the CSRBot won't add the `csr` label automatically.
+            // Remove the csr label if the issue has no csr or the csr has been withdrawn.
+            // If the issue has a non-withdrawn csr, the bot should direct the user to withdraw the csr firstly.
             if (labels.contains(CSR_LABEL)) {
                 var issueProject = bot.issueProject();
                 var issue = org.openjdk.skara.vcs.openjdk.Issue.fromStringRelaxed(pr.title());
                 if (issueProject != null && issue.isPresent()) {
                     var jbsIssue = issueProject.issue(issue.get().shortId());
                     if (jbsIssue.isPresent()) {
-                        List<Link> csrLinks = new ArrayList<>();
                         for (var link : jbsIssue.get().links()) {
                             var relationship = link.relationship();
                             if (relationship.isPresent() && relationship.get().equals("csr for")) {
-                                csrLinks.add(link);
+                                var csrIssue = link.issue().orElse(null);
+                                if (csrIssue != null) {
+                                    var resolution = csrIssue.properties().get("resolution");
+                                    if (resolution == null || resolution.isNull()
+                                            || resolution.get("name") == null || resolution.get("name").isNull()
+                                            || csrIssue.state() != Issue.State.CLOSED
+                                            || !resolution.get("name").asString().equals("Withdrawn")) {
+                                        reply.println("the issue for this pull request, [" + jbsIssue.get().id() + "](" + jbsIssue.get().webUrl() + "), has " +
+                                                "a non-withdrawn CSR request: [" + csrIssue.id() + "](" + csrIssue.webUrl() + "). ");
+                                        reply.println("So you can't directly indicate that a CSR request is not needed for this pull request. ");
+                                        reply.println("Please firstly withdraw the CSR request: [" + csrIssue.id() + "](" + csrIssue.webUrl() + "), "
+                                                + "and then use the command `/csr unneeded` again");
+                                        return;
+                                    }
+                                }
                             }
-                        }
-                        for (var link : csrLinks) {
-                            jbsIssue.get().removeLink(link);
-                            Link newLink = Link.create(link, "relates to").build();
-                            jbsIssue.get().addLink(newLink);
                         }
                     }
                 }

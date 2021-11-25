@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -56,18 +56,6 @@ public class Link {
 
     public static IssueLinkBuilder create(Issue issue, String relationship) {
         return new IssueLinkBuilder(issue, relationship);
-    }
-
-    public static IssueLinkBuilder create(Link oldLink, String newRelationship) {
-        return Link.create(oldLink.issue().orElse(null), newRelationship)
-                .uri(oldLink.uri().orElse(null))
-                .title(oldLink.title().orElse(null))
-                .summary(oldLink.summary().orElse(null))
-                .iconUrl(oldLink.iconUrl().orElse(null))
-                .iconTitle(oldLink.iconTitle().orElse(null))
-                .statusIconUrl(oldLink.statusIconUrl().orElse(null))
-                .statusIconTitle(oldLink.statusIconTitle().orElse(null))
-                .resolved(oldLink.resolved());
     }
 
     public Optional<URI> uri() {
