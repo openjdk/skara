@@ -165,11 +165,8 @@ class CSRBotTests {
             // Run bot
             TestBotRunner.runPeriodicItems(bot);
 
-            // The bot should have kept the CSR label
+            // The bot added the csr label automatically
             assertTrue(pr.labelNames().contains("csr"));
-
-            // Add CSR label
-            pr.addLabel("csr");
 
             // Run bot
             TestBotRunner.runPeriodicItems(bot);
@@ -208,11 +205,8 @@ class CSRBotTests {
             // Run bot
             TestBotRunner.runPeriodicItems(bot);
 
-            // The bot should have kept the CSR label
+            // The bot added the csr label automatically
             assertTrue(pr.labelNames().contains("csr"));
-
-            // Add CSR label
-            pr.addLabel("csr");
 
             // Run bot, should *not* throw NPE
             TestBotRunner.runPeriodicItems(bot);
@@ -252,11 +246,8 @@ class CSRBotTests {
             // Run bot
             TestBotRunner.runPeriodicItems(bot);
 
-            // The bot should have kept the CSR label
+            // The bot added the csr label automatically
             assertTrue(pr.labelNames().contains("csr"));
-
-            // Add CSR label
-            pr.addLabel("csr");
 
             // Run bot, should *not* throw NPE
             TestBotRunner.runPeriodicItems(bot);
