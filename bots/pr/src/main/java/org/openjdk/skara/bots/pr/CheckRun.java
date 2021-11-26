@@ -136,13 +136,13 @@ class CheckRun {
         org.openjdk.skara.issuetracker.Issue csr = null;
         for (var link : jbsIssue.get().links()) {
             var relationship = link.relationship();
-            if (relationship.isPresent() && relationship.get().equals("csr for")) {
-                csr = link.issue().orElse(null);
-                if (csr == null) {
-                    log.warning("The CSR " + link + " of the issue " + issue + " does not exist");
-                }
+            if (relationship.isEmpty() || !relationship.get().equals("csr for")) {
+                continue;
             }
-            if (csr != null) {
+            csr = link.issue().orElse(null);
+            if (csr == null) {
+                log.warning("The CSR " + link + " of the issue " + issue + " does not exist");
+            } else {
                 break;
             }
         }
