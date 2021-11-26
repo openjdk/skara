@@ -126,24 +126,28 @@ class CheckRun {
 
     private Optional<Issue> getCsrIssue(Issue issue) {
         var issueProject = issueProject();
-        if (issueProject != null) {
-            var jbsIssue = issueProject.issue(issue.shortId());
-            if (jbsIssue.isEmpty()) {
-                return Optional.empty();
-            }
-            org.openjdk.skara.issuetracker.Issue csr = null;
-            for (var link : jbsIssue.get().links()) {
-                var relationship = link.relationship();
-                if (relationship.isPresent() && relationship.get().equals("csr for")) {
-                    csr = link.issue().orElse(null);
-                    if (csr == null) {
-                        log.warning("The CSR " + link + " of the issue " + issue + " does not exist");
-                    }
+        if (issueProject == null) {
+            return Optional.empty();
+        }
+        var jbsIssue = issueProject.issue(issue.shortId());
+        if (jbsIssue.isEmpty()) {
+            return Optional.empty();
+        }
+        org.openjdk.skara.issuetracker.Issue csr = null;
+        for (var link : jbsIssue.get().links()) {
+            var relationship = link.relationship();
+            if (relationship.isPresent() && relationship.get().equals("csr for")) {
+                csr = link.issue().orElse(null);
+                if (csr == null) {
+                    log.warning("The CSR " + link + " of the issue " + issue + " does not exist");
                 }
             }
             if (csr != null) {
-                return Issue.fromStringRelaxed(csr.id() + ": " + csr.title());
+                break;
             }
+        }
+        if (csr != null) {
+            return Issue.fromStringRelaxed(csr.id() + ": " + csr.title());
         }
         return Optional.empty();
     }
