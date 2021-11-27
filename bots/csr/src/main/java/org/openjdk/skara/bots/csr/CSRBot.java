@@ -122,7 +122,13 @@ class CSRBot implements Bot, WorkItem {
                     }
 
                     if (!name.asString().equals("Approved")) {
-                        if (!pr.labelNames().contains(CSR_LABEL)) {
+                        if (name.asString().equals("Withdrawn")) {
+                            // This condition is necessary to prevent the bot from adding the CSR label again.
+                            // And the bot can't remove the CSR label automatically here.
+                            // Because the PR author with the role of Committer may withdraw a CSR that
+                            // a Reviewer had requested and integrate it without satisfying that requirement.
+                            log.info("CSR closed and withdrawn for " + describe(pr) + ", not removing CSR label");
+                        } else if (!pr.labelNames().contains(CSR_LABEL)) {
                             log.info("CSR issue resolution is not 'Approved' for " + describe(pr) + ", adding the CSR label");
                             pr.addLabel(CSR_LABEL);
                         } else {
