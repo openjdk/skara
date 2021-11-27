@@ -531,6 +531,9 @@ class CSRTests {
             var prAsAuthor = author.pullRequest(pr.id());
             assertTrue(prAsAuthor.labelNames().contains("ready"));
 
+            // The body should contain the progress about CSR request
+            assertTrue(pr.body().contains("- [x] Change doesn't require a CSR request or the CSR request has been approved"));
+
             // Require CSR
             prAsReviewer = reviewer.pullRequest(pr.id());
             prAsReviewer.addComment("/csr");
@@ -548,8 +551,8 @@ class CSRTests {
             prAsAuthor = author.pullRequest(pr.id());
             assertFalse(prAsAuthor.labelNames().contains("ready"));
 
-            // The body should contain a note about why
-            assertTrue(pr.body().contains("change requires a CSR request to be approved"));
+            // The body should contain the progress about CSR request
+            assertTrue(pr.body().contains("- [ ] Change requires a CSR request to be approved"));
         }
     }
 }

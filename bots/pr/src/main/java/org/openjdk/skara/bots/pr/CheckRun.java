@@ -167,6 +167,17 @@ class CheckRun {
         return ret;
     }
 
+    // Additional bot-specific progresses that are not handled by JCheck
+    private Map<String, Boolean> botSpecificProgresses() {
+        var ret = new HashMap<String, Boolean>();
+        if (pr.labelNames().contains("csr")) {
+            ret.put("Change requires a CSR request to be approved", false);
+        } else {
+            ret.put("Change doesn't require a CSR request or the CSR request has been approved", true);
+        }
+        return ret;
+    }
+
     private void setExpiration(Duration expiresIn) {
         // Use the shortest expiration
         if (this.expiresIn == null || this.expiresIn.compareTo(expiresIn) > 0) {
@@ -175,8 +186,7 @@ class CheckRun {
     }
 
     private Map<String, String> blockingIntegrationLabels() {
-        return Map.of("rejected", "The change is currently blocked from integration by a rejection.",
-                      "csr", "The change requires a CSR request to be approved.");
+        return Map.of("rejected", "The change is currently blocked from integration by a rejection.");
     }
 
     private List<String> botSpecificIntegrationBlockers() {
@@ -343,8 +353,9 @@ class CheckRun {
         }
     }
 
-    private String getChecksList(PullRequestCheckIssueVisitor visitor, boolean isCleanBackport) {
+    private String getChecksList(PullRequestCheckIssueVisitor visitor, boolean isCleanBackport, Map<String, Boolean> additionalProgresses) {
         var checks = isCleanBackport ? visitor.getReadyForReviewChecks() : visitor.getChecks();
+        checks.putAll(additionalProgresses);
         return checks.entrySet().stream()
                 .map(entry -> "- [" + (entry.getValue() ? "x" : " ") + "] " + entry.getKey())
                 .collect(Collectors.joining("\n"));
@@ -426,12 +437,12 @@ class CheckRun {
     }
 
     private String getStatusMessage(List<Comment> comments, List<Review> reviews, PullRequestCheckIssueVisitor visitor,
-                                    List<String> additionalErrors, List<String> integrationBlockers,
-                                    boolean isCleanBackport) {
+                                    List<String> additionalErrors, Map<String, Boolean> additionalProgresses,
+                                    List<String> integrationBlockers, boolean isCleanBackport) {
         var progressBody = new StringBuilder();
         progressBody.append("---------\n");
         progressBody.append("### Progress\n");
-        progressBody.append(getChecksList(visitor, isCleanBackport));
+        progressBody.append(getChecksList(visitor, isCleanBackport, additionalProgresses));
 
         var allAdditionalErrors = Stream.concat(visitor.hiddenMessages().stream(), additionalErrors.stream())
                                         .sorted()
@@ -898,6 +909,7 @@ class CheckRun {
             }
 
             List<String> additionalErrors = List.of();
+            Map<String, Boolean> additionalProgresses = Map.of();
             Hash localHash;
             try {
                 // Do not pass eventual original commit even for backports since it will cause
@@ -919,6 +931,7 @@ class CheckRun {
                 var additionalConfiguration = AdditionalConfiguration.get(localRepo, localHash, pr.repository().forge().currentUser(), comments);
                 checkablePullRequest.executeChecks(localHash, censusInstance, visitor, additionalConfiguration);
                 additionalErrors = botSpecificChecks(isCleanBackport);
+                additionalProgresses = botSpecificProgresses();
             }
             updateCheckBuilder(checkBuilder, visitor, additionalErrors);
             updateReadyForReview(visitor, additionalErrors);
@@ -926,7 +939,8 @@ class CheckRun {
             var integrationBlockers = botSpecificIntegrationBlockers();
 
             // Calculate and update the status message if needed
-            var statusMessage = getStatusMessage(comments, activeReviews, visitor, additionalErrors, integrationBlockers, isCleanBackport);
+            var statusMessage = getStatusMessage(comments, activeReviews, visitor, additionalErrors,
+                                                additionalProgresses, integrationBlockers, isCleanBackport);
             var updatedBody = updateStatusMessage(statusMessage);
             var title = pr.title();
 
@@ -940,11 +954,13 @@ class CheckRun {
             var commitMessage = String.join("\n", commit.message());
             var readyForIntegration = visitor.messages().isEmpty() &&
                                       additionalErrors.isEmpty() &&
+                                      !additionalProgresses.containsValue(false) &&
                                       integrationBlockers.isEmpty();
             if (isCleanBackport) {
                 // Reviews are not needed for clean backports
                 readyForIntegration = visitor.isReadyForReview() &&
                                       additionalErrors.isEmpty() &&
+                                      !additionalProgresses.containsValue(false) &&
                                       integrationBlockers.isEmpty();
             }
 
