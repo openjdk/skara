@@ -110,15 +110,46 @@ class CheckRun {
         return matcher.matches();
     }
 
-    private List<Issue> issues() {
+    private List<Issue> issues(boolean withCsr) {
         var issue = Issue.fromStringRelaxed(pr.title());
         if (issue.isPresent()) {
             var issues = new ArrayList<Issue>();
             issues.add(issue.get());
             issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments));
+            if (withCsr) {
+                getCsrIssue(issue.get()).ifPresent(issues::add);
+            }
             return issues;
         }
         return List.of();
+    }
+
+    private Optional<Issue> getCsrIssue(Issue issue) {
+        var issueProject = issueProject();
+        if (issueProject == null) {
+            return Optional.empty();
+        }
+        var jbsIssue = issueProject.issue(issue.shortId());
+        if (jbsIssue.isEmpty()) {
+            return Optional.empty();
+        }
+        org.openjdk.skara.issuetracker.Issue csr = null;
+        for (var link : jbsIssue.get().links()) {
+            var relationship = link.relationship();
+            if (relationship.isEmpty() || !relationship.get().equals("csr for")) {
+                continue;
+            }
+            csr = link.issue().orElse(null);
+            if (csr == null) {
+                log.warning("The CSR " + link + " of the issue " + issue + " does not exist");
+            } else {
+                break;
+            }
+        }
+        if (csr != null) {
+            return Issue.fromStringRelaxed(csr.id() + ": " + csr.title());
+        }
+        return Optional.empty();
     }
 
     private IssueProject issueProject() {
@@ -182,7 +213,7 @@ class CheckRun {
     private List<String> botSpecificIntegrationBlockers() {
         var ret = new ArrayList<String>();
 
-        var issues = issues();
+        var issues = issues(false);
         var issueProject = issueProject();
         if (issueProject != null) {
             for (var currentIssue : issues) {
@@ -454,7 +485,7 @@ class CheckRun {
             progressBody.append(warningListToText(integrationBlockers));
         }
 
-        var issues = issues();
+        var issues = issues(true);
         var issueProject = issueProject();
         if (issueProject != null && !issues.isEmpty()) {
             progressBody.append("\n\n### Issue");
@@ -480,6 +511,10 @@ class CheckRun {
                             progressBody.append(iss.get().webUrl());
                             progressBody.append("): ");
                             progressBody.append(iss.get().title());
+                            var issueType = iss.get().properties().get("issuetype");
+                            if (issueType != null && "CSR".equals(issueType.asString())) {
+                                progressBody.append(" (**CSR**)");
+                            }
                             if (!relaxedEquals(iss.get().title(), currentIssue.description())) {
                                 progressBody.append(" ⚠️ Title mismatch between PR and JBS.");
                                 setExpiration(Duration.ofMinutes(10));
