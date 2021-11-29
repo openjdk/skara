@@ -127,7 +127,7 @@ class CSRBot implements Bot, WorkItem {
                             // And the bot can't remove the CSR label automatically here.
                             // Because the PR author with the role of Committer may withdraw a CSR that
                             // a Reviewer had requested and integrate it without satisfying that requirement.
-                            log.info("CSR closed and withdrawn for " + describe(pr) + ", not removing CSR label");
+                            log.info("CSR closed and withdrawn for " + describe(pr) + ", not revising (not adding and not removing) CSR label");
                         } else if (!pr.labelNames().contains(CSR_LABEL)) {
                             log.info("CSR issue resolution is not 'Approved' for " + describe(pr) + ", adding the CSR label");
                             pr.addLabel(CSR_LABEL);
