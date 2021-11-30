@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,26 +22,34 @@
  */
 package org.openjdk.skara.jcheck;
 
-public interface IssueVisitor {
-    void visit(TagIssue issue);
-    void visit(BranchIssue issue);
-    void visit(DuplicateIssuesIssue issue);
-    void visit(SelfReviewIssue issue);
-    void visit(TooFewReviewersIssue issue);
-    void visit(InvalidReviewersIssue issue);
-    void visit(MergeMessageIssue issue);
-    void visit(HgTagCommitIssue issue);
-    void visit(CommitterIssue issue);
-    void visit(CommitterNameIssue issue);
-    void visit(CommitterEmailIssue issue);
-    void visit(AuthorNameIssue issue);
-    void visit(AuthorEmailIssue issue);
-    void visit(WhitespaceIssue issue);
-    void visit(MessageIssue issue);
-    void visit(MessageWhitespaceIssue issue);
-    void visit(IssuesIssue issue);
-    void visit(ExecutableIssue issue);
-    void visit(BinaryFileTooLargeIssue issue);
-    void visit(SymlinkIssue issue);
-    void visit(ProblemListsIssue problemListIssue);
+import java.nio.file.Path;
+
+public class BinaryFileTooLargeIssue extends CommitIssue {
+    private final Path path;
+    private final long fileSize;
+    private final long limitedFileSize;
+
+    BinaryFileTooLargeIssue(Path path, long fileSize, long limitedFileSize, CommitIssue.Metadata metadata) {
+        super(metadata);
+        this.path = path;
+        this.fileSize = fileSize;
+        this.limitedFileSize = limitedFileSize;
+    }
+
+    public Path path() {
+        return path;
+    }
+
+    public long fileSize() {
+        return fileSize;
+    }
+
+    public long limitedFileSize() {
+        return limitedFileSize;
+    }
+
+    @Override
+    public void accept(IssueVisitor v) {
+        v.visit(this);
+    }
 }

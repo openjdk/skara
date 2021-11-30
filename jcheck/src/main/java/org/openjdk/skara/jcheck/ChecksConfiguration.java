@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,6 +36,7 @@ public class ChecksConfiguration {
                                 MergeConfiguration.DEFAULT,
                                 CommitterConfiguration.DEFAULT,
                                 IssuesConfiguration.DEFAULT,
+                                BinaryConfiguration.DEFAULT,
                                 ProblemListsConfiguration.DEFAULT);
 
     private final List<String> error;
@@ -45,6 +46,7 @@ public class ChecksConfiguration {
     private final MergeConfiguration merge;
     private final CommitterConfiguration committer;
     private final IssuesConfiguration issues;
+    private final BinaryConfiguration binary;
     private final ProblemListsConfiguration problemlists;
 
     ChecksConfiguration(List<String> error,
@@ -54,6 +56,7 @@ public class ChecksConfiguration {
                         MergeConfiguration merge,
                         CommitterConfiguration committer,
                         IssuesConfiguration issues,
+                        BinaryConfiguration binary,
                         ProblemListsConfiguration problemlists) {
         this.error = error;
         this.warning = warning;
@@ -62,6 +65,7 @@ public class ChecksConfiguration {
         this.merge = merge;
         this.committer = committer;
         this.issues = issues;
+        this.binary = binary;
         this.problemlists = problemlists;
     }
 
@@ -111,6 +115,10 @@ public class ChecksConfiguration {
         return issues;
     }
 
+    public BinaryConfiguration binary() {
+        return binary;
+    }
+
     public ProblemListsConfiguration problemlists() {
         return problemlists;
     }
@@ -132,7 +140,8 @@ public class ChecksConfiguration {
         var merge = MergeConfiguration.parse(s.subsection(MergeConfiguration.name()));
         var committer = CommitterConfiguration.parse(s.subsection(CommitterConfiguration.name()));
         var issues = IssuesConfiguration.parse(s.subsection(IssuesConfiguration.name()));
+        var binary = BinaryConfiguration.parse(s.subsection(BinaryConfiguration.name()));
         var problemlists = ProblemListsConfiguration.parse(s.subsection(ProblemListsConfiguration.name()));
-        return new ChecksConfiguration(error, warning, whitespace, reviewers, merge, committer, issues, problemlists);
+        return new ChecksConfiguration(error, warning, whitespace, reviewers, merge, committer, issues, binary, problemlists);
     }
 }

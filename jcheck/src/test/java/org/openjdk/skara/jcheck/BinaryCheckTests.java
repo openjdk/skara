@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,6 +29,7 @@ import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
@@ -41,7 +42,10 @@ class BinaryCheckTests {
         "[general]",
         "project = test",
         "[checks]",
-        "error = binary"
+        "error = binary",
+        "[checks \"binary\"]",
+        ".*\\.bin=1b",
+        ".*\\.o=1k"
     ));
 
     private static List<Diff> textualParentDiffs(String filename, String mode) {
@@ -50,6 +54,14 @@ class BinaryCheckTests {
         var patch = new TextualPatch(Path.of(filename), FileType.fromOctal("100644"), Hash.zero(),
                                      Path.of(filename), FileType.fromOctal(mode), Hash.zero(),
                                      Status.from('M'), List.of(hunk));
+        var diff = new Diff(Hash.zero(), Hash.zero(), List.of(patch));
+        return List.of(diff);
+    }
+
+    private static List<Diff> binaryParentDiffs(Path path, Status status, int inflatedSize, List<String> data) {
+        var hunk = BinaryHunk.ofLiteral(inflatedSize, data);
+        var patch = new BinaryPatch(null, null, null, path,
+                                    FileType.fromOctal("100644"), Hash.zero(), status, List.of(hunk));
         var diff = new Diff(Hash.zero(), Hash.zero(), List.of(patch));
         return List.of(diff);
     }
@@ -86,23 +98,62 @@ class BinaryCheckTests {
     }
 
     @Test
-    void binaryFileShouldFail() throws IOException {
-        var hunk = BinaryHunk.ofLiteral(8, List.of("asdfasdf8"));
-        var patch = new BinaryPatch(null, null, null,
-                                    Path.of("file.bin"), FileType.fromOctal("100644"), Hash.zero(),
-                                    Status.from('A'), List.of(hunk));
-        var diff = new Diff(Hash.zero(), Hash.zero(), List.of(patch));
-        var commit = commit(List.of(diff));
-        var message = message(commit);
-        var check = new BinaryCheck();
-        var issues = toList(check.check(commit, message, conf, null));
-        assertEquals(1, issues.size());
-        assertTrue(issues.get(0) instanceof BinaryIssue);
-        var issue = (BinaryIssue) issues.get(0);
-        assertEquals(Path.of("file.bin"), issue.path());
-        assertEquals(commit, issue.commit());
-        assertEquals(message, issue.message());
-        assertEquals(check, issue.check());
-        assertEquals(Severity.ERROR, issue.severity());
+    void binaryFileNotLimited() throws IOException {
+        // The size of the file `*.s` is not limited in the config file.
+        Path path = Path.of("file.s");
+        Files.deleteIfExists(path);
+        Files.createFile(path);
+        Files.write(path, List.of("testtest"));
+        for (var status : List.of(Status.from("A"), Status.from("M"), Status.from("U"), Status.from("R100"), Status.from("C100"))) {
+            var commit = commit(binaryParentDiffs(path, status, 9, List.of("testtest")));
+            var message = message(commit);
+            var check = new BinaryCheck();
+            var issues = toList(check.check(commit, message, conf, null));
+            assertEquals(0, issues.size());
+        }
+        Files.deleteIfExists(path);
+    }
+
+    @Test
+    void binaryFileInRange() throws IOException {
+        // The size of the file `*.o` is limited to 1k in the config file.
+        Path path = Path.of("file.o");
+        Files.deleteIfExists(path);
+        Files.createFile(path);
+        Files.write(path, List.of("testtest"));
+        for (var status : List.of(Status.from("A"), Status.from("M"), Status.from("U"), Status.from("R100"), Status.from("C100"))) {
+            var commit = commit(binaryParentDiffs(path, status, 9, List.of("testtest")));
+            var message = message(commit);
+            var check = new BinaryCheck();
+            var issues = toList(check.check(commit, message, conf, null));
+            assertEquals(0, issues.size());
+        }
+        Files.deleteIfExists(path);
+    }
+
+    @Test
+    void binaryFileTooLarge() throws IOException {
+        // The size of the file `*.bin` is limited to 1b in the config file.
+        Path path = Path.of("file.bin");
+        Files.deleteIfExists(path);
+        Files.createFile(path);
+        Files.write(path, List.of("testtest"));
+        for (var status : List.of(Status.from("A"), Status.from("M"), Status.from("U"), Status.from("R100"), Status.from("C100"))) {
+            var commit = commit(binaryParentDiffs(path, status, 9, List.of("testtest")));
+            var message = message(commit);
+            var check = new BinaryCheck();
+            var issues = toList(check.check(commit, message, conf, null));
+            assertEquals(1, issues.size());
+            assertTrue(issues.get(0) instanceof BinaryFileTooLargeIssue);
+            var issue = (BinaryFileTooLargeIssue) issues.get(0);
+            assertEquals(path, issue.path());
+            assertEquals(9, issue.fileSize());
+            assertEquals(1, issue.limitedFileSize());
+            assertEquals(commit, issue.commit());
+            assertEquals(message, issue.message());
+            assertEquals(check, issue.check());
+            assertEquals(Severity.ERROR, issue.severity());
+        }
+        Files.deleteIfExists(path);
     }
 }

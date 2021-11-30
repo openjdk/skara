@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,22 +22,35 @@
  */
 package org.openjdk.skara.jcheck;
 
-import java.nio.file.Path;
+import org.openjdk.skara.ini.Section;
 
-public class BinaryIssue extends CommitIssue {
-    private final Path path;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.regex.Pattern;
 
-    BinaryIssue(Path path, CommitIssue.Metadata metadata) {
-        super(metadata);
-        this.path = path;
+public class BinaryConfiguration {
+    static final BinaryConfiguration DEFAULT =
+            new BinaryConfiguration(new LinkedHashMap<>());
+
+    private final Map<Pattern, Long> fileSizeLimits;
+
+    private BinaryConfiguration(Map<Pattern, Long> fileSizeLimits) {
+        this.fileSizeLimits = fileSizeLimits;
     }
 
-    public Path path() {
-        return path;
+    static BinaryConfiguration parse(Section s) {
+        Map<Pattern, Long> fileSizeLimits = new LinkedHashMap<>();
+        for (var entry : s.entries()) {
+            fileSizeLimits.put(Pattern.compile(entry.key()), SizeUtils.getSizeFromString(entry.value().asString()));
+        }
+        return new BinaryConfiguration(fileSizeLimits);
     }
 
-    @Override
-    public void accept(IssueVisitor v) {
-        v.visit(this);
+    static String name() {
+        return "binary";
+    }
+
+    public Map<Pattern, Long> fileSizeLimits() {
+        return fileSizeLimits;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -262,8 +262,11 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     }
 
     @Override
-    public void visit(BinaryIssue issue) {
-        log.fine("ignored: binary file");
+    public void visit(BinaryFileTooLargeIssue issue) {
+        addFailureMessage(issue.check(), "The size of the binary file `" + issue.path() + "` is " + issue.fileSize()
+                + (issue.fileSize() > 1 ? " Bytes" : " Byte") + ", which is larger than the limited file size: "
+                + issue.limitedFileSize() + (issue.limitedFileSize() > 1 ? " Bytes." : " Byte."));
+        readyForReview = false;
     }
 
     @Override
