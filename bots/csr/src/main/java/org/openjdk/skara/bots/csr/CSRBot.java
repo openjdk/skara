@@ -79,69 +79,62 @@ class CSRBot implements Bot, WorkItem {
                 continue;
             }
 
-            for (var link : jbsIssue.get().links()) {
-                var relationship = link.relationship();
-                if (relationship.isPresent() && relationship.get().equals("csr for")) {
-                    log.info("Found CSR for " + describe(pr));
+            var csr = jbsIssue.get().csrIssue().orElse(null);
+            if (csr == null) {
+                log.info("Not found CSR for " + describe(pr));
+            }
+            log.info("Found CSR for " + describe(pr) + ". It has id " + csr.id());
 
-                    var csr = link.issue().orElseThrow(
-                            () -> new IllegalStateException("Link with title 'csr for' does not contain issue")
-                    );
-
-                    log.info("CSR for " + describe(pr) + " has id " + csr.id());
-
-                    var resolution = csr.properties().get("resolution");
-                    if (resolution == null || resolution.isNull()) {
-                        if (!pr.labelNames().contains(CSR_LABEL)) {
-                            log.info("CSR issue resolution is null for " + describe(pr) + ", adding the CSR label");
-                            pr.addLabel(CSR_LABEL);
-                        } else {
-                            log.info("CSR issue resolution is null for " + describe(pr) + ", not removing the CSR label");
-                        }
-                        continue;
-                    }
-                    var name = resolution.get("name");
-                    if (name == null || name.isNull()) {
-                        if (!pr.labelNames().contains(CSR_LABEL)) {
-                            log.info("CSR issue resolution name is null for " + describe(pr) + ", adding the CSR label");
-                            pr.addLabel(CSR_LABEL);
-                        } else {
-                            log.info("CSR issue resolution name is null for " + describe(pr) + ", not removing the CSR label");
-                        }
-                        continue;
-                    }
-
-                    if (csr.state() != Issue.State.CLOSED) {
-                        if (!pr.labelNames().contains(CSR_LABEL)) {
-                            log.info("CSR issue state is not closed for " + describe(pr) + ", adding the CSR label");
-                            pr.addLabel(CSR_LABEL);
-                        } else {
-                            log.info("CSR issue state is not closed for " + describe(pr) + ", not removing the CSR label");
-                        }
-                        continue;
-                    }
-
-                    if (!name.asString().equals("Approved")) {
-                        if (name.asString().equals("Withdrawn")) {
-                            // This condition is necessary to prevent the bot from adding the CSR label again.
-                            // And the bot can't remove the CSR label automatically here.
-                            // Because the PR author with the role of Committer may withdraw a CSR that
-                            // a Reviewer had requested and integrate it without satisfying that requirement.
-                            log.info("CSR closed and withdrawn for " + describe(pr) + ", not revising (not adding and not removing) CSR label");
-                        } else if (!pr.labelNames().contains(CSR_LABEL)) {
-                            log.info("CSR issue resolution is not 'Approved' for " + describe(pr) + ", adding the CSR label");
-                            pr.addLabel(CSR_LABEL);
-                        } else {
-                            log.info("CSR issue resolution is not 'Approved' for " + describe(pr) + ", not removing the CSR label");
-                        }
-                        continue;
-                    }
-
-                    if (pr.labelNames().contains(CSR_LABEL)) {
-                        log.info("CSR closed and approved for " + describe(pr) + ", removing CSR label");
-                        pr.removeLabel(CSR_LABEL);
-                    }
+            var resolution = csr.properties().get("resolution");
+            if (resolution == null || resolution.isNull()) {
+                if (!pr.labelNames().contains(CSR_LABEL)) {
+                    log.info("CSR issue resolution is null for " + describe(pr) + ", adding the CSR label");
+                    pr.addLabel(CSR_LABEL);
+                } else {
+                    log.info("CSR issue resolution is null for " + describe(pr) + ", not removing the CSR label");
                 }
+                continue;
+            }
+            var name = resolution.get("name");
+            if (name == null || name.isNull()) {
+                if (!pr.labelNames().contains(CSR_LABEL)) {
+                    log.info("CSR issue resolution name is null for " + describe(pr) + ", adding the CSR label");
+                    pr.addLabel(CSR_LABEL);
+                } else {
+                    log.info("CSR issue resolution name is null for " + describe(pr) + ", not removing the CSR label");
+                }
+                continue;
+            }
+
+            if (csr.state() != Issue.State.CLOSED) {
+                if (!pr.labelNames().contains(CSR_LABEL)) {
+                    log.info("CSR issue state is not closed for " + describe(pr) + ", adding the CSR label");
+                    pr.addLabel(CSR_LABEL);
+                } else {
+                    log.info("CSR issue state is not closed for " + describe(pr) + ", not removing the CSR label");
+                }
+                continue;
+            }
+
+            if (!name.asString().equals("Approved")) {
+                if (name.asString().equals("Withdrawn")) {
+                    // This condition is necessary to prevent the bot from adding the CSR label again.
+                    // And the bot can't remove the CSR label automatically here.
+                    // Because the PR author with the role of Committer may withdraw a CSR that
+                    // a Reviewer had requested and integrate it without satisfying that requirement.
+                    log.info("CSR closed and withdrawn for " + describe(pr) + ", not revising (not adding and not removing) CSR label");
+                } else if (!pr.labelNames().contains(CSR_LABEL)) {
+                    log.info("CSR issue resolution is not 'Approved' for " + describe(pr) + ", adding the CSR label");
+                    pr.addLabel(CSR_LABEL);
+                } else {
+                    log.info("CSR issue resolution is not 'Approved' for " + describe(pr) + ", not removing the CSR label");
+                }
+                continue;
+            }
+
+            if (pr.labelNames().contains(CSR_LABEL)) {
+                log.info("CSR closed and approved for " + describe(pr) + ", removing CSR label");
+                pr.removeLabel(CSR_LABEL);
             }
         }
         return List.of();

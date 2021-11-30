@@ -728,6 +728,21 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
+    public List<Link> linksWithRelationships(List<String> relationships) {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
+    public Optional<Link> csrLink() {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
+    public Optional<Issue> csrIssue() {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
     public void addLink(Link link) {
         throw new RuntimeException("not implemented yet");
     }

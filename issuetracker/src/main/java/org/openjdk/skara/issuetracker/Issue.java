@@ -188,6 +188,50 @@ public interface Issue {
 
     List<Link> links();
 
+    /**
+     * Get the links which have the relationships listed in the arguments.
+     * @param relationships the link relationship
+     * @return the related links
+     */
+    default List<Link> linksWithRelationships(List<String> relationships) {
+        var result = new ArrayList<Link>();
+        if (relationships == null) {
+            return result;
+        }
+        for (var link : links()) {
+            if (link.relationship().isPresent() && relationships.contains(link.relationship().get())) {
+                result.add(link);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Get the corresponding csr link of current issue if it exists.
+     * @return the csr link
+     */
+    default Optional<Link> csrLink() {
+        var links = linksWithRelationships(List.of("csr for"));
+        if (links != null && !links.isEmpty()) {
+            // There is always only one csr link. If not, the csr links in the JBS need to be adjusted.
+            return Optional.of(links.get(0));
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Get the corresponding csr issue of current issue if it exists.
+     * @return the csr issue
+     */
+    default Optional<Issue> csrIssue() {
+        var csrLink = csrLink();
+        var csrIssue = Optional.<Issue>empty();
+        if (csrLink.isPresent()) {
+            csrIssue = csrLink.get().issue();
+        }
+        return csrIssue;
+    }
+
     void addLink(Link link);
 
     void removeLink(Link link);
