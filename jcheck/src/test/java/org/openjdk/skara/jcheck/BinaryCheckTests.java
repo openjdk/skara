@@ -147,7 +147,7 @@ class BinaryCheckTests {
             assertTrue(issues.get(0) instanceof BinaryFileTooLargeIssue);
             var issue = (BinaryFileTooLargeIssue) issues.get(0);
             assertEquals(path, issue.path());
-            assertEquals(9, issue.fileSize());
+            assertTrue(issue.fileSize() > issue.limitedFileSize());
             assertEquals(1, issue.limitedFileSize());
             assertEquals(commit, issue.commit());
             assertEquals(message, issue.message());
