@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -89,14 +89,14 @@ public class Backports {
             return Optional.of(issue);
         }
 
-        var links = issue.linksWithRelationships(List.of("backported by", "backport of"));
-        if (links == null || links.isEmpty()) {
-            return Optional.empty();
-        }
-        for (var link : links) {
-            var linkedIssue = link.issue().orElse(null);
-            if (linkedIssue != null && isPrimaryIssue(linkedIssue)) {
-                return Optional.of(linkedIssue);
+        for (var link : issue.links()) {
+            if (link.issue().isPresent() && link.relationship().isPresent()) {
+                if (link.relationship().get().equals("backported by") || link.relationship().get().equals("backport of")) {
+                    var linkedIssue = link.issue().get();
+                    if (isPrimaryIssue(linkedIssue)) {
+                        return Optional.of(linkedIssue);
+                    }
+                }
             }
         }
 

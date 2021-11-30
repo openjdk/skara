@@ -136,7 +136,9 @@ class CheckRun {
         if (jbsIssue.isEmpty()) {
             return Optional.empty();
         }
-        org.openjdk.skara.issuetracker.Issue csr = jbsIssue.get().csrIssue().orElse(null);
+        org.openjdk.skara.issuetracker.Issue csr = jbsIssue.get().links().stream()
+                .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get()))
+                .findAny().flatMap(Link::issue).orElse(null);
         if (csr == null) {
             log.warning("The CSR issue of the issue " + issue + " does not exist");
         } else {

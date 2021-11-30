@@ -97,7 +97,8 @@ public class CSRCommand implements CommandHandler {
                 return;
             }
 
-            var csrLink = jbsIssue.get().csrLink();
+            var csrLink = jbsIssue.get().links().stream()
+                    .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get())).findAny();
             if (csrLink.isEmpty()) {
                 // The issue has no csr link, the bot should just remove the csr label.
                 pr.removeLabel(CSR_LABEL);
@@ -106,7 +107,7 @@ public class CSRCommand implements CommandHandler {
                 return;
             }
 
-            var csrIssue = csrLink.get().issue().orElse(null);
+            var csrIssue = csrLink.flatMap(Link::issue).orElse(null);
             if (csrIssue == null) {
                 // The csr link exists but the csr issue doesn't exist.
                 // We should remind the user to remove the link firstly.
@@ -161,7 +162,9 @@ public class CSRCommand implements CommandHandler {
 
         }
 
-        var csr = jbsIssue.get().csrIssue().orElse(null);
+        var csr = jbsIssue.get().links().stream()
+                .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get()))
+                .findAny().flatMap(Link::issue).orElse(null);
         if (csr == null && !labels.contains(CSR_LABEL)) {
             csrReply(reply);
             linkReply(pr, jbsIssue.get(), reply);

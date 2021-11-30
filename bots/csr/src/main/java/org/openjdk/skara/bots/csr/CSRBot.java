@@ -28,6 +28,7 @@ import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.forge.PullRequestUpdateCache;
 import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.issuetracker.Link;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -79,7 +80,9 @@ class CSRBot implements Bot, WorkItem {
                 continue;
             }
 
-            var csr = jbsIssue.get().csrIssue().orElse(null);
+            var csr = jbsIssue.get().links().stream()
+                    .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get()))
+                    .findAny().flatMap(Link::issue).orElse(null);
             if (csr == null) {
                 log.info("Not found CSR for " + describe(pr));
             }
