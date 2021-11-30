@@ -39,6 +39,9 @@ public class BinaryConfiguration {
     }
 
     static BinaryConfiguration parse(Section s) {
+        if (s == null) {
+            return DEFAULT;
+        }
         Map<Pattern, Long> fileSizeLimits = new LinkedHashMap<>();
         for (var entry : s.entries()) {
             fileSizeLimits.put(Pattern.compile(entry.key()), SizeUtils.getSizeFromString(entry.value().asString()));
