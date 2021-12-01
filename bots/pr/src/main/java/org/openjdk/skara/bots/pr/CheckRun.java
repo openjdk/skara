@@ -136,15 +136,18 @@ class CheckRun {
         if (jbsIssue.isEmpty()) {
             return Optional.empty();
         }
-        var csr = jbsIssue.get().links().stream()
-                .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get()))
-                .findAny().flatMap(Link::issue);
+        var csr = csrLink(jbsIssue.get()).flatMap(Link::issue);
         if (csr.isEmpty()) {
             log.warning("The CSR issue of the issue " + issue + " does not exist");
         } else {
             return Issue.fromStringRelaxed(csr.get().id() + ": " + csr.get().title());
         }
         return Optional.empty();
+    }
+
+    private static Optional<Link> csrLink(org.openjdk.skara.issuetracker.Issue issue) {
+        return issue == null ? Optional.empty() : issue.links().stream()
+                .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get())).findAny();
     }
 
     private IssueProject issueProject() {

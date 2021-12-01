@@ -60,6 +60,11 @@ class CSRBot implements Bot, WorkItem {
         return repo.name() + "#" + pr.id();
     }
 
+    private static Optional<Link> csrLink(Issue issue) {
+        return issue == null ? Optional.empty() : issue.links().stream()
+                .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get())).findAny();
+    }
+
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
         var prs = repo.pullRequests();
@@ -80,9 +85,7 @@ class CSRBot implements Bot, WorkItem {
                 continue;
             }
 
-            var csrOptional = jbsIssue.get().links().stream()
-                    .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get()))
-                    .findAny().flatMap(Link::issue);
+            var csrOptional = csrLink(jbsIssue.get()).flatMap(Link::issue);
             if (csrOptional.isEmpty()) {
                 log.info("Not found CSR for " + describe(pr));
                 continue;
