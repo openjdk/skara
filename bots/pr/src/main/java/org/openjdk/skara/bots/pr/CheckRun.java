@@ -202,9 +202,22 @@ class CheckRun {
     private Map<String, Boolean> botSpecificProgresses() {
         var ret = new HashMap<String, Boolean>();
         if (pr.labelNames().contains("csr")) {
+            // If the PR have csr label, the CSR request need to be approved.
             ret.put("Change requires a CSR request to be approved", false);
         } else {
-            ret.put("Change doesn't require a CSR request or the CSR request has been approved", true);
+            var csrIssue = Issue.fromStringRelaxed(pr.title()).flatMap(this::getCsrIssue)
+                    .flatMap(value -> issueProject() != null ? issueProject().issue(value.shortId()) : Optional.empty());
+            if (csrIssue.isPresent()) {
+                var resolution = csrIssue.get().properties().get("resolution");
+                if (resolution != null && !resolution.isNull()
+                        && resolution.get("name") != null && !resolution.get("name").isNull()
+                        && csrIssue.get().state() == org.openjdk.skara.issuetracker.Issue.State.CLOSED
+                        && "Approved".equals(resolution.get("name").asString())) {
+                    // The PR doesn't have csr label and the csr request has been Approved.
+                    ret.put("Change requires a CSR request to be approved", true);
+                }
+            }
+            // At other states, no need to add the csr progress.
         }
         return ret;
     }
