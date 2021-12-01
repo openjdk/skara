@@ -415,6 +415,31 @@ class CSRTests {
             assertLastCommentContains(pr, "this pull request will not be integrated until the [CSR]");
             assertLastCommentContains(pr, "for issue ");
             assertLastCommentContains(pr, "has been approved.");
+
+            // Indicate the PR doesn't require CSR, but it doesn't work.
+            prAsReviewer.addComment("/csr unneeded");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a message which directs the user to withdraw the csr firstly.
+            assertLastCommentContains(pr, "the issue for this pull request");
+            assertLastCommentContains(pr, "a non-withdrawn CSR request");
+            assertLastCommentContains(pr, "So you can't directly indicate that a CSR request is not needed for this pull request");
+            assertLastCommentContains(pr, "Please firstly withdraw the CSR request");
+            assertLastCommentContains(pr, "and then use the command `/csr unneeded` again");
+            assertTrue(pr.labelNames().contains("csr"));
+
+            // withdraw the csr
+            csr.setState(Issue.State.CLOSED);
+            csr.setProperty("resolution", JSON.object().put("name", "Withdrawn"));
+
+            // Indicate the PR doesn't require CSR, now it works
+            prAsReviewer.addComment("/csr unneeded");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a message that a CSR is no longer needed
+            assertLastCommentContains(pr, "determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
+                    "is not needed for this pull request.");
+            assertFalse(pr.labelNames().contains("csr"));
         }
     }
 
@@ -458,6 +483,31 @@ class CSRTests {
             assertLastCommentContains(pr, "this pull request will not be integrated until the [CSR]");
             assertLastCommentContains(pr, "for issue ");
             assertLastCommentContains(pr, "has been approved.");
+
+            // Indicate the PR doesn't require CSR, but it doesn't work.
+            prAsReviewer.addComment("/csr unneeded");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a message which directs the user to withdraw the csr firstly.
+            assertLastCommentContains(pr, "the issue for this pull request");
+            assertLastCommentContains(pr, "a non-withdrawn CSR request");
+            assertLastCommentContains(pr, "So you can't directly indicate that a CSR request is not needed for this pull request");
+            assertLastCommentContains(pr, "Please firstly withdraw the CSR request");
+            assertLastCommentContains(pr, "and then use the command `/csr unneeded` again");
+            assertTrue(pr.labelNames().contains("csr"));
+
+            // withdraw the csr
+            csr.setState(Issue.State.CLOSED);
+            csr.setProperty("resolution", JSON.object().put("name", "Withdrawn"));
+
+            // Indicate the PR doesn't require CSR, now it works
+            prAsReviewer.addComment("/csr unneeded");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a message that a CSR is no longer needed
+            assertLastCommentContains(pr, "determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
+                    "is not needed for this pull request.");
+            assertFalse(pr.labelNames().contains("csr"));
         }
     }
 

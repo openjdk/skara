@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -39,7 +39,6 @@ class CSRBot implements Bot, WorkItem {
     private final HostedRepository repo;
     private final IssueProject project;
     private final PullRequestUpdateCache cache;
-    private final Set<String> hasCSRLabel = new HashSet<>();
 
     CSRBot(HostedRepository repo, IssueProject project) {
         this.repo = repo;
@@ -63,21 +62,9 @@ class CSRBot implements Bot, WorkItem {
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
         var prs = repo.pullRequests();
+
         for (var pr : prs) {
             if (!cache.needsUpdate(pr)) {
-                continue;
-            }
-
-            log.info("Checking CSR label for " + describe(pr) + "...");
-            if (pr.labelNames().contains(CSR_LABEL)) {
-                hasCSRLabel.add(pr.id());
-            } else {
-                hasCSRLabel.remove(pr.id());
-            }
-        }
-
-        for (var pr : prs) {
-            if (!hasCSRLabel.contains(pr.id())) {
                 continue;
             }
 
@@ -105,28 +92,55 @@ class CSRBot implements Bot, WorkItem {
 
                     var resolution = csr.properties().get("resolution");
                     if (resolution == null || resolution.isNull()) {
-                        log.info("CSR issue resolution is null for " + describe(pr) + ", not removing CSR label");
+                        if (!pr.labelNames().contains(CSR_LABEL)) {
+                            log.info("CSR issue resolution is null for " + describe(pr) + ", adding the CSR label");
+                            pr.addLabel(CSR_LABEL);
+                        } else {
+                            log.info("CSR issue resolution is null for " + describe(pr) + ", not removing the CSR label");
+                        }
                         continue;
                     }
                     var name = resolution.get("name");
                     if (name == null || name.isNull()) {
-                        log.info("CSR issue resolution name is null for " + describe(pr) + ", not removing CSR label");
+                        if (!pr.labelNames().contains(CSR_LABEL)) {
+                            log.info("CSR issue resolution name is null for " + describe(pr) + ", adding the CSR label");
+                            pr.addLabel(CSR_LABEL);
+                        } else {
+                            log.info("CSR issue resolution name is null for " + describe(pr) + ", not removing the CSR label");
+                        }
                         continue;
                     }
 
                     if (csr.state() != Issue.State.CLOSED) {
-                        log.info("CSR issue state is not closed for " + describe(pr) + ", not removing CSR label");
+                        if (!pr.labelNames().contains(CSR_LABEL)) {
+                            log.info("CSR issue state is not closed for " + describe(pr) + ", adding the CSR label");
+                            pr.addLabel(CSR_LABEL);
+                        } else {
+                            log.info("CSR issue state is not closed for " + describe(pr) + ", not removing the CSR label");
+                        }
                         continue;
                     }
 
                     if (!name.asString().equals("Approved")) {
-                        log.info("CSR issue resolution is not 'Approved' for " + describe(pr) + ", not removing CSR label");
+                        if (name.asString().equals("Withdrawn")) {
+                            // This condition is necessary to prevent the bot from adding the CSR label again.
+                            // And the bot can't remove the CSR label automatically here.
+                            // Because the PR author with the role of Committer may withdraw a CSR that
+                            // a Reviewer had requested and integrate it without satisfying that requirement.
+                            log.info("CSR closed and withdrawn for " + describe(pr) + ", not revising (not adding and not removing) CSR label");
+                        } else if (!pr.labelNames().contains(CSR_LABEL)) {
+                            log.info("CSR issue resolution is not 'Approved' for " + describe(pr) + ", adding the CSR label");
+                            pr.addLabel(CSR_LABEL);
+                        } else {
+                            log.info("CSR issue resolution is not 'Approved' for " + describe(pr) + ", not removing the CSR label");
+                        }
                         continue;
                     }
 
-                    log.info("CSR closed and approved for " + describe(pr) + ", removing CSR label");
-                    pr.removeLabel(CSR_LABEL);
-                    hasCSRLabel.remove(pr.id());
+                    if (pr.labelNames().contains(CSR_LABEL)) {
+                        log.info("CSR closed and approved for " + describe(pr) + ", removing CSR label");
+                        pr.removeLabel(CSR_LABEL);
+                    }
                 }
             }
         }
