@@ -80,14 +80,16 @@ class CSRBot implements Bot, WorkItem {
                 continue;
             }
 
-            var csr = jbsIssue.get().links().stream()
+            var csrOptional = jbsIssue.get().links().stream()
                     .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get()))
-                    .findAny().flatMap(Link::issue).orElse(null);
-            if (csr == null) {
+                    .findAny().flatMap(Link::issue);
+            if (csrOptional.isEmpty()) {
                 log.info("Not found CSR for " + describe(pr));
+                continue;
             }
-            log.info("Found CSR for " + describe(pr) + ". It has id " + csr.id());
 
+            var csr = csrOptional.get();
+            log.info("Found CSR for " + describe(pr) + ". It has id " + csr.id());
             var resolution = csr.properties().get("resolution");
             if (resolution == null || resolution.isNull()) {
                 if (!pr.labelNames().contains(CSR_LABEL)) {
