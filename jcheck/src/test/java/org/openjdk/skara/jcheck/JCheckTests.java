@@ -229,6 +229,11 @@ class JCheckTests {
         }
 
         @Override
+        public void visit(BinaryIssue e) {
+            issues.add(e);
+        }
+
+        @Override
         public void visit(BinaryFileTooLargeIssue e) {
             issues.add(e);
         }

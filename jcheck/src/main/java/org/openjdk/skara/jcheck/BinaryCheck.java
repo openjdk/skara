@@ -41,7 +41,7 @@ public class BinaryCheck extends CommitCheck {
     @Override
     Iterator<Issue> check(Commit commit, CommitMessage message, JCheckConfiguration conf, Census census) {
         var metadata = CommitIssue.metadata(commit, message, conf, this);
-        var fileSizeLimits = conf.checks().binary().fileSizeLimits();
+        var maxSize = conf.checks().binary().maxSize();
 
         var issues = new ArrayList<Issue>();
         for (var diff : commit.parentDiffs()) {
@@ -50,56 +50,30 @@ public class BinaryCheck extends CommitCheck {
                     continue;
                 }
                 // Here, the file is surely binary.
-                var binaryPatch = (BinaryPatch) patch;
-                var path =  binaryPatch.target().path().orElse(null);
-                var fileName = path != null ? path.getFileName().toString() : "";
-
-                long fileSize = 0;
-                boolean needCheck = false;
-
-                if (binaryPatch.status().isAdded()) {
-                    // This is a new-added file, so the BinaryHunk#inflatedSize of the first hunk should be the file size.
-                    fileSize = binaryPatch.hunks().get(0).inflatedSize();
-                    needCheck = true;
-                } else if (binaryPatch.status().isRenamed() || binaryPatch.status().isCopied()
-                        || binaryPatch.status().isModified() || binaryPatch.status().isUnmerged()) {
-                    // Use the file size in the file system.
-                    try {
-                        fileSize = path != null ? Files.size(path) : 0;
-                        needCheck = true;
-                    } catch (IOException e) {
-                        log.warning("The file '" + path + "' doesn't exist. ");
-                    }
+                if (!patch.status().isAdded() && !patch.status().isCopied()) {
+                    continue;
                 }
-
-                // If the size of the binary file exceeds the limited size, the check should fail.
-                if (needCheck) {
-                    var excessSize = calculateExcessSize(fileSizeLimits, fileName, fileSize);
-                    if (excessSize > 0) {
-                        var limitedSize = fileSize - excessSize;
-                        log.info("The size of the binary file `" + path + "` is " + fileSize
-                                 + (fileSize > 1 ? " Bytes" : " Byte") + ", which is larger than the limited file size: "
-                                 + limitedSize + (limitedSize > 1 ? " Bytes." : " Byte."));
-                        issues.add(new BinaryFileTooLargeIssue(path, fileSize, limitedSize, metadata));
+                // Here, the binary file is newly added or copied.
+                if (maxSize == 0) {
+                    // If the maxSize is not set or is set to 0, any binary file can't be added.
+                    issues.add(new BinaryIssue(patch.target().path().get(), metadata));
+                }
+                if (maxSize > 0) {
+                    long fileSize = 0;
+                    var binaryPatch = (BinaryPatch) patch;
+                    var path =  binaryPatch.target().path().get();
+                    try {
+                        fileSize = Files.size(path);
+                    } catch (IOException e) {
+                        log.warning("The file '" + path + "' doesn't exist.");
+                    }
+                    if (fileSize > maxSize) {
+                        issues.add(new BinaryFileTooLargeIssue(path, fileSize, maxSize, metadata));
                     }
                 }
             }
         }
         return issues.iterator();
-    }
-
-    /**
-     * Check whether the file size is exceeded and return the excess size.
-     * @return the value of (the file size - the limited size)
-     */
-    private long calculateExcessSize(Map<Pattern, Long> fileSizeLimits, String fileName, long fileSize) {
-        for (var entry : fileSizeLimits.entrySet()) {
-            if (entry.getKey().matcher(fileName).matches()) {
-                return fileSize - entry.getValue();
-            }
-        }
-        // the `fileSizeLimits` has no related limits about this file.
-        return 0;
     }
 
     @Override
@@ -109,6 +83,6 @@ public class BinaryCheck extends CommitCheck {
 
     @Override
     public String description() {
-        return "Files should not be binary";
+        return "Binary files don't meet the requirement.";
     }
 }

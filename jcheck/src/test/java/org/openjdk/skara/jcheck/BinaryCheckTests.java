@@ -38,14 +38,30 @@ import java.time.ZonedDateTime;
 import java.io.IOException;
 
 class BinaryCheckTests {
-    private static final JCheckConfiguration conf = JCheckConfiguration.parse(List.of(
-        "[general]",
-        "project = test",
-        "[checks]",
-        "error = binary",
-        "[checks \"binary\"]",
-        ".*\\.bin=1b",
-        ".*\\.o=1k"
+    private static final JCheckConfiguration binaryNotAllowedConf = JCheckConfiguration.parse(List.of(
+            "[general]",
+            "project = test",
+            "[checks]",
+            "error = binary"
+    ));
+
+    private static final JCheckConfiguration binaryAllowedConf = JCheckConfiguration.parse(List.of(
+            "[general]",
+            "project = test",
+            "[checks]",
+            "error = binary",
+            "[checks \"binary\"]",
+            "max-size=6b"
+    ));
+
+    // Same as `binaryNotAllowedConf`
+    private static final JCheckConfiguration zeroMaxSizeConf = JCheckConfiguration.parse(List.of(
+            "[general]",
+            "project = test",
+            "[checks]",
+            "error = binary",
+            "[checks \"binary\"]",
+            "max-size=0"
     ));
 
     private static List<Diff> textualParentDiffs(String filename, String mode) {
@@ -93,39 +109,79 @@ class BinaryCheckTests {
         var commit = commit(textualParentDiffs("README", "100644"));
         var message = message(commit);
         var check = new BinaryCheck();
-        var issues = toList(check.check(commit, message, conf, null));
+        var issues = toList(check.check(commit, message, binaryNotAllowedConf, null));
+        assertEquals(0, issues.size());
+        issues = toList(check.check(commit, message, binaryAllowedConf, null));
+        assertEquals(0, issues.size());
+        issues = toList(check.check(commit, message, zeroMaxSizeConf, null));
         assertEquals(0, issues.size());
     }
 
     @Test
-    void binaryFileNotLimited() throws IOException {
-        // The size of the file `*.s` is not limited in the config file.
+    void notAddOrCopyFileShouldPass() throws IOException {
         Path path = Path.of("file.s");
         Files.deleteIfExists(path);
         Files.createFile(path);
         Files.write(path, List.of("testtest"));
-        for (var status : List.of(Status.from("A"), Status.from("M"), Status.from("U"), Status.from("R100"), Status.from("C100"))) {
+        for (var status : List.of(Status.from("M"), Status.from("U"), Status.from("R100"))) {
             var commit = commit(binaryParentDiffs(path, status, 9, List.of("testtest")));
             var message = message(commit);
             var check = new BinaryCheck();
-            var issues = toList(check.check(commit, message, conf, null));
+            var issues = toList(check.check(commit, message, binaryNotAllowedConf, null));
+            assertEquals(0, issues.size());
+            issues = toList(check.check(commit, message, binaryAllowedConf, null));
+            assertEquals(0, issues.size());
+            issues = toList(check.check(commit, message, zeroMaxSizeConf, null));
             assertEquals(0, issues.size());
         }
         Files.deleteIfExists(path);
     }
 
     @Test
-    void binaryFileInRange() throws IOException {
-        // The size of the file `*.o` is limited to 1k in the config file.
-        Path path = Path.of("file.o");
+    void binaryFileNotAllowed() throws IOException {
+        Path path = Path.of("file.bin");
         Files.deleteIfExists(path);
         Files.createFile(path);
         Files.write(path, List.of("testtest"));
-        for (var status : List.of(Status.from("A"), Status.from("M"), Status.from("U"), Status.from("R100"), Status.from("C100"))) {
+        for (var status : List.of(Status.from("A"), Status.from("C100"))) {
             var commit = commit(binaryParentDiffs(path, status, 9, List.of("testtest")));
             var message = message(commit);
             var check = new BinaryCheck();
-            var issues = toList(check.check(commit, message, conf, null));
+
+            var issues = toList(check.check(commit, message, binaryNotAllowedConf, null));
+            assertEquals(1, issues.size());
+            assertTrue(issues.get(0) instanceof BinaryIssue);
+            var issue = (BinaryIssue) issues.get(0);
+            assertEquals(path, issue.path());
+            assertEquals(commit, issue.commit());
+            assertEquals(message, issue.message());
+            assertEquals(check, issue.check());
+            assertEquals(Severity.ERROR, issue.severity());
+
+            issues = toList(check.check(commit, message, zeroMaxSizeConf, null));
+            assertEquals(1, issues.size());
+            assertTrue(issues.get(0) instanceof BinaryIssue);
+            issue = (BinaryIssue) issues.get(0);
+            assertEquals(path, issue.path());
+            assertEquals(commit, issue.commit());
+            assertEquals(message, issue.message());
+            assertEquals(check, issue.check());
+            assertEquals(Severity.ERROR, issue.severity());
+        }
+        Files.deleteIfExists(path);
+    }
+
+    @Test
+    void binaryFileInRange() throws IOException {
+        Path path = Path.of("file.bin");
+        Files.deleteIfExists(path);
+        Files.createFile(path);
+        Files.write(path, List.of("t"));
+        for (var status : List.of(Status.from("A"), Status.from("C100"))) {
+            var commit = commit(binaryParentDiffs(path, status, 2, List.of("testtest")));
+            var message = message(commit);
+            var check = new BinaryCheck();
+            var issues = toList(check.check(commit, message, binaryAllowedConf, null));
             assertEquals(0, issues.size());
         }
         Files.deleteIfExists(path);
@@ -133,22 +189,21 @@ class BinaryCheckTests {
 
     @Test
     void binaryFileTooLarge() throws IOException {
-        // The size of the file `*.bin` is limited to 1b in the config file.
         Path path = Path.of("file.bin");
         Files.deleteIfExists(path);
         Files.createFile(path);
         Files.write(path, List.of("testtest"));
-        for (var status : List.of(Status.from("A"), Status.from("M"), Status.from("U"), Status.from("R100"), Status.from("C100"))) {
+        for (var status : List.of(Status.from("A"), Status.from("C100"))) {
             var commit = commit(binaryParentDiffs(path, status, 9, List.of("testtest")));
             var message = message(commit);
             var check = new BinaryCheck();
-            var issues = toList(check.check(commit, message, conf, null));
+            var issues = toList(check.check(commit, message, binaryAllowedConf, null));
             assertEquals(1, issues.size());
             assertTrue(issues.get(0) instanceof BinaryFileTooLargeIssue);
             var issue = (BinaryFileTooLargeIssue) issues.get(0);
             assertEquals(path, issue.path());
-            assertTrue(issue.fileSize() > issue.limitedFileSize());
-            assertEquals(1, issue.limitedFileSize());
+            assertTrue(issue.fileSize() > issue.maxSize());
+            assertEquals(binaryAllowedConf.checks().binary().maxSize(), issue.maxSize());
             assertEquals(commit, issue.commit());
             assertEquals(message, issue.message());
             assertEquals(check, issue.check());

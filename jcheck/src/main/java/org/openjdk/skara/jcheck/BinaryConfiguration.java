@@ -24,36 +24,28 @@ package org.openjdk.skara.jcheck;
 
 import org.openjdk.skara.ini.Section;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.regex.Pattern;
-
 public class BinaryConfiguration {
     static final BinaryConfiguration DEFAULT =
-            new BinaryConfiguration(new LinkedHashMap<>());
+            new BinaryConfiguration(0);
 
-    private final Map<Pattern, Long> fileSizeLimits;
+    private final long maxSize;
 
-    private BinaryConfiguration(Map<Pattern, Long> fileSizeLimits) {
-        this.fileSizeLimits = fileSizeLimits;
+    private BinaryConfiguration(long maxSize) {
+        this.maxSize = maxSize;
     }
 
     static BinaryConfiguration parse(Section s) {
         if (s == null) {
             return DEFAULT;
         }
-        Map<Pattern, Long> fileSizeLimits = new LinkedHashMap<>();
-        for (var entry : s.entries()) {
-            fileSizeLimits.put(Pattern.compile(entry.key()), SizeUtils.getSizeFromString(entry.value().asString()));
-        }
-        return new BinaryConfiguration(fileSizeLimits);
+        return new BinaryConfiguration(SizeUtils.getSizeFromString(s.get("max-size").asString()));
     }
 
     static String name() {
         return "binary";
     }
 
-    public Map<Pattern, Long> fileSizeLimits() {
-        return fileSizeLimits;
+    public long maxSize() {
+        return maxSize;
     }
 }

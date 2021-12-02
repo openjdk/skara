@@ -262,10 +262,16 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     }
 
     @Override
+    public void visit(BinaryIssue issue) {
+        addFailureMessage(issue.check(), "The binary file " + issue.path().toString() + " is not allowed in this repository.");
+        readyForReview = false;
+    }
+
+    @Override
     public void visit(BinaryFileTooLargeIssue issue) {
         addFailureMessage(issue.check(), "The size of the binary file `" + issue.path() + "` is " + issue.fileSize()
-                + (issue.fileSize() > 1 ? " Bytes" : " Byte") + ", which is larger than the limited file size: "
-                + issue.limitedFileSize() + (issue.limitedFileSize() > 1 ? " Bytes." : " Byte."));
+                + " Bytes, which is larger than the limited file size: "
+                + issue.maxSize() + (issue.maxSize() > 1 ? " Bytes." : " Byte."));
         readyForReview = false;
     }
 

@@ -27,13 +27,13 @@ import java.nio.file.Path;
 public class BinaryFileTooLargeIssue extends CommitIssue {
     private final Path path;
     private final long fileSize;
-    private final long limitedFileSize;
+    private final long maxSize;
 
-    BinaryFileTooLargeIssue(Path path, long fileSize, long limitedFileSize, CommitIssue.Metadata metadata) {
+    BinaryFileTooLargeIssue(Path path, long fileSize, long maxSize, CommitIssue.Metadata metadata) {
         super(metadata);
         this.path = path;
         this.fileSize = fileSize;
-        this.limitedFileSize = limitedFileSize;
+        this.maxSize = maxSize;
     }
 
     public Path path() {
@@ -44,8 +44,8 @@ public class BinaryFileTooLargeIssue extends CommitIssue {
         return fileSize;
     }
 
-    public long limitedFileSize() {
-        return limitedFileSize;
+    public long maxSize() {
+        return maxSize;
     }
 
     @Override

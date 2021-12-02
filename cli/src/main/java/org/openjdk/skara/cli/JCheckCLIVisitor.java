@@ -290,11 +290,18 @@ class JCheckCLIVisitor implements IssueVisitor {
         }
     }
 
+    public void visit(BinaryIssue i) {
+        if (!ignore.contains(i.check().name())) {
+            println(i, "The binary file " + i.path().toString() + " is not allowed in this repository.");
+            hasDisplayedErrors = true;
+        }
+    }
+
     public void visit(BinaryFileTooLargeIssue i) {
         if (!ignore.contains(i.check().name())) {
             println(i, "The size of the binary file `" + i.path() + "` is " + i.fileSize()
                     + (i.fileSize() > 1 ? " Bytes" : " Byte") + ", which is larger than the limited file size: "
-                    + i.limitedFileSize() + (i.limitedFileSize() > 1 ? " Bytes." : " Byte."));
+                    + i.maxSize() + (i.maxSize() > 1 ? " Bytes." : " Byte."));
             hasDisplayedErrors = true;
         }
     }
