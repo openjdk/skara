@@ -300,7 +300,7 @@ class JCheckCLIVisitor implements IssueVisitor {
     public void visit(BinaryFileTooLargeIssue i) {
         if (!ignore.contains(i.check().name())) {
             println(i, "The size of the binary file `" + i.path() + "` is " + i.fileSize()
-                    + (i.fileSize() > 1 ? " Bytes" : " Byte") + ", which is larger than the limited file size: "
+                    + " Bytes, which is larger than the limited file size: "
                     + i.maxSize() + (i.maxSize() > 1 ? " Bytes." : " Byte."));
             hasDisplayedErrors = true;
         }

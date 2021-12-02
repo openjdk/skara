@@ -31,9 +31,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Iterator;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 public class BinaryCheck extends CommitCheck {
     private final Logger log = Logger.getLogger("org.openjdk.skara.jcheck.binary");
