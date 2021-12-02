@@ -124,6 +124,9 @@ class CheckRun {
         return List.of();
     }
 
+    /**
+     * Get the csr issue. Note: this `Issue` is not the issue in module `issuetracker`.
+     */
     private Optional<Issue> getCsrIssue(Issue issue) {
         var issueProject = issueProject();
         if (issueProject == null) {
@@ -133,23 +136,18 @@ class CheckRun {
         if (jbsIssue.isEmpty()) {
             return Optional.empty();
         }
-        org.openjdk.skara.issuetracker.Issue csr = null;
-        for (var link : jbsIssue.get().links()) {
-            var relationship = link.relationship();
-            if (relationship.isEmpty() || !relationship.get().equals("csr for")) {
-                continue;
-            }
-            csr = link.issue().orElse(null);
-            if (csr == null) {
-                log.warning("The CSR " + link + " of the issue " + issue + " does not exist");
-            } else {
-                break;
-            }
-        }
-        if (csr != null) {
-            return Issue.fromStringRelaxed(csr.id() + ": " + csr.title());
+        var csr = csrLink(jbsIssue.get()).flatMap(Link::issue);
+        if (csr.isEmpty()) {
+            log.warning("The CSR issue of the issue " + issue + " does not exist");
+        } else {
+            return Issue.fromStringRelaxed(csr.get().id() + ": " + csr.get().title());
         }
         return Optional.empty();
+    }
+
+    private static Optional<Link> csrLink(org.openjdk.skara.issuetracker.Issue issue) {
+        return issue == null ? Optional.empty() : issue.links().stream()
+                .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get())).findAny();
     }
 
     private IssueProject issueProject() {

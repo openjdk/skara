@@ -29,6 +29,7 @@ import org.openjdk.skara.json.JSON;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 public class CSRCommand implements CommandHandler {
     private static final String CSR_LABEL = "csr";
@@ -53,6 +54,11 @@ public class CSRCommand implements CommandHandler {
         writer.println("@" + pr.author().username() + " please create a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request for issue " +
                       "[" + issue.id() + "](" + issue.webUrl() + "). This pull request cannot be integrated until " +
                       "the CSR request is approved.");
+    }
+
+    private static Optional<Link> csrLink(Issue issue) {
+        return issue == null ? Optional.empty() : issue.links().stream()
+                .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get())).findAny();
     }
 
     @Override
@@ -96,37 +102,38 @@ public class CSRCommand implements CommandHandler {
                         "is not needed for this pull request.");
                 return;
             }
-            for (var link : jbsIssue.get().links()) {
-                var relationship = link.relationship();
-                if (relationship.isEmpty() || !relationship.get().equals("csr for")) {
-                    continue;
-                }
-                // Now the issue has a csr link.
-                var csrIssue = link.issue().orElse(null);
-                if (csrIssue == null) {
-                    // The csr link exists but the csr issue doesn't exist.
-                    // We should remind the user to remove the link firstly.
-                    reply.println("the issue for this pull request, [" + jbsIssue.get().id() + "](" + jbsIssue.get().webUrl()
-                            + "), has a invalid CSR link.");
-                    reply.println("So you can't directly indicate that a CSR request is not needed for this pull request. ");
-                    reply.println("Please firstly remove the CSR link and then use the command `/csr unneeded` again.");
-                    return;
-                }
-                var resolution = csrIssue.properties().get("resolution");
-                if (resolution == null || resolution.isNull()
-                        || resolution.get("name") == null || resolution.get("name").isNull()
-                        || csrIssue.state() != Issue.State.CLOSED
-                        || !resolution.get("name").asString().equals("Withdrawn")) {
-                    // The issue has a non-withdrawn csr issue, the bot should direct the user to withdraw the csr firstly.
-                    reply.println("the issue for this pull request, [" + jbsIssue.get().id() + "](" + jbsIssue.get().webUrl() + "), has " +
-                            "a non-withdrawn CSR request: [" + csrIssue.id() + "](" + csrIssue.webUrl() + "). ");
-                    reply.println("So you can't directly indicate that a CSR request is not needed for this pull request. ");
-                    reply.println("Please firstly withdraw the CSR request: [" + csrIssue.id() + "](" + csrIssue.webUrl() + "), "
-                            + "and then use the command `/csr unneeded` again.");
-                    return;
-                }
+
+            var csrLink = csrLink(jbsIssue.get());
+            if (csrLink.isEmpty()) {
+                // The issue has no csr link, the bot should just remove the csr label.
+                pr.removeLabel(CSR_LABEL);
+                reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
+                        "is not needed for this pull request.");
+                return;
             }
-            // The issue has no csr or the csr has been withdrawn, the bot should just remove the csr label.
+
+            var csrOptional = csrLink.flatMap(Link::issue);
+            if (csrOptional.isEmpty()) {
+                // The csr link exists but the csr issue doesn't exist, the bot should just remove the csr label.
+                pr.removeLabel(CSR_LABEL);
+                reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
+                        "is not needed for this pull request.");
+                return;
+            }
+            var csrIssue = csrOptional.get();
+            var resolution = csrIssue.properties().get("resolution");
+            if (resolution == null || resolution.isNull()
+                    || resolution.get("name") == null || resolution.get("name").isNull()
+                    || csrIssue.state() != Issue.State.CLOSED
+                    || !resolution.get("name").asString().equals("Withdrawn")) {
+                // The issue has a non-withdrawn csr issue, the bot should direct the user to withdraw the csr firstly.
+                reply.println("The CSR requirement cannot be removed as there is already a CSR associated with the main issue" +
+                              " of this pull request. Please withdraw the CSR [" + csrIssue.id() + "](" + csrIssue.webUrl() +
+                              ") and then use the command `/csr unneeded` again.");
+                return;
+            }
+
+            // The csr has been withdrawn, the bot should just remove the csr label.
             pr.removeLabel(CSR_LABEL);
             reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
                     "is not needed for this pull request.");
@@ -156,23 +163,16 @@ public class CSRCommand implements CommandHandler {
             return;
 
         }
-        Issue csr = null;
-        for (var link : jbsIssue.get().links()) {
-            var relationship = link.relationship();
-            if (relationship.isPresent() && relationship.get().equals("csr for")) {
-                csr = link.issue().orElseThrow(
-                        () -> new IllegalStateException("Link with title 'csr for' does not contain issue")
-                );
-            }
-        }
 
-        if (csr == null && !labels.contains(CSR_LABEL)) {
+        var csrOptional = csrLink(jbsIssue.get()).flatMap(Link::issue);
+        if (csrOptional.isEmpty()) {
             csrReply(reply);
             linkReply(pr, jbsIssue.get(), reply);
             pr.addLabel(CSR_LABEL);
             return;
         }
 
+        var csr = csrOptional.get();
         var resolutionName = "Unresolved";
         var resolution = csr.properties().getOrDefault("resolution", JSON.of());
         if (resolution.isObject() && resolution.asObject().contains("name")) {
