@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.pr;
 
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.*;
+import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.Link;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.*;
@@ -1171,6 +1172,20 @@ class CheckTests {
             assertTrue(pr.body().contains("### Issues"));
             assertTrue(pr.body().contains("The main issue"));
             assertTrue(pr.body().contains("The csr issue (**CSR**)"));
+
+            // Set the state of the csr issue to `closed`
+            csrIssue.setState(Issue.State.CLOSED);
+            // Push a commit to trigger the check which can update the PR body.
+            var newHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(newHash, author.url(), "edit", false);
+
+            // PR should have two issues
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertTrue(pr.body().contains("### Issues"));
+            assertTrue(pr.body().contains("The main issue"));
+            assertTrue(pr.body().contains("The csr issue (**CSR**)"));
+            // The csr issue state don't need to be `open`.
+            assertFalse(pr.body().contains("Issue is not open"));
         }
     }
 
