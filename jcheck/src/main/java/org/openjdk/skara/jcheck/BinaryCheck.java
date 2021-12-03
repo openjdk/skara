@@ -45,13 +45,13 @@ public class BinaryCheck extends CommitCheck {
         for (var diff : commit.parentDiffs()) {
             for (var patch : diff.patches()) {
                 if (patch.isTextual()) {
+                    // Excluded the textual patch.
                     continue;
                 }
-                // Here, the file is surely binary.
-                if (!patch.status().isAdded() && !patch.status().isCopied()) {
+                if (patch.status().isDeleted()) {
+                    // Excluded the deleted file.
                     continue;
                 }
-                // Here, the binary file is newly added or copied.
                 if (maxSize == 0) {
                     // If the maxSize is not set or is set to 0, any binary file can't be added.
                     issues.add(new BinaryIssue(patch.target().path().get(), metadata));

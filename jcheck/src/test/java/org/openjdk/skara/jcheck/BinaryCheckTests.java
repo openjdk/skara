@@ -123,17 +123,15 @@ class BinaryCheckTests {
         Files.deleteIfExists(path);
         Files.createFile(path);
         Files.write(path, List.of("testtest"));
-        for (var status : List.of(Status.from("M"), Status.from("U"), Status.from("R100"))) {
-            var commit = commit(binaryParentDiffs(path, status, 9, List.of("testtest")));
-            var message = message(commit);
-            var check = new BinaryCheck();
-            var issues = toList(check.check(commit, message, binaryNotAllowedConf, null));
-            assertEquals(0, issues.size());
-            issues = toList(check.check(commit, message, binaryAllowedConf, null));
-            assertEquals(0, issues.size());
-            issues = toList(check.check(commit, message, zeroMaxSizeConf, null));
-            assertEquals(0, issues.size());
-        }
+        var commit = commit(binaryParentDiffs(path, Status.from("D"), 9, List.of("testtest")));
+        var message = message(commit);
+        var check = new BinaryCheck();
+        var issues = toList(check.check(commit, message, binaryNotAllowedConf, null));
+        assertEquals(0, issues.size());
+        issues = toList(check.check(commit, message, binaryAllowedConf, null));
+        assertEquals(0, issues.size());
+        issues = toList(check.check(commit, message, zeroMaxSizeConf, null));
+        assertEquals(0, issues.size());
         Files.deleteIfExists(path);
     }
 
@@ -143,7 +141,7 @@ class BinaryCheckTests {
         Files.deleteIfExists(path);
         Files.createFile(path);
         Files.write(path, List.of("testtest"));
-        for (var status : List.of(Status.from("A"), Status.from("C100"))) {
+        for (var status : List.of(Status.from("A"), Status.from("C100"), Status.from("M"), Status.from("U"), Status.from("R100"))) {
             var commit = commit(binaryParentDiffs(path, status, 9, List.of("testtest")));
             var message = message(commit);
             var check = new BinaryCheck();
@@ -177,7 +175,7 @@ class BinaryCheckTests {
         Files.deleteIfExists(path);
         Files.createFile(path);
         Files.write(path, List.of("t"));
-        for (var status : List.of(Status.from("A"), Status.from("C100"))) {
+        for (var status : List.of(Status.from("A"), Status.from("C100"), Status.from("M"), Status.from("U"), Status.from("R100"))) {
             var commit = commit(binaryParentDiffs(path, status, 2, List.of("testtest")));
             var message = message(commit);
             var check = new BinaryCheck();
@@ -193,7 +191,7 @@ class BinaryCheckTests {
         Files.deleteIfExists(path);
         Files.createFile(path);
         Files.write(path, List.of("testtest"));
-        for (var status : List.of(Status.from("A"), Status.from("C100"))) {
+        for (var status : List.of(Status.from("A"), Status.from("C100"), Status.from("M"), Status.from("U"), Status.from("R100"))) {
             var commit = commit(binaryParentDiffs(path, status, 9, List.of("testtest")));
             var message = message(commit);
             var check = new BinaryCheck();
