@@ -85,7 +85,7 @@ public class IssueNotifierFactory implements NotifierFactory {
 
             if (credential.username().startsWith("https://")) {
                 var vaultUrl = URIBuilder.base(credential.username()).build();
-                var jbsVault = new JbsVault(vaultUrl, credential.password(), issueProject.webUrl());
+                var jbsVault = new JbsVault(vaultUrl, credential.password(), issueProject.issueTracker().uri());
                 builder.vault(jbsVault);
             } else {
                 throw new RuntimeException("basic authentication not implemented yet");

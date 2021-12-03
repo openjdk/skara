@@ -44,7 +44,7 @@ public class JiraHost implements IssueTracker {
         this.securityLevel = null;
 
         var baseApi = URIBuilder.base(uri)
-                                .setPath("/rest/api/2/")
+                                .appendPath("/rest/api/2/")
                                 .build();
         request = new RestRequest(baseApi);
     }
@@ -54,7 +54,7 @@ public class JiraHost implements IssueTracker {
         this.visibilityRole = null;
         this.securityLevel = null;
         var baseApi = URIBuilder.base(uri)
-                                .setPath("/rest/api/2/")
+                                .appendPath("/rest/api/2/")
                                 .build();
         request = new RestRequest(baseApi, jiraVault.authId(), (r) -> Arrays.asList("Cookie", jiraVault.getCookie()));
     }
@@ -64,12 +64,13 @@ public class JiraHost implements IssueTracker {
         this.visibilityRole = visibilityRole;
         this.securityLevel = securityLevel;
         var baseApi = URIBuilder.base(uri)
-                                .setPath("/rest/api/2/")
+                                .appendPath("/rest/api/2/")
                                 .build();
         request = new RestRequest(baseApi, jiraVault.authId(), (r) -> Arrays.asList("Cookie", jiraVault.getCookie()));
     }
 
-    URI getUri() {
+    @Override
+    public URI uri() {
         return uri;
     }
 
