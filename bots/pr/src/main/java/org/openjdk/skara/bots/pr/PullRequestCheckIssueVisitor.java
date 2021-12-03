@@ -270,7 +270,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     @Override
     public void visit(BinaryFileTooLargeIssue issue) {
         addFailureMessage(issue.check(), "The size of the binary file `" + issue.path() + "` is " + issue.fileSize()
-                + " Bytes, which is larger than the limited file size: "
+                + " Bytes, which is larger than the binary file size limit: "
                 + issue.maxSize() + (issue.maxSize() > 1 ? " Bytes." : " Byte."));
         readyForReview = false;
     }
