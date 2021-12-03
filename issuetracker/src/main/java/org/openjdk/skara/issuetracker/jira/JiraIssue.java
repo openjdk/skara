@@ -141,6 +141,13 @@ public class JiraIssue implements Issue {
     }
 
     @Override
+    public void removeComment(Comment comment) {
+        request.delete("/comment/" + comment.id())
+               .onError(e -> e.statusCode() == 404 ? Optional.of(JSON.object().put("already_deleted", true)) : Optional.empty())
+               .execute();
+    }
+
+    @Override
     public Comment updateComment(String id, String body) {
         var query = JSON.object().put("body", body);
         jiraProject.jiraHost().visibilityRole().ifPresent(visibility -> query.put("visibility", JSON.object()

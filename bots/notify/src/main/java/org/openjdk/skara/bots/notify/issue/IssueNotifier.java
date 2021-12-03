@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,6 +36,7 @@ import org.openjdk.skara.vcs.openjdk.*;
 import java.io.*;
 import java.net.URI;
 import java.nio.file.Path;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -56,6 +57,8 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     private final String namespace;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
+
+    private static final String pullRequestTip = "A pull request is submitted for review.";
 
     IssueNotifier(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,
                   boolean setFixVersion, Map<String, String> fixVersions, Map<String, List<String>> altFixVersions,
@@ -188,6 +191,13 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
             }
 
             realIssue.get().addLink(linkBuilder.build());
+
+            var alreadyPostedComment = realIssue.get().comments().stream()
+                    .filter(comment -> comment.author().equals(issueProject.issueTracker().currentUser()))
+                    .anyMatch(comment -> comment.body().contains(pullRequestTip) && comment.body().contains(pr.webUrl().toString()));
+            if (!alreadyPostedComment) {
+                realIssue.get().addComment(pullRequestToTextBrief(pr));
+            }
         }
     }
 
@@ -201,6 +211,21 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
 
         var link = Link.create(pr.webUrl(), "").build();
         realIssue.get().removeLink(link);
+
+        var postedComment = realIssue.get().comments().stream()
+                .filter(comment -> comment.author().equals(issueProject.issueTracker().currentUser()))
+                .filter(comment -> comment.body().contains(pullRequestTip) && comment.body().contains(pr.webUrl().toString()))
+                .findAny();
+        postedComment.ifPresent(comment -> realIssue.get().removeComment(comment));
+    }
+
+    private String pullRequestToTextBrief(PullRequest pr) {
+        var writer = new StringWriter();
+        var printer = new PrintWriter(writer);
+        printer.println(pullRequestTip + "\n");
+        printer.println("URL: " + pr.webUrl().toString());
+        printer.println("Date: " + pr.createdAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss +0000")));
+        return writer.toString();
     }
 
     @Override
