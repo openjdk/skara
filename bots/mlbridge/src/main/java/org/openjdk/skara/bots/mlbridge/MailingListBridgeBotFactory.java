@@ -87,7 +87,7 @@ public class MailingListBridgeBotFactory implements BotFactory {
 
         var archiveRepo = configuration.repository(specific.get("archive").asString());
         var archiveRef = configuration.repositoryRef(specific.get("archive").asString());
-        var issueTracker = URIBuilder.base(specific.get("issues").asString()).build();
+        var globalIssueTracker = URIBuilder.base(specific.get("issues").asString()).build();
 
         var readyLabels = specific.get("ready").get("labels").stream()
                 .map(JSONValue::asString)
@@ -106,6 +106,11 @@ public class MailingListBridgeBotFactory implements BotFactory {
             var hostedRepository = configuration.repository(repo);
             var censusRepo = configuration.repository(repoConfig.get("census").asString());
             var censusRef = configuration.repositoryRef(repoConfig.get("census").asString());
+
+            var issueTracker = globalIssueTracker;
+            if (repoConfig.contains("issues")) {
+                issueTracker = URIBuilder.base(repoConfig.get("issues").asString()).build();
+            }
 
             Map<String, String> headers = repoConfig.contains("headers") ?
                     repoConfig.get("headers").fields().stream()
