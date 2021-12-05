@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.census.Contributor;
 import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
@@ -370,29 +371,60 @@ class CheckRun {
     }
 
     private String formatReviewer(HostUser reviewer) {
-        var namespace = censusInstance.namespace();
-        var contributor = namespace.get(reviewer.id());
-        if (contributor == null) {
-            return "@" + reviewer.username() + " (no known " + namespace.name() + " user name / role)";
-        } else {
-            var ret = new StringBuilder();
-            var censusLink = workItem.bot.censusLink(contributor);
-            if (censusLink.isPresent()) {
-                ret.append("[");
-            }
-            ret.append(contributor.fullName().orElse(contributor.username()));
-            if (censusLink.isPresent()) {
-                ret.append("](");
-                ret.append(censusLink.get());
-                ret.append(")");
-            }
+        var contributor = censusInstance.namespace().get(reviewer.id());
+        return formatUser(reviewer, contributor);
+    }
+
+    /**
+     * Format the contributor user information.
+     * If both the HostUser and the Contributor are not null, return `[FullName](Link) (@user - RoleName)`
+     * If the HostUser is not null and the Contributor is null, return `@user (Unknown ProjectName username and role)`
+     * If the HostUser is null and the Contributor is not null, return `[FullName](Link) - RoleName` or FullName - RoleName
+     * If both the HostUser and the Contributor are null, return: null string
+     */
+    private String formatUser(HostUser user, Contributor contributor) {
+        if (contributor == null && user == null) {
+            return "";
+        }
+        var ret = new StringBuilder();
+        if (contributor != null && user != null) {
+            // Both the HostUser and the Contributor are not null
+            ret.append(contributorLink(contributor));
             ret.append(" (@");
-            ret.append(reviewer.username());
+            ret.append(user.username());
             ret.append(" - ");
             ret.append(getRole(contributor.username()));
             ret.append(")");
             return ret.toString();
+        } else if (contributor == null) {
+            // The HostUser is not null and the Contributor is null
+            ret.append("@");
+            ret.append(user.username());
+            ret.append(" (Unknown ");
+            ret.append(censusInstance.project().fullName());
+            ret.append(" username and role)");
+        } else {
+            // The HostUser is null and the Contributor is not null
+            ret.append(contributorLink(contributor));
+            ret.append(" - ");
+            ret.append(getRole(contributor.username()));
         }
+        return ret.toString();
+    }
+
+    private String contributorLink(Contributor contributor) {
+        var ret = new StringBuilder();
+        var censusLink = workItem.bot.censusLink(contributor);
+        if (censusLink.isPresent()) {
+            ret.append("[");
+        }
+        ret.append(contributor.fullName().orElse(contributor.username()));
+        if (censusLink.isPresent()) {
+            ret.append("](");
+            ret.append(censusLink.get());
+            ret.append(")");
+        }
+        return ret.toString();
     }
 
     private String getChecksList(PullRequestCheckIssueVisitor visitor, boolean isCleanBackport, Map<String, Boolean> additionalProgresses) {
@@ -438,7 +470,8 @@ class CheckRun {
             var additionalEntries = new ArrayList<String>();
             for (var additional : Reviewers.reviewers(pr.repository().forge().currentUser(), comments)) {
                 if (!allReviewers.contains(additional)) {
-                    additionalEntries.add(" * " + additional + " - " + getRole(additional) + " ⚠️ Added manually");
+                    var userInfo = formatUser(null, censusInstance.census().contributor(additional));
+                    additionalEntries.add(" * " + userInfo + " ⚠️ Added manually");
                 }
             }
             if (!reviewers.isBlank()) {
