@@ -191,13 +191,13 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
             }
 
             realIssue.get().addLink(linkBuilder.build());
+        }
 
-            var alreadyPostedComment = realIssue.get().comments().stream()
-                    .filter(comment -> comment.author().equals(issueProject.issueTracker().currentUser()))
-                    .anyMatch(comment -> comment.body().contains(pullRequestTip) && comment.body().contains(pr.webUrl().toString()));
-            if (!alreadyPostedComment) {
-                realIssue.get().addComment(pullRequestToTextBrief(pr));
-            }
+        var alreadyPostedComment = realIssue.get().comments().stream()
+                .filter(comment -> comment.author().equals(issueProject.issueTracker().currentUser()))
+                .anyMatch(comment -> comment.body().contains(pullRequestTip) && comment.body().contains(pr.webUrl().toString()));
+        if (!alreadyPostedComment) {
+            realIssue.get().addComment(pullRequestToTextBrief(pr));
         }
     }
 

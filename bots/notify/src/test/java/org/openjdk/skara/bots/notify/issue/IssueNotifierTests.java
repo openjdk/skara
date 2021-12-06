@@ -338,7 +338,9 @@ public class IssueNotifierTests {
             var links = issue.links();
             assertEquals(0, links.size());
             var comments = issue.comments();
-            assertEquals(0, comments.size());
+            assertEquals(1, comments.size());
+            assertTrue(comments.get(0).body().contains(pullRequestTip));
+            assertTrue(comments.get(0).body().contains(pr.webUrl().toString()));
         }
     }
 
