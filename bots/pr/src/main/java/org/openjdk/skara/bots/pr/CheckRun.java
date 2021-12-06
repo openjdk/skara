@@ -400,9 +400,9 @@ class CheckRun {
             // The HostUser is not null and the Contributor is null
             ret.append("@");
             ret.append(user.username());
-            ret.append(" (Unknown ");
-            ret.append(censusInstance.project().fullName());
-            ret.append(" username and role)");
+            ret.append(" (no known ");
+            ret.append(censusInstance.namespace().name());
+            ret.append(" user name / role)");
         } else {
             // The HostUser is null and the Contributor is not null
             ret.append(contributorLink(contributor));
