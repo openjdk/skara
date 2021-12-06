@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.pr;
 
 import org.junit.jupiter.api.*;
+import org.openjdk.skara.forge.HostedBranch;
 import org.openjdk.skara.test.*;
 
 import java.io.IOException;
@@ -373,6 +374,25 @@ public class BackportCommitCommandTests {
             assertTrue(botReply.body().contains("was successfully created"));
             assertTrue(botReply.body().contains("To create a pull request"));
             assertTrue(botReply.body().contains("with this backport"));
+
+            // Check whether the branch name exists in fork.
+            var branchNames = fork.branches().stream().map(HostedBranch::name).toList();
+            var expectedBranchName = author.forge().currentUser().username() + "-backport-" + editHash.abbreviate();
+            assertTrue(branchNames.contains(expectedBranchName));
+
+            // Fetch and checkout the branch.
+            var branchOpt = fork.branches().stream().filter(branch -> expectedBranchName.equals(branch.name())).findAny();
+            var head = localRepo.fetch(fork.url(), branchOpt.get().name());
+            localRepo.checkout(head);
+
+            // Check whether the branch has the corresponding commits of the target branch.
+            var commits = localRepo.commits().asList();
+            assertEquals(commits.get(0).message().toString(), "[Backport " + editHash.hex() + "]");
+            assertEquals(commits.get(0).author().name(), "duke");
+            assertEquals(commits.get(0).author().email(), "duke@openjdk.org");
+            assertEquals(commits.get(1).hash().hex(), masterHashCommon.hex());
+            assertEquals(commits.get(2).hash().hex(), unrelatedHash.hex());
+            assertEquals(commits.get(3).hash().hex(), masterHash.hex());
         }
     }
 }
