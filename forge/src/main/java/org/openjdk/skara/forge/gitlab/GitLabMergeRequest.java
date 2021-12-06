@@ -405,11 +405,7 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public void removeComment(Comment comment) {
-        log.fine("Removing a existing comment " + comment.id());
-        request.delete("notes/" + comment.id())
-               .onError(e -> e.statusCode() == 404 ? Optional.of(JSON.object().put("already_deleted", true)) : Optional.empty())
-               .execute();
-        log.fine("Id of removed comment: " + comment.id());
+        throw new RuntimeException("not implemented yet");
     }
 
     @Override

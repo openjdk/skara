@@ -366,9 +366,7 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public void removeComment(Comment comment) {
-        request.delete("issues/comments/" + comment.id())
-               .onError(e -> e.statusCode() == 404 ? Optional.of(JSON.object().put("already_deleted", true)) : Optional.empty())
-               .execute();
+        throw new RuntimeException("not implemented yet");
     }
 
     @Override
