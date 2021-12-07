@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -463,6 +463,124 @@ public class LabelTests {
             assertLastCommentContains(pr,":earth_americas: Applicable reviewers for one or more changes ");
             assertLastCommentContains(pr,"in this pull request are spread across multiple different time zones.");
             assertLastCommentContains(pr,"been out for review for at least 24 hours");
+        }
+    }
+
+    @Test
+    void shortArgument(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(integrator.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            var labelConfiguration = LabelConfigurationJson.builder()
+                    .addMatchers("1", List.of(Pattern.compile("cpp$")))
+                    .addMatchers("2", List.of(Pattern.compile("hpp$")))
+                    .addGroup("group", List.of("1", "2"))
+                    .addExtra("extra")
+                    .build();
+            var prBot = PullRequestBot.newBuilder()
+                    .repo(integrator)
+                    .censusRepo(censusBuilder.build())
+                    .labelConfiguration(labelConfiguration)
+                    .build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // Add a label without `+`
+            pr.addComment("/label 1");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr,"The `1` label was successfully added.");
+            assertEquals(Set.of("1", "rfr"), new HashSet<>(pr.labelNames()));
+
+            // Add a label without `+` and check that the alias works as well
+            pr.addComment("/cc 2");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr,"The `2` label was successfully added.");
+            assertEquals(Set.of("1", "2", "rfr"), new HashSet<>(pr.labelNames()));
+
+            // Remove a label with `-`
+            pr.addComment("/label -2");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr,"The `2` label was successfully removed.");
+            assertEquals(Set.of("1", "rfr"), new HashSet<>(pr.labelNames()));
+
+            // Add a label with `+`
+            pr.addComment("/label +group");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(pr,"The `group` label was successfully added.");
+            assertEquals(Set.of("1", "rfr", "group"), new HashSet<>(pr.labelNames()));
+
+            // Mixed `+/-` labels
+            pr.addComment("/label -1,+2,-group");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with the success messages
+            assertLastCommentContains(pr,"The `1` label was successfully removed.");
+            assertLastCommentContains(pr,"The `2` label was successfully added.");
+            assertLastCommentContains(pr,"The `group` label was successfully removed.");
+            assertEquals(Set.of("2", "rfr"), new HashSet<>(pr.labelNames()));
+
+            // Mixed `+/-` labels again and check that the alias works as well
+            pr.addComment("/label group, +1, -2");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with the success messages
+            assertLastCommentContains(pr,"The `group` label was successfully added.");
+            assertLastCommentContains(pr,"The `1` label was successfully added.");
+            assertLastCommentContains(pr,"The `2` label was successfully removed.");
+            assertEquals(Set.of("1", "rfr", "group"), new HashSet<>(pr.labelNames()));
+
+            // Mixed `+/-` labels and intentional whitespace.
+            pr.addComment("/label - 1, + 2, - group");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a help message
+            assertLastCommentContains(pr,"Usage: `/label");
+            assertEquals(Set.of("1", "rfr", "group"), new HashSet<>(pr.labelNames()));
+
+            // Mixed normal and short labels
+            pr.addComment("/label add +2, -group");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a help message
+            assertLastCommentContains(pr,"Usage: `/label");
+            assertEquals(Set.of("1", "rfr", "group"), new HashSet<>(pr.labelNames()));
+
+            // Check unknown labels
+            pr.addComment("/label +unknown1, -unknown2, unknown3");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a failure message
+            assertLastCommentContains(pr,"The label `unknown1` is not a valid label");
+            assertLastCommentContains(pr,"The label `unknown2` is not a valid label");
+            assertLastCommentContains(pr,"The label `unknown3` is not a valid label");
+            assertLastCommentContains(pr,"* `1`");
+            assertLastCommentContains(pr,"* `group`");
+            assertLastCommentContains(pr,"* `extra`");
+            assertEquals(Set.of("1", "rfr", "group"), new HashSet<>(pr.labelNames()));
         }
     }
 }
