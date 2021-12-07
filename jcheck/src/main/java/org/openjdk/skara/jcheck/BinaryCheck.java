@@ -52,20 +52,25 @@ public class BinaryCheck extends CommitCheck {
                     // Excluded the deleted file.
                     continue;
                 }
-                if (maxSize == 0) {
+                if (maxSize <= 0) {
                     // If the maxSize is not set or is set to 0, any binary file can't be added.
                     issues.add(new BinaryIssue(patch.target().path().get(), metadata));
+                }
+                if (patch.status().isRenamed() || patch.status().isCopied()) {
+                    // Excluded the renamed and copied files now. Note that the moved file is identified as renamed.
+                    // It should be seperated from the deleted file, because the deleted file don't need
+                    // to be checked, but the renamed file should be checked for the `BinaryIssue`.
+                    continue;
                 }
                 if (maxSize > 0) {
                     long fileSize = 0;
                     var binaryPatch = (BinaryPatch) patch;
-                    var path =  binaryPatch.target().path().get();
-                    try {
-                        fileSize = Files.size(path);
-                    } catch (IOException e) {
-                        log.warning("The file '" + path + "' doesn't exist.");
+                    for (var hunk : binaryPatch.hunks()) {
+                        fileSize += hunk.inflatedSize();
                     }
                     if (fileSize > maxSize) {
+                        var path = binaryPatch.target().path().isPresent() ?
+                                binaryPatch.target().path().get() : binaryPatch.source().path().get();
                         issues.add(new BinaryFileTooLargeIssue(path, fileSize, maxSize, metadata));
                     }
                 }
