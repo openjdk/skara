@@ -46,7 +46,7 @@ import static org.openjdk.skara.issuetracker.Issue.State.OPEN;
 import static org.openjdk.skara.issuetracker.Issue.State.RESOLVED;
 
 public class IssueNotifierTests {
-    private static final String pullRequestTip = "A pull request is submitted for review.";
+    private static final String pullRequestTip = "A pull request was submitted for review.";
 
     private Set<String> fixVersions(Issue issue) {
         if (!issue.properties().containsKey("fixVersions")) {

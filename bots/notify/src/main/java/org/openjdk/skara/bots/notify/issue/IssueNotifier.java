@@ -58,7 +58,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
-    private static final String pullRequestTip = "A pull request is submitted for review.";
+    private static final String pullRequestTip = "A pull request was submitted for review.";
 
     IssueNotifier(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,
                   boolean setFixVersion, Map<String, String> fixVersions, Map<String, List<String>> altFixVersions,
