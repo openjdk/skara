@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -62,6 +62,10 @@ public class MultiCommandParser {
                 var forwardedArgs = Arrays.copyOfRange(args, 1, args.length);
                 return () -> p.main(forwardedArgs);
             }
+            System.err.println("Can't find the sub-command '" + args[0] +
+                    "', the default sub-command '" + defaultCommand + "' will be executed.");
+            System.err.println("The arguments " + Arrays.toString(args) +
+                    " will be passed to the default sub-command.\n");
         }
         return () -> subCommands.get(defaultCommand).main(args);
     }
