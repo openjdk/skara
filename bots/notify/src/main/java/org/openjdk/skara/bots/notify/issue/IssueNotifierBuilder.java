@@ -116,7 +116,7 @@ class IssueNotifierBuilder {
     }
 
     IssueNotifier build() {
-        var jbsBackport = new JbsBackport(issueProject.webUrl(), vault);
+        var jbsBackport = new JbsBackport(issueProject.issueTracker().uri(), vault);
         return new IssueNotifier(issueProject, reviewLink, reviewIcon, commitLink, commitIcon,
                                  setFixVersion, fixVersions, altFixVersions, jbsBackport, prOnly, buildName,
                                  censusRepository, censusRef, namespace);

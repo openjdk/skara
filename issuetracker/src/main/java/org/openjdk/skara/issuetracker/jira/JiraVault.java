@@ -54,7 +54,7 @@ class JiraVault {
         request = new RestRequest(vaultUri, authId, (r) -> Arrays.asList(
                 "X-Vault-Token", vaultToken
         ));
-        this.authProbe = URIBuilder.base(jiraUri).setPath("/rest/api/2/myself").build();
+        this.authProbe = URIBuilder.base(jiraUri).appendPath("/rest/api/2/myself").build();
     }
 
     String getCookie() {
