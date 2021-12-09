@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -123,7 +123,7 @@ public class GitPrHelp {
                  .optional()
         );
 
-        var parser = new ArgumentParser("git-pr", flags, inputs);
+        var parser = new ArgumentParser("git-pr help", flags, inputs);
         var arguments = parser.parse(args);
         if (arguments.contains("version")) {
             System.out.println("git-pr version: " + Version.fromManifest().orElse("unknown"));
