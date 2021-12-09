@@ -62,10 +62,11 @@ public class MultiCommandParser {
                 var forwardedArgs = Arrays.copyOfRange(args, 1, args.length);
                 return () -> p.main(forwardedArgs);
             }
-            System.err.println("Can't find the sub-command '" + args[0] +
-                    "', the default sub-command '" + defaultCommand + "' will be executed.");
-            System.err.println("The arguments " + Arrays.toString(args) +
-                    " will be passed to the default sub-command.\n");
+            if (!"git-webrev".equals(programName) && !"git webrev".equals(programName)) {
+                System.err.println("warning: unknown sub-command: " + args[0]);
+                System.err.println("the default sub-command '" + defaultCommand +
+                        "' will be executed with the arguments " + Arrays.toString(args) + "\n");
+            }
         }
         return () -> subCommands.get(defaultCommand).main(args);
     }
