@@ -67,7 +67,7 @@ def _match_exact(root, cwd, files, badfn=None):
     """
     Wrapper for mercurial.match.exact that ignores some arguments based on the used version
     """
-    if mercurial.util.version().startswith(b"5"):
+    if int(mercurial.util.version().split(b".")[0]) >= 5:
         return mercurial.match.exact(files, badfn)
     else:
         return mercurial.match.exact(root, cwd, files, badfn)
