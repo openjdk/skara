@@ -338,7 +338,7 @@ public class JiraProject implements IssueProject {
 
     @Override
     public URI webUrl() {
-        return URIBuilder.base(jiraHost.getUri()).setPath("/projects/" + projectName).build();
+        return URIBuilder.base(jiraHost.uri()).appendPath("/projects/" + projectName).build();
     }
 
     private boolean isInitialField(String issueType, String name) {
