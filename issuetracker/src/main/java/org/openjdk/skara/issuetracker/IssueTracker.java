@@ -30,6 +30,8 @@ import java.net.URI;
 public interface IssueTracker extends Host {
     IssueProject project(String name);
 
+    URI uri();
+
     static IssueTracker from(String name, URI uri, Credential credential, JSONObject configuration) {
         var factory = IssueTrackerFactory.getIssueTrackerFactories().stream()
                                   .filter(f -> f.name().equals(name))

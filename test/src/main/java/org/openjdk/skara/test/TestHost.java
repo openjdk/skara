@@ -29,6 +29,8 @@ import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 
 import java.io.*;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.ZonedDateTime;
@@ -96,6 +98,15 @@ public class TestHost implements Forge, IssueTracker {
     @Override
     public String hostname() {
         return "test.test";
+    }
+
+    @Override
+    public URI uri() {
+        try {
+            return new URI(hostname());
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

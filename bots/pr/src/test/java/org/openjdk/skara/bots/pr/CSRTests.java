@@ -450,11 +450,9 @@ class CSRTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a message which directs the user to withdraw the csr firstly.
-            assertLastCommentContains(pr, "the issue for this pull request");
-            assertLastCommentContains(pr, "a non-withdrawn CSR request");
-            assertLastCommentContains(pr, "So you can't directly indicate that a CSR request is not needed for this pull request");
-            assertLastCommentContains(pr, "Please firstly withdraw the CSR request");
-            assertLastCommentContains(pr, "and then use the command `/csr unneeded` again");
+            assertLastCommentContains(pr, "The CSR requirement cannot be removed as there is already a CSR associated " +
+                                      "with the main issue of this pull request. Please withdraw the CSR");
+            assertLastCommentContains(pr, "and then use the command `/csr unneeded` again.");
             assertTrue(pr.labelNames().contains("csr"));
             // The PR body should contain the progress about CSR request
             assertTrue(pr.body().contains("- [ ] Change requires a CSR request to be approved"));
@@ -524,11 +522,9 @@ class CSRTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a message which directs the user to withdraw the csr firstly.
-            assertLastCommentContains(pr, "the issue for this pull request");
-            assertLastCommentContains(pr, "a non-withdrawn CSR request");
-            assertLastCommentContains(pr, "So you can't directly indicate that a CSR request is not needed for this pull request");
-            assertLastCommentContains(pr, "Please firstly withdraw the CSR request");
-            assertLastCommentContains(pr, "and then use the command `/csr unneeded` again");
+            assertLastCommentContains(pr, "The CSR requirement cannot be removed as there is already a CSR associated " +
+                    "with the main issue of this pull request. Please withdraw the CSR");
+            assertLastCommentContains(pr, "and then use the command `/csr unneeded` again.");
             assertTrue(pr.labelNames().contains("csr"));
             // The PR body should contain the progress about CSR request
             assertTrue(pr.body().contains("- [ ] Change requires a CSR request to be approved"));
