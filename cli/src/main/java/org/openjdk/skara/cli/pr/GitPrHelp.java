@@ -29,7 +29,6 @@ import org.openjdk.skara.cli.Logging;
 
 import java.util.*;
 import java.util.logging.Level;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class GitPrHelp {
@@ -64,7 +63,7 @@ public class GitPrHelp {
         commands.put("checkout", Pair.of(GitPrCheckout.inputs, GitPrCheckout.flags));
         commands.put("apply", Pair.of(GitPrApply.inputs, GitPrApply.flags));
         commands.put("integrate", Pair.of(GitPrIntegrate.inputs, GitPrIntegrate.flags));
-        commands.put("approve", Pair.of(GitPrApprove.inputs, GitPrApprove.flags));
+        commands.put("review", Pair.of(GitPrReview.inputs, GitPrReview.flags));
         commands.put("create", Pair.of(GitPrCreate.inputs, GitPrCreate.flags));
         commands.put("close", Pair.of(GitPrClose.inputs, GitPrClose.flags));
         commands.put("set", Pair.of(GitPrSet.inputs, GitPrSet.flags));

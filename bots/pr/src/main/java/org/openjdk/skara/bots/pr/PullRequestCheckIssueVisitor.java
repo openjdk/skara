@@ -156,7 +156,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     @Override
     public void visit(HgTagCommitIssue e) {
-        throw new IllegalStateException("Hg tag commit issue - should not happen");
+        log.fine("ignored: invalid tag commit");
     }
 
     @Override

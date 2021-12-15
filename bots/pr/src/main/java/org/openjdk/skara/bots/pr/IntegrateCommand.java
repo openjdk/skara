@@ -318,8 +318,8 @@ public class IntegrateCommand implements CommandHandler {
     }
 
     static void markIntegratedAndClosed(PullRequest pr, Hash hash, PrintWriter reply) {
-        pr.setState(PullRequest.State.CLOSED);
         pr.addLabel("integrated");
+        pr.setState(PullRequest.State.CLOSED);
         pr.removeLabel("ready");
         pr.removeLabel("rfr");
         if (pr.labelNames().contains("deferred")) {
