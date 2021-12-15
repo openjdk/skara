@@ -279,8 +279,8 @@ public class JiraIssue implements Issue {
 
     @Override
     public URI webUrl() {
-        return URIBuilder.base(jiraProject.webUrl())
-                         .setPath("/browse/" + id())
+        return URIBuilder.base(jiraProject.jiraHost().uri())
+                         .appendPath("/browse/" + id())
                          .build();
     }
 
