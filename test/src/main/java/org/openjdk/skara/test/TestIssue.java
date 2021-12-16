@@ -106,7 +106,9 @@ public class TestIssue implements Issue {
 
     @Override
     public Comment addComment(String body) {
-        var comment = new Comment(String.valueOf(data.comments.size()),
+        var size = data.comments.size();
+        var lastId = size > 0 ? data.comments.get(size - 1).id() : null;
+        var comment = new Comment(String.valueOf(lastId != null ? Integer.parseInt(lastId) + 1 : 0),
                                   body,
                                   user,
                                   ZonedDateTime.now(),
@@ -117,15 +119,21 @@ public class TestIssue implements Issue {
     }
 
     @Override
+    public void removeComment(Comment comment) {
+        data.comments.remove(comment);
+    }
+
+    @Override
     public Comment updateComment(String id, String body) {
-        var originalComment = data.comments.get(Integer.parseInt(id));
+        var originalComment = data.comments.stream()
+                .filter(comment -> comment.id().equals(id)).findAny().get();
+        var index = comments().indexOf(originalComment);
         var comment = new Comment(originalComment.id(),
                                   body,
                                   originalComment.author(),
                                   originalComment.createdAt(),
                                   ZonedDateTime.now());
-        data.comments.remove(Integer.parseInt(id));
-        data.comments.add(Integer.parseInt(id), comment);
+        data.comments.set(index, comment);
         data.lastUpdate = ZonedDateTime.now();
         return comment;
     }

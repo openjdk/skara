@@ -365,6 +365,11 @@ public class GitHubPullRequest implements PullRequest {
     }
 
     @Override
+    public void removeComment(Comment comment) {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
     public Comment updateComment(String id, String body) {
         var comment = request.patch("issues/comments/" + id)
                              .body("body", body)

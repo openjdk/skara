@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -46,6 +46,8 @@ import static org.openjdk.skara.issuetracker.Issue.State.OPEN;
 import static org.openjdk.skara.issuetracker.Issue.State.RESOLVED;
 
 public class IssueNotifierTests {
+    private static final String pullRequestTip = "A pull request was submitted for review.";
+
     private Set<String> fixVersions(Issue issue) {
         if (!issue.properties().containsKey("fixVersions")) {
             return Set.of();
@@ -196,15 +198,19 @@ public class IssueNotifierTests {
             pr.setBody("\n\n### Issue\n * [" + issue.id() + "](http://www.test.test/): The issue");
             TestBotRunner.runPeriodicItems(notifyBot);
 
-            // The issue should not yet contain a link to the PR
+            // The issue should not yet contain a link to the PR or a comment which contains the link to the PR
             var links = issue.links();
             assertEquals(0, links.size());
+            var comments = issue.comments();
+            assertEquals(0, comments.size());
 
             // Just a label isn't enough
             pr.addLabel("rfr");
             TestBotRunner.runPeriodicItems(notifyBot);
             links = issue.links();
             assertEquals(0, links.size());
+            comments = issue.comments();
+            assertEquals(0, comments.size());
 
             // Neither is just a comment
             pr.removeLabel("rfr");
@@ -213,16 +219,22 @@ public class IssueNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot);
             links = issue.links();
             assertEquals(0, links.size());
+            comments = issue.comments();
+            assertEquals(0, comments.size());
 
             // Both are needed
             pr.addLabel("rfr");
             TestBotRunner.runPeriodicItems(notifyBot);
 
-            // The issue should now contain a link to the PR
+            // The issue should now contain a link to the PR and a comment which contains the link to the PR
             links = issue.links();
             assertEquals(1, links.size());
             assertEquals(pr.webUrl(), links.get(0).uri().orElseThrow());
             assertEquals(reviewIcon, links.get(0).iconUrl().orElseThrow());
+            comments = issue.comments();
+            assertEquals(1, comments.size());
+            assertTrue(comments.get(0).body().contains(pullRequestTip));
+            assertTrue(comments.get(0).body().contains(pr.webUrl().toString()));
 
             // Add another issue
             var issue2 = issueProject.createIssue("This is another issue", List.of("Yes indeed"), Map.of("issuetype", JSON.of("Enhancement")));
@@ -230,24 +242,40 @@ public class IssueNotifierTests {
                     "](http://www.test2.test/): The second issue");
             TestBotRunner.runPeriodicItems(notifyBot);
 
-            // Both issues should contain a link to the PR
+            // Both issues should contain a link to the PR and a comment which contains the link to the PR
             var links1 = issue.links();
             assertEquals(1, links1.size());
             assertEquals(pr.webUrl(), links1.get(0).uri().orElseThrow());
+            var comments1 = issue.comments();
+            assertEquals(1, comments1.size());
+            assertTrue(comments1.get(0).body().contains(pullRequestTip));
+            assertTrue(comments1.get(0).body().contains(pr.webUrl().toString()));
+
             var links2 = issue2.links();
             assertEquals(1, links2.size());
             assertEquals(pr.webUrl(), links2.get(0).uri().orElseThrow());
+            var comments2 = issue2.comments();
+            assertEquals(1, comments2.size());
+            assertTrue(comments2.get(0).body().contains(pullRequestTip));
+            assertTrue(comments2.get(0).body().contains(pr.webUrl().toString()));
 
             // Drop the first one
             pr.setBody("\n\n### Issues\n * [" + issue2.id() + "](http://www.test2.test/): That other issue");
             TestBotRunner.runPeriodicItems(notifyBot);
 
-            // Only the second issue should now contain a link to the PR
+            // Only the second issue should now contain a link to the PR and a comment which contains the link to the PR
             links1 = issue.links();
             assertEquals(0, links1.size());
+            comments1 = issue.comments();
+            assertEquals(0, comments1.size());
+
             links2 = issue2.links();
             assertEquals(1, links2.size());
             assertEquals(pr.webUrl(), links2.get(0).uri().orElseThrow());
+            comments2 = issue2.comments();
+            assertEquals(1, comments2.size());
+            assertTrue(comments2.get(0).body().contains(pullRequestTip));
+            assertTrue(comments2.get(0).body().contains(pr.webUrl().toString()));
         }
     }
 
@@ -306,9 +334,13 @@ public class IssueNotifierTests {
             reviewPr.addComment("This is now ready");
             TestBotRunner.runPeriodicItems(notifyBot);
 
-            // The issue should still not contain a link to the PR
+            // The issue should still not contain a link to the PR or a comment which contains the link to the PR
             var links = issue.links();
             assertEquals(0, links.size());
+            var comments = issue.comments();
+            assertEquals(1, comments.size());
+            assertTrue(comments.get(0).body().contains(pullRequestTip));
+            assertTrue(comments.get(0).body().contains(pr.webUrl().toString()));
         }
     }
 
@@ -341,11 +373,15 @@ public class IssueNotifierTests {
             pr.addLabel("rfr");
             TestBotRunner.runPeriodicItems(notifyBot);
 
-            // The issue should now contain a link to the PR
+            // The issue should now contain a link to the PR and a comment which contains the link to the PR
             var links = issue.links();
             assertEquals(1, links.size());
             assertEquals(pr.webUrl(), links.get(0).uri().orElseThrow());
             assertEquals(reviewIcon, links.get(0).iconUrl().orElseThrow());
+            var comments = issue.comments();
+            assertEquals(1, comments.size());
+            assertTrue(comments.get(0).body().contains(pullRequestTip));
+            assertTrue(comments.get(0).body().contains(pr.webUrl().toString()));
 
             // Simulate integration
             pr.addComment("Pushed as commit " + editHash.hex() + ".");
@@ -359,6 +395,12 @@ public class IssueNotifierTests {
             links = updatedIssue.links();
             assertEquals(2, links.size());
 
+            // The issue should only contain a comment which contains the link to the PR
+            comments = updatedIssue.comments();
+            assertEquals(1, comments.size());
+            assertTrue(comments.get(0).body().contains(pullRequestTip));
+            assertTrue(comments.get(0).body().contains(pr.webUrl().toString()));
+
             // Now simulate a merge to another branch
             localRepo.push(editHash, repo.url(), "master");
             TestBotRunner.runPeriodicItems(notifyBot);
@@ -368,8 +410,11 @@ public class IssueNotifierTests {
             links = updatedIssue.links();
             assertEquals(2, links.size());
 
-            // And no comments should have been made
-            assertEquals(0, issue.comments().size());
+            // The issue should only contain a comment which contains the link to the PR
+            comments = updatedIssue.comments();
+            assertEquals(1, comments.size());
+            assertTrue(comments.get(0).body().contains(pullRequestTip));
+            assertTrue(comments.get(0).body().contains(pr.webUrl().toString()));
         }
     }
 

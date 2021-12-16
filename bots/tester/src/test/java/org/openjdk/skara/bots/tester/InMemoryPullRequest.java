@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -137,16 +137,23 @@ class InMemoryPullRequest implements PullRequest {
     public Comment addComment(String body) {
         var user = repository().forge().currentUser();
         var now = ZonedDateTime.now();
-        var id = comments.size();
-        var comment = new Comment(Integer.toString(id), body, user, now, now);
+        var size = comments.size();
+        var lastId = size > 0 ? comments.get(size - 1).id() : null;
+        var comment = new Comment(String.valueOf(lastId != null ? Integer.parseInt(lastId) + 1 : 0), body, user, now, now);
         comments.add(comment);
         return comment;
     }
 
     @Override
+    public void removeComment(Comment comment) {
+        comments.remove(comment);
+    }
+
+    @Override
     public Comment updateComment(String id, String body) {
-        var index = Integer.parseInt(id);
-        var old = comments.get(index);
+        var old = comments.stream()
+                .filter(comment -> comment.id().equals(id)).findAny().get();
+        var index = comments().indexOf(old);
 
         var now = ZonedDateTime.now();
         var newComment = new Comment(id, body, old.author(), old.createdAt(), now);
