@@ -74,7 +74,7 @@ public class GitPrReview {
     );
 
     public static void main(String[] args) throws IOException {
-        var parser = new ArgumentParser("git-pr", flags, inputs);
+        var parser = new ArgumentParser("git-pr review", flags, inputs);
         var arguments = parse(parser, args);
         var repo = getRepo();
         var uri = getURI(repo, arguments);

@@ -122,7 +122,7 @@ public class GitPrHelp {
                  .optional()
         );
 
-        var parser = new ArgumentParser("git-pr", flags, inputs);
+        var parser = new ArgumentParser("git-pr help", flags, inputs);
         var arguments = parser.parse(args);
         if (arguments.contains("version")) {
             System.out.println("git-pr version: " + Version.fromManifest().orElse("unknown"));
