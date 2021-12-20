@@ -83,7 +83,7 @@ class CommitCommentsWorkItem implements WorkItem {
             var localBranches = remoteBranches.stream().map(b -> new Branch(b.name())).collect(Collectors.toList());
             var commitTitleToCommits = new HashMap<String, Set<Hash>>();
             for (var commit : localRepo.commitMetadataFor(localBranches)) {
-                var title = commit.message().get(0);
+                var title = commit.message().stream().findFirst().orElse("");
                 if (commitTitleToCommits.containsKey(title)) {
                     commitTitleToCommits.get(title).add(commit.hash());
                 } else {
