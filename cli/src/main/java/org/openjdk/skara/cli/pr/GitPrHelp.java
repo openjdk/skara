@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,7 +29,6 @@ import org.openjdk.skara.cli.Logging;
 
 import java.util.*;
 import java.util.logging.Level;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class GitPrHelp {
@@ -64,7 +63,7 @@ public class GitPrHelp {
         commands.put("checkout", Pair.of(GitPrCheckout.inputs, GitPrCheckout.flags));
         commands.put("apply", Pair.of(GitPrApply.inputs, GitPrApply.flags));
         commands.put("integrate", Pair.of(GitPrIntegrate.inputs, GitPrIntegrate.flags));
-        commands.put("approve", Pair.of(GitPrApprove.inputs, GitPrApprove.flags));
+        commands.put("review", Pair.of(GitPrReview.inputs, GitPrReview.flags));
         commands.put("create", Pair.of(GitPrCreate.inputs, GitPrCreate.flags));
         commands.put("close", Pair.of(GitPrClose.inputs, GitPrClose.flags));
         commands.put("set", Pair.of(GitPrSet.inputs, GitPrSet.flags));
@@ -123,7 +122,7 @@ public class GitPrHelp {
                  .optional()
         );
 
-        var parser = new ArgumentParser("git-pr", flags, inputs);
+        var parser = new ArgumentParser("git-pr help", flags, inputs);
         var arguments = parser.parse(args);
         if (arguments.contains("version")) {
             System.out.println("git-pr version: " + Version.fromManifest().orElse("unknown"));

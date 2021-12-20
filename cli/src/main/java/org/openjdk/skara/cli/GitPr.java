@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -52,9 +52,9 @@ public class GitPr {
             Command.name("integrate")
                     .helptext("integrate a pull request")
                     .main(GitPrIntegrate::main),
-            Command.name("approve")
-                    .helptext("approve a pull request")
-                    .main(GitPrApprove::main),
+            Command.name("review")
+                    .helptext("review a pull request")
+                    .main(GitPrReview::main),
             Command.name("create")
                     .helptext("create a pull request")
                     .main(GitPrCreate::main),

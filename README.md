@@ -175,7 +175,7 @@ echo "export MANPATH=\$MANPATH":$PWD/build/bin/man >> ~/.bashrc
 
 ## Testing
 
-[JUnit](https://junit.org/junit5/) 5.6.2 or later is required to run the unit
+[JUnit](https://junit.org/junit5/) 5.8.2 or later is required to run the unit
 tests. To run the tests, execute following command from the source tree root:
 
 ```bash

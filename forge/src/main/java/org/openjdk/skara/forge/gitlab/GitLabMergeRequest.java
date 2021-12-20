@@ -404,6 +404,11 @@ public class GitLabMergeRequest implements PullRequest {
     }
 
     @Override
+    public void removeComment(Comment comment) {
+        throw new RuntimeException("not implemented yet");
+    }
+
+    @Override
     public Comment updateComment(String id, String body) {
         log.fine("Updating existing comment " + id);
         var comment = request.put("notes/" + id)

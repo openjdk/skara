@@ -86,6 +86,12 @@ public interface Issue {
     Comment addComment(String body);
 
     /**
+     * Remove the specific comment.
+     * @param comment
+     */
+    void removeComment(Comment comment);
+
+    /**
      * Updates an existing comment.
      * @param id
      * @param body

@@ -71,7 +71,7 @@ public class GitPrShow {
     );
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        var parser = new ArgumentParser("git-pr", flags, inputs);
+        var parser = new ArgumentParser("git-pr show", flags, inputs);
         var arguments = parse(parser, args);
         var repo = getRepo();
         var uri = getURI(repo, arguments);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,7 +30,7 @@ import static org.openjdk.skara.cli.pr.Utils.*;
 import java.io.IOException;
 import java.util.List;
 
-public class GitPrApprove {
+public class GitPrReview {
     static final List<Flag> flags = List.of(
         Option.shortcut("u")
               .fullname("username")
@@ -45,8 +45,13 @@ public class GitPrApprove {
         Option.shortcut("m")
               .fullname("message")
               .describe("TEXT")
-              .helptext("Message to author as part of approval (e.g. \"Looks good!\")")
+              .helptext("Message to author as part of review (e.g. \"Looks good!\")")
               .optional(),
+        Option.shortcut("t")
+              .fullname("type")
+              .describe("TEXT")
+              .helptext("Select the review type: 'approve' or 'request-changes' or 'comment'")
+              .required(),
         Switch.shortcut("")
               .fullname("verbose")
               .helptext("Turn on verbose output")
@@ -69,7 +74,7 @@ public class GitPrApprove {
     );
 
     public static void main(String[] args) throws IOException {
-        var parser = new ArgumentParser("git-pr", flags, inputs);
+        var parser = new ArgumentParser("git-pr review", flags, inputs);
         var arguments = parse(parser, args);
         var repo = getRepo();
         var uri = getURI(repo, arguments);
@@ -80,6 +85,40 @@ public class GitPrApprove {
         var message = arguments.contains("message") ?
             arguments.get("message").asString() :
             null;
-        pr.addReview(Review.Verdict.APPROVED, message);
+        var type = arguments.get("type").asString();
+        checkType(type, parser);
+        if ("approve".equals(type)) {
+            pr.addReview(Review.Verdict.APPROVED, message);
+        } else if ("request-changes".equals(type)) {
+            checkMessage(message, type, parser);
+            pr.addReview(Review.Verdict.DISAPPROVED, message);
+        } else if ("comment".equals(type)) {
+            checkMessage(message, type, parser);
+            pr.addReview(Review.Verdict.NONE, message);
+        }
+    }
+
+    /**
+     * The message can't be null if the type is `request-change` or `comment`.
+     */
+    public static void checkMessage(String message, String type, ArgumentParser parser) {
+        if (message == null) {
+            System.err.println("error: the option 'message' missed. Need to provide the 'message' if the 'type' is '" + type + "'.");
+            parser.showUsage();
+            System.exit(1);
+        }
+    }
+
+    /**
+     * The type need to be `approve` or `request-change` or `comment`.
+     */
+    public static void checkType(String type, ArgumentParser parser) {
+        if ("approve".equals(type) || "request-changes".equals(type) || "comment".equals(type)) {
+            return;
+        }
+        System.err.println("error: incorrect review 'type': '" + type
+                + "'. Supported review types:  \"approve\", \"request-changes\" or \"comment\".");
+        parser.showUsage();
+        System.exit(1);
     }
 }
