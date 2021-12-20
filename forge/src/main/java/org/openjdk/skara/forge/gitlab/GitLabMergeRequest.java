@@ -45,7 +45,6 @@ public class GitLabMergeRequest implements PullRequest {
     private final GitLabHost host;
 
     private List<Label> labels;
-    private Map<String, Label> labelNameToLabel;
 
     GitLabMergeRequest(GitLabRepository repository, GitLabHost host, JSONValue jsonValue, RestRequest request) {
         this.repository = repository;
@@ -53,12 +52,9 @@ public class GitLabMergeRequest implements PullRequest {
         this.json = jsonValue;
         this.request = request.restrict("merge_requests/" + json.get("iid").toString() + "/");
 
-        labelNameToLabel = repository.labels()
-                                     .stream()
-                                     .collect(Collectors.toMap(l -> l.name(), l -> l));
         labels = json.get("labels")
                      .stream()
-                     .map(s -> labelNameToLabel.get(s.asString()))
+                     .map(s -> labelNameToLabel(s.asString()))
                      .sorted()
                      .collect(Collectors.toList());
     }
@@ -640,6 +636,21 @@ public class GitLabMergeRequest implements PullRequest {
                .execute();
     }
 
+    private Map<String, Label> labelNameToLabel;
+
+    /**
+     * Lookup a label from the repository labels. Initialize and refresh a cache
+     * of the repository labels lazily.
+     */
+    private Label labelNameToLabel(String labelName) {
+        if (labelNameToLabel == null || !labelNameToLabel.containsKey(labelName)) {
+            labelNameToLabel = repository.labels()
+                    .stream()
+                    .collect(Collectors.toMap(Label::name, l -> l));
+        }
+        return labelNameToLabel.get(labelName);
+    }
+
     @Override
     public void addLabel(String label) {
         labels = null;
@@ -673,7 +684,7 @@ public class GitLabMergeRequest implements PullRequest {
         request.put("")
                .body("labels", String.join(",", labels))
                .execute();
-        this.labels = labels.stream().map(l -> labelNameToLabel.get(l)).collect(Collectors.toList());
+        this.labels = labels.stream().map(this::labelNameToLabel).collect(Collectors.toList());
     }
 
     @Override
@@ -682,7 +693,9 @@ public class GitLabMergeRequest implements PullRequest {
             var currentJson = request.get("").execute().asObject();
             labels = currentJson.get("labels")
                                 .stream()
-                                .map(s -> labelNameToLabel.get(s.asString()))
+                                .map(s -> labelNameToLabel(s.asString()))
+                                // Avoid throwing NPE for unknown labels
+                                .filter(Objects::nonNull)
                                 .sorted()
                                 .collect(Collectors.toList());
         }
