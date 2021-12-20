@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -503,7 +503,7 @@ public class GitWebrev {
                 );
         HttpProxy.setup();
 
-        var parser = new MultiCommandParser("git webrev", commands);
+        var parser = new MultiCommandParser("git webrev", commands, false);
         var command = parser.parse(args);
         command.execute();
     }

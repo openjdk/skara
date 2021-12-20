@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -56,7 +56,7 @@ public class SkaraDebug {
 
         HttpProxy.setup();
 
-        var parser = new MultiCommandParser("skara debug", commands);
+        var parser = new MultiCommandParser("skara debug", commands, true);
         var command = parser.parse(args);
         command.execute();
     }
