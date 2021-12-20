@@ -33,8 +33,9 @@ public class MultiCommandParser {
     private final String programName;
     private final String defaultCommand;
     private final Map<String, Command> subCommands;
+    private final boolean defaultCommandWarningEnabled;
 
-    public MultiCommandParser(String programName, List<Command> commands) {
+    public MultiCommandParser(String programName, List<Command> commands, boolean defaultCommandWarningEnabled) {
         var defaults = commands.stream().filter(Default.class::isInstance).collect(Collectors.toList());
         if (defaults.size() != 1) {
             throw new IllegalArgumentException("Expecting exactly one default command");
@@ -46,6 +47,7 @@ public class MultiCommandParser {
                                    .collect(Collectors.toMap(
                                            Command::name,
                                            Function.identity()));
+        this.defaultCommandWarningEnabled = defaultCommandWarningEnabled;
         if (!commands.stream().anyMatch(c -> c.name().equals("help"))) {
             this.subCommands.put("help", helpCommand());
         }
@@ -62,7 +64,7 @@ public class MultiCommandParser {
                 var forwardedArgs = Arrays.copyOfRange(args, 1, args.length);
                 return () -> p.main(forwardedArgs);
             }
-            if (!"git-webrev".equals(programName) && !"git webrev".equals(programName)) {
+            if (defaultCommandWarningEnabled) {
                 System.err.println("warning: unknown sub-command: " + args[0]);
                 System.err.println("the default sub-command '" + defaultCommand +
                         "' will be executed with the arguments " + Arrays.toString(args) + "\n");

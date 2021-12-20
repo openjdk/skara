@@ -106,7 +106,7 @@ public class GitPr {
     public static void main(String[] args) throws Exception {
         HttpProxy.setup();
 
-        var parser = new MultiCommandParser("git pr", commands);
+        var parser = new MultiCommandParser("git pr", commands, true);
         var command = parser.parse(args);
         command.execute();
     }
