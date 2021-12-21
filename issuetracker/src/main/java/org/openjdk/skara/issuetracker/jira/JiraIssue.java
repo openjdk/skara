@@ -368,8 +368,11 @@ public class JiraIssue implements Issue {
         if (json.get("fields").contains("issuelinks")) {
             var issueLinks = json.get("fields").get("issuelinks").stream()
                                  .map(JSONValue::asObject)
-                                 .map(o -> Link.create(o.contains("inwardIssue") ? jiraProject.issue(o.get("inwardIssue").get("key").asString()).orElseThrow() :
-                                                               jiraProject.issue(o.get("outwardIssue").get("key").asString()).orElseThrow(),
+                                 .map(o -> Link.create(o.contains("inwardIssue") ? jiraProject.issue(o.get("inwardIssue").get("key").asString()).orElseThrow(
+                                                         () -> new RuntimeException("Failed to findinwardIssue " + o.get("inwardIssue").get("key").asString() + " for " + id() + " " + o)) :
+                                                               jiraProject.issue(o.get("outwardIssue").get("key").asString()).orElseThrow(
+                                                                       () -> new RuntimeException("Failed to find outwardIssue " + o.get("outwardIssue").get("key").asString() + " for " + id() + " " + o)
+                                                               ),
                                                        o.contains("inwardIssue") ? o.get("type").get("inward").asString() :
                                                                o.get("type").get("outward").asString())
                                                .build())
