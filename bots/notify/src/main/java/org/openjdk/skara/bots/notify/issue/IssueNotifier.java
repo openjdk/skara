@@ -220,12 +220,11 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     }
 
     private String pullRequestToTextBrief(PullRequest pr) {
-        var writer = new StringWriter();
-        var printer = new PrintWriter(writer);
-        printer.println(pullRequestTip + "\n");
-        printer.println("URL: " + pr.webUrl().toString());
-        printer.println("Date: " + pr.createdAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss +0000")));
-        return writer.toString();
+        var builder = new StringBuilder();
+        builder.append(pullRequestTip).append("\n");
+        builder.append("URL: ").append(pr.webUrl().toString()).append("\n");
+        builder.append("Date: ").append(pr.createdAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss +0000")));
+        return builder.toString();
     }
 
     @Override

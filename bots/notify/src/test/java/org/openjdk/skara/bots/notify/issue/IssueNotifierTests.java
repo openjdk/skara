@@ -345,6 +345,67 @@ public class IssueNotifierTests {
     }
 
     @Test
+    void testCsrIssue(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var issueProject = credentials.getIssueProject();
+            var storageFolder = tempFolder.path().resolve("storage");
+            var notifyBot = testBotBuilder(repo, issueProject, storageFolder, JSON.object()).create("notify", JSON.object());
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and its csr issue.
+            var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
+            var csrIssue = issueProject.createIssue("This is a csr issue", List.of("Indeed"), Map.of("issuetype", JSON.of("CSR")));
+            issue.addLink(Link.create(csrIssue, "csr for").build());
+
+            // Push a commit and create a pull request
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line",
+                            issue.id() + ": This is an issue\n", "Duke", authorEmailAddress);
+            localRepo.push(editHash, repo.url(), "master");
+            var pr = credentials.createPullRequest(repo, "edit", "master", issue.id() + ": This is an issue");
+            pr.setBody("\n\n### Issues\n" +
+                    " * [" + issue.id() + "](http://www.test.test/): This is an issue\n" +
+                    " * [" + csrIssue.id() + "](http://www.test2.test/): This is a csr issue (**CSR**)");
+            pr.addLabel("rfr");
+            pr.addComment("This is now ready");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Get the issues.
+            var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            var updatedCsrIssue = issueProject.issue(csrIssue.id()).orElseThrow();
+
+            // Non-csr issue should have the PR link and PR comment.
+            var issueLinks = updatedIssue.links();
+            assertEquals(2, issueLinks.size());
+            assertEquals("csr for", issueLinks.get(0).relationship().orElseThrow());
+            assertEquals(pr.webUrl(), issueLinks.get(1).uri().orElseThrow());
+
+            var issueComments = updatedIssue.comments();
+            assertEquals(1, issueComments.size());
+            assertTrue(issueComments.get(0).body().contains(pullRequestTip));
+            assertTrue(issueComments.get(0).body().contains(pr.webUrl().toString()));
+
+            // csr issue shouldn't have the PR link or PR comment.
+            var csrIssueLinks = updatedCsrIssue.links();
+            assertEquals(1, csrIssueLinks.size());
+            assertEquals("csr for", issueLinks.get(0).relationship().orElseThrow());
+
+            var csrIssueComments = updatedCsrIssue.comments();
+            assertEquals(0, csrIssueComments.size());
+        }
+    }
+
+    @Test
     void testPullRequestPROnly(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
