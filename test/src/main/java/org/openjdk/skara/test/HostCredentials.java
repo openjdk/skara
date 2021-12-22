@@ -53,7 +53,7 @@ public class HostCredentials implements AutoCloseable {
     private interface Credentials {
         Forge createRepositoryHost(int userIndex);
         IssueTracker createIssueHost(int userIndex);
-        HostedRepository getHostedRepository(Forge host);
+        HostedRepository getHostedRepository(Forge host, String name);
         IssueProject getIssueProject(IssueTracker host);
         String getNamespaceName();
         default void close() {}
@@ -90,8 +90,8 @@ public class HostCredentials implements AutoCloseable {
         }
 
         @Override
-        public HostedRepository getHostedRepository(Forge host) {
-            return host.repository(config.get("project").asString()).orElseThrow();
+        public HostedRepository getHostedRepository(Forge host, String name) {
+            return host.repository(name != null ? name : config.get("project").asString()).orElseThrow();
         }
 
         @Override
@@ -127,8 +127,8 @@ public class HostCredentials implements AutoCloseable {
         }
 
         @Override
-        public HostedRepository getHostedRepository(Forge host) {
-            return host.repository(config.get("project").asString()).orElseThrow();
+        public HostedRepository getHostedRepository(Forge host, String name) {
+            return host.repository(name != null ? name : config.get("project").asString()).orElseThrow();
         }
 
         @Override
@@ -166,8 +166,8 @@ public class HostCredentials implements AutoCloseable {
         }
 
         @Override
-        public HostedRepository getHostedRepository(Forge host) {
-            return repoCredentials.getHostedRepository(host);
+        public HostedRepository getHostedRepository(Forge host, String name) {
+            return repoCredentials.getHostedRepository(host, name);
         }
 
         @Override
@@ -211,8 +211,8 @@ public class HostCredentials implements AutoCloseable {
         }
 
         @Override
-        public HostedRepository getHostedRepository(Forge host) {
-            return host.repository("test").orElseThrow();
+        public HostedRepository getHostedRepository(Forge host, String name) {
+            return host.repository(name != null ? name : "test").orElseThrow();
         }
 
         @Override
@@ -332,8 +332,17 @@ public class HostCredentials implements AutoCloseable {
     }
 
     public HostedRepository getHostedRepository() throws IOException {
+        return getHostedRepository(null);
+    }
+
+    /**
+     * Get a hosted repository with a specific name. Unless a unique name is
+     * specified, the underlying git repository will be the same for each
+     * HostedRepository.
+     */
+    public HostedRepository getHostedRepository(String name) throws IOException {
         var host = getRepositoryHost();
-        var repo = credentials.getHostedRepository(host);
+        var repo = credentials.getHostedRepository(host, name);
 
         var retryCount = 0;
         while (credentialsLock == null) {
@@ -360,22 +369,31 @@ public class HostCredentials implements AutoCloseable {
         return credentials.getIssueProject(host);
     }
 
-    public PullRequest createPullRequest(HostedRepository hostedRepository, String targetRef, String sourceRef, String title, List<String> body, boolean draft) {
-        var pr = hostedRepository.createPullRequest(hostedRepository, targetRef, sourceRef, title, body, draft);
+    public PullRequest createPullRequest(HostedRepository sourceRepository, HostedRepository targetRepository,
+                                         String targetRef, String sourceRef, String title, List<String> body, boolean draft) {
+        var pr = sourceRepository.createPullRequest(targetRepository, targetRef, sourceRef, title, body, draft);
         pullRequestsToBeClosed.add(pr);
         return pr;
     }
 
-    public PullRequest createPullRequest(HostedRepository hostedRepository, String targetRef, String sourceRef, String title, boolean draft) {
-        return createPullRequest(hostedRepository, targetRef, sourceRef, title, List.of("PR body"), draft);
+    public PullRequest createPullRequest(HostedRepository targetRepository, String targetRef, String sourceRef, String title, List<String> body, boolean draft) {
+        return createPullRequest(targetRepository, targetRepository, targetRef, sourceRef, title, body, draft);
     }
 
-    public PullRequest createPullRequest(HostedRepository hostedRepository, String targetRef, String sourceRef, String title, List<String> body) {
-        return createPullRequest(hostedRepository, targetRef, sourceRef, title, body, false);
+        public PullRequest createPullRequest(HostedRepository targetRepository, String targetRef, String sourceRef, String title, boolean draft) {
+        return createPullRequest(targetRepository, targetRepository, targetRef, sourceRef, title, List.of("PR body"), draft);
     }
 
-    public PullRequest createPullRequest(HostedRepository hostedRepository, String targetRef, String sourceRef, String title) {
-        return createPullRequest(hostedRepository, targetRef, sourceRef, title, List.of("PR body"), false);
+    public PullRequest createPullRequest(HostedRepository targetRepository, String targetRef, String sourceRef, String title, List<String> body) {
+        return createPullRequest(targetRepository, targetRepository, targetRef, sourceRef, title, body, false);
+    }
+
+    public PullRequest createPullRequest(HostedRepository targetRepository, String targetRef, String sourceRef, String title) {
+        return createPullRequest(targetRepository, targetRepository, targetRef, sourceRef, title, List.of("PR body"), false);
+    }
+
+    public PullRequest createPullRequest(HostedRepository sourceRepository, HostedRepository targetRepository, String targetRef, String sourceRef, String title) {
+        return createPullRequest(sourceRepository, targetRepository, targetRef, sourceRef, title, List.of("PR body"), false);
     }
 
     public Issue createIssue(IssueProject issueProject, String title) {

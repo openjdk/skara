@@ -44,8 +44,11 @@ class ArchiveItem {
     private final ArchiveItem parent;
     private final Supplier<String> subject;
     private final Supplier<String> header;
+    private String resolvedHeader;
     private final Supplier<String> body;
+    private String resolvedBody;
     private final Supplier<String> footer;
+    private String resolvedFooter;
 
     private ArchiveItem(ArchiveItem parent, String id, ZonedDateTime created, ZonedDateTime updated, HostUser author, Map<String, String> extraHeaders, Supplier<String> subject, Supplier<String> header, Supplier<String> body, Supplier<String> footer) {
         this.id = id;
@@ -164,6 +167,25 @@ class ArchiveItem {
         }
     }
 
+    /**
+     * Checks if lastHead is available in the local repository and tried to fetch it
+     * if not.
+     */
+    private static boolean lastHeadAvailable(PullRequest pr, Repository localRepo, Hash lastHead, boolean tryFetch) {
+        try {
+            if (localRepo.resolve(lastHead.hex()).isPresent()) {
+                return true;
+            }
+            if (tryFetch) {
+                localRepo.fetch(pr.repository().url(), lastHead.hex(), false);
+                return true;
+            }
+        } catch (IOException e) {
+            return false;
+        }
+        return false;
+    }
+
     private static String hostUserToCommitterName(HostUserToEmailAuthor hostUserToEmailAuthor, HostUser hostUser) {
         var email = hostUserToEmailAuthor.author(hostUser);
         if (email.fullName().isPresent()) {
@@ -182,7 +204,9 @@ class ArchiveItem {
                                () -> "",
                                () -> {
                                    if (lastBase.equals(base)) {
-                                       return ArchiveMessages.composeIncrementalRevision(pr, localRepo, hostUserToCommitterName(hostUserToEmailAuthor, pr.author()), head, lastHead);
+                                       // Make sure lastHead is present in the local repo (if possible)
+                                       lastHeadAvailable(pr, localRepo, lastHead, true);
+                                       return ArchiveMessages.composeIncrementalRevision(pr, localRepo, hostUserToCommitterName(hostUserToEmailAuthor, pr.author()), head, lastHead, base);
                                    } else {
                                        var rebasedLastHead = rebasedLastHead(localRepo, base, lastHead);
                                        if (rebasedLastHead.isPresent()) {
@@ -195,9 +219,14 @@ class ArchiveItem {
                                () -> {
                                    var fullWebrev = webrevGenerator.generate(base, head, String.format("%02d", index), WebrevDescription.Type.FULL);
                                    if (lastBase.equals(base)) {
-                                       var incrementalWebrev = webrevGenerator.generate(lastHead, head, String.format("%02d-%02d", index - 1, index), WebrevDescription.Type.INCREMENTAL);
-                                       webrevNotification.notify(index, List.of(fullWebrev, incrementalWebrev));
-                                       return ArchiveMessages.composeIncrementalFooter(pr, localRepo, fullWebrev, incrementalWebrev, head, lastHead);
+                                       if (lastHeadAvailable(pr, localRepo, lastHead, false)) {
+                                           var incrementalWebrev = webrevGenerator.generate(lastHead, head, String.format("%02d-%02d", index - 1, index), WebrevDescription.Type.INCREMENTAL);
+                                           webrevNotification.notify(index, List.of(fullWebrev, incrementalWebrev));
+                                           return ArchiveMessages.composeIncrementalFooter(pr, localRepo, fullWebrev, incrementalWebrev, head, lastHead);
+                                       } else {
+                                           webrevNotification.notify(index, List.of(fullWebrev));
+                                           return ArchiveMessages.composeRebasedFooter(pr, localRepo, fullWebrev, base, head);
+                                       }
                                    } else {
                                        var rebasedLastHead = rebasedLastHead(localRepo, base, lastHead);
                                        if (rebasedLastHead.isPresent()) {
@@ -424,19 +453,28 @@ class ArchiveItem {
     }
 
     String header() {
-        return header.get();
+        if (resolvedHeader == null) {
+            resolvedHeader = header.get();
+        }
+        return resolvedHeader;
     }
 
     String body() {
-        return body.get();
+        if (resolvedBody == null) {
+            resolvedBody = body.get();
+        }
+        return resolvedBody;
     }
 
     String footer() {
-        return footer.get();
+        if (resolvedFooter == null) {
+            resolvedFooter = footer.get();
+        }
+        return resolvedFooter;
     }
 
     @Override
     public String toString() {
-        return "ArchiveItem From: " + author + " Body: " + body.get();
+        return "ArchiveItem From: " + author + " Body: " + body();
     }
 }

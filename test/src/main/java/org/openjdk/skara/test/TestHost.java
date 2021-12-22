@@ -39,6 +39,13 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class TestHost implements Forge, IssueTracker {
+
+    /**
+     * If test needs to name a repository that should not exist on the TestHost,
+     * use this as the name of the repository.
+     */
+    public static final String NON_EXISTING_REPO = "non-existing-repo";
+
     private final int currentUser;
     private HostData data;
     private final Logger log = Logger.getLogger("org.openjdk.skara.test");
@@ -112,13 +119,12 @@ public class TestHost implements Forge, IssueTracker {
     @Override
     public Optional<HostedRepository> repository(String name) {
         Repository localRepository;
+        if (NON_EXISTING_REPO.equals(name)) {
+            return Optional.empty();
+        }
         if (data.repositories.containsKey(name)) {
             localRepository = data.repositories.get(name);
         } else {
-            if (data.repositories.size() > 0) {
-                log.warning("A test host can only manage a single repository - reporting " + name + " as not found");
-                return Optional.empty();
-            }
             localRepository = createLocalRepository();
             data.repositories.put(name, localRepository);
         }

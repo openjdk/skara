@@ -958,7 +958,7 @@ class MergeTests {
             localRepo.merge(otherHash);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
             localRepo.push(mergeHash, author.url(), "edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + "xyz" + ":other");
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + TestHost.NON_EXISTING_REPO + ":other");
 
             // Approve it as another user
             var approvalPr = integrator.pullRequest(pr.id());
@@ -978,7 +978,7 @@ class MergeTests {
             assertEquals(1, error, () -> pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
 
             var check = pr.checks(mergeHash).get("jcheck");
-            assertEquals("- Could not find project `" + author.name() + "xyz` - check that it is correct.", check.summary().orElseThrow());
+            assertEquals("- Could not find project `" + TestHost.NON_EXISTING_REPO + "` - check that it is correct.", check.summary().orElseThrow());
         }
     }
 
@@ -1078,7 +1078,7 @@ class MergeTests {
             localRepo.merge(otherHash);
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
             localRepo.push(mergeHash, author.url(), "edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", "Merge otherxyz");
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + TestHost.NON_EXISTING_REPO);
 
             // Approve it as another user
             var approvalPr = integrator.pullRequest(pr.id());
@@ -1098,7 +1098,7 @@ class MergeTests {
             assertEquals(1, error, () -> pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
 
             var check = pr.checks(mergeHash).get("jcheck");
-            assertEquals("- Could not find project `otherxyz` - check that it is correct.", check.summary().orElseThrow());
+            assertEquals("- Could not find project `" + TestHost.NON_EXISTING_REPO + "` - check that it is correct.", check.summary().orElseThrow());
         }
     }
 
