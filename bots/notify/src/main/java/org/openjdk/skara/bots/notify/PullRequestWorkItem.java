@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -141,7 +141,7 @@ public class PullRequestWorkItem implements WorkItem {
     }
 
     private final Pattern issuesBlockPattern = Pattern.compile("\\n\\n###? Issues?((?:\\n(?: \\* )?\\[.*)+)", Pattern.MULTILINE);
-    private final Pattern issuePattern = Pattern.compile("^(?: \\* )?\\[(\\S+)]\\(.*\\): .*$", Pattern.MULTILINE);
+    private final Pattern issuePattern = Pattern.compile("^(?: \\* )?\\[(\\S+)]\\(.*\\): (.*$)", Pattern.MULTILINE);
 
     private Set<String> parseIssues() {
         var issuesBlockMatcher = issuesBlockPattern.matcher(pr.body());
@@ -150,6 +150,7 @@ public class PullRequestWorkItem implements WorkItem {
         }
         var issueMatcher = issuePattern.matcher(issuesBlockMatcher.group(1));
         return issueMatcher.results()
+                           .filter(mr -> !mr.group(2).endsWith(" (**CSR**)"))
                            .map(mo -> mo.group(1))
                            .collect(Collectors.toSet());
     }
