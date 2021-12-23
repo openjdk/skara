@@ -418,7 +418,7 @@ public class JiraProject implements IssueProject {
         final var finalId = id;
         var issue = issueRequest.get("")
                                 .onError(r -> {
-                                    log.warning("Getting issue " + finalId + " failed with " + r.statusCode());
+                                    log.info("Getting issue " + finalId + " failed with " + r.statusCode());
                                     return r.statusCode() < 500 ? Optional.of(JSON.object().put("NOT_FOUND", true)) : Optional.empty();
                                 })
                                 .execute();

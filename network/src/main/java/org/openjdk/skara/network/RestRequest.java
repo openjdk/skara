@@ -309,7 +309,11 @@ public class RestRequest {
                     request.headers(authGen.getAuthHeaders(request).toArray(new String[0]));
                 }
                 response = cache.send(authId, request);
-                break;
+                // If we are using authorization and get a 401, we need to retry to give
+                // the authorization mechanism a chance to refresh stale tokens.
+                if (authGen == null || response.statusCode() != 401) {
+                    break;
+                }
             } catch (InterruptedException | IOException e) {
                 if (retryCount < 5) {
                     try {
