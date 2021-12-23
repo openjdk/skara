@@ -313,6 +313,8 @@ public class RestRequest {
                 // the authorization mechanism a chance to refresh stale tokens.
                 if (authGen == null || response.statusCode() != 401) {
                     break;
+                } else {
+                    log.info("Failed authorization for request: " + request + ", retrying count " + retryCount);
                 }
             } catch (InterruptedException | IOException e) {
                 if (retryCount < 5) {
