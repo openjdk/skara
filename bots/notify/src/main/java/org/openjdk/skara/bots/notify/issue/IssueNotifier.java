@@ -40,6 +40,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.logging.Logger;
 
+import static org.openjdk.skara.issuetracker.jira.JiraProject.RESOLVED_IN_BUILD;
+
 class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener {
     private final IssueProject issueProject;
     private final boolean reviewLink;
@@ -315,9 +317,9 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                     if (requestedVersion != null) {
                         if (buildName != null) {
                             // Check if the build name should be updated
-                            var oldBuild = issue.properties().getOrDefault("customfield_10006", JSON.of());
+                            var oldBuild = issue.properties().getOrDefault(RESOLVED_IN_BUILD, JSON.of());
                             if (BuildCompare.shouldReplace(buildName, oldBuild.asString())) {
-                                issue.setProperty("customfield_10006", JSON.of(buildName));
+                                issue.setProperty(RESOLVED_IN_BUILD, JSON.of(buildName));
                             } else {
                                 log.info("Not replacing build " + oldBuild.asString() + " with " + buildName + " for issue " + issue.id());
                             }
@@ -416,10 +418,10 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                     }
 
                     // Check if the build name should be updated
-                    var oldBuild = issue.properties().getOrDefault("customfield_10006", JSON.of());
+                    var oldBuild = issue.properties().getOrDefault(RESOLVED_IN_BUILD, JSON.of());
                     var newBuild = "b" + String.format("%02d", tag.buildNum().get());
                     if (BuildCompare.shouldReplace(newBuild, oldBuild.asString())) {
-                        issue.setProperty("customfield_10006", JSON.of(newBuild));
+                        issue.setProperty(RESOLVED_IN_BUILD, JSON.of(newBuild));
                     } else {
                         log.info("Not replacing build " + oldBuild.asString() + " with " + newBuild + " for issue " + issue.id());
                     }

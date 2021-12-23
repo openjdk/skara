@@ -30,6 +30,8 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.*;
 
+import static org.openjdk.skara.issuetracker.jira.JiraProject.RESOLVED_IN_BUILD;
+
 public class Backports {
     private final static Set<String> primaryTypes = Set.of("Bug", "New Feature", "Enhancement", "Task", "Sub-task");
     private final static Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
@@ -73,8 +75,8 @@ public class Backports {
             log.warning("Issue " + issue.id() + " has multiple valid fixVersions - ignoring");
             return Optional.empty();
         }
-        if (issue.properties().containsKey("customfield_10006")) {
-            return JdkVersion.parse(versionString.get(0), issue.properties().get("customfield_10006").asString());
+        if (issue.properties().containsKey(RESOLVED_IN_BUILD)) {
+            return JdkVersion.parse(versionString.get(0), issue.properties().get(RESOLVED_IN_BUILD).asString());
         } else {
             return JdkVersion.parse(versionString.get(0));
         }

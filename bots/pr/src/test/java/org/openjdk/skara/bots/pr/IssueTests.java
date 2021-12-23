@@ -34,6 +34,7 @@ import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
+import static org.openjdk.skara.issuetracker.jira.JiraProject.SUBCOMPONENT;
 
 class IssueTests {
     @Test
@@ -567,7 +568,7 @@ class IssueTests {
             assertEquals("This is yet another pull request", issue.title());
             assertEquals("core-libs", issue.properties().get("components").asArray().get(0).asString());
             assertEquals("enhancement", issue.properties().get("issuetype").asString().toLowerCase());
-            assertEquals("java.io", issue.properties().get("customfield_10008").asString());
+            assertEquals("java.io", issue.properties().get(SUBCOMPONENT).asString());
         }
     }
 

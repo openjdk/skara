@@ -32,6 +32,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.openjdk.skara.issuetracker.jira.JiraProject.RESOLVED_IN_BUILD;
 
 public class BackportsTests {
     @Test
@@ -206,7 +207,7 @@ public class BackportsTests {
             }
             issue.setProperty("fixVersions", JSON.array().add(version));
             if (!resolvedInBuild.isEmpty()) {
-                issue.setProperty("customfield_10006", JSON.of(resolvedInBuild));
+                issue.setProperty(RESOLVED_IN_BUILD, JSON.of(resolvedInBuild));
             }
         }
 

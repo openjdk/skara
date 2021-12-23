@@ -33,6 +33,10 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class JiraProject implements IssueProject {
+
+    public static final String RESOLVED_IN_BUILD = "customfield_10006";
+    public static final String SUBCOMPONENT = "customfield_10008";
+
     private final JiraHost jiraHost;
     private final String projectName;
     private final RestRequest request;
@@ -239,9 +243,9 @@ public class JiraProject implements IssueProject {
                 return Optional.of(new JSONArray(value.stream()
                                                       .map(obj -> obj.get("name"))
                                                       .collect(Collectors.toList())));
-            case "customfield_10006":
+            case RESOLVED_IN_BUILD:
                 return Optional.of(JSON.of(value.get("value").asString()));
-            case "customfield_10008":
+            case SUBCOMPONENT:
                 if (value.isString()) {
                     return Optional.of(value);
                 } // fall-through
@@ -286,7 +290,7 @@ public class JiraProject implements IssueProject {
             return value;
         }
 
-        if (name.equals("customfield_10006")) {
+        if (name.equals(RESOLVED_IN_BUILD)) {
             var editMeta = editMeta(forIssue);
             var valueToId = editMeta.get("fields").get(name).get("allowedValues").stream()
                                     .collect(Collectors.toMap(o -> o.get("value").asString(),
@@ -294,7 +298,7 @@ public class JiraProject implements IssueProject {
             return JSON.object().put("id", valueToId.get(value.asString()));
         }
 
-        if (!name.equals("customfield_10008")) {
+        if (!name.equals(SUBCOMPONENT)) {
             if (value.isObject()) {
                 if (value.asObject().contains("id")) {
                     return value.get("id");

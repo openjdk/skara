@@ -30,6 +30,8 @@ import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.openjdk.skara.issuetracker.jira.JiraProject.RESOLVED_IN_BUILD;
+
 public class JbsBackport {
     private final RestRequest backportRequest;
 
@@ -50,6 +52,7 @@ public class JbsBackport {
     private Issue createBackportIssue(Issue primary) {
         var finalProperties = new HashMap<>(primary.properties());
         finalProperties.put("issuetype", JSON.of("Backport"));
+        finalProperties.remove(RESOLVED_IN_BUILD);
 
         var backport = primary.project().createIssue(primary.title(), primary.body().lines().collect(Collectors.toList()), finalProperties);
 

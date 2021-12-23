@@ -34,6 +34,8 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.openjdk.skara.issuetracker.jira.JiraProject.SUBCOMPONENT;
+
 class InvalidIssue extends Exception {
     private String identifier;
     private String reason;
@@ -249,7 +251,7 @@ public class IssueCommand implements CommandHandler {
         var properties = new HashMap<String, JSONValue>();
         properties.put("components", JSON.array().add(JSON.of(component)));
         if (subComponent != null) {
-            properties.put("customfield_10008", JSON.of(subComponent));
+            properties.put(SUBCOMPONENT, JSON.of(subComponent));
         }
         if (priority != null) {
             properties.put("priority", JSON.of(priority));

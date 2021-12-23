@@ -33,6 +33,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.openjdk.skara.issuetracker.Issue.State.RESOLVED;
+import static org.openjdk.skara.issuetracker.jira.JiraProject.RESOLVED_IN_BUILD;
 
 public class SyncLabelBotTests {
     private TestBotFactory testBotBuilder(IssueProject issueProject, Path storagePath) {
@@ -358,7 +359,7 @@ public class SyncLabelBotTests {
             var issue2 = credentials.createIssue(issueProject, "Issue 2");
             issue2.setProperty("fixVersions", JSON.array().add(JSON.of("8u271")));
             issue2.setProperty("issuetype", JSON.of("Backport"));
-            issue2.setProperty("customfield_10006", JSON.of("b33"));
+            issue2.setProperty(RESOLVED_IN_BUILD, JSON.of("b33"));
             issue2.setState(RESOLVED);
             issue1.addLink(Link.create(issue2, "backported by").build());
             TestBotRunner.runPeriodicItems(syncLabelBot);
