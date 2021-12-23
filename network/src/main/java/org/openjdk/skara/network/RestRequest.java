@@ -314,7 +314,7 @@ public class RestRequest {
                 if (authGen == null || response.statusCode() != 401 || retryCount >= 2) {
                     break;
                 } else {
-                    log.info("Failed authorization for request: " + request.build().uri() + ", retrying count: " + retryCount);
+                    log.info("Failed authorization for request: " + request.build().uri() + ", retry count: " + retryCount);
                 }
             } catch (InterruptedException | IOException e) {
                 if (retryCount < 5) {
