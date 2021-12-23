@@ -311,10 +311,10 @@ public class RestRequest {
                 response = cache.send(authId, request);
                 // If we are using authorization and get a 401, we need to retry to give
                 // the authorization mechanism a chance to refresh stale tokens.
-                if (authGen == null || response.statusCode() != 401) {
+                if (authGen == null || response.statusCode() != 401 || retryCount >= 2) {
                     break;
                 } else {
-                    log.info("Failed authorization for request: " + request + ", retrying count " + retryCount);
+                    log.info("Failed authorization for request: " + request.build().uri() + ", retrying count: " + retryCount);
                 }
             } catch (InterruptedException | IOException e) {
                 if (retryCount < 5) {
