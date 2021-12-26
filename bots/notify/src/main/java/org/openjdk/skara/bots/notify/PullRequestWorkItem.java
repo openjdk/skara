@@ -140,7 +140,8 @@ public class PullRequestWorkItem implements WorkItem {
         return "[\n" + String.join(",\n", entries) + "\n]";
     }
 
-    private final Pattern issuesBlockPattern = Pattern.compile("\\n\\n###? Issues?((?:\\n(?: \\* )?\\[.*)+)", Pattern.MULTILINE);
+    private final String lineSep = "(?:\\n|\\r|\\r\\n|\\n\\r)";
+    private final Pattern issuesBlockPattern = Pattern.compile(lineSep + lineSep + "###? Issues?((?:" + lineSep + "(?: \\* )?\\[.*)+)", Pattern.MULTILINE);
     private final Pattern issuePattern = Pattern.compile("^(?: \\* )?\\[(\\S+)]\\(.*\\): (.*$)", Pattern.MULTILINE);
 
     private Set<String> parseIssues() {
