@@ -259,20 +259,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 String requestedVersion = null;
                 // The actual issue to be updated can change depending on the fix version
                 if (setFixVersion) {
-                    requestedVersion = fixVersions != null ? fixVersions.getOrDefault(branch.name(), null) : null;
-                    if (requestedVersion == null) {
-                        try {
-                            var conf = localRepository.lines(Path.of(".jcheck/conf"), commit.hash());
-                            if (conf.isPresent()) {
-                                var parsed = JCheckConfiguration.parse(conf.get());
-                                var version = parsed.general().version();
-                                requestedVersion = version.orElse(null);
-                            }
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-
+                    requestedVersion = getRequestedVersion(localRepository, commit, branch.name());
                     if (requestedVersion != null) {
                         var altFixedVersionIssue = findAltFixedVersionIssue(issue, branch);
                         if (altFixedVersionIssue.isPresent()) {
@@ -389,19 +376,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 // The actual issue to be updated can change depending on the fix version
                 for (var tagBranch : tagBranches) {
                     var issue = optionalIssue.get();
-                    var requestedVersion = fixVersions != null ? fixVersions.getOrDefault(tagBranch, null) : null;
-                    if (requestedVersion == null) {
-                        try {
-                            var conf = localRepository.lines(Path.of(".jcheck/conf"), commit.hash());
-                            if (conf.isPresent()) {
-                                var parsed = JCheckConfiguration.parse(conf.get());
-                                var version = parsed.general().version();
-                                requestedVersion = version.orElse(null);
-                            }
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
+                    String requestedVersion = getRequestedVersion(localRepository, commit, tagBranch);
                     if (requestedVersion == null) {
                         log.info("Cannot update \"Resolved In Build\" for issue: " + issue.id() + ", branch: "
                                 + tagBranch + " - no fixVersion configured");
@@ -417,7 +392,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                         issue = existing.get();
                     }
 
-                    // Check if the build name should be updated
+                    // Check if the build number should be updated
                     var oldBuild = issue.properties().getOrDefault(RESOLVED_IN_BUILD, JSON.of());
                     var newBuild = "b" + String.format("%02d", tag.buildNum().get());
                     if (BuildCompare.shouldReplace(newBuild, oldBuild.asString())) {
@@ -428,6 +403,23 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 }
             }
         }
+    }
+
+    private String getRequestedVersion(Repository localRepository, Commit commit, String tagBranch) {
+        var requestedVersion = fixVersions != null ? fixVersions.getOrDefault(tagBranch, null) : null;
+        if (requestedVersion == null) {
+            try {
+                var conf = localRepository.lines(Path.of(".jcheck/conf"), commit.hash());
+                if (conf.isPresent()) {
+                    var parsed = JCheckConfiguration.parse(conf.get());
+                    var version = parsed.general().version();
+                    requestedVersion = version.orElse(null);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return requestedVersion;
     }
 
     @Override
