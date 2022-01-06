@@ -30,6 +30,8 @@ import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.openjdk.skara.issuetracker.jira.JiraProject.RESOLVED_IN_BUILD;
+
 public class JbsBackport {
     private final RestRequest backportRequest;
 

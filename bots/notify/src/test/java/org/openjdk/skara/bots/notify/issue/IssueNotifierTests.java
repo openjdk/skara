@@ -39,11 +39,12 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.notify.TestUtils.*;
 import static org.openjdk.skara.issuetracker.Issue.State.OPEN;
 import static org.openjdk.skara.issuetracker.Issue.State.RESOLVED;
+import static org.openjdk.skara.issuetracker.jira.JiraProject.RESOLVED_IN_BUILD;
+import static org.openjdk.skara.issuetracker.jira.JiraProject.SUBCOMPONENT;
 
 public class IssueNotifierTests {
     private static final String pullRequestTip = "A pull request was submitted for review.";
@@ -570,9 +571,9 @@ public class IssueNotifierTests {
 
             // As well as a fixVersion and a resolved in build
             assertEquals(Set.of("0.1"), fixVersions(updatedIssue1));
-            assertEquals("team", updatedIssue1.properties().get("customfield_10006").asString());
+            assertEquals("team", updatedIssue1.properties().get(RESOLVED_IN_BUILD).asString());
             assertEquals(Set.of("0.1"), fixVersions(updatedIssue2));
-            assertEquals("team", updatedIssue2.properties().get("customfield_10006").asString());
+            assertEquals("team", updatedIssue2.properties().get(RESOLVED_IN_BUILD).asString());
 
             // The issue should be assigned and resolved
             assertEquals(RESOLVED, updatedIssue1.state());
@@ -619,7 +620,7 @@ public class IssueNotifierTests {
 
             // As well as a fixVersion and a resolved in build
             assertEquals(Set.of("0.1"), fixVersions(updatedIssue));
-            assertEquals("team", updatedIssue.properties().get("customfield_10006").asString());
+            assertEquals("team", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // The issue should be assigned and resolved
             assertEquals(RESOLVED, updatedIssue.state());
@@ -677,7 +678,7 @@ public class IssueNotifierTests {
 
             // As well as a fixVersion and a resolved in build
             assertEquals(Set.of("0.1"), fixVersions(updatedIssue));
-            assertEquals("team", updatedIssue.properties().get("customfield_10006").asString());
+            assertEquals("team", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // The issue should be assigned and resolved
             assertEquals(RESOLVED, updatedIssue.state());
@@ -691,7 +692,7 @@ public class IssueNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot2);
 
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
-            assertEquals("master", updatedIssue.properties().get("customfield_10006").asString());
+            assertEquals("master", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // Restore the history to simulate looking at another repository
             localRepo.fetch(repo.url(), "history");
@@ -701,7 +702,7 @@ public class IssueNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot3);
 
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
-            assertEquals("b04", updatedIssue.properties().get("customfield_10006").asString());
+            assertEquals("b04", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // Restore the history to simulate looking at another repository
             localRepo.fetch(repo.url(), "history");
@@ -711,7 +712,7 @@ public class IssueNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot4);
 
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
-            assertEquals("b02", updatedIssue.properties().get("customfield_10006").asString());
+            assertEquals("b02", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // Restore the history to simulate looking at another repository
             localRepo.fetch(repo.url(), "history");
@@ -721,7 +722,7 @@ public class IssueNotifierTests {
             TestBotRunner.runPeriodicItems(notifyBot5);
 
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
-            assertEquals("b02", updatedIssue.properties().get("customfield_10006").asString());
+            assertEquals("b02", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
         }
     }
 
@@ -765,7 +766,7 @@ public class IssueNotifierTests {
 
             // As well as a fixVersion and a resolved in build
             assertEquals(Set.of("0.1"), fixVersions(updatedIssue));
-            assertEquals("team", updatedIssue.properties().get("customfield_10006").asString());
+            assertEquals("team", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // The issue should be assigned and resolved
             assertEquals(RESOLVED, updatedIssue.state());
@@ -778,7 +779,7 @@ public class IssueNotifierTests {
 
             // The build should now be updated
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
-            assertEquals("b110", updatedIssue.properties().get("customfield_10006").asString());
+            assertEquals("b110", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // Tag it again
             localRepo.tag(editHash, "jdk-16+10", "Third tag", "duke", "duke@openjdk.org");
@@ -787,7 +788,7 @@ public class IssueNotifierTests {
 
             // The build should now be updated
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
-            assertEquals("b10", updatedIssue.properties().get("customfield_10006").asString());
+            assertEquals("b10", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // Tag it once again
             localRepo.tag(editHash, "jdk-16+8", "Fourth tag", "duke", "duke@openjdk.org");
@@ -796,7 +797,7 @@ public class IssueNotifierTests {
 
             // The build should now be updated
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
-            assertEquals("b08", updatedIssue.properties().get("customfield_10006").asString());
+            assertEquals("b08", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
         }
     }
 
@@ -853,9 +854,9 @@ public class IssueNotifierTests {
 
             // As well as a fixVersion and a resolved in build
             assertEquals(Set.of("16.0.2"), fixVersions(updatedIssue));
-            assertEquals("team", updatedIssue.properties().get("customfield_10006").asString());
+            assertEquals("team", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
             assertEquals(Set.of("16"), fixVersions(backportIssue));
-            assertEquals("team", backportIssue.properties().get("customfield_10006").asString());
+            assertEquals("team", backportIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // The issue should be assigned and resolved
             assertEquals(RESOLVED, updatedIssue.state());
@@ -871,8 +872,8 @@ public class IssueNotifierTests {
             // The build should now be updated
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
             backportIssue = issueProject.issue(backportIssue.id()).orElseThrow();
-            assertEquals("b110", updatedIssue.properties().get("customfield_10006").asString());
-            assertEquals("b110", backportIssue.properties().get("customfield_10006").asString());
+            assertEquals("b110", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
+            assertEquals("b110", backportIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // Tag it again
             localRepo.tag(editHash, "jdk-16+10", "Third tag", "duke", "duke@openjdk.org");
@@ -882,8 +883,8 @@ public class IssueNotifierTests {
             // The build should now be updated
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
             backportIssue = issueProject.issue(backportIssue.id()).orElseThrow();
-            assertEquals("b10", updatedIssue.properties().get("customfield_10006").asString());
-            assertEquals("b10", backportIssue.properties().get("customfield_10006").asString());
+            assertEquals("b10", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
+            assertEquals("b10", backportIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // Tag it once again
             localRepo.tag(editHash, "jdk-16+8", "Fourth tag", "duke", "duke@openjdk.org");
@@ -893,8 +894,8 @@ public class IssueNotifierTests {
             // The build should now be updated
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
             backportIssue = issueProject.issue(backportIssue.id()).orElseThrow();
-            assertEquals("b08", updatedIssue.properties().get("customfield_10006").asString());
-            assertEquals("b08", backportIssue.properties().get("customfield_10006").asString());
+            assertEquals("b08", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
+            assertEquals("b08", backportIssue.properties().get(RESOLVED_IN_BUILD).asString());
         }
     }
 
@@ -938,7 +939,7 @@ public class IssueNotifierTests {
 
             // As well as a fixVersion and a resolved in build
             assertEquals(Set.of("0.1"), fixVersions(updatedIssue));
-            assertEquals("team", updatedIssue.properties().get("customfield_10006").asString());
+            assertEquals("team", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // The issue should be assigned and resolved
             assertEquals(RESOLVED, updatedIssue.state());
@@ -951,7 +952,7 @@ public class IssueNotifierTests {
 
             // The build should now be updated
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
-            assertEquals("b110", updatedIssue.properties().get("customfield_10006").asString());
+            assertEquals("b110", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // Tag it again
             localRepo.tag(editHash, "jdk-16+10", "Third tag", "duke", "duke@openjdk.org");
@@ -973,7 +974,7 @@ public class IssueNotifierTests {
 
             // The build should not have been updated
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
-            assertEquals("b110", updatedIssue.properties().get("customfield_10006").asString());
+            assertEquals("b110", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // Flag it as in need of retry
             processed.remove(processed.size() - 1);
@@ -988,7 +989,7 @@ public class IssueNotifierTests {
 
             // The build should have been updated by the retry
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
-            assertEquals("b10", updatedIssue.properties().get("customfield_10006").asString());
+            assertEquals("b10", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
         }
     }
 
@@ -1276,9 +1277,10 @@ public class IssueNotifierTests {
 
             // Create an issue and commit a fix
             var issue = issueProject.createIssue("This is an issue", List.of("Indeed"),
-                                                 Map.of("issuetype", JSON.of("Enhancement"),
-                                                        "customfield_10008", JSON.of("java.io")
-                                                 ));
+                    Map.of("issuetype", JSON.of("Enhancement"),
+                            SUBCOMPONENT, JSON.of("java.io"),
+                            RESOLVED_IN_BUILD, JSON.of("b07")
+                    ));
             var level = issue.properties().get("security");
             issue.setProperty("fixVersions", JSON.array().add("13.0.1"));
             issue.setProperty("priority", JSON.of("1"));
@@ -1309,7 +1311,7 @@ public class IssueNotifierTests {
 
             // Custom properties should also propagate
             assertEquals("1", backport.properties().get("priority").asString());
-            assertEquals("java.io", backport.properties().get("customfield_10008").asString());
+            assertEquals("java.io", backport.properties().get(SUBCOMPONENT).asString());
 
             // Labels should not
             assertEquals(0, backport.labelNames().size());
