@@ -302,14 +302,22 @@ public class RestRequest {
     private HttpResponse<String> sendRequest(HttpRequest.Builder request) throws IOException {
         HttpResponse<String> response;
 
+        var authHeaders = addAuthHeaders(request);
+
         var retryCount = 0;
         while (true) {
             try {
-                if (authGen != null) {
-                    request.headers(authGen.getAuthHeaders(request).toArray(new String[0]));
-                }
                 response = cache.send(authId, request);
-                break;
+                // If we are using authorization and get a 401, we need to retry to give
+                // the authorization mechanism a chance to refresh stale tokens. Retry if
+                // we get a new set of authorization headers.
+                if (response.statusCode() == 401 && retryCount < 2 && authHeaders != null
+                        && !authHeaders.equals(addAuthHeaders(request))) {
+                    log.info("Failed authorization for request: " + request.build().uri()
+                            + ", retry count: " + retryCount);
+                } else {
+                    break;
+                }
             } catch (InterruptedException | IOException e) {
                 if (retryCount < 5) {
                     try {
@@ -329,6 +337,23 @@ public class RestRequest {
 
         logRateLimit(response.headers());
         return response;
+    }
+
+    /**
+     * Adds authorization headers to the request builder. Returns the headers that
+     * were added or null if no authorization mechanism was defined.
+     */
+    private List<String> addAuthHeaders(HttpRequest.Builder request) {
+        if (authGen != null) {
+            var authHeaders = authGen.getAuthHeaders(request);
+            for (int i = 0; i < authHeaders.size() - 1; i += 2) {
+                String name  = authHeaders.get(i);
+                String value = authHeaders.get(i + 1);
+                request.setHeader(name, value);
+            }
+            return authHeaders;
+        }
+        return null;
     }
 
     private JSONValue parseResponse(HttpResponse<String> response) {

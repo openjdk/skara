@@ -58,8 +58,7 @@ public class IssueNotifierTests {
                     .collect(Collectors.toSet());
     }
 
-    private TestBotFactory.TestBotFactoryBuilder testBotBuilderFactory(HostedRepository hostedRepository, IssueProject issueProject,
-                                                                       Path storagePath, JSONObject notifierConfig) {
+    private TestBotFactory.TestBotFactoryBuilder testBotBuilderFactory(HostedRepository hostedRepository, IssueProject issueProject, Path storagePath, JSONObject notifierConfig) throws IOException {
         if (!notifierConfig.contains("project")) {
             notifierConfig.put("project", "issueproject");
         }
@@ -263,6 +262,42 @@ public class IssueNotifierTests {
 
             // Drop the first one
             pr.setBody("\n\n### Issues\n * [" + issue2.id() + "](http://www.test2.test/): That other issue");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Only the second issue should now contain a link to the PR and a comment which contains the link to the PR
+            links1 = issue.links();
+            assertEquals(0, links1.size());
+            comments1 = issue.comments();
+            assertEquals(0, comments1.size());
+
+            links2 = issue2.links();
+            assertEquals(1, links2.size());
+            assertEquals(pr.webUrl(), links2.get(0).uri().orElseThrow());
+            comments2 = issue2.comments();
+            assertEquals(1, comments2.size());
+            assertTrue(comments2.get(0).body().contains(pullRequestTip));
+            assertTrue(comments2.get(0).body().contains(pr.webUrl().toString()));
+
+            // test line separator "\r"
+            pr.setBody("\r\r### Issues\r * [" + issue.id() + "](http://www.test.test/): The issue");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Only the first issue should now contain a link to the PR and a comment which contains the link to the PR
+            links1 = issue.links();
+            assertEquals(1, links1.size());
+            assertEquals(pr.webUrl(), links1.get(0).uri().orElseThrow());
+            comments1 = issue.comments();
+            assertEquals(1, comments1.size());
+            assertTrue(comments1.get(0).body().contains(pullRequestTip));
+            assertTrue(comments1.get(0).body().contains(pr.webUrl().toString()));
+
+            links2 = issue2.links();
+            assertEquals(0, links2.size());
+            comments2 = issue2.comments();
+            assertEquals(0, comments2.size());
+
+            // test line separator "\r\n"
+            pr.setBody("\r\n\r\n### Issues\r\n * [" + issue2.id() + "](http://www.test2.test/): That other issue");
             TestBotRunner.runPeriodicItems(notifyBot);
 
             // Only the second issue should now contain a link to the PR and a comment which contains the link to the PR
