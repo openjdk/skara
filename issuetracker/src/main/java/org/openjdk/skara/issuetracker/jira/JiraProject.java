@@ -415,8 +415,12 @@ public class JiraProject implements IssueProject {
             id = projectName.toUpperCase() + "-" + id;
         }
         var issueRequest = request.restrict("issue/" + id);
+        final var finalId = id;
         var issue = issueRequest.get("")
-                                .onError(r -> r.statusCode() < 500 ? Optional.of(JSON.object().put("NOT_FOUND", true)) : Optional.empty())
+                                .onError(r -> {
+                                    log.info("Getting issue " + finalId + " failed with " + r.statusCode());
+                                    return r.statusCode() < 500 ? Optional.of(JSON.object().put("NOT_FOUND", true)) : Optional.empty();
+                                })
                                 .execute();
         if (!issue.contains("NOT_FOUND")) {
             return Optional.of(new JiraIssue(this, issueRequest, issue));
