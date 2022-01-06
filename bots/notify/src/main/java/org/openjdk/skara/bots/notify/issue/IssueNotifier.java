@@ -410,8 +410,8 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         }
     }
 
-    private String getRequestedVersion(Repository localRepository, Commit commit, String tagBranch) {
-        var requestedVersion = fixVersions != null ? fixVersions.getOrDefault(tagBranch, null) : null;
+    private String getRequestedVersion(Repository localRepository, Commit commit, String branch) {
+        var requestedVersion = fixVersions != null ? fixVersions.getOrDefault(branch, null) : null;
         if (requestedVersion == null) {
             try {
                 var conf = localRepository.lines(Path.of(".jcheck/conf"), commit.hash());

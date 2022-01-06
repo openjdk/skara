@@ -52,7 +52,6 @@ public class JbsBackport {
     private Issue createBackportIssue(Issue primary) {
         var finalProperties = new HashMap<>(primary.properties());
         finalProperties.put("issuetype", JSON.of("Backport"));
-        finalProperties.remove(RESOLVED_IN_BUILD);
 
         var backport = primary.project().createIssue(primary.title(), primary.body().lines().collect(Collectors.toList()), finalProperties);
 
