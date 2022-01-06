@@ -1278,6 +1278,7 @@ public class IssueNotifierTests {
             // Custom properties should also propagate
             assertEquals("1", backport.properties().get("priority").asString());
             assertEquals("java.io", backport.properties().get(SUBCOMPONENT).asString());
+            assertFalse(backport.properties().containsKey(RESOLVED_IN_BUILD));
 
             // Labels should not
             assertEquals(0, backport.labelNames().size());
