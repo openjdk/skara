@@ -1675,14 +1675,15 @@ class MailingListBridgeBotTests {
     }
 
     @Test
-    void rebased(TestInfo testInfo) throws IOException {
+    void forcePushed(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory();
              var archiveFolder = new TemporaryDirectory();
              var listServer = new TestMailmanServer();
              var webrevServer = new TestWebrevServer()) {
-            var author = credentials.getHostedRepository();
-            var archive = credentials.getHostedRepository();
+            var author = credentials.getHostedRepository("author");
+            var main = credentials.getHostedRepository("main");
+            var archive = credentials.getHostedRepository("archive");
             var listAddress = EmailAddress.parse(listServer.createList("test"));
             var censusBuilder = credentials.getCensusBuilder()
                                            .addAuthor(author.forge().currentUser().id());
@@ -1707,12 +1708,13 @@ class MailingListBridgeBotTests {
             var localRepo = CheckableRepository.init(tempFolder.path().resolve("first"), author.repositoryType(), reviewFile);
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, main.url(), "master", true);
             localRepo.push(masterHash, archive.url(), "webrev", true);
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo, "A line", "Original msg");
             localRepo.push(editHash, author.url(), "edit", true);
-            var pr = credentials.createPullRequest(archive, "master", "edit", "This is a pull request");
+            var pr = credentials.createPullRequest(author, main, "master", "edit", "This is a pull request");
             pr.setBody("This is now ready");
 
             // Run an archive pass
@@ -1739,9 +1741,8 @@ class MailingListBridgeBotTests {
 
             // The archive should reference the rebased push
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
-            assertTrue(archiveContains(archiveFolder.path(), "has updated the pull request with a new target base"));
+            assertTrue(archiveContains(archiveFolder.path(), "has refreshed the contents of this pull request, and previous commits have been removed."));
             assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/01"));
-            assertFalse(archiveContains(archiveFolder.path(), "Incremental"));
             assertTrue(archiveContains(archiveFolder.path(), "Patch"));
             assertTrue(archiveContains(archiveFolder.path(), "Fetch"));
             assertTrue(archiveContains(archiveFolder.path(), "Original msg"));
@@ -1754,6 +1755,110 @@ class MailingListBridgeBotTests {
                                          .filter(comment -> comment.body().contains("webrev"))
                                          .filter(comment -> comment.body().contains(newEditHash.hex()))
                                          .collect(Collectors.toList());
+            assertEquals(1, webrevComments.size());
+
+            // Check that sender address is set properly
+            var mailmanServer = MailingListServerFactory.createMailmanServer(listServer.getArchive(), listServer.getSMTP(), Duration.ZERO);
+            var mailmanList = mailmanServer.getListReader(listAddress.address());
+            var conversations = mailmanList.conversations(Duration.ofDays(1));
+            assertEquals(1, conversations.size());
+            for (var newMail : conversations.get(0).allMessages()) {
+                assertEquals(sender.address(), newMail.author().address());
+                assertEquals(listAddress, newMail.sender());
+                assertFalse(newMail.hasHeader("PR-Head-Hash"));
+            }
+            assertEquals("RFR: This is a pull request [v2]", conversations.get(0).allMessages().get(1).subject());
+        }
+    }
+
+    @Test
+    void rebased(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var archiveFolder = new TemporaryDirectory();
+             var listServer = new TestMailmanServer();
+             var webrevServer = new TestWebrevServer()) {
+            var author = credentials.getHostedRepository("author");
+            var main = credentials.getHostedRepository("main");
+            var archive = credentials.getHostedRepository("archive");
+            var listAddress = EmailAddress.parse(listServer.createList("test"));
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id());
+            var sender = EmailAddress.from("test", "test@test.mail");
+            var mlBot = MailingListBridgeBot.newBuilder()
+                    .from(sender)
+                    .repo(author)
+                    .archive(archive)
+                    .censusRepo(censusBuilder.build())
+                    .lists(List.of(new MailingListConfiguration(listAddress, Set.of())))
+                    .listArchive(listServer.getArchive())
+                    .smtpServer(listServer.getSMTP())
+                    .webrevStorageHTMLRepository(archive)
+                    .webrevStorageRef("webrev")
+                    .webrevStorageBase(Path.of("test"))
+                    .webrevStorageBaseUri(webrevServer.uri())
+                    .issueTracker(URIBuilder.base("http://issues.test/browse/").build())
+                    .build();
+
+            // Populate the projects repository
+            var reviewFile = Path.of("reviewfile.txt");
+            var localRepo = CheckableRepository.init(tempFolder.path().resolve("first"), author.repositoryType(), reviewFile);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+            localRepo.push(masterHash, main.url(), "master", true);
+            localRepo.push(masterHash, archive.url(), "webrev", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Edit line", "Original msg");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, main, "master", "edit", "This is a pull request");
+            pr.setBody("This is now ready");
+
+            // Run an archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // Add another change in the master
+            localRepo.checkout(masterHash);
+            var newMasterHash = CheckableRepository.appendAndCommit(localRepo, "New master line", "New master commit message");
+            localRepo.push(newMasterHash, main.url(), "master");
+            // Add a new "rebased" version of the edit change on top of the new master and force
+            // push it to the PR. This should emulate a rebase.
+            localRepo.push(newMasterHash, author.url(), "master");
+            var newEditHash = CheckableRepository.appendAndCommit(localRepo, "Edit line", "New edit commit message");
+            localRepo.push(newEditHash, author.url(), "edit", true);
+
+            // Make sure that the push registered
+            var lastHeadHash = pr.headHash();
+            var refreshCount = 0;
+            do {
+                pr = author.pullRequest(pr.id());
+                if (refreshCount++ > 100) {
+                    fail("The PR did not update after the new push");
+                }
+            } while (pr.headHash().equals(lastHeadHash));
+
+            // Run another archive pass
+            TestBotRunner.runPeriodicItems(mlBot);
+            listServer.processIncoming();
+
+            // The archive should reference the rebased push
+            Repository.materialize(archiveFolder.path(), archive.url(), "master");
+            assertTrue(archiveContains(archiveFolder.path(), "has updated the pull request with a new target base"));
+            assertTrue(archiveContains(archiveFolder.path(), pr.id() + "/01"));
+            assertFalse(archiveContains(archiveFolder.path(), "Incremental"));
+            assertTrue(archiveContains(archiveFolder.path(), "Patch"));
+            assertTrue(archiveContains(archiveFolder.path(), "Fetch"));
+            assertTrue(archiveContains(archiveFolder.path(), "Original msg"));
+            assertTrue(archiveContains(archiveFolder.path(), "New edit commit message"));
+
+            // The webrev comment should be updated
+            var comments = pr.comments();
+            var webrevComments = comments.stream()
+                    .filter(comment -> comment.author().equals(author.forge().currentUser()))
+                    .filter(comment -> comment.body().contains("webrev"))
+                    .filter(comment -> comment.body().contains(newEditHash.hex()))
+                    .collect(Collectors.toList());
             assertEquals(1, webrevComments.size());
 
             // Check that sender address is set properly

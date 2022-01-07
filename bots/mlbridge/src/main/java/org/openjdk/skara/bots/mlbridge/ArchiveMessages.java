@@ -200,7 +200,7 @@ class ArchiveMessages {
         return filteredBody;
     }
 
-    static String composeIncrementalRevision(PullRequest pr, Repository localRepository, String author, Hash head, Hash lastHead) {
+    static String composeIncrementalRevision(PullRequest pr, Repository localRepository, String author, Hash head, Hash lastHead, Hash base) {
         var ret = new StringBuilder();
 
         var incrementalUpdate = false;
@@ -209,8 +209,15 @@ class ArchiveMessages {
         } catch (IOException ignored) {
         }
         var commits = commits(localRepository, lastHead, head);
+        var noIncrementalCommitsFound = commits.isEmpty();
+        if (noIncrementalCommitsFound) {
+            // Could not find incremental commits, get everything from the base instead
+            lastHead = base;
+            commits = commits(localRepository, lastHead, head);
+        }
         var commitsLink = commitsLink(pr, lastHead, head);
         var newCommitMessages = formatCommitMessagesFull(commits, commitsLink);
+
         if (incrementalUpdate) {
             ret.append(author);
             ret.append(" has updated the pull request incrementally");
@@ -223,12 +230,21 @@ class ArchiveMessages {
         } else {
             ret.append(author);
             ret.append(" has refreshed the contents of this pull request, and previous commits have been removed. ");
-            ret.append("The incremental views will show differences compared to the previous content of the PR.");
-            var commitsDescription = describeCommits(commits, "new");
-            newCommitMessages.ifPresent(m -> ret.append(" The pull request contains ")
-                                                .append(commitsDescription)
-                                                .append(" since the last revision:\n\n")
-                                                .append(m));
+            if (noIncrementalCommitsFound) {
+                ret.append("Incremental views are not available.");
+                var commitsDescription = describeCommits(commits, "");
+                newCommitMessages.ifPresent(m -> ret.append(" The pull request now contains ")
+                        .append(commitsDescription)
+                        .append(":\n\n")
+                        .append(m));
+            } else {
+                ret.append("The incremental views will show differences compared to the previous content of the PR.");
+                var commitsDescription = describeCommits(commits, "new");
+                newCommitMessages.ifPresent(m -> ret.append(" The pull request contains ")
+                        .append(commitsDescription)
+                        .append(" since the last revision:\n\n")
+                        .append(m));
+            }
         }
         return ret.toString();
     }
