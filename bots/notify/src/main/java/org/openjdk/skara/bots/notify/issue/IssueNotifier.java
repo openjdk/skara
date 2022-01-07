@@ -393,12 +393,17 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                     }
 
                     // Check if the build number should be updated
-                    var oldBuild = issue.properties().getOrDefault(RESOLVED_IN_BUILD, JSON.of());
-                    var newBuild = "b" + String.format("%02d", tag.buildNum().get());
-                    if (BuildCompare.shouldReplace(newBuild, oldBuild.asString())) {
-                        issue.setProperty(RESOLVED_IN_BUILD, JSON.of(newBuild));
+                    var tagVersion = JdkVersion.parse(tag.version());
+                    if (tagVersion.isPresent() && fixVersion.equals(tagVersion.get())) {
+                        var oldBuild = issue.properties().getOrDefault(RESOLVED_IN_BUILD, JSON.of());
+                        var newBuild = "b" + String.format("%02d", tag.buildNum().get());
+                        if (BuildCompare.shouldReplace(newBuild, oldBuild.asString())) {
+                            issue.setProperty(RESOLVED_IN_BUILD, JSON.of(newBuild));
+                        } else {
+                            log.info("Not replacing build " + oldBuild.asString() + " with " + newBuild + " for issue " + issue.id());
+                        }
                     } else {
-                        log.info("Not replacing build " + oldBuild.asString() + " with " + newBuild + " for issue " + issue.id());
+                        log.info("Not updating build in issue " + issue.id() + " with fixVersion " + fixVersion + " from tag " + tag);
                     }
                 }
             }

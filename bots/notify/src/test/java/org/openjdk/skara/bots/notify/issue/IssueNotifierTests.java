@@ -739,7 +739,7 @@ public class IssueNotifierTests {
 
             var issueProject = credentials.getIssueProject();
             var storageFolder = tempFolder.path().resolve("storage");
-            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object())
+            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object().put("master", "16"))
                                         .put("buildname", "team");
             var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
 
@@ -765,7 +765,7 @@ public class IssueNotifierTests {
             assertTrue(comment.body().contains(editHash.toString()));
 
             // As well as a fixVersion and a resolved in build
-            assertEquals(Set.of("0.1"), fixVersions(updatedIssue));
+            assertEquals(Set.of("16"), fixVersions(updatedIssue));
             assertEquals("team", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // The issue should be assigned and resolved
@@ -872,8 +872,9 @@ public class IssueNotifierTests {
             // The build should now be updated
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
             backportIssue = issueProject.issue(backportIssue.id()).orElseThrow();
-            assertEquals("b110", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
             assertEquals("b110", backportIssue.properties().get(RESOLVED_IN_BUILD).asString());
+            // But not in the update backport
+            assertEquals("team", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // Tag it again
             localRepo.tag(editHash, "jdk-16+10", "Third tag", "duke", "duke@openjdk.org");
@@ -883,8 +884,8 @@ public class IssueNotifierTests {
             // The build should now be updated
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
             backportIssue = issueProject.issue(backportIssue.id()).orElseThrow();
-            assertEquals("b10", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
             assertEquals("b10", backportIssue.properties().get(RESOLVED_IN_BUILD).asString());
+            assertEquals("team", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // Tag it once again
             localRepo.tag(editHash, "jdk-16+8", "Fourth tag", "duke", "duke@openjdk.org");
@@ -894,8 +895,8 @@ public class IssueNotifierTests {
             // The build should now be updated
             updatedIssue = issueProject.issue(issue.id()).orElseThrow();
             backportIssue = issueProject.issue(backportIssue.id()).orElseThrow();
-            assertEquals("b08", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
             assertEquals("b08", backportIssue.properties().get(RESOLVED_IN_BUILD).asString());
+            assertEquals("team", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
         }
     }
 
@@ -912,7 +913,7 @@ public class IssueNotifierTests {
 
             var issueProject = credentials.getIssueProject();
             var storageFolder = tempFolder.path().resolve("storage");
-            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object())
+            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object().put("master", "16"))
                                         .put("buildname", "team");
             var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
 
@@ -938,7 +939,7 @@ public class IssueNotifierTests {
             assertTrue(comment.body().contains(editHash.toString()));
 
             // As well as a fixVersion and a resolved in build
-            assertEquals(Set.of("0.1"), fixVersions(updatedIssue));
+            assertEquals(Set.of("16"), fixVersions(updatedIssue));
             assertEquals("team", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // The issue should be assigned and resolved
@@ -1312,6 +1313,7 @@ public class IssueNotifierTests {
             // Custom properties should also propagate
             assertEquals("1", backport.properties().get("priority").asString());
             assertEquals("java.io", backport.properties().get(SUBCOMPONENT).asString());
+            assertFalse(backport.properties().containsKey(RESOLVED_IN_BUILD));
 
             // Labels should not
             assertEquals(0, backport.labelNames().size());

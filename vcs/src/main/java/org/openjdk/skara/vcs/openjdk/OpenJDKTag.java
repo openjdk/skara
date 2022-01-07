@@ -153,4 +153,9 @@ public class OpenJDKTag {
     public int hashCode() {
         return Objects.hash(tag, prefix, version, buildPrefix, buildNum);
     }
+
+    @Override
+    public String toString() {
+        return tag.toString();
+    }
 }
