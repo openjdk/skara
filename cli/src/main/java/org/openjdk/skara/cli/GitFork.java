@@ -173,8 +173,9 @@ public class GitFork {
         System.out.println("Creating fork of " + upstreamWebURI);
         var credentials = setupCredentials(upstreamWebURI);
 
-        // User Forge::from directly instead of ForgeUtils::from as any local repository
-        // here is not expected to be related to the remote
+        // Use Forge::from directly instead of ForgeUtils::from. ForgeUtils would
+        // try to update "forge.name" in the local repository based on this forge,
+        // and it's unlikely they are related.
         var gitForge = Forge.from(upstreamWebURI, credentials);
         if (gitForge.isEmpty()) {
             exit("error: could not connect to host " + upstreamWebURI.getHost());
