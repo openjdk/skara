@@ -394,7 +394,9 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
 
                     // Check if the build number should be updated
                     var tagVersion = JdkVersion.parse(tag.version());
-                    if (tagVersion.isPresent() && fixVersion.equals(tagVersion.get())) {
+                    // Ignore the opt string when comparing versions for match as the fixVersion can
+                    // have a suffix such as "-oracle" that isn't reflected in tags.
+                    if (tagVersion.isPresent() && fixVersion.components().equals(tagVersion.get().components())) {
                         var oldBuild = issue.properties().getOrDefault(RESOLVED_IN_BUILD, JSON.of());
                         var newBuild = "b" + String.format("%02d", tag.buildNum().get());
                         if (BuildCompare.shouldReplace(newBuild, oldBuild.asString())) {

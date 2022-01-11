@@ -815,7 +815,7 @@ public class IssueNotifierTests {
             var issueProject = credentials.getIssueProject();
             var storageFolder = tempFolder.path().resolve("storage");
             var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object()
-                                                                         .put("master", "16")
+                                                                         .put("master", "16-foo")
                                                                          .put("other", "16.0.2"))
                                         .put("buildname", "team");
             var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
@@ -855,7 +855,7 @@ public class IssueNotifierTests {
             // As well as a fixVersion and a resolved in build
             assertEquals(Set.of("16.0.2"), fixVersions(updatedIssue));
             assertEquals("team", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
-            assertEquals(Set.of("16"), fixVersions(backportIssue));
+            assertEquals(Set.of("16-foo"), fixVersions(backportIssue));
             assertEquals("team", backportIssue.properties().get(RESOLVED_IN_BUILD).asString());
 
             // The issue should be assigned and resolved
