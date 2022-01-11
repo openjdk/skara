@@ -23,6 +23,8 @@
 package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
+import org.openjdk.skara.forge.HostedRepository;
+import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.version.Version;
@@ -158,82 +160,66 @@ public class GitSync {
             targetURI = Remote.toURI(repo.pullPath(targetName));
             if (targetFromOptions != null) {
                 if (!equalsCanonicalized(targetFromOptionsURI, targetURI)) {
-                    if (arguments.contains("force")) {
-                        logVerbose("Overriding target 'origin' with " + targetFromOptions + " due to --force");
-                        targetName = targetFromOptions;
-                        targetURI = targetFromOptionsURI;
-                    } else {
-                        die("git 'origin' remote and '--to' argument differ. Consider using --force.");
-                    }
-                }
-            }
-        }
-
-        // Find pull source as given by the Git Forge as the repository's parent
-        var forgeWebURI = Remote.toWebURI(targetURI.toString());
-        URI sourceParentURI;
-        String sourceParentName;
-        try {
-            sourceParentURI = ForgeUtils.from(forgeWebURI)
-                    .flatMap(f -> f.repository(forgeWebURI.getPath().substring(1)))
-                    .flatMap(r -> r.parent())
-                    .map(p -> p.webUrl())
-                    .orElse(null);
-            sourceParentName = sourceParentURI.toString();
-            logVerbose("Git Forge reports upstream parent is " + sourceParentURI);
-        } catch (Throwable e) {
-            if (arguments.contains("debug")) {
-                e.printStackTrace();
-            }
-            if (!arguments.contains("force")) {
-                // Unless we force a different recipient repo, we are not allowed to have an error here
-                die("cannot get parent repo from Git Forge provider for " + forgeWebURI);
-            }
-            sourceParentURI = null;
-            sourceParentName = null;
-        }
-
-        sourceURI = sourceParentURI;
-        sourceName = sourceParentName;
-
-        // Find pull source as given by Git's 'upstream' remote
-        if (remotes.contains("upstream")) {
-            sourceName = "upstream";
-            var sourceUpstreamURI = Remote.toURI(repo.pullPath("upstream"));
-            if (!equalsCanonicalized(sourceUpstreamURI, sourceParentURI)) {
-                if (arguments.contains("force")) {
-                    sourceURI = sourceUpstreamURI;
-                    logVerbose("Replacing Git Forge parent with " + sourceUpstreamURI + " from 'upstream' remote");
-                } else {
-                    System.err.println("error: git 'upstream' remote and the parent fork given by the Git Forge differ");
-                    System.err.println("       Git 'upstream' remote is " + sourceUpstreamURI);
-                    System.err.println("       Git Forge parent is " + sourceParentURI);
-                    System.err.println("       Remove incorrect 'upstream' remote with 'git remote remove upstream'");
-                    System.err.println("       or run with --force to use 'upstream' remote anyway");
-                    System.exit(1);
-                }
-            }
-        } else {
-            // Repo is badly configured, fix it unless instructed not to
-            if (!arguments.contains("no-remote")) {
-                System.out.println("Setting 'upstream' remote to " + sourceParentURI);
-                if (!isDryRun) {
-                    repo.addRemote("upstream", sourceParentURI.toString());
+                    logVerbose("Overriding target 'origin' with " + targetFromOptions);
+                    targetName = targetFromOptions;
+                    targetURI = targetFromOptionsURI;
                 }
             }
         }
 
         // Find pull source as given by command line options
         if (sourceFromOptions != null) {
-            if (!equalsCanonicalized(sourceFromOptionsURI, sourceURI)) {
-                if (arguments.contains("force")) {
-                    // Use the value from the option instead
-                    sourceName = sourceFromOptions;
-                    sourceURI = sourceFromOptionsURI;
-                    logVerbose("Replacing source repo with " + sourceFromOptionsURI + " from command line options");
-                } else {
-                    die("Git Forge parent and git sync '--from' option do not match");
+            if (!sameHost(sourceFromOptionsURI, targetURI)) {
+                if (!arguments.contains("force")) {
+                    System.err.println("error: The from and to remote repositories are hosted on different forges");
+                    System.err.println("       The from remote is " + sourceFromOptionsURI);
+                    System.err.println("       The to remote is " + targetURI);
+                    System.err.println("       Rerun with --force if this was intended");
+                    System.exit(1);
                 }
+            }
+            logVerbose("Replacing source repo with " + sourceFromOptionsURI + " from command line options");
+            sourceName = sourceFromOptions;
+            sourceURI = sourceFromOptionsURI;
+        } else {
+            // This may return null, if so, we fall back on just comparing hostnames further down
+            var remoteForkParentURI = findRemoteForkParent();
+
+            if (remotes.contains("upstream")) {
+                // Find pull source as given by Git's 'upstream' remote
+                var sourceUpstreamURI = Remote.toURI(repo.pullPath("upstream"));
+                if (remoteForkParentURI != null) {
+                    if (!equalsCanonicalized(sourceUpstreamURI, remoteForkParentURI)) {
+                        System.err.println("error: git 'upstream' remote and the parent fork given by the Git Forge differ");
+                        System.err.println("       Git 'upstream' remote is " + sourceUpstreamURI);
+                        System.err.println("       Git Forge parent is " + remoteForkParentURI);
+                        System.err.println("       Remove incorrect 'upstream' remote with 'git remote remove upstream'");
+                        System.err.println("       or run with --force to use 'upstream' remote anyway");
+                        System.exit(1);
+                    }
+                } else {
+                    if (!sameHost(sourceUpstreamURI, targetURI)) {
+                        if (!arguments.contains("force")) {
+                            System.err.println("error: The from and to remote repositories are hosted on different forges");
+                            System.err.println("       The from remote is " + sourceUpstreamURI);
+                            System.err.println("       The to remote is " + targetURI);
+                            System.err.println("       Rerun with --force if this was intended");
+                            System.exit(1);
+                        }
+                    }
+                }
+                sourceName = "upstream";
+                sourceURI = sourceUpstreamURI;
+            } else if (remoteForkParentURI != null) {
+                // Repo is badly configured, fix it unless instructed not to
+                if (!arguments.contains("no-remote")) {
+                    System.out.println("Setting 'upstream' remote to " + remoteForkParentURI);
+                    if (!isDryRun) {
+                        repo.addRemote("upstream", remoteForkParentURI.toString());
+                    }
+                }
+                sourceName = "upstream";
+                sourceURI = remoteForkParentURI;
             }
         }
 
@@ -247,9 +233,39 @@ public class GitSync {
             System.err.println("error: --from and --to refer to the same repository: " + targetURI);
             System.exit(1);
         }
+        setupSourceCredentials();
     }
 
-    private void setupCredentials() throws IOException {
+    private URI findRemoteForkParent() throws IOException {
+        var targetScheme = targetURI.getScheme();
+        if (!arguments.contains("force") && targetScheme.equals("https") || targetScheme.equals("http")) {
+            var credentials = setupTargetCredentials();
+
+            // Find pull source as given by the Git Forge as the repository's parent
+            var forgeWebURI = Remote.toWebURI(targetURI.toString());
+            try {
+                var sourceParentURI = ForgeUtils.from(forgeWebURI, credentials)
+                        .flatMap(f -> f.repository(forgeWebURI.getPath().substring(1)))
+                        .flatMap(HostedRepository::parent)
+                        .map(HostedRepository::webUrl);
+
+                if (sourceParentURI.isPresent()) {
+                    logVerbose("Git Forge reports upstream parent is " + sourceParentURI.get());
+                    return sourceParentURI.get();
+                }
+            } catch (UncheckedIOException e) {
+                System.err.println("Failed to contact target forge: " + targetURI);
+                var message = e.getCause().getMessage();
+                if (message != null) {
+                    System.err.println(message);
+                }
+                System.err.println("Skipping remote fork parent check");
+            }
+        }
+        return null;
+    }
+
+    private void setupSourceCredentials() throws IOException {
         var sourceScheme = sourceURI.getScheme();
         if (sourceScheme.equals("https") || sourceScheme.equals("http")) {
             var token = System.getenv("GIT_TOKEN");
@@ -263,7 +279,9 @@ public class GitSync {
                 sourceURI = URI.create(sourceScheme + "://" + credentials.username() + ":" + credentials.password() + "@" + sourceURI.getHost() + sourceURI.getPath());
             }
         }
+    }
 
+    private Credential setupTargetCredentials() throws IOException {
         var targetScheme = targetURI.getScheme();
         if (targetScheme.equals("https") || targetScheme.equals("http")) {
             var token = System.getenv("GIT_TOKEN");
@@ -285,7 +303,9 @@ public class GitSync {
             } else {
                 GitCredentials.approve(credentials);
             }
+            return new Credential(credentials.username(), credentials.password());
         }
+        return null;
     }
 
     public void sync() throws IOException, InterruptedException {
@@ -308,9 +328,6 @@ public class GitSync {
         // Setup source (from, upstream) and target (to, origin) repo names and URIs
         setupTargetAndSource();
         System.out.println("Will sync changes from " + sourceURI + " to " + targetURI);
-
-        // Assure we have proper credentials for pull and push operations
-        setupCredentials();
 
         var branches = new HashSet<String>();
         if (arguments.contains("branches")) {
@@ -430,6 +447,11 @@ public class GitSync {
         return canonicalA.equals(canonicalB);
     }
 
+    private static boolean sameHost(URI sourceUpstreamURI, URI targetURI) {
+        return sourceUpstreamURI.getHost().equals(targetURI.getHost());
+    }
+
+
     private static Arguments parseArguments(String[] args) {
         var flags = List.of(
             Option.shortcut("")
@@ -510,3 +532,4 @@ public class GitSync {
         commandExecutor.sync();
     }
 }
+
