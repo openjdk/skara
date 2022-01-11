@@ -23,6 +23,7 @@
 package org.openjdk.skara.cli;
 
 import org.openjdk.skara.args.*;
+import org.openjdk.skara.forge.Forge;
 import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.proxy.HttpProxy;
 import org.openjdk.skara.vcs.Repository;
@@ -172,7 +173,9 @@ public class GitFork {
         System.out.println("Creating fork of " + upstreamWebURI);
         var credentials = setupCredentials(upstreamWebURI);
 
-        var gitForge = ForgeUtils.from(upstreamWebURI, credentials);
+        // User Forge::from directly instead of ForgeUtils::from as any local repository
+        // here is not expected to be related to the remote
+        var gitForge = Forge.from(upstreamWebURI, credentials);
         if (gitForge.isEmpty()) {
             exit("error: could not connect to host " + upstreamWebURI.getHost());
         }
