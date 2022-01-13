@@ -70,10 +70,6 @@ class CSRBot implements Bot, WorkItem {
         var prs = repo.pullRequests();
 
         for (var pr : prs) {
-            if (!cache.needsUpdate(pr)) {
-                continue;
-            }
-
             var issue = org.openjdk.skara.vcs.openjdk.Issue.fromStringRelaxed(pr.title());
             if (issue.isEmpty()) {
                 log.info("No issue found in title for " + describe(pr));
