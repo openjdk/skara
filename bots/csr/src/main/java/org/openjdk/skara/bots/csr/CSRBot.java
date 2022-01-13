@@ -25,7 +25,6 @@ package org.openjdk.skara.bots.csr;
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.forge.PullRequest;
-import org.openjdk.skara.forge.PullRequestUpdateCache;
 import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.Link;
@@ -39,12 +38,10 @@ class CSRBot implements Bot, WorkItem {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final HostedRepository repo;
     private final IssueProject project;
-    private final PullRequestUpdateCache cache;
 
     CSRBot(HostedRepository repo, IssueProject project) {
         this.repo = repo;
         this.project = project;
-        this.cache = new PullRequestUpdateCache();
     }
 
     @Override
