@@ -405,11 +405,12 @@ public class GitLabRepository implements HostedRepository {
                       .param("after", fourDaysAgo.format(formatter))
                       .execute()
                       .stream()
-                      .filter(o -> o.contains("target_type") &&
-                                   o.get("target_type").asString().equals("Note"))
                       .filter(o -> o.contains("note") &&
                                    o.get("note").contains("noteable_type") &&
                                    o.get("note").get("noteable_type").asString().equals("Commit"))
+                      .filter(o -> o.contains("target_type") &&
+                                   !o.get("target_type").isNull() &&
+                                   o.get("target_type").asString().equals("Note"))
                       .filter(o -> o.contains("author") &&
                                    o.get("author").contains("id") &&
                                    !excludeAuthors.contains(o.get("author").get("id").asInt()))
