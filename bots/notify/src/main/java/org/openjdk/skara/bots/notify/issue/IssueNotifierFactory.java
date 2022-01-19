@@ -104,6 +104,10 @@ public class IssueNotifierFactory implements NotifierFactory {
             builder.namespace(notifierConfiguration.get("namespace").asString());
         }
 
+        if (notifierConfiguration.contains("headversion")) {
+            builder.useHeadVersion(notifierConfiguration.get("headversion").asBoolean());
+        }
+
         return builder.build();
     }
 }

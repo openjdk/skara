@@ -1080,6 +1080,70 @@ public class IssueNotifierTests {
     }
 
     @Test
+    void testIssueHeadVersion(TestInfo testInfo) throws IOException {
+        headVersionHelper(testInfo, true);
+    }
+    @Test
+    void testIssueHeadVersionFalse(TestInfo testInfo) throws IOException {
+        headVersionHelper(testInfo, false);
+    }
+
+    private void headVersionHelper(TestInfo testInfo, boolean useHeadVersion) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType(), Path.of("appendable.txt"), Set.of(), "1");
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+            var baseHash = localRepo.resolve("HEAD").orElseThrow();
+
+            var storageFolder = tempFolder.path().resolve("storage");
+            var issueProject = credentials.getIssueProject();
+            var jbsNotifierConfig = JSON.object()
+                    .put("fixversions", JSON.object())
+                    .put("headversion", JSON.of(useHeadVersion));
+            var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and commit a fix
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue");
+
+            // Update the fix version in a change parallel to the fix and then merge them together
+            localRepo.checkout(baseHash);
+            var jcheckConfFile = repoFolder.resolve(".jcheck/conf");
+            var jcheckConfContents = Files.readAllLines(jcheckConfFile).stream()
+                    .map(l -> l.startsWith("version=") ? "version=2" : l)
+                    .toList();
+            Files.write(jcheckConfFile, jcheckConfContents);
+            localRepo.add(jcheckConfFile);
+            var newVersionHash = localRepo.commit("Update fixversion", "testauthor", "ta@none.none");
+            localRepo.checkout(new Branch("master"));
+            localRepo.merge(newVersionHash);
+            var mergeHash = localRepo.commit("Merge", "testauthor", "ta@none.none");
+            localRepo.push(mergeHash, repo.url(), "master");
+
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The changeset should be reflected in a comment
+            var comments = issue.comments();
+            assertEquals(1, comments.size());
+            var comment = comments.get(0);
+            assertTrue(comment.body().contains(editHash.toString()));
+
+            // The fixVersion should be 1 or 2 depending useHeadVersion
+            if (useHeadVersion) {
+                assertEquals(Set.of("2"), fixVersions(issue));
+            } else {
+                assertEquals(Set.of("1"), fixVersions(issue));
+            }
+        }
+    }
+
+    @Test
     void testIssueConfiguredVersionNoCommit(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {

@@ -57,6 +57,9 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     private final HostedRepository censusRepository;
     private final String censusRef;
     private final String namespace;
+    // If true, use the version found in .jcheck/conf in the HEAD revision instead of the
+    // current commit when resolving fixVersion for a new commit.
+    private final boolean useHeadVersion;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
@@ -65,7 +68,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     IssueNotifier(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,
                   boolean setFixVersion, Map<String, String> fixVersions, Map<String, List<String>> altFixVersions,
                   JbsBackport jbsBackport, boolean prOnly, String buildName, HostedRepository censusRepository,
-                  String censusRef, String namespace) {
+                  String censusRef, String namespace, boolean useHeadVersion) {
         this.issueProject = issueProject;
         this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
@@ -80,6 +83,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         this.censusRepository = censusRepository;
         this.censusRef = censusRef;
         this.namespace = namespace;
+        this.useHeadVersion = useHeadVersion;
     }
 
     static IssueNotifierBuilder newBuilder() {
@@ -416,7 +420,8 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         var requestedVersion = fixVersions != null ? fixVersions.getOrDefault(branch, null) : null;
         if (requestedVersion == null) {
             try {
-                var conf = localRepository.lines(Path.of(".jcheck/conf"), commit.hash());
+                var hash = (useHeadVersion ? localRepository.resolve(branch).orElseThrow() : commit.hash());
+                var conf = localRepository.lines(Path.of(".jcheck/conf"), hash);
                 if (conf.isPresent()) {
                     var parsed = JCheckConfiguration.parse(conf.get());
                     var version = parsed.general().version();
