@@ -318,6 +318,8 @@ public class IntegrateCommand implements CommandHandler {
     }
 
     static void markIntegratedAndClosed(PullRequest pr, Hash hash, PrintWriter reply) {
+        // Note that the order of operations here is tested in IntegrateTests::retryAfterInterrupt
+        // so any change here requires careful update of that test
         pr.addLabel("integrated");
         pr.setState(PullRequest.State.CLOSED);
         pr.removeLabel("ready");
