@@ -234,7 +234,9 @@ class CheckWorkItem extends PullRequestWorkItem {
         if (!currentCheckValid(census, comments, activeReviews, labels)) {
             if (labels.contains("integrated")) {
                 log.info("Skipping check of integrated PR");
-                return List.of();
+                // We still need to make sure any commands get run or are able to finish a
+                // previously interrupted run
+                return List.of(new PullRequestCommandWorkItem(bot, pr, errorHandler));
             }
 
             var backportHashMatcher = BACKPORT_HASH_TITLE_PATTERN.matcher(pr.title());
