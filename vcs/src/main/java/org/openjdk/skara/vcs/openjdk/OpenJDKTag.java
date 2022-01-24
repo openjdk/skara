@@ -53,6 +53,7 @@ public class OpenJDKTag {
      * hs24-b30    -> hs24     24               -b           30
      * hs23.6-b19  -> hs23.6   23.6     .6      -b           19
      * 11.1+22     -> 11.1     11.1     .1      +            22
+     * 8u321-b03   -> 8u321    8u321    u321    -b           3
      */
 
     private final static String legacyOpenJDKVersionPattern = "(jdk([0-9]{1,2}(u[0-9]{1,3})?))";
@@ -60,11 +61,13 @@ public class OpenJDKTag {
     private final static String legacyBuildPattern = "(-b)([0-9]{2,3})";
     private final static String OpenJDKVersionPattern = "(jdk-([0-9]+(\\.[0-9]){0,3}))(\\+)([0-9]+)";
     private final static String OpenJFXVersionPattern = "((?:jdk-){0,1}([1-9](?:(?:[0-9]*)(\\.(?:0|[1-9][0-9]*)){0,3})))(?:(\\+)([0-9]+)|(-ga))";
+    private final static String legacyOpenJFXVersionPattern = "(([0-9](u[0-9]{1,3})?))";
 
     private final static List<Pattern> tagPatterns = List.of(Pattern.compile(legacyOpenJDKVersionPattern + legacyBuildPattern),
                                                              Pattern.compile(legacyHSVersionPattern + legacyBuildPattern),
                                                              Pattern.compile(OpenJDKVersionPattern),
-                                                             Pattern.compile(OpenJFXVersionPattern));
+                                                             Pattern.compile(OpenJFXVersionPattern),
+                                                             Pattern.compile(legacyOpenJFXVersionPattern + legacyBuildPattern));
 
     /**
      * Attempts to create an OpenJDKTag instance from a general Tag.
