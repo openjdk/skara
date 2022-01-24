@@ -111,4 +111,12 @@ class OpenJDKTagTests {
         assertEquals("12.1", jdkTag.version());
         assertTrue(jdkTag.buildNum().isEmpty());
     }
+
+    @Test
+    void parseLegacyJfxTags() {
+        var tag = new Tag("8u321-b03");
+        var jfxTag = OpenJDKTag.create(tag).orElseThrow();
+        assertEquals("8u321", jfxTag.version());
+        assertEquals(3, jfxTag.buildNum().orElseThrow());
+    }
 }
