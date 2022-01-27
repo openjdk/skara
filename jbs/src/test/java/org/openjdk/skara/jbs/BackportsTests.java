@@ -837,4 +837,37 @@ public class BackportsTests {
             backports.assertLabeled("openjdk8u312");
         }
     }
+
+    @Test
+    void jdk7u40(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "17");
+            backports.assertLabeled();
+
+            backports.addBackports("7u40/b31", "7u45", "8u60");
+            backports.assertLabeled("7u45");
+        }
+    }
+
+    @Test
+    void jdk8u26(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "17");
+            backports.assertLabeled();
+
+            backports.addBackports("8u26/b31", "8u30");
+            backports.assertLabeled("8u30");
+        }
+    }
+
+    @Test
+    void bpr7and8(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "17");
+            backports.assertLabeled();
+
+            backports.addBackports("8u291", "8u281/b30", "7u300/b30", "7u310");
+            backports.assertLabeled();
+        }
+    }
 }

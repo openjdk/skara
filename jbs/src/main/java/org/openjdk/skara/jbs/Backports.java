@@ -308,18 +308,22 @@ public class Backports {
                     ret.add(jdkVersion.feature() + "+updates-openjdk");
                 }
             } else if (numericFeature == 7 || numericFeature == 8) {
-                var resolvedInBuild = jdkVersion.resolvedInBuild();
-                if (resolvedInBuild.isPresent()) {
-                    if (!resolvedInBuild.get().equals("team")) { // Special case - team build resolved are ignored
-                        int resolvedInBuildNumber = jdkVersion.resolvedInBuildNumber();
-                        if (resolvedInBuildNumber < 31) {
-                            ret.add(jdkVersion.feature());
-                        } else if (resolvedInBuildNumber < 60) {
-                            ret.add(jdkVersion.feature() + "+bpr");
-                        }
-                    }
-                } else {
+                if (bprException(jdkVersion, numericFeature)) {
                     ret.add(jdkVersion.feature());
+                } else {
+                    var resolvedInBuild = jdkVersion.resolvedInBuild();
+                    if (resolvedInBuild.isPresent()) {
+                        if (!resolvedInBuild.get().equals("team")) { // Special case - team build resolved are ignored
+                            int resolvedInBuildNumber = jdkVersion.resolvedInBuildNumber();
+                            if (resolvedInBuildNumber < 30) {
+                                ret.add(jdkVersion.feature());
+                            } else if (resolvedInBuildNumber < 60) {
+                                ret.add(jdkVersion.feature() + "+bpr");
+                            }
+                        }
+                    } else {
+                        ret.add(jdkVersion.feature());
+                    }
                 }
             } else {
                 log.warning("Ignoring issue with unknown version: " + jdkVersion);
@@ -328,6 +332,21 @@ public class Backports {
             log.info("Cannot determine release streams for version: " + jdkVersion + " (" + e + ")");
         }
         return ret;
+    }
+
+    /**
+     * The general BPR rule cannot be applied to releases that have 30 or more actual builds.
+     *
+     * @return true if such a release is identified.
+     */
+    private static boolean bprException(JdkVersion jdkVersion, int numericFeature) {
+        if (jdkVersion.interim().isPresent()) {
+            var numericInterim = Integer.parseInt(jdkVersion.interim().get());
+            if ((numericFeature == 7 && numericInterim == 40) || (numericFeature == 8 && numericInterim == 26)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Split the issue list depending on the release stream
