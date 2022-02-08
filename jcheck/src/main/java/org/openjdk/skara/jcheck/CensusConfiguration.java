@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,7 +27,7 @@ import java.net.URI;
 
 public class CensusConfiguration {
     private static final CensusConfiguration DEFAULT =
-        new CensusConfiguration(0, "openjdk.org", URI.create("https://openjdk.java.net/census.xml"));
+        new CensusConfiguration(0, "localhost", URI.create("https://openjdk.java.net/census.xml"));
 
     private final int version;
     private final String domain;
