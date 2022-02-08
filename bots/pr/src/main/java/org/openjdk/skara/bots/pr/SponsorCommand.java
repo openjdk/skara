@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -136,9 +136,9 @@ public class SponsorCommand implements CommandHandler {
         }
     }
 
+    // This method only has one statement now, but it is kept intentionally to meet the change in the future.
     private void markIntegratedAndClosed(PullRequest pr, Hash amendedHash, PrintWriter reply) {
         IntegrateCommand.markIntegratedAndClosed(pr, amendedHash, reply);
-        pr.removeLabel("sponsor");
     }
 
     @Override
