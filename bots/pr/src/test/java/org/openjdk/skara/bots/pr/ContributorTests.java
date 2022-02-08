@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -264,7 +264,7 @@ class ContributorTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply
-            assertLastCommentContains(pr, "Contributor `Generated Committer 2 <integrationcommitter2@openjdk.org>` successfully added");
+            assertLastCommentContains(pr, "Contributor `Generated Committer 2 <integrationcommitter2@openjdk.java.net>` successfully added");
         }
     }
 
@@ -297,7 +297,7 @@ class ContributorTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply
-            assertLastCommentContains(pr, "Contributor `Generated Reviewer 1 <integrationreviewer1@openjdk.org>` successfully added");
+            assertLastCommentContains(pr, "Contributor `Generated Reviewer 1 <integrationreviewer1@openjdk.java.net>` successfully added");
         }
     }
 
