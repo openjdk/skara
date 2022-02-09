@@ -263,7 +263,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     @Override
     public void visit(BinaryIssue issue) {
-        addFailureMessage(issue.check(), "The binary file " + issue.path().toString() + " is not allowed in this repository.");
+        addFailureMessage(issue.check(), String.format("Binary files are not allowed (file: %s)", issue.path()));
         readyForReview = false;
     }
 
