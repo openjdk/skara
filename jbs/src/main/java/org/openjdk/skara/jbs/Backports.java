@@ -308,9 +308,10 @@ public class Backports {
                     ret.add(jdkVersion.feature() + "+updates-openjdk");
                 }
             } else if (numericFeature == 7 || numericFeature == 8) {
+                // For update releases, certain ranges of build numbers need special treatment
                 if (bprException(jdkVersion, numericFeature)) {
                     ret.add(jdkVersion.feature());
-                } else {
+                } else if (jdkVersion.interim().isPresent()) {
                     var resolvedInBuild = jdkVersion.resolvedInBuild();
                     if (resolvedInBuild.isPresent()) {
                         if (!resolvedInBuild.get().equals("team")) { // Special case - team build resolved are ignored
@@ -324,6 +325,8 @@ public class Backports {
                     } else {
                         ret.add(jdkVersion.feature());
                     }
+                } else {
+                    ret.add(jdkVersion.feature());
                 }
             } else {
                 log.warning("Ignoring issue with unknown version: " + jdkVersion);
