@@ -1468,13 +1468,13 @@ class IntegrateTests {
                     .count();
             assertEquals(0, notPushed);
 
-            // Mark the PR author as committer
+            // Mark the PR author a committer
             var committerCensusBuilder = credentials.getCensusBuilder()
                     .addCommitter(author.forge().currentUser().id())
                     .addReviewer(reviewer.forge().currentUser().id());
             var committerBot = PullRequestBot.newBuilder().repo(botUser).censusRepo(committerCensusBuilder.build()).build();
 
-            // Issue an integrate command with being a Committer
+            // Issue an integrate command while being a Committer
             authorPr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(committerBot);
 

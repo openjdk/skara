@@ -136,7 +136,6 @@ public class SponsorCommand implements CommandHandler {
         }
     }
 
-    // This method only has one statement now, but it is kept intentionally to meet the change in the future.
     private void markIntegratedAndClosed(PullRequest pr, Hash amendedHash, PrintWriter reply) {
         IntegrateCommand.markIntegratedAndClosed(pr, amendedHash, reply);
     }
