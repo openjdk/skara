@@ -53,6 +53,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     private final Map<String, List<String>> altFixVersions;
     private final JbsBackport jbsBackport;
     private final boolean prOnly;
+    private final boolean repoOnly;
     private final String buildName;
     private final HostedRepository censusRepository;
     private final String censusRef;
@@ -60,6 +61,11 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     // If true, use the version found in .jcheck/conf in the HEAD revision instead of the
     // current commit when resolving fixVersion for a new commit.
     private final boolean useHeadVersion;
+    // If set, use this repository for generating URLs to commits instead of the one
+    // supplied. This can be used to have the bot act on a mirror of the original
+    // repository but still generate links to the original. Only works for notifications
+    // on repository, not pull requests.
+    private final HostedRepository originalRepository;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
@@ -67,8 +73,9 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
 
     IssueNotifier(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,
                   boolean setFixVersion, Map<String, String> fixVersions, Map<String, List<String>> altFixVersions,
-                  JbsBackport jbsBackport, boolean prOnly, String buildName, HostedRepository censusRepository,
-                  String censusRef, String namespace, boolean useHeadVersion) {
+                  JbsBackport jbsBackport, boolean prOnly, boolean repoOnly, String buildName,
+                  HostedRepository censusRepository, String censusRef, String namespace, boolean useHeadVersion,
+                  HostedRepository originalRepository) {
         this.issueProject = issueProject;
         this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
@@ -79,11 +86,13 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         this.altFixVersions = altFixVersions;
         this.jbsBackport = jbsBackport;
         this.prOnly = prOnly;
+        this.repoOnly = repoOnly;
         this.buildName = buildName;
         this.censusRepository = censusRepository;
         this.censusRef = censusRef;
         this.namespace = namespace;
         this.useHeadVersion = useHeadVersion;
+        this.originalRepository = originalRepository;
     }
 
     static IssueNotifierBuilder newBuilder() {
@@ -131,7 +140,9 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
 
     @Override
     public void attachTo(Emitter e) {
-        e.registerPullRequestListener(this);
+        if (!repoOnly) {
+            e.registerPullRequestListener(this);
+        }
         if (!prOnly || buildName != null) {
             e.registerRepositoryListener(this);
         }
@@ -236,7 +247,8 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     @Override
     public void onNewCommits(HostedRepository repository, Repository localRepository, Path scratchPath, List<Commit> commits, Branch branch) {
         for (var commit : commits) {
-            var commitNotification = CommitFormatters.toTextBrief(repository, commit);
+            var linkRepository = originalRepository != null ? originalRepository : repository;
+            var commitNotification = CommitFormatters.toTextBrief(linkRepository, commit);
             var commitMessage = CommitMessageParsers.v1.parse(commit);
             var username = findIssueUsername(commit, scratchPath);
 
@@ -283,9 +295,9 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 }
 
                 var existingComments = issue.comments();
-                var hashUrl = repository.webUrl(commit.hash()).toString();
+                var hashUrl = linkRepository.webUrl(commit.hash()).toString();
                 // We used to store URLs with just the abbreviated hash, so need to check for both
-                var shortHashUrl = repository.webUrl(new Hash(commit.hash().abbreviate())).toString();
+                var shortHashUrl = linkRepository.webUrl(new Hash(commit.hash().abbreviate())).toString();
                 var alreadyPostedComment = existingComments.stream()
                         .filter(comment -> comment.author().equals(issueProject.issueTracker().currentUser()))
                         .anyMatch(comment -> comment.body().contains(hashUrl) || comment.body().contains(shortHashUrl));

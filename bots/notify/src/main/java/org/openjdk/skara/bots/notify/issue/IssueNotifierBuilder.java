@@ -39,11 +39,13 @@ class IssueNotifierBuilder {
     private Map<String, List<String>> altFixVersions = null;
     private JbsVault vault = null;
     private boolean prOnly = true;
+    private boolean repoOnly = false;
     private String buildName = null;
     private HostedRepository censusRepository = null;
     private String censusRef = null;
     private String namespace = "openjdk.org";
     private boolean useHeadVersion = false;
+    private HostedRepository originalRepository;
 
     IssueNotifierBuilder issueProject(IssueProject issueProject) {
         this.issueProject = issueProject;
@@ -96,6 +98,11 @@ class IssueNotifierBuilder {
         return this;
     }
 
+    public IssueNotifierBuilder repoOnly(boolean repoOnly) {
+        this.repoOnly = repoOnly;
+        return this;
+    }
+
     public IssueNotifierBuilder buildName(String buildName) {
         this.buildName = buildName;
         return this;
@@ -121,10 +128,15 @@ class IssueNotifierBuilder {
         return this;
     }
 
+    public IssueNotifierBuilder originalRepository(HostedRepository originalRepository) {
+        this.originalRepository = originalRepository;
+        return this;
+    }
+
     IssueNotifier build() {
         var jbsBackport = new JbsBackport(issueProject.issueTracker().uri(), vault);
         return new IssueNotifier(issueProject, reviewLink, reviewIcon, commitLink, commitIcon,
-                                 setFixVersion, fixVersions, altFixVersions, jbsBackport, prOnly, buildName,
-                                 censusRepository, censusRef, namespace, useHeadVersion);
+                setFixVersion, fixVersions, altFixVersions, jbsBackport, prOnly,
+                repoOnly, buildName, censusRepository, censusRef, namespace, useHeadVersion, originalRepository);
     }
 }
