@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -263,7 +263,8 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     @Override
     public void visit(BinaryIssue issue) {
-        log.fine("ignored: binary file");
+        addFailureMessage(issue.check(), "The binary file " + issue.path().toString() + " is not allowed in this repository.");
+        readyForReview = false;
     }
 
     @Override
