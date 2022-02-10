@@ -40,4 +40,18 @@ public class TestUtils {
         return new StorageBuilder<PullRequestState>("prissues.txt")
                 .remoteRepository(repository, "history", "Duke", "duke@openjdk.java.net", "Updated prissues");
     }
+
+    // Test implementation of a RepositoryListener that does nothing
+    public static class NullRepositoryListener implements RepositoryListener {
+
+        @Override
+        public String name() {
+            return "null";
+        }
+
+        @Override
+        public boolean idempotent() {
+            return true;
+        }
+    }
 }

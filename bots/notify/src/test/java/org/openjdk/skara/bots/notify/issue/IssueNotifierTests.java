@@ -116,6 +116,8 @@ public class IssueNotifierTests {
                                       .reviewLink(false)
                                       .commitIcon(commitIcon)
                                       .build();
+            // Register a RepositoryListener to make history initialize on the first run
+            notifyBot.registerRepositoryListener(new NullRepositoryListener());
             updater.attachTo(notifyBot);
 
             // Initialize history
@@ -1386,6 +1388,71 @@ public class IssueNotifierTests {
             if (level != null) {
                 assertEquals(level.asString(), backport.properties().get("security").asString());
             }
+        }
+    }
+
+    @Test
+    void testIssueOriginalRepo(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var repo = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var issueProject = credentials.getIssueProject();
+            var storageFolder = tempFolder.path().resolve("storage");
+            var originalRepo = credentials.getHostedRepository("original");
+            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object())
+                    .put("buildname", "team")
+                    .put("originalrepository", "original")
+                    .put("repoonly", JSON.of(true));
+            var testBotFactoryBuilder = testBotBuilderFactory(repo, issueProject, storageFolder, jbsNotifierConfig);
+            testBotFactoryBuilder.addHostedRepository("original", originalRepo);
+            var notifyBot = testBotFactoryBuilder.build().create("notify", JSON.object());
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and commit a fix
+            var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
+            localRepo.push(editHash, repo.url(), "master");
+            // Also create a pull request that should not get processed due to repoonly being set
+            localRepo.push(editHash, repo.url(), "edit", true);
+            var pr = credentials.createPullRequest(repo, "edit", "master", issue.id() + ": Fix that issue");
+            pr.setBody("\n\n### Issue\n * [" + issue.id() + "](http://www.test.test/): The issue");
+            pr.addLabel("rfr");
+            var reviewPr = reviewer.pullRequest(pr.id());
+            reviewPr.addComment("This is now ready");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // No PR link should have been added
+            var links = issue.links();
+            assertEquals(0, links.size());
+
+            // The changeset should be reflected in a comment
+            var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+
+            var comments = updatedIssue.comments();
+            assertEquals(1, comments.size());
+            var comment = comments.get(0);
+            assertTrue(comment.body().contains(editHash.toString()));
+            // Verify that the 'original' repo URL is used in the comment and not the main one
+            assertTrue(comment.body().contains(originalRepo.url().toString()));
+            assertFalse(comment.body().contains(repo.url().toString()));
+
+            // As well as a fixVersion and a resolved in build
+            assertEquals(Set.of("0.1"), fixVersions(updatedIssue));
+            assertEquals("team", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
+
+            // The issue should be assigned and resolved
+            assertEquals(RESOLVED, updatedIssue.state());
+            assertEquals(List.of(issueProject.issueTracker().currentUser()), updatedIssue.assignees());
         }
     }
 
