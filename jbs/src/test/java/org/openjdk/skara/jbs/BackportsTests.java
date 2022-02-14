@@ -870,4 +870,15 @@ public class BackportsTests {
             backports.assertLabeled();
         }
     }
+
+    @Test
+    void jdk8ub130(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "8/b130");
+            backports.assertLabeled();
+
+            backports.addBackports("9", "7u111", "openjdk7u", "6u121", "8u5");
+            backports.assertLabeled("8u5");
+        }
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1410,6 +1410,98 @@ class IntegrateTests {
             // Ready and deferred labels should have been removed
             assertFalse(authorPr.labelNames().contains("ready"));
             assertFalse(authorPr.labelNames().contains("deferred"));
+        }
+    }
+
+    /**
+     * When an author types the command `/integrate`, the label `sponsor` should be added.
+     * If the author becomes a committer and types the command `/integrate` again,
+     * the label `sponsor` should be removed which is similar to the labels `rfr` and `ready`.
+     */
+    @Test
+    void sponsor(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory();
+             var pushedFolder = new TemporaryDirectory()) {
+
+            var botUser = credentials.getHostedRepository();
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var authorBot = PullRequestBot.newBuilder().repo(botUser).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "refs/heads/edit", true);
+            var authorPr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Approve it as another user
+            var reviewerPr = reviewer.pullRequest(authorPr.id());
+            reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // Issue an integrate command without being a Committer
+            authorPr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(authorBot);
+
+            // The bot should reply that a sponsor is required
+            var sponsor = authorPr.comments().stream()
+                    .filter(comment -> comment.body().contains("sponsor"))
+                    .filter(comment -> comment.body().contains("your change"))
+                    .count();
+            assertEquals(1, sponsor);
+            assertFalse(authorPr.labelNames().contains("integrated"));
+            assertTrue(authorPr.labelNames().contains("sponsor"));
+            assertTrue(authorPr.labelNames().contains("rfr"));
+            assertTrue(authorPr.labelNames().contains("ready"));
+
+            // The bot should not have pushed the commit
+            var notPushed = authorPr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .count();
+            assertEquals(0, notPushed);
+
+            // Mark the PR author a committer
+            var committerCensusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var committerBot = PullRequestBot.newBuilder().repo(botUser).censusRepo(committerCensusBuilder.build()).build();
+
+            // Issue an integrate command while being a Committer
+            authorPr.addComment("/integrate");
+            TestBotRunner.runPeriodicItems(committerBot);
+
+            // The bot should have pushed the commit
+            var pushed = authorPr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .count();
+            assertEquals(1, pushed);
+
+            // The corresponding labels should have been adjusted
+            assertTrue(authorPr.labelNames().contains("integrated"));
+            assertFalse(authorPr.labelNames().contains("sponsor"));
+            assertFalse(authorPr.labelNames().contains("rfr"));
+            assertFalse(authorPr.labelNames().contains("ready"));
+
+            // The change should now be present on the master branch
+            var pushedRepo = Repository.materialize(pushedFolder.path(), author.url(), "master");
+            assertTrue(CheckableRepository.hasBeenEdited(pushedRepo));
+
+            var headHash = pushedRepo.resolve("HEAD").orElseThrow();
+            var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
+
+            // Verify that the author and committer of the change are the correct users
+            assertEquals("Generated Committer 1", headCommit.author().name());
+            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
+            assertEquals("Generated Committer 1", headCommit.committer().name());
+            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
         }
     }
 }
