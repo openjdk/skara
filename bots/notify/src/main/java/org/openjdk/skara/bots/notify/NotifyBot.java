@@ -117,32 +117,36 @@ public class NotifyBot implements Bot, Emitter {
         var ret = new LinkedList<WorkItem>();
         List<PullRequest> prs;
 
-        // Fetch all open pull requests periodically, and just the recently updated ones in between
-        if (lastFullUpdate == null || lastFullUpdate.isBefore(ZonedDateTime.now().minus(Duration.ofMinutes(10)))) {
-            lastFullUpdate = ZonedDateTime.now();
-            log.info("Fetching all open pull requests");
-            prs = repository.pullRequests();
-        } else {
-            log.info("Fetching recently updated pull requests (open and closed)");
-            prs = repository.pullRequests(ZonedDateTime.now().minus(Duration.ofDays(14)));
-        }
+        if (!prListeners.isEmpty()) {
+            // Fetch all open pull requests periodically, and just the recently updated ones in between
+            if (lastFullUpdate == null || lastFullUpdate.isBefore(ZonedDateTime.now().minus(Duration.ofMinutes(10)))) {
+                lastFullUpdate = ZonedDateTime.now();
+                log.info("Fetching all open pull requests");
+                prs = repository.pullRequests();
+            } else {
+                log.info("Fetching recently updated pull requests (open and closed)");
+                prs = repository.pullRequests(ZonedDateTime.now().minus(Duration.ofDays(14)));
+            }
 
-        // Pull request events
-        for (var pr : prs) {
-            if (updateCache.needsUpdate(pr)) {
-                if (!isOfInterest(pr)) {
-                    continue;
+            // Pull request events
+            for (var pr : prs) {
+                if (updateCache.needsUpdate(pr)) {
+                    if (!isOfInterest(pr)) {
+                        continue;
+                    }
+                    ret.add(new PullRequestWorkItem(pr,
+                            prStateStorageBuilder,
+                            prListeners,
+                            e -> updateCache.invalidate(pr),
+                            integratorId));
                 }
-                ret.add(new PullRequestWorkItem(pr,
-                                                prStateStorageBuilder,
-                                                prListeners,
-                                                e -> updateCache.invalidate(pr),
-                                                integratorId));
             }
         }
 
         // Repository events
-        ret.add(new RepositoryWorkItem(repository, storagePath, branches, tagStorageBuilder, branchStorageBuilder, repoListeners));
+        if (!repoListeners.isEmpty()) {
+            ret.add(new RepositoryWorkItem(repository, storagePath, branches, tagStorageBuilder, branchStorageBuilder, repoListeners));
+        }
 
         return ret;
     }

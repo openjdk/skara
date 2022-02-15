@@ -60,6 +60,8 @@ public class CommitCommentNotifierTests {
                                      .prStateStorageBuilder(prStateStorage)
                                      .integratorId(repo.forge().currentUser().id())
                                      .build();
+            // Register a RepositoryListener to make history initialize on the first run
+            notifyBot.registerRepositoryListener(new NullRepositoryListener());
             var notifier = new CommitCommentNotifier(issueProject);
             notifier.attachTo(notifyBot);
 
@@ -127,6 +129,8 @@ public class CommitCommentNotifierTests {
                                      .prStateStorageBuilder(prStateStorage)
                                      .integratorId(repo.forge().currentUser().id())
                                      .build();
+            // Register a RepositoryListener to make history initialize on the first run
+            notifyBot.registerRepositoryListener(new NullRepositoryListener());
             var notifier = new CommitCommentNotifier(issueProject);
             notifier.attachTo(notifyBot);
 
@@ -194,6 +198,8 @@ public class CommitCommentNotifierTests {
                     .prStateStorageBuilder(prStateStorage)
                     .integratorId(repo.forge().currentUser().id())
                     .build();
+            // Register a RepositoryListener to make history initialize on the first run
+            notifyBot.registerRepositoryListener(new NullRepositoryListener());
             var notifier = new CommitCommentNotifier(issueProject);
             notifier.attachTo(notifyBot);
 

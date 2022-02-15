@@ -96,6 +96,10 @@ public class IssueNotifierFactory implements NotifierFactory {
             builder.prOnly(notifierConfiguration.get("pronly").asBoolean());
         }
 
+        if (notifierConfiguration.contains("repoonly")) {
+            builder.repoOnly(notifierConfiguration.get("repoonly").asBoolean());
+        }
+
         if (notifierConfiguration.contains("census")) {
             builder.censusRepository(botConfiguration.repository(notifierConfiguration.get("census").asString()));
             builder.censusRef(botConfiguration.repositoryRef(notifierConfiguration.get("census").asString()));
@@ -106,6 +110,10 @@ public class IssueNotifierFactory implements NotifierFactory {
 
         if (notifierConfiguration.contains("headversion")) {
             builder.useHeadVersion(notifierConfiguration.get("headversion").asBoolean());
+        }
+
+        if (notifierConfiguration.contains("originalrepository")) {
+            builder.originalRepository(botConfiguration.repository(notifierConfiguration.get("originalrepository").asString()));
         }
 
         return builder.build();
