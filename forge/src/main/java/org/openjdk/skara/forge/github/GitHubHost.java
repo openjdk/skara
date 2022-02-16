@@ -50,6 +50,10 @@ public class GitHubHost implements Forge {
     private volatile Instant lastSearch = Instant.now();
     private final Logger log = Logger.getLogger("org.openjdk.skara.forge.github");
     private final Set<String> orgs;
+    // If this Forge is created as offline, it will avoid making remote calls
+    // when not needed. This is currently limited to only prevent validation
+    // when creating a repository object.
+    private final boolean offline;
 
     public GitHubHost(URI uri, GitHubApplication application, Pattern webUriPattern, String webUriReplacement, Set<String> orgs) {
         this.uri = uri;
@@ -58,6 +62,7 @@ public class GitHubHost implements Forge {
         this.application = application;
         this.pat = null;
         this.orgs = orgs;
+        offline = false;
         searchInterval = Duration.ofSeconds(3);
 
         var baseApi = URIBuilder.base(uri)
@@ -99,6 +104,7 @@ public class GitHubHost implements Forge {
         this.pat = pat;
         this.application = null;
         this.orgs = orgs;
+        offline = false;
         searchInterval = Duration.ofSeconds(3);
 
         var baseApi = URIBuilder.base(uri)
@@ -126,13 +132,14 @@ public class GitHubHost implements Forge {
         ));
     }
 
-    GitHubHost(URI uri, Pattern webUriPattern, String webUriReplacement, Set<String> orgs) {
+    GitHubHost(URI uri, Pattern webUriPattern, String webUriReplacement, Set<String> orgs, boolean offline) {
         this.uri = uri;
         this.webUriPattern = webUriPattern;
         this.webUriReplacement = webUriReplacement;
         this.pat = null;
         this.application = null;
         this.orgs = orgs;
+        this.offline = offline;
         searchInterval = Duration.ofSeconds(10);
 
         var baseApi = URIBuilder.base(uri)
@@ -271,8 +278,12 @@ public class GitHubHost implements Forge {
 
     @Override
     public Optional<HostedRepository> repository(String name) {
-        return getProjectInfo(name)
-                .map(jsonObject -> new GitHubRepository(this, name, jsonObject));
+        if (offline) {
+            return Optional.of(new GitHubRepository(this, name));
+        } else {
+            return getProjectInfo(name)
+                    .map(jsonObject -> new GitHubRepository(this, name, jsonObject));
+        }
     }
 
     @Override

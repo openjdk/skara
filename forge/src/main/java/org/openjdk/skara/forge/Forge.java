@@ -59,7 +59,11 @@ public interface Forge extends Host {
     }
 
     static Forge from(String name, URI uri) {
-        return from(name, uri, null);
+        return from(name, uri, (Credential) null);
+    }
+
+    static Forge from(String name, URI uri, JSONObject configuration) {
+        return from(name, uri, null, configuration);
     }
 
     static Optional<Forge> from(URI uri, Credential credential, JSONObject configuration) {

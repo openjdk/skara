@@ -93,9 +93,11 @@ public class BotRunnerConfiguration {
                     } catch (IOException e) {
                         throw new ConfigurationError("Cannot find key file: " + keyFile);
                     }
-                } else {
+                } else if (github.contains("username")) {
                     var pat = new Credential(github.get("username").asString(), github.get("pat").asString());
                     ret.put(entry.name(), Forge.from("github", uri, pat, github.asObject()));
+                } else {
+                    ret.put(entry.name(), Forge.from("github", uri, github.asObject()));
                 }
             } else {
                 throw new ConfigurationError("Host " + entry.name());
