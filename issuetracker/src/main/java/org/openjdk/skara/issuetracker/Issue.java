@@ -135,6 +135,15 @@ public interface Issue {
     }
 
     /**
+     * By default this issue is considered fixed if it has been resolved.
+     * For specific implementations, this may require additional criteria,
+     * like not having been rejected.
+     */
+    default boolean isFixed() {
+        return isResolved();
+    }
+
+    /**
      * Set the state.
      * @param state Desired state
      */

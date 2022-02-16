@@ -181,6 +181,21 @@ public class JiraIssue implements Issue {
         }
     }
 
+    /**
+     * A Jira issue is considered fixed if it's either resolved or closed and
+     * the resolution is "Fixed".
+     */
+    @Override
+    public boolean isFixed() {
+        if (isResolved() || isClosed()) {
+            var resolution = json.get("fields").get("resolution");
+            if (!resolution.isNull()) {
+                return "Fixed".equals(resolution.get("name").asString());
+            }
+        }
+        return false;
+    }
+
     private Map<String, String> availableTransitions() {
         var transitions = request.get("/transitions").execute();
         return transitions.get("transitions").stream()
