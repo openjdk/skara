@@ -53,6 +53,11 @@ public class GitHubForgeFactory implements ForgeFactory {
             webUriReplacement = configuration.get("weburl").get("replacement").asString();
         }
 
+        var offline = false;
+        if (configuration.contains("offline")) {
+            offline = configuration.get("offline").asBoolean();
+        }
+
         Set<String> orgs = new HashSet<>();
         if (configuration != null && configuration.contains("orgs")) {
             orgs = configuration.get("orgs")
@@ -72,7 +77,7 @@ public class GitHubForgeFactory implements ForgeFactory {
                 return new GitHubHost(uri, credential, webUriPattern, webUriReplacement, orgs);
             }
         } else {
-            return new GitHubHost(uri, webUriPattern, webUriReplacement, orgs);
+            return new GitHubHost(uri, webUriPattern, webUriReplacement, orgs, offline);
         }
     }
 }

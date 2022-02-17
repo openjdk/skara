@@ -39,7 +39,7 @@ class GitHubHostTests {
         try (var tempFolder = new TemporaryDirectory()) {
             var host = new GitHubHost(URIBuilder.base("http://www.example.com").build(),
                                       Pattern.compile("^(http://www.example.com)/test/(.*)$"), "$1/another/$2",
-                                      Set.of());
+                                      Set.of(), false);
             assertEquals(new URI("http://www.example.com/another/hello"), host.getWebURI("/test/hello"));
         }
     }
@@ -49,7 +49,7 @@ class GitHubHostTests {
         try (var tempFolder = new TemporaryDirectory()) {
             var host = new GitHubHost(URIBuilder.base("http://www.example.com").build(),
                                       Pattern.compile("^(http://www.example.com)/test/(.*)$"), "$1/another/$2",
-                                      Set.of());
+                                      Set.of(), false);
             assertEquals(new URI("http://www.example.com/another/hello"), host.getWebURI("/test/hello"));
             assertEquals(new URI("http://www.example.com/test/hello"), host.getWebURI("/test/hello", false));
         }
