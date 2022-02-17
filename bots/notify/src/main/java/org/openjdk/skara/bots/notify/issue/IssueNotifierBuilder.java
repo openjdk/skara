@@ -46,7 +46,7 @@ class IssueNotifierBuilder {
     private String namespace = "openjdk.org";
     private boolean useHeadVersion = false;
     private HostedRepository originalRepository;
-    private boolean resolveFromPr = true;
+    private boolean resolve = true;
 
     IssueNotifierBuilder issueProject(IssueProject issueProject) {
         this.issueProject = issueProject;
@@ -74,6 +74,7 @@ class IssueNotifierBuilder {
     }
 
     public IssueNotifierBuilder setFixVersion(boolean setFixVersion) {
+        prOnly = false;
         this.setFixVersion = setFixVersion;
         return this;
     }
@@ -133,9 +134,17 @@ class IssueNotifierBuilder {
         return this;
     }
 
-    public IssueNotifierBuilder resolveFromPr(boolean resolveFromPr) {
-        this.resolveFromPr = resolveFromPr;
+    public IssueNotifierBuilder resolve(boolean resolve) {
+        this.resolve = resolve;
         return this;
+    }
+
+    public boolean prOnly() {
+        return prOnly;
+    }
+
+    public boolean resolve() {
+        return resolve;
     }
 
     IssueNotifier build() {
@@ -143,6 +152,6 @@ class IssueNotifierBuilder {
         return new IssueNotifier(issueProject, reviewLink, reviewIcon, commitLink, commitIcon,
                 setFixVersion, fixVersions, altFixVersions, jbsBackport, prOnly,
                 repoOnly, buildName, censusRepository, censusRef, namespace, useHeadVersion, originalRepository,
-                resolveFromPr);
+                resolve);
     }
 }

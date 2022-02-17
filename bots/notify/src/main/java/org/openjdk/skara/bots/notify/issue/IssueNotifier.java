@@ -67,7 +67,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     // on repository, not pull requests.
     private final HostedRepository originalRepository;
     // If true, Issues will be resolved on a PR integration event.
-    private final boolean resolveFromPr;
+    private final boolean resolve;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
@@ -77,7 +77,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                   boolean setFixVersion, Map<String, String> fixVersions, Map<String, List<String>> altFixVersions,
                   JbsBackport jbsBackport, boolean prOnly, boolean repoOnly, String buildName,
                   HostedRepository censusRepository, String censusRef, String namespace, boolean useHeadVersion,
-                  HostedRepository originalRepository, boolean resolveFromPr) {
+                  HostedRepository originalRepository, boolean resolve) {
         this.issueProject = issueProject;
         this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
@@ -95,7 +95,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         this.namespace = namespace;
         this.useHeadVersion = useHeadVersion;
         this.originalRepository = originalRepository;
-        this.resolveFromPr = resolveFromPr;
+        this.resolve = resolve;
     }
 
     static IssueNotifierBuilder newBuilder() {
@@ -178,8 +178,8 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 issue.addLink(linkBuilder.build());
             }
 
-            // Resolving issues can happen either here or when processing commits
-            if (resolveFromPr) {
+            // If prOnly is false, this is instead done when processing commits
+            if (prOnly && resolve) {
                 if (issue.state() == Issue.State.OPEN) {
                     issue.setState(Issue.State.RESOLVED);
                     if (issue.assignees().isEmpty()) {

@@ -64,8 +64,6 @@ public class IssueNotifierFactory implements NotifierFactory {
 
         if (notifierConfiguration.contains("fixversions")) {
             builder.setFixVersion(true);
-            builder.prOnly(false);
-            builder.resolveFromPr(false);
             builder.fixVersions(notifierConfiguration.get("fixversions").fields().stream()
                                                       .collect(Collectors.toMap(JSONObject.Field::name,
                                                                                 f -> f.value().asString())));
@@ -98,8 +96,11 @@ public class IssueNotifierFactory implements NotifierFactory {
             builder.prOnly(notifierConfiguration.get("pronly").asBoolean());
         }
 
-        if (notifierConfiguration.contains("resolvefrompr")) {
-            builder.resolveFromPr(notifierConfiguration.get("resolvefrompr").asBoolean());
+        if (notifierConfiguration.contains("resolve")) {
+            builder.resolve(notifierConfiguration.get("resolve").asBoolean());
+            if (!builder.resolve() && !builder.prOnly()) {
+                throw new RuntimeException("Cannot disable resolve when pronly is false");
+            }
         }
 
         if (notifierConfiguration.contains("repoonly")) {
