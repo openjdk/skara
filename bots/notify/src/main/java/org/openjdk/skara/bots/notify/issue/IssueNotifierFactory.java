@@ -96,6 +96,13 @@ public class IssueNotifierFactory implements NotifierFactory {
             builder.prOnly(notifierConfiguration.get("pronly").asBoolean());
         }
 
+        if (notifierConfiguration.contains("resolve")) {
+            builder.resolve(notifierConfiguration.get("resolve").asBoolean());
+            if (!builder.resolve() && !builder.prOnly()) {
+                throw new RuntimeException("Cannot disable resolve when pronly is false");
+            }
+        }
+
         if (notifierConfiguration.contains("repoonly")) {
             builder.repoOnly(notifierConfiguration.get("repoonly").asBoolean());
         }

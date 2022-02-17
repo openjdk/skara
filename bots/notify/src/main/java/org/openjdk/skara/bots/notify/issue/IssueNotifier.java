@@ -66,6 +66,9 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     // repository but still generate links to the original. Only works for notifications
     // on repository, not pull requests.
     private final HostedRepository originalRepository;
+    // Controls whether the notifier should try to resolve issues. Only valid when
+    // pronly is true.
+    private final boolean resolve;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
@@ -75,7 +78,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                   boolean setFixVersion, Map<String, String> fixVersions, Map<String, List<String>> altFixVersions,
                   JbsBackport jbsBackport, boolean prOnly, boolean repoOnly, String buildName,
                   HostedRepository censusRepository, String censusRef, String namespace, boolean useHeadVersion,
-                  HostedRepository originalRepository) {
+                  HostedRepository originalRepository, boolean resolve) {
         this.issueProject = issueProject;
         this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
@@ -93,6 +96,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         this.namespace = namespace;
         this.useHeadVersion = useHeadVersion;
         this.originalRepository = originalRepository;
+        this.resolve = resolve;
     }
 
     static IssueNotifierBuilder newBuilder() {
@@ -176,7 +180,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
             }
 
             // If prOnly is false, this is instead done when processing commits
-            if (prOnly) {
+            if (prOnly && resolve) {
                 if (issue.state() == Issue.State.OPEN) {
                     issue.setState(Issue.State.RESOLVED);
                     if (issue.assignees().isEmpty()) {
