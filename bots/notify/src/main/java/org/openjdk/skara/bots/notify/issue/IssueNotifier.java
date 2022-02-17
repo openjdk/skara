@@ -66,7 +66,8 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     // repository but still generate links to the original. Only works for notifications
     // on repository, not pull requests.
     private final HostedRepository originalRepository;
-    // If true, Issues will be resolved on a PR integration event.
+    // Controls whether the notifier should try to resolve issues. Only valid when
+    // pronly is true.
     private final boolean resolve;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
