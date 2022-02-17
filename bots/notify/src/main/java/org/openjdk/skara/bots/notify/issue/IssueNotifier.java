@@ -66,6 +66,8 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     // repository but still generate links to the original. Only works for notifications
     // on repository, not pull requests.
     private final HostedRepository originalRepository;
+    // If true, Issues will be resolved on a PR integration event.
+    private final boolean resolveFromPr;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
@@ -75,7 +77,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                   boolean setFixVersion, Map<String, String> fixVersions, Map<String, List<String>> altFixVersions,
                   JbsBackport jbsBackport, boolean prOnly, boolean repoOnly, String buildName,
                   HostedRepository censusRepository, String censusRef, String namespace, boolean useHeadVersion,
-                  HostedRepository originalRepository) {
+                  HostedRepository originalRepository, boolean resolveFromPr) {
         this.issueProject = issueProject;
         this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
@@ -93,6 +95,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         this.namespace = namespace;
         this.useHeadVersion = useHeadVersion;
         this.originalRepository = originalRepository;
+        this.resolveFromPr = resolveFromPr;
     }
 
     static IssueNotifierBuilder newBuilder() {
@@ -175,8 +178,8 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 issue.addLink(linkBuilder.build());
             }
 
-            // If prOnly is false, this is instead done when processing commits
-            if (prOnly) {
+            // Resolving issues can happen either here or when processing commits
+            if (resolveFromPr) {
                 if (issue.state() == Issue.State.OPEN) {
                     issue.setState(Issue.State.RESOLVED);
                     if (issue.assignees().isEmpty()) {

@@ -64,6 +64,8 @@ public class IssueNotifierFactory implements NotifierFactory {
 
         if (notifierConfiguration.contains("fixversions")) {
             builder.setFixVersion(true);
+            builder.prOnly(false);
+            builder.resolveFromPr(false);
             builder.fixVersions(notifierConfiguration.get("fixversions").fields().stream()
                                                       .collect(Collectors.toMap(JSONObject.Field::name,
                                                                                 f -> f.value().asString())));
@@ -94,6 +96,10 @@ public class IssueNotifierFactory implements NotifierFactory {
 
         if (notifierConfiguration.contains("pronly")) {
             builder.prOnly(notifierConfiguration.get("pronly").asBoolean());
+        }
+
+        if (notifierConfiguration.contains("resolvefrompr")) {
+            builder.resolveFromPr(notifierConfiguration.get("resolvefrompr").asBoolean());
         }
 
         if (notifierConfiguration.contains("repoonly")) {
