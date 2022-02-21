@@ -48,22 +48,25 @@ public class GitHubForgeFactory implements ForgeFactory {
     public Forge create(URI uri, Credential credential, JSONObject configuration) {
         Pattern webUriPattern = null;
         String webUriReplacement = null;
-        if (configuration != null && configuration.contains("weburl")) {
-            webUriPattern = Pattern.compile(configuration.get("weburl").get("pattern").asString());
-            webUriReplacement = configuration.get("weburl").get("replacement").asString();
-        }
-
         var offline = false;
-        if (configuration.contains("offline")) {
-            offline = configuration.get("offline").asBoolean();
-        }
-
         Set<String> orgs = new HashSet<>();
-        if (configuration != null && configuration.contains("orgs")) {
-            orgs = configuration.get("orgs")
-                                .stream()
-                                .map(JSONValue::asString)
-                                .collect(Collectors.toSet());
+
+        if (configuration != null) {
+            if (configuration.contains("weburl")) {
+                webUriPattern = Pattern.compile(configuration.get("weburl").get("pattern").asString());
+                webUriReplacement = configuration.get("weburl").get("replacement").asString();
+            }
+
+            if (configuration.contains("offline")) {
+                offline = configuration.get("offline").asBoolean();
+            }
+
+            if (configuration.contains("orgs")) {
+                orgs = configuration.get("orgs")
+                    .stream()
+                    .map(JSONValue::asString)
+                    .collect(Collectors.toSet());
+            }
         }
 
         if (credential != null) {
