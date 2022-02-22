@@ -870,7 +870,7 @@ class CheckRun {
                           "\n\n" +
                           "```\n" +
                           "$ git checkout " + pr.sourceRef() + "\n" +
-                          "$ git commit -c user.name='Preferred Full Name' --allow-empty -m 'Update full name'\n" +
+                          "$ git commit --author='Preferred Full Name <you@example.com>' --allow-empty -m 'Update full name'\n" +
                           "$ git push\n" +
                           "```\n";
             pr.addComment(fullNameWarningMarker + "\n" + message);
