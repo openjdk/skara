@@ -196,7 +196,13 @@ public class BotRunner {
                     item.handleRuntimeException(e);
                 } catch (RuntimeException e) {
                     EXCEPTIONS_COUNTER.labels(item.botName(), item.workItemName(), e.getClass().getName()).inc();
-                    log.log(Level.SEVERE, "Exception during item execution (" + item + "): " + e.getMessage(), e);
+                    if (e.getCause() instanceof UncheckedRestException) {
+                        // Log as WARNING to avoid triggering alarms. Failed REST calls are tracked
+                        // using metrics.
+                        log.log(Level.WARNING, "RestException during item execution (" + item + ")", e.getCause());
+                    } else {
+                        log.log(Level.SEVERE, "Exception during item execution (" + item + "): " + e.getMessage(), e);
+                    }
                     item.handleRuntimeException(e);
                 } finally {
                     log.log(Level.FINE, "Item " + item + " is now done", TaskPhases.END);
