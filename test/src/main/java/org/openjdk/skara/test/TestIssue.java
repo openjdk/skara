@@ -164,8 +164,8 @@ public class TestIssue implements Issue {
     }
 
     /**
-     * This implementation mimics the JiraIssue definitions of isFixed and is
-     * needed to test Backports behavior.
+     * This implementation mimics the JiraIssue definition of isFixed and is
+     * needed to test handling of backports.
      */
     @Override
     public boolean isFixed() {
