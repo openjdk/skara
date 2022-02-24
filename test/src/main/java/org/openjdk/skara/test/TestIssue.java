@@ -158,7 +158,24 @@ public class TestIssue implements Issue {
         data.state = state;
         data.lastUpdate = ZonedDateTime.now();
         data.closedBy = user;
-        data.properties.put("resolution", JSON.object().put("name", JSON.of("Fixed")));
+        if (state == State.RESOLVED || state == State.CLOSED) {
+            data.properties.put("resolution", JSON.object().put("name", JSON.of("Fixed")));
+        }
+    }
+
+    /**
+     * This implementation mimics the JiraIssue definitions of isFixed and is
+     * needed to test Backports behavior.
+     */
+    @Override
+    public boolean isFixed() {
+        if (isResolved() || isClosed()) {
+            var resolution = data.properties.get("resolution");
+            if (!resolution.isNull()) {
+                return "Fixed".equals(resolution.get("name").asString());
+            }
+        }
+        return false;
     }
 
     @Override

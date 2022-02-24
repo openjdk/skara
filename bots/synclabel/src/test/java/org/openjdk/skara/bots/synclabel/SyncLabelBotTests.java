@@ -25,6 +25,7 @@ package org.openjdk.skara.bots.synclabel;
 import org.junit.jupiter.api.*;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.JSON;
+import org.openjdk.skara.json.JSONObject;
 import org.openjdk.skara.test.*;
 
 import java.io.IOException;
@@ -383,6 +384,39 @@ public class SyncLabelBotTests {
             assertEquals(List.of(), issue2.labelNames());
             assertEquals(List.of(), issue3.labelNames());
             assertEquals(List.of("hgupdate-sync"), issue4.labelNames());
+        }
+    }
+
+    @Test
+    void testMainIssueNotFixed(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var storageFolder = tempFolder.path().resolve("storage");
+            var issueProject = credentials.getIssueProject();
+            var syncLabelBot = testBotBuilder(issueProject, storageFolder).create("synclabel", JSON.object());
+
+            var issue1 = credentials.createIssue(issueProject, "Issue 1");
+            issue1.setProperty("fixVersions", JSON.array().add(JSON.of("9.0.1")));
+            issue1.setProperty("issuetype", JSON.of("Bug"));
+            issue1.setState(RESOLVED);
+            issue1.setProperty("resolution", JSON.object().put("name", JSON.of("Won't Fix")));
+
+            var issue2 = credentials.createIssue(issueProject, "Issue 2");
+            issue2.setProperty("fixVersions", JSON.array().add(JSON.of("9.0.2")));
+            issue2.setProperty("issuetype", JSON.of("Backport"));
+            issue2.setState(RESOLVED);
+            issue1.addLink(Link.create(issue2, "backported by").build());
+
+            var issue3 = credentials.createIssue(issueProject, "Issue 3");
+            issue3.setProperty("fixVersions", JSON.array().add(JSON.of("9.0.3")));
+            issue3.setProperty("issuetype", JSON.of("Backport"));
+            issue3.setState(RESOLVED);
+            issue1.addLink(Link.create(issue3, "backported by").build());
+
+            TestBotRunner.runPeriodicItems(syncLabelBot);
+            assertEquals(List.of(), issue1.labelNames());
+            assertEquals(List.of(), issue2.labelNames());
+            assertEquals(List.of("hgupdate-sync"), issue3.labelNames());
         }
     }
 }

@@ -23,6 +23,7 @@
 package org.openjdk.skara.bots.synclabel;
 
 import org.openjdk.skara.bot.WorkItem;
+import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.jbs.*;
 
 import java.nio.file.Path;
@@ -62,12 +63,15 @@ public class SyncLabelBotUpdateLabelWorkItem implements WorkItem {
             return List.of();
         }
 
-        var allIssues = Stream.concat(Stream.of(issue.get()), Backports.findBackports(issue.get(), true).stream())
-                              .filter(i -> !i.labelNames().contains("hgupdate-sync-ignore"))
-                              .filter(i -> Backports.mainFixVersion(i).isPresent())
-                              .filter(i -> bot.inspect().matcher(Backports.mainFixVersion(i).get().raw()).matches())
-                              .filter(i -> !bot.ignore().matcher(Backports.mainFixVersion(i).get().raw()).matches())
-                              .collect(Collectors.toList());
+        var allIssues = Stream.concat(
+                        Stream.of(issue.get())
+                                .filter(Issue::isFixed),
+                        Backports.findBackports(issue.get(), true).stream())
+                .filter(i -> !i.labelNames().contains("hgupdate-sync-ignore"))
+                .filter(i -> Backports.mainFixVersion(i).isPresent())
+                .filter(i -> bot.inspect().matcher(Backports.mainFixVersion(i).get().raw()).matches())
+                .filter(i -> !bot.ignore().matcher(Backports.mainFixVersion(i).get().raw()).matches())
+                .collect(Collectors.toList());
 
         var needsLabel = Backports.releaseStreamDuplicates(allIssues);
         for (var i : allIssues) {
