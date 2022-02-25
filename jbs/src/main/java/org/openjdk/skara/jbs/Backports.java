@@ -223,26 +223,6 @@ public class Backports {
         return Optional.empty();
     }
 
-    private static boolean isFixed(Issue issue) {
-        if (issue.state() == Issue.State.OPEN) {
-            return false;
-        }
-        var resolution = issue.properties().get("resolution");
-        if (resolution == null || resolution.isNull()) {
-            return false;
-        }
-        var name = resolution.get("name");
-        if (name == null || name.isNull()) {
-            return false;
-        }
-
-        if (!name.asString().equals("Fixed")) {
-            return false;
-        }
-
-        return true;
-    }
-
     public static List<Issue> findBackports(Issue primary, boolean fixedOnly) {
         var links = primary.links();
         return links.stream()
@@ -250,7 +230,7 @@ public class Backports {
                     .filter(l -> l.relationship().isPresent())
                     .filter(l -> l.relationship().get().equals("backported by"))
                     .map(l -> l.issue().get())
-                    .filter(i -> !fixedOnly || isFixed(i))
+                    .filter(i -> !fixedOnly || i.isFixed())
                     // We used to filter out any issues not of 'backport' type here, but
                     // Jira allows linking of any issues with a 'backported by' link, so we
                     // have to accept them, even if it's weird.
