@@ -40,7 +40,7 @@ class PullRequestPrunerBotWorkItem implements WorkItem {
 
     PullRequestPrunerBotWorkItem(PullRequest pr, Duration maxAge) {
         this.pr = pr;
-        this.maxAge = pr.isDraft() ? maxAge.multipliedBy(2) : maxAge;
+        this.maxAge = maxAge;
     }
 
     @Override
@@ -162,9 +162,10 @@ public class PullRequestPrunerBot implements Bot {
                                .flatMap(Function.identity())
                                .max(ZonedDateTime::compareTo).orElseThrow();
 
-        var oldestAllowed = ZonedDateTime.now().minus(currentMaxAge);
+        var actualMaxAge = pr.isDraft() ? currentMaxAge.multipliedBy(2) : currentMaxAge;
+        var oldestAllowed = ZonedDateTime.now().minus(actualMaxAge);
         if (latestAction.isBefore(oldestAllowed)) {
-            var item = new PullRequestPrunerBotWorkItem(pr, currentMaxAge);
+            var item = new PullRequestPrunerBotWorkItem(pr, actualMaxAge);
             ret.add(item);
         }
 
