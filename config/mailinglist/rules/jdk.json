@@ -152,6 +152,7 @@
             "src/jdk.naming.dns/",
             "src/jdk.naming.rmi/",
             "src/jdk.nio.mapmode/",
+            "src/jdk.random/",
             "src/jdk.unsupported/",
             "src/jdk.xml.dom/",
             "src/jdk.zipfs/",
