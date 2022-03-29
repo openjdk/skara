@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -39,6 +39,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
 
 public class ReviewersTests {
+    private static final String reviewersCommandFinallyOutput = "The total number of required reviews for this PR " +
+            "(including the jcheck configuration and the last /reviewers command) is now set to ";
+
     @Test
     void simple(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
@@ -100,24 +103,21 @@ public class ReviewersTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(reviewerPr,"The total number of required reviews for this PR, " +
-                    "which is combined by the configuration and the command, is now set to 2 (with 1 of role reviewers, 1 of role authors).");
+            assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role authors).");
 
             // Set 2 of role committers
             reviewerPr.addComment("/reviewers 2 committer");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(reviewerPr,"The total number of required reviews for this PR, " +
-                    "which is combined by the configuration and the command, is now set to 2 (with 1 of role reviewers, 1 of role committers).");
+            assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role committers).");
 
             // Set 2 of role reviewers
             reviewerPr.addComment("/reviewers 2 reviewer");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(reviewerPr,"The total number of required reviews for this PR, " +
-                    "which is combined by the configuration and the command, is now set to 2 (with 2 of role reviewers).");
+            assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "2 (with 2 of role reviewers).");
 
             // Approve it as another user
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
@@ -141,8 +141,7 @@ public class ReviewersTests {
             reviewerPr.addComment("/reviewers 1 lead");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(reviewerPr,"The total number of required reviews for this PR, " +
-                    "which is combined by the configuration and the command, is now set to 1 (with 1 of role lead).");
+            assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "1 (with 1 of role lead).");
 
             // The PR should no longer be considered as ready for review
             updatedPr = author.pullRequest(pr.id());
@@ -152,8 +151,7 @@ public class ReviewersTests {
             reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(reviewerPr,"The total number of required reviews for this PR, " +
-                    "which is combined by the configuration and the command, is now set to 1 (with 1 of role reviewers).");
+            assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "1 (with 1 of role reviewers).");
 
             // The PR should now be considered as ready for review yet again
             updatedPr = author.pullRequest(pr.id());
@@ -193,8 +191,7 @@ public class ReviewersTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(reviewerPr,"The total number of required reviews for this PR, " +
-                    "which is combined by the configuration and the command, is now set to 2 (with 1 of role reviewers, 1 of role authors).");
+            assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role authors).");
 
             // Approve it as another user
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
@@ -259,8 +256,7 @@ public class ReviewersTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(reviewerPr,"The total number of required reviews for this PR, " +
-                    "which is combined by the configuration and the command, is now set to 2 (with 1 of role reviewers, 1 of role authors).");
+            assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role authors).");
 
             // It should not be possible to sponsor
             reviewerPr.addComment("/sponsor");
@@ -308,8 +304,7 @@ public class ReviewersTests {
 
             // The bot should reply with a success message
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(authorPR,"The total number of required reviews for this PR, " +
-                    "which is combined by the configuration and the command, is now set to 2 (with 1 of role reviewers, 1 of role authors).");
+            assertLastCommentContains(authorPR, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role authors).");
         }
     }
 
@@ -345,8 +340,7 @@ public class ReviewersTests {
 
             // The bot should reply with a success message
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(authorPR,"The total number of required reviews for this PR, " +
-                    "which is combined by the configuration and the command, is now set to 2 (with 1 of role reviewers, 1 of role authors).");
+            assertLastCommentContains(authorPR, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role authors).");
             // The author should not be allowed to decrease even its own /reviewers command
             authorPR.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
@@ -356,8 +350,7 @@ public class ReviewersTests {
             var reviewerPr = integrator.pullRequest(pr.id());
             reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(reviewerPr,"The total number of required reviews for this PR, " +
-                    "which is combined by the configuration and the command, is now set to 1 (with 1 of role reviewers).");
+            assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "1 (with 1 of role reviewers).");
         }
     }
 
@@ -387,8 +380,7 @@ public class ReviewersTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             var authorPR = author.pullRequest(pr.id());
-            assertLastCommentContains(authorPR,"The total number of required reviews for this PR, " +
-                    "which is combined by the configuration and the command, is now set to 2 (with 1 of role reviewers, 1 of role authors).");
+            assertLastCommentContains(authorPR, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role authors).");
         }
     }
 
@@ -488,8 +480,7 @@ public class ReviewersTests {
 
     private String getReviewersExpectedComment(int totalNum, int leadNum, int reviewerNum, int committerNum, int authorNum, int contributorNum) {
         StringBuilder builder = new StringBuilder();
-        builder.append("The total number of required reviews for this PR, " +
-                "which is combined by the configuration and the command, is now set to ");
+        builder.append(reviewersCommandFinallyOutput);
         builder.append(totalNum);
         if (leadNum == 0 && reviewerNum == 0 && committerNum == 0 && authorNum == 0 && contributorNum == 0) {
             builder.append(".");

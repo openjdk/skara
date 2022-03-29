@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -132,8 +132,8 @@ public class ReviewersCommand implements CommandHandler {
 
         reply.println(ReviewersTracker.setReviewersMarker(numReviewers, role));
         var totalRequired = updatedLimits.values().stream().mapToInt(Integer::intValue).sum();
-        reply.print("The total number of required reviews for this PR, " +
-                "which is combined by the configuration and the command, is now set to " + totalRequired);
+        reply.print("The total number of required reviews for this PR (including the jcheck configuration " +
+                    "and the last /reviewers command) is now set to " + totalRequired);
 
         // Create a helpful message regarding the required distribution (if applicable)
         var nonZeroDescriptions = updatedLimits.entrySet().stream()

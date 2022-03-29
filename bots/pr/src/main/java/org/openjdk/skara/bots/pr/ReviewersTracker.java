@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -60,11 +60,11 @@ class ReviewersTracker {
                     break;
                 }
             } else {
+                // The new value cannot be lower than the value in '.jcheck/conf',
+                // because the '.jcheck/conf' file means the minimal reviewer requirement.
                 if (remainingAdditional > updatedLimits.get(r)) {
                     // Set the number for the lower roles to remove.
                     remainingRemovals = remainingAdditional - updatedLimits.get(r);
-                    // The new number of the reviewers should larger or equal than the requirement of the '.jcheck/conf' file.
-                    // Because the '.jcheck/conf' file means the minimal reviewer requirement.
                     updatedLimits.replace(r, remainingAdditional);
                 }
                 break;
@@ -83,7 +83,7 @@ class ReviewersTracker {
                 var originalVal = updatedLimits.get(r);
                 var removed = Math.max(0, originalVal - remainingRemovals);
                 updatedLimits.replace(r, removed);
-                remainingRemovals -= (originalVal - updatedLimits.get(r));
+                remainingRemovals -= (originalVal - removed);
             } else {
                 break;
             }
