@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -51,6 +51,7 @@ class ReviewersTracker {
 
         // Increase the required role level by the requested amount (while subtracting higher roles)
         var remainingAdditional = count;
+        var remainingRemovals = 0;
         var roles = new ArrayList<>(updatedLimits.keySet());
         for (var r : roles) {
             if (!r.equals(role)) {
@@ -59,19 +60,30 @@ class ReviewersTracker {
                     break;
                 }
             } else {
-                updatedLimits.replace(r, updatedLimits.get(r) + remainingAdditional);
+                // The new value cannot be lower than the value in '.jcheck/conf',
+                // because the '.jcheck/conf' file means the minimal reviewer requirement.
+                if (remainingAdditional > updatedLimits.get(r)) {
+                    // Set the number for the lower roles to remove.
+                    remainingRemovals = remainingAdditional - updatedLimits.get(r);
+                    updatedLimits.replace(r, remainingAdditional);
+                }
                 break;
             }
         }
 
+        if (remainingRemovals == 0) {
+            // Improve performance. If remainingRemovals is 0, don't need to decrease the lower roles.
+            return updatedLimits;
+        }
+
         // Decrease lower roles (if any) to avoid increasing the total count above the requested
         Collections.reverse(roles);
-        var remainingRemovals = count;
         for (var r : roles) {
             if (!r.equals(role)) {
-                var removed = Math.max(0, updatedLimits.get(r) - remainingRemovals);
+                var originalVal = updatedLimits.get(r);
+                var removed = Math.max(0, originalVal - remainingRemovals);
                 updatedLimits.replace(r, removed);
-                remainingRemovals -= removed;
+                remainingRemovals -= (originalVal - removed);
             } else {
                 break;
             }

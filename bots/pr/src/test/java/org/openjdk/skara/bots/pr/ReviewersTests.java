@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,18 +22,26 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.forge.Review;
 import org.openjdk.skara.test.*;
 
 import org.junit.jupiter.api.*;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
 
 public class ReviewersTests {
+    private static final String reviewersCommandFinallyOutput = "The total number of required reviews for this PR " +
+            "(including the jcheck configuration and the last /reviewers command) is now set to ";
+
     @Test
     void simple(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
@@ -83,7 +91,7 @@ public class ReviewersTests {
             // Too few
             reviewerPr.addComment("/reviewers -3");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(reviewerPr,"Number of required reviewers of role authors cannot be decreased below 0");
+            assertLastCommentContains(reviewerPr,"Cannot decrease the required number of reviewers below 0 (requested: -3)");
 
             // Unknown role
             reviewerPr.addComment("/reviewers 2 penguins");
@@ -95,7 +103,21 @@ public class ReviewersTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(reviewerPr,"The number of required reviews for this PR is now set to 2 (with at least 1 of role reviewers).");
+            assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role authors).");
+
+            // Set 2 of role committers
+            reviewerPr.addComment("/reviewers 2 committer");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role committers).");
+
+            // Set 2 of role reviewers
+            reviewerPr.addComment("/reviewers 2 reviewer");
+            TestBotRunner.runPeriodicItems(prBot);
+
+            // The bot should reply with a success message
+            assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "2 (with 2 of role reviewers).");
 
             // Approve it as another user
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
@@ -119,7 +141,7 @@ public class ReviewersTests {
             reviewerPr.addComment("/reviewers 1 lead");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(reviewerPr,"The number of required reviews for this PR is now set to 1.");
+            assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "1 (with 1 of role lead).");
 
             // The PR should no longer be considered as ready for review
             updatedPr = author.pullRequest(pr.id());
@@ -129,7 +151,7 @@ public class ReviewersTests {
             reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(reviewerPr,"The number of required reviews for this PR is now set to 1.");
+            assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "1 (with 1 of role reviewers).");
 
             // The PR should now be considered as ready for review yet again
             updatedPr = author.pullRequest(pr.id());
@@ -169,7 +191,7 @@ public class ReviewersTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(reviewerPr,"The number of required reviews for this PR is now set to 2 (with at least 1 of role reviewers).");
+            assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role authors).");
 
             // Approve it as another user
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
@@ -234,7 +256,7 @@ public class ReviewersTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(reviewerPr,"The number of required reviews for this PR is now set to 2 (with at least 1 of role reviewers).");
+            assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role authors).");
 
             // It should not be possible to sponsor
             reviewerPr.addComment("/sponsor");
@@ -282,7 +304,7 @@ public class ReviewersTests {
 
             // The bot should reply with a success message
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(authorPR, "The number of required reviews for this PR is now set to 2 (with at least 1 of role reviewers).");
+            assertLastCommentContains(authorPR, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role authors).");
         }
     }
 
@@ -318,8 +340,7 @@ public class ReviewersTests {
 
             // The bot should reply with a success message
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(authorPR, "The number of required reviews for this PR is now set to 2 (with at least 1 of role reviewers).");
-
+            assertLastCommentContains(authorPR, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role authors).");
             // The author should not be allowed to decrease even its own /reviewers command
             authorPR.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
@@ -329,7 +350,7 @@ public class ReviewersTests {
             var reviewerPr = integrator.pullRequest(pr.id());
             reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(authorPR, "The number of required reviews for this PR is now set to 1");
+            assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "1 (with 1 of role reviewers).");
         }
     }
 
@@ -359,7 +380,127 @@ public class ReviewersTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             var authorPR = author.pullRequest(pr.id());
-            assertLastCommentContains(authorPR,"The number of required reviews for this PR is now set to 2 (with at least 1 of role reviewers).");
+            assertLastCommentContains(authorPR, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role authors).");
         }
+    }
+
+    @Test
+    void complexCombinedConfigAndCommand(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(integrator.forge().currentUser().id())
+                    .addCommitter(author.forge().currentUser().id());
+            var prBot = PullRequestBot.newBuilder().repo(bot).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Change the jcheck configuration
+            var confPath = localRepo.root().resolve(".jcheck/conf");
+            var defaultConf = Files.readString(confPath, StandardCharsets.UTF_8);
+            var newConf = defaultConf.replace("reviewers=1", """
+                                                    lead=1
+                                                    reviewers=1
+                                                    committers=1
+                                                    authors=1
+                                                    contributors=1
+                                                    ignore=duke
+                                                    """);
+            Files.writeString(confPath, newConf);
+            localRepo.add(confPath);
+            var confHash = localRepo.commit("Change conf", "duke", "duke@openjdk.org");
+            localRepo.push(confHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "123: This is a pull request");
+
+            var reviewerPr = integrator.pullRequest(pr.id());
+
+            // test role contributor
+            for (int i = 1; i <= 10; i++) {
+                var totalNum = Math.max(i, 5);
+                var contributorNum = (i < 6) ? 1 : i - 4;
+                verifyReviewersComment(reviewerPr, prBot, "/reviewers " + i + " contributor",
+                        getReviewersExpectedComment(totalNum, 1, 1, 1, 1, contributorNum));
+            }
+
+            // test role author
+            for (int i = 1; i <= 10; i++) {
+                var totalNum = Math.max(i, 5);
+                var contributorNum = (i < 5) ? 1 : 0;
+                var authorNum = (i < 5) ? 1 : i - 3;
+                verifyReviewersComment(reviewerPr, prBot, "/reviewers " + i + " author",
+                        getReviewersExpectedComment(totalNum, 1, 1, 1, authorNum, contributorNum));
+            }
+
+            // test role committer
+            for (int i = 1; i <= 10; i++) {
+                var totalNum = Math.max(i, 5);
+                var contributorNum = (i < 4) ? 1 : 0;
+                var authorNum = (i < 5) ? 1 : 0;
+                var committerNum = (i < 4) ? 1 : i - 2;
+                verifyReviewersComment(reviewerPr, prBot, "/reviewers " + i + " committer",
+                        getReviewersExpectedComment(totalNum, 1, 1, committerNum, authorNum, contributorNum));
+            }
+
+            // test role reviewer
+            for (int i = 1; i <= 10; i++) {
+                var totalNum = Math.max(i, 5);
+                var contributorNum = (i < 3) ? 1 : 0;
+                var authorNum = (i < 4) ? 1 : 0;
+                var committerNum = (i < 5) ? 1 : 0;
+                var reviewerNum = (i < 3) ? 1 : i - 1;
+                verifyReviewersComment(reviewerPr, prBot, "/reviewers " + i + " reviewer",
+                        getReviewersExpectedComment(totalNum, 1, reviewerNum, committerNum, authorNum, contributorNum));
+
+            }
+
+            // test role lead
+            verifyReviewersComment(reviewerPr, prBot, "/reviewers 1 lead",
+                        getReviewersExpectedComment(5, 1, 1, 1, 1, 1));
+        }
+    }
+
+    private void verifyReviewersComment(PullRequest reviewerPr, PullRequestBot prBot, String command, String expectedReply) throws IOException {
+        reviewerPr.addComment(command);
+        TestBotRunner.runPeriodicItems(prBot);
+        assertLastCommentContains(reviewerPr, expectedReply);
+    }
+
+    private String getReviewersExpectedComment(int totalNum, int leadNum, int reviewerNum, int committerNum, int authorNum, int contributorNum) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(reviewersCommandFinallyOutput);
+        builder.append(totalNum);
+        if (leadNum == 0 && reviewerNum == 0 && committerNum == 0 && authorNum == 0 && contributorNum == 0) {
+            builder.append(".");
+            return builder.toString();
+        }
+        builder.append(" (with");
+        var list = new ArrayList<String>();
+        var map = new LinkedHashMap<String, Integer>();
+        map.put("lead", leadNum);
+        map.put("reviewers", reviewerNum);
+        map.put("committers", committerNum);
+        map.put("authors", authorNum);
+        map.put("contributors", contributorNum);
+        for (var entry : map.entrySet()) {
+            if (entry.getValue() > 0) {
+                list.add(" " + entry.getValue() + " of role " + entry.getKey());
+            }
+        }
+        builder.append(String.join(",", list));
+        builder.append(").");
+        return builder.toString();
     }
 }

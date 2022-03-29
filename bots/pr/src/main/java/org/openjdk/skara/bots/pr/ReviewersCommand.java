@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -97,6 +97,11 @@ public class ReviewersCommand implements CommandHandler {
             reply.println("Cannot increase the required number of reviewers above 10 (requested: " + numReviewers + ")");
             return;
         }
+        if (numReviewers < 0) {
+            showHelp(reply);
+            reply.println("Cannot decrease the required number of reviewers below 0 (requested: " + numReviewers + ")");
+            return;
+        }
 
         String role = "authors";
         if (splitArgs.length > 1) {
@@ -124,24 +129,19 @@ public class ReviewersCommand implements CommandHandler {
         }
 
         var updatedLimits = ReviewersTracker.updatedRoleLimits(censusInstance.configuration(), numReviewers, role);
-        if (updatedLimits.get(role) > numReviewers) {
-            showHelp(reply);
-            reply.println("Number of required reviewers of role " + role + " cannot be decreased below " + updatedLimits.get(role));
-            return;
-        }
 
         reply.println(ReviewersTracker.setReviewersMarker(numReviewers, role));
         var totalRequired = updatedLimits.values().stream().mapToInt(Integer::intValue).sum();
-        reply.print("The number of required reviews for this PR is now set to " + totalRequired);
+        reply.print("The total number of required reviews for this PR (including the jcheck configuration " +
+                    "and the last /reviewers command) is now set to " + totalRequired);
 
         // Create a helpful message regarding the required distribution (if applicable)
         var nonZeroDescriptions = updatedLimits.entrySet().stream()
                 .filter(entry -> entry.getValue() > 0)
                 .map(entry -> entry.getValue() + " of role " + entry.getKey())
                 .collect(Collectors.toList());
-        if (nonZeroDescriptions.size() > 1) {
-            nonZeroDescriptions.remove(nonZeroDescriptions.size() - 1);
-            reply.print(" (with at least " + String.join(", ", nonZeroDescriptions) + ")");
+        if (nonZeroDescriptions.size() > 0) {
+            reply.print(" (with " + String.join(", ", nonZeroDescriptions) + ")");
         }
 
         reply.println(".");
