@@ -6,7 +6,8 @@
             "bin/",
             "doc/",
             "make/",
-            "src/utils/",
+            "src/utils/hsdis/",
+            "src/utils/src/",
             "test/jdk/build/",
             "test/make/"
         ],
