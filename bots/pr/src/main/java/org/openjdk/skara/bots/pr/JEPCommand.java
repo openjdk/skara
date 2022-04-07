@@ -48,16 +48,16 @@ public class JEPCommand implements CommandHandler {
                  * `/jep JEP-<jep-id>`
                  * `/jep jep-<jep-id>`
                  * `/jep [unneeded|uneeded]`
-                
+
                 Some examples:
-                
+
                  * `/jep JDK-1234567`
                  * `/jep 1234567`
                  * `/jep jep-123`
                  * `/jep JEP-123`
                  * `/jep uneeded`
                  * `/jep unneeded`
-                
+
                 Note:
                 The project prefix of the issue ID (`JDK-` in the above examples) is optional.
                 But the `JEP-` or `jep-` prefix is required when you provide a JEP ID.
