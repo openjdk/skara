@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,27 +20,13 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.skara.issuetracker;
 
-import org.openjdk.skara.json.JSONValue;
+module org.openjdk.skara.bots.jep {
+    requires org.openjdk.skara.bot;
+    requires org.openjdk.skara.vcs;
+    requires org.openjdk.skara.forge;
+    requires org.openjdk.skara.issuetracker;
+    requires java.logging;
 
-import java.net.URI;
-import java.time.ZonedDateTime;
-import java.util.*;
-
-public interface IssueProject {
-    IssueTracker issueTracker();
-    URI webUrl();
-    Issue createIssue(String title, List<String> body, Map<String, JSONValue> properties);
-    Optional<Issue> issue(String id);
-    List<Issue> issues();
-    List<Issue> issues(ZonedDateTime updatedAfter);
-    String name();
-
-    /**
-     * Get the JEP issue according to the JEP ID.
-     * @param jepId JEP ID
-     * @return the corresponding issue
-     */
-    Optional<Issue> jepIssue(String jepId);
+    provides org.openjdk.skara.bot.BotFactory with org.openjdk.skara.bots.jep.JEPBotFactory;
 }

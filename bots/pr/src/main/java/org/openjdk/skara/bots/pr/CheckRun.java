@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -111,7 +111,7 @@ class CheckRun {
         return matcher.matches();
     }
 
-    private List<Issue> issues(boolean withCsr) {
+    private List<Issue> issues(boolean withCsr, boolean withJep) {
         var issue = Issue.fromStringRelaxed(pr.title());
         if (issue.isPresent()) {
             var issues = new ArrayList<Issue>();
@@ -119,6 +119,9 @@ class CheckRun {
             issues.addAll(SolvesTracker.currentSolved(pr.repository().forge().currentUser(), comments));
             if (withCsr) {
                 getCsrIssue(issue.get()).ifPresent(issues::add);
+            }
+            if (withJep) {
+                getJepIssue().ifPresent(issues::add);
             }
             return issues;
         }
@@ -149,6 +152,44 @@ class CheckRun {
     private static Optional<Link> csrLink(org.openjdk.skara.issuetracker.Issue issue) {
         return issue == null ? Optional.empty() : issue.links().stream()
                 .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get())).findAny();
+    }
+
+    private Optional<Issue> getJepIssue() {
+        var issueOpt = getJepIssueFromIssueTracker();
+        if (issueOpt.isPresent()) {
+            return Issue.fromStringRelaxed(issueOpt.get().id() + ": " + issueOpt.get().title());
+        }
+        return Optional.empty();
+    }
+
+    private Optional<org.openjdk.skara.issuetracker.Issue> getJepIssueFromIssueTracker() {
+        var jepComment = pr.comments().stream()
+                .filter(comment -> comment.author().equals(pr.repository().forge().currentUser()))
+                .flatMap(comment -> comment.body().lines())
+                .map(JEPCommand.jepMarkerPattern::matcher)
+                .filter(Matcher::find)
+                .reduce((first, second) -> second)
+                .orElse(null);
+        if (jepComment == null) {
+            return Optional.empty();
+        }
+
+        var issueId = jepComment.group(2);
+        if ("unneeded".equals(issueId)) {
+            return  Optional.empty();
+        }
+
+        var issueOpt = issueProject().issue(issueId);
+        if (issueOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        var issue = issueOpt.get();
+
+        var issueType = issue.properties().get("issuetype");
+        if (issueType != null && "JEP".equals(issueType.asString())) {
+            return issueOpt;
+        }
+        return Optional.empty();
     }
 
     private IssueProject issueProject() {
@@ -218,6 +259,25 @@ class CheckRun {
             }
             // At other states, no need to add the csr progress.
         }
+        if (pr.labelNames().contains("jep")) {
+            ret.put("Change requires a JEP request to be targeted", false);
+        } else {
+            var issueOpt = getJepIssueFromIssueTracker();
+            if (issueOpt.isPresent()) {
+                var issue = issueOpt.get();
+                var issueStatus = issue.properties().get("status").get("name").asString();
+                var resolution = issue.properties().get("resolution");
+                String resolutionName = "";
+                if (resolution != null && !resolution.isNull() &&
+                        resolution.get("name") != null && !resolution.get("name").isNull()) {
+                    resolutionName = resolution.get("name").asString();
+                }
+                if ("Targeted".equals(issueStatus) || "Integrated".equals(issueStatus) ||
+                    "Completed".equals(issueStatus) || ("Closed".equals(issueStatus) && "Delivered".equals(resolutionName))) {
+                    ret.put("Change requires a JEP request to be targeted", true);
+                }
+            }
+        }
         return ret;
     }
 
@@ -235,7 +295,7 @@ class CheckRun {
     private List<String> botSpecificIntegrationBlockers() {
         var ret = new ArrayList<String>();
 
-        var issues = issues(false);
+        var issues = issues(false, false);
         var issueProject = issueProject();
         if (issueProject != null) {
             for (var currentIssue : issues) {
@@ -540,7 +600,7 @@ class CheckRun {
             progressBody.append(warningListToText(integrationBlockers));
         }
 
-        var issues = issues(true);
+        var issues = issues(true, true);
         var issueProject = issueProject();
         if (issueProject != null && !issues.isEmpty()) {
             progressBody.append("\n\n### Issue");
@@ -569,6 +629,9 @@ class CheckRun {
                             var issueType = iss.get().properties().get("issuetype");
                             if (issueType != null && "CSR".equals(issueType.asString())) {
                                 progressBody.append(" (**CSR**)");
+                            }
+                            if (issueType != null && "JEP".equals(issueType.asString())) {
+                                progressBody.append(" (**JEP**)");
                             }
                             if (!relaxedEquals(iss.get().title(), currentIssue.description())) {
                                 progressBody.append(" ⚠️ Title mismatch between PR and JBS.");

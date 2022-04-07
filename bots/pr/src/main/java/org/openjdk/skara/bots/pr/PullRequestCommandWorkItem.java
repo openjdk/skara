@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -52,6 +52,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
             Map.entry("solves", new IssueCommand("solves")),
             Map.entry("reviewers", new ReviewersCommand()),
             Map.entry("csr", new CSRCommand()),
+            Map.entry("jep", new JEPCommand()),
             Map.entry("reviewer", new ReviewerCommand()),
             Map.entry("label", new LabelCommand()),
             Map.entry("cc", new LabelCommand("cc")),
