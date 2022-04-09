@@ -27,6 +27,7 @@ import org.openjdk.skara.bots.notify.CommitFormatters;
 import org.openjdk.skara.bots.notify.NotifyBot;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.issuetracker.*;
+import org.openjdk.skara.issuetracker.jira.JiraProject;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.vcs.Branch;
@@ -47,7 +48,6 @@ import static org.openjdk.skara.issuetracker.jira.JiraProject.RESOLVED_IN_BUILD;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.SUBCOMPONENT;
 
 public class IssueNotifierTests {
-    private static final String JEP_NUMBER = "customfield_10701";
     private static final String pullRequestTip = "A pull request was submitted for review.";
 
     private Set<String> fixVersions(Issue issue) {
@@ -468,7 +468,7 @@ public class IssueNotifierTests {
             var issue = issueProject.createIssue("This is an issue", List.of("Issue body"),
                     Map.of("issuetype", JSON.of("Enhancement")));
             var jepIssue = issueProject.createIssue("This is a jep", List.of("Jep body"),
-                    Map.of("issuetype", JSON.of("JEP"), "status", JSON.object().put("name", "Submitted"), JEP_NUMBER, JSON.of("123")));
+                    Map.of("issuetype", JSON.of("JEP"), "status", JSON.object().put("name", "Submitted"), JiraProject.JEP_NUMBER, JSON.of("123")));
 
             // Push a commit and create a pull request
             var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line",

@@ -36,7 +36,6 @@ import java.util.regex.Pattern;
 
 public class JEPCommand implements CommandHandler {
     static final String JEP_LABEL = "jep";
-    private static final Pattern issuePattern = Pattern.compile("(([A-Za-z]+-)?[0-9]+)(?: |$)");
     private static final String jepMarker = "<!-- jep: '%s' '%s' '%s' -->"; // <!-- jep: 'JEP-ID' 'ISSUE-ID' 'ISSUE-TITLE' -->
     static final Pattern jepMarkerPattern = Pattern.compile("<!-- jep: '(.*?)' '(.*?)' '(.*?)' -->");
     private static final String unneededMarker = "<!-- jep: 'unneeded' 'unneeded' 'unneeded' -->";
@@ -47,7 +46,7 @@ public class JEPCommand implements CommandHandler {
                  * `/jep <issue-id>`
                  * `/jep JEP-<jep-id>`
                  * `/jep jep-<jep-id>`
-                 * `/jep [unneeded|uneeded]`
+                 * `/jep unneeded`
 
                 Some examples:
 
@@ -55,7 +54,6 @@ public class JEPCommand implements CommandHandler {
                  * `/jep 1234567`
                  * `/jep jep-123`
                  * `/jep JEP-123`
-                 * `/jep uneeded`
                  * `/jep unneeded`
 
                 Note:
@@ -153,7 +151,7 @@ public class JEPCommand implements CommandHandler {
 
     @Override
     public String description() {
-        return "require a JDK enhancement proposal for this pull request";
+        return "require a JDK Enhancement Proposal for this pull request";
     }
 
     @Override

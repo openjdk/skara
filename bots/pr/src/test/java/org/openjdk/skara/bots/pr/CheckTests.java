@@ -26,6 +26,7 @@ import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.Link;
+import org.openjdk.skara.issuetracker.jira.JiraProject;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.*;
 
@@ -41,8 +42,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class CheckTests {
-    private static final String JEP_NUMBER = "customfield_10701";
-
     @Test
     void simpleCommit(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
@@ -1213,7 +1212,7 @@ class CheckTests {
 
             var mainIssue = issueProject.createIssue("The main issue", List.of("main"), Map.of("issuetype", JSON.of("Bug")));
             var jepIssue = issueProject.createIssue("The jep issue", List.of("Jep body"),
-                    Map.of("issuetype", JSON.of("JEP"), "status", JSON.object().put("name", "Submitted"), JEP_NUMBER, JSON.of("123")));
+                    Map.of("issuetype", JSON.of("JEP"), "status", JSON.object().put("name", "Submitted"), JiraProject.JEP_NUMBER, JSON.of("123")));
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);

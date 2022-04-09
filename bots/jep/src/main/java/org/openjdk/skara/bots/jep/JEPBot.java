@@ -49,8 +49,9 @@ public class JEPBot implements Bot, WorkItem {
 
     @Override
     public boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof JEPBot otherBot))
+        if (!(other instanceof JEPBot otherBot)) {
             return true;
+        }
         return !repo.isSame(otherBot.repo);
     }
 
@@ -66,24 +67,27 @@ public class JEPBot implements Bot, WorkItem {
                     .reduce((first, second) -> second)
                     .orElse(null);
             if (jepComment == null) {
-                if (pr.labelNames().contains(JEP_LABEL))
+                if (pr.labelNames().contains(JEP_LABEL)) {
                     pr.removeLabel(JEP_LABEL);
+                }
                 log.info("No jep command found in comment for PR-" + pr.id());
                 continue;
             }
 
             var issueId = jepComment.group(2);
             if ("unneeded".equals(issueId)) {
-                if (pr.labelNames().contains(JEP_LABEL))
+                if (pr.labelNames().contains(JEP_LABEL)) {
                     pr.removeLabel(JEP_LABEL);
+                }
                 log.info("Found `/jep unneeded` command");
                 continue;
             }
 
             var issueOpt = issueProject.issue(issueId);
             if (issueOpt.isEmpty()) {
-                if (pr.labelNames().contains(JEP_LABEL))
+                if (pr.labelNames().contains(JEP_LABEL)) {
                     pr.removeLabel(JEP_LABEL);
+                }
                 log.info("The jep issue doesn't exist.");
                 continue;
             }
@@ -91,8 +95,9 @@ public class JEPBot implements Bot, WorkItem {
 
             var issueType = issue.properties().get("issuetype");
             if (issueType == null || !"JEP".equals(issueType.asString())) {
-                if (pr.labelNames().contains(JEP_LABEL))
+                if (pr.labelNames().contains(JEP_LABEL)) {
                     pr.removeLabel(JEP_LABEL);
+                }
                 log.warning("The issue `" + issue.id() + "` is not a JEP.");
                 continue;
             }

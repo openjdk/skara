@@ -155,14 +155,14 @@ class CheckRun {
     }
 
     private Optional<Issue> getJepIssue() {
-        var issueOpt = getJepIssueFromIssueTracker();
-        if (issueOpt.isPresent()) {
-            return Issue.fromStringRelaxed(issueOpt.get().id() + ": " + issueOpt.get().title());
+        var comment = getJepComment();
+        if (comment.isPresent()) {
+            return Issue.fromStringRelaxed(comment.get().group(2) + ": " + comment.get().group(3));
         }
         return Optional.empty();
     }
 
-    private Optional<org.openjdk.skara.issuetracker.Issue> getJepIssueFromIssueTracker() {
+    private Optional<Matcher> getJepComment() {
         var jepComment = pr.comments().stream()
                 .filter(comment -> comment.author().equals(pr.repository().forge().currentUser()))
                 .flatMap(comment -> comment.body().lines())
@@ -179,17 +179,7 @@ class CheckRun {
             return  Optional.empty();
         }
 
-        var issueOpt = issueProject().issue(issueId);
-        if (issueOpt.isEmpty()) {
-            return Optional.empty();
-        }
-        var issue = issueOpt.get();
-
-        var issueType = issue.properties().get("issuetype");
-        if (issueType != null && "JEP".equals(issueType.asString())) {
-            return issueOpt;
-        }
-        return Optional.empty();
+        return Optional.of(jepComment);
     }
 
     private IssueProject issueProject() {
@@ -262,20 +252,9 @@ class CheckRun {
         if (pr.labelNames().contains("jep")) {
             ret.put("Change requires a JEP request to be targeted", false);
         } else {
-            var issueOpt = getJepIssueFromIssueTracker();
-            if (issueOpt.isPresent()) {
-                var issue = issueOpt.get();
-                var issueStatus = issue.properties().get("status").get("name").asString();
-                var resolution = issue.properties().get("resolution");
-                String resolutionName = "";
-                if (resolution != null && !resolution.isNull() &&
-                        resolution.get("name") != null && !resolution.get("name").isNull()) {
-                    resolutionName = resolution.get("name").asString();
-                }
-                if ("Targeted".equals(issueStatus) || "Integrated".equals(issueStatus) ||
-                    "Completed".equals(issueStatus) || ("Closed".equals(issueStatus) && "Delivered".equals(resolutionName))) {
-                    ret.put("Change requires a JEP request to be targeted", true);
-                }
+            var comment = getJepComment();
+            if (comment.isPresent()) {
+                ret.put("Change requires a JEP request to be targeted", true);
             }
         }
         return ret;
