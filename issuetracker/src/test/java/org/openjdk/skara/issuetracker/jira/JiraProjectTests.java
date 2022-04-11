@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.issuetracker.jira;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openjdk.skara.network.URIBuilder;
 
@@ -30,6 +31,11 @@ import java.io.IOException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * To be able to run the tests, you need to remove or comment out the @Disabled
+ * annotation first.
+ */
+@Disabled("Manual")
 public class JiraProjectTests {
 
     @Test
