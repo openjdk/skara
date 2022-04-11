@@ -91,10 +91,6 @@ public class JEPCommand implements CommandHandler {
 
         var labelNames = pr.labelNames();
         if ("unneeded".equals(args) || "uneeded".equals(args)) {
-            if (pr.author().equals(command.user()) && !censusInstance.isReviewer(command.user())) {
-                reply.println("only [Reviewers](https://openjdk.java.net/bylaws#reviewer) can determine that a JEP request is not needed.");
-                return;
-            }
             if (labelNames.contains(JEP_LABEL)) {
                 pr.removeLabel(JEP_LABEL);
             }

@@ -225,15 +225,6 @@ public class JEPCommandTests {
                     "(https://openjdk.java.net/bylaws#reviewer) are allowed to use the `jep` command.");
             assertTrue(pr.body().contains("- [ ] Change requires a JEP request to be targeted"));
 
-            // Not require jep by the PR author who is not a reviewer
-            pr.addComment("/jep uneeded");
-
-            // Verify the behavior
-            TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(pr.labelNames().contains(JEPCommand.JEP_LABEL));
-            assertLastCommentContains(pr, "only [Reviewers](https://openjdk.java.net/bylaws#reviewer) can determine that a JEP request is not needed.");
-            assertTrue(pr.body().contains("- [ ] Change requires a JEP request to be targeted"));
-
             // Not require jep by a reviewer
             prAsReviewer.addComment("/jep unneeded");
 
