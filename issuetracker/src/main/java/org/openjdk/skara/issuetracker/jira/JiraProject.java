@@ -437,7 +437,7 @@ public class JiraProject implements IssueProject {
     @Override
     public Optional<Issue> jepIssue(String jepId) {
         var issues = request.post("search")
-                .body("jql", "project = " + projectName + " AND "  + JEP_NUMBER + " = " + jepId)
+                .body("jql", "project = " + projectName + " AND \"JEP Number\" ~ \"" + jepId + "\"")
                 .execute();
         if (issues.get("issues").asArray().size() == 0) {
             return Optional.empty();
