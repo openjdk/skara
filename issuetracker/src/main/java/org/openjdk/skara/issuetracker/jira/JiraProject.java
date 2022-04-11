@@ -215,7 +215,7 @@ public class JiraProject implements IssueProject {
         return jiraHost;
     }
 
-    private static final Set<String> knownProperties = Set.of("issuetype", "fixVersions", "versions", "priority", "components");
+    private static final Set<String> knownProperties = Set.of("issuetype", "fixVersions", "versions", "priority", "components", "status");
     private static final Set<String> readOnlyProperties = Set.of("resolution", "security");
 
     boolean isAllowedProperty(String name, boolean forWrite) {
