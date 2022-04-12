@@ -821,8 +821,17 @@ public class GitLabMergeRequest implements PullRequest {
         if (!isClosed()) {
             return Optional.empty();
         }
-
-        return Optional.of(host.parseAuthorObject(json.get("closed_by").asObject()));
+        JSONValue closedBy = json.get("closed_by");
+        // When MR is in what Skara considers "closed", it may also have been
+        // integrated directly in Gitlab. If so, the closed_by field will be
+        // null, and the merged_by field will be populated instead.
+        if (closedBy.isNull()) {
+            closedBy = json.get("merged_by");
+        }
+        if (closedBy.isNull()) {
+            return Optional.empty();
+        }
+        return Optional.of(host.parseAuthorObject(closedBy.asObject()));
     }
 
     @Override
