@@ -119,4 +119,28 @@ class OpenJDKTagTests {
         assertEquals("8u321", jfxTag.version());
         assertEquals(3, jfxTag.buildNum().orElseThrow());
     }
+
+    @Test
+    void parse3DigitVersion() {
+        var tag = new Tag("jdk-11.0.15+1");
+        var jdkTag = OpenJDKTag.create(tag).orElseThrow();
+        assertEquals("11.0.15", jdkTag.version());
+        assertEquals(1, jdkTag.buildNum().orElseThrow());
+    }
+
+    @Test
+    void parse5DigitVersion() {
+        var tag = new Tag("jdk-11.0.15.0.3+1");
+        var jdkTag = OpenJDKTag.create(tag).orElseThrow();
+        assertEquals("11.0.15.0.3", jdkTag.version());
+        assertEquals(1, jdkTag.buildNum().orElseThrow());
+    }
+
+    @Test
+    void parse7DigitVersion() {
+        var tag = new Tag("jdk-11.0.15.0.3.4.5+1");
+        var jdkTag = OpenJDKTag.create(tag).orElseThrow();
+        assertEquals("11.0.15.0.3.4.5", jdkTag.version());
+        assertEquals(1, jdkTag.buildNum().orElseThrow());
+    }
 }
