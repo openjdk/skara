@@ -26,7 +26,6 @@ import org.junit.jupiter.api.*;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.Link;
-import org.openjdk.skara.issuetracker.jira.JiraProject;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.*;
 
@@ -40,6 +39,7 @@ import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
 
 class CheckTests {
     @Test
@@ -1212,7 +1212,7 @@ class CheckTests {
 
             var mainIssue = issueProject.createIssue("The main issue", List.of("main"), Map.of("issuetype", JSON.of("Bug")));
             var jepIssue = issueProject.createIssue("The jep issue", List.of("Jep body"),
-                    Map.of("issuetype", JSON.of("JEP"), "status", JSON.object().put("name", "Submitted"), JiraProject.JEP_NUMBER, JSON.of("123")));
+                    Map.of("issuetype", JSON.of("JEP"), "status", JSON.object().put("name", "Submitted"), JEP_NUMBER, JSON.of("123")));
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
@@ -1235,13 +1235,19 @@ class CheckTests {
             assertTrue(pr.body().contains("The main issue"));
             assertTrue(pr.body().contains("The jep issue (**JEP**)"));
 
-            // Set the state of the jep issue to `Targeted`
-            jepIssue.setProperty("status", JSON.object().put("name", "Submitted"));
+            // Set the state of the jep issue to `Targeted`.
+            // This step is not necessary, because the JEPBot is not actually running
+            // in this test case. But it is good to keep it to show the logic.
+            jepIssue.setProperty("status", JSON.object().put("name", "Targeted"));
+
+            // Simulate the JEPBot to remove the `jep` label when the jep issue has been targeted.
+            jepIssue.removeLabel("jep");
+
             // Push a commit to trigger the check which can update the PR body.
             var newHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(newHash, author.url(), "edit", false);
 
-            // PR should have two issues
+            // PR should have two issues even though the jep issue has been targeted
             TestBotRunner.runPeriodicItems(checkBot);
             assertTrue(pr.body().contains("### Issues"));
             assertTrue(pr.body().contains("The main issue"));

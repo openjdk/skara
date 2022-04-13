@@ -35,6 +35,8 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.openjdk.skara.bots.jep.JEPBotFactory.NAME;
+
 public class JEPBot implements Bot, WorkItem {
     final static String JEP_LABEL = "jep";
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");
@@ -85,20 +87,14 @@ public class JEPBot implements Bot, WorkItem {
 
             var issueOpt = issueProject.issue(issueId);
             if (issueOpt.isEmpty()) {
-                if (pr.labelNames().contains(JEP_LABEL)) {
-                    pr.removeLabel(JEP_LABEL);
-                }
-                log.info("The jep issue doesn't exist.");
+                log.severe("The issue `" + issueId + "` doesn't exist.");
                 continue;
             }
             var issue = issueOpt.get();
 
             var issueType = issue.properties().get("issuetype");
             if (issueType == null || !"JEP".equals(issueType.asString())) {
-                if (pr.labelNames().contains(JEP_LABEL)) {
-                    pr.removeLabel(JEP_LABEL);
-                }
-                log.warning("The issue `" + issue.id() + "` is not a JEP.");
+                log.severe("The issue `" + issue.id() + "` is not a JEP.");
                 continue;
             }
 
@@ -140,6 +136,6 @@ public class JEPBot implements Bot, WorkItem {
 
     @Override
     public String name() {
-        return JEP_LABEL;
+        return NAME;
     }
 }

@@ -135,8 +135,8 @@ public class JEPCommand implements CommandHandler {
             if (labelNames.contains(JEP_LABEL)) {
                 pr.removeLabel(JEP_LABEL);
             }
-        } else if ("Draft".equals(issueStatus) || "Submitted".equals(issueStatus) || "Candidate".equals(issueStatus) ||
-                "Proposed to Target".equals(issueStatus) || "Proposed to Drop".equals(issueStatus) || "Closed".equals(issueStatus)) {
+        } else {
+            // The current issue status may be "Draft", "Submitted", "Candidate", "Proposed to Target", "Proposed to Drop" or "Closed without Delivered"
             reply.println("this pull request will not be integrated until the [JEP-" + jepNumber
                     + "](" + jbsIssue.webUrl() + ")" + " has been targeted.");
             if (!labelNames.contains(JEP_LABEL)) {

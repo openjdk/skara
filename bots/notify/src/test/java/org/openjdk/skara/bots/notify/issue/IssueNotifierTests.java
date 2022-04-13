@@ -497,11 +497,11 @@ public class IssueNotifierTests {
             assertTrue(issueComments.get(0).body().contains(pr.webUrl().toString()));
 
             // jep issue shouldn't have the PR link or PR comment.
-            var csrIssueLinks = updatedJepIssue.links();
-            assertEquals(0, csrIssueLinks.size());
+            var jepIssueLinks = updatedJepIssue.links();
+            assertEquals(0, jepIssueLinks.size());
 
-            var csrIssueComments = updatedJepIssue.comments();
-            assertEquals(0, csrIssueComments.size());
+            var jepIssueComments = updatedJepIssue.comments();
+            assertEquals(0, jepIssueComments.size());
         }
     }
 

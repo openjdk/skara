@@ -207,7 +207,7 @@ public class JEPBotTests {
             assertTrue(pr.labelNames().contains(JEPBot.JEP_LABEL));
 
             TestBotRunner.runPeriodicItems(jepBot);
-            assertFalse(pr.labelNames().contains(JEPBot.JEP_LABEL));
+            assertTrue(pr.labelNames().contains(JEPBot.JEP_LABEL));
         }
     }
 
@@ -238,13 +238,13 @@ public class JEPBotTests {
             TestBotRunner.runPeriodicItems(jepBot);
             assertFalse(pr.labelNames().contains(JEPBot.JEP_LABEL));
 
-            // Add the `jep` label and add the non-existing jep comment
+            // Add the `jep` label and add the wrong type issue comment
             pr.addComment(String.format(jepMarker, "1", "TEST-2", "Demo jep"));
             pr.addLabel(JEPBot.JEP_LABEL);
             assertTrue(pr.labelNames().contains(JEPBot.JEP_LABEL));
 
             TestBotRunner.runPeriodicItems(jepBot);
-            assertFalse(pr.labelNames().contains(JEPBot.JEP_LABEL));
+            assertTrue(pr.labelNames().contains(JEPBot.JEP_LABEL));
         }
     }
 }
