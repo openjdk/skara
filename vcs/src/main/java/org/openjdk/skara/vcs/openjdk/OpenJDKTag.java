@@ -59,14 +59,13 @@ public class OpenJDKTag {
     private final static String legacyOpenJDKVersionPattern = "(jdk([0-9]{1,2}(u[0-9]{1,3})?))";
     private final static String legacyHSVersionPattern = "((hs[0-9]{1,2}(\\.[0-9]{1,3})?))";
     private final static String legacyBuildPattern = "(-b)([0-9]{2,3})";
-    private final static String OpenJDKVersionPattern = "(jdk-([0-9]+(\\.[0-9]){0,3}))(\\+)([0-9]+)";
-    private final static String OpenJFXVersionPattern = "((?:jdk-){0,1}([1-9](?:(?:[0-9]*)(\\.(?:0|[1-9][0-9]*)){0,3})))(?:(\\+)([0-9]+)|(-ga))";
+    // Version pattern matching project Verona (JEP 223) based versions
+    private final static String veronaVersionPattern = "((?:jdk-){0,1}([1-9](?:(?:[0-9]*)(\\.(?:0|[1-9][0-9]*)){0,6})))(?:(\\+)([0-9]+)|(-ga))";
     private final static String legacyOpenJFXVersionPattern = "(([0-9](u[0-9]{1,3})?))";
 
     private final static List<Pattern> tagPatterns = List.of(Pattern.compile(legacyOpenJDKVersionPattern + legacyBuildPattern),
                                                              Pattern.compile(legacyHSVersionPattern + legacyBuildPattern),
-                                                             Pattern.compile(OpenJDKVersionPattern),
-                                                             Pattern.compile(OpenJFXVersionPattern),
+                                                             Pattern.compile(veronaVersionPattern),
                                                              Pattern.compile(legacyOpenJFXVersionPattern + legacyBuildPattern));
 
     /**
