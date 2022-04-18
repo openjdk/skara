@@ -63,7 +63,7 @@ public class JEPCommand implements CommandHandler {
                 """);
     }
 
-    private Optional<Issue> getJepIssue(String args, PullRequestBot bot, PrintWriter reply) {
+    private Optional<Issue> getJepIssue(String args, PullRequestBot bot) {
         Optional<Issue> jbsIssue;
         if (args.startsWith("jep-") || args.startsWith("JEP-")) {
             // Handle the JEP ID
@@ -101,7 +101,7 @@ public class JEPCommand implements CommandHandler {
         }
 
         // Get the issue
-        var jbsIssueOpt = getJepIssue(args, bot, reply);
+        var jbsIssueOpt = getJepIssue(args, bot);
         if (jbsIssueOpt.isEmpty()) {
             reply.println("The JEP issue was not found. Please make sure you have entered it correctly.");
             showHelp(reply);
