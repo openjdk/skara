@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,6 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.forge.HostedCommit;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
-import org.openjdk.skara.vcs.*;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
@@ -37,6 +36,22 @@ interface CommandHandler {
     default void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply)
     {
     }
+
+    /**
+     * Overload the method with a parameter `changeLabelsAfterComment`.
+     * If the command need to change the labels after commenting to avoid a race condition,
+     * please use this method with the argument `changeLabelsAfterComment` as true.
+     * If you don't meet a race condition, please use another method without parameter `changeLabelsAfterComment`,
+     * and never use this method with the argument `changeLabelsAfterComment` as false.
+     *
+     * @param changeLabelsAfterComment just a tag to distinguish another method
+     * @return the labels to change
+     */
+    default LabelsToChange handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath,
+                        CommandInvocation command, List<Comment> allComments, PrintWriter reply, boolean changeLabelsAfterComment) {
+        return new LabelsToChange(null, null);
+    }
+
     default void handle(PullRequestBot bot, HostedCommit commit, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
     }
 
@@ -51,5 +66,9 @@ interface CommandHandler {
     }
     default boolean allowedInPullRequest() {
         return true;
+    }
+
+    default boolean changeLabelsAfterComment() {
+        return false;
     }
 }
