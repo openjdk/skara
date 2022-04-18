@@ -64,7 +64,8 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
 
     static class HelpCommand implements CommandHandler {
         @Override
-        public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+        public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
+                           List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
             reply.println("Available commands:");
             Stream.concat(
                     commandHandlers.entrySet().stream()
@@ -104,7 +105,8 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
 
     private static class InvalidBodyCommandHandler implements CommandHandler {
         @Override
-        public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+        public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
+                           List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
             reply.println("The command `" + command.name() + "` cannot be used in the pull request body. Please use it in a new comment.");
         }
 
@@ -147,6 +149,23 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
                  .findAny();
     }
 
+    private void changeLabelsAfterComment(List<String> labelsToAdd, List<String> labelsToRemove){
+        if (labelsToAdd != null && !labelsToAdd.isEmpty()) {
+            for (var label : labelsToAdd) {
+                if (!pr.labelNames().contains(label)) {
+                    pr.addLabel(label);
+                }
+            }
+        }
+        if (labelsToRemove != null && !labelsToRemove.isEmpty()) {
+            for (var label : labelsToRemove) {
+                if (pr.labelNames().contains(label)) {
+                    pr.removeLabel(label);
+                }
+            }
+        }
+    }
+
     private void processCommand(PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments,
                                 boolean isCommit) {
         var writer = new StringWriter();
@@ -180,7 +199,12 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
                     if (command.id().startsWith("body") && !handler.get().allowedInBody()) {
                         handler = Optional.of(new PullRequestCommandWorkItem.InvalidBodyCommandHandler());
                     }
-                    handler.get().handle(bot, pr, censusInstance, scratchPath, command, allComments, printer);
+                    var labelsToAdd = new ArrayList<String>();
+                    var labelsToRemove = new ArrayList<String>();
+                    handler.get().handle(bot, pr, censusInstance, scratchPath, command, allComments, printer, labelsToAdd, labelsToRemove);
+                    pr.addComment(writer.toString());
+                    changeLabelsAfterComment(labelsToAdd, labelsToRemove);
+                    return;
                 } else {
                     printer.print("The command `");
                     printer.print(command.name());

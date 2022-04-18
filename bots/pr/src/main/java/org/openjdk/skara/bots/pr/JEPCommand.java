@@ -76,8 +76,8 @@ public class JEPCommand implements CommandHandler {
     }
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath,
-                       CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
+                       List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
         if (!pr.author().equals(command.user()) && !censusInstance.isReviewer(command.user())) {
             reply.println("only the pull request author and [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to use the `jep` command.");
             return;
@@ -92,7 +92,7 @@ public class JEPCommand implements CommandHandler {
         var labelNames = pr.labelNames();
         if ("unneeded".equals(args) || "uneeded".equals(args)) {
             if (labelNames.contains(JEP_LABEL)) {
-                pr.removeLabel(JEP_LABEL);
+                labelsToRemove.add(JEP_LABEL);
             }
             reply.println(unneededMarker);
             reply.println("determined that the [JEP](https://openjdk.java.net/jeps) request " +
@@ -133,14 +133,14 @@ public class JEPCommand implements CommandHandler {
             "Completed".equals(issueStatus) || ("Closed".equals(issueStatus) && "Delivered".equals(resolutionName))) {
             reply.println("the JEP for this pull request, [JEP-" + jepNumber + "](" + jbsIssue.webUrl() + "), has already been targeted.");
             if (labelNames.contains(JEP_LABEL)) {
-                pr.removeLabel(JEP_LABEL);
+                labelsToRemove.add(JEP_LABEL);
             }
         } else {
             // The current issue status may be "Draft", "Submitted", "Candidate", "Proposed to Target", "Proposed to Drop" or "Closed without Delivered"
             reply.println("this pull request will not be integrated until the [JEP-" + jepNumber
                     + "](" + jbsIssue.webUrl() + ")" + " has been targeted.");
             if (!labelNames.contains(JEP_LABEL)) {
-                pr.addLabel(JEP_LABEL);
+                labelsToAdd.add(JEP_LABEL);
             }
         }
     }
