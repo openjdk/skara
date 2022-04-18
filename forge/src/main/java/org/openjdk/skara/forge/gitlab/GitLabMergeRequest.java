@@ -95,8 +95,13 @@ public class GitLabMergeRequest implements PullRequest {
                                  ret.date = ZonedDateTime.parse(obj.get("created_at").asString());
                                  return ret;
                              })
-                             .sorted(Comparator.comparing(cd -> cd.date))
-                             .collect(Collectors.toList());
+                             .collect(Collectors.toCollection(ArrayList::new));
+        // Commits are returned in reverse chronological order. We want them
+        // primarily in chronological order based on the "created_at" date
+        // and secondary in the reverse order they originally came in. We can
+        // trust that List::sort is stable.
+        Collections.reverse(commits);
+        commits.sort(Comparator.comparing(cd -> cd.date));
 
         // It's possible to create a merge request without any commits
         if (commits.size() == 0) {
