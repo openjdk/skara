@@ -158,50 +158,39 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         printer.print(" ");
 
         var handler = command.handler();
-        if (handler.isEmpty()) {
+        if (handler.isPresent()) {
+            if (isCommit) {
+                if (handler.get().allowedInCommit()) {
+                    var hash = resultingCommitHash(allComments);
+                    if (hash.isPresent()) {
+                        var commit = pr.repository().commit(hash.get()).orElseThrow();
+                        handler.get().handle(bot, commit, censusInstance, scratchPath, command, allComments, printer);
+                    } else {
+                        printer.print("The command `");
+                        printer.print(command.name());
+                        printer.println("` can only be used in a pull request that has been integrated.");
+                    }
+                } else {
+                    printer.print("The command `");
+                    printer.print(command.name());
+                    printer.println("` can only be used in open pull requests.");
+                }
+            } else {
+                if (handler.get().allowedInPullRequest()) {
+                    if (command.id().startsWith("body") && !handler.get().allowedInBody()) {
+                        handler = Optional.of(new PullRequestCommandWorkItem.InvalidBodyCommandHandler());
+                    }
+                    handler.get().handle(bot, pr, censusInstance, scratchPath, command, allComments, printer);
+                } else {
+                    printer.print("The command `");
+                    printer.print(command.name());
+                    printer.println("` can only be used in a pull request that has not yet been integrated.");
+                }
+            }
+        } else {
             printer.print("Unknown command `");
             printer.print(command.name());
             printer.println("` - for a list of valid commands use `/help`.");
-            pr.addComment(writer.toString());
-            return;
-        }
-
-        if (isCommit && !handler.get().allowedInCommit()) {
-            // isCommit && !handler.get().allowedInCommit() -> true
-            printer.print("The command `");
-            printer.print(command.name());
-            printer.println("` can only be used in open pull requests.");
-        } else if (isCommit) {
-            // isCommit && handler.get().allowedInCommit() -> true
-            var hash = resultingCommitHash(allComments);
-            if (hash.isEmpty()) {
-                printer.print("The command `");
-                printer.print(command.name());
-                printer.println("` can only be used in a pull request that has been integrated.");
-                pr.addComment(writer.toString());
-                return;
-            }
-            var commit = pr.repository().commit(hash.get()).orElseThrow();
-            handler.get().handle(bot, commit, censusInstance, scratchPath, command, allComments, printer);
-        } else if (!handler.get().allowedInPullRequest()) {
-            // !isCommit && !handler.get().allowedInPullRequest() -> true
-            printer.print("The command `");
-            printer.print(command.name());
-            printer.println("` can only be used in a pull request that has not yet been integrated.");
-        } else {
-            // !isCommit && handler.get().allowedInPullRequest() -> true
-            if (command.id().startsWith("body") && !handler.get().allowedInBody()) {
-                handler = Optional.of(new PullRequestCommandWorkItem.InvalidBodyCommandHandler());
-            }
-            if (handler.get().changeLabelsAfterComment()) {
-                var labelsToChange = handler.get().handle(bot, pr, censusInstance, scratchPath, command, allComments, printer, true);
-                pr.addComment(writer.toString());
-                // change labels after commenting
-                labelsToChange.changeLabels(pr);
-                return;
-            } else {
-                handler.get().handle(bot, pr, censusInstance, scratchPath, command, allComments, printer);
-            }
         }
 
         pr.addComment(writer.toString());
