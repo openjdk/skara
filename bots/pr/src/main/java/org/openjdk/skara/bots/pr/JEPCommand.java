@@ -57,15 +57,15 @@ public class JEPCommand implements CommandHandler {
                  * `/jep unneeded`
 
                 Note:
-                The project prefix of the issue ID (`JDK-` in the above examples) is optional.
-                But the `JEP-` or `jep-` prefix is required when you provide a JEP ID.
-                And the issue type must be `JEP`.
+                The project prefix (`JDK-` in the above examples) is optional if you use an issue ID.
+                The issue type in that case must be `JEP`.
+                The `JEP-` or `jep-` prefix is required if you instead provide a JEP ID.
                 """);
     }
 
     private Optional<Issue> getJepIssue(String args, PullRequestBot bot) {
         Optional<Issue> jbsIssue;
-        if (args.startsWith("jep-") || args.startsWith("JEP-")) {
+        if (args.startsWith("jep-") || args.startsWith("JEP-") || args.startsWith("Jep-")) {
             // Handle the JEP ID
             jbsIssue = bot.issueProject().jepIssue(args.substring(4));
         } else {
@@ -95,8 +95,7 @@ public class JEPCommand implements CommandHandler {
                 labelsToRemove.add(JEP_LABEL);
             }
             reply.println(unneededMarker);
-            reply.println("determined that the [JEP](https://openjdk.java.net/jeps) request " +
-                    "is not needed for this pull request.");
+            reply.println("determined that the JEP request is not needed for this pull request.");
             return;
         }
 
@@ -147,7 +146,7 @@ public class JEPCommand implements CommandHandler {
 
     @Override
     public String description() {
-        return "require a JDK Enhancement Proposal for this pull request";
+        return "require a JDK Enhancement Proposal (JEP) for this pull request";
     }
 
     @Override
