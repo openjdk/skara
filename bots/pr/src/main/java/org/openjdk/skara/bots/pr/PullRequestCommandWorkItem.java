@@ -64,8 +64,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
 
     static class HelpCommand implements CommandHandler {
         @Override
-        public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
-                           List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
+        public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
             reply.println("Available commands:");
             Stream.concat(
                     commandHandlers.entrySet().stream()
@@ -105,8 +104,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
 
     private static class InvalidBodyCommandHandler implements CommandHandler {
         @Override
-        public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
-                           List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
+        public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
             reply.println("The command `" + command.name() + "` cannot be used in the pull request body. Please use it in a new comment.");
         }
 
