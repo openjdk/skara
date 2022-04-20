@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,12 +22,20 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.forge.HostedCommit;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.vcs.*;
+import org.openjdk.skara.vcs.openjdk.CommitMessageParsers;
 
 import java.io.PrintWriter;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.time.format.DateTimeFormatter;
 
 public class CleanCommand implements CommandHandler {
     private void showHelp(PrintWriter reply) {
@@ -45,8 +53,7 @@ public class CleanCommand implements CommandHandler {
     }
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
-                       List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove)
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply)
     {
         if (!censusInstance.isCommitter(command.user())) {
             reply.println("Only OpenJDK [Committers](https://openjdk.java.net/bylaws#committer) can use the `/clean` command");

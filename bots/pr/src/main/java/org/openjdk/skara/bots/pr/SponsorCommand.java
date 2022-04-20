@@ -37,8 +37,7 @@ public class SponsorCommand implements CommandHandler {
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
-                       List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (censusInstance.isCommitter(pr.author())) {
             reply.println("This change does not need sponsoring - the author is allowed to integrate it.");
             return;

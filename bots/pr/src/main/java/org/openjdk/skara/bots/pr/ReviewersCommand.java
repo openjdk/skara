@@ -73,8 +73,7 @@ public class ReviewersCommand implements CommandHandler {
     }
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
-                       List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (!pr.author().equals(command.user()) && !censusInstance.isReviewer(command.user())) {
             reply.println("Only the author of the pull request or [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to change the number of required reviewers.");
             return;

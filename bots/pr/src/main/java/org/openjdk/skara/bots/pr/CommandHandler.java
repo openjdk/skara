@@ -33,9 +33,15 @@ import java.util.List;
 interface CommandHandler {
     String description();
 
+    default void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath,
+                        CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+    }
+
     default void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
                         List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
+        handle(bot, pr, censusInstance, scratchPath, command, allComments, reply);
     }
+
     default void handle(PullRequestBot bot, HostedCommit commit, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
     }
 

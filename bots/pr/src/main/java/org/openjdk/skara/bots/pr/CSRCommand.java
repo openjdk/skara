@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -62,8 +62,7 @@ public class CSRCommand implements CommandHandler {
     }
 
     @Override
-    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
-                       List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
+    public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (!pr.author().equals(command.user()) && !censusInstance.isReviewer(command.user())) {
             reply.println("only the pull request author and [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to use the `csr` command.");
             return;
