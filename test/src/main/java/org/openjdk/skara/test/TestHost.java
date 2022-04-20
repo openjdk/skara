@@ -25,7 +25,6 @@ package org.openjdk.skara.test;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.issuetracker.jira.JiraProject;
 import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.*;
 
@@ -38,6 +37,8 @@ import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
+import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
 
 public class TestHost implements Forge, IssueTracker {
 
@@ -226,7 +227,7 @@ public class TestHost implements Forge, IssueTracker {
                 .map(issue -> getIssue(issueProject, issue.getKey()))
                 .filter(issue -> {
                     var issueType = issue.data.properties.get("issuetype");
-                    var jepNumber = issue.data.properties.get(JiraProject.JEP_NUMBER);
+                    var jepNumber = issue.data.properties.get(JEP_NUMBER);
                     return issueType != null && "JEP".equals(issueType.asString()) &&
                            jepNumber != null && jepId.equals(jepNumber.asString());
                 })

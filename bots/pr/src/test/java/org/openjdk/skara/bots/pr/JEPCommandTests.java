@@ -24,7 +24,6 @@ package org.openjdk.skara.bots.pr;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-import org.openjdk.skara.issuetracker.jira.JiraProject;
 import org.openjdk.skara.json.JSON;
 import org.openjdk.skara.test.CheckableRepository;
 import org.openjdk.skara.test.HostCredentials;
@@ -39,6 +38,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
+import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
 
 public class JEPCommandTests {
     @Test
@@ -63,9 +63,9 @@ public class JEPCommandTests {
 
             var mainIssue = issueProject.createIssue("The main issue", List.of("main"), Map.of("issuetype", JSON.of("Bug")));
             var jepIssue = issueProject.createIssue("The jep issue", List.of("Jep body"),
-                    Map.of("issuetype", JSON.of("JEP"), "status", JSON.object().put("name", "Submitted"), JiraProject.JEP_NUMBER, JSON.of("123")));
+                    Map.of("issuetype", JSON.of("JEP"), "status", JSON.object().put("name", "Submitted"), JEP_NUMBER, JSON.of("123")));
             var jepIssueTargeted = issueProject.createIssue("The jep issue", List.of("Jep body"),
-                    Map.of("issuetype", JSON.of("JEP"), "status", JSON.object().put("name", "Targeted"), JiraProject.JEP_NUMBER, JSON.of("234")));
+                    Map.of("issuetype", JSON.of("JEP"), "status", JSON.object().put("name", "Targeted"), JEP_NUMBER, JSON.of("234")));
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
@@ -189,7 +189,7 @@ public class JEPCommandTests {
 
             var mainIssue = issueProject.createIssue("The main issue", List.of("main"), Map.of("issuetype", JSON.of("Bug")));
             var jepIssue = issueProject.createIssue("The jep issue", List.of("Jep body"),
-                    Map.of("issuetype", JSON.of("JEP"), "status", JSON.object().put("name", "Submitted"), JiraProject.JEP_NUMBER, JSON.of("123")));
+                    Map.of("issuetype", JSON.of("JEP"), "status", JSON.object().put("name", "Submitted"), JEP_NUMBER, JSON.of("123")));
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
@@ -272,7 +272,7 @@ public class JEPCommandTests {
 
             var mainIssue = issueProject.createIssue("The main issue", List.of("main"), Map.of("issuetype", JSON.of("Bug")));
             var jepIssue = issueProject.createIssue("The jep issue", List.of("Jep body"),
-                    Map.of("issuetype", JSON.of("JEP"), "status", JSON.object().put("name", "Submitted"), JiraProject.JEP_NUMBER, JSON.of("123")));
+                    Map.of("issuetype", JSON.of("JEP"), "status", JSON.object().put("name", "Submitted"), JEP_NUMBER, JSON.of("123")));
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);
@@ -390,11 +390,11 @@ public class JEPCommandTests {
                     "Proposed to Drop", "Closed", "Targeted", "Integrated", "Completed");
             for (int i = 1; i <= 9; i++) {
                 issueProject.createIssue(statusList.get(i - 1) + " jep", List.of("Jep body"), Map.of("issuetype", JSON.of("JEP"),
-                        "status", JSON.object().put("name", statusList.get(i - 1)), JiraProject.JEP_NUMBER, JSON.of(String.valueOf(i))));
+                        "status", JSON.object().put("name", statusList.get(i - 1)), JEP_NUMBER, JSON.of(String.valueOf(i))));
             }
             issueProject.createIssue("The jep issue", List.of("Jep body"),
                     Map.of("issuetype", JSON.of("JEP"), "status", JSON.object().put("name", "Closed"),
-                           "resolution", JSON.object().put("name", "Delivered"), JiraProject.JEP_NUMBER, JSON.of("10")));
+                           "resolution", JSON.object().put("name", "Delivered"), JEP_NUMBER, JSON.of("10")));
 
             // Make a change with a corresponding PR
             var editHash = CheckableRepository.appendAndCommit(localRepo);

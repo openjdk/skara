@@ -30,6 +30,7 @@ import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
 
 /**
  * To be able to run the tests, you need to remove or comment out the @Disabled
@@ -51,7 +52,7 @@ public class JiraProjectTests {
         assertEquals("Closed", closedJep.properties().get("status").get("name").asString());
         assertEquals("Delivered", closedJep.properties().get("resolution").get("name").asString());
         assertEquals("JEP", closedJep.properties().get("issuetype").asString());
-        assertEquals("421", closedJep.properties().get(JiraProject.JEP_NUMBER).asString());
+        assertEquals("421", closedJep.properties().get(JEP_NUMBER).asString());
 
         // Test a non-existing JEP (large JEP number).
         var nonExistingJepOpt = jiraProject.jepIssue("100000000000");

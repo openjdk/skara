@@ -26,13 +26,14 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.issuetracker.Issue;
-import org.openjdk.skara.issuetracker.jira.JiraProject;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
+
+import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
 
 public class JEPCommand implements CommandHandler {
     static final String JEP_LABEL = "jep";
@@ -126,7 +127,7 @@ public class JEPCommand implements CommandHandler {
         }
 
         // Set the marker and output the result
-        var jepNumber = jbsIssue.properties().get(JiraProject.JEP_NUMBER).asString();
+        var jepNumber = jbsIssue.properties().get(JEP_NUMBER).asString();
         reply.println(String.format(jepMarker, jepNumber, jbsIssue.id(), jbsIssue.title()));
         if ("Targeted".equals(issueStatus) || "Integrated".equals(issueStatus) ||
             "Completed".equals(issueStatus) || ("Closed".equals(issueStatus) && "Delivered".equals(resolutionName))) {
