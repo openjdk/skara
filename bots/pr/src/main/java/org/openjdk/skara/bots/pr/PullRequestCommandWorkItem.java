@@ -151,6 +151,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         if (labelsToAdd != null && !labelsToAdd.isEmpty()) {
             for (var label : labelsToAdd) {
                 if (!pr.labelNames().contains(label)) {
+                    log.info("Adding " + label + " label to " + describe(pr));
                     pr.addLabel(label);
                 }
             }
@@ -158,10 +159,15 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         if (labelsToRemove != null && !labelsToRemove.isEmpty()) {
             for (var label : labelsToRemove) {
                 if (pr.labelNames().contains(label)) {
+                    log.info("Removing " + label + " label from " + describe(pr));
                     pr.removeLabel(label);
                 }
             }
         }
+    }
+
+    private String describe(PullRequest pr) {
+        return pr.repository().name() + "#" + pr.id();
     }
 
     private void processCommand(PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments,

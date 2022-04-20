@@ -26,6 +26,7 @@ package org.openjdk.skara.bots.jep;
 import org.openjdk.skara.bot.Bot;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.HostedRepository;
+import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.IssueProject;
 
 import java.nio.file.Path;
@@ -72,29 +73,30 @@ public class JEPBot implements Bot, WorkItem {
                 if (pr.labelNames().contains(JEP_LABEL)) {
                     pr.removeLabel(JEP_LABEL);
                 }
-                log.info("No jep command found in comment for PR-" + pr.id());
+                log.fine("No jep command found in comment for " + describe(pr));
                 continue;
             }
 
             var issueId = jepComment.group(2);
             if ("unneeded".equals(issueId)) {
+                log.info("Found `/jep unneeded` command for " + describe(pr));
                 if (pr.labelNames().contains(JEP_LABEL)) {
+                    log.info("Removing JEP label from " + describe(pr));
                     pr.removeLabel(JEP_LABEL);
                 }
-                log.info("Found `/jep unneeded` command");
                 continue;
             }
 
             var issueOpt = issueProject.issue(issueId);
             if (issueOpt.isEmpty()) {
-                log.severe("The issue `" + issueId + "` doesn't exist.");
+                log.severe("The issue `" + issueId + "` for " + describe(pr) + " doesn't exist.");
                 continue;
             }
             var issue = issueOpt.get();
 
             var issueType = issue.properties().get("issuetype");
             if (issueType == null || !"JEP".equals(issueType.asString())) {
-                log.severe("The issue `" + issue.id() + "` is not a JEP.");
+                log.severe("The issue `" + issue.id() + "` for " + describe(pr) + " is not a JEP.");
                 continue;
             }
 
@@ -111,12 +113,18 @@ public class JEPBot implements Bot, WorkItem {
                     "Completed".equals(issueStatus) ||
                     ("Closed".equals(issueStatus) && "Delivered".equals(resolutionName));
             if (hasTargeted && pr.labelNames().contains(JEP_LABEL)) {
+                log.info("JEP issue " + issue.id() + " found in state " + issueStatus + ", removing JEP label from " + describe(pr));
                 pr.removeLabel(JEP_LABEL);
             } else if (!hasTargeted && !pr.labelNames().contains(JEP_LABEL)) {
+                log.info("JEP issue " + issue.id() + " found in state " + issueStatus + ", adding JEP label to " + describe(pr));
                 pr.addLabel(JEP_LABEL);
             }
         }
         return List.of();
+    }
+
+    private String describe(PullRequest pr) {
+        return repo.name() + "#" + pr.id();
     }
 
     @Override
