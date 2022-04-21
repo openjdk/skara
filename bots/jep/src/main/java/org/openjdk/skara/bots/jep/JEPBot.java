@@ -70,10 +70,11 @@ public class JEPBot implements Bot, WorkItem {
                     .reduce((first, second) -> second)
                     .orElse(null);
             if (jepComment == null) {
+                log.fine("No jep command found in comment for " + describe(pr));
                 if (pr.labelNames().contains(JEP_LABEL)) {
+                    log.info("Removing JEP label from " + describe(pr));
                     pr.removeLabel(JEP_LABEL);
                 }
-                log.fine("No jep command found in comment for " + describe(pr));
                 continue;
             }
 
