@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,6 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.forge.HostedCommit;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
-import org.openjdk.skara.vcs.*;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
@@ -34,9 +33,15 @@ import java.util.List;
 interface CommandHandler {
     String description();
 
-    default void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply)
-    {
+    default void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath,
+                        CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
     }
+
+    default void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
+                        List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
+        handle(bot, pr, censusInstance, scratchPath, command, allComments, reply);
+    }
+
     default void handle(PullRequestBot bot, HostedCommit commit, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
     }
 

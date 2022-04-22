@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -39,6 +39,7 @@ import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
 
 class CheckTests {
     @Test
@@ -1186,6 +1187,71 @@ class CheckTests {
             assertTrue(pr.body().contains("The csr issue (**CSR**)"));
             // The csr issue state don't need to be `open`.
             assertFalse(pr.body().contains("Issue is not open"));
+        }
+    }
+
+    @Test
+    void testJepIssue(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var checkBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject)
+                    .censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
+                    Path.of("appendable.txt"), Set.of("issues"), null);
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            var mainIssue = issueProject.createIssue("The main issue", List.of("main"), Map.of("issuetype", JSON.of("Bug")));
+            var jepIssue = issueProject.createIssue("The jep issue", List.of("Jep body"),
+                    Map.of("issuetype", JSON.of("JEP"), "status", JSON.object().put("name", "Submitted"), JEP_NUMBER, JSON.of("123")));
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", mainIssue.id() + ": " + mainIssue.title());
+
+            // PR should have one issue
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertTrue(pr.body().contains("### Issue"));
+            assertFalse(pr.body().contains("### Issues"));
+            assertTrue(pr.body().contains("The main issue"));
+            assertFalse(pr.body().contains("The jep issue (**JEP**)"));
+
+            // Require jep
+            pr.addComment("/jep JEP-123");
+
+            // PR should have two issues
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertTrue(pr.body().contains("### Issues"));
+            assertTrue(pr.body().contains("The main issue"));
+            assertTrue(pr.body().contains("The jep issue (**JEP**)"));
+
+            // Set the state of the jep issue to `Targeted`.
+            // This step is not necessary, because the JEPBot is not actually running
+            // in this test case. But it is good to keep it to show the logic.
+            jepIssue.setProperty("status", JSON.object().put("name", "Targeted"));
+
+            // Simulate the JEPBot to remove the `jep` label when the jep issue has been targeted.
+            jepIssue.removeLabel("jep");
+
+            // Push a commit to trigger the check which can update the PR body.
+            var newHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(newHash, author.url(), "edit", false);
+
+            // PR should have two issues even though the jep issue has been targeted
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertTrue(pr.body().contains("### Issues"));
+            assertTrue(pr.body().contains("The main issue"));
+            assertTrue(pr.body().contains("The jep issue (**JEP**)"));
         }
     }
 

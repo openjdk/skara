@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,6 +37,8 @@ import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
+import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
 
 public class TestHost implements Forge, IssueTracker {
 
@@ -217,6 +219,20 @@ public class TestHost implements Forge, IssueTracker {
             return null;
         }
         return TestIssue.createFrom(issueProject, original);
+    }
+
+    TestIssue getJepIssue(TestIssueProject issueProject, String jepId) {
+        var jepIssue = data.issues.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(issue -> getIssue(issueProject, issue.getKey()))
+                .filter(issue -> {
+                    var issueType = issue.data.properties.get("issuetype");
+                    var jepNumber = issue.data.properties.get(JEP_NUMBER);
+                    return issueType != null && "JEP".equals(issueType.asString()) &&
+                           jepNumber != null && jepId.equals(jepNumber.asString());
+                })
+                .findFirst();
+        return jepIssue.orElse(null);
     }
 
     List<TestIssue> getIssues(TestIssueProject issueProject) {

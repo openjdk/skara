@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -21,34 +21,12 @@
  * questions.
  */
 
-module {
-    name = 'org.openjdk.skara.issuetracker'
-    test {
-        requires 'org.openjdk.skara.test'
-        requires 'org.junit.jupiter.api'
-        requires 'jdk.httpserver'
-        opens 'org.openjdk.skara.issuetracker' to 'org.junit.platform.commons'
-        opens 'org.openjdk.skara.issuetracker.jira' to 'org.junit.platform.commons'
-    }
-}
+module org.openjdk.skara.bots.jep {
+    requires org.openjdk.skara.bot;
+    requires org.openjdk.skara.vcs;
+    requires org.openjdk.skara.forge;
+    requires org.openjdk.skara.issuetracker;
+    requires java.logging;
 
-dependencies {
-    implementation project(':vcs')
-    implementation project(':census')
-    implementation project(':json')
-    implementation project(':ini')
-    implementation project(':process')
-    implementation project(':email')
-    implementation project(':network')
-    implementation project(':host')
-
-    testImplementation project(':test')
-}
-
-publishing {
-    publications {
-        issuetracker(MavenPublication) {
-            from components.java
-        }
-    }
+    provides org.openjdk.skara.bot.BotFactory with org.openjdk.skara.bots.jep.JEPBotFactory;
 }

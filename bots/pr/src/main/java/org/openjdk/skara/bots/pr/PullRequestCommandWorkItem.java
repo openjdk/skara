@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -52,6 +52,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
             Map.entry("solves", new IssueCommand("solves")),
             Map.entry("reviewers", new ReviewersCommand()),
             Map.entry("csr", new CSRCommand()),
+            Map.entry("jep", new JEPCommand()),
             Map.entry("reviewer", new ReviewerCommand()),
             Map.entry("label", new LabelCommand()),
             Map.entry("cc", new LabelCommand("cc")),
@@ -146,6 +147,29 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
                  .findAny();
     }
 
+    private void changeLabelsAfterComment(List<String> labelsToAdd, List<String> labelsToRemove){
+        if (labelsToAdd != null && !labelsToAdd.isEmpty()) {
+            for (var label : labelsToAdd) {
+                if (!pr.labelNames().contains(label)) {
+                    log.info("Adding " + label + " label to " + describe(pr));
+                    pr.addLabel(label);
+                }
+            }
+        }
+        if (labelsToRemove != null && !labelsToRemove.isEmpty()) {
+            for (var label : labelsToRemove) {
+                if (pr.labelNames().contains(label)) {
+                    log.info("Removing " + label + " label from " + describe(pr));
+                    pr.removeLabel(label);
+                }
+            }
+        }
+    }
+
+    private String describe(PullRequest pr) {
+        return pr.repository().name() + "#" + pr.id();
+    }
+
     private void processCommand(PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments,
                                 boolean isCommit) {
         var writer = new StringWriter();
@@ -179,7 +203,12 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
                     if (command.id().startsWith("body") && !handler.get().allowedInBody()) {
                         handler = Optional.of(new PullRequestCommandWorkItem.InvalidBodyCommandHandler());
                     }
-                    handler.get().handle(bot, pr, censusInstance, scratchPath, command, allComments, printer);
+                    var labelsToAdd = new ArrayList<String>();
+                    var labelsToRemove = new ArrayList<String>();
+                    handler.get().handle(bot, pr, censusInstance, scratchPath, command, allComments, printer, labelsToAdd, labelsToRemove);
+                    pr.addComment(writer.toString());
+                    changeLabelsAfterComment(labelsToAdd, labelsToRemove);
+                    return;
                 } else {
                     printer.print("The command `");
                     printer.print(command.name());

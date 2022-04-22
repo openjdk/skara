@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -45,6 +45,7 @@ import static org.openjdk.skara.issuetracker.Issue.State.OPEN;
 import static org.openjdk.skara.issuetracker.Issue.State.RESOLVED;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.RESOLVED_IN_BUILD;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.SUBCOMPONENT;
+import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
 
 public class IssueNotifierTests {
     private static final String pullRequestTip = "A pull request was submitted for review.";
@@ -441,6 +442,66 @@ public class IssueNotifierTests {
 
             var csrIssueComments = updatedCsrIssue.comments();
             assertEquals(0, csrIssueComments.size());
+        }
+    }
+
+    @Test
+    void testJepIssue(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var issueProject = credentials.getIssueProject();
+            var storageFolder = tempFolder.path().resolve("storage");
+            var notifyBot = testBotBuilder(repo, issueProject, storageFolder, JSON.object()).create("notify", JSON.object());
+
+            // Initialize history
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and a jep issue.
+            var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
+            var issue = issueProject.createIssue("This is an issue", List.of("Issue body"),
+                    Map.of("issuetype", JSON.of("Enhancement")));
+            var jepIssue = issueProject.createIssue("This is a jep", List.of("Jep body"),
+                    Map.of("issuetype", JSON.of("JEP"), "status", JSON.object().put("name", "Submitted"), JEP_NUMBER, JSON.of("123")));
+
+            // Push a commit and create a pull request
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line",
+                    issue.id() + ": This is an issue\n", "Duke", authorEmailAddress);
+            localRepo.push(editHash, repo.url(), "master");
+            var pr = credentials.createPullRequest(repo, "edit", "master", issue.id() + ": This is an issue");
+            pr.setBody("\n\n### Issues\n" +
+                    " * [" + issue.id() + "](http://www.test.test/): This is an issue\n" +
+                    " * [" + jepIssue.id() + "](http://www.test2.test/): This is a jep (**JEP**)");
+            pr.addLabel("rfr");
+            pr.addComment("This is now ready");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Get the issues.
+            var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            var updatedJepIssue = issueProject.issue(jepIssue.id()).orElseThrow();
+
+            // Non-jep issue should have the PR link and PR comment.
+            var issueLinks = updatedIssue.links();
+            assertEquals(1, issueLinks.size());
+            assertEquals(pr.webUrl(), issueLinks.get(0).uri().orElseThrow());
+
+            var issueComments = updatedIssue.comments();
+            assertEquals(1, issueComments.size());
+            assertTrue(issueComments.get(0).body().contains(pullRequestTip));
+            assertTrue(issueComments.get(0).body().contains(pr.webUrl().toString()));
+
+            // jep issue shouldn't have the PR link or PR comment.
+            var jepIssueLinks = updatedJepIssue.links();
+            assertEquals(0, jepIssueLinks.size());
+
+            var jepIssueComments = updatedJepIssue.comments();
+            assertEquals(0, jepIssueComments.size());
         }
     }
 

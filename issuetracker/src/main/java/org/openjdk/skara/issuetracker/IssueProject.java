@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,4 +36,11 @@ public interface IssueProject {
     List<Issue> issues();
     List<Issue> issues(ZonedDateTime updatedAfter);
     String name();
+
+    /**
+     * Get the JEP issue according to the JEP ID.
+     * @param jepId JEP ID
+     * @return the corresponding issue
+     */
+    Optional<Issue> jepIssue(String jepId);
 }

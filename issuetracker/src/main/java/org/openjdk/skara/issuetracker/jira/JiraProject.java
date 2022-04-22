@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,6 +36,7 @@ public class JiraProject implements IssueProject {
 
     public static final String RESOLVED_IN_BUILD = "customfield_10006";
     public static final String SUBCOMPONENT = "customfield_10008";
+    public static final String JEP_NUMBER = "customfield_10701";
 
     private final JiraHost jiraHost;
     private final String projectName;
@@ -214,7 +215,7 @@ public class JiraProject implements IssueProject {
         return jiraHost;
     }
 
-    private static final Set<String> knownProperties = Set.of("issuetype", "fixVersions", "versions", "priority", "components");
+    private static final Set<String> knownProperties = Set.of("issuetype", "fixVersions", "versions", "priority", "components", "status");
     private static final Set<String> readOnlyProperties = Set.of("resolution", "security");
 
     boolean isAllowedProperty(String name, boolean forWrite) {
@@ -430,6 +431,18 @@ public class JiraProject implements IssueProject {
             return Optional.of(new JiraIssue(this, issueRequest, issue));
         } else {
             return Optional.empty();
+        }
+    }
+
+    @Override
+    public Optional<Issue> jepIssue(String jepId) {
+        var issues = request.post("search")
+                .body("jql", "project = " + projectName + " AND \"JEP Number\" ~ \"" + jepId + "\"")
+                .execute();
+        if (issues.get("issues").asArray().size() == 0) {
+            return Optional.empty();
+        } else {
+            return Optional.of(new JiraIssue(this, request, issues.get("issues").asArray().get(0)));
         }
     }
 

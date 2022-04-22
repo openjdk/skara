@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -151,7 +151,7 @@ public class PullRequestWorkItem implements WorkItem {
         }
         var issueMatcher = issuePattern.matcher(issuesBlockMatcher.group(1));
         return issueMatcher.results()
-                           .filter(mr -> !mr.group(2).endsWith(" (**CSR**)"))
+                           .filter(mr -> !mr.group(2).endsWith(" (**CSR**)") && !mr.group(2).endsWith(" (**JEP**)"))
                            .map(mo -> mo.group(1))
                            .collect(Collectors.toSet());
     }
