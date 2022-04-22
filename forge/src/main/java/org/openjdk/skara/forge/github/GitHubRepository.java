@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -456,7 +456,9 @@ public class GitHubRepository implements HostedRepository {
 
     @Override
     public Optional<HostedCommit> commit(Hash hash) {
+        // Need to specify an explicit per_page < 70 to guarantee that we get patch information in the result set.
         var o = request.get("commits/" + hash.hex())
+                       .param("per_page", "50")
                        .onError(r -> Optional.of(JSON.of()))
                        .execute();
         if (o.isNull()) {
