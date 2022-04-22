@@ -736,6 +736,7 @@ public class GitHubPullRequest implements PullRequest {
 
     @Override
     public Diff diff() {
+        // Need to specify an explicit per_page < 70 to guarantee that we get patch information in the result set.
         var files = request.get("pulls/" + json.get("number").toString() + "/files")
                            .param("per_page", "50")
                            .execute();

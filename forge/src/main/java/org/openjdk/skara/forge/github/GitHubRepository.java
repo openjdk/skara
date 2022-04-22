@@ -456,6 +456,7 @@ public class GitHubRepository implements HostedRepository {
 
     @Override
     public Optional<HostedCommit> commit(Hash hash) {
+        // Need to specify an explicit per_page < 70 to guarantee that we get patch information in the result set.
         var o = request.get("commits/" + hash.hex())
                        .param("per_page", "50")
                        .onError(r -> Optional.of(JSON.of()))
