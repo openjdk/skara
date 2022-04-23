@@ -490,9 +490,11 @@ class CheckRun {
                                    if (hash.isPresent()) {
                                        if (!hash.get().equals(pr.headHash())) {
                                            if (ignoreStaleReviews) {
-                                               entry += " 🔄 Re-review required (review applies to " + hash.get() + ")";
+                                               entry += " 🔄 Re-review required (review applies to [" + hash.get().abbreviate()
+                                                     + "](" + pr.filesUrl(hash.get()) + "))";
                                            } else {
-                                               entry += " ⚠️ Review applies to " + hash.get();
+                                               entry += " ⚠️ Review applies to [" + hash.get().abbreviate()
+                                                       + "](" + pr.filesUrl(hash.get()) + ")";
                                            }
                                        }
                                    } else {

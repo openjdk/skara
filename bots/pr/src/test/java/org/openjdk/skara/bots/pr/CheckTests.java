@@ -231,7 +231,8 @@ class CheckTests {
             // Check that the review is flagged as stale
             TestBotRunner.runPeriodicItems(checkBot);
             authorPr = author.pullRequest(authorPr.id());
-            assertTrue(authorPr.body().contains("Review applies to"));
+            Pattern compilePattern = Pattern.compile(".*Review applies to \\[.*\\]\\(.*\\).*", Pattern.MULTILINE | Pattern.DOTALL);
+            assertTrue(compilePattern.matcher(authorPr.body()).matches());
 
             // Now we can approve it again
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
