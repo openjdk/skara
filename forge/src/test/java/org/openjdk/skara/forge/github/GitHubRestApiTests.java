@@ -52,8 +52,8 @@ public class GitHubRestApiTests {
         HttpProxy.setup();
         var settings = ManualTestSettings.loadManualTestSettings();
         // Here use the OAuth2 token. To use a GitHub App, please see ManualForgeTests#gitHubLabels.
-        var username = settings.getProperty("username");
-        var token = settings.getProperty("token");
+        var username = settings.getProperty("github.user");
+        var token = settings.getProperty("github.pat");
         var credential = new Credential(username, token);
         var uri = URIBuilder.base(GITHUB_REST_URI).build();
         githubHost = new GitHubForgeFactory().create(uri, credential, null);
