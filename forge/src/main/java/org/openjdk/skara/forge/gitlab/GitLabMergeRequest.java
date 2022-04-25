@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -87,11 +87,11 @@ public class GitLabMergeRequest implements PullRequest {
             private ZonedDateTime date;
         }
 
-        var commits = request.get("commits").execute().stream()
+        var commits = request.get("versions").execute().stream()
                              .map(JSONValue::asObject)
                              .map(obj -> {
                                  var ret = new CommitDate();
-                                 ret.hash = new Hash(obj.get("id").asString());
+                                 ret.hash = new Hash(obj.get("head_commit_sha").asString());
                                  ret.date = ZonedDateTime.parse(obj.get("created_at").asString());
                                  return ret;
                              })
