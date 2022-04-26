@@ -618,7 +618,7 @@ class CheckRun {
                             }
                             if (iss.get().state() != org.openjdk.skara.issuetracker.Issue.State.OPEN) {
                                 if (!pr.labelNames().contains("backport") &&
-                                        (issueType == null || !"CSR".equals(issueType.asString()))) {
+                                        (issueType == null || !List.of("CSR", "JEP").contains(issueType.asString()))) {
                                     progressBody.append(" ⚠️ Issue is not open.");
                                 }
                             }
