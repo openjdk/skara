@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -157,6 +157,9 @@ public class PullRequestBotFactory implements BotFactory {
             }
             if (repo.value().contains("censuslink")) {
                 botBuilder.censusLink(repo.value().get("censuslink").asString());
+            }
+            if (repo.value().contains("enable-csr")) {
+                botBuilder.enableCsr(repo.value().get("enable-csr").asBoolean());
             }
 
             ret.add(botBuilder.build());

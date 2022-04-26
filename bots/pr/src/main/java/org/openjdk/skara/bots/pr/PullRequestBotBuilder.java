@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -50,6 +50,7 @@ public class PullRequestBotBuilder {
     private String confOverrideName = ".conf/jcheck";
     private String confOverrideRef = Branch.defaultFor(VCS.GIT).name();
     private String censusLink = null;
+    private boolean enableCsr = true;
     private Map<String, HostedRepository> forks = Map.of();
     private Set<String> integrators = Set.of();
     private Set<Integer> excludeCommitCommentsFrom = Set.of();
@@ -152,6 +153,11 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder enableCsr(boolean enableCsr) {
+        this.enableCsr = enableCsr;
+        return this;
+    }
+
     public PullRequestBotBuilder forks(Map<String, HostedRepository> forks) {
         this.forks = forks;
         return this;
@@ -173,6 +179,6 @@ public class PullRequestBotBuilder {
                                   blockingCheckLabels, readyLabels, twoReviewersLabels, twentyFourHoursLabels,
                                   readyComments, issueProject, ignoreStaleReviews,
                                   allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,
-                                  confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom);
+                                  confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom, enableCsr);
     }
 }

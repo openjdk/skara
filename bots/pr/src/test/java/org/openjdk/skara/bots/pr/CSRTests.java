@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -639,6 +639,48 @@ class CSRTests {
 
             // The PR body should contain the progress about CSR request
             assertTrue(pr.body().contains("- [ ] Change requires a CSR request to be approved"));
+        }
+    }
+
+    @Test
+    void testEnableCsrConfig(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var bot = credentials.getHostedRepository();
+            var issues = credentials.getIssueProject();
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id());
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Just a patch");
+
+            // Test the pull request bot with csr disable
+            var disableCsrBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues)
+                    .enableCsr(false).censusRepo(censusBuilder.build()).build();
+            pr.addComment("/csr");
+            TestBotRunner.runPeriodicItems(disableCsrBot);
+            assertLastCommentContains(pr, "this repository is not allowed to use the `csr` command.");
+            assertFalse(pr.labelNames().contains("csr"));
+
+            // Test the pull request bot with csr enable
+            var enableCsrBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues)
+                    .enableCsr(true).censusRepo(censusBuilder.build()).build();
+            pr.addComment("/csr");
+            TestBotRunner.runPeriodicItems(enableCsrBot);
+            assertLastCommentContains(pr, "has indicated that a " +
+                    "[compatibility and specification](https://wiki.openjdk.java.net/display/csr/Main) (CSR) request " +
+                    "is needed for this pull request.");
+            assertTrue(pr.labelNames().contains("csr"));
         }
     }
 }
