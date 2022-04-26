@@ -1252,6 +1252,22 @@ class CheckTests {
             assertTrue(pr.body().contains("### Issues"));
             assertTrue(pr.body().contains("The main issue"));
             assertTrue(pr.body().contains("The jep issue (**JEP**)"));
+
+            // Set the state of the jep issue to `Closed`.
+            jepIssue.setState(Issue.State.CLOSED);
+            jepIssue.setProperty("status", JSON.object().put("name", "Closed"));
+
+            // Push a commit to trigger the check which can update the PR body.
+            newHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(newHash, author.url(), "edit", false);
+
+            // PR should have two issues even though the jep issue has been Closed
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertTrue(pr.body().contains("### Issues"));
+            assertTrue(pr.body().contains("The main issue"));
+            assertTrue(pr.body().contains("The jep issue (**JEP**)"));
+            // The jep issue state doesn't need to be `open`.
+            assertFalse(pr.body().contains("Issue is not open"));
         }
     }
 
