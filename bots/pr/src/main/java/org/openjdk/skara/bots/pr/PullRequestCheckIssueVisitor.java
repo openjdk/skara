@@ -47,6 +47,8 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
             IssuesCheck.class
     );
 
+    private JCheckConfiguration configuration;
+
     PullRequestCheckIssueVisitor(Set<Check> enabledChecks) {
         this.enabledChecks = enabledChecks;
         readyForReview = true;
@@ -74,7 +76,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
     Map<String, Boolean> getChecks() {
         return enabledChecks.stream()
                             .filter(check -> displayedChecks.contains(check.getClass()))
-                            .collect(Collectors.toMap(Check::description,
+                            .collect(Collectors.toMap(this::checkDescription,
                                                       check -> !failedChecks.containsKey(check.getClass())));
     }
 
@@ -86,14 +88,25 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
         return enabledChecks.stream()
                             .filter(check -> displayedChecks.contains(check.getClass()))
                             .filter(check -> !(check instanceof ReviewersCheck))
-                            .collect(Collectors.toMap(Check::description,
+                            .collect(Collectors.toMap(this::checkDescription,
                                                       check -> !failedChecks.containsKey(check.getClass())));
+    }
+
+    private String checkDescription(Check check) {
+        if (check instanceof ReviewersCheck) {
+            return check.description() + configuration.checks().reviewers().getReviewRequirements();
+        }
+        return check.description();
     }
 
     List<CheckAnnotation> getAnnotations() { return annotations; }
 
     boolean isReadyForReview() {
         return readyForReview;
+    }
+
+    void setConfiguration(JCheckConfiguration configuration) {
+        this.configuration = configuration;
     }
 
     public void visit(DuplicateIssuesIssue e) {

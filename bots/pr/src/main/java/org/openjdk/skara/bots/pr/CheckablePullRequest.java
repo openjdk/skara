@@ -45,16 +45,11 @@ public class CheckablePullRequest {
     private final boolean ignoreStaleReviews;
     private final List<String> confOverride;
 
-    // The review requirements is used by CheckRun#getChecksList to
-    // set the checkbox of the `Progress` in the PR body.
-    private String reviewRequirements;
-
     CheckablePullRequest(PullRequest pr, Repository localRepo, boolean ignoreStaleReviews,
             HostedRepository jcheckRepo, String jcheckName, String jcheckRef) {
         this.pr = pr;
         this.localRepo = localRepo;
         this.ignoreStaleReviews = ignoreStaleReviews;
-        reviewRequirements = "";
 
         if (jcheckRepo != null) {
             confOverride = jcheckRepo.fileContents(jcheckName, jcheckRef).lines().collect(Collectors.toList());
@@ -187,34 +182,6 @@ public class CheckablePullRequest {
         return new PullRequestCheckIssueVisitor(checks);
     }
 
-    String getReviewRequirements() {
-        return reviewRequirements;
-    }
-
-    private void setReviewRequirements(JCheckConfiguration conf) {
-        var reviewersConf = conf.checks().reviewers();
-        var requireList = new ArrayList<String>();
-        var sum = 0;
-        var reviewRequirementMap = new LinkedHashMap<String, Integer>();
-        reviewRequirementMap.put("lead", reviewersConf.lead());
-        reviewRequirementMap.put("reviewer", reviewersConf.reviewers());
-        reviewRequirementMap.put("committer", reviewersConf.committers());
-        reviewRequirementMap.put("author", reviewersConf.authors());
-        reviewRequirementMap.put("contributor", reviewersConf.contributors());
-        for (var reviewRequirement : reviewRequirementMap.entrySet()) {
-            var requirementNum = reviewRequirement.getValue();
-            if (requirementNum > 0) {
-                sum += requirementNum;
-                requireList.add(requirementNum+ " " + reviewRequirement.getKey() + (requirementNum > 1 ? "s" : ""));
-            }
-        }
-        if (sum == 0) {
-            reviewRequirements = " (no reviews required)";
-        } else {
-            reviewRequirements = String.format(" (%d reviews required, with at least %s)", sum, String.join(", ", requireList));
-        }
-    }
-
     void executeChecks(Hash localHash, CensusInstance censusInstance, PullRequestCheckIssueVisitor visitor, List<String> additionalConfiguration) throws IOException {
         Optional<JCheckConfiguration> conf;
         if (confOverride != null) {
@@ -225,8 +192,7 @@ public class CheckablePullRequest {
         if (conf.isEmpty()) {
             throw new RuntimeException("Failed to parse jcheck configuration at: " + targetHash() + " with extra: " + additionalConfiguration);
         }
-        // Set the review requirements for using in CheckRun#getChecksList
-        setReviewRequirements(conf.get());
+        visitor.setConfiguration(conf.get());
         try (var issues = JCheck.check(localRepo, censusInstance.census(), CommitMessageParsers.v1, localHash,
                                        conf.get())) {
             for (var issue : issues) {

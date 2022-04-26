@@ -24,8 +24,9 @@ package org.openjdk.skara.jcheck;
 
 import org.openjdk.skara.ini.Section;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class ReviewersConfiguration {
     static final ReviewersConfiguration DEFAULT = new ReviewersConfiguration(0, 1, 0, 0, 0, List.of("duke"), false);
@@ -37,6 +38,7 @@ public class ReviewersConfiguration {
     private final int contributors;
     private final List<String> ignore;
     private final boolean shouldCheckBackports;
+    private final String reviewRequirements;
 
     ReviewersConfiguration(int lead, int reviewers, int committers, int authors, int contributors, List<String> ignore, boolean shouldCheckBackports) {
         this.lead = lead;
@@ -46,6 +48,27 @@ public class ReviewersConfiguration {
         this.contributors = contributors;
         this.ignore = ignore;
         this.shouldCheckBackports = shouldCheckBackports;
+
+        var reviewRequirementMap = new LinkedHashMap<String, Integer>();
+        var requireList = new ArrayList<String>();
+        var sum = 0;
+        reviewRequirementMap.put("lead", lead);
+        reviewRequirementMap.put("reviewer", reviewers);
+        reviewRequirementMap.put("committer", committers);
+        reviewRequirementMap.put("author", authors);
+        reviewRequirementMap.put("contributor", contributors);
+        for (var reviewRequirement : reviewRequirementMap.entrySet()) {
+            var requirementNum = reviewRequirement.getValue();
+            if (requirementNum > 0) {
+                sum += requirementNum;
+                requireList.add(requirementNum+ " " + reviewRequirement.getKey() + (requirementNum > 1 ? "s" : ""));
+            }
+        }
+        if (sum == 0) {
+            reviewRequirements = " (no reviews required)";
+        } else {
+            reviewRequirements = String.format(" (%d reviews required, with at least %s)", sum, String.join(", ", requireList));
+        }
     }
 
     public int lead() {
@@ -74,6 +97,10 @@ public class ReviewersConfiguration {
 
     public boolean shouldCheckBackports() {
         return shouldCheckBackports;
+    }
+
+    public String getReviewRequirements() {
+        return reviewRequirements;
     }
 
     static String name() {

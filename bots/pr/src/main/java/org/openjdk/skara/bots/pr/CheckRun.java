@@ -27,7 +27,6 @@ import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.jcheck.ReviewersCheck;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
@@ -469,11 +468,6 @@ class CheckRun {
 
     private String getChecksList(PullRequestCheckIssueVisitor visitor, boolean isCleanBackport, Map<String, Boolean> additionalProgresses) {
         var checks = isCleanBackport ? visitor.getReadyForReviewChecks() : visitor.getChecks();
-        var reviewRequirements = checkablePullRequest.getReviewRequirements();
-        if (checks.containsKey(ReviewersCheck.DESCRIPTION) && !"".equals(reviewRequirements)) {
-            checks.put(ReviewersCheck.DESCRIPTION + reviewRequirements, checks.get(ReviewersCheck.DESCRIPTION));
-            checks.remove(ReviewersCheck.DESCRIPTION);
-        }
         checks.putAll(additionalProgresses);
         return checks.entrySet().stream()
                 .map(entry -> "- [" + (entry.getValue() ? "x" : " ") + "] " + entry.getKey())
