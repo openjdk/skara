@@ -48,7 +48,7 @@ class CSRTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).build();
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -118,7 +118,7 @@ class CSRTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).build();
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -157,7 +157,7 @@ class CSRTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).build();
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -201,7 +201,7 @@ class CSRTests {
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id())
                                            .addCommitter(anotherPerson.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).build();
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -277,7 +277,7 @@ class CSRTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).build();
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -317,7 +317,7 @@ class CSRTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).build();
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -361,7 +361,7 @@ class CSRTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).build();
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -419,7 +419,7 @@ class CSRTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).build();
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -491,7 +491,7 @@ class CSRTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).build();
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -555,7 +555,7 @@ class CSRTests {
             var issues = credentials.getIssueProject();
             var censusBuilder = credentials.getCensusBuilder()
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).build();
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");
@@ -593,7 +593,7 @@ class CSRTests {
             var censusBuilder = credentials.getCensusBuilder()
                                            .addReviewer(reviewer.forge().currentUser().id())
                                            .addCommitter(author.forge().currentUser().id());
-            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).build();
+            var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues).censusRepo(censusBuilder.build()).enableCsr(true).build();
 
             // Populate the projects repository
             var localRepoFolder = tempFolder.path().resolve("localrepo");

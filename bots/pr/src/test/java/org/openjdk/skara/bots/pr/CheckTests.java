@@ -1141,7 +1141,7 @@ class CheckTests {
                                 .addAuthor(author.forge().currentUser().id())
                                 .addReviewer(reviewer.forge().currentUser().id());
             var checkBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues)
-                                            .censusRepo(censusBuilder.build()).build();
+                                            .censusRepo(censusBuilder.build()).enableCsr(true).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
