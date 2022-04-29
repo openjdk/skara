@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -291,7 +291,7 @@ public class PullRequestBranchNotifierTests {
             // Instructions on how to adapt to the newly integrated changes should have been posted
             var lastComment = followUpPr.comments().get(followUpPr.comments().size() - 1);
             assertTrue(lastComment.body().contains("The dependent pull request has now"), lastComment.body());
-            assertTrue(lastComment.body().contains("git checkout source"), lastComment.body());
+            assertTrue(lastComment.body().contains("git checkout followup"), lastComment.body());
             assertTrue(lastComment.body().contains("git commit -m \"Merge master\""), lastComment.body());
         }
     }
