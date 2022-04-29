@@ -94,7 +94,7 @@ class PullRequestCheckIssueVisitor implements IssueVisitor {
 
     private String checkDescription(Check check) {
         if (check instanceof ReviewersCheck && configuration != null) {
-            return check.description() + configuration.checks().reviewers().getReviewRequirements();
+            return check.description() + " (" + configuration.checks().reviewers().getReviewRequirements() + ")";
         }
         return check.description();
     }

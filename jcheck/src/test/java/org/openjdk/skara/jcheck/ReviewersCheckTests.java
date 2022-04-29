@@ -561,13 +561,13 @@ class ReviewersCheckTests {
     @Test
     void testReviewRequirements() throws IOException {
         // no review required.
-        var noReview = " (no reviews required)";
+        var noReview = "no reviews required";
         var conf = new ArrayList<>(CONFIGURATION);
         conf.add("reviewers = 0");
         assertEquals(noReview, JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         // review required template.
-        var hasReview = " (%d reviews required, with at least %s)";
+        var hasReview = "%d reviews required, with at least %s";
 
         // one review required.
         conf = new ArrayList<>(CONFIGURATION);

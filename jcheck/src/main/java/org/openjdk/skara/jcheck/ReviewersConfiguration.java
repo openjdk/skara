@@ -98,9 +98,9 @@ public class ReviewersConfiguration {
             }
         }
         if (sum == 0) {
-            reviewRequirements = " (no reviews required)";
+            reviewRequirements = "no reviews required";
         } else {
-            reviewRequirements = String.format(" (%d reviews required, with at least %s)", sum, String.join(", ", requireList));
+            reviewRequirements = String.format("%d reviews required, with at least %s", sum, String.join(", ", requireList));
         }
         return reviewRequirements;
     }
