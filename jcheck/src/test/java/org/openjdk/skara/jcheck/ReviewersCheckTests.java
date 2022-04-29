@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -556,5 +556,122 @@ class ReviewersCheckTests {
         assertEquals(commit, issue.commit());
         assertEquals(Severity.ERROR, issue.severity());
         assertEquals(check, issue.check());
+    }
+
+    @Test
+    void testReviewRequirements() throws IOException {
+        // no review required.
+        var noReview = " (no reviews required)";
+        var conf = new ArrayList<>(CONFIGURATION);
+        conf.add("reviewers = 0");
+        assertEquals(noReview, JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
+
+        // review required template.
+        var hasReview = " (%d reviews required, with at least %s)";
+
+        // one review required.
+        conf = new ArrayList<>(CONFIGURATION);
+        conf.add("reviewers = 1");
+        assertEquals(String.format(hasReview, 1, "1 reviewer"),
+                JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
+
+        conf = new ArrayList<>(CONFIGURATION);
+        conf.add("committers = 1");
+        assertEquals(String.format(hasReview, 1, "1 committer"),
+                JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
+
+        // two reviews required.
+        conf = new ArrayList<>(CONFIGURATION);
+        conf.add("reviewers = 1");
+        conf.add("committers = 1");
+        assertEquals(String.format(hasReview, 2, "1 reviewer, 1 committer"),
+                JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
+
+        conf = new ArrayList<>(CONFIGURATION);
+        conf.add("reviewers = 2");
+        assertEquals(String.format(hasReview, 2, "2 reviewers"),
+                JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
+
+        // three reviews required.
+        conf = new ArrayList<>(CONFIGURATION);
+        conf.add("reviewers = 1");
+        conf.add("committers = 1");
+        conf.add("authors = 1");
+        assertEquals(String.format(hasReview, 3, "1 reviewer, 1 committer, 1 author"),
+                JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
+
+        conf = new ArrayList<>(CONFIGURATION);
+        conf.add("reviewers = 1");
+        conf.add("committers = 2");
+        assertEquals(String.format(hasReview, 3, "1 reviewer, 2 committers"),
+                JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
+
+        conf = new ArrayList<>(CONFIGURATION);
+        conf.add("committers = 3");
+        assertEquals(String.format(hasReview, 3, "3 committers"),
+                JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
+
+        // four reviews required.
+        conf = new ArrayList<>(CONFIGURATION);
+        conf.add("reviewers = 1");
+        conf.add("committers = 1");
+        conf.add("authors = 1");
+        conf.add("contributors = 1");
+        assertEquals(String.format(hasReview, 4, "1 reviewer, 1 committer, 1 author, 1 contributor"),
+                JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
+
+        conf = new ArrayList<>(CONFIGURATION);
+        conf.add("reviewers = 1");
+        conf.add("committers = 1");
+        conf.add("authors = 2");
+        assertEquals(String.format(hasReview, 4, "1 reviewer, 1 committer, 2 authors"),
+                JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
+
+        conf = new ArrayList<>(CONFIGURATION);
+        conf.add("reviewers = 1");
+        conf.add("authors = 3");
+        assertEquals(String.format(hasReview, 4, "1 reviewer, 3 authors"),
+                JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
+
+        conf = new ArrayList<>(CONFIGURATION);
+        conf.add("authors = 4");
+        assertEquals(String.format(hasReview, 4, "4 authors"),
+                JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
+
+        // five reviews required.
+        conf = new ArrayList<>(CONFIGURATION);
+        conf.add("lead = 1");
+        conf.add("reviewers = 1");
+        conf.add("committers = 1");
+        conf.add("authors = 1");
+        conf.add("contributors = 1");
+        assertEquals(String.format(hasReview, 5, "1 lead, 1 reviewer, 1 committer, 1 author, 1 contributor"),
+                JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
+
+        conf = new ArrayList<>(CONFIGURATION);
+        conf.add("reviewers = 1");
+        conf.add("committers = 1");
+        conf.add("authors = 1");
+        conf.add("contributors = 2");
+        assertEquals(String.format(hasReview, 5, "1 reviewer, 1 committer, 1 author, 2 contributors"),
+                JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
+
+        conf = new ArrayList<>(CONFIGURATION);
+        conf.add("reviewers = 1");
+        conf.add("committers = 1");
+        conf.add("contributors = 3");
+        assertEquals(String.format(hasReview, 5, "1 reviewer, 1 committer, 3 contributors"),
+                JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
+
+        conf = new ArrayList<>(CONFIGURATION);
+        conf.add("reviewers = 1");
+        conf.add("contributors = 4");
+        assertEquals(String.format(hasReview, 5, "1 reviewer, 4 contributors"),
+                JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
+
+        conf = new ArrayList<>(CONFIGURATION);
+        conf.add("contributors = 5");
+        assertEquals(String.format(hasReview, 5, "5 contributors"),
+                JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
     }
 }
