@@ -50,7 +50,7 @@ public class PullRequestBotBuilder {
     private String confOverrideName = ".conf/jcheck";
     private String confOverrideRef = Branch.defaultFor(VCS.GIT).name();
     private String censusLink = null;
-    private boolean enableCsr = true;
+    private boolean enableCsr = false;
     private Map<String, HostedRepository> forks = Map.of();
     private Set<String> integrators = Set.of();
     private Set<Integer> excludeCommitCommentsFrom = Set.of();

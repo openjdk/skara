@@ -158,8 +158,8 @@ public class PullRequestBotFactory implements BotFactory {
             if (repo.value().contains("censuslink")) {
                 botBuilder.censusLink(repo.value().get("censuslink").asString());
             }
-            if (repo.value().contains("enable-csr")) {
-                botBuilder.enableCsr(repo.value().get("enable-csr").asBoolean());
+            if (repo.value().contains("csr")) {
+                botBuilder.enableCsr(repo.value().get("csr").asBoolean());
             }
 
             ret.add(botBuilder.build());
