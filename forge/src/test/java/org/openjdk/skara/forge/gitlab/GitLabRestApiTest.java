@@ -41,6 +41,22 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class GitLabRestApiTest {
 
     @Test
+    void testReviews() throws IOException {
+        var settings = ManualTestSettings.loadManualTestSettings();
+        var username = settings.getProperty("gitlab.user");
+        var token = settings.getProperty("gitlab.pat");
+        var credential = new Credential(username, token);
+        var uri = URIBuilder.base(settings.getProperty("gitlab.uri")).build();
+        var gitLabHost = new GitLabHost("gitlab", uri, false, credential, Set.of());
+        var gitLabRepo = gitLabHost.repository(settings.getProperty("gitlab.repository")).orElseThrow();
+        var gitLabMergeRequest = gitLabRepo.pullRequest(settings.getProperty("gitlab.merge.request.id"));
+
+        var reviewList = gitLabMergeRequest.reviews();
+        var actualHash = reviewList.get(0).hash().orElse(new Hash(""));
+        assertEquals(settings.getProperty("gitlab.review.hash"), actualHash.hex());
+    }
+
+    @Test
     void testFilesUrl() throws IOException {
         var settings = ManualTestSettings.loadManualTestSettings();
         var username = settings.getProperty("gitlab.user");

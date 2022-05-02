@@ -87,11 +87,11 @@ public class GitLabMergeRequest implements PullRequest {
             private ZonedDateTime date;
         }
 
-        var commits = request.get("commits").execute().stream()
+        var commits = request.get("versions").execute().stream()
                              .map(JSONValue::asObject)
                              .map(obj -> {
                                  var ret = new CommitDate();
-                                 ret.hash = new Hash(obj.get("id").asString());
+                                 ret.hash = new Hash(obj.get("head_commit_sha").asString());
                                  ret.date = ZonedDateTime.parse(obj.get("created_at").asString());
                                  return ret;
                              })

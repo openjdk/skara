@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -150,7 +150,7 @@ public class GitLabHost implements Forge {
         var id = o.get("id").asInt();
         var username = o.get("username").asString();
         var name = o.get("name").asString();
-        var email = o.get("email").asString();
+        var email = o.get("email") != null ? o.get("email").asString() : "";
         return HostUser.builder()
                        .id(id)
                        .username(username)
