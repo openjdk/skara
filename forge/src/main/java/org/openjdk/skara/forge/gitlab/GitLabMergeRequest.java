@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -841,7 +841,16 @@ public class GitLabMergeRequest implements PullRequest {
 
     @Override
     public URI filesUrl(Hash hash) {
-        var endpoint = "/" + repository.name() + "/-/merge_requests/" + id() + "/diffs?commit_id=" + hash.hex();
-        return host.getWebUri(endpoint);
+        var versionId = request.get("versions").execute().stream()
+                               .filter(version -> hash.hex().equals(version.get("head_commit_sha").asString()))
+                               .map(version -> String.valueOf(version.get("id").asInt()))
+                               .findFirst();
+        String uri;
+        if (versionId.isEmpty()) {
+            uri = "/" + repository.name() + "/-/merge_requests/" + id() + "/diffs?commit_id=" + hash.hex();
+        } else {
+            uri = "/" + repository.name() + "/-/merge_requests/" + id() + "/diffs?diff_id=" + versionId.get();
+        }
+        return host.getWebUri(uri);
     }
 }
