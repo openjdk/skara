@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -63,6 +63,7 @@ class PullRequestBot implements Bot {
     private final Map<String, HostedRepository> forks;
     private final Set<String> integrators;
     private final Set<Integer> excludeCommitCommentsFrom;
+    private final boolean enableCsr;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
     private Instant lastFullUpdate;
@@ -75,7 +76,7 @@ class PullRequestBot implements Bot {
                    boolean ignoreStaleReviews, Pattern allowedTargetBranches,
                    Path seedStorage, HostedRepository confOverrideRepo, String confOverrideName,
                    String confOverrideRef, String censusLink, Map<String, HostedRepository> forks,
-                   Set<String> integrators, Set<Integer> excludeCommitCommentsFrom) {
+                   Set<String> integrators, Set<Integer> excludeCommitCommentsFrom, boolean enableCsr) {
         remoteRepo = repo;
         this.censusRepo = censusRepo;
         this.censusRef = censusRef;
@@ -98,6 +99,7 @@ class PullRequestBot implements Bot {
         this.forks = forks;
         this.integrators = integrators;
         this.excludeCommitCommentsFrom = excludeCommitCommentsFrom;
+        this.enableCsr = enableCsr;
 
         autoLabelled = new HashSet<>();
         scheduledRechecks = new ConcurrentHashMap<>();
@@ -275,6 +277,10 @@ class PullRequestBot implements Bot {
             return Optional.empty();
         }
         return Optional.of(URI.create(censusLink.replace("{{contributor}}", contributor.username())));
+    }
+
+    public boolean enableCsr() {
+        return enableCsr;
     }
 
     Optional<HostedRepository> writeableForkOf(HostedRepository upstream) {

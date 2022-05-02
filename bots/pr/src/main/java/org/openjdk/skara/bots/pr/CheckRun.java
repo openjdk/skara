@@ -490,9 +490,11 @@ class CheckRun {
                                    if (hash.isPresent()) {
                                        if (!hash.get().equals(pr.headHash())) {
                                            if (ignoreStaleReviews) {
-                                               entry += " 🔄 Re-review required (review applies to " + hash.get() + ")";
+                                               entry += " 🔄 Re-review required (review applies to [" + hash.get().abbreviate()
+                                                     + "](" + pr.filesUrl(hash.get()) + "))";
                                            } else {
-                                               entry += " ⚠️ Review applies to " + hash.get();
+                                               entry += " ⚠️ Review applies to [" + hash.get().abbreviate()
+                                                       + "](" + pr.filesUrl(hash.get()) + ")";
                                            }
                                        }
                                    } else {
@@ -618,7 +620,7 @@ class CheckRun {
                             }
                             if (iss.get().state() != org.openjdk.skara.issuetracker.Issue.State.OPEN) {
                                 if (!pr.labelNames().contains("backport") &&
-                                        (issueType == null || !"CSR".equals(issueType.asString()))) {
+                                        (issueType == null || !List.of("CSR", "JEP").contains(issueType.asString()))) {
                                     progressBody.append(" ⚠️ Issue is not open.");
                                 }
                             }

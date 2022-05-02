@@ -231,7 +231,8 @@ class CheckTests {
             // Check that the review is flagged as stale
             TestBotRunner.runPeriodicItems(checkBot);
             authorPr = author.pullRequest(authorPr.id());
-            assertTrue(authorPr.body().contains("Review applies to"));
+            Pattern compilePattern = Pattern.compile(".*Review applies to \\[.*\\]\\(.*\\).*", Pattern.MULTILINE | Pattern.DOTALL);
+            assertTrue(compilePattern.matcher(authorPr.body()).matches());
 
             // Now we can approve it again
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
@@ -1141,7 +1142,7 @@ class CheckTests {
                                 .addAuthor(author.forge().currentUser().id())
                                 .addReviewer(reviewer.forge().currentUser().id());
             var checkBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues)
-                                            .censusRepo(censusBuilder.build()).build();
+                                            .censusRepo(censusBuilder.build()).enableCsr(true).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
@@ -1252,6 +1253,22 @@ class CheckTests {
             assertTrue(pr.body().contains("### Issues"));
             assertTrue(pr.body().contains("The main issue"));
             assertTrue(pr.body().contains("The jep issue (**JEP**)"));
+
+            // Set the state of the jep issue to `Closed`.
+            jepIssue.setState(Issue.State.CLOSED);
+            jepIssue.setProperty("status", JSON.object().put("name", "Closed"));
+
+            // Push a commit to trigger the check which can update the PR body.
+            newHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(newHash, author.url(), "edit", false);
+
+            // PR should have two issues even though the jep issue has been Closed
+            TestBotRunner.runPeriodicItems(checkBot);
+            assertTrue(pr.body().contains("### Issues"));
+            assertTrue(pr.body().contains("The main issue"));
+            assertTrue(pr.body().contains("The jep issue (**JEP**)"));
+            // The jep issue state doesn't need to be `open`.
+            assertFalse(pr.body().contains("Issue is not open"));
         }
     }
 
