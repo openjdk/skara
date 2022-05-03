@@ -400,13 +400,13 @@ public class BackportsTests {
             backports.assertLabeled();
 
             backports.addBackports("openjdk8u242/team", "openjdk8u232/master");
-            backports.assertLabeled();
+            backports.assertLabeled("openjdk8u242");
 
             backports.addBackports("8u261/b04", "8u251/b01", "8u241/b31", "8u231/b34");
-            backports.assertLabeled("8u261", "8u241");
+            backports.assertLabeled("openjdk8u242", "8u261", "8u241");
 
             backports.addBackports("emb-8u251/team", "7u261/b01");
-            backports.assertLabeled("8u261", "8u241");
+            backports.assertLabeled("openjdk8u242", "8u261", "8u241");
         }
     }
 
@@ -881,4 +881,36 @@ public class BackportsTests {
             backports.assertLabeled("8u5");
         }
     }
-}
+
+    @Test
+    void jdk6(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "11");
+            backports.assertLabeled();
+
+            backports.addBackports("6u201", "6u211");
+            backports.assertLabeled("6u211");
+        }
+    }
+
+    @Test
+    void jdk11_0_3_bpr(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "12");
+            backports.assertLabeled();
+
+            backports.addBackports("11.0.4-oracle", "11.0.4", "11.0.3-oracle/b31", "11.0.2/b31");
+            backports.assertLabeled("11.0.3-oracle");
+        }
+    }
+
+    @Test
+    void jdk11_0_3_bpr2(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "11.0.2.0.1-oracle");
+            backports.assertLabeled();
+
+            backports.addBackports("11.0.4-oracle", "11.0.3-oracle/b31");
+            backports.assertLabeled("11.0.3-oracle");
+        }
+    }}
