@@ -53,7 +53,7 @@ public class JEPCommandTests {
                     .addAuthor(author.forge().currentUser().id())
                     .addReviewer(reviewer.forge().currentUser().id());
             var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject)
-                    .censusRepo(censusBuilder.build()).build();
+                    .censusRepo(censusBuilder.build()).enableJep(true).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
@@ -179,7 +179,7 @@ public class JEPCommandTests {
                     .addCommitter(committer.forge().currentUser().id())
                     .addReviewer(reviewer.forge().currentUser().id());
             var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject)
-                    .censusRepo(censusBuilder.build()).build();
+                    .censusRepo(censusBuilder.build()).enableJep(true).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
@@ -262,7 +262,7 @@ public class JEPCommandTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
             var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject)
-                    .censusRepo(censusBuilder.build()).build();
+                    .censusRepo(censusBuilder.build()).enableJep(true).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
@@ -377,7 +377,7 @@ public class JEPCommandTests {
             var censusBuilder = credentials.getCensusBuilder()
                     .addAuthor(author.forge().currentUser().id());
             var prBot = PullRequestBot.newBuilder().repo(bot).issueProject(issueProject)
-                    .censusRepo(censusBuilder.build()).build();
+                    .censusRepo(censusBuilder.build()).enableJep(true).build();
 
             // Populate the projects repository
             var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType(),
