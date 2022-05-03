@@ -128,11 +128,8 @@ public class PullRequestUtils {
         var sourceHead = fetchMergeSource(pr, localRepo);
 
         // Ensure that the source and the target are related
-        try {
-            localRepo.mergeBase(targetHash(localRepo), sourceHead);
-        } catch (IOException e) {
-            throw new CommitFailure("The target and the source branches do not share common history - cannot merge them.");
-        }
+        localRepo.mergeBaseOptional(targetHash(localRepo), sourceHead)
+                .orElseThrow(() -> new CommitFailure("The target and the source branches do not share common history - cannot merge them."));
 
         // Find the most recent commit from the merge source not present in the target
         var sourceHash = localRepo.mergeBase(pr.headHash(), sourceHead);
@@ -219,7 +216,8 @@ public class PullRequestUtils {
                                   .flatMap(commit -> commit.parents().stream().skip(1))
                                   .collect(Collectors.toList());
         for (var mergeParent : mergeParents) {
-            if (!localRepo.mergeBase(targetHash(localRepo), mergeParent).equals(mergeParent)) {
+            var mergeBase = localRepo.mergeBaseOptional(targetHash(localRepo), mergeParent);
+            if (mergeBase.isEmpty() || !mergeBase.get().equals(mergeParent)) {
                 return true;
             }
         }

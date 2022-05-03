@@ -82,6 +82,19 @@ public interface ReadOnlyRepository {
     boolean isHealthy() throws IOException;
     boolean isEmpty() throws IOException;
     boolean isClean() throws IOException;
+
+    /**
+     * Finds the hash of the merge-base commit for the two given hashes. Returns
+     * empty if the two hashes do not share any history.
+     */
+    default Optional<Hash> mergeBaseOptional(Hash first, Hash second) throws IOException {
+        return Optional.of(mergeBase(first, second));
+    }
+
+    /**
+     * Finds the hash of the merge base commit for the two given hashes. Throws
+     * IOException if it can't be found.
+     */
     Hash mergeBase(Hash first, Hash second) throws IOException;
     boolean isAncestor(Hash ancestor, Hash descendant) throws IOException;
     Optional<Hash> resolve(String ref) throws IOException;
