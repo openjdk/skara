@@ -50,19 +50,16 @@ public class JEPCommand implements CommandHandler {
                  * `/jep unneeded`
 
                 Some examples:
-
+                 * `/jep 123`
                  * `/jep JDK-1234567`
                  * `/jep 1234567`
                  * `/jep jep-123`
                  * `/jep JEP-123`
-                 * `/jep 123`
                  * `/jep unneeded`
 
                 Note:
-                The prefix (`JDK-`, `JEP-` or `jep-` in the above examples) is optional.
-                The bot firstly treats the ID without prefix as a JEP ID.
-                If not found, the bot then treats the ID without prefix as an issue ID.
-                The issue type in any case must be `JEP`.
+                The prefix (i.e. `JDK-`, `JEP-` or `jep-`) is optional. If the argument is given without prefix, \
+                it will be tried first as a JEP ID and second as an issue ID. The issue type must be `JEP`.
                 """);
     }
 
@@ -96,7 +93,7 @@ public class JEPCommand implements CommandHandler {
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
                        List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
         if (!pr.author().equals(command.user()) && !censusInstance.isReviewer(command.user())) {
-            reply.println("only the pull request author and [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to use the `jep` command.");
+            reply.println("Only the pull request author and [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to use the `jep` command.");
             return;
         }
 
@@ -147,13 +144,13 @@ public class JEPCommand implements CommandHandler {
         reply.println(String.format(jepMarker, jepNumber, jbsIssue.id(), jbsIssue.title()));
         if ("Targeted".equals(issueStatus) || "Integrated".equals(issueStatus) ||
             "Completed".equals(issueStatus) || ("Closed".equals(issueStatus) && "Delivered".equals(resolutionName))) {
-            reply.println("the JEP for this pull request, [JEP-" + jepNumber + "](" + jbsIssue.webUrl() + "), has already been targeted.");
+            reply.println("The JEP for this pull request, [JEP-" + jepNumber + "](" + jbsIssue.webUrl() + "), has already been targeted.");
             if (labelNames.contains(JEP_LABEL)) {
                 labelsToRemove.add(JEP_LABEL);
             }
         } else {
             // The current issue status may be "Draft", "Submitted", "Candidate", "Proposed to Target", "Proposed to Drop" or "Closed without Delivered"
-            reply.println("this pull request will not be integrated until the [JEP-" + jepNumber
+            reply.println("This pull request will not be integrated until the [JEP-" + jepNumber
                     + "](" + jbsIssue.webUrl() + ")" + " has been targeted.");
             if (!labelNames.contains(JEP_LABEL)) {
                 labelsToAdd.add(JEP_LABEL);
