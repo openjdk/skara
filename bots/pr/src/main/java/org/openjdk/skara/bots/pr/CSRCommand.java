@@ -64,7 +64,7 @@ public class CSRCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (!bot.enableCsr()) {
-            reply.println("this repository is not allowed to use the `csr` command.");
+            reply.println("This repository has not been configured to use the `csr` command.");
             return;
         }
 
