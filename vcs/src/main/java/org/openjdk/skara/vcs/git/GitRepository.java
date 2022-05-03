@@ -919,14 +919,26 @@ public class GitRepository implements Repository {
     }
 
     @Override
-    public Hash mergeBase(Hash first, Hash second) throws IOException {
+    public Optional<Hash> mergeBaseOptional(Hash first, Hash second) throws IOException {
         try (var p = capture("git", "merge-base", first.hex(), second.hex())) {
-            var res = await(p);
+            var res = p.await();
+            if (res.status() == 1 && res.stdout().size() == 0) {
+                return Optional.empty();
+            }
+            if (res.status() != 0) {
+                throw new IOException("Unexpected exit code: " + res);
+            }
             if (res.stdout().size() != 1) {
                  throw new IOException("Unexpected output\n" + res);
             }
-            return new Hash(res.stdout().get(0));
+            return Optional.of(new Hash(res.stdout().get(0)));
         }
+    }
+
+    @Override
+    public Hash mergeBase(Hash first, Hash second) throws IOException {
+        return mergeBaseOptional(first, second)
+                .orElseThrow(() -> new IOException("Could not find merge-base between " + first + " and " + second));
     }
 
     @Override
