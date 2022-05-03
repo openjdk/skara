@@ -80,7 +80,7 @@ public class JEPCommand implements CommandHandler {
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
                        List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
         if (!bot.enableJep()) {
-            reply.println("this repository is not allowed to use the `jep` command.");
+            reply.println("This repository has not been configured to use the `jep` command.");
             return;
         }
 
