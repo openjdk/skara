@@ -134,6 +134,25 @@ public class JEPCommandTests {
             assertLastCommentContains(pr, "determined that the JEP request is not needed for this pull request.");
             assertFalse(pr.body().contains("Change requires a JEP request to be targeted"));
 
+            // Require jep with strange jep prefix
+            pr.addComment("/jep jEP-123");
+
+            // Verify the behavior
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.labelNames().contains(JEPCommand.JEP_LABEL));
+            assertLastCommentContains(pr, "this pull request will not be integrated until the [JEP-");
+            assertLastCommentContains(pr, "has been targeted.");
+            assertTrue(pr.body().contains("- [ ] Change requires a JEP request to be targeted"));
+
+            // Not require jep
+            prAsReviewer.addComment("/jep unneeded");
+
+            // Verify the behavior
+            TestBotRunner.runPeriodicItems(prBot);
+            assertFalse(pr.labelNames().contains(JEPCommand.JEP_LABEL));
+            assertLastCommentContains(pr, "determined that the JEP request is not needed for this pull request.");
+            assertFalse(pr.body().contains("Change requires a JEP request to be targeted"));
+
             // Require jep by using `issue-id`(<ProjectName>-<id>)
             pr.addComment("/jep TEST-3");
 
@@ -159,9 +178,30 @@ public class JEPCommandTests {
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.labelNames().contains(JEPCommand.JEP_LABEL));
+            assertLastCommentContains(pr, "The JEP issue of the JEP argument `3` was not found.");
+            assertLastCommentContains(pr, "We will treat the argument `3` as an issue ID.");
             assertLastCommentContains(pr, "the JEP for this pull request, [JEP-");
             assertLastCommentContains(pr, "has already been targeted.");
             assertTrue(pr.body().contains("- [x] Change requires a JEP request to be targeted"));
+
+            // Not require jep
+            prAsReviewer.addComment("/jep unneeded");
+
+            // Verify the behavior
+            TestBotRunner.runPeriodicItems(prBot);
+            assertFalse(pr.labelNames().contains(JEPCommand.JEP_LABEL));
+            assertLastCommentContains(pr, "determined that the JEP request is not needed for this pull request.");
+            assertFalse(pr.body().contains("Change requires a JEP request to be targeted"));
+
+            // Require jep with right JEP ID without prefix
+            pr.addComment("/jep 123");
+
+            // Verify the behavior
+            TestBotRunner.runPeriodicItems(prBot);
+            assertTrue(pr.labelNames().contains(JEPCommand.JEP_LABEL));
+            assertLastCommentContains(pr, "this pull request will not be integrated until the [JEP-");
+            assertLastCommentContains(pr, "has been targeted.");
+            assertTrue(pr.body().contains("- [ ] Change requires a JEP request to be targeted"));
         }
     }
 
@@ -315,14 +355,16 @@ public class JEPCommandTests {
             assertLastCommentContains(pr, "The JEP issue was not found. Please make sure you have entered it correctly.");
             assertFalse(pr.body().contains("Change requires a JEP request to be targeted"));
 
-            // Require jep with wrong jep prefix
-            pr.addComment("/jep jEP-123");
+            // Require jep with wrong jep id without prefix
+            pr.addComment("/jep 1");
 
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.labelNames().contains(JEPCommand.JEP_LABEL));
             assertEquals(9, pr.comments().size());
-            assertLastCommentContains(pr, "The JEP issue was not found. Please make sure you have entered it correctly.");
+            assertLastCommentContains(pr, "The JEP issue of the JEP argument `1` was not found.");
+            assertLastCommentContains(pr, "We will treat the argument `1` as an issue ID.");
+            assertLastCommentContains(pr, "The issue `TEST-1` is not a JEP. Please make sure you have entered it correctly.");
             assertFalse(pr.body().contains("Change requires a JEP request to be targeted"));
 
             // Require jep with wrong project prefix
@@ -352,16 +394,6 @@ public class JEPCommandTests {
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.labelNames().contains(JEPCommand.JEP_LABEL));
             assertEquals(15, pr.comments().size());
-            assertLastCommentContains(pr, "The issue `TEST-1` is not a JEP. Please make sure you have entered it correctly.");
-            assertFalse(pr.body().contains("Change requires a JEP request to be targeted"));
-
-            // Require jep with wrong issue type
-            pr.addComment("/jep 1");
-
-            // Verify the behavior
-            TestBotRunner.runPeriodicItems(prBot);
-            assertFalse(pr.labelNames().contains(JEPCommand.JEP_LABEL));
-            assertEquals(17, pr.comments().size());
             assertLastCommentContains(pr, "The issue `TEST-1` is not a JEP. Please make sure you have entered it correctly.");
             assertFalse(pr.body().contains("Change requires a JEP request to be targeted"));
         }

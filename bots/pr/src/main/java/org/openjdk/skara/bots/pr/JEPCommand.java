@@ -44,7 +44,7 @@ public class JEPCommand implements CommandHandler {
     private void showHelp(PrintWriter reply) {
         reply.println("""
                 Command syntax:
-                 * `/jep <issue-id>`
+                 * `/jep <jep-id>|<issue-id>`
                  * `/jep JEP-<jep-id>`
                  * `/jep jep-<jep-id>`
                  * `/jep unneeded`
@@ -55,23 +55,39 @@ public class JEPCommand implements CommandHandler {
                  * `/jep 1234567`
                  * `/jep jep-123`
                  * `/jep JEP-123`
+                 * `/jep 123`
                  * `/jep unneeded`
 
                 Note:
-                The project prefix (`JDK-` in the above examples) is optional if you use an issue ID.
-                The issue type in that case must be `JEP`.
-                The `JEP-` or `jep-` prefix is required if you instead provide a JEP ID.
+                The prefix (`JDK-`, `JEP-` or `jep-` in the above examples) is optional.
+                The bot firstly treats the ID without prefix as a JEP ID.
+                If not found, the bot then treats the ID without prefix as an issue ID.
+                The issue type in any case must be `JEP`.
                 """);
     }
 
-    private Optional<Issue> getJepIssue(String args, PullRequestBot bot) {
-        Optional<Issue> jbsIssue;
-        if (args.startsWith("jep-") || args.startsWith("JEP-") || args.startsWith("Jep-")) {
-            // Handle the JEP ID
+    private Optional<Issue> getJepIssue(String args, PullRequestBot bot, PrintWriter reply) {
+        Optional<Issue> jbsIssue = Optional.empty();
+        var upperArgs = args.toUpperCase();
+        if (upperArgs.startsWith("JEP-")) {
+            // Handle the JEP ID with `JEP` prefix
             jbsIssue = bot.issueProject().jepIssue(args.substring(4));
         } else {
-            // Handle the issue ID
-            jbsIssue = bot.issueProject().issue(args);
+            if (!upperArgs.startsWith(bot.issueProject().name().toUpperCase())) {
+                // Handle the raw JEP ID without `JEP` prefix and project prefix. If the JEP has the same ID
+                // as any issue, the bot firstly parse the ID as JEP instead of general issue.
+                // For example, if we have a `JEP-12345` (its issue ID is not `JDK-12345`) and an issue `JDK-12345`,
+                // when typing `/jep 12345`, the bot firstly parses it as `JEP-12345` instead of `JDK-12345`.
+                jbsIssue = bot.issueProject().jepIssue(args);
+                if (jbsIssue.isEmpty()) {
+                    reply.println("The JEP issue of the JEP argument `" + args + "` was not found. " +
+                            "We will treat the argument `" + args + "` as an issue ID.");
+                }
+            }
+            if (jbsIssue.isEmpty()) {
+                // Handle the issue ID
+                jbsIssue = bot.issueProject().issue(args);
+            }
         }
         return jbsIssue;
     }
@@ -101,7 +117,7 @@ public class JEPCommand implements CommandHandler {
         }
 
         // Get the issue
-        var jbsIssueOpt = getJepIssue(args, bot);
+        var jbsIssueOpt = getJepIssue(args, bot, reply);
         if (jbsIssueOpt.isEmpty()) {
             reply.println("The JEP issue was not found. Please make sure you have entered it correctly.");
             showHelp(reply);
