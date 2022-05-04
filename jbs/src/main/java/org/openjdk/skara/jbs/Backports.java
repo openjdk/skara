@@ -267,6 +267,9 @@ public class Backports {
                     if (numericUpdate == 1 || numericUpdate == 2) {
                         if (jdkVersion.opt().isPresent() && jdkVersion.opt().get().equals("oracle") && jdkVersion.components().size() > 4) {
                             ret.add(jdkVersion.feature() + "+bpr");
+                        } else if (numericFeature <= 11 && jdkVersion.resolvedInBuild().isPresent()
+                                && jdkVersion.resolvedInBuildNumber() > 30) {
+                            ret.add(jdkVersion.feature() + "+bpr");
                         } else {
                             ret.add(jdkVersion.feature() + "+updates-oracle");
                             ret.add(jdkVersion.feature() + "+updates-openjdk");
@@ -274,6 +277,9 @@ public class Backports {
                     } else if (numericUpdate > 2) {
                         if (jdkVersion.opt().isPresent() && jdkVersion.opt().get().equals("oracle")) {
                             if (jdkVersion.components().size() > 4) {
+                                ret.add(jdkVersion.feature()+ "+bpr");
+                            } else if (numericFeature <= 11 && numericUpdate == 3 && jdkVersion.resolvedInBuild().isPresent()
+                                    && jdkVersion.resolvedInBuildNumber() > 30) {
                                 ret.add(jdkVersion.feature()+ "+bpr");
                             } else {
                                 ret.add(jdkVersion.feature() + "+updates-oracle");
@@ -287,20 +293,18 @@ public class Backports {
                     ret.add(jdkVersion.feature() + "+updates-oracle");
                     ret.add(jdkVersion.feature() + "+updates-openjdk");
                 }
-            } else if (numericFeature == 7 || numericFeature == 8) {
+            } else if (numericFeature == 7 || numericFeature == 8 || numericFeature == 6) {
                 // For update releases, certain ranges of build numbers need special treatment
                 if (bprException(jdkVersion, numericFeature)) {
                     ret.add(jdkVersion.feature());
                 } else if (jdkVersion.interim().isPresent()) {
                     var resolvedInBuild = jdkVersion.resolvedInBuild();
                     if (resolvedInBuild.isPresent()) {
-                        if (!resolvedInBuild.get().equals("team")) { // Special case - team build resolved are ignored
-                            int resolvedInBuildNumber = jdkVersion.resolvedInBuildNumber();
-                            if (resolvedInBuildNumber < 30) {
-                                ret.add(jdkVersion.feature());
-                            } else if (resolvedInBuildNumber < 60) {
-                                ret.add(jdkVersion.feature() + "+bpr");
-                            }
+                        int resolvedInBuildNumber = jdkVersion.resolvedInBuildNumber();
+                        if (resolvedInBuildNumber < 30) {
+                            ret.add(jdkVersion.feature());
+                        } else if (resolvedInBuildNumber < 60) {
+                            ret.add(jdkVersion.feature() + "+bpr");
                         }
                     } else {
                         ret.add(jdkVersion.feature());
