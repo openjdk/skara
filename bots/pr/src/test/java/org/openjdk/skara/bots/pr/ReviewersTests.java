@@ -42,7 +42,7 @@ public class ReviewersTests {
     private static final String reviewersCommandFinallyOutput = "The total number of required reviews for this PR " +
             "(including the jcheck configuration and the last /reviewers command) is now set to ";
 
-    private static final String REVIEW_PROGRESS_TEMPLATE = "Change must be properly reviewed (%d reviews required, with at least %s)";
+    private static final String REVIEW_PROGRESS_TEMPLATE = "Change must be properly reviewed (%d review%s required, with at least %s)";
     private static final String ZERO_REVIEW_PROGRESS = "Change must be properly reviewed (no reviews required)";
 
     @Test
@@ -78,7 +78,7 @@ public class ReviewersTests {
 
             // The bot should reply with a help message
             assertLastCommentContains(reviewerPr,"is the number of required reviewers");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "1 reviewer")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 reviewer")));
 
             // Invalid syntax
             reviewerPr.addComment("/reviewers two");
@@ -86,25 +86,25 @@ public class ReviewersTests {
 
             // The bot should reply with a help message
             assertLastCommentContains(reviewerPr,"is the number of required reviewers");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "1 reviewer")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 reviewer")));
 
             // Too many
             reviewerPr.addComment("/reviewers 7001");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"Cannot increase the required number of reviewers above 10 (requested: 7001)");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "1 reviewer")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 reviewer")));
 
             // Too few
             reviewerPr.addComment("/reviewers -3");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"Cannot decrease the required number of reviewers below 0 (requested: -3)");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "1 reviewer")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 reviewer")));
 
             // Unknown role
             reviewerPr.addComment("/reviewers 2 penguins");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"Unknown role `penguins` specified");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "1 reviewer")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 reviewer")));
 
             // Set the number
             reviewerPr.addComment("/reviewers 2");
@@ -112,7 +112,7 @@ public class ReviewersTests {
 
             // The bot should reply with a success message
             assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role authors).");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "1 reviewer, 1 author")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "1 reviewer, 1 author")));
 
             // Set 2 of role committers
             reviewerPr.addComment("/reviewers 2 committer");
@@ -120,7 +120,7 @@ public class ReviewersTests {
 
             // The bot should reply with a success message
             assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role committers).");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "1 reviewer, 1 committer")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "1 reviewer, 1 committer")));
 
             // Set 2 of role reviewers
             reviewerPr.addComment("/reviewers 2 reviewer");
@@ -128,7 +128,7 @@ public class ReviewersTests {
 
             // The bot should reply with a success message
             assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "2 (with 2 of role reviewers).");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "2 reviewers")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "2 reviewers")));
 
             // Approve it as another user
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
@@ -138,7 +138,7 @@ public class ReviewersTests {
             // The PR should not yet be considered as ready for review
             var updatedPr = author.pullRequest(pr.id());
             assertFalse(updatedPr.labelNames().contains("ready"));
-            assertTrue(updatedPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "2 reviewers")));
+            assertTrue(updatedPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "2 reviewers")));
 
             // Now reduce the number of required reviewers
             reviewerPr.addComment("/reviewers 1");
@@ -148,14 +148,14 @@ public class ReviewersTests {
             // The PR should now be considered as ready for review
             updatedPr = author.pullRequest(pr.id());
             assertTrue(updatedPr.labelNames().contains("ready"));
-            assertTrue(updatedPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "1 reviewer")));
+            assertTrue(updatedPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 reviewer")));
 
             // Now request that the lead reviews
             reviewerPr.addComment("/reviewers 1 lead");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "1 (with 1 of role lead).");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "1 lead")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 lead")));
 
             // The PR should no longer be considered as ready for review
             updatedPr = author.pullRequest(pr.id());
@@ -166,7 +166,7 @@ public class ReviewersTests {
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "1 (with 1 of role reviewers).");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "1 reviewer")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 reviewer")));
 
             // The PR should now be considered as ready for review yet again
             updatedPr = author.pullRequest(pr.id());
@@ -207,7 +207,7 @@ public class ReviewersTests {
 
             // The bot should reply with a success message
             assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role authors).");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "1 reviewer, 1 author")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "1 reviewer, 1 author")));
 
             // Approve it as another user
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
@@ -218,18 +218,18 @@ public class ReviewersTests {
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"pull request has not yet been marked as ready for integration");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "1 reviewer, 1 author")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "1 reviewer, 1 author")));
 
             // Relax the requirement
             reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "1 reviewer")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 reviewer")));
 
             // It should now work fine
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"Pushed as commit");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "1 reviewer")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 reviewer")));
         }
     }
 
@@ -264,13 +264,13 @@ public class ReviewersTests {
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "1 reviewer")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 reviewer")));
 
             // Flag it as ready for integration
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"now ready to be sponsored");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "1 reviewer")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 reviewer")));
 
             // Set the number
             reviewerPr.addComment("/reviewers 2");
@@ -278,24 +278,24 @@ public class ReviewersTests {
 
             // The bot should reply with a success message
             assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role authors).");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "1 reviewer, 1 author")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "1 reviewer, 1 author")));
 
             // It should not be possible to sponsor
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"PR has not yet been marked as ready for integration");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "1 reviewer, 1 author")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "1 reviewer, 1 author")));
 
             // Relax the requirement
             reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "1 reviewer")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 reviewer")));
 
             // It should now work fine
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"Pushed as commit");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "1 reviewer")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 reviewer")));
         }
     }
 
@@ -330,7 +330,7 @@ public class ReviewersTests {
             // The bot should reply with a success message
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(authorPR, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role authors).");
-            assertTrue(authorPR.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "1 reviewer, 1 author")));
+            assertTrue(authorPR.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "1 reviewer, 1 author")));
         }
     }
 
@@ -367,19 +367,19 @@ public class ReviewersTests {
             // The bot should reply with a success message
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(authorPR, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role authors).");
-            assertTrue(authorPR.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "1 reviewer, 1 author")));
+            assertTrue(authorPR.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "1 reviewer, 1 author")));
             // The author should not be allowed to decrease even its own /reviewers command
             authorPR.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(authorPR, "Cannot decrease the number of required reviewers");
-            assertTrue(authorPR.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "1 reviewer, 1 author")));
+            assertTrue(authorPR.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "1 reviewer, 1 author")));
 
             // Reviewer should be allowed to decrease
             var reviewerPr = integrator.pullRequest(pr.id());
             reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr, reviewersCommandFinallyOutput + "1 (with 1 of role reviewers).");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "1 reviewer")));
+            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 reviewer")));
         }
     }
 
@@ -410,7 +410,7 @@ public class ReviewersTests {
 
             var authorPR = author.pullRequest(pr.id());
             assertLastCommentContains(authorPR, reviewersCommandFinallyOutput + "2 (with 1 of role reviewers, 1 of role authors).");
-            assertTrue(authorPR.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "1 reviewer, 1 author")));
+            assertTrue(authorPR.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "1 reviewer, 1 author")));
         }
     }
 
@@ -557,7 +557,7 @@ public class ReviewersTests {
         if (totalNum == 0) {
             return ZERO_REVIEW_PROGRESS;
         } else {
-            return String.format(REVIEW_PROGRESS_TEMPLATE, totalNum, String.join(", ", requireList));
+            return String.format(REVIEW_PROGRESS_TEMPLATE, totalNum, totalNum > 1 ? "s" : "", String.join(", ", requireList));
         }
     }
 
@@ -608,7 +608,7 @@ public class ReviewersTests {
 
             authorPR.addComment("/reviewers 2 reviewer");
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(authorPR.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "2 reviewers")));
+            assertTrue(authorPR.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "2 reviewers")));
 
             reviewerPr.addComment("/reviewers 0");
             TestBotRunner.runPeriodicItems(prBot);
