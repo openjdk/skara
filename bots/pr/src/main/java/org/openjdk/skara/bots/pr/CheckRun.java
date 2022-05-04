@@ -141,9 +141,7 @@ class CheckRun {
             return Optional.empty();
         }
         var csr = csrLink(jbsIssue.get()).flatMap(Link::issue);
-        if (csr.isEmpty()) {
-            log.warning("The CSR issue of the issue " + issue + " does not exist");
-        } else {
+        if (csr.isPresent()) {
             return Issue.fromStringRelaxed(csr.get().id() + ": " + csr.get().title());
         }
         return Optional.empty();
