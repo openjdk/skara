@@ -43,7 +43,6 @@ public class ContributorCommand implements CommandHandler {
         reply.println(" * `/contributor add duke`");
         reply.println(" * `/contributor add J. Duke <duke@openjdk.org>`");
         reply.println();
-        reply.println("Note:");
         reply.println("User names can only be used for users in the census associated with this repository. " +
                 "For other contributors you need to supply the full name and email address.");
     }
