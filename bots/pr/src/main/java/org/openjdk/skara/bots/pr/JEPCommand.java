@@ -44,13 +44,13 @@ public class JEPCommand implements CommandHandler {
     private void showHelp(PrintWriter reply) {
         reply.println("""
                 Command syntax:
-                 * `/jep <issue-id>`
+                 * `/jep <jep-id>|<issue-id>`
                  * `/jep JEP-<jep-id>`
                  * `/jep jep-<jep-id>`
                  * `/jep unneeded`
 
                 Some examples:
-
+                 * `/jep 123`
                  * `/jep JDK-1234567`
                  * `/jep 1234567`
                  * `/jep jep-123`
@@ -58,20 +58,29 @@ public class JEPCommand implements CommandHandler {
                  * `/jep unneeded`
 
                 Note:
-                The project prefix (`JDK-` in the above examples) is optional if you use an issue ID.
-                The issue type in that case must be `JEP`.
-                The `JEP-` or `jep-` prefix is required if you instead provide a JEP ID.
+                The prefix (i.e. `JDK-`, `JEP-` or `jep-`) is optional. If the argument is given without prefix, \
+                it will be tried first as a JEP ID and second as an issue ID. The issue type must be `JEP`.
                 """);
     }
 
     private Optional<Issue> getJepIssue(String args, PullRequestBot bot) {
-        Optional<Issue> jbsIssue;
-        if (args.startsWith("jep-") || args.startsWith("JEP-") || args.startsWith("Jep-")) {
-            // Handle the JEP ID
+        Optional<Issue> jbsIssue = Optional.empty();
+        var upperArgs = args.toUpperCase();
+        if (upperArgs.startsWith("JEP-")) {
+            // Handle the JEP ID with `JEP` prefix
             jbsIssue = bot.issueProject().jepIssue(args.substring(4));
         } else {
-            // Handle the issue ID
-            jbsIssue = bot.issueProject().issue(args);
+            if (!upperArgs.startsWith(bot.issueProject().name().toUpperCase())) {
+                // Handle the raw JEP ID without `JEP` prefix and project prefix. If the JEP has the same ID
+                // as any issue, the bot firstly parse the ID as JEP instead of general issue.
+                // For example, if we have a `JEP-12345` (its issue ID is not `JDK-12345`) and an issue `JDK-12345`,
+                // when typing `/jep 12345`, the bot firstly parses it as `JEP-12345` instead of `JDK-12345`.
+                jbsIssue = bot.issueProject().jepIssue(args);
+            }
+            if (jbsIssue.isEmpty()) {
+                // Handle the issue ID
+                jbsIssue = bot.issueProject().issue(args);
+            }
         }
         return jbsIssue;
     }
@@ -85,7 +94,7 @@ public class JEPCommand implements CommandHandler {
         }
 
         if (!pr.author().equals(command.user()) && !censusInstance.isReviewer(command.user())) {
-            reply.println("only the pull request author and [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to use the `jep` command.");
+            reply.println("Only the pull request author and [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to use the `jep` command.");
             return;
         }
 
@@ -136,13 +145,13 @@ public class JEPCommand implements CommandHandler {
         reply.println(String.format(jepMarker, jepNumber, jbsIssue.id(), jbsIssue.title()));
         if ("Targeted".equals(issueStatus) || "Integrated".equals(issueStatus) ||
             "Completed".equals(issueStatus) || ("Closed".equals(issueStatus) && "Delivered".equals(resolutionName))) {
-            reply.println("the JEP for this pull request, [JEP-" + jepNumber + "](" + jbsIssue.webUrl() + "), has already been targeted.");
+            reply.println("The JEP for this pull request, [JEP-" + jepNumber + "](" + jbsIssue.webUrl() + "), has already been targeted.");
             if (labelNames.contains(JEP_LABEL)) {
                 labelsToRemove.add(JEP_LABEL);
             }
         } else {
             // The current issue status may be "Draft", "Submitted", "Candidate", "Proposed to Target", "Proposed to Drop" or "Closed without Delivered"
-            reply.println("this pull request will not be integrated until the [JEP-" + jepNumber
+            reply.println("This pull request will not be integrated until the [JEP-" + jepNumber
                     + "](" + jbsIssue.webUrl() + ")" + " has been targeted.");
             if (!labelNames.contains(JEP_LABEL)) {
                 labelsToAdd.add(JEP_LABEL);
