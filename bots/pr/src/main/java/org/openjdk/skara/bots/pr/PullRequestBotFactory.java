@@ -161,6 +161,9 @@ public class PullRequestBotFactory implements BotFactory {
             if (repo.value().contains("csr")) {
                 botBuilder.enableCsr(repo.value().get("csr").asBoolean());
             }
+            if (repo.value().contains("jep")) {
+                botBuilder.enableJep(repo.value().get("jep").asBoolean());
+            }
 
             ret.add(botBuilder.build());
         }

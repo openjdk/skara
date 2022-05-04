@@ -51,6 +51,7 @@ public class PullRequestBotBuilder {
     private String confOverrideRef = Branch.defaultFor(VCS.GIT).name();
     private String censusLink = null;
     private boolean enableCsr = false;
+    private boolean enableJep = false;
     private Map<String, HostedRepository> forks = Map.of();
     private Set<String> integrators = Set.of();
     private Set<Integer> excludeCommitCommentsFrom = Set.of();
@@ -158,6 +159,11 @@ public class PullRequestBotBuilder {
         return this;
     }
 
+    public PullRequestBotBuilder enableJep(boolean enableJep) {
+        this.enableJep = enableJep;
+        return this;
+    }
+
     public PullRequestBotBuilder forks(Map<String, HostedRepository> forks) {
         this.forks = forks;
         return this;
@@ -179,6 +185,6 @@ public class PullRequestBotBuilder {
                                   blockingCheckLabels, readyLabels, twoReviewersLabels, twentyFourHoursLabels,
                                   readyComments, issueProject, ignoreStaleReviews,
                                   allowedTargetBranches, seedStorage, confOverrideRepo, confOverrideName,
-                                  confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom, enableCsr);
+                                  confOverrideRef, censusLink, forks, integrators, excludeCommitCommentsFrom, enableCsr, enableJep);
     }
 }

@@ -669,7 +669,7 @@ class CSRTests {
                     .enableCsr(false).censusRepo(censusBuilder.build()).build();
             pr.addComment("/csr");
             TestBotRunner.runPeriodicItems(disableCsrBot);
-            assertLastCommentContains(pr, "this repository is not allowed to use the `csr` command.");
+            assertLastCommentContains(pr, "This repository has not been configured to use the `csr` command.");
             assertFalse(pr.labelNames().contains("csr"));
 
             // Test the pull request bot with csr enable

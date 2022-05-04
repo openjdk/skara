@@ -79,6 +79,11 @@ public class JEPCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command,
                        List<Comment> allComments, PrintWriter reply, List<String> labelsToAdd, List<String> labelsToRemove) {
+        if (!bot.enableJep()) {
+            reply.println("This repository has not been configured to use the `jep` command.");
+            return;
+        }
+
         if (!pr.author().equals(command.user()) && !censusInstance.isReviewer(command.user())) {
             reply.println("only the pull request author and [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to use the `jep` command.");
             return;
