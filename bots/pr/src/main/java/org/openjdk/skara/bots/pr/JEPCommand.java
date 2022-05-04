@@ -63,7 +63,7 @@ public class JEPCommand implements CommandHandler {
                 """);
     }
 
-    private Optional<Issue> getJepIssue(String args, PullRequestBot bot, PrintWriter reply) {
+    private Optional<Issue> getJepIssue(String args, PullRequestBot bot) {
         Optional<Issue> jbsIssue = Optional.empty();
         var upperArgs = args.toUpperCase();
         if (upperArgs.startsWith("JEP-")) {
@@ -76,10 +76,6 @@ public class JEPCommand implements CommandHandler {
                 // For example, if we have a `JEP-12345` (its issue ID is not `JDK-12345`) and an issue `JDK-12345`,
                 // when typing `/jep 12345`, the bot firstly parses it as `JEP-12345` instead of `JDK-12345`.
                 jbsIssue = bot.issueProject().jepIssue(args);
-                if (jbsIssue.isEmpty()) {
-                    reply.println("The JEP issue of the JEP argument `" + args + "` was not found. " +
-                            "We will treat the argument `" + args + "` as an issue ID.");
-                }
             }
             if (jbsIssue.isEmpty()) {
                 // Handle the issue ID
@@ -114,7 +110,7 @@ public class JEPCommand implements CommandHandler {
         }
 
         // Get the issue
-        var jbsIssueOpt = getJepIssue(args, bot, reply);
+        var jbsIssueOpt = getJepIssue(args, bot);
         if (jbsIssueOpt.isEmpty()) {
             reply.println("The JEP issue was not found. Please make sure you have entered it correctly.");
             showHelp(reply);

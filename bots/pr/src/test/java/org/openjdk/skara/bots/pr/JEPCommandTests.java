@@ -178,8 +178,6 @@ public class JEPCommandTests {
             // Verify the behavior
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.labelNames().contains(JEPCommand.JEP_LABEL));
-            assertLastCommentContains(pr, "The JEP issue of the JEP argument `3` was not found.");
-            assertLastCommentContains(pr, "We will treat the argument `3` as an issue ID.");
             assertLastCommentContains(pr, "The JEP for this pull request, [JEP-");
             assertLastCommentContains(pr, "has already been targeted.");
             assertTrue(pr.body().contains("- [x] Change requires a JEP request to be targeted"));
@@ -368,8 +366,6 @@ public class JEPCommandTests {
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.labelNames().contains(JEPCommand.JEP_LABEL));
             assertEquals(9, pr.comments().size());
-            assertLastCommentContains(pr, "The JEP issue of the JEP argument `1` was not found.");
-            assertLastCommentContains(pr, "We will treat the argument `1` as an issue ID.");
             assertLastCommentContains(pr, "The issue `TEST-1` is not a JEP. Please make sure you have entered it correctly.");
             assertFalse(pr.body().contains("Change requires a JEP request to be targeted"));
 
