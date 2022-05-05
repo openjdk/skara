@@ -41,26 +41,33 @@ public class ContributorCommand implements CommandHandler {
         reply.println(" * `/contributor add @openjdk-bot`");
         reply.println(" * `/contributor add duke`");
         reply.println(" * `/contributor add J. Duke <duke@openjdk.org>`");
+        reply.println();
+        reply.println("User names can only be used for users in the census associated with this repository. " +
+                "For other contributors you need to supply the full name and email address.");
     }
 
-    private Optional<EmailAddress> parseUser(String user, PullRequest pr, CensusInstance censusInstance) {
+    private Optional<EmailAddress> parseUser(String user, PullRequest pr, CensusInstance censusInstance, PrintWriter reply) {
         user = user.strip();
         if (user.isEmpty()) {
+            reply.println("Username parameter is empty.");
             return Optional.empty();
         }
         Contributor contributor;
         if (user.charAt(0) == '@') {
             var platformUser = pr.repository().forge().user(user.substring(1));
             if (platformUser.isEmpty()) {
+                reply.println("`" + user + "` is not a valid user in this repository.");
                 return Optional.empty();
             }
             contributor = censusInstance.namespace().get(platformUser.get().id());
             if (contributor == null) {
+                reply.println("`" + user + "` was not found in the census.");
                 return Optional.empty();
             }
         } else if (!user.contains("@")) {
             contributor = censusInstance.census().contributor(user);
             if (contributor == null) {
+                reply.println("`" + user + "` was not found in the census.");
                 return Optional.empty();
             }
         } else {
@@ -69,9 +76,11 @@ public class ContributorCommand implements CommandHandler {
                 if (email.fullName().isPresent()) {
                     return Optional.of(email);
                 } else {
+                    reply.println("`" + user + "` is not a valid name and email string.");
                     return Optional.empty();
                 }
             } catch (RuntimeException e) {
+                reply.println("`" + user + "` is not a valid name and email string.");
                 return Optional.empty();
             }
         }
@@ -79,6 +88,7 @@ public class ContributorCommand implements CommandHandler {
         if (contributor.fullName().isPresent()) {
             return Optional.of(EmailAddress.from(contributor.fullName().get(), contributor.username() + "@openjdk.org"));
         } else {
+            reply.println("`" + user + "` does not have a full name recorded in the census.");
             return Optional.empty();
         }
     }
@@ -96,9 +106,9 @@ public class ContributorCommand implements CommandHandler {
             return;
         }
 
-        var contributor = parseUser(matcher.group(2), pr, censusInstance);
+        var contributor = parseUser(matcher.group(2), pr, censusInstance, reply);
         if (contributor.isEmpty()) {
-            reply.println("Could not parse `" + matcher.group(2) + "` as a valid contributor.");
+            reply.println();
             showHelp(pr, reply);;
             return;
         }
