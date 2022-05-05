@@ -964,6 +964,96 @@ public class IssueNotifierTests {
     }
 
     @Test
+    void testIssueBuildAfterTagOpenjdk8u(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+
+            var repo = credentials.getHostedRepository();
+            var repoFolder = tempFolder.path().resolve("repo");
+            var localRepo = CheckableRepository.init(repoFolder, repo.repositoryType());
+            credentials.commitLock(localRepo);
+            localRepo.pushAll(repo.url());
+
+            var issueProject = credentials.getIssueProject();
+            var storageFolder = tempFolder.path().resolve("storage");
+            var jbsNotifierConfig = JSON.object().put("fixversions", JSON.object()
+                            .put("master", "openjdk8u352")
+                            .put("other", "openjdk8u342"))
+                    .put("buildname", "team");
+            var notifyBot = testBotBuilder(repo, issueProject, storageFolder, jbsNotifierConfig).create("notify", JSON.object());
+
+            // Initialize history
+            var current = localRepo.resolve("master").orElseThrow();
+            localRepo.push(current, repo.url(), "other");
+            localRepo.tag(current, "jdk8u342-b00", "First tag", "duke", "duke@openjdk.org");
+            localRepo.tag(current, "jdk9u352-b00", "First unrelated tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // Create an issue and commit a fix
+            var authorEmailAddress = issueProject.issueTracker().currentUser().username() + "@openjdk.org";
+            var issue = issueProject.createIssue("This is an issue", List.of("Indeed"), Map.of("issuetype", JSON.of("Enhancement")));
+            issue.setProperty("fixVersions", JSON.of("openjdk8u352"));
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "Another line", issue.id() + ": Fix that issue", "Duke", authorEmailAddress);
+            localRepo.push(editHash, repo.url(), "master");
+            localRepo.push(editHash, repo.url(), "other");
+            // Add an extra branch that is not configured with any fixVersion
+            localRepo.push(editHash, repo.url(), "extra");
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The changeset should be reflected in a comment in the issue and in a new backport
+            var updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            var backportIssue = updatedIssue.links().get(0).issue().orElseThrow();
+
+            var comments = updatedIssue.comments();
+            assertEquals(1, comments.size());
+            var comment = comments.get(0);
+            assertTrue(comment.body().contains(editHash.toString()));
+
+            var backportComments = backportIssue.comments();
+            assertEquals(1, backportComments.size());
+            var backportComment = backportComments.get(0);
+            assertTrue(backportComment.body().contains(editHash.toString()));
+
+            // As well as a fixVersion and a resolved in build
+            assertEquals(Set.of("openjdk8u352"), fixVersions(updatedIssue));
+            assertEquals("team", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
+            assertEquals(Set.of("openjdk8u342"), fixVersions(backportIssue));
+            assertEquals("team", backportIssue.properties().get(RESOLVED_IN_BUILD).asString());
+
+            // The issue should be assigned and resolved
+            assertEquals(RESOLVED, updatedIssue.state());
+            assertEquals(List.of(issueProject.issueTracker().currentUser()), updatedIssue.assignees());
+            assertEquals(RESOLVED, backportIssue.state());
+            assertEquals(List.of(issueProject.issueTracker().currentUser()), backportIssue.assignees());
+
+            // Tag it
+            localRepo.tag(editHash, "jdk8u342-b01", "Second tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The build should now be updated
+            updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            backportIssue = issueProject.issue(backportIssue.id()).orElseThrow();
+            assertEquals("b01", backportIssue.properties().get(RESOLVED_IN_BUILD).asString());
+            // But not in the update backport
+            assertEquals("team", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
+
+            // Tag it with an unrelated tag
+            localRepo.tag(editHash, "jdk9u352-b01", "Second tag", "duke", "duke@openjdk.org");
+            localRepo.push(new Branch(repo.url().toString()), "--tags", false);
+            TestBotRunner.runPeriodicItems(notifyBot);
+
+            // The build should not change
+            updatedIssue = issueProject.issue(issue.id()).orElseThrow();
+            backportIssue = issueProject.issue(backportIssue.id()).orElseThrow();
+            assertEquals("b01", backportIssue.properties().get(RESOLVED_IN_BUILD).asString());
+            // But not in the update backport
+            assertEquals("team", updatedIssue.properties().get(RESOLVED_IN_BUILD).asString());
+        }
+    }
+
+    @Test
     void testIssueRetryTag(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {

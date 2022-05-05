@@ -414,9 +414,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
 
                     // Check if the build number should be updated
                     var tagVersion = JdkVersion.parse(tag.version());
-                    // Ignore the opt string when comparing versions for match as the fixVersion can
-                    // have a suffix such as "-oracle" that isn't reflected in tags.
-                    if (tagVersion.isPresent() && fixVersion.components().equals(tagVersion.get().components())) {
+                    if (tagVersion.isPresent() && tagVersionMatchesFixVersion(fixVersion, tagVersion.get())) {
                         var oldBuild = issue.properties().getOrDefault(RESOLVED_IN_BUILD, JSON.of());
                         var newBuild = "b" + String.format("%02d", tag.buildNum().get());
                         if (BuildCompare.shouldReplace(newBuild, oldBuild.asString())) {
@@ -430,6 +428,27 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 }
             }
         }
+    }
+
+    private boolean tagVersionMatchesFixVersion(JdkVersion fixVersion, JdkVersion tagVersion) {
+        // Ignore the opt string when comparing versions for match as the fixVersion can
+        // have a suffix such as "-oracle" that isn't reflected in tags.
+        if (fixVersion.components().equals(tagVersion.components())) {
+            return true;
+        }
+        // The fixVersion may have a prefix in the first component that is not present
+        // in the tagVersion. e.g. 'openjdk8u342' vs '8u342'
+        var fixComponents = fixVersion.components();
+        var tagComponents = tagVersion.components();
+        // Check that the rest of the components are equal
+        if (fixComponents.size() > 0 && fixComponents.size() == tagComponents.size()
+                && fixComponents.subList(1, fixComponents.size()).equals(tagComponents.subList(1, tagComponents.size()))) {
+            var fixFirst = fixComponents.get(0);
+            var tagFirst = tagComponents.get(0);
+            // Check if the first fixVersion component has a prefix consisting of only lower case letters
+            return fixFirst.matches("[a-z]+" + tagFirst);
+        }
+        return false;
     }
 
     private String getRequestedVersion(Repository localRepository, Commit commit, String branch) {
