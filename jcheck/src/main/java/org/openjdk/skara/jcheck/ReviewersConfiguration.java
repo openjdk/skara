@@ -94,13 +94,14 @@ public class ReviewersConfiguration {
             var requirementNum = reviewRequirement.getValue();
             if (requirementNum > 0) {
                 sum += requirementNum;
-                requireList.add(requirementNum+ " " + reviewRequirement.getKey() + (requirementNum > 1 ? "s" : ""));
+                requireList.add(requirementNum + " " + reviewRequirement.getKey() + (requirementNum > 1 ? "s" : ""));
             }
         }
         if (sum == 0) {
             reviewRequirements = "no reviews required";
         } else {
-            reviewRequirements = String.format("%d reviews required, with at least %s", sum, String.join(", ", requireList));
+            reviewRequirements = String.format("%d review%s required, with at least %s",
+                    sum, sum > 1 ? "s" : "", String.join(", ", requireList));
         }
         return reviewRequirements;
     }
