@@ -211,27 +211,27 @@ class ContributorTests {
             // Use an invalid full name
             pr.addComment("/contributor add Moo <Foo.Bar (at) host.com>");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "Could not parse `Moo <Foo.Bar (at) host.com>` as a valid contributor");
+            assertLastCommentContains(pr, "`Moo <Foo.Bar (at) host.com>` was not found in the census.");
 
             // Empty platform id
             pr.addComment("/contributor add @");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "Could not parse `@` as a valid contributor");
+            assertLastCommentContains(pr, "`@` is not a valid user in this repository.");
 
             // Unknown platform id
             pr.addComment("/contributor add @someone");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "Could not parse `@someone` as a valid contributor");
+            assertLastCommentContains(pr, "`@someone` is not a valid user in this repository.");
 
             // Unknown openjdk user
             pr.addComment("/contributor add someone");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "Could not parse `someone` as a valid contributor");
+            assertLastCommentContains(pr, "`someone` was not found in the census.");
 
             // No full name
             pr.addComment("/contributor add some@one");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(pr, "Could not parse `some@one` as a valid contributor");
+            assertLastCommentContains(pr, "`some@one` is not a valid name and email string.");
         }
     }
 
