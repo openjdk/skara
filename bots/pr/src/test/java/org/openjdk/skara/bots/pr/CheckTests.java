@@ -27,6 +27,7 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.Link;
 import org.openjdk.skara.json.JSON;
+import org.openjdk.skara.json.JSONArray;
 import org.openjdk.skara.test.*;
 
 import java.io.IOException;
@@ -2038,6 +2039,171 @@ class CheckTests {
             TestBotRunner.runPeriodicItems(mergeBot);
             pr = author.pullRequest(pr.id());
             assertEquals(numComments, pr.comments().size());
+        }
+    }
+
+    @Test
+    void testBackportCsr(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var botRepo = credentials.getHostedRepository();
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addCommitter(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var bot = PullRequestBot.newBuilder().repo(botRepo)
+                    .censusRepo(censusBuilder.build()).issueProject(issueProject).build();
+
+            var issue = issueProject.createIssue("This is the primary issue", List.of(), Map.of());
+            issue.setState(Issue.State.CLOSED);
+            issue.setProperty("issuetype", JSON.of("Bug"));
+            issue.setProperty("fixVersions",  new JSONArray(List.of(JSON.of("18"))));
+
+            var csr = issueProject.createIssue("This is the primary CSR", List.of(), Map.of());
+            csr.setState(Issue.State.CLOSED);
+            csr.setProperty("issuetype", JSON.of("CSR"));
+            csr.setProperty("fixVersions",  new JSONArray(List.of(JSON.of("18"))));
+            issue.addLink(Link.create(csr, "csr for").build());
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Push a commit to the jdk18 branch
+            var jdk18Branch = localRepo.branch(masterHash, "jdk18");
+            localRepo.checkout(jdk18Branch);
+            var newFile = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile, "a_new_file");
+            localRepo.add(newFile);
+            var issueNumber = issue.id().split("-")[1];
+            var commitMessage = issueNumber + ": This is the primary issue\n\nReviewed-by: integrationreviewer2";
+            var commitHash = localRepo.commit(commitMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            localRepo.push(commitHash, author.url(), "jdk18", true);
+
+            // "backport" the commit to the master branch
+            localRepo.checkout(localRepo.defaultBranch());
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            var newFile2 = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile2, "a_new_file");
+            localRepo.add(newFile2);
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + commitHash);
+
+            // Remove `version=0.1` from `.jcheck/conf`, set the version as null
+            localRepo.checkout(localRepo.defaultBranch());
+            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            var newConf = defaultConf.replace("version=0.1", "");
+            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
+            localRepo.add(localRepo.root().resolve(".jcheck/conf"));
+            var confHash = localRepo.commit("Set version as null", "duke", "duke@openjdk.org");
+            localRepo.push(confHash, author.url(), "master", true);
+            // Run bot. The bot won't get a CSR.
+            pr.addComment("/summary\n" + commitMessage);
+            TestBotRunner.runPeriodicItems(bot);
+            // The PR should have primary issue and shouldn't have primary CSR.
+            assertTrue(pr.body().contains("### Issue"));
+            assertFalse(pr.body().contains("### Issues"));
+            assumeTrue(pr.body().contains(issue.id()));
+            assumeTrue(pr.body().contains(issue.title()));
+            assertFalse(pr.body().contains(csr.id()));
+            assertFalse(pr.body().contains(csr.title()));
+
+            // Add `version=bla` to `.jcheck/conf`, set the version as a wrong value
+            localRepo.checkout(localRepo.defaultBranch());
+            defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            newConf = defaultConf.replace("project=test", "project=test\nversion=bla");
+            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
+            localRepo.add(localRepo.root().resolve(".jcheck/conf"));
+            confHash = localRepo.commit("Set the version as a wrong value", "duke", "duke@openjdk.org");
+            localRepo.push(confHash, author.url(), "master", true);
+            // Run bot. The bot won't get a CSR.
+            pr.addComment("/summary\n" + commitMessage);
+            TestBotRunner.runPeriodicItems(bot);
+            // The PR should have primary issue and shouldn't have primary CSR.
+            assertTrue(pr.body().contains("### Issue"));
+            assertFalse(pr.body().contains("### Issues"));
+            assumeTrue(pr.body().contains(issue.id()));
+            assumeTrue(pr.body().contains(issue.title()));
+            assertFalse(pr.body().contains(csr.id()));
+            assertFalse(pr.body().contains(csr.title()));
+
+            // Set the `version` in `.jcheck/conf` as 17 which is an available version.
+            localRepo.checkout(localRepo.defaultBranch());
+            defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            newConf = defaultConf.replace("version=bla", "version=17");
+            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
+            localRepo.add(localRepo.root().resolve(".jcheck/conf"));
+            confHash = localRepo.commit("Set the version as 17", "duke", "duke@openjdk.org");
+            localRepo.push(confHash, author.url(), "master", true);
+            // Run bot. The primary CSR doesn't have the fix version `17`, so the bot won't get a CSR.
+            pr.addComment("/summary\n" + commitMessage);
+            TestBotRunner.runPeriodicItems(bot);
+            // The PR should have primary issue and shouldn't have primary CSR.
+            assertTrue(pr.body().contains("### Issue"));
+            assertFalse(pr.body().contains("### Issues"));
+            assumeTrue(pr.body().contains(issue.id()));
+            assumeTrue(pr.body().contains(issue.title()));
+            assertFalse(pr.body().contains(csr.id()));
+            assertFalse(pr.body().contains(csr.title()));
+
+            // Set the fix versions of the primary CSR to 17 and 18.
+            csr.setProperty("fixVersions",  new JSONArray(List.of(JSON.of("17"), JSON.of("18"))));
+            // Run bot. The primary CSR has the fix version `17`, so it would be used.
+            pr.addComment("/summary\n" + commitMessage);
+            TestBotRunner.runPeriodicItems(bot);
+            // The bot should have primary issue and primary CSR
+            assumeTrue(pr.body().contains("### Issues"));
+            assumeTrue(pr.body().contains(issue.id()));
+            assumeTrue(pr.body().contains(issue.title()));
+            assumeTrue(pr.body().contains(csr.id()));
+            assumeTrue(pr.body().contains(csr.title() + " (**CSR**)"));
+
+            // Revert the fix versions of the primary CSR to 18.
+            csr.setProperty("fixVersions",  new JSONArray(List.of(JSON.of("18"))));
+            // Create a backport issue whose fix version is 17
+            var backportIssue = issueProject.createIssue("This is the backport issue", List.of(), Map.of());
+            backportIssue.setProperty("issuetype", JSON.of("Backport"));
+            backportIssue.setProperty("fixVersions",  new JSONArray(List.of(JSON.of("17"))));
+            backportIssue.setState(Issue.State.OPEN);
+            issue.addLink(Link.create(backportIssue, "backported by").build());
+            // Run bot. The bot can find a backport issue but can't find a backport CSR.
+            pr.addComment("/summary\n" + commitMessage);
+            TestBotRunner.runPeriodicItems(bot);
+            // The bot should have primary issue and shouldn't have primary CSR.
+            assertTrue(pr.body().contains("### Issue"));
+            assertFalse(pr.body().contains("### Issues"));
+            assumeTrue(pr.body().contains(issue.id()));
+            assumeTrue(pr.body().contains(issue.title()));
+            assertFalse(pr.body().contains(csr.id()));
+            assertFalse(pr.body().contains(csr.title()));
+            assertFalse(pr.body().contains(backportIssue.id()));
+            assertFalse(pr.body().contains(backportIssue.title()));
+
+            // Create a backport CSR whose fix version is 17.
+            var backportCsr = issueProject.createIssue("This is the backport CSR", List.of(), Map.of());
+            backportCsr.setProperty("issuetype", JSON.of("CSR"));
+            backportCsr.setProperty("fixVersions",  new JSONArray(List.of(JSON.of("17"))));
+            backportCsr.setState(Issue.State.OPEN);
+            backportIssue.addLink(Link.create(backportCsr, "csr for").build());
+            // Run bot. The bot can find a backport issue and a backport CSR.
+            pr.addComment("/summary\n" + commitMessage);
+            TestBotRunner.runPeriodicItems(bot);
+            // The bot should have primary issue and backport CSR.
+            assertTrue(pr.body().contains("### Issues"));
+            assumeTrue(pr.body().contains(issue.id()));
+            assumeTrue(pr.body().contains(issue.title()));
+            assumeTrue(pr.body().contains(backportCsr.id()));
+            assumeTrue(pr.body().contains(backportCsr.title() + " (**CSR**)"));
+            assertFalse(pr.body().contains(csr.id()));
+            assertFalse(pr.body().contains(csr.title()));
+            assertFalse(pr.body().contains(backportIssue.id()));
+            assertFalse(pr.body().contains(backportIssue.title()));
         }
     }
 }

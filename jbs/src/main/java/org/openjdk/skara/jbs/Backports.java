@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -49,7 +49,7 @@ public class Backports {
         return !version.startsWith("tbd") && !version.toLowerCase().equals("unknown");
     }
 
-    private static Set<String> fixVersions(Issue issue) {
+    public static Set<String> fixVersions(Issue issue) {
         if (!issue.properties().containsKey("fixVersions")) {
             return Set.of();
         }

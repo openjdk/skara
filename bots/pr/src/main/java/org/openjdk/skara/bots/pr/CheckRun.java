@@ -27,6 +27,9 @@ import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
+import org.openjdk.skara.jbs.Backports;
+import org.openjdk.skara.jbs.JdkVersion;
+import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
@@ -136,15 +139,44 @@ class CheckRun {
         if (issueProject == null) {
             return Optional.empty();
         }
-        var jbsIssue = issueProject.issue(issue.shortId());
-        if (jbsIssue.isEmpty()) {
+        var jbsIssueOpt = issueProject.issue(issue.shortId());
+        if (jbsIssueOpt.isEmpty()) {
             return Optional.empty();
         }
-        var csr = csrLink(jbsIssue.get()).flatMap(Link::issue);
-        if (csr.isPresent()) {
-            return Issue.fromStringRelaxed(csr.get().id() + ": " + csr.get().title());
+
+        var jbsIssue = jbsIssueOpt.get();
+        var csrOpt = csrLink(jbsIssue).flatMap(Link::issue);
+        if (csrOpt.isEmpty()) {
+            return Optional.empty();
         }
-        return Optional.empty();
+
+        var csr = csrOpt.get();
+        if (pr.labelNames().contains("backport")) {
+            return findBackportCsr(jbsIssue, csr).flatMap(perIssue -> Issue.fromStringRelaxed(perIssue.id() + ": " + perIssue.title()));
+        }
+        return Issue.fromStringRelaxed(csr.id() + ": " + csr.title());
+    }
+
+    /**
+     * Find the right CSR according to the primary issue and the primary CSR
+     */
+    private Optional<org.openjdk.skara.issuetracker.Issue> findBackportCsr(org.openjdk.skara.issuetracker.Issue primary, org.openjdk.skara.issuetracker.Issue csr) {
+        var confFile = pr.repository().fileContents(".jcheck/conf", pr.targetRef());
+        var configuration = JCheckConfiguration.parse(confFile.lines().toList());
+        var version = configuration.general().version().orElse(null);
+        if (version == null || "".equals(version)) {
+            return Optional.empty();
+        }
+        var jdkVersion = JdkVersion.parse(version);
+        if (jdkVersion.isEmpty()) {
+            return Optional.empty();
+        }
+        var versionMatch = Backports.fixVersions(csr).stream().anyMatch(v -> v.equals(version));
+        if (versionMatch) {
+            return Optional.of(csr);
+        }
+        var backportIssue = Backports.findIssue(primary, jdkVersion.get());
+        return backportIssue.flatMap(issue -> csrLink(issue).flatMap(Link::issue));
     }
 
     private static Optional<Link> csrLink(org.openjdk.skara.issuetracker.Issue issue) {

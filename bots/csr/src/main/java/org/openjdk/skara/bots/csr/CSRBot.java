@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,6 +28,9 @@ import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.Link;
+import org.openjdk.skara.jbs.Backports;
+import org.openjdk.skara.jbs.JdkVersion;
+import org.openjdk.skara.jcheck.JCheckConfiguration;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -62,6 +65,28 @@ class CSRBot implements Bot, WorkItem {
                 .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get())).findAny();
     }
 
+    /**
+     * Find the right CSR of the PR according to the primary issue and the primary CSR
+     */
+    private Optional<Issue> findBackportCsr(PullRequest pr, Issue primary, Issue csr) {
+        var confFile = pr.repository().fileContents(".jcheck/conf", pr.targetRef());
+        var configuration = JCheckConfiguration.parse(confFile.lines().toList());
+        var version = configuration.general().version().orElse(null);
+        if (version == null || "".equals(version)) {
+            return Optional.empty();
+        }
+        var jdkVersion = JdkVersion.parse(version);
+        if (jdkVersion.isEmpty()) {
+            return Optional.empty();
+        }
+        var versionMatch = Backports.fixVersions(csr).stream().anyMatch(v -> v.equals(version));
+        if (versionMatch) {
+            return Optional.of(csr);
+        }
+        var backportIssue = Backports.findIssue(primary, jdkVersion.get());
+        return backportIssue.flatMap(issue -> csrLink(issue).flatMap(Link::issue));
+    }
+
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
         var prs = repo.pullRequests();
@@ -72,19 +97,29 @@ class CSRBot implements Bot, WorkItem {
                 log.info("No issue found in title for " + describe(pr));
                 continue;
             }
-            var jbsIssue = project.issue(issue.get().shortId());
-            if (jbsIssue.isEmpty()) {
+            var jbsIssueOpt = project.issue(issue.get().shortId());
+            if (jbsIssueOpt.isEmpty()) {
                 log.info("No issue found in JBS for " + describe(pr));
                 continue;
             }
 
-            var csrOptional = csrLink(jbsIssue.get()).flatMap(Link::issue);
+            var jbsIssue = jbsIssueOpt.get();
+            var csrOptional = csrLink(jbsIssue).flatMap(Link::issue);
             if (csrOptional.isEmpty()) {
                 log.info("Not found CSR for " + describe(pr));
                 continue;
             }
 
             var csr = csrOptional.get();
+            if (pr.labelNames().contains("backport")) {
+                csrOptional = findBackportCsr(pr, jbsIssue, csr);
+                if (csrOptional.isEmpty()) {
+                    log.info("Not found backport CSR for " + describe(pr));
+                    continue;
+                }
+                csr = csrOptional.get();
+            }
+
             log.info("Found CSR for " + describe(pr) + ". It has id " + csr.id());
             var resolution = csr.properties().get("resolution");
             if (resolution == null || resolution.isNull()) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,10 +26,13 @@ import org.openjdk.skara.issuetracker.Link;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.test.*;
 import org.openjdk.skara.json.JSON;
+import org.openjdk.skara.json.JSONArray;
 
 import org.junit.jupiter.api.*;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -253,6 +256,129 @@ class CSRBotTests {
             TestBotRunner.runPeriodicItems(bot);
 
             // The bot should have kept the CSR label
+            assertTrue(pr.labelNames().contains("csr"));
+        }
+    }
+
+    @Test
+    void testBackportCsr(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var bot = new CSRBot(repo, issueProject);
+
+            var issue = issueProject.createIssue("This is the primary issue", List.of(), Map.of());
+            issue.setState(Issue.State.CLOSED);
+            issue.setProperty("issuetype", JSON.of("Bug"));
+            issue.setProperty("fixVersions",  new JSONArray(List.of(JSON.of("18"))));
+
+            var csr = issueProject.createIssue("This is the primary CSR", List.of(), Map.of());
+            csr.setState(Issue.State.CLOSED);
+            csr.setProperty("issuetype", JSON.of("CSR"));
+            csr.setProperty("fixVersions",  new JSONArray(List.of(JSON.of("18"))));
+            issue.addLink(Link.create(csr, "csr for").build());
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            localRepo.push(masterHash, repo.url(), "master", true);
+
+            // Push a commit to the jdk18 branch
+            var jdk18Branch = localRepo.branch(masterHash, "jdk18");
+            localRepo.checkout(jdk18Branch);
+            var newFile = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile, "a_new_file");
+            localRepo.add(newFile);
+            var issueNumber = issue.id().split("-")[1];
+            var commitMessage = issueNumber + ": This is the primary issue\n\nReviewed-by: integrationreviewer2";
+            var commitHash = localRepo.commit(commitMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            localRepo.push(commitHash, repo.url(), "jdk18", true);
+
+            // "backport" the commit to the master branch
+            localRepo.checkout(localRepo.defaultBranch());
+            var editBranch = localRepo.branch(masterHash, "edit");
+            localRepo.checkout(editBranch);
+            var newFile2 = localRepo.root().resolve("a_new_file.txt");
+            Files.writeString(newFile2, "a_new_file");
+            localRepo.add(newFile2);
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            localRepo.push(editHash, repo.url(), "edit", true);
+            var pr = credentials.createPullRequest(repo, "master", "edit", issueNumber + ": This is the primary issue");
+            pr.addLabel("backport");
+
+            // Remove `version=0.1` from `.jcheck/conf`, set the version as null
+            localRepo.checkout(localRepo.defaultBranch());
+            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            var newConf = defaultConf.replace("version=0.1", "");
+            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
+            localRepo.add(localRepo.root().resolve(".jcheck/conf"));
+            var confHash = localRepo.commit("Set version as null", "duke", "duke@openjdk.org");
+            localRepo.push(confHash, repo.url(), "master", true);
+            assertFalse(pr.labelNames().contains("csr"));
+            // Run bot. The bot won't get a CSR.
+            TestBotRunner.runPeriodicItems(bot);
+            // The bot shouldn't add the `csr` label.
+            assertFalse(pr.labelNames().contains("csr"));
+
+            // Add `version=bla` to `.jcheck/conf`, set the version as a wrong value
+            localRepo.checkout(localRepo.defaultBranch());
+            defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            newConf = defaultConf.replace("project=test", "project=test\nversion=bla");
+            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
+            localRepo.add(localRepo.root().resolve(".jcheck/conf"));
+            confHash = localRepo.commit("Set the version as a wrong value", "duke", "duke@openjdk.org");
+            localRepo.push(confHash, repo.url(), "master", true);
+            // Run bot. The bot won't get a CSR.
+            TestBotRunner.runPeriodicItems(bot);
+            // The bot shouldn't add the `csr` label.
+            assertFalse(pr.labelNames().contains("csr"));
+
+            // Set the `version` in `.jcheck/conf` as 17 which is an available version.
+            localRepo.checkout(localRepo.defaultBranch());
+            defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            newConf = defaultConf.replace("version=bla", "version=17");
+            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
+            localRepo.add(localRepo.root().resolve(".jcheck/conf"));
+            confHash = localRepo.commit("Set the version as 17", "duke", "duke@openjdk.org");
+            localRepo.push(confHash, repo.url(), "master", true);
+            // Run bot. The primary CSR doesn't have the fix version `17`, so the bot won't get a CSR.
+            TestBotRunner.runPeriodicItems(bot);
+            // The bot shouldn't add the `csr` label.
+            assertFalse(pr.labelNames().contains("csr"));
+
+            // Set the fix versions of the primary CSR to 17 and 18.
+            csr.setProperty("fixVersions",  new JSONArray(List.of(JSON.of("17"), JSON.of("18"))));
+            // Run bot. The primary CSR has the fix version `17`, so it would be used and the `csr` label would be added.
+            TestBotRunner.runPeriodicItems(bot);
+            // The bot should have added the `csr` label
+            assertTrue(pr.labelNames().contains("csr"));
+
+            // Revert the fix versions of the primary CSR to 18.
+            csr.setProperty("fixVersions",  new JSONArray(List.of(JSON.of("18"))));
+            // Create a backport issue whose fix version is 17
+            var backportIssue = issueProject.createIssue("This is the backport issue", List.of(), Map.of());
+            backportIssue.setProperty("issuetype", JSON.of("Backport"));
+            backportIssue.setProperty("fixVersions",  new JSONArray(List.of(JSON.of("17"))));
+            backportIssue.setState(Issue.State.OPEN);
+            issue.addLink(Link.create(backportIssue, "backported by").build());
+            assertTrue(pr.labelNames().contains("csr"));
+            pr.removeLabel("csr");
+            // Run bot. The bot can find a backport issue but can't find a backport CSR.
+            TestBotRunner.runPeriodicItems(bot);
+            // The bot shouldn't add the `csr` label.
+            assertFalse(pr.labelNames().contains("csr"));
+
+            // Create a backport CSR whose fix version is 17.
+            var backportCsr = issueProject.createIssue("This is the backport CSR", List.of(), Map.of());
+            backportCsr.setProperty("issuetype", JSON.of("CSR"));
+            backportCsr.setProperty("fixVersions",  new JSONArray(List.of(JSON.of("17"))));
+            backportCsr.setState(Issue.State.OPEN);
+            backportIssue.addLink(Link.create(backportCsr, "csr for").build());
+            // Run bot. The bot can find a backport issue and a backport CSR.
+            TestBotRunner.runPeriodicItems(bot);
+            // The bot should have added the CSR label
             assertTrue(pr.labelNames().contains("csr"));
         }
     }
