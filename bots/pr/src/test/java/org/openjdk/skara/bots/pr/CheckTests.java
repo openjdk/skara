@@ -27,7 +27,6 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.Link;
 import org.openjdk.skara.json.JSON;
-import org.openjdk.skara.json.JSONArray;
 import org.openjdk.skara.test.*;
 
 import java.io.IOException;
@@ -2059,12 +2058,12 @@ class CheckTests {
             var issue = issueProject.createIssue("This is the primary issue", List.of(), Map.of());
             issue.setState(Issue.State.CLOSED);
             issue.setProperty("issuetype", JSON.of("Bug"));
-            issue.setProperty("fixVersions",  new JSONArray(List.of(JSON.of("18"))));
+            issue.setProperty("fixVersions", JSON.array().add("18"));
 
             var csr = issueProject.createIssue("This is the primary CSR", List.of(), Map.of());
             csr.setState(Issue.State.CLOSED);
             csr.setProperty("issuetype", JSON.of("CSR"));
-            csr.setProperty("fixVersions",  new JSONArray(List.of(JSON.of("18"))));
+            csr.setProperty("fixVersions", JSON.array().add("18"));
             issue.addLink(Link.create(csr, "csr for").build());
 
             // Populate the projects repository
@@ -2153,7 +2152,7 @@ class CheckTests {
             assertFalse(pr.body().contains(csr.title()));
 
             // Set the fix versions of the primary CSR to 17 and 18.
-            csr.setProperty("fixVersions",  new JSONArray(List.of(JSON.of("17"), JSON.of("18"))));
+            csr.setProperty("fixVersions", JSON.array().add("17").add("18"));
             // Run bot. The primary CSR has the fix version `17`, so it would be used.
             pr.addComment("/summary\n" + commitMessage);
             TestBotRunner.runPeriodicItems(bot);
@@ -2165,11 +2164,11 @@ class CheckTests {
             assumeTrue(pr.body().contains(csr.title() + " (**CSR**)"));
 
             // Revert the fix versions of the primary CSR to 18.
-            csr.setProperty("fixVersions",  new JSONArray(List.of(JSON.of("18"))));
+            csr.setProperty("fixVersions", JSON.array().add("18"));
             // Create a backport issue whose fix version is 17
             var backportIssue = issueProject.createIssue("This is the backport issue", List.of(), Map.of());
             backportIssue.setProperty("issuetype", JSON.of("Backport"));
-            backportIssue.setProperty("fixVersions",  new JSONArray(List.of(JSON.of("17"))));
+            backportIssue.setProperty("fixVersions", JSON.array().add("17"));
             backportIssue.setState(Issue.State.OPEN);
             issue.addLink(Link.create(backportIssue, "backported by").build());
             // Run bot. The bot can find a backport issue but can't find a backport CSR.
@@ -2188,7 +2187,7 @@ class CheckTests {
             // Create a backport CSR whose fix version is 17.
             var backportCsr = issueProject.createIssue("This is the backport CSR", List.of(), Map.of());
             backportCsr.setProperty("issuetype", JSON.of("CSR"));
-            backportCsr.setProperty("fixVersions",  new JSONArray(List.of(JSON.of("17"))));
+            backportCsr.setProperty("fixVersions", JSON.array().add("17"));
             backportCsr.setState(Issue.State.OPEN);
             backportIssue.addLink(Link.create(backportCsr, "csr for").build());
             // Run bot. The bot can find a backport issue and a backport CSR.
@@ -2204,6 +2203,48 @@ class CheckTests {
             assertFalse(pr.body().contains(csr.title()));
             assertFalse(pr.body().contains(backportIssue.id()));
             assertFalse(pr.body().contains(backportIssue.title()));
+
+            // Now we have a primary issue, a primary CSR, a backport issue, a backport CSR.
+            // Set the backport CSR to have multiple fix versions, included 11.
+            backportCsr.setProperty("fixVersions", JSON.array().add("17").add("11").add("8"));
+            // Set the `version` in `.jcheck/conf` as 11.
+            localRepo.checkout(localRepo.defaultBranch());
+            defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            newConf = defaultConf.replace("version=17", "version=11");
+            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
+            localRepo.add(localRepo.root().resolve(".jcheck/conf"));
+            confHash = localRepo.commit("Set the version as 11", "duke", "duke@openjdk.org");
+            localRepo.push(confHash, author.url(), "master", true);
+            // Run bot.
+            pr.addComment("/summary\n" + commitMessage);
+            TestBotRunner.runPeriodicItems(bot);
+            // The PR should have primary issue and backport CSR.
+            assertTrue(pr.body().contains("### Issues"));
+            assumeTrue(pr.body().contains(issue.id()));
+            assumeTrue(pr.body().contains(issue.title()));
+            assumeTrue(pr.body().contains(backportCsr.id()));
+            assumeTrue(pr.body().contains(backportCsr.title() + " (**CSR**)"));
+            assertFalse(pr.body().contains(csr.id()));
+            assertFalse(pr.body().contains(csr.title()));
+            assertFalse(pr.body().contains(backportIssue.id()));
+            assertFalse(pr.body().contains(backportIssue.title()));
+
+            // Set the backport CSR to have multiple fix versions, excluded 11.
+            backportCsr.setProperty("fixVersions", JSON.array().add("17").add("8"));
+            // Run bot.
+            pr.addComment("/summary\n" + commitMessage);
+            TestBotRunner.runPeriodicItems(bot);
+            // The bot should have primary issue and shouldn't have CSR.
+            assertTrue(pr.body().contains("### Issue"));
+            assertFalse(pr.body().contains("### Issues"));
+            assumeTrue(pr.body().contains(issue.id()));
+            assumeTrue(pr.body().contains(issue.title()));
+            assertFalse(pr.body().contains(csr.id()));
+            assertFalse(pr.body().contains(csr.title()));
+            assertFalse(pr.body().contains(backportIssue.id()));
+            assertFalse(pr.body().contains(backportIssue.title()));
+            assertFalse(pr.body().contains(backportCsr.id()));
+            assertFalse(pr.body().contains(backportCsr.title()));
         }
     }
 }

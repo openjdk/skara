@@ -25,12 +25,14 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.jbs.Backports;
+import org.openjdk.skara.jbs.IssueUtil;
 import org.openjdk.skara.jbs.JdkVersion;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.json.JSON;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -78,12 +80,13 @@ public class CSRCommand implements CommandHandler {
         if (jdkVersion.isEmpty()) {
             return Optional.empty();
         }
-        var versionMatch = Backports.fixVersions(csr).stream().anyMatch(v -> v.equals(version));
-        if (versionMatch) {
-            return Optional.of(csr);
+        var csrList = new ArrayList<Issue>();
+        csrList.add(csr);
+        for (var backportIssue : Backports.findBackports(primary, false)) {
+            var backportCsr = csrLink(backportIssue).flatMap(Link::issue);
+            backportCsr.ifPresent(csrList::add);
         }
-        var backportIssue = Backports.findIssue(primary, jdkVersion.get());
-        return backportIssue.flatMap(issue -> csrLink(issue).flatMap(Link::issue));
+        return IssueUtil.findClosestIssue(csrList, jdkVersion.get());
     }
 
     @Override

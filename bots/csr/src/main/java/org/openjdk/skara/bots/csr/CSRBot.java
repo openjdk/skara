@@ -29,6 +29,7 @@ import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.issuetracker.Link;
 import org.openjdk.skara.jbs.Backports;
+import org.openjdk.skara.jbs.IssueUtil;
 import org.openjdk.skara.jbs.JdkVersion;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
 
@@ -79,12 +80,13 @@ class CSRBot implements Bot, WorkItem {
         if (jdkVersion.isEmpty()) {
             return Optional.empty();
         }
-        var versionMatch = Backports.fixVersions(csr).stream().anyMatch(v -> v.equals(version));
-        if (versionMatch) {
-            return Optional.of(csr);
+        var csrList = new ArrayList<org.openjdk.skara.issuetracker.Issue>();
+        csrList.add(csr);
+        for (var backportIssue : Backports.findBackports(primary, false)) {
+            var backportCsr = csrLink(backportIssue).flatMap(Link::issue);
+            backportCsr.ifPresent(csrList::add);
         }
-        var backportIssue = Backports.findIssue(primary, jdkVersion.get());
-        return backportIssue.flatMap(issue -> csrLink(issue).flatMap(Link::issue));
+        return IssueUtil.findClosestIssue(csrList, jdkVersion.get());
     }
 
     @Override
