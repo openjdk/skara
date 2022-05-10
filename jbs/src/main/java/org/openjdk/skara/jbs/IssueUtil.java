@@ -23,7 +23,9 @@
 package org.openjdk.skara.jbs;
 
 import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.issuetracker.Link;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -70,5 +72,25 @@ public class IssueUtil {
         return issueList.stream()
                 .filter(issue -> Backports.fixVersions(issue).stream().noneMatch(v -> !v.startsWith("tbd") && !v.equalsIgnoreCase("unknown")))
                 .findFirst();
+    }
+
+    /**
+     * Find the right CSR according to the primary issue and the requested version
+     */
+    public static Optional<Issue> findCsr(Issue primary, JdkVersion version) {
+        var csrList = new ArrayList<Issue>();
+        csrLink(primary).flatMap(Link::issue).ifPresent(csrList::add);
+        for (var backportIssue : Backports.findBackports(primary, false)) {
+            csrLink(backportIssue).flatMap(Link::issue).ifPresent(csrList::add);
+        }
+        return IssueUtil.findClosestIssue(csrList, version);
+    }
+
+    /**
+     * Find the CSR of the provided issue
+     */
+    public static Optional<Link> csrLink(Issue issue) {
+        return issue == null ? Optional.empty() : issue.links().stream()
+                .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get())).findAny();
     }
 }

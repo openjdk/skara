@@ -27,7 +27,6 @@ import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.jbs.Backports;
 import org.openjdk.skara.jbs.IssueUtil;
 import org.openjdk.skara.jbs.JdkVersion;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
@@ -133,6 +132,19 @@ class CheckRun {
     }
 
     /**
+     * Get the fix version from the provided PR.
+     */
+    public static Optional<JdkVersion> getVersion(PullRequest pullRequest) {
+        var confFile = pullRequest.repository().fileContents(".jcheck/conf", pullRequest.targetRef());
+        var configuration = JCheckConfiguration.parse(confFile.lines().toList());
+        var version = configuration.general().version().orElse(null);
+        if (version == null || "".equals(version)) {
+            return Optional.empty();
+        }
+        return JdkVersion.parse(version);
+    }
+
+    /**
      * Get the csr issue. Note: this `Issue` is not the issue in module `issuetracker`.
      */
     private Optional<Issue> getCsrIssue(Issue issue) {
@@ -145,45 +157,13 @@ class CheckRun {
             return Optional.empty();
         }
 
-        var jbsIssue = jbsIssueOpt.get();
-        var csrOpt = csrLink(jbsIssue).flatMap(Link::issue);
-        if (csrOpt.isEmpty()) {
+        var versionOpt = getVersion(pr);
+        if (versionOpt.isEmpty()) {
             return Optional.empty();
         }
 
-        var csr = csrOpt.get();
-        if (pr.labelNames().contains("backport")) {
-            return findBackportCsr(jbsIssue, csr).flatMap(perIssue -> Issue.fromStringRelaxed(perIssue.id() + ": " + perIssue.title()));
-        }
-        return Issue.fromStringRelaxed(csr.id() + ": " + csr.title());
-    }
-
-    /**
-     * Find the right CSR according to the primary issue and the primary CSR
-     */
-    private Optional<org.openjdk.skara.issuetracker.Issue> findBackportCsr(org.openjdk.skara.issuetracker.Issue primary, org.openjdk.skara.issuetracker.Issue csr) {
-        var confFile = pr.repository().fileContents(".jcheck/conf", pr.targetRef());
-        var configuration = JCheckConfiguration.parse(confFile.lines().toList());
-        var version = configuration.general().version().orElse(null);
-        if (version == null || "".equals(version)) {
-            return Optional.empty();
-        }
-        var jdkVersion = JdkVersion.parse(version);
-        if (jdkVersion.isEmpty()) {
-            return Optional.empty();
-        }
-        var csrList = new ArrayList<org.openjdk.skara.issuetracker.Issue>();
-        csrList.add(csr);
-        for (var backportIssue : Backports.findBackports(primary, false)) {
-            var backportCsr = csrLink(backportIssue).flatMap(Link::issue);
-            backportCsr.ifPresent(csrList::add);
-        }
-        return IssueUtil.findClosestIssue(csrList, jdkVersion.get());
-    }
-
-    private static Optional<Link> csrLink(org.openjdk.skara.issuetracker.Issue issue) {
-        return issue == null ? Optional.empty() : issue.links().stream()
-                .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get())).findAny();
+        return IssueUtil.findCsr(jbsIssueOpt.get(), versionOpt.get())
+                .flatMap(perIssue -> Issue.fromStringRelaxed(perIssue.id() + ": " + perIssue.title()));
     }
 
     private Optional<Issue> getJepIssue() {

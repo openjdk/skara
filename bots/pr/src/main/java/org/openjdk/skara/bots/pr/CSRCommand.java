@@ -24,17 +24,12 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.jbs.Backports;
 import org.openjdk.skara.jbs.IssueUtil;
-import org.openjdk.skara.jbs.JdkVersion;
-import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.json.JSON;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class CSRCommand implements CommandHandler {
     private static final String CSR_LABEL = "csr";
@@ -55,38 +50,9 @@ public class CSRCommand implements CommandHandler {
                       "an issue in JBS, please use the `/issue` command in a comment in this pull request.");
     }
 
-    private static void linkReply(PullRequest pr, Issue issue, PrintWriter writer, boolean withVersion) {
+    private static void linkReply(PullRequest pr, Issue issue, PrintWriter writer) {
         writer.println("@" + pr.author().username() + " please create a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request for issue " +
-                "[" + issue.id() + "](" + issue.webUrl() + ")" + (withVersion ? " with the right fix version" : "")
-                + ". This pull request cannot be integrated until the CSR request is approved.");
-    }
-
-    private static Optional<Link> csrLink(Issue issue) {
-        return issue == null ? Optional.empty() : issue.links().stream()
-                .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get())).findAny();
-    }
-
-    /**
-     * Find the right CSR of the PR according to the primary issue and the primary CSR
-     */
-    private Optional<Issue> findBackportCsr(PullRequest pr, Issue primary, Issue csr) {
-        var confFile = pr.repository().fileContents(".jcheck/conf", pr.targetRef());
-        var configuration = JCheckConfiguration.parse(confFile.lines().toList());
-        var version = configuration.general().version().orElse(null);
-        if (version == null || "".equals(version)) {
-            return Optional.empty();
-        }
-        var jdkVersion = JdkVersion.parse(version);
-        if (jdkVersion.isEmpty()) {
-            return Optional.empty();
-        }
-        var csrList = new ArrayList<Issue>();
-        csrList.add(csr);
-        for (var backportIssue : Backports.findBackports(primary, false)) {
-            var backportCsr = csrLink(backportIssue).flatMap(Link::issue);
-            backportCsr.ifPresent(csrList::add);
-        }
-        return IssueUtil.findClosestIssue(csrList, jdkVersion.get());
+                "[" + issue.id() + "](" + issue.webUrl() + ") with the right fix version. This pull request cannot be integrated until the CSR request is approved.");
     }
 
     @Override
@@ -138,35 +104,22 @@ public class CSRCommand implements CommandHandler {
                 return;
             }
 
-            var jbsIssue = jbsIssueOpt.get();
-            var csrLink = csrLink(jbsIssue);
-            if (csrLink.isEmpty()) {
-                // The issue has no csr link, the bot should just remove the csr label.
+            var versionOpt = CheckRun.getVersion(pr);
+            if (versionOpt.isEmpty()) {
                 pr.removeLabel(CSR_LABEL);
                 reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
                         "is not needed for this pull request.");
                 return;
             }
 
-            var csrOptional = csrLink.flatMap(Link::issue);
+            var csrOptional = IssueUtil.findCsr(jbsIssueOpt.get(), versionOpt.get());
             if (csrOptional.isEmpty()) {
-                // The csr link exists but the csr issue doesn't exist, the bot should just remove the csr label.
                 pr.removeLabel(CSR_LABEL);
                 reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
                         "is not needed for this pull request.");
                 return;
             }
             var csrIssue = csrOptional.get();
-            if (pr.labelNames().contains("backport")) {
-                csrOptional = findBackportCsr(pr, jbsIssue, csrIssue);
-                if (csrOptional.isEmpty()) {
-                    pr.removeLabel(CSR_LABEL);
-                    reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
-                            "is not needed for this pull request.");
-                    return;
-                }
-                csrIssue = csrOptional.get();
-            }
 
             var resolution = csrIssue.properties().get("resolution");
             if (resolution == null || resolution.isNull()
@@ -211,25 +164,22 @@ public class CSRCommand implements CommandHandler {
         }
 
         var jbsIssue = jbsIssueOpt.get();
-        var csrOptional = csrLink(jbsIssue).flatMap(Link::issue);
-        if (csrOptional.isEmpty()) {
+        var versionOpt = CheckRun.getVersion(pr);
+        if (versionOpt.isEmpty()) {
             csrReply(reply);
-            linkReply(pr, jbsIssue, reply, false);
+            linkReply(pr, jbsIssue, reply);
             pr.addLabel(CSR_LABEL);
             return;
         }
 
-        var csr = csrOptional.get();
-        if (pr.labelNames().contains("backport")) {
-            csrOptional = findBackportCsr(pr, jbsIssue, csr);
-            if (csrOptional.isEmpty()) {
-                csrReply(reply);
-                linkReply(pr, jbsIssue, reply, true);
-                pr.addLabel(CSR_LABEL);
-                return;
-            }
-            csr = csrOptional.get();
+        var csrOptional = IssueUtil.findCsr(jbsIssueOpt.get(), versionOpt.get());
+        if (csrOptional.isEmpty()) {
+            csrReply(reply);
+            linkReply(pr, jbsIssue, reply);
+            pr.addLabel(CSR_LABEL);
+            return;
         }
+        var csr = csrOptional.get();
 
         var resolutionName = "Unresolved";
         var resolution = csr.properties().getOrDefault("resolution", JSON.of());

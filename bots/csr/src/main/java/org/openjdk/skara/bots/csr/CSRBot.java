@@ -27,8 +27,6 @@ import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.issuetracker.Issue;
-import org.openjdk.skara.issuetracker.Link;
-import org.openjdk.skara.jbs.Backports;
 import org.openjdk.skara.jbs.IssueUtil;
 import org.openjdk.skara.jbs.JdkVersion;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
@@ -61,32 +59,17 @@ class CSRBot implements Bot, WorkItem {
         return repo.name() + "#" + pr.id();
     }
 
-    private static Optional<Link> csrLink(Issue issue) {
-        return issue == null ? Optional.empty() : issue.links().stream()
-                .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get())).findAny();
-    }
-
     /**
-     * Find the right CSR of the PR according to the primary issue and the primary CSR
+     * Get the fix version from the provided PR.
      */
-    private Optional<Issue> findBackportCsr(PullRequest pr, Issue primary, Issue csr) {
-        var confFile = pr.repository().fileContents(".jcheck/conf", pr.targetRef());
+    public static Optional<JdkVersion> getVersion(PullRequest pullRequest) {
+        var confFile = pullRequest.repository().fileContents(".jcheck/conf", pullRequest.targetRef());
         var configuration = JCheckConfiguration.parse(confFile.lines().toList());
         var version = configuration.general().version().orElse(null);
         if (version == null || "".equals(version)) {
             return Optional.empty();
         }
-        var jdkVersion = JdkVersion.parse(version);
-        if (jdkVersion.isEmpty()) {
-            return Optional.empty();
-        }
-        var csrList = new ArrayList<org.openjdk.skara.issuetracker.Issue>();
-        csrList.add(csr);
-        for (var backportIssue : Backports.findBackports(primary, false)) {
-            var backportCsr = csrLink(backportIssue).flatMap(Link::issue);
-            backportCsr.ifPresent(csrList::add);
-        }
-        return IssueUtil.findClosestIssue(csrList, jdkVersion.get());
+        return JdkVersion.parse(version);
     }
 
     @Override
@@ -105,22 +88,18 @@ class CSRBot implements Bot, WorkItem {
                 continue;
             }
 
-            var jbsIssue = jbsIssueOpt.get();
-            var csrOptional = csrLink(jbsIssue).flatMap(Link::issue);
-            if (csrOptional.isEmpty()) {
-                log.info("Not found CSR for " + describe(pr));
+            var versionOpt = getVersion(pr);
+            if (versionOpt.isEmpty()) {
+                log.info("No right fix version found in file `.jcheck/conf` for " + describe(pr));
                 continue;
             }
 
-            var csr = csrOptional.get();
-            if (pr.labelNames().contains("backport")) {
-                csrOptional = findBackportCsr(pr, jbsIssue, csr);
-                if (csrOptional.isEmpty()) {
-                    log.info("Not found backport CSR for " + describe(pr));
-                    continue;
-                }
-                csr = csrOptional.get();
+            var csrOptional = IssueUtil.findCsr(jbsIssueOpt.get(), versionOpt.get());
+            if (csrOptional.isEmpty()) {
+                log.info("No CSR found for " + describe(pr));
+                continue;
             }
+            var csr = csrOptional.get();
 
             log.info("Found CSR for " + describe(pr) + ". It has id " + csr.id());
             var resolution = csr.properties().get("resolution");
