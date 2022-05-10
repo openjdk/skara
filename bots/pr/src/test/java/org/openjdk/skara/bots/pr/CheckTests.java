@@ -1150,6 +1150,15 @@ class CheckTests {
             var masterHash = localRepo.resolve("master").orElseThrow();
             localRepo.push(masterHash, author.url(), "master", true);
 
+            // Set the version to 17
+            localRepo.checkout(localRepo.defaultBranch());
+            var defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
+            var newConf = defaultConf.replace("project=test", "project=test\nversion=17");
+            Files.writeString(localRepo.root().resolve(".jcheck/conf"), newConf, StandardCharsets.UTF_8);
+            localRepo.add(localRepo.root().resolve(".jcheck/conf"));
+            var confHash = localRepo.commit("Set version as 17", "duke", "duke@openjdk.org");
+            localRepo.push(confHash, author.url(), "master", true);
+
             var mainIssue = issues.createIssue("The main issue", List.of("main"), Map.of("issuetype", JSON.of("Bug")));
             var csrIssue = issues.createIssue("The csr issue", List.of("csr"), Map.of("issuetype", JSON.of("CSR")));
 
