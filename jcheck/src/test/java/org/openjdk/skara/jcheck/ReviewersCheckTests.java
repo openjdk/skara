@@ -561,7 +561,7 @@ class ReviewersCheckTests {
     @Test
     void testReviewRequirements() throws IOException {
         // no review required.
-        var noReview = "no reviews required";
+        var noReview = "no review required";
         var conf = new ArrayList<>(CONFIGURATION);
         conf.add("reviewers = 0");
         assertEquals(noReview, JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
@@ -573,24 +573,24 @@ class ReviewersCheckTests {
         // one review required.
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("reviewers = 1");
-        assertEquals(String.format(hasReview, 1, "1 reviewer"),
+        assertEquals(String.format(hasReview, 1, "1 Reviewer"),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("committers = 1");
-        assertEquals(String.format(hasReview, 1, "1 committer"),
+        assertEquals(String.format(hasReview, 1, "1 Committer"),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         // two reviews required.
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("reviewers = 1");
         conf.add("committers = 1");
-        assertEquals(String.format(hasReviews, 2, "1 reviewer, 1 committer"),
+        assertEquals(String.format(hasReviews, 2, "1 Reviewer, 1 Committer"),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("reviewers = 2");
-        assertEquals(String.format(hasReviews, 2, "2 reviewers"),
+        assertEquals(String.format(hasReviews, 2, "2 Reviewers"),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         // three reviews required.
@@ -598,18 +598,18 @@ class ReviewersCheckTests {
         conf.add("reviewers = 1");
         conf.add("committers = 1");
         conf.add("authors = 1");
-        assertEquals(String.format(hasReviews, 3, "1 reviewer, 1 committer, 1 author"),
+        assertEquals(String.format(hasReviews, 3, "1 Reviewer, 1 Committer, 1 Author"),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("reviewers = 1");
         conf.add("committers = 2");
-        assertEquals(String.format(hasReviews, 3, "1 reviewer, 2 committers"),
+        assertEquals(String.format(hasReviews, 3, "1 Reviewer, 2 Committers"),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("committers = 3");
-        assertEquals(String.format(hasReviews, 3, "3 committers"),
+        assertEquals(String.format(hasReviews, 3, "3 Committers"),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         // four reviews required.
@@ -618,25 +618,25 @@ class ReviewersCheckTests {
         conf.add("committers = 1");
         conf.add("authors = 1");
         conf.add("contributors = 1");
-        assertEquals(String.format(hasReviews, 4, "1 reviewer, 1 committer, 1 author, 1 contributor"),
+        assertEquals(String.format(hasReviews, 4, "1 Reviewer, 1 Committer, 1 Author, 1 Contributor"),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("reviewers = 1");
         conf.add("committers = 1");
         conf.add("authors = 2");
-        assertEquals(String.format(hasReviews, 4, "1 reviewer, 1 committer, 2 authors"),
+        assertEquals(String.format(hasReviews, 4, "1 Reviewer, 1 Committer, 2 Authors"),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("reviewers = 1");
         conf.add("authors = 3");
-        assertEquals(String.format(hasReviews, 4, "1 reviewer, 3 authors"),
+        assertEquals(String.format(hasReviews, 4, "1 Reviewer, 3 Authors"),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("authors = 4");
-        assertEquals(String.format(hasReviews, 4, "4 authors"),
+        assertEquals(String.format(hasReviews, 4, "4 Authors"),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         // five reviews required.
@@ -646,7 +646,7 @@ class ReviewersCheckTests {
         conf.add("committers = 1");
         conf.add("authors = 1");
         conf.add("contributors = 1");
-        assertEquals(String.format(hasReviews, 5, "1 lead, 1 reviewer, 1 committer, 1 author, 1 contributor"),
+        assertEquals(String.format(hasReviews, 5, "1 Lead, 1 Reviewer, 1 Committer, 1 Author, 1 Contributor"),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
@@ -654,25 +654,25 @@ class ReviewersCheckTests {
         conf.add("committers = 1");
         conf.add("authors = 1");
         conf.add("contributors = 2");
-        assertEquals(String.format(hasReviews, 5, "1 reviewer, 1 committer, 1 author, 2 contributors"),
+        assertEquals(String.format(hasReviews, 5, "1 Reviewer, 1 Committer, 1 Author, 2 Contributors"),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("reviewers = 1");
         conf.add("committers = 1");
         conf.add("contributors = 3");
-        assertEquals(String.format(hasReviews, 5, "1 reviewer, 1 committer, 3 contributors"),
+        assertEquals(String.format(hasReviews, 5, "1 Reviewer, 1 Committer, 3 Contributors"),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("reviewers = 1");
         conf.add("contributors = 4");
-        assertEquals(String.format(hasReviews, 5, "1 reviewer, 4 contributors"),
+        assertEquals(String.format(hasReviews, 5, "1 Reviewer, 4 Contributors"),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("contributors = 5");
-        assertEquals(String.format(hasReviews, 5, "5 contributors"),
+        assertEquals(String.format(hasReviews, 5, "5 Contributors"),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
     }
 }

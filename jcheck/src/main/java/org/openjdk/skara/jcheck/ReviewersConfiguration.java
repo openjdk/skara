@@ -85,11 +85,11 @@ public class ReviewersConfiguration {
         var reviewRequirementMap = new LinkedHashMap<String, Integer>();
         var requireList = new ArrayList<String>();
         var sum = 0;
-        reviewRequirementMap.put("lead", lead);
-        reviewRequirementMap.put("reviewer", reviewers);
-        reviewRequirementMap.put("committer", committers);
-        reviewRequirementMap.put("author", authors);
-        reviewRequirementMap.put("contributor", contributors);
+        reviewRequirementMap.put("Lead", lead);
+        reviewRequirementMap.put("Reviewer", reviewers);
+        reviewRequirementMap.put("Committer", committers);
+        reviewRequirementMap.put("Author", authors);
+        reviewRequirementMap.put("Contributor", contributors);
         for (var reviewRequirement : reviewRequirementMap.entrySet()) {
             var requirementNum = reviewRequirement.getValue();
             if (requirementNum > 0) {
@@ -98,7 +98,7 @@ public class ReviewersConfiguration {
             }
         }
         if (sum == 0) {
-            reviewRequirements = "no reviews required";
+            reviewRequirements = "no review required";
         } else {
             reviewRequirements = String.format("%d review%s required, with at least %s",
                     sum, sum > 1 ? "s" : "", String.join(", ", requireList));
