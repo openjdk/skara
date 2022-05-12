@@ -39,8 +39,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
 
 public class ReviewersTests {
-    private static final String REVIEWERS_COMMAND_OUTPUT = "The total number of required reviews for this PR " +
+    private static final String REVIEWERS_COMMENT_TEMPLATE = "The total number of required reviews for this PR " +
             "(including the jcheck configuration and the last /reviewers command) is now set to %d (with at least %s).";
+    private static final String ZERO_REVIEWER_COMMENT = "The total number of required reviews for this PR " +
+            "(including the jcheck configuration and the last /reviewers command) is now set to 0.";
 
     private static final String REVIEW_PROGRESS_TEMPLATE = "Change must be properly reviewed (%d review%s required, with at least %s)";
     private static final String ZERO_REVIEW_PROGRESS = "Change must be properly reviewed (no review required)";
@@ -78,7 +80,7 @@ public class ReviewersTests {
 
             // The bot should reply with a help message
             assertLastCommentContains(reviewerPr,"is the number of required reviewers");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 Reviewer")));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // Invalid syntax
             reviewerPr.addComment("/reviewers two");
@@ -86,49 +88,49 @@ public class ReviewersTests {
 
             // The bot should reply with a help message
             assertLastCommentContains(reviewerPr,"is the number of required reviewers");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 Reviewer")));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // Too many
             reviewerPr.addComment("/reviewers 7001");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"Cannot increase the required number of reviewers above 10 (requested: 7001)");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 Reviewer")));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // Too few
             reviewerPr.addComment("/reviewers -3");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"Cannot decrease the required number of reviewers below 0 (requested: -3)");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 Reviewer")));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // Unknown role
             reviewerPr.addComment("/reviewers 2 penguins");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"Unknown role `penguins` specified");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 Reviewer")));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // Set the number
             reviewerPr.addComment("/reviewers 2");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(reviewerPr, String.format(REVIEWERS_COMMAND_OUTPUT, 2, "1 Reviewer, 1 Author"));
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "1 Reviewer, 1 Author")));
+            assertLastCommentContains(reviewerPr, getReviewersExpectedComment(0, 1, 0, 1, 0));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
 
             // Set 2 of role committers
             reviewerPr.addComment("/reviewers 2 committer");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(reviewerPr, String.format(REVIEWERS_COMMAND_OUTPUT, 2, "1 Reviewer, 1 Committer"));
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "1 Reviewer, 1 Committer")));
+            assertLastCommentContains(reviewerPr, getReviewersExpectedComment(0, 1, 1, 0, 0));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 1, 0, 0)));
 
             // Set 2 of role reviewers
             reviewerPr.addComment("/reviewers 2 reviewer");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(reviewerPr, String.format(REVIEWERS_COMMAND_OUTPUT, 2, "2 Reviewers"));
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "2 Reviewers")));
+            assertLastCommentContains(reviewerPr, getReviewersExpectedComment(0, 2, 0, 0, 0));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 2, 0, 0, 0)));
 
             // Approve it as another user
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
@@ -138,7 +140,7 @@ public class ReviewersTests {
             // The PR should not yet be considered as ready for review
             var updatedPr = author.pullRequest(pr.id());
             assertFalse(updatedPr.labelNames().contains("ready"));
-            assertTrue(updatedPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "2 Reviewers")));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 2, 0, 0, 0)));
 
             // Now reduce the number of required reviewers
             reviewerPr.addComment("/reviewers 1");
@@ -148,14 +150,14 @@ public class ReviewersTests {
             // The PR should now be considered as ready for review
             updatedPr = author.pullRequest(pr.id());
             assertTrue(updatedPr.labelNames().contains("ready"));
-            assertTrue(updatedPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 Reviewer")));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // Now request that the lead reviews
             reviewerPr.addComment("/reviewers 1 lead");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(reviewerPr, String.format(REVIEWERS_COMMAND_OUTPUT, 1, "1 Lead"));
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 Lead")));
+            assertLastCommentContains(reviewerPr, getReviewersExpectedComment(1, 0, 0, 0, 0));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(1, 0, 0, 0, 0)));
 
             // The PR should no longer be considered as ready for review
             updatedPr = author.pullRequest(pr.id());
@@ -165,8 +167,8 @@ public class ReviewersTests {
             reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(reviewerPr,  String.format(REVIEWERS_COMMAND_OUTPUT, 1, "1 Reviewer"));
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 Reviewer")));
+            assertLastCommentContains(reviewerPr, getReviewersExpectedComment(0, 1, 0, 0, 0));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // The PR should now be considered as ready for review yet again
             updatedPr = author.pullRequest(pr.id());
@@ -206,8 +208,8 @@ public class ReviewersTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(reviewerPr, String.format(REVIEWERS_COMMAND_OUTPUT, 2, "1 Reviewer, 1 Author"));
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "1 Reviewer, 1 Author")));
+            assertLastCommentContains(reviewerPr, getReviewersExpectedComment(0, 1, 0, 1, 0));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
 
             // Approve it as another user
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
@@ -218,18 +220,18 @@ public class ReviewersTests {
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"pull request has not yet been marked as ready for integration");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "1 Reviewer, 1 Author")));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
 
             // Relax the requirement
             reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 Reviewer")));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // It should now work fine
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"Pushed as commit");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 Reviewer")));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
         }
     }
 
@@ -264,38 +266,38 @@ public class ReviewersTests {
             reviewerPr.addReview(Review.Verdict.APPROVED, "Approved");
             TestBotRunner.runPeriodicItems(prBot);
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 Reviewer")));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // Flag it as ready for integration
             pr.addComment("/integrate");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"now ready to be sponsored");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 Reviewer")));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // Set the number
             reviewerPr.addComment("/reviewers 2");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message
-            assertLastCommentContains(reviewerPr, String.format(REVIEWERS_COMMAND_OUTPUT, 2, "1 Reviewer, 1 Author"));
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "1 Reviewer, 1 Author")));
+            assertLastCommentContains(reviewerPr, getReviewersExpectedComment(0, 1, 0, 1, 0));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
 
             // It should not be possible to sponsor
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"PR has not yet been marked as ready for integration");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "1 Reviewer, 1 Author")));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
 
             // Relax the requirement
             reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 Reviewer")));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
 
             // It should now work fine
             reviewerPr.addComment("/sponsor");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr,"Pushed as commit");
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 Reviewer")));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
         }
     }
 
@@ -329,8 +331,8 @@ public class ReviewersTests {
 
             // The bot should reply with a success message
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(authorPR, String.format(REVIEWERS_COMMAND_OUTPUT, 2, "1 Reviewer, 1 Author"));
-            assertTrue(authorPR.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "1 Reviewer, 1 Author")));
+            assertLastCommentContains(authorPR, getReviewersExpectedComment(0, 1, 0, 1, 0));
+            assertTrue(authorPR.body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
         }
     }
 
@@ -366,20 +368,20 @@ public class ReviewersTests {
 
             // The bot should reply with a success message
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(authorPR, String.format(REVIEWERS_COMMAND_OUTPUT, 2, "1 Reviewer, 1 Author"));
-            assertTrue(authorPR.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "1 Reviewer, 1 Author")));
+            assertLastCommentContains(authorPR, getReviewersExpectedComment(0, 1, 0, 1, 0));
+            assertTrue(authorPR.body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
             // The author should not be allowed to decrease even its own /reviewers command
             authorPR.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(authorPR, "Cannot decrease the number of required reviewers");
-            assertTrue(authorPR.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "1 Reviewer, 1 Author")));
+            assertTrue(authorPR.body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
 
             // Reviewer should be allowed to decrease
             var reviewerPr = integrator.pullRequest(pr.id());
             reviewerPr.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(reviewerPr, String.format(REVIEWERS_COMMAND_OUTPUT, 1, "1 Reviewer"));
-            assertTrue(reviewerPr.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 1, "", "1 Reviewer")));
+            assertLastCommentContains(reviewerPr, getReviewersExpectedComment(0, 1, 0, 0, 0));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
         }
     }
 
@@ -409,8 +411,8 @@ public class ReviewersTests {
             TestBotRunner.runPeriodicItems(prBot);
 
             var authorPR = author.pullRequest(pr.id());
-            assertLastCommentContains(authorPR, String.format(REVIEWERS_COMMAND_OUTPUT, 2, "1 Reviewer, 1 Author"));
-            assertTrue(authorPR.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "1 Reviewer, 1 Author")));
+            assertLastCommentContains(authorPR, getReviewersExpectedComment(0, 1, 0, 1, 0));
+            assertTrue(authorPR.body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
         }
     }
 
@@ -459,51 +461,46 @@ public class ReviewersTests {
 
             // test role contributor
             for (int i = 1; i <= 10; i++) {
-                var totalNum = Math.max(i, 5);
                 var contributorNum = (i < 6) ? 1 : i - 4;
                 verifyReviewersCommentAndProgress(reviewerPr, prBot, "/reviewers " + i + " contributor",
-                        getReviewersExpectedComment(totalNum, 1, 1, 1, 1, contributorNum),
-                        getReviewersExpectedProgress(totalNum, 1, 1, 1, 1, contributorNum));
+                        getReviewersExpectedComment(1, 1, 1, 1, contributorNum),
+                        getReviewersExpectedProgress(1, 1, 1, 1, contributorNum));
             }
 
             // test role author
             for (int i = 1; i <= 10; i++) {
-                var totalNum = Math.max(i, 5);
                 var contributorNum = (i < 5) ? 1 : 0;
                 var authorNum = (i < 5) ? 1 : i - 3;
                 verifyReviewersCommentAndProgress(reviewerPr, prBot, "/reviewers " + i + " author",
-                        getReviewersExpectedComment(totalNum, 1, 1, 1, authorNum, contributorNum),
-                        getReviewersExpectedProgress(totalNum, 1, 1, 1, authorNum, contributorNum));
+                        getReviewersExpectedComment(1, 1, 1, authorNum, contributorNum),
+                        getReviewersExpectedProgress(1, 1, 1, authorNum, contributorNum));
             }
 
             // test role committer
             for (int i = 1; i <= 10; i++) {
-                var totalNum = Math.max(i, 5);
                 var contributorNum = (i < 4) ? 1 : 0;
                 var authorNum = (i < 5) ? 1 : 0;
                 var committerNum = (i < 4) ? 1 : i - 2;
                 verifyReviewersCommentAndProgress(reviewerPr, prBot, "/reviewers " + i + " committer",
-                        getReviewersExpectedComment(totalNum, 1, 1, committerNum, authorNum, contributorNum),
-                        getReviewersExpectedProgress(totalNum, 1, 1, committerNum, authorNum, contributorNum));
+                        getReviewersExpectedComment(1, 1, committerNum, authorNum, contributorNum),
+                        getReviewersExpectedProgress(1, 1, committerNum, authorNum, contributorNum));
             }
 
             // test role reviewer
             for (int i = 1; i <= 10; i++) {
-                var totalNum = Math.max(i, 5);
                 var contributorNum = (i < 3) ? 1 : 0;
                 var authorNum = (i < 4) ? 1 : 0;
                 var committerNum = (i < 5) ? 1 : 0;
                 var reviewerNum = (i < 3) ? 1 : i - 1;
                 verifyReviewersCommentAndProgress(reviewerPr, prBot, "/reviewers " + i + " reviewer",
-                        getReviewersExpectedComment(totalNum, 1, reviewerNum, committerNum, authorNum, contributorNum),
-                        getReviewersExpectedProgress(totalNum, 1, reviewerNum, committerNum, authorNum, contributorNum));
-
+                        getReviewersExpectedComment(1, reviewerNum, committerNum, authorNum, contributorNum),
+                        getReviewersExpectedProgress(1, reviewerNum, committerNum, authorNum, contributorNum));
             }
 
             // test role lead
             verifyReviewersCommentAndProgress(reviewerPr, prBot, "/reviewers 1 lead",
-                    getReviewersExpectedComment(5, 1, 1, 1, 1, 1),
-                    getReviewersExpectedProgress(5, 1, 1, 1, 1, 1));
+                    getReviewersExpectedComment(1, 1, 1, 1, 1),
+                    getReviewersExpectedProgress(1, 1, 1, 1, 1));
         }
     }
 
@@ -514,40 +511,36 @@ public class ReviewersTests {
         assertTrue(reviewerPr.body().contains(expectedProgress));
     }
 
-    private String getReviewersExpectedComment(int totalNum, int leadNum, int reviewerNum, int committerNum, int authorNum, int contributorNum) {
-        var list = new ArrayList<String>();
-        var map = new LinkedHashMap<String, Integer>();
-        map.put("Lead", leadNum);
-        map.put("Reviewer", reviewerNum);
-        map.put("Committer", committerNum);
-        map.put("Author", authorNum);
-        map.put("Contributor", contributorNum);
-        for (var entry : map.entrySet()) {
-            if (entry.getValue() > 0) {
-                list.add(entry.getValue() + " " + entry.getKey() + (entry.getValue() > 1 ? "s" : ""));
-            }
-        }
-        return String.format(REVIEWERS_COMMAND_OUTPUT, totalNum, String.join(", ", list));
+    private String getReviewersExpectedComment(int leadNum, int reviewerNum, int committerNum, int authorNum, int contributorNum) {
+        return constructFromTemplate(REVIEWERS_COMMENT_TEMPLATE, ZERO_REVIEWER_COMMENT, leadNum, reviewerNum, committerNum, authorNum, contributorNum);
     }
 
-    private String getReviewersExpectedProgress(int totalNum, int leadNum, int reviewerNum, int committerNum, int authorNum, int contributorNum) {
+    private String getReviewersExpectedProgress(int leadNum, int reviewerNum, int committerNum, int authorNum, int contributorNum) {
+        return constructFromTemplate(REVIEW_PROGRESS_TEMPLATE, ZERO_REVIEW_PROGRESS, leadNum, reviewerNum, committerNum, authorNum, contributorNum);
+    }
+
+    private String constructFromTemplate(String template, String zeroTemplate, int leadNum, int reviewerNum, int committerNum, int authorNum, int contributorNum) {
+        var totalNum = leadNum + reviewerNum + committerNum + authorNum + contributorNum;
+        if (totalNum == 0) {
+            return zeroTemplate;
+        }
         var requireList = new ArrayList<String>();
         var reviewRequirementMap = new LinkedHashMap<String, Integer>();
-        reviewRequirementMap.put("Lead", leadNum);
-        reviewRequirementMap.put("Reviewer", reviewerNum);
-        reviewRequirementMap.put("Committer", committerNum);
-        reviewRequirementMap.put("Author", authorNum);
-        reviewRequirementMap.put("Contributor", contributorNum);
+        reviewRequirementMap.put("[Lead%s](%s#project-lead)", leadNum);
+        reviewRequirementMap.put("[Reviewer%s](%s#reviewer)", reviewerNum);
+        reviewRequirementMap.put("[Committer%s](%s#committer)", committerNum);
+        reviewRequirementMap.put("[Author%s](%s#author)", authorNum);
+        reviewRequirementMap.put("[Contributor%s](%s#contributor)", contributorNum);
         for (var reviewRequirement : reviewRequirementMap.entrySet()) {
             var requirementNum = reviewRequirement.getValue();
             if (requirementNum > 0) {
-                requireList.add(requirementNum+ " " + reviewRequirement.getKey() + (requirementNum > 1 ? "s" : ""));
+                requireList.add(requirementNum + " " + String.format(reviewRequirement.getKey(), requirementNum > 1 ? "s" : "", "http://openjdk.java.net/bylaws"));
             }
         }
-        if (totalNum == 0) {
-            return ZERO_REVIEW_PROGRESS;
+        if (template.equals(REVIEW_PROGRESS_TEMPLATE)) {
+            return String.format(template, totalNum, totalNum > 1 ? "s" : "", String.join(", ", requireList));
         } else {
-            return String.format(REVIEW_PROGRESS_TEMPLATE, totalNum, totalNum > 1 ? "s" : "", String.join(", ", requireList));
+            return String.format(template, totalNum, String.join(", ", requireList));
         }
     }
 
@@ -594,15 +587,15 @@ public class ReviewersTests {
 
             TestBotRunner.runPeriodicItems(prBot);
             var authorPR = author.pullRequest(pr.id());
-            assertTrue(authorPR.body().contains(ZERO_REVIEW_PROGRESS));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 0, 0, 0, 0)));
 
             authorPR.addComment("/reviewers 2 reviewer");
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(authorPR.body().contains(String.format(REVIEW_PROGRESS_TEMPLATE, 2, "s", "2 Reviewers")));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 2, 0, 0, 0)));
 
             reviewerPr.addComment("/reviewers 0");
             TestBotRunner.runPeriodicItems(prBot);
-            assertTrue(reviewerPr.body().contains(ZERO_REVIEW_PROGRESS));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 0, 0, 0, 0)));
         }
     }
 }

@@ -131,11 +131,11 @@ public class ReviewersCommand implements CommandHandler {
         var updatedLimits = ReviewersTracker.updatedRoleLimits(censusInstance.configuration(), numReviewers, role);
         // The role name of the configuration should be changed to the official role name.
         var formatLimits = new LinkedHashMap<String, Integer>();
-        formatLimits.put("Lead", updatedLimits.get("lead"));
-        formatLimits.put("Reviewer", updatedLimits.get("reviewers"));
-        formatLimits.put("Committer", updatedLimits.get("committers"));
-        formatLimits.put("Author", updatedLimits.get("authors"));
-        formatLimits.put("Contributor", updatedLimits.get("contributors"));
+        formatLimits.put("[Lead%s](%s#project-lead)", updatedLimits.get("lead"));
+        formatLimits.put("[Reviewer%s](%s#reviewer)", updatedLimits.get("reviewers"));
+        formatLimits.put("[Committer%s](%s#committer)", updatedLimits.get("committers"));
+        formatLimits.put("[Author%s](%s#author)", updatedLimits.get("authors"));
+        formatLimits.put("[Contributor%s](%s#contributor)", updatedLimits.get("contributors"));
 
         reply.println(ReviewersTracker.setReviewersMarker(numReviewers, role));
         var totalRequired = formatLimits.values().stream().mapToInt(Integer::intValue).sum();
@@ -145,7 +145,7 @@ public class ReviewersCommand implements CommandHandler {
         // Create a helpful message regarding the required distribution (if applicable)
         var nonZeroDescriptions = formatLimits.entrySet().stream()
                 .filter(entry -> entry.getValue() > 0)
-                .map(entry -> entry.getValue() + " " + entry.getKey() + (entry.getValue() > 1 ? "s" : ""))
+                .map(entry -> entry.getValue() + " " + String.format(entry.getKey(), entry.getValue() > 1 ? "s" : "", "http://openjdk.java.net/bylaws"))
                 .collect(Collectors.toList());
         if (nonZeroDescriptions.size() > 0) {
             reply.print(" (with at least " + String.join(", ", nonZeroDescriptions) + ")");

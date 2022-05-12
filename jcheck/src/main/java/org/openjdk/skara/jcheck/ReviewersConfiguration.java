@@ -85,16 +85,16 @@ public class ReviewersConfiguration {
         var reviewRequirementMap = new LinkedHashMap<String, Integer>();
         var requireList = new ArrayList<String>();
         var sum = 0;
-        reviewRequirementMap.put("Lead", lead);
-        reviewRequirementMap.put("Reviewer", reviewers);
-        reviewRequirementMap.put("Committer", committers);
-        reviewRequirementMap.put("Author", authors);
-        reviewRequirementMap.put("Contributor", contributors);
+        reviewRequirementMap.put("[Lead%s](%s#project-lead)", lead);
+        reviewRequirementMap.put("[Reviewer%s](%s#reviewer)", reviewers);
+        reviewRequirementMap.put("[Committer%s](%s#committer)", committers);
+        reviewRequirementMap.put("[Author%s](%s#author)", authors);
+        reviewRequirementMap.put("[Contributor%s](%s#contributor)", contributors);
         for (var reviewRequirement : reviewRequirementMap.entrySet()) {
             var requirementNum = reviewRequirement.getValue();
             if (requirementNum > 0) {
                 sum += requirementNum;
-                requireList.add(requirementNum + " " + reviewRequirement.getKey() + (requirementNum > 1 ? "s" : ""));
+                requireList.add(requirementNum + " " + String.format(reviewRequirement.getKey(), requirementNum > 1 ? "s" : "", "http://openjdk.java.net/bylaws"));
             }
         }
         if (sum == 0) {
