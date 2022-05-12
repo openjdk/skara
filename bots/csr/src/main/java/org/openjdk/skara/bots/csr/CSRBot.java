@@ -27,7 +27,7 @@ import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.issuetracker.Issue;
-import org.openjdk.skara.jbs.IssueUtil;
+import org.openjdk.skara.jbs.Backports;
 import org.openjdk.skara.jbs.JdkVersion;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
 
@@ -94,7 +94,7 @@ class CSRBot implements Bot, WorkItem {
                 continue;
             }
 
-            var csrOptional = IssueUtil.findCsr(jbsIssueOpt.get(), versionOpt.get());
+            var csrOptional = Backports.findCsr(jbsIssueOpt.get(), versionOpt.get());
             if (csrOptional.isEmpty()) {
                 log.info("No CSR found for " + describe(pr));
                 continue;

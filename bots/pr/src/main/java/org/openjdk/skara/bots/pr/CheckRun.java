@@ -27,7 +27,7 @@ import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.jbs.IssueUtil;
+import org.openjdk.skara.jbs.Backports;
 import org.openjdk.skara.jbs.JdkVersion;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.vcs.*;
@@ -162,7 +162,7 @@ class CheckRun {
             return Optional.empty();
         }
 
-        return IssueUtil.findCsr(jbsIssueOpt.get(), versionOpt.get())
+        return Backports.findCsr(jbsIssueOpt.get(), versionOpt.get())
                 .flatMap(perIssue -> Issue.fromStringRelaxed(perIssue.id() + ": " + perIssue.title()));
     }
 

@@ -23,6 +23,7 @@
 package org.openjdk.skara.jbs;
 
 import org.openjdk.skara.issuetracker.Issue;
+import org.openjdk.skara.issuetracker.Link;
 import org.openjdk.skara.json.JSONValue;
 
 import java.util.*;
@@ -221,6 +222,69 @@ public class Backports {
 
         log.fine("No suitable existing issue for " + primary.id() + " with version " + fixVersion + " found");
         return Optional.empty();
+    }
+
+    /**
+     * Find the closest issue from the provided issue list according to the provided fix version.
+     * This method is similar to `findIssue`, but this method can handle all the fix versions of the issue
+     * instead of only the main fix version and can receive an issue list instead of only the primary issue.
+     *
+     * If one of the issues has the correct fix version, use it.
+     * Else, if one of the issues has a matching <N>-pool-<opt> fix version, use it.
+     * Else, if one of the issues has a matching <N>-pool fix version, use it.
+     * Else, if one of the issues has a "scratch" fix version, use it.
+     * Otherwise, return empty.
+     *
+     * A "scratch" fixVersion is empty, "tbd.*", or "unknown".
+     */
+    public static Optional<Issue> findClosestIssue(List<Issue> issueList, JdkVersion fixVersion) {
+        var matchingVersionIssue = issueList.stream()
+                .filter(issue -> Backports.fixVersions(issue).stream().anyMatch(v -> v.equals(fixVersion.raw())))
+                .findFirst();
+        if (matchingVersionIssue.isPresent()) {
+            return matchingVersionIssue;
+        }
+
+        if (fixVersion.opt().isPresent()) {
+            var matchingOptPoolVersionIssue = issueList.stream()
+                    .filter(issue -> Backports.fixVersions(issue).stream().anyMatch(
+                            v -> v.equals(fixVersion.feature() + "-pool-" + fixVersion.opt().get())))
+                    .findFirst();
+            if (matchingOptPoolVersionIssue.isPresent()) {
+                return matchingOptPoolVersionIssue;
+            }
+        }
+
+        var matchingPoolVersionIssue = issueList.stream()
+                .filter(issue -> Backports.fixVersions(issue).stream().anyMatch(v -> v.equals(fixVersion.feature() + "-pool")))
+                .findFirst();
+        if (matchingPoolVersionIssue.isPresent()) {
+            return matchingPoolVersionIssue;
+        }
+
+        return issueList.stream()
+                .filter(issue -> Backports.fixVersions(issue).stream().noneMatch(v -> !v.startsWith("tbd") && !v.equalsIgnoreCase("unknown")))
+                .findFirst();
+    }
+
+    /**
+     * Find the right CSR according to the primary issue and the requested version
+     */
+    public static Optional<Issue> findCsr(Issue primary, JdkVersion version) {
+        var csrList = new ArrayList<Issue>();
+        csrLink(primary).flatMap(Link::issue).ifPresent(csrList::add);
+        for (var backportIssue : Backports.findBackports(primary, false)) {
+            csrLink(backportIssue).flatMap(Link::issue).ifPresent(csrList::add);
+        }
+        return findClosestIssue(csrList, version);
+    }
+
+    /**
+     * Find the CSR of the provided issue
+     */
+    private static Optional<Link> csrLink(Issue issue) {
+        return issue == null ? Optional.empty() : issue.links().stream()
+                .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get())).findAny();
     }
 
     public static List<Issue> findBackports(Issue primary, boolean fixedOnly) {

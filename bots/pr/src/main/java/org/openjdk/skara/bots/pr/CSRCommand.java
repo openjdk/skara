@@ -24,7 +24,7 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.jbs.IssueUtil;
+import org.openjdk.skara.jbs.Backports;
 import org.openjdk.skara.json.JSON;
 
 import java.io.PrintWriter;
@@ -112,7 +112,7 @@ public class CSRCommand implements CommandHandler {
                 return;
             }
 
-            var csrOptional = IssueUtil.findCsr(jbsIssueOpt.get(), versionOpt.get());
+            var csrOptional = Backports.findCsr(jbsIssueOpt.get(), versionOpt.get());
             if (csrOptional.isEmpty()) {
                 pr.removeLabel(CSR_LABEL);
                 reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
@@ -172,7 +172,7 @@ public class CSRCommand implements CommandHandler {
             return;
         }
 
-        var csrOptional = IssueUtil.findCsr(jbsIssueOpt.get(), versionOpt.get());
+        var csrOptional = Backports.findCsr(jbsIssueOpt.get(), versionOpt.get());
         if (csrOptional.isEmpty()) {
             csrReply(reply);
             linkReply(pr, jbsIssue, reply);
