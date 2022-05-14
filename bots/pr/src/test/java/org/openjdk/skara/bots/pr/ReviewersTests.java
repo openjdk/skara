@@ -37,6 +37,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.openjdk.skara.bots.pr.PullRequestAsserts.assertLastCommentContains;
+import static org.openjdk.skara.jcheck.ReviewersConfiguration.BYLAWS_URL;
 
 public class ReviewersTests {
     private static final String REVIEWERS_COMMENT_TEMPLATE = "The total number of required reviews for this PR " +
@@ -534,7 +535,7 @@ public class ReviewersTests {
         for (var reviewRequirement : reviewRequirementMap.entrySet()) {
             var requirementNum = reviewRequirement.getValue();
             if (requirementNum > 0) {
-                requireList.add(requirementNum + " " + String.format(reviewRequirement.getKey(), requirementNum > 1 ? "s" : "", "http://openjdk.java.net/bylaws"));
+                requireList.add(requirementNum + " " + String.format(reviewRequirement.getKey(), requirementNum > 1 ? "s" : "", BYLAWS_URL));
             }
         }
         if (template.equals(REVIEW_PROGRESS_TEMPLATE)) {

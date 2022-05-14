@@ -30,6 +30,8 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.openjdk.skara.jcheck.ReviewersConfiguration.BYLAWS_URL;
+
 public class ReviewersCommand implements CommandHandler {
     private static final Map<String, String> roleMappings = Map.of(
             "lead", "lead",
@@ -145,7 +147,7 @@ public class ReviewersCommand implements CommandHandler {
         // Create a helpful message regarding the required distribution (if applicable)
         var nonZeroDescriptions = formatLimits.entrySet().stream()
                 .filter(entry -> entry.getValue() > 0)
-                .map(entry -> entry.getValue() + " " + String.format(entry.getKey(), entry.getValue() > 1 ? "s" : "", "http://openjdk.java.net/bylaws"))
+                .map(entry -> entry.getValue() + " " + String.format(entry.getKey(), entry.getValue() > 1 ? "s" : "", BYLAWS_URL))
                 .collect(Collectors.toList());
         if (nonZeroDescriptions.size() > 0) {
             reply.print(" (with at least " + String.join(", ", nonZeroDescriptions) + ")");

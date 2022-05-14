@@ -41,6 +41,8 @@ import java.util.ArrayList;
 import java.time.ZonedDateTime;
 import java.io.IOException;
 
+import static org.openjdk.skara.jcheck.ReviewersConfiguration.BYLAWS_URL;
+
 class ReviewersCheckTests {
     private final Utilities utils = new Utilities();
 
@@ -690,7 +692,7 @@ class ReviewersCheckTests {
         for (var reviewRequirement : reviewRequirementMap.entrySet()) {
             var requirementNum = reviewRequirement.getValue();
             if (requirementNum > 0) {
-                requireList.add(requirementNum+ " " + String.format(reviewRequirement.getKey(), requirementNum > 1 ? "s" : "", "http://openjdk.java.net/bylaws"));
+                requireList.add(requirementNum+ " " + String.format(reviewRequirement.getKey(), requirementNum > 1 ? "s" : "", BYLAWS_URL));
             }
         }
         return String.format(hasReview, totalNum, totalNum > 1 ? "s" : "", String.join(", ", requireList));
