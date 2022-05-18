@@ -30,6 +30,7 @@ import java.util.List;
 
 public class ReviewersConfiguration {
     static final ReviewersConfiguration DEFAULT = new ReviewersConfiguration(0, 1, 0, 0, 0, List.of("duke"), false);
+    public static final String BYLAWS_URL = "https://openjdk.java.net/bylaws";
 
     private final int lead;
     private final int reviewers;
@@ -85,20 +86,20 @@ public class ReviewersConfiguration {
         var reviewRequirementMap = new LinkedHashMap<String, Integer>();
         var requireList = new ArrayList<String>();
         var sum = 0;
-        reviewRequirementMap.put("lead", lead);
-        reviewRequirementMap.put("reviewer", reviewers);
-        reviewRequirementMap.put("committer", committers);
-        reviewRequirementMap.put("author", authors);
-        reviewRequirementMap.put("contributor", contributors);
+        reviewRequirementMap.put("[Lead%s](%s#project-lead)", lead);
+        reviewRequirementMap.put("[Reviewer%s](%s#reviewer)", reviewers);
+        reviewRequirementMap.put("[Committer%s](%s#committer)", committers);
+        reviewRequirementMap.put("[Author%s](%s#author)", authors);
+        reviewRequirementMap.put("[Contributor%s](%s#contributor)", contributors);
         for (var reviewRequirement : reviewRequirementMap.entrySet()) {
             var requirementNum = reviewRequirement.getValue();
             if (requirementNum > 0) {
                 sum += requirementNum;
-                requireList.add(requirementNum + " " + reviewRequirement.getKey() + (requirementNum > 1 ? "s" : ""));
+                requireList.add(requirementNum + " " + String.format(reviewRequirement.getKey(), requirementNum > 1 ? "s" : "", BYLAWS_URL));
             }
         }
         if (sum == 0) {
-            reviewRequirements = "no reviews required";
+            reviewRequirements = "no review required";
         } else {
             reviewRequirements = String.format("%d review%s required, with at least %s",
                     sum, sum > 1 ? "s" : "", String.join(", ", requireList));

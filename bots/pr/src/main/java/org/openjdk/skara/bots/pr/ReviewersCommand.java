@@ -30,6 +30,8 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.openjdk.skara.jcheck.ReviewersConfiguration.BYLAWS_URL;
+
 public class ReviewersCommand implements CommandHandler {
     private static final Map<String, String> roleMappings = Map.of(
             "lead", "lead",
@@ -129,19 +131,26 @@ public class ReviewersCommand implements CommandHandler {
         }
 
         var updatedLimits = ReviewersTracker.updatedRoleLimits(censusInstance.configuration(), numReviewers, role);
+        // The role name of the configuration should be changed to the official role name.
+        var formatLimits = new LinkedHashMap<String, Integer>();
+        formatLimits.put("[Lead%s](%s#project-lead)", updatedLimits.get("lead"));
+        formatLimits.put("[Reviewer%s](%s#reviewer)", updatedLimits.get("reviewers"));
+        formatLimits.put("[Committer%s](%s#committer)", updatedLimits.get("committers"));
+        formatLimits.put("[Author%s](%s#author)", updatedLimits.get("authors"));
+        formatLimits.put("[Contributor%s](%s#contributor)", updatedLimits.get("contributors"));
 
         reply.println(ReviewersTracker.setReviewersMarker(numReviewers, role));
-        var totalRequired = updatedLimits.values().stream().mapToInt(Integer::intValue).sum();
+        var totalRequired = formatLimits.values().stream().mapToInt(Integer::intValue).sum();
         reply.print("The total number of required reviews for this PR (including the jcheck configuration " +
                     "and the last /reviewers command) is now set to " + totalRequired);
 
         // Create a helpful message regarding the required distribution (if applicable)
-        var nonZeroDescriptions = updatedLimits.entrySet().stream()
+        var nonZeroDescriptions = formatLimits.entrySet().stream()
                 .filter(entry -> entry.getValue() > 0)
-                .map(entry -> entry.getValue() + " of role " + entry.getKey())
+                .map(entry -> entry.getValue() + " " + String.format(entry.getKey(), entry.getValue() > 1 ? "s" : "", BYLAWS_URL))
                 .collect(Collectors.toList());
         if (nonZeroDescriptions.size() > 0) {
-            reply.print(" (with " + String.join(", ", nonZeroDescriptions) + ")");
+            reply.print(" (with at least " + String.join(", ", nonZeroDescriptions) + ")");
         }
 
         reply.println(".");

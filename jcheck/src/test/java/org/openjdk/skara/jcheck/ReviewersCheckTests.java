@@ -35,10 +35,13 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.time.ZonedDateTime;
 import java.io.IOException;
+
+import static org.openjdk.skara.jcheck.ReviewersConfiguration.BYLAWS_URL;
 
 class ReviewersCheckTests {
     private final Utilities utils = new Utilities();
@@ -560,37 +563,31 @@ class ReviewersCheckTests {
 
     @Test
     void testReviewRequirements() throws IOException {
-        // no review required.
-        var noReview = "no reviews required";
         var conf = new ArrayList<>(CONFIGURATION);
         conf.add("reviewers = 0");
-        assertEquals(noReview, JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
-
-        // review required template.
-        var hasReview = "%d review required, with at least %s";
-        var hasReviews = "%d reviews required, with at least %s";
+        assertEquals(constructReviewRequirement(0, 0, 0, 0, 0), JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         // one review required.
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("reviewers = 1");
-        assertEquals(String.format(hasReview, 1, "1 reviewer"),
+        assertEquals(constructReviewRequirement(0, 1, 0, 0, 0),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("committers = 1");
-        assertEquals(String.format(hasReview, 1, "1 committer"),
+        assertEquals(constructReviewRequirement(0, 0, 1, 0, 0),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         // two reviews required.
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("reviewers = 1");
         conf.add("committers = 1");
-        assertEquals(String.format(hasReviews, 2, "1 reviewer, 1 committer"),
+        assertEquals(constructReviewRequirement(0, 1, 1, 0, 0),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("reviewers = 2");
-        assertEquals(String.format(hasReviews, 2, "2 reviewers"),
+        assertEquals(constructReviewRequirement(0, 2, 0, 0, 0),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         // three reviews required.
@@ -598,18 +595,18 @@ class ReviewersCheckTests {
         conf.add("reviewers = 1");
         conf.add("committers = 1");
         conf.add("authors = 1");
-        assertEquals(String.format(hasReviews, 3, "1 reviewer, 1 committer, 1 author"),
+        assertEquals(constructReviewRequirement(0, 1, 1, 1, 0),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("reviewers = 1");
         conf.add("committers = 2");
-        assertEquals(String.format(hasReviews, 3, "1 reviewer, 2 committers"),
+        assertEquals(constructReviewRequirement(0, 1, 2, 0, 0),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("committers = 3");
-        assertEquals(String.format(hasReviews, 3, "3 committers"),
+        assertEquals(constructReviewRequirement(0, 0, 3, 0, 0),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         // four reviews required.
@@ -618,25 +615,25 @@ class ReviewersCheckTests {
         conf.add("committers = 1");
         conf.add("authors = 1");
         conf.add("contributors = 1");
-        assertEquals(String.format(hasReviews, 4, "1 reviewer, 1 committer, 1 author, 1 contributor"),
+        assertEquals(constructReviewRequirement(0, 1, 1, 1, 1),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("reviewers = 1");
         conf.add("committers = 1");
         conf.add("authors = 2");
-        assertEquals(String.format(hasReviews, 4, "1 reviewer, 1 committer, 2 authors"),
+        assertEquals(constructReviewRequirement(0, 1, 1, 2, 0),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("reviewers = 1");
         conf.add("authors = 3");
-        assertEquals(String.format(hasReviews, 4, "1 reviewer, 3 authors"),
+        assertEquals(constructReviewRequirement(0, 1, 0, 3, 0),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("authors = 4");
-        assertEquals(String.format(hasReviews, 4, "4 authors"),
+        assertEquals(constructReviewRequirement(0, 0, 0, 4, 0),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         // five reviews required.
@@ -646,7 +643,7 @@ class ReviewersCheckTests {
         conf.add("committers = 1");
         conf.add("authors = 1");
         conf.add("contributors = 1");
-        assertEquals(String.format(hasReviews, 5, "1 lead, 1 reviewer, 1 committer, 1 author, 1 contributor"),
+        assertEquals(constructReviewRequirement(1, 1, 1, 1, 1),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
@@ -654,25 +651,51 @@ class ReviewersCheckTests {
         conf.add("committers = 1");
         conf.add("authors = 1");
         conf.add("contributors = 2");
-        assertEquals(String.format(hasReviews, 5, "1 reviewer, 1 committer, 1 author, 2 contributors"),
+        assertEquals(constructReviewRequirement(0, 1, 1, 1, 2),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("reviewers = 1");
         conf.add("committers = 1");
         conf.add("contributors = 3");
-        assertEquals(String.format(hasReviews, 5, "1 reviewer, 1 committer, 3 contributors"),
+        assertEquals(constructReviewRequirement(0, 1, 1, 0, 3),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("reviewers = 1");
         conf.add("contributors = 4");
-        assertEquals(String.format(hasReviews, 5, "1 reviewer, 4 contributors"),
+        assertEquals(constructReviewRequirement(0, 1, 0, 0, 4),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
 
         conf = new ArrayList<>(CONFIGURATION);
         conf.add("contributors = 5");
-        assertEquals(String.format(hasReviews, 5, "5 contributors"),
+        assertEquals(constructReviewRequirement(0, 0, 0, 0, 5),
                 JCheckConfiguration.parse(conf).checks().reviewers().getReviewRequirements());
     }
+
+    private String constructReviewRequirement(int leadNum, int reviewerNum, int committerNum, int authorNum, int contributorNum) {
+        // no review required.
+        var noReview = "no review required";
+        // review required template.
+        var hasReview = "%d review%s required, with at least %s";
+        var totalNum = leadNum + reviewerNum + committerNum + authorNum + contributorNum;
+        if (totalNum == 0) {
+            return noReview;
+        }
+        var requireList = new ArrayList<String>();
+        var reviewRequirementMap = new LinkedHashMap<String, Integer>();
+        reviewRequirementMap.put("[Lead%s](%s#project-lead)", leadNum);
+        reviewRequirementMap.put("[Reviewer%s](%s#reviewer)", reviewerNum);
+        reviewRequirementMap.put("[Committer%s](%s#committer)", committerNum);
+        reviewRequirementMap.put("[Author%s](%s#author)", authorNum);
+        reviewRequirementMap.put("[Contributor%s](%s#contributor)", contributorNum);
+        for (var reviewRequirement : reviewRequirementMap.entrySet()) {
+            var requirementNum = reviewRequirement.getValue();
+            if (requirementNum > 0) {
+                requireList.add(requirementNum+ " " + String.format(reviewRequirement.getKey(), requirementNum > 1 ? "s" : "", BYLAWS_URL));
+            }
+        }
+        return String.format(hasReview, totalNum, totalNum > 1 ? "s" : "", String.join(", ", requireList));
+    }
+
 }
