@@ -32,7 +32,7 @@ public class JdkVersion implements Comparable<JdkVersion> {
     private final String opt;
     private final String build;
 
-    private final static Pattern jdkVersionPattern = Pattern.compile("(5\\.0|[1-9][0-9]?)(u([0-9]{1,3}))?$");
+    private final static Pattern jdkVersionPattern = Pattern.compile("(5\\.0|[1-9][0-9]?)(u([0-9]{1,3}))?(?:-(.*))?$");
     private final static Pattern hsxVersionPattern = Pattern.compile("(hs[1-9][0-9]{1,2})(\\.([0-9]{1,3}))?$");
     private final static Pattern embVersionPattern = Pattern.compile("(emb-[8-9])(u([0-9]{1,3}))?$");
     private final static Pattern ojVersionPattern = Pattern.compile("(openjdk[1-9][0-9]?)(u([0-9]{1,3}))?$");
@@ -55,6 +55,10 @@ public class JdkVersion implements Comparable<JdkVersion> {
                 finalComponents.add(legacyMatcher.group(1));
                 if (legacyMatcher.group(3) != null) {
                     finalComponents.add(legacyMatcher.group(3));
+                }
+                if (legacyMatcher.groupCount() >= 4 && legacyMatcher.group(4) != null) {
+                    finalComponents.add(null);
+                    finalComponents.add(legacyMatcher.group(4));
                 }
                 break;
             }
