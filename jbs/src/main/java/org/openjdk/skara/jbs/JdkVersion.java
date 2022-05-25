@@ -56,7 +56,7 @@ public class JdkVersion implements Comparable<JdkVersion> {
                 if (legacyMatcher.group(3) != null) {
                     finalComponents.add(legacyMatcher.group(3));
                 }
-                if (legacyMatcher.groupCount() > 3 && legacyMatcher.group(4) != null) {
+                if (legacyMatcher.groupCount() >= 4 && legacyMatcher.group(4) != null) {
                     finalComponents.add(null);
                     finalComponents.add(legacyMatcher.group(4));
                 }
