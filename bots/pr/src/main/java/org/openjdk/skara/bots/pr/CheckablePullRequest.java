@@ -275,14 +275,15 @@ public class CheckablePullRequest {
 
     static Hash findOriginalBackportHash(PullRequest pr) {
         var botUser = pr.repository().forge().currentUser();
-        var backportLines = pr.comments()
+        return pr.comments()
                 .stream()
                 .filter(c -> c.author().equals(botUser))
                 .flatMap(c -> Stream.of(c.body().split("\n")))
                 .map(BACKPORT_PATTERN::matcher)
                 .filter(Matcher::find)
-                .collect(Collectors.toList());
-        return backportLines.isEmpty() ? null : new Hash(backportLines.get(0).group(1));
+                .reduce((first, second) -> second)
+                .map(l -> new Hash(l.group(1)))
+                .orElse(null);
     }
 
     // Lazily initiated
