@@ -133,4 +133,10 @@ public class JdkVersionTests {
         assertEquals(Optional.empty(), JdkVersion.parse(""));
         assertEquals(Optional.empty(), JdkVersion.parse("foobar7u"));
     }
+
+    @Test
+    void legacyOpt() {
+        assertEquals(List.of("8", "333"), from("8u333-foo").components());
+        assertEquals("foo", from("8u333-foo").opt().orElseThrow());
+    }
 }

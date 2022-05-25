@@ -168,6 +168,12 @@ public class BackportsTests {
             assertEquals(Optional.empty(), Backports.findIssue(issue, JdkVersion.parse("13.3").orElseThrow()));
             assertEquals(issue, Backports.findIssue(issue, JdkVersion.parse("11.1-foo").orElseThrow()).orElseThrow());
 
+            backport.setProperty("fixVersions", JSON.array().add("openjfx17-pool"));
+            assertEquals(backport, Backports.findIssue(issue, JdkVersion.parse("openjfx17.0.1").orElseThrow()).orElseThrow());
+
+            backportFoo.setProperty("fixVersions", JSON.array().add("8-pool-foo"));
+            assertEquals(backportFoo, Backports.findIssue(issue, JdkVersion.parse("8u333-foo").orElseThrow()).orElseThrow());
+
             issue.setProperty("fixVersions", JSON.array().add("tbd"));
             assertEquals(issue, Backports.findIssue(issue, JdkVersion.parse("11.1").orElseThrow()).orElseThrow());
 
@@ -662,7 +668,7 @@ public class BackportsTests {
             var backports = new BackportManager(credentials, "8u291");
             backports.assertLabeled();
 
-            backports.addBackports("8u301", "8u281-b31");
+            backports.addBackports("8u301", "8u281/b31");
             backports.assertLabeled("8u301");
         }
     }
