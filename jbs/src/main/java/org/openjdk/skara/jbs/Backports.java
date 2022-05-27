@@ -315,7 +315,7 @@ public class Backports {
      * @return
      */
     private static List<String> releaseStreams(JdkVersion jdkVersion) {
-        var ret = new ArrayList<String>();
+        List<String> ret = new ArrayList<String>();
         try {
             var featureFamilyMatcher = featureFamilyPattern.matcher(jdkVersion.feature());
             if (!featureFamilyMatcher.matches()) {
@@ -381,6 +381,17 @@ public class Backports {
             }
         } catch (NumberFormatException e) {
             log.info("Cannot determine release streams for version: " + jdkVersion + " (" + e + ")");
+        }
+        // For any arbitrary opt string that we haven't already handled explicitly,
+        // let them represent their own release stream.
+        if (jdkVersion.opt().isPresent()) {
+            String opt = jdkVersion.opt().get();
+            if (!opt.equals("oracle")) {
+                var plusOpt = "+" + opt;
+                ret = ret.stream()
+                        .map(r -> r + plusOpt)
+                        .collect(Collectors.toList());
+            }
         }
         return ret;
     }

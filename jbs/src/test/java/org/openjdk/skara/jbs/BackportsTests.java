@@ -520,18 +520,7 @@ public class BackportsTests {
     }
 
     @Test
-    void labelTest8255226_1(TestInfo testInfo) throws IOException {
-        try (var credentials = new HostCredentials(testInfo)) {
-            var backports = new BackportManager(credentials, "16");
-            backports.assertLabeled();
-
-            backports.addBackports("15-pool", "11-pool", "8-pool", "7-pool");
-            backports.assertLabeled("16", "15-pool");
-        }
-    }
-
-    @Test
-    void labelTest8255226_2(TestInfo testInfo) throws IOException {
+    void labelTest8255226(TestInfo testInfo) throws IOException {
         try (var credentials = new HostCredentials(testInfo)) {
             var backports = new BackportManager(credentials, "16");
             backports.assertLabeled();
@@ -978,4 +967,16 @@ public class BackportsTests {
             backports.addBackports("11.0.4-oracle", "11.0.3-oracle/b31");
             backports.assertLabeled("11.0.3-oracle");
         }
-    }}
+    }
+
+    @Test
+    void jdk8u_foo(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo)) {
+            var backports = new BackportManager(credentials, "8u341");
+            backports.assertLabeled();
+
+            backports.addBackports("8u333-foo", "8u345-foo", "8u351");
+            backports.assertLabeled("8u345-foo", "8u351");
+        }
+    }
+}
