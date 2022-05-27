@@ -90,7 +90,7 @@ class CSRBot implements Bot, WorkItem {
 
             var versionOpt = getVersion(pr);
             if (versionOpt.isEmpty()) {
-                log.info("No right fix version found in file `.jcheck/conf` for " + describe(pr));
+                log.info("No fix version found in `.jcheck/conf` for " + describe(pr));
                 continue;
             }
 

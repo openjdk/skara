@@ -52,7 +52,13 @@ public class CSRCommand implements CommandHandler {
 
     private static void linkReply(PullRequest pr, Issue issue, PrintWriter writer) {
         writer.println("@" + pr.author().username() + " please create a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request for issue " +
-                "[" + issue.id() + "](" + issue.webUrl() + ") with the right fix version. This pull request cannot be integrated until the CSR request is approved.");
+                "[" + issue.id() + "](" + issue.webUrl() + ") with the correct fix version. " +
+                "This pull request cannot be integrated until the CSR request is approved.");
+    }
+
+    private static void csrUnneededReply(PrintWriter writer) {
+        writer.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
+                "is not needed for this pull request.");
     }
 
     @Override
@@ -82,41 +88,36 @@ public class CSRCommand implements CommandHandler {
             }
 
             if (!labels.contains(CSR_LABEL)) {
-                // FIXME here, the PR may have an approved CSR. We should distinguishing the situations
-                // about having no csr request and (having csr request && the CSR has been approved).
-                reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
-                        "is not needed for this pull request.");
+                // FIXME here, the PR may have an approved CSR. We should distinguish the situations
+                // of having no csr request and having an approved csr request.
+                csrUnneededReply(reply);
                 return;
             }
             var issueProject = bot.issueProject();
             var issue = org.openjdk.skara.vcs.openjdk.Issue.fromStringRelaxed(pr.title());
             if (issueProject == null || issue.isEmpty()) {
                 pr.removeLabel(CSR_LABEL);
-                reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
-                        "is not needed for this pull request.");
+                csrUnneededReply(reply);
                 return;
             }
             var jbsIssueOpt = issueProject.issue(issue.get().shortId());
             if (jbsIssueOpt.isEmpty()) {
                 pr.removeLabel(CSR_LABEL);
-                reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
-                        "is not needed for this pull request.");
+                csrUnneededReply(reply);
                 return;
             }
 
             var versionOpt = CheckRun.getVersion(pr);
             if (versionOpt.isEmpty()) {
                 pr.removeLabel(CSR_LABEL);
-                reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
-                        "is not needed for this pull request.");
+                csrUnneededReply(reply);
                 return;
             }
 
             var csrOptional = Backports.findCsr(jbsIssueOpt.get(), versionOpt.get());
             if (csrOptional.isEmpty()) {
                 pr.removeLabel(CSR_LABEL);
-                reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
-                        "is not needed for this pull request.");
+                csrUnneededReply(reply);
                 return;
             }
             var csrIssue = csrOptional.get();
@@ -135,8 +136,7 @@ public class CSRCommand implements CommandHandler {
 
             // The csr has been withdrawn, the bot should just remove the csr label.
             pr.removeLabel(CSR_LABEL);
-            reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
-                    "is not needed for this pull request.");
+            csrUnneededReply(reply);
             return;
         }
 

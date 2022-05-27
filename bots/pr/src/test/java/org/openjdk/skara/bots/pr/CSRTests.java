@@ -751,7 +751,7 @@ class CSRTests {
                     "[compatibility and specification](https://wiki.openjdk.java.net/display/csr/Main) (CSR) request " +
                     "is needed for this pull request.");
             assertLastCommentContains(pr, "please create a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request for issue");
-            assertLastCommentContains(pr, "with the right fix version");
+            assertLastCommentContains(pr, "with the correct fix version");
             assertLastCommentContains(pr, "This pull request cannot be integrated until the CSR request is approved.");
             // Use `/csr unneeded` to revert the change.
             pr.addComment("/csr unneeded");
@@ -780,7 +780,7 @@ class CSRTests {
                     "[compatibility and specification](https://wiki.openjdk.java.net/display/csr/Main) (CSR) request " +
                     "is needed for this pull request.");
             assertLastCommentContains(pr, "please create a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request for issue");
-            assertLastCommentContains(pr, "with the right fix version");
+            assertLastCommentContains(pr, "with the correct fix version");
             assertLastCommentContains(pr, "This pull request cannot be integrated until the CSR request is approved.");
             // Use `/csr unneeded` to revert the change.
             pr.addComment("/csr unneeded");
@@ -809,7 +809,7 @@ class CSRTests {
                     "[compatibility and specification](https://wiki.openjdk.java.net/display/csr/Main) (CSR) request " +
                     "is needed for this pull request.");
             assertLastCommentContains(pr, "please create a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request for issue");
-            assertLastCommentContains(pr, "with the right fix version");
+            assertLastCommentContains(pr, "with the correct fix version");
             assertLastCommentContains(pr, "This pull request cannot be integrated until the CSR request is approved.");
             // Use `/csr unneeded` to revert the change.
             pr.addComment("/csr unneeded");
@@ -849,7 +849,7 @@ class CSRTests {
                     "[compatibility and specification](https://wiki.openjdk.java.net/display/csr/Main) (CSR) request " +
                     "is needed for this pull request.");
             assertLastCommentContains(pr, "please create a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request for issue");
-            assertLastCommentContains(pr, "with the right fix version");
+            assertLastCommentContains(pr, "with the correct fix version");
             assertLastCommentContains(pr, "This pull request cannot be integrated until the CSR request is approved.");
             // Use `/csr unneeded` to revert the change.
             pr.addComment("/summary\n" + commitMessage);
@@ -928,7 +928,7 @@ class CSRTests {
                     "[compatibility and specification](https://wiki.openjdk.java.net/display/csr/Main) (CSR) request " +
                     "is needed for this pull request.");
             assertLastCommentContains(pr, "please create a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request for issue");
-            assertLastCommentContains(pr, "with the right fix version");
+            assertLastCommentContains(pr, "with the correct fix version");
             assertLastCommentContains(pr, "This pull request cannot be integrated until the CSR request is approved.");
         }
     }
