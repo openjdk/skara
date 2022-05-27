@@ -27,6 +27,9 @@ import org.openjdk.skara.email.EmailAddress;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
+import org.openjdk.skara.jbs.Backports;
+import org.openjdk.skara.jbs.JdkVersion;
+import org.openjdk.skara.jcheck.JCheckConfiguration;
 import org.openjdk.skara.vcs.*;
 import org.openjdk.skara.vcs.openjdk.Issue;
 
@@ -129,6 +132,19 @@ class CheckRun {
     }
 
     /**
+     * Get the fix version from the provided PR.
+     */
+    public static Optional<JdkVersion> getVersion(PullRequest pullRequest) {
+        var confFile = pullRequest.repository().fileContents(".jcheck/conf", pullRequest.targetRef());
+        var configuration = JCheckConfiguration.parse(confFile.lines().toList());
+        var version = configuration.general().version().orElse(null);
+        if (version == null || "".equals(version)) {
+            return Optional.empty();
+        }
+        return JdkVersion.parse(version);
+    }
+
+    /**
      * Get the csr issue. Note: this `Issue` is not the issue in module `issuetracker`.
      */
     private Optional<Issue> getCsrIssue(Issue issue) {
@@ -136,20 +152,18 @@ class CheckRun {
         if (issueProject == null) {
             return Optional.empty();
         }
-        var jbsIssue = issueProject.issue(issue.shortId());
-        if (jbsIssue.isEmpty()) {
+        var jbsIssueOpt = issueProject.issue(issue.shortId());
+        if (jbsIssueOpt.isEmpty()) {
             return Optional.empty();
         }
-        var csr = csrLink(jbsIssue.get()).flatMap(Link::issue);
-        if (csr.isPresent()) {
-            return Issue.fromStringRelaxed(csr.get().id() + ": " + csr.get().title());
-        }
-        return Optional.empty();
-    }
 
-    private static Optional<Link> csrLink(org.openjdk.skara.issuetracker.Issue issue) {
-        return issue == null ? Optional.empty() : issue.links().stream()
-                .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get())).findAny();
+        var versionOpt = getVersion(pr);
+        if (versionOpt.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Backports.findCsr(jbsIssueOpt.get(), versionOpt.get())
+                .flatMap(perIssue -> Issue.fromStringRelaxed(perIssue.id() + ": " + perIssue.title()));
     }
 
     private Optional<Issue> getJepIssue() {

@@ -24,12 +24,12 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.*;
+import org.openjdk.skara.jbs.Backports;
 import org.openjdk.skara.json.JSON;
 
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
 
 public class CSRCommand implements CommandHandler {
     private static final String CSR_LABEL = "csr";
@@ -52,13 +52,13 @@ public class CSRCommand implements CommandHandler {
 
     private static void linkReply(PullRequest pr, Issue issue, PrintWriter writer) {
         writer.println("@" + pr.author().username() + " please create a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request for issue " +
-                      "[" + issue.id() + "](" + issue.webUrl() + "). This pull request cannot be integrated until " +
-                      "the CSR request is approved.");
+                "[" + issue.id() + "](" + issue.webUrl() + ") with the correct fix version. " +
+                "This pull request cannot be integrated until the CSR request is approved.");
     }
 
-    private static Optional<Link> csrLink(Issue issue) {
-        return issue == null ? Optional.empty() : issue.links().stream()
-                .filter(link -> link.relationship().isPresent() && "csr for".equals(link.relationship().get())).findAny();
+    private static void csrUnneededReply(PrintWriter writer) {
+        writer.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
+                "is not needed for this pull request.");
     }
 
     @Override
@@ -88,44 +88,40 @@ public class CSRCommand implements CommandHandler {
             }
 
             if (!labels.contains(CSR_LABEL)) {
-                reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
-                        "is not needed for this pull request.");
+                // FIXME here, the PR may have an approved CSR. We should distinguish the situations
+                // of having no csr request and having an approved csr request.
+                csrUnneededReply(reply);
                 return;
             }
             var issueProject = bot.issueProject();
             var issue = org.openjdk.skara.vcs.openjdk.Issue.fromStringRelaxed(pr.title());
             if (issueProject == null || issue.isEmpty()) {
                 pr.removeLabel(CSR_LABEL);
-                reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
-                        "is not needed for this pull request.");
+                csrUnneededReply(reply);
                 return;
             }
-            var jbsIssue = issueProject.issue(issue.get().shortId());
-            if (jbsIssue.isEmpty()) {
+            var jbsIssueOpt = issueProject.issue(issue.get().shortId());
+            if (jbsIssueOpt.isEmpty()) {
                 pr.removeLabel(CSR_LABEL);
-                reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
-                        "is not needed for this pull request.");
+                csrUnneededReply(reply);
                 return;
             }
 
-            var csrLink = csrLink(jbsIssue.get());
-            if (csrLink.isEmpty()) {
-                // The issue has no csr link, the bot should just remove the csr label.
+            var versionOpt = CheckRun.getVersion(pr);
+            if (versionOpt.isEmpty()) {
                 pr.removeLabel(CSR_LABEL);
-                reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
-                        "is not needed for this pull request.");
+                csrUnneededReply(reply);
                 return;
             }
 
-            var csrOptional = csrLink.flatMap(Link::issue);
+            var csrOptional = Backports.findCsr(jbsIssueOpt.get(), versionOpt.get());
             if (csrOptional.isEmpty()) {
-                // The csr link exists but the csr issue doesn't exist, the bot should just remove the csr label.
                 pr.removeLabel(CSR_LABEL);
-                reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
-                        "is not needed for this pull request.");
+                csrUnneededReply(reply);
                 return;
             }
             var csrIssue = csrOptional.get();
+
             var resolution = csrIssue.properties().get("resolution");
             if (resolution == null || resolution.isNull()
                     || resolution.get("name") == null || resolution.get("name").isNull()
@@ -140,8 +136,7 @@ public class CSRCommand implements CommandHandler {
 
             // The csr has been withdrawn, the bot should just remove the csr label.
             pr.removeLabel(CSR_LABEL);
-            reply.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
-                    "is not needed for this pull request.");
+            csrUnneededReply(reply);
             return;
         }
 
@@ -160,24 +155,32 @@ public class CSRCommand implements CommandHandler {
             return;
         }
 
-        var jbsIssue = issueProject.issue(issue.get().shortId());
-        if (jbsIssue.isEmpty()) {
+        var jbsIssueOpt = issueProject.issue(issue.get().shortId());
+        if (jbsIssueOpt.isEmpty()) {
             csrReply(reply);
             jbsReply(pr, reply);
             pr.addLabel(CSR_LABEL);
             return;
-
         }
 
-        var csrOptional = csrLink(jbsIssue.get()).flatMap(Link::issue);
-        if (csrOptional.isEmpty()) {
+        var jbsIssue = jbsIssueOpt.get();
+        var versionOpt = CheckRun.getVersion(pr);
+        if (versionOpt.isEmpty()) {
             csrReply(reply);
-            linkReply(pr, jbsIssue.get(), reply);
+            linkReply(pr, jbsIssue, reply);
             pr.addLabel(CSR_LABEL);
             return;
         }
 
+        var csrOptional = Backports.findCsr(jbsIssueOpt.get(), versionOpt.get());
+        if (csrOptional.isEmpty()) {
+            csrReply(reply);
+            linkReply(pr, jbsIssue, reply);
+            pr.addLabel(CSR_LABEL);
+            return;
+        }
         var csr = csrOptional.get();
+
         var resolutionName = "Unresolved";
         var resolution = csr.properties().getOrDefault("resolution", JSON.of());
         if (resolution.isObject() && resolution.asObject().contains("name")) {
@@ -187,12 +190,12 @@ public class CSRCommand implements CommandHandler {
             }
         }
         if (csr.state() == Issue.State.CLOSED && resolutionName.equals("Approved")) {
-            reply.println("the issue for this pull request, [" + jbsIssue.get().id() + "](" + jbsIssue.get().webUrl() + "), already has " +
+            reply.println("the issue for this pull request, [" + jbsIssue.id() + "](" + jbsIssue.webUrl() + "), already has " +
                           "an approved CSR request: [" + csr.id() + "](" + csr.webUrl() + ")");
         } else {
             reply.println("this pull request will not be integrated until the [CSR](https://wiki.openjdk.java.net/display/csr/Main) " +
                           "request " + "[" + csr.id() + "](" + csr.webUrl() + ")" + " for issue " +
-                          "[" + jbsIssue.get().id() + "](" + jbsIssue.get().webUrl() + ") has been approved.");
+                          "[" + jbsIssue.id() + "](" + jbsIssue.webUrl() + ") has been approved.");
             pr.addLabel(CSR_LABEL);
         }
     }
