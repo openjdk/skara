@@ -129,6 +129,11 @@ public class JEPBot implements Bot, WorkItem {
     }
 
     @Override
+    public String toString() {
+        return "JEPBot@" + repo.name();
+    }
+
+    @Override
     public String botName() {
         return name();
     }
