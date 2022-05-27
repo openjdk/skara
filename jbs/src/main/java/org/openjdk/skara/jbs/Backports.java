@@ -383,7 +383,7 @@ public class Backports {
             log.info("Cannot determine release streams for version: " + jdkVersion + " (" + e + ")");
         }
         // For any arbitrary opt string that we haven't already handled explicitly,
-        // let them represent their own release stream.
+        // we let them represent their own respective release streams.
         if (jdkVersion.opt().isPresent()) {
             String opt = jdkVersion.opt().get();
             if (!opt.equals("oracle")) {
