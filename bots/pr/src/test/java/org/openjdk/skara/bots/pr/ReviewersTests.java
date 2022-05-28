@@ -374,12 +374,26 @@ public class ReviewersTests {
             // The author should not be allowed to decrease even its own /reviewers command
             authorPR.addComment("/reviewers 1");
             TestBotRunner.runPeriodicItems(prBot);
-            assertLastCommentContains(authorPR, "Cannot decrease the number of required reviewers");
+            assertLastCommentContains(authorPR, "Only the [Reviewers](https://openjdk.java.net/bylaws#reviewer) "
+                    + "are allowed to decrease the number of required reviewers.");
             assertTrue(authorPR.body().contains(getReviewersExpectedProgress(0, 1, 0, 1, 0)));
 
             // Reviewer should be allowed to decrease
             var reviewerPr = integrator.pullRequest(pr.id());
             reviewerPr.addComment("/reviewers 1");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(reviewerPr, getReviewersExpectedComment(0, 1, 0, 0, 0));
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
+
+            // The author should not be allowed to lower the role of the reviewers
+            authorPR.addComment("/reviewers 1 contributors");
+            TestBotRunner.runPeriodicItems(prBot);
+            assertLastCommentContains(authorPR, "Only the [Reviewers](https://openjdk.java.net/bylaws#reviewer) "
+                    + "are allowed to lower the role for additional reviewers.");
+            assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
+
+            // Reviewer should be allowed to lower the role of the reviewers
+            reviewerPr.addComment("/reviewers 1 contributors");
             TestBotRunner.runPeriodicItems(prBot);
             assertLastCommentContains(reviewerPr, getReviewersExpectedComment(0, 1, 0, 0, 0));
             assertTrue(reviewerPr.body().contains(getReviewersExpectedProgress(0, 1, 0, 0, 0)));
