@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -55,7 +55,7 @@ public class BackportsTests {
             assertEquals(issue1, Backports.findMainIssue(issue2).orElseThrow());
             assertEquals(issue1, Backports.findMainIssue(issue3).orElseThrow());
 
-            assertEquals(List.of(issue2), Backports.findBackports(issue1, false));
+            assertEquals(List.of(issue2, issue3), Backports.findBackports(issue1, false));
             assertEquals(List.of(), Backports.findBackports(issue1, true));
         }
     }
@@ -92,12 +92,12 @@ public class BackportsTests {
             var issue2 = credentials.createIssue(issueProject, "Issue 2");
             issue2.setProperty("issuetype", JSON.of("Bug"));
             issue2.setState(Issue.State.RESOLVED);
-            issue1.addLink(Link.create(issue2, "duplicated by").build());
+            issue1.addLink(Link.create(issue2, "duplicates").build());
 
             var issue3 = credentials.createIssue(issueProject, "Issue 3");
             issue3.setProperty("issuetype", JSON.of("CSR"));
             issue3.setState(Issue.State.RESOLVED);
-            issue1.addLink(Link.create(issue3, "CSRed by").build());
+            issue1.addLink(Link.create(issue3, "csr for").build());
 
             var issue4 = credentials.createIssue(issueProject, "Issue 4");
             issue4.setProperty("issuetype", JSON.of("Backport"));

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -240,7 +240,12 @@ public class TestIssue implements Issue {
             existing.ifPresent(data.links::remove);
             data.links.add(link);
             if (existing.isEmpty()) {
-                var reverse = Link.create(this, link.relationship().get()).build();
+                var map = Map.of("backported by", "backport of", "backport of", "backported by",
+                        "csr for", "csr of", "csr of", "csr for",
+                        "blocks", "is blocked by", "is blocked by", "blocks",
+                        "clones", "is cloned by", "is cloned by", "clones");
+                var reverseRelationship = map.getOrDefault(link.relationship().get(), link.relationship().get());
+                var reverse = Link.create(this, reverseRelationship).build();
                 link.issue().get().addLink(reverse);
             }
         } else {
