@@ -406,4 +406,65 @@ class CSRBotTests {
             assertFalse(pr.labelNames().contains("csr"));
         }
     }
+
+    @Test
+    void testCsrUpdateMarker(TestInfo testInfo) throws IOException {
+        String csrUpdateMarker = "<!-- csr: 'update' -->";
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var repo = credentials.getHostedRepository();
+            var issueProject = credentials.getIssueProject();
+            var issue = issueProject.createIssue("This is an issue", List.of(), Map.of());
+            var bot = new CSRBot(repo, issueProject);
+
+            // Populate the projects repository
+            var localRepoFolder = tempFolder.path().resolve("localrepo");
+            var localRepo = CheckableRepository.init(localRepoFolder, repo.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, repo.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, repo.url(), "edit", true);
+            var pr = credentials.createPullRequest(repo, "master", "edit", issue.id() + ": This is an issue");
+            // Run bot
+            TestBotRunner.runPeriodicItems(bot);
+            // The bot shouldn't add the csr update marker
+            assertFalse(pr.body().contains(csrUpdateMarker));
+
+            // Add the csr issue.
+            var csr = issueProject.createIssue("This is an CSR", List.of(), Map.of());
+            csr.setState(Issue.State.OPEN);
+            issue.addLink(Link.create(csr, "csr for").build());
+            // Run bot
+            TestBotRunner.runPeriodicItems(bot);
+            // The bot should add the csr update marker
+            assertTrue(pr.body().contains(csrUpdateMarker));
+
+            // Add csr issue and progress to the PR body
+            pr.setBody("PR body\n" + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
+                    + "- [ ] Change requires a CSR request to be approved");
+            // Run bot
+            TestBotRunner.runPeriodicItems(bot);
+            // The bot shouldn't add the csr update marker
+            assertFalse(pr.body().contains(csrUpdateMarker));
+
+            // Set csr status to closed and approved.
+            csr.setState(Issue.State.CLOSED);
+            csr.setProperty("resolution", JSON.object().put("name", "Approved"));
+            // Run bot
+            TestBotRunner.runPeriodicItems(bot);
+            // The bot should add the csr update marker
+            assertTrue(pr.body().contains(csrUpdateMarker));
+
+            // Add csr issue and selected progress to the PR body
+            pr.setBody("PR body\n" + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
+                    + "- [x] Change requires a CSR request to be approved");
+            // Run bot
+            TestBotRunner.runPeriodicItems(bot);
+            // The bot shouldn't add the csr update marker
+            assertFalse(pr.body().contains(csrUpdateMarker));
+        }
+    }
 }

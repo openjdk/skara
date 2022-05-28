@@ -37,6 +37,7 @@ import java.util.logging.Logger;
 
 class CSRBot implements Bot, WorkItem {
     private final static String CSR_LABEL = "csr";
+    private final static String CSR_UPDATE_MARKER = "\n<!-- csr: 'update' -->\n";
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final HostedRepository repo;
     private final IssueProject project;
@@ -62,7 +63,7 @@ class CSRBot implements Bot, WorkItem {
     /**
      * Get the fix version from the provided PR.
      */
-    public static Optional<JdkVersion> getVersion(PullRequest pullRequest) {
+    private static Optional<JdkVersion> getVersion(PullRequest pullRequest) {
         var confFile = pullRequest.repository().fileContents(".jcheck/conf", pullRequest.targetRef());
         var configuration = JCheckConfiguration.parse(confFile.lines().toList());
         var version = configuration.general().version().orElse(null);
@@ -70,6 +71,22 @@ class CSRBot implements Bot, WorkItem {
             return Optional.empty();
         }
         return JdkVersion.parse(version);
+    }
+
+    private boolean hasCsrIssueAndProgress(PullRequest pr, Issue csr) {
+        return hasCsrIssue(pr, csr) &&
+                (pr.body().contains("- [ ] Change requires a CSR request to be approved") ||
+                 pr.body().contains("- [x] Change requires a CSR request to be approved"));
+    }
+
+    private boolean hasCsrIssueAndProgressChecked(PullRequest pr, Issue csr) {
+        return hasCsrIssue(pr, csr) && pr.body().contains("- [x] Change requires a CSR request to be approved");
+    }
+
+    private boolean hasCsrIssue(PullRequest pr, Issue csr) {
+        return pr.body().contains(csr.id()) &&
+                pr.body().contains(csr.webUrl().toString()) &&
+                pr.body().contains(csr.title() + " (**CSR**)");
     }
 
     @Override
@@ -102,6 +119,13 @@ class CSRBot implements Bot, WorkItem {
             var csr = csrOptional.get();
 
             log.info("Found CSR for " + describe(pr) + ". It has id " + csr.id());
+            if (!hasCsrIssueAndProgress(pr, csr)) {
+                // If the PR body doesn't have the CSR issue or doesn't have the CSR progress,
+                // this bot need to add the csr update marker so that the PR bot can update the message of the PR body.
+                log.info("The PR body doesn't have the CSR issue or progress, adding the csr update marker for " + describe(pr));
+                pr.setBody(pr.body() + CSR_UPDATE_MARKER);
+            }
+
             var resolution = csr.properties().get("resolution");
             if (resolution == null || resolution.isNull()) {
                 if (!pr.labelNames().contains(CSR_LABEL)) {
@@ -152,6 +176,12 @@ class CSRBot implements Bot, WorkItem {
             if (pr.labelNames().contains(CSR_LABEL)) {
                 log.info("CSR closed and approved for " + describe(pr) + ", removing CSR label");
                 pr.removeLabel(CSR_LABEL);
+            }
+            if (!hasCsrIssueAndProgressChecked(pr, csr)) {
+                // If the PR body doesn't have the CSR issue or doesn't have the CSR progress or the CSR progress checkbox is not selected,
+                // this bot need to add the csr update marker so that the PR bot can update the message of the PR body.
+                log.info("CSR closed and approved for " + describe(pr) + ", adding the csr update marker");
+                pr.setBody(pr.body() + CSR_UPDATE_MARKER);
             }
         }
         return List.of();

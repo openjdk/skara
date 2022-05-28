@@ -2063,6 +2063,7 @@ class CheckTests {
                     .addReviewer(reviewer.forge().currentUser().id());
             var bot = PullRequestBot.newBuilder().repo(botRepo)
                     .censusRepo(censusBuilder.build()).issueProject(issueProject).build();
+            var csrUpdateMarker = "\n<!-- csr: 'update' -->\n";
 
             var issue = issueProject.createIssue("This is the primary issue", List.of(), Map.of());
             issue.setState(Issue.State.CLOSED);
@@ -2111,14 +2112,15 @@ class CheckTests {
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             var confHash = localRepo.commit("Set version as null", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.url(), "master", true);
+            // Simulate the CSRBot.
+            pr.setBody(pr.body() + csrUpdateMarker);
             // Run bot. The bot won't get a CSR.
-            pr.addComment("/summary\n" + commitMessage);
             TestBotRunner.runPeriodicItems(bot);
             // The PR should have primary issue and shouldn't have primary CSR.
             assertTrue(pr.body().contains("### Issue"));
             assertFalse(pr.body().contains("### Issues"));
-            assumeTrue(pr.body().contains(issue.id()));
-            assumeTrue(pr.body().contains(issue.title()));
+            assertTrue(pr.body().contains(issue.id()));
+            assertTrue(pr.body().contains(issue.title()));
             assertFalse(pr.body().contains(csr.id()));
             assertFalse(pr.body().contains(csr.title()));
 
@@ -2130,14 +2132,15 @@ class CheckTests {
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as a wrong value", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.url(), "master", true);
+            // Simulate the CSRBot.
+            pr.setBody(pr.body() + csrUpdateMarker);
             // Run bot. The bot won't get a CSR.
-            pr.addComment("/summary\n" + commitMessage);
             TestBotRunner.runPeriodicItems(bot);
             // The PR should have primary issue and shouldn't have primary CSR.
             assertTrue(pr.body().contains("### Issue"));
             assertFalse(pr.body().contains("### Issues"));
-            assumeTrue(pr.body().contains(issue.id()));
-            assumeTrue(pr.body().contains(issue.title()));
+            assertTrue(pr.body().contains(issue.id()));
+            assertTrue(pr.body().contains(issue.title()));
             assertFalse(pr.body().contains(csr.id()));
             assertFalse(pr.body().contains(csr.title()));
 
@@ -2149,28 +2152,30 @@ class CheckTests {
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as 17", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.url(), "master", true);
+            // Simulate the CSRBot.
+            pr.setBody(pr.body() + csrUpdateMarker);
             // Run bot. The primary CSR doesn't have the fix version `17`, so the bot won't get a CSR.
-            pr.addComment("/summary\n" + commitMessage);
             TestBotRunner.runPeriodicItems(bot);
             // The PR should have primary issue and shouldn't have primary CSR.
             assertTrue(pr.body().contains("### Issue"));
             assertFalse(pr.body().contains("### Issues"));
-            assumeTrue(pr.body().contains(issue.id()));
-            assumeTrue(pr.body().contains(issue.title()));
+            assertTrue(pr.body().contains(issue.id()));
+            assertTrue(pr.body().contains(issue.title()));
             assertFalse(pr.body().contains(csr.id()));
             assertFalse(pr.body().contains(csr.title()));
 
             // Set the fix versions of the primary CSR to 17 and 18.
             csr.setProperty("fixVersions", JSON.array().add("17").add("18"));
+            // Simulate the CSRBot.
+            pr.setBody(pr.body() + csrUpdateMarker);
             // Run bot. The primary CSR has the fix version `17`, so it would be used.
-            pr.addComment("/summary\n" + commitMessage);
             TestBotRunner.runPeriodicItems(bot);
             // The bot should have primary issue and primary CSR
-            assumeTrue(pr.body().contains("### Issues"));
-            assumeTrue(pr.body().contains(issue.id()));
-            assumeTrue(pr.body().contains(issue.title()));
-            assumeTrue(pr.body().contains(csr.id()));
-            assumeTrue(pr.body().contains(csr.title() + " (**CSR**)"));
+            assertTrue(pr.body().contains("### Issues"));
+            assertTrue(pr.body().contains(issue.id()));
+            assertTrue(pr.body().contains(issue.title()));
+            assertTrue(pr.body().contains(csr.id()));
+            assertTrue(pr.body().contains(csr.title() + " (**CSR**)"));
 
             // Revert the fix versions of the primary CSR to 18.
             csr.setProperty("fixVersions", JSON.array().add("18"));
@@ -2180,14 +2185,15 @@ class CheckTests {
             backportIssue.setProperty("fixVersions", JSON.array().add("17"));
             backportIssue.setState(Issue.State.OPEN);
             issue.addLink(Link.create(backportIssue, "backported by").build());
+            // Simulate the CSRBot.
+            pr.setBody(pr.body() + csrUpdateMarker);
             // Run bot. The bot can find a backport issue but can't find a backport CSR.
-            pr.addComment("/summary\n" + commitMessage);
             TestBotRunner.runPeriodicItems(bot);
             // The bot should have primary issue and shouldn't have primary CSR.
             assertTrue(pr.body().contains("### Issue"));
             assertFalse(pr.body().contains("### Issues"));
-            assumeTrue(pr.body().contains(issue.id()));
-            assumeTrue(pr.body().contains(issue.title()));
+            assertTrue(pr.body().contains(issue.id()));
+            assertTrue(pr.body().contains(issue.title()));
             assertFalse(pr.body().contains(csr.id()));
             assertFalse(pr.body().contains(csr.title()));
             assertFalse(pr.body().contains(backportIssue.id()));
@@ -2199,15 +2205,16 @@ class CheckTests {
             backportCsr.setProperty("fixVersions", JSON.array().add("17"));
             backportCsr.setState(Issue.State.OPEN);
             backportIssue.addLink(Link.create(backportCsr, "csr for").build());
+            // Simulate the CSRBot.
+            pr.setBody(pr.body() + csrUpdateMarker);
             // Run bot. The bot can find a backport issue and a backport CSR.
-            pr.addComment("/summary\n" + commitMessage);
             TestBotRunner.runPeriodicItems(bot);
             // The bot should have primary issue and backport CSR.
             assertTrue(pr.body().contains("### Issues"));
-            assumeTrue(pr.body().contains(issue.id()));
-            assumeTrue(pr.body().contains(issue.title()));
-            assumeTrue(pr.body().contains(backportCsr.id()));
-            assumeTrue(pr.body().contains(backportCsr.title() + " (**CSR**)"));
+            assertTrue(pr.body().contains(issue.id()));
+            assertTrue(pr.body().contains(issue.title()));
+            assertTrue(pr.body().contains(backportCsr.id()));
+            assertTrue(pr.body().contains(backportCsr.title() + " (**CSR**)"));
             assertFalse(pr.body().contains(csr.id()));
             assertFalse(pr.body().contains(csr.title()));
             assertFalse(pr.body().contains(backportIssue.id()));
@@ -2224,15 +2231,16 @@ class CheckTests {
             localRepo.add(localRepo.root().resolve(".jcheck/conf"));
             confHash = localRepo.commit("Set the version as 11", "duke", "duke@openjdk.org");
             localRepo.push(confHash, author.url(), "master", true);
+            // Simulate the CSRBot.
+            pr.setBody(pr.body() + csrUpdateMarker);
             // Run bot.
-            pr.addComment("/summary\n" + commitMessage);
             TestBotRunner.runPeriodicItems(bot);
             // The PR should have primary issue and backport CSR.
             assertTrue(pr.body().contains("### Issues"));
-            assumeTrue(pr.body().contains(issue.id()));
-            assumeTrue(pr.body().contains(issue.title()));
-            assumeTrue(pr.body().contains(backportCsr.id()));
-            assumeTrue(pr.body().contains(backportCsr.title() + " (**CSR**)"));
+            assertTrue(pr.body().contains(issue.id()));
+            assertTrue(pr.body().contains(issue.title()));
+            assertTrue(pr.body().contains(backportCsr.id()));
+            assertTrue(pr.body().contains(backportCsr.title() + " (**CSR**)"));
             assertFalse(pr.body().contains(csr.id()));
             assertFalse(pr.body().contains(csr.title()));
             assertFalse(pr.body().contains(backportIssue.id()));
@@ -2240,14 +2248,15 @@ class CheckTests {
 
             // Set the backport CSR to have multiple fix versions, excluded 11.
             backportCsr.setProperty("fixVersions", JSON.array().add("17").add("8"));
+            // Simulate the CSRBot.
+            pr.setBody(pr.body() + csrUpdateMarker);
             // Run bot.
-            pr.addComment("/summary\n" + commitMessage);
             TestBotRunner.runPeriodicItems(bot);
             // The bot should have primary issue and shouldn't have CSR.
             assertTrue(pr.body().contains("### Issue"));
             assertFalse(pr.body().contains("### Issues"));
-            assumeTrue(pr.body().contains(issue.id()));
-            assumeTrue(pr.body().contains(issue.title()));
+            assertTrue(pr.body().contains(issue.id()));
+            assertTrue(pr.body().contains(issue.title()));
             assertFalse(pr.body().contains(csr.id()));
             assertFalse(pr.body().contains(csr.title()));
             assertFalse(pr.body().contains(backportIssue.id()));

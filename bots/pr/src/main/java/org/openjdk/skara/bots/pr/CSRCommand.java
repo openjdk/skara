@@ -33,6 +33,8 @@ import java.util.List;
 
 public class CSRCommand implements CommandHandler {
     private static final String CSR_LABEL = "csr";
+    private static final String CSR_NEEDED_MARKER = "<!-- csr: 'needed' -->";
+    private static final String CSR_UNNEEDED_MARKER = "<!-- csr: 'unneeded' -->";
 
     private static void showHelp(PrintWriter writer) {
         writer.println("usage: `/csr [needed|unneeded]`, requires that the issue the pull request refers to links to an approved [CSR](https://wiki.openjdk.java.net/display/csr/Main) request.");
@@ -42,6 +44,7 @@ public class CSRCommand implements CommandHandler {
         writer.println("has indicated that a " +
                       "[compatibility and specification](https://wiki.openjdk.java.net/display/csr/Main) (CSR) request " +
                       "is needed for this pull request.");
+        writer.println(CSR_NEEDED_MARKER);
     }
 
     private static void jbsReply(PullRequest pr, PrintWriter writer) {
@@ -59,6 +62,7 @@ public class CSRCommand implements CommandHandler {
     private static void csrUnneededReply(PrintWriter writer) {
         writer.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
                 "is not needed for this pull request.");
+        writer.println(CSR_UNNEEDED_MARKER);
     }
 
     @Override
@@ -131,6 +135,7 @@ public class CSRCommand implements CommandHandler {
                 reply.println("The CSR requirement cannot be removed as there is already a CSR associated with the main issue" +
                               " of this pull request. Please withdraw the CSR [" + csrIssue.id() + "](" + csrIssue.webUrl() +
                               ") and then use the command `/csr unneeded` again.");
+                reply.println(CSR_NEEDED_MARKER);
                 return;
             }
 
@@ -143,6 +148,7 @@ public class CSRCommand implements CommandHandler {
         if (labels.contains(CSR_LABEL)) {
             reply.println("an approved [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
                           "is already required for this pull request.");
+            reply.println(CSR_NEEDED_MARKER);
             return;
         }
 
@@ -192,10 +198,12 @@ public class CSRCommand implements CommandHandler {
         if (csr.state() == Issue.State.CLOSED && resolutionName.equals("Approved")) {
             reply.println("the issue for this pull request, [" + jbsIssue.id() + "](" + jbsIssue.webUrl() + "), already has " +
                           "an approved CSR request: [" + csr.id() + "](" + csr.webUrl() + ")");
+            reply.println(CSR_NEEDED_MARKER);
         } else {
             reply.println("this pull request will not be integrated until the [CSR](https://wiki.openjdk.java.net/display/csr/Main) " +
                           "request " + "[" + csr.id() + "](" + csr.webUrl() + ")" + " for issue " +
                           "[" + jbsIssue.id() + "](" + jbsIssue.webUrl() + ") has been approved.");
+            reply.println(CSR_NEEDED_MARKER);
             pr.addLabel(CSR_LABEL);
         }
     }
