@@ -32,6 +32,12 @@ import java.nio.file.Path;
 import java.util.logging.Logger;
 
 public class PullRequestBranchNotifier implements Notifier, PullRequestListener {
+    protected static final String FORCE_PUSH_MARKER = "<!-- force-push suggestion -->";
+    protected static final String FORCE_PUSH_SUGGESTION= """
+            Please don't rebase and force-push to your branch of this PR because it invalidates previous review comments. \
+            To keep track of your changes incrementally, you only need to merge the target branch (optionally), \
+            commit your new change and push normally. The bot can squash them as a single commit when integrating.
+            """;
     private final Path seedFolder;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
@@ -111,5 +117,19 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
         if (pr.state() == Issue.State.OPEN) {
             pushBranch(pr);
         }
+        var lastForcePushTime = pr.lastForcePushTime();
+        if (lastForcePushTime.isPresent()) {
+            var lastForcePushSuggestion = pr.comments().stream()
+                    .filter(comment -> comment.body().contains(FORCE_PUSH_MARKER))
+                    .reduce((a, b) -> b);
+            if (lastForcePushSuggestion.isEmpty() || lastForcePushSuggestion.get().createdAt().isBefore(lastForcePushTime.get())) {
+                log.info("Found force-push for " + describe(pr) + ", adding force-push suggestion");
+                pr.addComment("@" + pr.author().username() + " " + FORCE_PUSH_SUGGESTION + FORCE_PUSH_MARKER);
+            }
+        }
+    }
+
+    private String describe(PullRequest pr) {
+        return pr.repository().name() + "#" + pr.id();
     }
 }
