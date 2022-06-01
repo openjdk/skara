@@ -120,11 +120,11 @@ public class ReviewersCommand implements CommandHandler {
             var previous = ReviewersTracker.additionalRequiredReviewers(user, allComments);
             if (previous.isPresent()) {
                 if (roleIsLower(role, previous.get().role())) {
-                    reply.println("Only the [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to lower the role for additional reviewers.");
+                    reply.println("Only [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to lower the role for additional reviewers.");
                     return;
                 }
                 if (numReviewers < previous.get().number()) {
-                    reply.println("Only the [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to decrease the number of required reviewers.");
+                    reply.println("Only [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to decrease the number of required reviewers.");
                     return;
                 }
             }
