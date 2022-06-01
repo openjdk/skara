@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -122,7 +122,7 @@ class IssueTrackerTests {
             issue1.setBody("This is now the body");
 
             var issue2 = credentials.createIssue(project, "Test issue 2");
-            var link = Link.create(issue1, "duplicated by").build();
+            var link = Link.create(issue1, "duplicates").build();
             issue2.addLink(link);
 
             var links = issue2.links();
