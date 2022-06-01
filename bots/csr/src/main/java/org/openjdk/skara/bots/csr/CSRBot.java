@@ -37,7 +37,8 @@ import java.util.logging.Logger;
 
 class CSRBot implements Bot, WorkItem {
     private final static String CSR_LABEL = "csr";
-    private final static String CSR_UPDATE_MARKER = "\n<!-- csr: 'update' -->\n";
+    private final static String CSR_UPDATE_MARKER = "<!-- csr: 'update' -->";
+    private static final String PROGRESS_MARKER = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
     private final HostedRepository repo;
     private final IssueProject project;
@@ -74,19 +75,39 @@ class CSRBot implements Bot, WorkItem {
     }
 
     private boolean hasCsrIssueAndProgress(PullRequest pr, Issue csr) {
-        return hasCsrIssue(pr, csr) &&
-                (pr.body().contains("- [ ] Change requires a CSR request to be approved") ||
-                 pr.body().contains("- [x] Change requires a CSR request to be approved"));
+        var statusMessage = getStatusMessage(pr);
+        return hasCsrIssue(statusMessage, csr) &&
+               (statusMessage.contains("- [ ] Change requires a CSR request to be approved") ||
+                statusMessage.contains("- [x] Change requires a CSR request to be approved"));
     }
 
     private boolean hasCsrIssueAndProgressChecked(PullRequest pr, Issue csr) {
-        return hasCsrIssue(pr, csr) && pr.body().contains("- [x] Change requires a CSR request to be approved");
+        var statusMessage = getStatusMessage(pr);
+        return hasCsrIssue(statusMessage, csr) && statusMessage.contains("- [x] Change requires a CSR request to be approved");
     }
 
-    private boolean hasCsrIssue(PullRequest pr, Issue csr) {
-        return pr.body().contains(csr.id()) &&
-                pr.body().contains(csr.webUrl().toString()) &&
-                pr.body().contains(csr.title() + " (**CSR**)");
+    private boolean hasCsrIssue(String statusMessage, Issue csr) {
+        return statusMessage.contains(csr.id()) &&
+               statusMessage.contains(csr.webUrl().toString()) &&
+               statusMessage.contains(csr.title() + " (**CSR**)");
+    }
+
+    private String getStatusMessage(PullRequest pr) {
+        var lastIndex = pr.body().lastIndexOf(PROGRESS_MARKER);
+        if (lastIndex == -1) {
+            return "";
+        } else {
+            return pr.body().substring(lastIndex);
+        }
+    }
+
+    private void addUpdateMarker(PullRequest pr) {
+        var statusMessage = getStatusMessage(pr);
+        if (!statusMessage.contains(CSR_UPDATE_MARKER)) {
+            pr.setBody(pr.body() + "\n" + CSR_UPDATE_MARKER + "\n");
+        } else {
+            log.info("The pull request " + describe(pr) + " has already had a csr update marker. Do not need to add it again.");
+        }
     }
 
     @Override
@@ -118,12 +139,12 @@ class CSRBot implements Bot, WorkItem {
             }
             var csr = csrOptional.get();
 
-            log.info("Found CSR for " + describe(pr) + ". It has id " + csr.id());
+            log.info("Found CSR " + csr.id() + " for " + describe(pr));
             if (!hasCsrIssueAndProgress(pr, csr)) {
                 // If the PR body doesn't have the CSR issue or doesn't have the CSR progress,
                 // this bot need to add the csr update marker so that the PR bot can update the message of the PR body.
                 log.info("The PR body doesn't have the CSR issue or progress, adding the csr update marker for " + describe(pr));
-                pr.setBody(pr.body() + CSR_UPDATE_MARKER);
+                addUpdateMarker(pr);
             }
 
             var resolution = csr.properties().get("resolution");
@@ -181,7 +202,7 @@ class CSRBot implements Bot, WorkItem {
                 // If the PR body doesn't have the CSR issue or doesn't have the CSR progress or the CSR progress checkbox is not selected,
                 // this bot need to add the csr update marker so that the PR bot can update the message of the PR body.
                 log.info("CSR closed and approved for " + describe(pr) + ", adding the csr update marker");
-                pr.setBody(pr.body() + CSR_UPDATE_MARKER);
+                addUpdateMarker(pr);
             }
         }
         return List.of();

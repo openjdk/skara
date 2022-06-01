@@ -410,6 +410,7 @@ class CSRBotTests {
     @Test
     void testCsrUpdateMarker(TestInfo testInfo) throws IOException {
         String csrUpdateMarker = "<!-- csr: 'update' -->";
+        String progressMarker = "<!-- Anything below this marker will be automatically updated, please do not edit manually! -->";
         try (var credentials = new HostCredentials(testInfo);
              var tempFolder = new TemporaryDirectory()) {
             var repo = credentials.getHostedRepository();
@@ -443,7 +444,7 @@ class CSRBotTests {
             assertTrue(pr.body().contains(csrUpdateMarker));
 
             // Add csr issue and progress to the PR body
-            pr.setBody("PR body\n" + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
+            pr.setBody("PR body\n" + progressMarker + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
                     + "- [ ] Change requires a CSR request to be approved");
             // Run bot
             TestBotRunner.runPeriodicItems(bot);
@@ -459,12 +460,21 @@ class CSRBotTests {
             assertTrue(pr.body().contains(csrUpdateMarker));
 
             // Add csr issue and selected progress to the PR body
-            pr.setBody("PR body\n" + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
+            pr.setBody("PR body\n" + progressMarker + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
                     + "- [x] Change requires a CSR request to be approved");
             // Run bot
             TestBotRunner.runPeriodicItems(bot);
             // The bot shouldn't add the csr update marker
             assertFalse(pr.body().contains(csrUpdateMarker));
+
+            // Add csr update marker to the pull request body manually.
+            pr.setBody("PR body\n" + progressMarker + csr.id() + csr.webUrl().toString() + csr.title() + " (**CSR**)"
+                    + "- [ ] Change requires a CSR request to be approved" + csrUpdateMarker);
+            // Run bot
+            TestBotRunner.runPeriodicItems(bot);
+            // The bot shouldn't add the csr update marker again. The PR should have only one csr update marker.
+            assertTrue(pr.body().contains(csrUpdateMarker));
+            assertEquals(pr.body().indexOf(csrUpdateMarker), pr.body().lastIndexOf(csrUpdateMarker));
         }
     }
 }
