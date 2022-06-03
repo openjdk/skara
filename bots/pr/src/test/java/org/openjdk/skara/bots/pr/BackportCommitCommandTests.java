@@ -375,4 +375,47 @@ public class BackportCommitCommandTests {
             assertTrue(botReply.body().contains("with this backport"));
         }
     }
+
+    @Test
+    void alreadyPresent(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addAuthor(author.forge().currentUser().id())
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var seedFolder = tempFolder.path().resolve("seed");
+            var bot = PullRequestBot.newBuilder()
+                    .repo(author)
+                    .censusRepo(censusBuilder.build())
+                    .censusLink("https://census.com/{{contributor}}-profile")
+                    .seedStorage(seedFolder)
+                    .forks(Map.of(author.name(), author))
+                    .build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change in another branch
+            var editHash = CheckableRepository.appendAndCommit(localRepo);
+            localRepo.push(editHash, author.url(), "edit");
+
+            // Make the same change in the master branch
+            localRepo.push(editHash, author.url(), "master");
+
+            // Add a backport command
+            author.addCommitComment(editHash, "/backport " + author.name());
+            TestBotRunner.runPeriodicItems(bot);
+
+            var recentCommitComments = author.recentCommitComments();
+            assertEquals(2, recentCommitComments.size());
+            var botReply = recentCommitComments.get(0);
+            assertTrue(botReply.body().contains("Could **not** apply backport"));
+            assertTrue(botReply.body().contains("because the change is already present in the target."));
+        }
+    }
 }
