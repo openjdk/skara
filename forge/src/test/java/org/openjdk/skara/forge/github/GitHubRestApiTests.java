@@ -95,4 +95,14 @@ public class GitHubRestApiTests {
         assertEquals(expectedPatchesSize, commit.get().parentDiffs().get(0).patches().size());
         return commit.get().parentDiffs().get(0);
     }
+
+    @Test
+    void testLastForcePushTime() {
+        var githubRepoOpt = githubHost.repository("openjdk/playground");
+        assumeTrue(githubRepoOpt.isPresent());
+        var githubRepo = githubRepoOpt.get();
+        var pr = githubRepo.pullRequest("96");
+        var lastForcePushTime = pr.lastForcePushTime();
+        assertEquals("2022-05-29T10:32:43Z", lastForcePushTime.get().toString());
+    }
 }

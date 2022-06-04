@@ -765,4 +765,16 @@ public class GitHubPullRequest implements PullRequest {
         var endpoint = "/" + repository.name() + "/pull/" + id() + "/files/" + hash.hex();
         return host.getWebURI(endpoint);
     }
+
+    @Override
+    public Optional<ZonedDateTime> lastForcePushTime() {
+        return request.get("issues/" + json.get("number").toString() + "/timeline")
+                      .execute()
+                      .stream()
+                      .map(JSONValue::asObject)
+                      .filter(obj -> obj.contains("event"))
+                      .filter(obj -> obj.get("event").asString().equals("head_ref_force_pushed"))
+                      .reduce((a, b) -> b)
+                      .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()));
+    }
 }

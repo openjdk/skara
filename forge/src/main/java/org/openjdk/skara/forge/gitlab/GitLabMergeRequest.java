@@ -853,4 +853,9 @@ public class GitLabMergeRequest implements PullRequest {
         }
         return host.getWebUri(uri);
     }
+
+    @Override
+    public Optional<ZonedDateTime> lastForcePushTime() {
+        return Optional.empty();
+    }
 }
