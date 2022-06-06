@@ -676,6 +676,7 @@ class CSRTests {
             TestBotRunner.runPeriodicItems(disableCsrBot);
             assertLastCommentContains(pr, "This repository has not been configured to use the `csr` command.");
             assertFalse(pr.labelNames().contains("csr"));
+            assertFalse(pr.body().contains("Change requires a CSR request to be approved"));
 
             // Test the pull request bot with csr enable
             var enableCsrBot = PullRequestBot.newBuilder().repo(bot).issueProject(issues)
@@ -686,6 +687,7 @@ class CSRTests {
                     "[compatibility and specification](https://wiki.openjdk.java.net/display/csr/Main) (CSR) request " +
                     "is needed for this pull request.");
             assertTrue(pr.labelNames().contains("csr"));
+            assertTrue(pr.body().contains("Change requires a CSR request to be approved"));
         }
     }
 
@@ -822,7 +824,6 @@ class CSRTests {
             // Set the fix versions of the primary CSR to 17 and 18.
             csr.setProperty("fixVersions", JSON.array().add("17").add("18"));
             // Run bot. Request a CSR.
-            pr.addComment("/summary\n" + commitMessage);
             pr.addComment("/csr");
             TestBotRunner.runPeriodicItems(bot);
             assertTrue(pr.body().contains("- [x] Change requires a CSR request to be approved"));
@@ -840,7 +841,6 @@ class CSRTests {
             backportIssue.setState(Issue.State.OPEN);
             issue.addLink(Link.create(backportIssue, "backported by").build());
             // Run bot. Request a CSR.
-            pr.addComment("/summary\n" + commitMessage);
             pr.addComment("/csr");
             TestBotRunner.runPeriodicItems(bot);
             assertTrue(pr.body().contains("- [ ] Change requires a CSR request to be approved"));
@@ -852,7 +852,6 @@ class CSRTests {
             assertLastCommentContains(pr, "with the correct fix version");
             assertLastCommentContains(pr, "This pull request cannot be integrated until the CSR request is approved.");
             // Use `/csr unneeded` to revert the change.
-            pr.addComment("/summary\n" + commitMessage);
             pr.addComment("/csr unneeded");
             TestBotRunner.runPeriodicItems(bot);
             assertFalse(pr.body().contains("Change requires a CSR request to be approved"));
@@ -867,7 +866,6 @@ class CSRTests {
             backportCsr.setState(Issue.State.OPEN);
             backportIssue.addLink(Link.create(backportCsr, "csr for").build());
             // Run bot. Request a CSR.
-            pr.addComment("/summary\n" + commitMessage);
             pr.addComment("/csr");
             TestBotRunner.runPeriodicItems(bot);
             assertTrue(pr.body().contains("- [ ] Change requires a CSR request to be approved"));
@@ -876,7 +874,6 @@ class CSRTests {
             assertLastCommentContains(pr, "for issue ");
             assertLastCommentContains(pr, "has been approved.");
             // Use `/csr unneeded` to revert the change.
-            pr.addComment("/summary\n" + commitMessage);
             pr.addComment("/csr unneeded");
             TestBotRunner.runPeriodicItems(bot);
             assertTrue(pr.body().contains("- [ ] Change requires a CSR request to be approved"));
@@ -899,7 +896,6 @@ class CSRTests {
             createBackport(localRepo, author, confHash, "edit4");
             pr = credentials.createPullRequest(author, "master", "edit4", "Backport " + commitHash);
             // Run bot.
-            pr.addComment("/summary\n" + commitMessage);
             pr.addComment("/csr");
             TestBotRunner.runPeriodicItems(bot);
             assertTrue(pr.body().contains("- [ ] Change requires a CSR request to be approved"));
@@ -910,7 +906,6 @@ class CSRTests {
             // Set the backport CSR to have multiple fix versions, excluded 11.
             backportCsr.setProperty("fixVersions", JSON.array().add("17").add("8"));
             // Use `/csr unneeded` to revert the change.
-            pr.addComment("/summary\n" + commitMessage);
             pr.addComment("/csr unneeded");
             TestBotRunner.runPeriodicItems(bot);
             assertFalse(pr.body().contains("Change requires a CSR request to be approved"));
@@ -919,7 +914,6 @@ class CSRTests {
                     "is not needed for this pull request.");
 
             // re-run bot.
-            pr.addComment("/summary\n" + commitMessage);
             pr.addComment("/csr");
             TestBotRunner.runPeriodicItems(bot);
             assertTrue(pr.body().contains("- [ ] Change requires a CSR request to be approved"));
