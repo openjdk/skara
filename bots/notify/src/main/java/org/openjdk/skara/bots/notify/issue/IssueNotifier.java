@@ -285,7 +285,9 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                         if (altFixedVersionIssue.isPresent()) {
                             log.info("Found an already fixed backport " + altFixedVersionIssue.get().id() + " for " + issue.id()
                                     + " with fixVersion " + Backports.mainFixVersion(altFixedVersionIssue.get()).orElseThrow());
-                            return;
+                            issue = altFixedVersionIssue.get();
+                            // Do not update fixVersion
+                            requestedVersion = null;
                         } else {
                             var fixVersion = JdkVersion.parse(requestedVersion).orElseThrow();
                             var existing = Backports.findIssue(issue, fixVersion);
