@@ -157,6 +157,13 @@ public class BackportCommand implements CommandHandler {
                     localRepo.reset(head, true);
                     return;
                 }
+                // Check that applying the change actually created a diff
+                if (localRepo.diff(head).patches().isEmpty()) {
+                    reply.println("Could **not** apply backport `" + hash.abbreviate() + "` to " +
+                            "[" + repoName + "](" + targetRepo.webUrl() + ") because the change is already present in the target.");
+                    localRepo.reset(head, true);
+                    return;
+                }
 
                 backportHash = localRepo.commit("Backport " + hash.hex(), "duke", "duke@openjdk.org");
                 localRepo.push(backportHash, fork.url(), backportBranchName, false);
