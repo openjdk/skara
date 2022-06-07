@@ -47,7 +47,7 @@ import java.util.regex.Matcher;
 class Utils {
     static final Pattern ISSUE_ID_PATTERN = Pattern.compile("([A-Za-z][A-Za-z0-9]+)?-([0-9]+)");
     static final Pattern ISSUE_MARKDOWN_PATTERN =
-        Pattern.compile("^(?: \\* )?\\[([A-Z]+-[0-9]+)\\]\\(https:\\/\\/bugs.openjdk.java.net\\/browse\\/[A-Z]+-[0-9]+\\): .*$");
+        Pattern.compile("^(?: \\* )?\\[([A-Z]+-[0-9]+)\\]\\(https:\\/\\/bugs.openjdk.(?:java.net)|(?:org)\\/browse\\/[A-Z]+-[0-9]+\\): .*$");
 
     static void exit(String fmt, Object...args) {
         System.err.println(String.format(fmt, args));
@@ -217,7 +217,7 @@ class Utils {
             if (project == null) {
                 project = m.group(1);
             }
-            var issueTracker = IssueTracker.from("jira", URI.create("https://bugs.openjdk.java.net"));
+            var issueTracker = IssueTracker.from("jira", URI.create("https://bugs.openjdk.org"));
             return issueTracker.project(project).issue(id);
         }
 

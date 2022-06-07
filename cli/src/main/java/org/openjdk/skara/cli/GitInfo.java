@@ -40,7 +40,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class GitInfo {
-    private static final URI JBS = URI.create("https://bugs.openjdk.java.net");
+    private static final URI JBS = URI.create("https://bugs.openjdk.org");
 
     private static void exit(String fmt, Object...args) {
         System.err.println(String.format(fmt, args));

@@ -49,7 +49,7 @@ public class CSRCommand implements CommandHandler {
 
     private static void jbsReply(PullRequest pr, PrintWriter writer) {
         writer.println("@" + pr.author().username() + " this pull request must refer to an issue in " +
-                      "[JBS](https://bugs.openjdk.java.net) to be able to link it to a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request. To refer this pull request to " +
+                      "[JBS](https://bugs.openjdk.org) to be able to link it to a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request. To refer this pull request to " +
                       "an issue in JBS, please use the `/issue` command in a comment in this pull request.");
     }
 

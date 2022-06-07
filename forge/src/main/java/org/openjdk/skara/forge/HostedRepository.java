@@ -120,7 +120,7 @@ public interface HostedRepository {
          * <!-- COMMIT COMMENT NOTIFICATION -->
          * ### Review
          *
-         * - [openjdk/skara/123](https://git.openjdk.java.net/skara/pull/123)
+         * - [openjdk/skara/123](https://git.openjdk.org/skara/pull/123)
          */
 
         var pattern = Pattern.compile("### Review[^]]*]\\((.*)\\)");
