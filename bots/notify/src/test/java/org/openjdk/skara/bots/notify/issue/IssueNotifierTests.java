@@ -1692,7 +1692,12 @@ public class IssueNotifierTests {
             assertEquals(Set.of("18"), fixVersions(updatedIssue));
             assertEquals(RESOLVED, updatedIssue.state());
             assertEquals(List.of(), updatedIssue.assignees());
-            assertEquals(0, updatedIssue.comments().size());
+            // A commit comment should have been added
+            List<Comment> comments = updatedIssue.comments();
+            assertEquals(1, comments.size());
+            var comment = comments.get(0);
+            assertTrue(comment.body().contains(editHash.toString()));
+            assertTrue(comment.body().contains(repo.url().toString()));
 
             // There should be no link
             var links = updatedIssue.links();
