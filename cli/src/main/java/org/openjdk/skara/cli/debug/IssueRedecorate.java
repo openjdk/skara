@@ -35,7 +35,7 @@ public class IssueRedecorate {
     static final List<Flag> flags = List.of(
             Switch.shortcut("u")
                   .fullname("url")
-                  .helptext("Alternative JBS URL (defaults to https://bugs.openjdk.java.net)")
+                  .helptext("Alternative JBS URL (defaults to https://bugs.openjdk.org)")
                   .optional(),
             Switch.shortcut("")
                   .fullname("version")
@@ -59,7 +59,7 @@ public class IssueRedecorate {
         }
 
         IssueTracker issueTracker = null;
-        var issueTrackerURI = URI.create(arguments.get("url").orString("https://bugs.openjdk.java.net"));
+        var issueTrackerURI = URI.create(arguments.get("url").orString("https://bugs.openjdk.org"));
         var issueTrackerFactories = IssueTrackerFactory.getIssueTrackerFactories();
         for (var issueTrackerFactory : issueTrackerFactories) {
             var tracker = issueTrackerFactory.create(issueTrackerURI, null, null);

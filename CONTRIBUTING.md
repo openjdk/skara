@@ -20,8 +20,8 @@ on [GitHub](https://github.com/openjdk/skara/pulls/).
 ## Issues
 
 You can find open issues to work on in the Skara project in the
-[JDK Bug System](https://bugs.openjdk.java.net/):
-<https://bugs.openjdk.java.net/projects/SKARA>.
+[JDK Bug System](https://bugs.openjdk.org/):
+<https://bugs.openjdk.org/projects/SKARA>.
 
 ## Larger Contributions
 

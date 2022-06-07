@@ -107,7 +107,7 @@ class WebrevStorage {
                 var id = issue.get().shortId();
                 IssueTracker issueTracker = null;
                 try {
-                    issueTracker = IssueTracker.from("jira", URI.create("https://bugs.openjdk.java.net"));
+                    issueTracker = IssueTracker.from("jira", URI.create("https://bugs.openjdk.org"));
                 } catch (RuntimeException e) {
                     log.warning("Failed to create Jira issue tracker");
                 }

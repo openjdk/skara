@@ -113,11 +113,11 @@ class ForgeTests {
                     <!-- COMMIT COMMENT NOTIFICATION -->
                     ### Review
 
-                     - [openjdk/skara/123](https://git.openjdk.java.net/skara/pull/123)
+                     - [openjdk/skara/123](https://git.openjdk.org/skara/pull/123)
                     """);
 
             var reviewUrl = gitHostedRepo.reviewUrl(hash);
-            assertEquals(URI.create("https://git.openjdk.java.net/skara/pull/123"), reviewUrl);
+            assertEquals(URI.create("https://git.openjdk.org/skara/pull/123"), reviewUrl);
         }
     }
 }

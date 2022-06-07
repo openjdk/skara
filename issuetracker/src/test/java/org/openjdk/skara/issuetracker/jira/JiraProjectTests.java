@@ -41,7 +41,7 @@ public class JiraProjectTests {
 
     @Test
     void testJepIssue() throws IOException {
-        var uri = URIBuilder.base("https://bugs.openjdk.java.net").build();
+        var uri = URIBuilder.base("https://bugs.openjdk.org").build();
         var jiraHost = new JiraIssueTrackerFactory().create(uri, null, null);
         var jiraProject = jiraHost.project("JDK");
 

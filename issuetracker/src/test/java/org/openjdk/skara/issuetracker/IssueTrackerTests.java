@@ -91,10 +91,10 @@ class IssueTrackerTests {
             var link = Link.create(URI.create("http://www.example.com/abc"), "openjdk/skara/13")
                            .relationship("reviewed in")
                            .summary("Pull request")
-                           .iconUrl(URI.create("https://bugs.openjdk.java.net/images/icons/icon-view.png"))
+                           .iconUrl(URI.create("https://bugs.openjdk.org/images/icons/icon-view.png"))
                            .iconTitle("Review")
                            .resolved(true)
-                           .statusIconUrl(URI.create("https://bugs.openjdk.java.net/images/icons/icon-status-done-green.png"))
+                           .statusIconUrl(URI.create("https://bugs.openjdk.org/images/icons/icon-status-done-green.png"))
                            .statusIconTitle("Ready for integration")
                            .build();
             issue.addLink(link);

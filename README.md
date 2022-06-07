@@ -244,8 +244,8 @@ Project Skara's wiki is available at <https://wiki.openjdk.java.net/display/skar
 
 ## Issues
 
-Issues are tracked in the [JDK Bug System](https://bugs.openjdk.java.net/)
-under project Skara at <https://bugs.openjdk.java.net/projects/SKARA/>.
+Issues are tracked in the [JDK Bug System](https://bugs.openjdk.org/)
+under project Skara at <https://bugs.openjdk.org/projects/SKARA/>.
 
 ## Contributing
 

@@ -416,7 +416,7 @@ class GitToHgConverterTests {
     private void cloneAndConvertAndVerify(String repo) throws IOException {
         try (var hgRoot = new TemporaryDirectory(false);
              var gitRoot = new TemporaryDirectory(false)) {
-            var gitRepo = Repository.clone(URI.create("https://git.openjdk.java.net/" + repo + ".git"), gitRoot.path());
+            var gitRepo = Repository.clone(URI.create("https://git.openjdk.org/" + repo + ".git"), gitRoot.path());
             var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter(new Branch("master"));
             var marks = converter.convert(gitRepo, hgRepo);

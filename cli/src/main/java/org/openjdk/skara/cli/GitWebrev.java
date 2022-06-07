@@ -423,7 +423,7 @@ public class GitWebrev {
                 System.exit(1);
         }
 
-        var jbs = "https://bugs.openjdk.java.net/browse/";
+        var jbs = "https://bugs.openjdk.org/browse/";
         var issueParts = issue != null ? issue.split("-") : new String[0];
         var jbsProject = issueParts.length == 2 && KNOWN_JBS_PROJECTS.contains(issueParts[0])?
             issueParts[0] : "JDK";
