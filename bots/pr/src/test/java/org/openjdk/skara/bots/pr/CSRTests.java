@@ -830,7 +830,14 @@ class CSRTests {
             assertFalse(pr.labelNames().contains("csr"));
             assertLastCommentContains(pr, "the issue for this pull request");
             assertLastCommentContains(pr, "already has an approved CSR request");
-            // FIXME here, `/csr unneeded` is not used because these is a bug at CSRCommand. See the FIXME at CSRCommand.
+            // Use `/csr unneeded`.
+            pr.addComment("/csr unneeded");
+            TestBotRunner.runPeriodicItems(bot);
+            assertTrue(pr.body().contains("- [x] Change requires a CSR request to be approved"));
+            assertFalse(pr.labelNames().contains("csr"));
+            assertLastCommentContains(pr, "The CSR requirement cannot be removed as there is already a CSR associated " +
+                    "with the main issue of this pull request. Please withdraw the CSR");
+            assertLastCommentContains(pr, "and then use the command `/csr unneeded` again");
 
             // Revert the fix versions of the primary CSR to 18.
             csr.setProperty("fixVersions", JSON.array().add("18"));
