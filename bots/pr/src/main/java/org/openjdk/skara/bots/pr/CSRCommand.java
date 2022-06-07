@@ -59,10 +59,13 @@ public class CSRCommand implements CommandHandler {
                 "This pull request cannot be integrated until the CSR request is approved.");
     }
 
-    private static void csrUnneededReply(PrintWriter writer) {
+    private static void csrUnneededReply(PullRequest pr, PrintWriter writer) {
         writer.println("determined that a [CSR](https://wiki.openjdk.java.net/display/csr/Main) request " +
                 "is not needed for this pull request.");
         writer.println(CSR_UNNEEDED_MARKER);
+        if (pr.labelNames().contains(CSR_LABEL)) {
+            pr.removeLabel(CSR_LABEL);
+        }
     }
 
     @Override
@@ -91,37 +94,27 @@ public class CSRCommand implements CommandHandler {
                 return;
             }
 
-            if (!labels.contains(CSR_LABEL)) {
-                // FIXME here, the PR may have an approved CSR. We should distinguish the situations
-                // of having no csr request and having an approved csr request.
-                csrUnneededReply(reply);
-                return;
-            }
             var issueProject = bot.issueProject();
             var issue = org.openjdk.skara.vcs.openjdk.Issue.fromStringRelaxed(pr.title());
             if (issueProject == null || issue.isEmpty()) {
-                pr.removeLabel(CSR_LABEL);
-                csrUnneededReply(reply);
+                csrUnneededReply(pr, reply);
                 return;
             }
             var jbsIssueOpt = issueProject.issue(issue.get().shortId());
             if (jbsIssueOpt.isEmpty()) {
-                pr.removeLabel(CSR_LABEL);
-                csrUnneededReply(reply);
+                csrUnneededReply(pr, reply);
                 return;
             }
 
             var versionOpt = CheckRun.getVersion(pr);
             if (versionOpt.isEmpty()) {
-                pr.removeLabel(CSR_LABEL);
-                csrUnneededReply(reply);
+                csrUnneededReply(pr, reply);
                 return;
             }
 
             var csrOptional = Backports.findCsr(jbsIssueOpt.get(), versionOpt.get());
             if (csrOptional.isEmpty()) {
-                pr.removeLabel(CSR_LABEL);
-                csrUnneededReply(reply);
+                csrUnneededReply(pr, reply);
                 return;
             }
             var csrIssue = csrOptional.get();
@@ -139,9 +132,8 @@ public class CSRCommand implements CommandHandler {
                 return;
             }
 
-            // The csr has been withdrawn, the bot should just remove the csr label.
-            pr.removeLabel(CSR_LABEL);
-            csrUnneededReply(reply);
+            // The csr has been withdrawn, the bot should just remove the csr label and reply the message.
+            csrUnneededReply(pr, reply);
             return;
         }
 
