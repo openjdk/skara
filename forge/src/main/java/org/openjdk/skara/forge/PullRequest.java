@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -170,10 +170,4 @@ public interface PullRequest extends Issue {
     default boolean isSame(PullRequest other) {
         return id().equals(other.id()) && repository().isSame(other.repository());
     }
-
-    /**
-     * Get the last force-push time. If there is no force-push in pull request
-     * or the restful api doesn't support force-push, return empty.
-     */
-    Optional<ZonedDateTime> lastForcePushTime();
 }
