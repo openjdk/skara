@@ -100,15 +100,15 @@ if [ "${ARCH}" = "x86_64" ]; then
             JDK_SHA256="${JDK_WINDOWS_X64_SHA256}"
             ;;
     esac
-elif [ "${ARCH}" = "arm64" ]; then
+elif [ "${ARCH}" = "arm64" -o "${ARCH}" = "aarch64" ]; then
     case "${OS}" in
-        Linux )
-            JDK_URL="${JDK_LINUX_AARCH64_URL}"
-            JDK_SHA256="${JDK_LINUX_AARCH64_SHA256}"
-            ;;
         Darwin )
             JDK_URL="${JDK_MACOS_AARCH64_URL}"
             JDK_SHA256="${JDK_MACOS_AARCH64_SHA256}"
+            ;;
+        Linux )
+            JDK_URL="${JDK_LINUX_AARCH64_URL}"
+            JDK_SHA256="${JDK_LINUX_AARCH64_SHA256}"
             ;;
     esac
 fi
