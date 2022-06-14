@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class RepositoryStorageTests {
     private RepositoryStorage<String> stringStorage(Repository repository) {
-        return new RepositoryStorage<>(repository, "db.txt", "Duke", "duke@openjdk.java.net", "Test update",
+        return new RepositoryStorage<>(repository, "db.txt", "Duke", "duke@openjdk.org", "Test update",
                                        (added, cur) -> Stream.concat(cur.stream(), added.stream())
                                                              .sorted()
                                                              .collect(Collectors.joining(";")),

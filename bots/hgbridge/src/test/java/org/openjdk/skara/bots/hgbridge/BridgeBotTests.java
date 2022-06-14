@@ -97,8 +97,8 @@ class BridgeBotTests {
             var lowercase = new HashSet<Hash>();
             var punctuated = new HashSet<Hash>();
 
-            var authors = Map.of("jjg", "JJG <jjg@openjdk.java.net>",
-                                 "duke", "Duke <duke@openjdk.java.net>");
+            var authors = Map.of("jjg", "JJG <jjg@openjdk.org>",
+                                 "duke", "Duke <duke@openjdk.org>");
             var contributors = new HashMap<String, String>();
             var sponsors = new HashMap<String, List<String>>();
 
@@ -132,7 +132,7 @@ class BridgeBotTests {
         // Export the beginning of the jtreg repository
         sourceFolder = new TemporaryDirectory();
         try {
-            var localRepo = Repository.materialize(sourceFolder.path(), URIBuilder.base("http://hg.openjdk.java.net/code-tools/jtreg").build(), "default");
+            var localRepo = Repository.materialize(sourceFolder.path(), URIBuilder.base("http://hg.openjdk.org/code-tools/jtreg").build(), "default");
             runHgCommand(localRepo, "strip", "-r", "b2511c725d81");
 
             // Create a lockfile in the mercurial repo, as it will overwrite the existing lock in the remote git repo
@@ -141,9 +141,9 @@ class BridgeBotTests {
             var lockFile = localRepo.root().resolve("lock.txt");
             Files.writeString(lockFile, ZonedDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), StandardCharsets.UTF_8);
             localRepo.add(lockFile);
-            localRepo.commit("Lock", "duke", "Duke <duke@openjdk.java.net>");
+            localRepo.commit("Lock", "duke", "Duke <duke@openjdk.org>");
         } catch (IOException e) {
-            Assumptions.assumeTrue(false, "Failed to connect to hg.openjdk.java.net - skipping tests");
+            Assumptions.assumeTrue(false, "Failed to connect to hg.openjdk.org - skipping tests");
         }
         this.source = sourceFolder.path().toUri();
     }

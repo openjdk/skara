@@ -30,7 +30,7 @@ import java.util.List;
 
 public class ReviewersConfiguration {
     static final ReviewersConfiguration DEFAULT = new ReviewersConfiguration(0, 1, 0, 0, 0, List.of("duke"), false);
-    public static final String BYLAWS_URL = "https://openjdk.java.net/bylaws";
+    public static final String BYLAWS_URL = "https://openjdk.org/bylaws";
 
     private final int lead;
     private final int reviewers;

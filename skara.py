@@ -120,7 +120,7 @@ def webrev(ui, repo, **opts):
 
 jcheck_opts = [
     (b'r', b'rev', b'', b'Check the specified revision or range (default: tip)'),
-    (b'',  b'census', b'', b'Use the specified census (default: https://openjdk.java.net/census.xml)'),
+    (b'',  b'census', b'', b'Use the specified census (default: https://openjdk.org/census.xml)'),
     (b'',  b'local', False, b'Run jcheck in "local" mode'),
     (b'',  b'lax', False, b'Check comments, tags and whitespace laxly'),
     (b's', b'strict', False, b'Check everything')

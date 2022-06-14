@@ -228,7 +228,7 @@ public class GitWebrev {
         if (upstream == null) {
             if (upstreamPullPath != null) {
                 var host = upstreamPullPath.getHost();
-                if (host != null && host.endsWith("openjdk.java.net")) {
+                if (host != null && host.endsWith("openjdk.org")) {
                     upstream = upstreamPullPath.toString();
                 } else if (host != null && host.equals("github.com")) {
                     var path = upstreamPullPath.getPath();
@@ -238,7 +238,7 @@ public class GitWebrev {
                 }
             } else if (originPullPath != null) {
                 var host = originPullPath.getHost();
-                if (host != null && host.endsWith("openjdk.java.net")) {
+                if (host != null && host.endsWith("openjdk.org")) {
                     upstream = originPullPath.toString();
                 } else if (host != null && host.equals("github.com")) {
                     var path = originPullPath.getPath();

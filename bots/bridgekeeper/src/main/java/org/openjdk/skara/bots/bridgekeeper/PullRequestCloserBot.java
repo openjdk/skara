@@ -58,9 +58,9 @@ class PullRequestCloserBotWorkItem implements WorkItem {
             if (type == PullRequestCloserBot.Type.MIRROR) {
                 message = "Welcome to the OpenJDK organization on GitHub!\n\n" +
                 "This repository is currently a read-only git mirror of the official Mercurial " +
-                "repository (located at https://hg.openjdk.java.net/). As such, we are not " +
+                "repository (located at https://hg.openjdk.org/). As such, we are not " +
                 "currently accepting pull requests here. If you would like to contribute to " +
-                "the OpenJDK project, please see https://openjdk.java.net/contribute/ on how " +
+                "the OpenJDK project, please see https://openjdk.org/contribute/ on how " +
                 "to proceed.\n\n" +
                 "This pull request will be automatically closed.";
             } else if (type == PullRequestCloserBot.Type.DATA) {

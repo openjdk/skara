@@ -77,7 +77,7 @@ public class ReviewersCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (!pr.author().equals(command.user()) && !censusInstance.isReviewer(command.user())) {
-            reply.println("Only the author of the pull request or [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to change the number of required reviewers.");
+            reply.println("Only the author of the pull request or [Reviewers](https://openjdk.org/bylaws#reviewer) are allowed to change the number of required reviewers.");
             return;
         }
 
@@ -120,11 +120,11 @@ public class ReviewersCommand implements CommandHandler {
             var previous = ReviewersTracker.additionalRequiredReviewers(user, allComments);
             if (previous.isPresent()) {
                 if (roleIsLower(role, previous.get().role())) {
-                    reply.println("Only [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to lower the role for additional reviewers.");
+                    reply.println("Only [Reviewers](https://openjdk.org/bylaws#reviewer) are allowed to lower the role for additional reviewers.");
                     return;
                 }
                 if (numReviewers < previous.get().number()) {
-                    reply.println("Only [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to decrease the number of required reviewers.");
+                    reply.println("Only [Reviewers](https://openjdk.org/bylaws#reviewer) are allowed to decrease the number of required reviewers.");
                     return;
                 }
             }

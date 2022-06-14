@@ -41,15 +41,15 @@ class CheckoutBotTests {
         Files.write(readme, List.of("Hello, readme!"));
 
         r.add(readme);
-        r.commit("Add README", "duke", "duke@openjdk.java.net");
+        r.commit("Add README", "duke", "duke@openjdk.org");
 
         Files.write(readme, List.of("Another line"), WRITE, APPEND);
         r.add(readme);
-        r.commit("Modify README", "duke", "duke@openjdk.java.net");
+        r.commit("Modify README", "duke", "duke@openjdk.org");
 
         Files.write(readme, List.of("A final line"), WRITE, APPEND);
         r.add(readme);
-        r.commit("Final README", "duke", "duke@openjdk.java.net");
+        r.commit("Final README", "duke", "duke@openjdk.org");
     }
 
     @Test
@@ -118,7 +118,7 @@ class CheckoutBotTests {
             var readme = gitLocalRepo.root().resolve("README");
             Files.write(readme, List.of("An updated line"), WRITE, APPEND);
             gitLocalRepo.add(readme);
-            gitLocalRepo.commit("Updated Final README", "duke", "duke@openjdk.java.net");
+            gitLocalRepo.commit("Updated Final README", "duke", "duke@openjdk.org");
 
             runner.runPeriodicItems(bot);
             assertEquals(4, hgRepo.commitMetadata().size());

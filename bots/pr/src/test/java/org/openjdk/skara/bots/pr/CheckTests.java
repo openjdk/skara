@@ -2090,7 +2090,7 @@ class CheckTests {
             localRepo.add(newFile);
             var issueNumber = issue.id().split("-")[1];
             var commitMessage = issueNumber + ": This is the primary issue\n\nReviewed-by: integrationreviewer2";
-            var commitHash = localRepo.commit(commitMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var commitHash = localRepo.commit(commitMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
             localRepo.push(commitHash, author.url(), "jdk18", true);
 
             // "backport" the commit to the master branch
@@ -2100,7 +2100,7 @@ class CheckTests {
             var newFile2 = localRepo.root().resolve("a_new_file.txt");
             Files.writeString(newFile2, "a_new_file");
             localRepo.add(newFile2);
-            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + commitHash);
 

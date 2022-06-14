@@ -43,7 +43,7 @@ public class SponsorCommand implements CommandHandler {
             return;
         }
         if (!censusInstance.isCommitter(command.user())) {
-            reply.println("Only [Committers](https://openjdk.java.net/bylaws#committer) are allowed to sponsor changes.");
+            reply.println("Only [Committers](https://openjdk.org/bylaws#committer) are allowed to sponsor changes.");
             return;
         }
 

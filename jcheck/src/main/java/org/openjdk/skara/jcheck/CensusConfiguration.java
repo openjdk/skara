@@ -27,7 +27,7 @@ import java.net.URI;
 
 public class CensusConfiguration {
     private static final CensusConfiguration DEFAULT =
-        new CensusConfiguration(0, "localhost", URI.create("https://openjdk.java.net/census.xml"));
+        new CensusConfiguration(0, "localhost", URI.create("https://openjdk.org/census.xml"));
 
     private final int version;
     private final String domain;

@@ -107,14 +107,14 @@ class SponsorTests {
 
             if (isAuthor) {
                 assertEquals("Generated Author 2", headCommit.author().name());
-                assertEquals("integrationauthor2@openjdk.java.net", headCommit.author().email());
+                assertEquals("integrationauthor2@openjdk.org", headCommit.author().email());
             } else {
                 assertEquals(authorFullName, headCommit.author().name());
                 assertEquals(authorEmail, headCommit.author().email());
             }
 
             assertEquals("Generated Reviewer 1", headCommit.committer().name());
-            assertEquals("integrationreviewer1@openjdk.java.net", headCommit.committer().email());
+            assertEquals("integrationreviewer1@openjdk.org", headCommit.committer().email());
             assertTrue(pr.labelNames().contains("integrated"));
             assertFalse(pr.labelNames().contains("ready"));
             assertFalse(pr.labelNames().contains("sponsor"));
@@ -643,7 +643,7 @@ class SponsorTests {
             var anotherFile = localRepo.root().resolve("ANOTHER_FILE.txt");
             Files.writeString(anotherFile, "A string\n");
             localRepo.add(anotherFile);
-            var masterHash = localRepo.commit("Another commit\n\nReviewed-by: " + reviewerId, "duke", "duke@openjdk.java.net");
+            var masterHash = localRepo.commit("Another commit\n\nReviewed-by: " + reviewerId, "duke", "duke@openjdk.org");
             localRepo.push(masterHash, author.url(), "master", true);
 
             // Create a new branch, new commit and publish it
@@ -657,7 +657,7 @@ class SponsorTests {
             var editToMasterBranch = localRepo.branch(masterHash, "edit->master");
             localRepo.checkout(editToMasterBranch);
             localRepo.merge(editHash);
-            var mergeHash = localRepo.commit("Merge edit", "duke", "duke@openjdk.java.net");
+            var mergeHash = localRepo.commit("Merge edit", "duke", "duke@openjdk.org");
             localRepo.push(mergeHash, author.url(), "edit->master", true);
 
 

@@ -94,7 +94,7 @@ public class JEPCommand implements CommandHandler {
         }
 
         if (!pr.author().equals(command.user()) && !censusInstance.isReviewer(command.user())) {
-            reply.println("Only the pull request author and [Reviewers](https://openjdk.java.net/bylaws#reviewer) are allowed to use the `jep` command.");
+            reply.println("Only the pull request author and [Reviewers](https://openjdk.org/bylaws#reviewer) are allowed to use the `jep` command.");
             return;
         }
 

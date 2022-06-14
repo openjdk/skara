@@ -36,7 +36,7 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
     protected static final String FORCE_PUSH_SUGGESTION= """
             Please do not rebase or force-push to an active PR as it invalidates existing review comments. \
             All changes will be squashed into a single commit automatically when integrating. \
-            See [OpenJDK Developers’ Guide](https://openjdk.java.net/guide/#working-with-pull-requests) for more information.
+            See [OpenJDK Developers’ Guide](https://openjdk.org/guide/#working-with-pull-requests) for more information.
             """;
     private final Path seedFolder;
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");

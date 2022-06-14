@@ -67,7 +67,7 @@ public class TestInfoBotWorkItem implements WorkItem {
                            .summary("In order to run pre-submit tests, the [source repository](" +
                                             sourceRepoUrl + ")" +
                                             " must be properly configured to allow test execution. " +
-                                            "See https://wiki.openjdk.java.net/display/SKARA/Testing for more information on how to configure this.")
+                                            "See https://wiki.openjdk.org/display/SKARA/Testing for more information on how to configure this.")
                            .build();
     }
 

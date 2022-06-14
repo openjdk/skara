@@ -44,7 +44,7 @@ class UpdateHistoryTests {
         var firstFile = folder.resolve("first.txt");
         Files.writeString(firstFile, "First file to commit");
         localRepository.add(firstFile);
-        var firstCommit = localRepository.commit("First commit", "Duke", "duke@openjdk.java.net");
+        var firstCommit = localRepository.commit("First commit", "Duke", "duke@openjdk.org");
         localRepository.push(firstCommit, repository.url(), localRepository.defaultBranch().toString(), true);
         return localRepository.defaultBranch().toString();
     }
@@ -52,9 +52,9 @@ class UpdateHistoryTests {
     private UpdateHistory createHistory(HostedRepository repository, String ref) throws IOException {
         var folder = Files.createTempDirectory("updatehistory");
         var tagStorage = new StorageBuilder<UpdatedTag>("tags.txt")
-                                       .remoteRepository(repository, ref, "Duke", "duke@openjdk.java.net", "Updated tags");
+                                       .remoteRepository(repository, ref, "Duke", "duke@openjdk.org", "Updated tags");
         var branchStorage = new StorageBuilder<UpdatedBranch>("branches.txt")
-                .remoteRepository(repository, ref, "Duke", "duke@openjdk.java.net", "Updated branches");
+                .remoteRepository(repository, ref, "Duke", "duke@openjdk.org", "Updated branches");
         return UpdateHistory.create(tagStorage,folder.resolve("tags"), branchStorage, folder.resolve("branches"));
     }
 

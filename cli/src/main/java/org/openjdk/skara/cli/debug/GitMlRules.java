@@ -134,7 +134,7 @@ public class GitMlRules {
             throw new UncheckedIOException(e);
         }
         return archivePageNames().parallelStream()
-                                 .map(name -> HttpRequest.newBuilder(URI.create("https://mail.openjdk.java.net/pipermail/" + list + "/" + name + ".txt"))
+                                 .map(name -> HttpRequest.newBuilder(URI.create("https://mail.openjdk.org/pipermail/" + list + "/" + name + ".txt"))
                                                          .GET().build())
                                  .map(req -> {
                                      try {

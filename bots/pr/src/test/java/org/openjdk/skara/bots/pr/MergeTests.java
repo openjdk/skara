@@ -121,9 +121,9 @@ class MergeTests {
             var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
             assertEquals("Merge " + author.name() + ":other", headCommit.message().get(0));
             assertEquals("Generated Committer 1", headCommit.author().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
         }
     }
 
@@ -328,9 +328,9 @@ class MergeTests {
             var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
             assertEquals("Merge " + otherHash2.hex(), headCommit.message().get(0));
             assertEquals("Generated Committer 1", headCommit.author().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
         }
     }
 
@@ -473,9 +473,9 @@ class MergeTests {
             var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
             assertEquals("Merge", headCommit.message().get(0));
             assertEquals("Generated Committer 1", headCommit.author().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
         }
     }
 
@@ -557,9 +557,9 @@ class MergeTests {
             // Author and committer should updated in the merge commit
             var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
             assertEquals("Generated Committer 1", headCommit.author().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
         }
     }
 
@@ -643,9 +643,9 @@ class MergeTests {
             // Author and committer should updated in the merge commit
             var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
             assertEquals("Generated Committer 1", headCommit.author().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
         }
     }
 
@@ -737,9 +737,9 @@ class MergeTests {
             // Author and committer should updated in the merge commit
             var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
             assertEquals("Generated Committer 1", headCommit.author().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
         }
     }
 
@@ -847,9 +847,9 @@ class MergeTests {
             // Author and committer should updated in the merge commit
             var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
             assertEquals("Generated Committer 1", headCommit.author().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
 
             // The latest content from the source and the updated master should be present
             assertEquals("New on master", Files.readString(pushedRepoFolder.resolve("newmaster.txt")));

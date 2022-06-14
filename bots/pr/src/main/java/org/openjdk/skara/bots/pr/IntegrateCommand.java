@@ -135,17 +135,17 @@ public class IntegrateCommand implements CommandHandler {
                 pr.removeLabel("auto");
             }
             reply.println("This pull request will have to be integrated manually using the " +
-                    "[/integrate](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) pull request command.");
+                    "[/integrate](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) pull request command.");
             return;
         } else if (commandArg == Command.defer) {
             pr.addLabel("deferred");
             reply.println("Integration of this pull request has been deferred and may be completed by any project committer using the " +
-                    "[/integrate](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) pull request command.");
+                    "[/integrate](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) pull request command.");
             return;
         } else if (commandArg == Command.undefer) {
             if (pr.labelNames().contains("deferred")) {
                 reply.println("Integration of this pull request is no longer deferred and may only be integrated by the author (@" + pr.author().username() + ")using the " +
-                        "[/integrate](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) pull request command.");
+                        "[/integrate](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) pull request command.");
                 pr.removeLabel("deferred");
             }
             reply.println("This pull request may now only be integrated by the author");
