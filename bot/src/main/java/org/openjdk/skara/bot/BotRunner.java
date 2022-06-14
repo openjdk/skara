@@ -59,7 +59,12 @@ public class BotRunner {
 
     private final AtomicInteger workIdCounter = new AtomicInteger();
 
-    private class PendingWorkItem {
+    /**
+     * A wrapper for a WorkItem while it's tracked as pending. Used to track
+     * when a particular WorkItem entered the pending state so that metrics
+     * and log messages can use this information.
+     */
+    private static class PendingWorkItem {
         private final WorkItem item;
         private final Instant createTime;
 
