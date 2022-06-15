@@ -59,7 +59,7 @@ public class BackportCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, HostedCommit commit, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (censusInstance.contributor(command.user()).isEmpty()) {
-            reply.println("Only OpenJDK [contributors](https://openjdk.java.net/bylaws#contributor) can use the `/backport` command");
+            reply.println("Only OpenJDK [contributors](https://openjdk.org/bylaws#contributor) can use the `/backport` command");
             return;
         }
 

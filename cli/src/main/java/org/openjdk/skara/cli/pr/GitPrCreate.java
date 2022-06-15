@@ -316,7 +316,7 @@ public class GitPrCreate {
                 var lists = cc.split(",");
                 for (var input : lists) {
                     var label = input;
-                    if (label.endsWith("@openjdk.java.net")) {
+                    if (label.endsWith("@openjdk.org")) {
                         label = input.split("@")[0];
                     }
                     if (label.endsWith("-dev")) {
@@ -324,19 +324,19 @@ public class GitPrCreate {
                     }
                     if (!config.isAllowed(label) && !config.isAllowed(label + "-dev")) {
                         System.out.println("error: the mailing list \"" + label +
-                                           "-dev@openjdk.java.net\" is not applicable, aborting.");
+                                           "-dev@openjdk.org\" is not applicable, aborting.");
                         System.exit(1);
                     }
                 }
                 System.out.println("You have chosen the following mailing lists to be CC:d for the \"RFR\" e-mail:");
                 for (var input : lists) {
                     String list = null;
-                    if (input.endsWith("@openjdk.java.net")) {
+                    if (input.endsWith("@openjdk.org")) {
                         list = input;
                     } else if (input.endsWith("-dev")) {
-                        list = input + "@openjdk.java.net";
+                        list = input + "@openjdk.org";
                     } else  {
-                        list = input + "-dev@openjdk.java.net";
+                        list = input + "-dev@openjdk.org";
                     }
                     System.out.println("- " + list);
                     mailingLists.add(list);

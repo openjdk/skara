@@ -117,7 +117,7 @@ class GitToHgConverterTests {
 
             Files.writeString(readme, "Hello, world");
             gitRepo.add(readme);
-            gitRepo.commit("1234567: Added README", "Foo Bar", "foo@openjdk.java.net");
+            gitRepo.commit("1234567: Added README", "Foo Bar", "foo@openjdk.org");
 
             var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
@@ -149,7 +149,7 @@ class GitToHgConverterTests {
             Files.writeString(readme, "Hello, world");
             gitRepo.add(readme);
             gitRepo.commit("1234567: Added README", "Foo Bar", "foo@host.com",
-                                                    "Baz Bar", "baz@openjdk.java.net");
+                                                    "Baz Bar", "baz@openjdk.org");
 
             var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
@@ -175,11 +175,11 @@ class GitToHgConverterTests {
 
             Files.writeString(readme, "Hello, world");
             gitRepo.add(readme);
-            gitRepo.commit("Added README", "Foo Bar", "foo@openjdk.java.net");
+            gitRepo.commit("Added README", "Foo Bar", "foo@openjdk.org");
 
             var readme2 = gitRoot.path().resolve("README2.md");
             gitRepo.copy(readme, readme2);
-            gitRepo.commit("Copied README", "Foo Bar", "foo@openjdk.java.net");
+            gitRepo.commit("Copied README", "Foo Bar", "foo@openjdk.org");
 
             var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
@@ -210,11 +210,11 @@ class GitToHgConverterTests {
 
             Files.writeString(readme, "Hello, world");
             gitRepo.add(readme);
-            gitRepo.commit("Added README", "Foo Bar", "foo@openjdk.java.net");
+            gitRepo.commit("Added README", "Foo Bar", "foo@openjdk.org");
 
             var readme2 = gitRoot.path().resolve("README2.md");
             gitRepo.move(readme, readme2);
-            gitRepo.commit("Moved README", "Foo Bar", "foo@openjdk.java.net");
+            gitRepo.commit("Moved README", "Foo Bar", "foo@openjdk.org");
 
             var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
@@ -245,9 +245,9 @@ class GitToHgConverterTests {
 
             Files.writeString(readme, "Hello, world");
             gitRepo.add(readme);
-            var message = List.of("1234567: Added README", "", "Co-authored-by: Baz Bar <baz@openjdk.java.net>");
+            var message = List.of("1234567: Added README", "", "Co-authored-by: Baz Bar <baz@openjdk.org>");
             gitRepo.commit(String.join("\n", message), "Foo Bar", "foo@host.com",
-                                                       "Baz Bar", "baz@openjdk.java.net");
+                                                       "Baz Bar", "baz@openjdk.org");
 
             var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
@@ -258,7 +258,7 @@ class GitToHgConverterTests {
             var hgCommit = hgCommits.get(0);
 
             assertEquals(new Author("baz", null), hgCommit.author());
-            assertEquals(List.of("1234567: Added README", "Contributed-by: Foo Bar <foo@host.com>, Baz Bar <baz@openjdk.java.net>"),
+            assertEquals(List.of("1234567: Added README", "Contributed-by: Foo Bar <foo@host.com>, Baz Bar <baz@openjdk.org>"),
                          hgCommit.message());
             assertReposEquals(marks, gitRepo, hgRepo);
         }
@@ -277,9 +277,9 @@ class GitToHgConverterTests {
                                   "",
                                   "Additional text",
                                   "",
-                                  "Co-authored-by: Baz Bar <baz@openjdk.java.net>");
+                                  "Co-authored-by: Baz Bar <baz@openjdk.org>");
             gitRepo.commit(String.join("\n", message), "Foo Bar", "foo@host.com",
-                                                       "Baz Bar", "baz@openjdk.java.net");
+                                                       "Baz Bar", "baz@openjdk.org");
 
             var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
@@ -292,7 +292,7 @@ class GitToHgConverterTests {
             assertEquals(new Author("baz", null), hgCommit.author());
             assertEquals(List.of("1234567: Added README",
                                  "Summary: Additional text",
-                                 "Contributed-by: Foo Bar <foo@host.com>, Baz Bar <baz@openjdk.java.net>"),
+                                 "Contributed-by: Foo Bar <foo@host.com>, Baz Bar <baz@openjdk.org>"),
                          hgCommit.message());
             assertReposEquals(marks, gitRepo, hgRepo);
         }
@@ -307,26 +307,26 @@ class GitToHgConverterTests {
 
             Files.writeString(readme, "First line");
             gitRepo.add(readme);
-            gitRepo.commit("First line", "Foo Bar", "foo@openjdk.java.net");
+            gitRepo.commit("First line", "Foo Bar", "foo@openjdk.org");
 
             Files.writeString(readme, "Second line", StandardOpenOption.APPEND);
             gitRepo.add(readme);
-            var second = gitRepo.commit("Second line", "Foo Bar", "foo@openjdk.java.net");
+            var second = gitRepo.commit("Second line", "Foo Bar", "foo@openjdk.org");
 
             Files.writeString(readme, "Third line", StandardOpenOption.APPEND);
             gitRepo.add(readme);
-            var third = gitRepo.commit("Third line", "Foo Bar", "foo@openjdk.java.net");
+            var third = gitRepo.commit("Third line", "Foo Bar", "foo@openjdk.org");
 
             gitRepo.checkout(second, false);
 
             var contributing = gitRoot.path().resolve("CONTRIBUTING.md");
             Files.writeString(contributing, "Contribute");
             gitRepo.add(contributing);
-            var toMerge = gitRepo.commit("Contributing", "Foo Bar", "foo@openjdk.java.net");
+            var toMerge = gitRepo.commit("Contributing", "Foo Bar", "foo@openjdk.org");
 
             gitRepo.checkout(gitRepo.defaultBranch(), false);
             gitRepo.merge(toMerge);
-            gitRepo.commit("Merge", "Foo Bar", "foo@openjdk.java.net");
+            gitRepo.commit("Merge", "Foo Bar", "foo@openjdk.org");
 
             var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
@@ -344,28 +344,28 @@ class GitToHgConverterTests {
 
             Files.writeString(readme, "First line\n");
             gitRepo.add(readme);
-            gitRepo.commit("First line", "Foo Bar", "foo@openjdk.java.net");
+            gitRepo.commit("First line", "Foo Bar", "foo@openjdk.org");
 
             Files.writeString(readme, "Second line", StandardOpenOption.APPEND);
             gitRepo.add(readme);
-            var second = gitRepo.commit("Second line\n", "Foo Bar", "foo@openjdk.java.net");
+            var second = gitRepo.commit("Second line\n", "Foo Bar", "foo@openjdk.org");
 
             Files.writeString(readme, "Third line\n", StandardOpenOption.APPEND);
             gitRepo.add(readme);
-            var third = gitRepo.commit("Third line", "Foo Bar", "foo@openjdk.java.net");
+            var third = gitRepo.commit("Third line", "Foo Bar", "foo@openjdk.org");
 
             gitRepo.checkout(second, false);
 
             var contributing = gitRoot.path().resolve("CONTRIBUTING.md");
             Files.writeString(contributing, "Contribute\n");
             gitRepo.add(contributing);
-            var toMerge = gitRepo.commit("Contributing", "Foo Bar", "foo@openjdk.java.net");
+            var toMerge = gitRepo.commit("Contributing", "Foo Bar", "foo@openjdk.org");
 
             gitRepo.checkout(gitRepo.defaultBranch(), false);
             gitRepo.merge(toMerge);
             Files.writeString(readme, "Fourth line\n", StandardOpenOption.APPEND);
             gitRepo.add(readme);
-            gitRepo.commit("Merge", "Foo Bar", "foo@openjdk.java.net");
+            gitRepo.commit("Merge", "Foo Bar", "foo@openjdk.org");
 
             var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
@@ -383,28 +383,28 @@ class GitToHgConverterTests {
 
             Files.writeString(readme, "First line\n");
             gitRepo.add(readme);
-            gitRepo.commit("First line", "Foo Bar", "foo@openjdk.java.net");
+            gitRepo.commit("First line", "Foo Bar", "foo@openjdk.org");
 
             Files.writeString(readme, "Second line\n", StandardOpenOption.APPEND);
             gitRepo.add(readme);
-            var second = gitRepo.commit("Second line", "Foo Bar", "foo@openjdk.java.net");
+            var second = gitRepo.commit("Second line", "Foo Bar", "foo@openjdk.org");
 
             Files.writeString(readme, "Third line\n", StandardOpenOption.APPEND);
             gitRepo.add(readme);
-            var third = gitRepo.commit("Third line", "Foo Bar", "foo@openjdk.java.net");
+            var third = gitRepo.commit("Third line", "Foo Bar", "foo@openjdk.org");
 
             gitRepo.checkout(second, false);
 
             var contributing = gitRoot.path().resolve("CONTRIBUTING.md");
             Files.writeString(contributing, "Contribute\n");
             gitRepo.add(contributing);
-            var toMerge = gitRepo.commit("Contributing", "Foo Bar", "foo@openjdk.java.net");
+            var toMerge = gitRepo.commit("Contributing", "Foo Bar", "foo@openjdk.org");
 
             gitRepo.checkout(gitRepo.defaultBranch(), false);
             gitRepo.merge(toMerge);
             Files.writeString(contributing, "More contributions\n", StandardOpenOption.APPEND);
             gitRepo.add(contributing);
-            gitRepo.commit("Merge", "Foo Bar", "foo@openjdk.java.net");
+            gitRepo.commit("Merge", "Foo Bar", "foo@openjdk.org");
 
             var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
@@ -433,13 +433,13 @@ class GitToHgConverterTests {
 
             Files.writeString(readme, "First line\n");
             gitRepo.add(readme);
-            gitRepo.commit("First line", "Foo Bar", "foo@openjdk.java.net");
+            gitRepo.commit("First line", "Foo Bar", "foo@openjdk.org");
 
             Files.writeString(readme, "Second line\n", StandardOpenOption.APPEND);
             gitRepo.add(readme);
-            var second = gitRepo.commit("Second line", "Foo Bar", "foo@openjdk.java.net");
+            var second = gitRepo.commit("Second line", "Foo Bar", "foo@openjdk.org");
             var tagDate = ZonedDateTime.parse("2020-08-24T11:30:32+02:00");
-            var tag = gitRepo.tag(second, "1.0", "Added tag 1.0", "Foo Bar", "foo@openjdk.java.net", tagDate);
+            var tag = gitRepo.tag(second, "1.0", "Added tag 1.0", "Foo Bar", "foo@openjdk.org", tagDate);
 
             var hgRepo = TestableRepository.init(hgRoot.path(), VCS.HG);
             var converter = new GitToHgConverter();
@@ -450,7 +450,7 @@ class GitToHgConverterTests {
 
             Files.writeString(readme, "Third line\n");
             gitRepo.add(readme);
-            gitRepo.commit("Third line", "Foo Bar", "foo@openjdk.java.net");
+            gitRepo.commit("Third line", "Foo Bar", "foo@openjdk.org");
 
             converter = new GitToHgConverter();
             var newMarks = converter.convert(gitRepo, hgRepo, marks);

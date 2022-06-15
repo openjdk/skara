@@ -72,7 +72,7 @@ public class CheckableRepository {
             output.append("\n\n");
             output.append("[census]\n");
             output.append("version=0\n");
-            output.append("domain=openjdk.java.net\n");
+            output.append("domain=openjdk.org\n");
             output.append("\n");
             output.append("[checks \"whitespace\"]\n");
             output.append("files=.*\\.txt\n");

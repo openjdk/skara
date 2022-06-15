@@ -85,9 +85,9 @@ public class GitSkara {
         System.out.println("For more information, please see the Skara wiki:");
         System.out.println("");
         if (isMercurial) {
-            System.out.println("    https://wiki.openjdk.java.net/display/SKARA/Mercurial");
+            System.out.println("    https://wiki.openjdk.org/display/SKARA/Mercurial");
         } else {
-            System.out.println("    https://wiki.openjdk.java.net/display/skara");
+            System.out.println("    https://wiki.openjdk.org/display/skara");
         }
         System.out.println("");
         System.exit(0);

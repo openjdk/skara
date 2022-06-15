@@ -92,7 +92,7 @@ class ForgeTests {
         Files.write(readme, List.of("Hello, readme!"));
 
         r.add(readme);
-        return r.commit("Add README", "duke", "duke@openjdk.java.net");
+        return r.commit("Add README", "duke", "duke@openjdk.org");
     }
 
     @Test

@@ -62,7 +62,7 @@ public class TagCommand implements CommandHandler {
     public void handle(PullRequestBot bot, HostedCommit commit, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         try {
             if (censusInstance.contributor(command.user()).isEmpty()) {
-                reply.println("Only OpenJDK [contributors](https://openjdk.java.net/bylaws#contributor) can use the `/tag` command.");
+                reply.println("Only OpenJDK [contributors](https://openjdk.org/bylaws#contributor) can use the `/tag` command.");
                 return;
             }
             if (!bot.integrators().contains(command.user().username())) {

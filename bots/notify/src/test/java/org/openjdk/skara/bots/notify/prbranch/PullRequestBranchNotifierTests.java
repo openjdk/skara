@@ -341,7 +341,7 @@ public class PullRequestBranchNotifierTests {
             updatedHash = CheckableRepository.appendAndCommit(localRepo, "test force-push");
             localRepo.checkout(editHash);
             localRepo.squash(updatedHash);
-            var forcePushHash = localRepo.commit("test force-push", "duke", "duke@openjdk.java.net");
+            var forcePushHash = localRepo.commit("test force-push", "duke", "duke@openjdk.org");
             localRepo.push(forcePushHash, repo.url(), "source", true);
             ((TestPullRequest) pr).setLastForcePushTime(ZonedDateTime.now());
             pr.addComment("Force-push");
@@ -371,7 +371,7 @@ public class PullRequestBranchNotifierTests {
             updatedHash = CheckableRepository.appendAndCommit(localRepo, "test force-push again");
             localRepo.checkout(editHash);
             localRepo.squash(updatedHash);
-            forcePushHash = localRepo.commit("test force-push again", "duke", "duke@openjdk.java.net");
+            forcePushHash = localRepo.commit("test force-push again", "duke", "duke@openjdk.org");
             localRepo.push(forcePushHash, repo.url(), "source", true);
             ((TestPullRequest) pr).setLastForcePushTime(ZonedDateTime.now());
             pr.addComment("Force-push again");

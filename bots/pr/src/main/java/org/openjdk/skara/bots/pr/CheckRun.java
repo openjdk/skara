@@ -811,10 +811,10 @@ class CheckRun {
         message.append(commitMessage);
         message.append("\n```\n");
 
-        message.append("You can use [pull request commands](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands) ");
-        message.append("such as [/summary](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands#PullRequestCommands-/summary), ");
-        message.append("[/contributor](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands#PullRequestCommands-/contributor) and ");
-        message.append("[/issue](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands#PullRequestCommands-/issue) to adjust it as needed.");
+        message.append("You can use [pull request commands](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands) ");
+        message.append("such as [/summary](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/summary), ");
+        message.append("[/contributor](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/contributor) and ");
+        message.append("[/issue](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/issue) to adjust it as needed.");
         message.append("\n\n");
 
         var divergingCommits = checkablePullRequest.divergingCommits();
@@ -857,16 +857,16 @@ class CheckRun {
             message.append("any potential automatic rebasing");
         }
         message.append(", please check the documentation for the ");
-        message.append("[/integrate](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) ");
+        message.append("[/integrate](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) ");
         message.append("command for further details.\n");
 
         if (!censusInstance.isCommitter(pr.author())) {
             message.append("\n");
-            message.append("As you do not have [Committer](https://openjdk.java.net/bylaws#committer) status in ");
-            message.append("[this project](https://openjdk.java.net/census#");
+            message.append("As you do not have [Committer](https://openjdk.org/bylaws#committer) status in ");
+            message.append("[this project](https://openjdk.org/census#");
             message.append(censusInstance.project().name());
             message.append(") an existing Committer must agree to ");
-            message.append("[sponsor](https://openjdk.java.net/sponsor/) your change. ");
+            message.append("[sponsor](https://openjdk.org/sponsor/) your change. ");
             var candidates = reviews.stream()
                                     .filter(review -> censusInstance.isCommitter(review.reviewer()))
                                     .map(review -> "@" + review.reviewer().username())
@@ -883,7 +883,7 @@ class CheckRun {
         } else {
             message.append("\n");
             message.append("➡️ To integrate this PR with the above commit message to the `").append(pr.targetRef()).append("` branch, type ");
-            message.append("[/integrate](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) ");
+            message.append("[/integrate](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/integrate) ");
             message.append("in a new comment.\n");
         }
         message.append(mergeReadyMarker);

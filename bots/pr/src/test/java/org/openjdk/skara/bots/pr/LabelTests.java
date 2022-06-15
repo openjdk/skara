@@ -349,7 +349,7 @@ public class LabelTests {
             assertLastCommentContains(pr,"The `1` label was successfully added.");
 
             // One more
-            pr.addComment("/cc group-dev@openjdk.java.net");
+            pr.addComment("/cc group-dev@openjdk.org");
             TestBotRunner.runPeriodicItems(prBot);
 
             // The bot should reply with a success message

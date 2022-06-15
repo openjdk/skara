@@ -135,7 +135,7 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             r.add(readme);
-            var head = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var head = r.commit("Add README", "duke", "duke@openjdk.org");
             assertEquals(head, r.head());
         }
     }
@@ -179,13 +179,13 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
             r.add(readme);
 
-            var head1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var head1 = r.commit("Add README", "duke", "duke@openjdk.org");
             assertEquals(head1, r.head());
 
             Files.write(readme, List.of("Another line"), WRITE, APPEND);
             r.add(readme);
 
-            var head2 = r.commit("Add one more line", "duke", "duke@openjdk.java.net");
+            var head2 = r.commit("Add one more line", "duke", "duke@openjdk.org");
             assertEquals(head2, r.head());
 
             r.checkout(head1, false);
@@ -206,14 +206,14 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
             r.add(readme);
 
-            var head1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var head1 = r.commit("Add README", "duke", "duke@openjdk.org");
             assertEquals(List.of("Hello, readme!"),
                          r.lines(readme, head1).orElseThrow());
 
             Files.write(readme, List.of("Another line"), WRITE, APPEND);
             r.add(readme);
 
-            var head2 = r.commit("Add one more line", "duke", "duke@openjdk.java.net");
+            var head2 = r.commit("Add one more line", "duke", "duke@openjdk.org");
             assertEquals(List.of("Hello, readme!", "Another line"),
                          r.lines(readme, head2).orElseThrow());
         }
@@ -233,7 +233,7 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
             r.add(readme);
 
-            var head = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var head = r.commit("Add README", "duke", "duke@openjdk.org");
             assertEquals(List.of("Hello, readme!"),
                          r.lines(readme, head).orElseThrow());
 
@@ -241,7 +241,7 @@ public class RepositoryTests {
             Files.write(example, List.of("An example"));
             r.add(example);
 
-            var head2 = r.commit("Add EXAMPLE", "duke", "duke@openjdk.java.net");
+            var head2 = r.commit("Add EXAMPLE", "duke", "duke@openjdk.org");
             assertEquals(List.of("An example"),
                          r.lines(example, head2).orElseThrow());
         }
@@ -268,15 +268,15 @@ public class RepositoryTests {
             r.add(readme);
 
             var committerName = vcs == VCS.GIT ? "bot" : "duke";
-            var committerEmail = vcs == VCS.GIT ? "bot@openjdk.java.net" : "duke@openjdk.java.net";
-            var hash = r.commit("Add README", "duke", "duke@openjdk.java.net", committerName, committerEmail);
+            var committerEmail = vcs == VCS.GIT ? "bot@openjdk.org" : "duke@openjdk.org";
+            var hash = r.commit("Add README", "duke", "duke@openjdk.org", committerName, committerEmail);
 
             var commits = r.commits().asList();
             assertEquals(1, commits.size());
 
             var commit = commits.get(0);
             assertEquals("duke", commit.author().name());
-            assertEquals("duke@openjdk.java.net", commit.author().email());
+            assertEquals("duke@openjdk.org", commit.author().email());
             assertEquals(committerName, commit.committer().name());
             assertEquals(committerEmail, commit.committer().email());
 
@@ -346,18 +346,18 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             r.add(readme);
-            var hash1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var hash1 = r.commit("Add README", "duke", "duke@openjdk.org");
 
             Files.write(readme, List.of("Another line"), WRITE, APPEND);
             r.add(readme);
-            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.java.net");
+            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.org");
 
             var commits = r.commits().asList();
             assertEquals(2, commits.size());
 
             var commit = commits.get(0);
             assertEquals("duke", commit.author().name());
-            assertEquals("duke@openjdk.java.net", commit.author().email());
+            assertEquals("duke@openjdk.org", commit.author().email());
 
             assertEquals(List.of("Modify README"), commit.message());
 
@@ -419,22 +419,22 @@ public class RepositoryTests {
             Files.write(file3, List.of("Hello, file 3!"));
 
             r.add(file1, file2, file3);
-            var hash1 = r.commit("Add files", "duke", "duke@openjdk.java.net");
+            var hash1 = r.commit("Add files", "duke", "duke@openjdk.org");
 
             Files.delete(file2);
             r.remove(file2);
-            var hash2 = r.commit("Remove file 2", "duke", "duke@openjdk.java.net");
+            var hash2 = r.commit("Remove file 2", "duke", "duke@openjdk.org");
 
             Files.delete(file3);
             r.remove(file3);
-            var hash3 = r.commit("Remove file 3", "duke", "duke@openjdk.java.net");
+            var hash3 = r.commit("Remove file 3", "duke", "duke@openjdk.org");
 
             var refspec = vcs == VCS.GIT ? r.head().hex() : r.head().hex() + ":0";
             assertEquals(3, r.commits(refspec).asList().size());
 
             r.checkout(hash1, false);
             r.squash(hash3);
-            r.commit("Squashed remove of file 2 and 3", "duke", "duke@openjdk.java.net");
+            r.commit("Squashed remove of file 2 and 3", "duke", "duke@openjdk.org");
 
             refspec = vcs == VCS.GIT ? r.head().hex() : r.head().hex() + ":0";
             var commits = r.commits(refspec).asList();
@@ -474,22 +474,22 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             r.add(readme);
-            var hash1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var hash1 = r.commit("Add README", "duke", "duke@openjdk.org");
 
             Files.write(readme, List.of("Another line"), WRITE, APPEND);
             r.add(readme);
-            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.java.net");
+            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.org");
 
             Files.write(readme, List.of("A final line"), WRITE, APPEND);
             r.add(readme);
-            var hash3 = r.commit("Modify README again", "duke", "duke@openjdk.java.net");
+            var hash3 = r.commit("Modify README again", "duke", "duke@openjdk.org");
 
             var refspec = vcs == VCS.GIT ? r.head().hex() : r.head().hex() + ":0";
             assertEquals(3, r.commits(refspec).asList().size());
 
             r.checkout(hash1, false);
             r.squash(hash3);
-            r.commit("Squashed commits 2 and 3", "duke", "duke@openjdk.java.net");
+            r.commit("Squashed commits 2 and 3", "duke", "duke@openjdk.org");
 
             refspec = vcs == VCS.GIT ? r.head().hex() : r.head().hex() + ":0";
             var commits = r.commits(refspec).asList();
@@ -549,16 +549,16 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             r.add(readme);
-            var hash1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var hash1 = r.commit("Add README", "duke", "duke@openjdk.org");
 
             Files.write(readme, List.of("Another line"), WRITE, APPEND);
             r.add(readme);
-            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.java.net");
+            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.org");
 
             r.checkout(hash1, false);
             Files.write(readme, List.of("A conflicting line"), WRITE, APPEND);
             r.add(readme);
-            var hash3 = r.commit("Branching README modification", "duke", "duke@openjdk.java.net");
+            var hash3 = r.commit("Branching README modification", "duke", "duke@openjdk.org");
 
             assertEquals(hash1, r.mergeBase(hash2, hash3));
         }
@@ -574,18 +574,18 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             r.add(readme);
-            var hash1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var hash1 = r.commit("Add README", "duke", "duke@openjdk.org");
 
             Files.write(readme, List.of("Another line"), WRITE, APPEND);
             r.add(readme);
-            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.java.net");
+            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.org");
 
             assertTrue(r.isAncestor(hash1, hash2));
 
             r.checkout(hash1, false);
             Files.write(readme, List.of("A conflicting line"), WRITE, APPEND);
             r.add(readme);
-            var hash3 = r.commit("Branching README modification", "duke", "duke@openjdk.java.net");
+            var hash3 = r.commit("Branching README modification", "duke", "duke@openjdk.org");
 
             assertTrue(r.isAncestor(hash1, hash3));
             assertFalse(r.isAncestor(hash2, hash3));
@@ -602,21 +602,21 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             r.add(readme);
-            var hash1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var hash1 = r.commit("Add README", "duke", "duke@openjdk.org");
 
             Files.write(readme, List.of("Another line"), WRITE, APPEND);
             r.add(readme);
-            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.java.net");
+            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.org");
 
             r.checkout(hash1, false);
 
             var contributing = dir.path().resolve("CONTRIBUTING");
             Files.write(contributing, List.of("Keep the patches coming"));
             r.add(contributing);
-            var hash3 = r.commit("Add independent change", "duke", "duke@openjdk.java.net");
+            var hash3 = r.commit("Add independent change", "duke", "duke@openjdk.org");
 
             var committerName = vcs == VCS.GIT ? "bot" : "duke";
-            var committerEmail = vcs == VCS.GIT ? "bot@openjdk.java.net" : "duke@openjdk.java.net";
+            var committerEmail = vcs == VCS.GIT ? "bot@openjdk.org" : "duke@openjdk.org";
             r.rebase(hash2, committerName, committerEmail);
 
             var refspec = vcs == VCS.GIT ? r.head().hex() : r.head().hex() + ":0";
@@ -626,19 +626,19 @@ public class RepositoryTests {
             assertEquals(hash1, commits.get(2).hash());
 
             assertEquals("duke", commits.get(0).author().name());
-            assertEquals("duke@openjdk.java.net", commits.get(0).author().email());
+            assertEquals("duke@openjdk.org", commits.get(0).author().email());
             assertEquals(committerName, commits.get(0).committer().name());
             assertEquals(committerEmail, commits.get(0).committer().email());
 
             assertEquals("duke", commits.get(1).author().name());
-            assertEquals("duke@openjdk.java.net", commits.get(1).author().email());
+            assertEquals("duke@openjdk.org", commits.get(1).author().email());
             assertEquals("duke", commits.get(1).committer().name());
-            assertEquals("duke@openjdk.java.net", commits.get(1).committer().email());
+            assertEquals("duke@openjdk.org", commits.get(1).committer().email());
 
             assertEquals("duke", commits.get(2).author().name());
-            assertEquals("duke@openjdk.java.net", commits.get(2).author().email());
+            assertEquals("duke@openjdk.org", commits.get(2).author().email());
             assertEquals("duke", commits.get(2).committer().name());
-            assertEquals("duke@openjdk.java.net", commits.get(2).committer().email());
+            assertEquals("duke@openjdk.org", commits.get(2).committer().email());
 
             var head = commits.get(0);
             assertEquals(hash2, head.parents().get(0));
@@ -684,7 +684,7 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             r.add(readme);
-            r.commit("Add README", "duke", "duke@openjdk.java.net");
+            r.commit("Add README", "duke", "duke@openjdk.org");
 
             assertFalse(r.isEmpty());
         }
@@ -709,7 +709,7 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             r.add(readme);
-            r.commit("Add README", "duke", "duke@openjdk.java.net");
+            r.commit("Add README", "duke", "duke@openjdk.org");
 
             assertTrue(r.isHealthy());
         }
@@ -726,8 +726,8 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             r1.add(readme);
-            var hash = r1.commit("Add README", "duke", "duke@openjdk.java.net");
-            r1.tag(hash, "tag", "tagging", "duke", "duke@openjdk.java.net");
+            var hash = r1.commit("Add README", "duke", "duke@openjdk.org");
+            r1.tag(hash, "tag", "tagging", "duke", "duke@openjdk.org");
 
             var r2 = TestableRepository.init(dir2.path(), vcs);
             r2.fetch(r1.root().toUri(), r1.defaultBranch().name());
@@ -756,7 +756,7 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             r.add(readme);
-            r.commit("Add README", "duke", "duke@openjdk.java.net");
+            r.commit("Add README", "duke", "duke@openjdk.org");
 
             assertEquals(List.of(r.defaultBranch()), r.branches());
         }
@@ -782,7 +782,7 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             r.add(readme);
-            r.commit("Add README", "duke", "duke@openjdk.java.net");
+            r.commit("Add README", "duke", "duke@openjdk.org");
 
             var expected = vcs == VCS.GIT ? List.of() : List.of(new Tag("tip"));
             assertEquals(expected, r.tags());
@@ -805,7 +805,7 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             upstream.add(readme);
-            upstream.commit("Add README", "duke", "duke@openjdk.java.net");
+            upstream.commit("Add README", "duke", "duke@openjdk.org");
 
             try (var dir2 = new TemporaryDirectory()) {
                 var downstream = TestableRepository.init(dir2.path(), vcs);
@@ -820,7 +820,7 @@ public class RepositoryTests {
                 Files.write(downstreamReadme, List.of("Downstream change"), WRITE, APPEND);
 
                 downstream.add(downstreamReadme);
-                var head = downstream.commit("Modify README", "duke", "duke@openjdk.java.net");
+                var head = downstream.commit("Modify README", "duke", "duke@openjdk.org");
 
                 downstream.push(head, upstreamURI, downstream.defaultBranch().name());
             }
@@ -848,9 +848,9 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             upstream.add(readme);
-            var firstHash = upstream.commit("Add README", "duke", "duke@openjdk.java.net");
+            var firstHash = upstream.commit("Add README", "duke", "duke@openjdk.org");
 
-            var firstTag = upstream.tag(firstHash, "my-tag", "First tag message", "duke", "duke@openjdk.java.net");
+            var firstTag = upstream.tag(firstHash, "my-tag", "First tag message", "duke", "duke@openjdk.org");
 
             try (var dir2 = new TemporaryDirectory()) {
                 var downstream = TestableRepository.init(dir2.path(), vcs);
@@ -864,9 +864,9 @@ public class RepositoryTests {
 
                 Files.write(readme, List.of("Readme change"), WRITE, APPEND);
                 upstream.add(readme);
-                var secondHash = upstream.commit("Modify README", "duke", "duke@openjdk.java.net");
+                var secondHash = upstream.commit("Modify README", "duke", "duke@openjdk.org");
                 var secondTag = upstream.tag(secondHash, "my-tag", "Second tag message","duke",
-                        "duke@openjdk.java.net", null, true);
+                        "duke@openjdk.org", null, true);
 
                 downstream.fetch(upstreamURI, downstream.defaultBranch().name(), true, true);
                 tagHash = downstream.resolve(secondTag).orElseThrow();
@@ -887,7 +887,7 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             r.add(readme);
-            var hash1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var hash1 = r.commit("Add README", "duke", "duke@openjdk.org");
 
             r.clean();
 
@@ -932,7 +932,7 @@ public class RepositoryTests {
             Files.write(dir.path().resolve(".hgignore"), List.of(".*txt"));
 
             r.add(readme);
-            var hash1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var hash1 = r.commit("Add README", "duke", "duke@openjdk.org");
 
             var ignored = dir.path().resolve("ignored.txt");
             Files.write(ignored, List.of("Random text"));
@@ -953,11 +953,11 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             r.add(readme);
-            var first = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var first = r.commit("Add README", "duke", "duke@openjdk.org");
 
             Files.write(readme, List.of("One more line"), WRITE, APPEND);
             r.add(readme);
-            var second = r.commit("Add one more line", "duke", "duke@openjdk.java.net");
+            var second = r.commit("Add one more line", "duke", "duke@openjdk.org");
 
             var diff = r.diff(first, second);
             assertEquals(first, diff.from());
@@ -1006,13 +1006,13 @@ public class RepositoryTests {
 
             r.add(readme);
             r.add(building);
-            var first = r.commit("Add README and BUILDING", "duke", "duke@openjdk.java.net");
+            var first = r.commit("Add README and BUILDING", "duke", "duke@openjdk.org");
 
             Files.write(readme, List.of("Hello, Skara!"), WRITE, TRUNCATE_EXISTING);
             Files.write(building, List.of("make images"), WRITE, TRUNCATE_EXISTING);
             r.add(readme);
             r.add(building);
-            var second = r.commit("Modify README and BUILDING", "duke", "duke@openjdk.java.net");
+            var second = r.commit("Modify README and BUILDING", "duke", "duke@openjdk.org");
 
             var diff = r.diff(first, second);
             assertEquals(first, diff.from());
@@ -1071,11 +1071,11 @@ public class RepositoryTests {
             Files.write(abc, List.of("A", "B", "C"));
 
             r.add(abc);
-            var first = r.commit("Added ABC", "duke", "duke@openjdk.java.net");
+            var first = r.commit("Added ABC", "duke", "duke@openjdk.org");
 
             Files.write(abc, List.of("1", "2", "B", "3"), WRITE, TRUNCATE_EXISTING);
             r.add(abc);
-            var second = r.commit("Modify A and C", "duke", "duke@openjdk.java.net");
+            var second = r.commit("Modify A and C", "duke", "duke@openjdk.org");
 
             var diff = r.diff(first, second);
             assertEquals(first, diff.from());
@@ -1134,11 +1134,11 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, world!"));
 
             r.add(readme);
-            var first = r.commit("Added README", "duke", "duke@openjdk.java.net");
+            var first = r.commit("Added README", "duke", "duke@openjdk.org");
 
             Files.delete(readme);
             r.remove(readme);
-            var second = r.commit("Removed README", "duke", "duke@openjdk.java.net");
+            var second = r.commit("Removed README", "duke", "duke@openjdk.org");
 
             var diff = r.diff(first, second);
             assertEquals(first, diff.from());
@@ -1183,12 +1183,12 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, world!"));
 
             r.add(readme);
-            var first = r.commit("Added README", "duke", "duke@openjdk.java.net");
+            var first = r.commit("Added README", "duke", "duke@openjdk.org");
 
             var building = dir.path().resolve("BUILDING");
             Files.write(building, List.of("make"));
             r.add(building);
-            var second = r.commit("Added BUILDING", "duke", "duke@openjdk.java.net");
+            var second = r.commit("Added BUILDING", "duke", "duke@openjdk.org");
 
             var diff = r.diff(first, second);
             assertEquals(first, diff.from());
@@ -1233,7 +1233,7 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, world!"));
 
             r.add(readme);
-            var first = r.commit("Added README", "duke", "duke@openjdk.java.net");
+            var first = r.commit("Added README", "duke", "duke@openjdk.org");
 
             Files.write(readme, List.of("One more line"), WRITE, APPEND);
             var diff = r.diff(first);
@@ -1279,11 +1279,11 @@ public class RepositoryTests {
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, world!"));
             r.add(readme);
-            var first = r.commit("Added README", "duke", "duke@openjdk.java.net");
+            var first = r.commit("Added README", "duke", "duke@openjdk.org");
 
             Files.write(readme, List.of("One more line"), WRITE, APPEND);
             r.add(readme);
-            var second = r.commit("Modified README", "duke", "duke@openjdk.java.net");
+            var second = r.commit("Modified README", "duke", "duke@openjdk.org");
 
             var metadata = r.commitMetadata();
             assertEquals(2, metadata.size());
@@ -1305,16 +1305,16 @@ public class RepositoryTests {
             var readme1 = dir.path().resolve("README_1");
             Files.write(readme1, List.of("1"));
             r.add(readme1);
-            var first = r.commit("Added README_1", "duke", "duke@openjdk.java.net");
+            var first = r.commit("Added README_1", "duke", "duke@openjdk.org");
 
             var readme2 = dir.path().resolve("README_2");
             Files.write(readme2, List.of("2"));
             r.add(readme2);
-            var second = r.commit("Added README_2", "duke", "duke@openjdk.java.net");
+            var second = r.commit("Added README_2", "duke", "duke@openjdk.org");
 
             Files.write(readme2, List.of("3"), WRITE, APPEND);
             r.add(readme2);
-            var third = r.commit("Modified README_2", "duke", "duke@openjdk.java.net");
+            var third = r.commit("Modified README_2", "duke", "duke@openjdk.org");
 
             var metadata = r.commitMetadata(List.of(Path.of("README_1")));
             assertEquals(1, metadata.size());
@@ -1342,11 +1342,11 @@ public class RepositoryTests {
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, world!"));
             r.add(readme);
-            var first = r.commit("Added README", "duke", "duke@openjdk.java.net");
+            var first = r.commit("Added README", "duke", "duke@openjdk.org");
 
             Files.write(readme, List.of("One more line"), WRITE, APPEND);
             r.add(readme);
-            var second = r.commit("Modified README", "duke", "duke@openjdk.java.net");
+            var second = r.commit("Modified README", "duke", "duke@openjdk.org");
 
             var metadata = r.commitMetadata();
             assertEquals(2, metadata.size());
@@ -1369,21 +1369,21 @@ public class RepositoryTests {
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, world!"));
             r.add(readme);
-            var first = r.commit("Added README", "duke", "duke@openjdk.java.net");
+            var first = r.commit("Added README", "duke", "duke@openjdk.org");
 
             Files.write(readme, List.of("One more line"), WRITE, APPEND);
             r.add(readme);
-            var second = r.commit("Modified README", "duke", "duke@openjdk.java.net");
+            var second = r.commit("Modified README", "duke", "duke@openjdk.org");
 
             r.checkout(first, false);
 
             var contributing = dir.path().resolve("CONTRIBUTING");
             Files.write(contributing, List.of("Send those patches!"));
             r.add(contributing);
-            var third = r.commit("Added contributing", "duke", "duke@openjdk.java.net");
+            var third = r.commit("Added contributing", "duke", "duke@openjdk.org");
 
             r.merge(second);
-            r.commit("Merge", "duke", "duke@openjdk.java.net");
+            r.commit("Merge", "duke", "duke@openjdk.org");
 
             var refspec = vcs == VCS.GIT ? r.head().hex() : r.head().hex() + ":0";
             var commits = r.commits(refspec).asList();
@@ -1422,24 +1422,24 @@ public class RepositoryTests {
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, world!"));
             r.add(readme);
-            var first = r.commit("Added README", "duke", "duke@openjdk.java.net");
+            var first = r.commit("Added README", "duke", "duke@openjdk.org");
 
             Files.write(readme, List.of("One more line"), WRITE, APPEND);
             r.add(readme);
-            var second = r.commit("Modified README", "duke", "duke@openjdk.java.net");
+            var second = r.commit("Modified README", "duke", "duke@openjdk.org");
 
             r.checkout(first, false);
 
             var contributing = dir.path().resolve("CONTRIBUTING");
             Files.write(contributing, List.of("Send those patches!"));
             r.add(contributing);
-            var third = r.commit("Added contributing", "duke", "duke@openjdk.java.net");
+            var third = r.commit("Added contributing", "duke", "duke@openjdk.org");
 
             r.merge(second);
 
             Files.write(readme, List.of("One last line"), WRITE, APPEND);
             r.add(readme);
-            r.commit("Merge", "duke", "duke@openjdk.java.net");
+            r.commit("Merge", "duke", "duke@openjdk.org");
 
             var refspec = vcs == VCS.GIT ? r.head().hex() : r.head().hex() + ":0";
             var commits = r.commits(refspec).asList();
@@ -1529,7 +1529,7 @@ public class RepositoryTests {
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, world!"));
             r.add(readme);
-            r.commit("Added README", "duke", "duke@openjdk.java.net");
+            r.commit("Added README", "duke", "duke@openjdk.org");
 
             assertTrue(r.isValidRevisionRange(r.defaultBranch().toString()));
         }
@@ -1554,9 +1554,9 @@ public class RepositoryTests {
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, world!"));
             r.add(readme);
-            var first = r.commit("Added README", "duke", "duke@openjdk.java.net");
+            var first = r.commit("Added README", "duke", "duke@openjdk.org");
 
-            r.tag(first, "test", "Tagging test", "duke", "duke@openjdk.java.net");
+            r.tag(first, "test", "Tagging test", "duke", "duke@openjdk.org");
             var defaultTag = r.defaultTag().orElse(null);
             var nonDefaultTags = r.tags().stream()
                                   .filter(tag -> !tag.equals(defaultTag))
@@ -1580,7 +1580,7 @@ public class RepositoryTests {
             r.add(readme);
             assertFalse(r.isClean());
 
-            r.commit("Added README", "duke", "duke@openjdk.java.net");
+            r.commit("Added README", "duke", "duke@openjdk.org");
             assertTrue(r.isClean());
 
             Files.delete(readme);
@@ -1605,7 +1605,7 @@ public class RepositoryTests {
                 Files.setPosixFilePermissions(readOnlyExecutableFile, permissions);
             }
             r.add(readOnlyExecutableFile);
-            var hash = r.commit("Added read only executable file", "duke", "duke@openjdk.java.net");
+            var hash = r.commit("Added read only executable file", "duke", "duke@openjdk.org");
             assertEquals(Optional.of(List.of("echo 'hello'")), r.lines(readOnlyExecutableFile, hash));
 
             var readWriteExecutableFile = dir.path().resolve("goodbye.sh");
@@ -1615,7 +1615,7 @@ public class RepositoryTests {
                 Files.setPosixFilePermissions(readWriteExecutableFile, permissions);
             }
             r.add(readWriteExecutableFile);
-            var hash2 = r.commit("Added read-write executable file", "duke", "duke@openjdk.java.net");
+            var hash2 = r.commit("Added read-write executable file", "duke", "duke@openjdk.org");
             assertEquals(Optional.of(List.of("echo 'goodbye'")), r.lines(readWriteExecutableFile, hash2));
         }
     }
@@ -1637,10 +1637,10 @@ public class RepositoryTests {
             var fileWithSpaceInName = dir.path().resolve("hello world.txt");
             Files.writeString(fileWithSpaceInName, "Hello world\n");
             r.add(fileWithSpaceInName);
-            var hash1 = r.commit("Added file with space in name", "duke", "duke@openjdk.java.net");
+            var hash1 = r.commit("Added file with space in name", "duke", "duke@openjdk.org");
             Files.writeString(fileWithSpaceInName, "Goodbye world\n");
             r.add(fileWithSpaceInName);
-            var hash2 = r.commit("Modified file with space in name", "duke", "duke@openjdk.java.net");
+            var hash2 = r.commit("Modified file with space in name", "duke", "duke@openjdk.org");
             var diff = r.diff(hash1, hash2);
             var patches = diff.patches();
             assertEquals(1, patches.size());
@@ -1661,7 +1661,7 @@ public class RepositoryTests {
             var readme = dir.path().resolve("README.md");
             Files.writeString(readme, "Hello world\n");
             r.add(readme);
-            var hash = r.commit("Added readme", "duke", "duke@openjdk.java.net");
+            var hash = r.commit("Added readme", "duke", "duke@openjdk.org");
             var commit = r.lookup(hash).orElseThrow();
             var parent = commit.parents().get(0);
 
@@ -1681,7 +1681,7 @@ public class RepositoryTests {
             var readme = dir.path().resolve("README.md");
             Files.writeString(readme, "Hello world\n");
             r.add(readme);
-            var hash = r.commit("Added readme", "duke", "duke@openjdk.java.net");
+            var hash = r.commit("Added readme", "duke", "duke@openjdk.org");
             var commit = r.lookup(hash).orElseThrow();
             var parent = commit.parents().get(0);
 
@@ -1770,7 +1770,7 @@ public class RepositoryTests {
 
             Files.writeString(f, "Hello, world\n");
             r.add(f);
-            r.amend("Initial commit corrected", "duke", "duke@openjdk.java.net");
+            r.amend("Initial commit corrected", "duke", "duke@openjdk.org");
             var commits = r.commits().asList();
             assertEquals(1, commits.size());
             var commit = commits.get(0);
@@ -1940,7 +1940,7 @@ public class RepositoryTests {
             Files.writeString(readme, "Line with Windows line ending\r\n", APPEND);
 
             r.add(readme);
-            r.commit("Add README", "duke", "duke@openjdk.java.net");
+            r.commit("Add README", "duke", "duke@openjdk.org");
 
             var commits = r.commits().asList();
             assertEquals(1, commits.size());
@@ -2279,7 +2279,7 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             upstream.add(readme);
-            upstream.commit("Add README", "duke", "duke@openjdk.java.net");
+            upstream.commit("Add README", "duke", "duke@openjdk.org");
 
             try (var dir2 = new TemporaryDirectory()) {
                 var downstream = TestableRepository.init(dir2.path(), vcs);
@@ -2309,7 +2309,7 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             upstream.add(readme);
-            var head = upstream.commit("Add README", "duke", "duke@openjdk.java.net");
+            var head = upstream.commit("Add README", "duke", "duke@openjdk.org");
             var branch = upstream.branch(head, "foo");
             var upstreamBranches = upstream.branches();
             assertEquals(2, upstreamBranches.size());
@@ -2351,17 +2351,17 @@ public class RepositoryTests {
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, world!"));
             r.add(readme);
-            var first = r.commit("Added README", "duke", "duke@openjdk.java.net");
+            var first = r.commit("Added README", "duke", "duke@openjdk.org");
 
             Files.write(readme, List.of("One more line"), WRITE, APPEND);
             r.add(readme);
-            var second = r.commit("Modified README", "duke", "duke@openjdk.java.net");
+            var second = r.commit("Modified README", "duke", "duke@openjdk.org");
 
             r.checkout(first, false);
 
             Files.write(readme, List.of("Another line"), WRITE, APPEND);
             r.add(readme);
-            var third = r.commit("Modified README again", "duke", "duke@openjdk.java.net");
+            var third = r.commit("Modified README again", "duke", "duke@openjdk.org");
 
             assertThrows(IOException.class, () -> { r.merge(second); });
 
@@ -2433,14 +2433,14 @@ public class RepositoryTests {
             var gitFile = gitRepo.root().resolve("git-file.txt");
             Files.write(gitFile, List.of("Hello, Git!"));
             gitRepo.add(gitFile);
-            var gitHash = gitRepo.commit("Added git-file.txt", "duke", "duke@openjdk.java.net");
+            var gitHash = gitRepo.commit("Added git-file.txt", "duke", "duke@openjdk.org");
 
             var hgDir = gitRepo.root().resolve("hg");
             var hgRepo = TestableRepository.init(hgDir, VCS.HG);
             var hgFile = hgRepo.root().resolve("hg-file.txt");
             Files.write(hgFile, List.of("Hello, Mercurial!"));
             hgRepo.add(hgFile);
-            var hgHash = hgRepo.commit("Added hg-file.txt", "duke", "duke@openjdk.java.net");
+            var hgHash = hgRepo.commit("Added hg-file.txt", "duke", "duke@openjdk.org");
 
             var resolvedHgRepo = Repository.get(hgDir).orElseThrow();
             var resolvedHgCommits = resolvedHgRepo.commits().asList();
@@ -2461,14 +2461,14 @@ public class RepositoryTests {
             var hgFile = hgRepo.root().resolve("hg-file.txt");
             Files.write(hgFile, List.of("Hello, Mercurial!"));
             hgRepo.add(hgFile);
-            var hgHash = hgRepo.commit("Added hg-file.txt", "duke", "duke@openjdk.java.net");
+            var hgHash = hgRepo.commit("Added hg-file.txt", "duke", "duke@openjdk.org");
 
             var gitDir = hgRepo.root().resolve("git");
             var gitRepo = TestableRepository.init(gitDir, VCS.GIT);
             var gitFile = gitRepo.root().resolve("git-file.txt");
             Files.write(gitFile, List.of("Hello, Git!"));
             gitRepo.add(gitFile);
-            var gitHash = gitRepo.commit("Added git-file.txt", "duke", "duke@openjdk.java.net");
+            var gitHash = gitRepo.commit("Added git-file.txt", "duke", "duke@openjdk.org");
 
             var resolvedHgRepo = Repository.get(hgDir.path()).orElseThrow();
             var resolvedHgCommits = resolvedHgRepo.commits().asList();
@@ -2489,13 +2489,13 @@ public class RepositoryTests {
             var hgFile = hgRepo.root().resolve("hg-file.txt");
             Files.write(hgFile, List.of("Hello, Mercurial!"));
             hgRepo.add(hgFile);
-            var hgHash = hgRepo.commit("Added hg-file.txt", "duke", "duke@openjdk.java.net");
+            var hgHash = hgRepo.commit("Added hg-file.txt", "duke", "duke@openjdk.org");
 
             var gitRepo = TestableRepository.init(dir.path(), VCS.GIT);
             var gitFile = gitRepo.root().resolve("git-file.txt");
             Files.write(gitFile, List.of("Hello, Git!"));
             gitRepo.add(gitFile);
-            var gitHash = gitRepo.commit("Added git-file.txt", "duke", "duke@openjdk.java.net");
+            var gitHash = gitRepo.commit("Added git-file.txt", "duke", "duke@openjdk.org");
 
             assertThrows(IOException.class, () -> Repository.get(dir.path()));
         }
@@ -2512,15 +2512,15 @@ public class RepositoryTests {
             var authored = ZonedDateTime.parse("2020-06-15T14:27:13+02:00");
             var committed = authored.plusMinutes(10);
             var head = repo.commit("Add README",
-                                   "author", "author@openjdk.java.net", authored,
-                                   "committer", "committer@openjdk.java.net", committed);
+                                   "author", "author@openjdk.org", authored,
+                                   "committer", "committer@openjdk.org", committed);
             var commit = repo.lookup(head).orElseThrow();
             assertEquals("author", commit.author().name());
-            assertEquals("author@openjdk.java.net", commit.author().email());
+            assertEquals("author@openjdk.org", commit.author().email());
             assertEquals(authored, commit.authored());
 
             assertEquals("committer", commit.committer().name());
-            assertEquals("committer@openjdk.java.net", commit.committer().email());
+            assertEquals("committer@openjdk.org", commit.committer().email());
             assertEquals(committed, commit.committed());
         }
     }
@@ -2533,7 +2533,7 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             repo.add(readme);
-            var head = repo.commit("Add README", "author", "author@openjdk.java.net");
+            var head = repo.commit("Add README", "author", "author@openjdk.org");
 
             // We don't want to expose making lightweight tags via the Repository class,
             // so use a ProcessBuilder and invoke git directly here
@@ -2562,18 +2562,18 @@ public class RepositoryTests {
             var readme = dir.path().resolve("README.old");
             Files.write(readme, List.of("Hello, world!"));
             r.add(readme);
-            var first = r.commit("Added README.old", "duke", "duke@openjdk.java.net");
+            var first = r.commit("Added README.old", "duke", "duke@openjdk.org");
 
             Files.write(readme, List.of("One more line"), WRITE, APPEND);
             r.add(readme);
-            var second = r.commit("Modified README.old", "duke", "duke@openjdk.java.net");
+            var second = r.commit("Modified README.old", "duke", "duke@openjdk.org");
 
             r.checkout(first, false);
             r.move(Path.of("README.old"), Path.of("README.new"));
-            var third = r.commit("Renamed README.old to README.new", "duke", "duke@openjdk.java.net");
+            var third = r.commit("Renamed README.old to README.new", "duke", "duke@openjdk.org");
 
             r.merge(second);
-            var hash = r.commit("Merge", "duke", "duke@openjdk.java.net");
+            var hash = r.commit("Merge", "duke", "duke@openjdk.org");
             var merge = r.lookup(hash).orElseThrow();
 
             var diffs = merge.parentDiffs();
@@ -2606,7 +2606,7 @@ public class RepositoryTests {
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
             repo.add(readme);
-            var head = repo.commit("Add README", "author", "author@openjdk.java.net");
+            var head = repo.commit("Add README", "author", "author@openjdk.org");
             var tag = repo.tag(head, "1.0", "Add tag 1.0", "duke", null);
             var annotated = repo.annotate(tag).orElseThrow();
             assertEquals("duke", annotated.author().name());
@@ -2624,15 +2624,15 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             r.add(readme);
-            var hash1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var hash1 = r.commit("Add README", "duke", "duke@openjdk.org");
 
             Files.write(readme, List.of("Another line"), WRITE, APPEND);
             r.add(readme);
-            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.java.net");
+            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.org");
 
             r.checkout(hash1, false);
             r.merge(hash2, Repository.FastForward.DISABLE);
-            var hash3 = r.commit("Non fast-forward merge", "duke", "duke@openjdk.java.net");
+            var hash3 = r.commit("Non fast-forward merge", "duke", "duke@openjdk.org");
             var mergeCommit = r.lookup(hash3).orElseThrow();
             assertEquals(2, mergeCommit.parents().size());
         }
@@ -2648,13 +2648,13 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             r.add(readme);
-            var hash1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var hash1 = r.commit("Add README", "duke", "duke@openjdk.org");
             var other = r.branch(hash1, "other");
             r.checkout(other);
 
             Files.write(readme, List.of("Another line"), WRITE, APPEND);
             r.add(readme);
-            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.java.net");
+            var hash2 = r.commit("Modify README", "duke", "duke@openjdk.org");
 
             r.checkout(r.defaultBranch());
             r.merge(hash2, Repository.FastForward.AUTO);
@@ -2674,7 +2674,7 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             r.add(readme);
-            var hash1 = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var hash1 = r.commit("Add README", "duke", "duke@openjdk.org");
             var untracked = dir.path().resolve("UNTRACKED");
             Files.write(untracked, List.of("Hello, untracked!"));
 
@@ -2699,7 +2699,7 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             r.add(readme);
-            var hash = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var hash = r.commit("Add README", "duke", "duke@openjdk.org");
             var date = ZonedDateTime.parse("2007-12-03T10:15:30+01:00");
             var tag = r.tag(hash, "1.0", "Added tag 1.0", "duke", "duke@openjdk.org", date);
             var annotated = r.annotate(tag);
@@ -2718,15 +2718,15 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             r.add(readme);
-            var first = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var first = r.commit("Add README", "duke", "duke@openjdk.org");
 
             var readme2 = dir.path().resolve("README2");
             r.move(readme, readme2);
-            var second = r.commit("Move README to README2", "duke", "duke@openjdk.java.net");
+            var second = r.commit("Move README to README2", "duke", "duke@openjdk.org");
 
             Files.write(readme2, List.of("Hello, readme2!"));
             r.add(readme2);
-            var third = r.commit("Update README2", "duke", "duke@openjdk.java.net");
+            var third = r.commit("Update README2", "duke", "duke@openjdk.org");
 
             var commits = r.follow(readme2);
             var hashes = commits.stream().map(CommitMetadata::hash).collect(Collectors.toList());
@@ -2744,16 +2744,16 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             r.add(readme);
-            var first = r.commit("Add README", "duke", "duke@openjdk.java.net");
+            var first = r.commit("Add README", "duke", "duke@openjdk.org");
 
             Files.write(readme, List.of("Hello, again!!"));
             r.add(readme);
-            var second = r.commit("Update README", "duke", "duke@openjdk.java.net");
+            var second = r.commit("Update README", "duke", "duke@openjdk.org");
 
             r.checkout(first);
             Files.write(readme, List.of("Greetings, world"));
             r.add(readme);
-            var third = r.commit("Update README concurrently", "duke", "duke@openjdk.java.net");
+            var third = r.commit("Update README concurrently", "duke", "duke@openjdk.org");
 
             if (vcs == VCS.GIT) {
                 r.checkout(r.defaultBranch());
@@ -2766,11 +2766,11 @@ public class RepositoryTests {
             }
             Files.write(readme, List.of("Resolve merge"));
             r.add(readme);
-            var merge = r.commit("Merge", "duke", "duke@openjdk.java.net");
+            var merge = r.commit("Merge", "duke", "duke@openjdk.org");
 
             Files.write(readme, List.of("Final update"));
             r.add(readme);
-            var fourth = r.commit("Final README update", "duke", "duke@openjdk.java.net");
+            var fourth = r.commit("Final README update", "duke", "duke@openjdk.org");
 
             var commits = r.follow(readme);
             var hashes = commits.stream().map(CommitMetadata::hash).collect(Collectors.toList());
@@ -2792,8 +2792,8 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             upstream.add(readme);
-            var head = upstream.commit("Add README", "duke", "duke@openjdk.java.net");
-            upstream.tag(head, "1.0", "Added tag 1.0", "duke", "duke@openjdk.java.net");
+            var head = upstream.commit("Add README", "duke", "duke@openjdk.org");
+            upstream.tag(head, "1.0", "Added tag 1.0", "duke", "duke@openjdk.org");
 
             try (var dir2 = new TemporaryDirectory()) {
                 var downstream = TestableRepository.init(dir2.path(), vcs);
@@ -2829,7 +2829,7 @@ public class RepositoryTests {
             var readme = dir.path().resolve("README.md");
             Files.writeString(readme, "Hello world\n");
             r.add(readme);
-            var hash = r.commit("Added readme", "duke", "duke@openjdk.java.net");
+            var hash = r.commit("Added readme", "duke", "duke@openjdk.org");
 
             var nonExisting = r.lookup(new Hash("0123456789012345678901234567890123456789"));
             assertEquals(Optional.empty(), nonExisting);
@@ -2846,18 +2846,18 @@ public class RepositoryTests {
             var readme = dir.path().resolve("README.md");
             Files.writeString(readme, "Hello world\n");
             r.add(readme);
-            var initial = r.commit("Added readme", "duke", "duke@openjdk.java.net");
+            var initial = r.commit("Added readme", "duke", "duke@openjdk.org");
 
             Files.writeString(readme, "Hello world\nAgain");
             r.add(readme);
-            var second = r.commit("Updated readme", "duke", "duke@openjdk.java.net");
+            var second = r.commit("Updated readme", "duke", "duke@openjdk.org");
 
             var otherBranch = r.branch(initial, "other");
             r.checkout(otherBranch);
             var contributing = dir.path().resolve("CONTRIBUTING.md");
             Files.writeString(contributing, "Patches welcome!\n");
             r.add(contributing);
-            var otherCommit = r.commit("Added contributing", "duke", "duke@openjdk.java.net");
+            var otherCommit = r.commit("Added contributing", "duke", "duke@openjdk.org");
 
             if (vcs == VCS.HG) {
                 r.checkout(second);
@@ -2885,18 +2885,18 @@ public class RepositoryTests {
             var readme = dir.path().resolve("README.md");
             Files.writeString(readme, "Hello world\n");
             r.add(readme);
-            var initial = r.commit("Added readme", "duke", "duke@openjdk.java.net");
+            var initial = r.commit("Added readme", "duke", "duke@openjdk.org");
 
             Files.writeString(readme, "Hello world\nAgain");
             r.add(readme);
-            var second = r.commit("Updated readme", "duke", "duke@openjdk.java.net");
+            var second = r.commit("Updated readme", "duke", "duke@openjdk.org");
 
             r.checkout(initial);
             var otherBranch = r.branch(initial, "other");
             r.checkout(otherBranch);
             Files.writeString(readme, "Hello world\nOne more time!");
             r.add(readme);
-            var otherCommit = r.commit("Modified readme", "duke", "duke@openjdk.java.net");
+            var otherCommit = r.commit("Modified readme", "duke", "duke@openjdk.org");
 
             if (vcs == VCS.HG) {
                 r.checkout(second);
@@ -2927,7 +2927,7 @@ public class RepositoryTests {
             var readme = dir.path().resolve("README.md");
             Files.writeString(readme, "Hello world\n");
             r.add(readme);
-            var hash = r.commit("Added readme", "duke", "duke@openjdk.java.net");
+            var hash = r.commit("Added readme", "duke", "duke@openjdk.org");
 
             assertTrue(r.contains(hash));
             assertFalse(r.contains(new Hash("0123456789012345678901234567890123456789")));
@@ -2947,7 +2947,7 @@ public class RepositoryTests {
             Files.write(readme, List.of("Hello, readme!"));
 
             upstream.add(readme);
-            var initialCommit = upstream.commit("Add README", "duke", "duke@openjdk.java.net");
+            var initialCommit = upstream.commit("Add README", "duke", "duke@openjdk.org");
 
             try (var dir2 = new TemporaryDirectory()) {
                 var downstream = Repository.init(dir2.path(), VCS.GIT);
@@ -2962,7 +2962,7 @@ public class RepositoryTests {
                 Files.write(downstreamReadme, List.of("Downstream change"), WRITE, APPEND);
 
                 downstream.add(downstreamReadme);
-                var head = downstream.commit("Modify README", "duke", "duke@openjdk.java.net");
+                var head = downstream.commit("Modify README", "duke", "duke@openjdk.org");
 
                 var tag = downstream.tag(initialCommit, "v1.0", "Added tag v1.0", "duke", "duke@openjdk.org");
 
@@ -2987,20 +2987,20 @@ public class RepositoryTests {
             var readme = dir.path().resolve("README");
             Files.write(readme, List.of("Hello, world!"));
             r.add(readme);
-            var first = r.commit("Added README", "duke", "duke@openjdk.java.net");
+            var first = r.commit("Added README", "duke", "duke@openjdk.org");
 
             var b1 = r.branch(first, "b1");
             r.checkout(b1);
             Files.write(readme, List.of("One more line"), WRITE, APPEND);
             r.add(readme);
-            var second = r.commit("Modified README", "duke", "duke@openjdk.java.net");
+            var second = r.commit("Modified README", "duke", "duke@openjdk.org");
 
             r.checkout(r.defaultBranch());
             var b2 = r.branch(first, "b2");
             r.checkout(b2);
             Files.write(readme, List.of("An additional line"), WRITE, APPEND);
             r.add(readme);
-            var third = r.commit("Additional line added to README", "duke", "duke@openjdk.java.net");
+            var third = r.commit("Additional line added to README", "duke", "duke@openjdk.org");
 
             var metadata = r.commitMetadataFor(List.of(r.defaultBranch()));
             assertEquals(1, metadata.size());

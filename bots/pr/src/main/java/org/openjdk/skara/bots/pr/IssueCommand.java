@@ -212,7 +212,7 @@ public class IssueCommand implements CommandHandler {
 
     private void createIssue(PullRequestBot bot, PullRequest pr, String args, CensusInstance censusInstance, HostUser author, PrintWriter reply) {
         if (!censusInstance.isAuthor(author)) {
-            reply.println("Only [Authors](https://openjdk.java.net/bylaws#author) are allowed to create issues.");
+            reply.println("Only [Authors](https://openjdk.org/bylaws#author) are allowed to create issues.");
             return;
         }
 

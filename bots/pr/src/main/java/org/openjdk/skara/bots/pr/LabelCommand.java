@@ -36,7 +36,7 @@ public class LabelCommand implements CommandHandler {
 
     private static final Pattern argumentPattern = Pattern.compile("(?:(add|remove)\\s+)((?:[A-Za-z0-9_@.-]+[\\s,]*)+)");
     private static final Pattern shortArgumentPattern = Pattern.compile("((?:[-+]?[A-Za-z0-9_@.-]+[\\s,]*)+)");
-    private static final Pattern ignoredSuffixes = Pattern.compile("^(.*)(?:-dev(?:@openjdk.java.net)?)$");
+    private static final Pattern ignoredSuffixes = Pattern.compile("^(.*)(?:-dev(?:@openjdk.org)?)$");
 
     LabelCommand() {
         this("label");
@@ -57,7 +57,7 @@ public class LabelCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
         if (!command.user().equals(pr.author()) && (!censusInstance.isCommitter(command.user()))) {
-            reply.println("Only the PR author and project [Committers](https://openjdk.java.net/bylaws#committer) are allowed to modify labels on a PR.");
+            reply.println("Only the PR author and project [Committers](https://openjdk.org/bylaws#committer) are allowed to modify labels on a PR.");
             return;
         }
 
