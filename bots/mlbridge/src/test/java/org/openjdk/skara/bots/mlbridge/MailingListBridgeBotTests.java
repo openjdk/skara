@@ -1033,7 +1033,7 @@ class MailingListBridgeBotTests {
             assertEquals(archive.forge().currentUser().fullName(), thread1reply1.author().fullName().orElseThrow());
             var thread1reply2 = conversations.get(0).replies(thread1reply1).get(0);
             assertTrue(thread1reply2.body().contains("Great"));
-            assertEquals("integrationreviewer1@openjdk.java.net", thread1reply2.author().address());
+            assertEquals("integrationreviewer1@openjdk.org", thread1reply2.author().address());
             assertEquals("Generated Reviewer 1", thread1reply2.author().fullName().orElseThrow());
 
             var thread2 = conversations.get(0).replies(mail).get(1);
@@ -2019,13 +2019,13 @@ class MailingListBridgeBotTests {
 
             // Perform the merge - resolve conflicts in our favor
             localRepo.merge(editHash, "ours");
-            localRepo.commit("Merged edit", "duke", "duke@openjdk.java.net");
+            localRepo.commit("Merged edit", "duke", "duke@openjdk.org");
             var mergeOnlyFile = Path.of("mergeonly.txt");
             Files.writeString(localRepo.root().resolve(mergeOnlyFile), "Only added in the merge");
             localRepo.add(mergeOnlyFile);
             Files.writeString(localRepo.root().resolve(reviewFile), "Overwriting the conflict resolution");
             localRepo.add(reviewFile);
-            var appendedCommit = localRepo.amend("Updated merge commit", "duke", "duke@openjdk.java.net");
+            var appendedCommit = localRepo.amend("Updated merge commit", "duke", "duke@openjdk.org");
             localRepo.push(appendedCommit, author.url(), "merge_of_edit", true);
 
             // Make a merge PR
@@ -2169,10 +2169,10 @@ class MailingListBridgeBotTests {
             var masterOnlyFile = Path.of("masteronly.txt");
             Files.writeString(localRepo.root().resolve(masterOnlyFile), "Only added in master");
             localRepo.add(masterOnlyFile);
-            var updatedMasterHash = localRepo.commit("Only added in master", "duke", "duke@openjdk.java.net");
+            var updatedMasterHash = localRepo.commit("Only added in master", "duke", "duke@openjdk.org");
             localRepo.push(updatedMasterHash, author.url(), "master");
             localRepo.merge(editHash);
-            var mergeCommit = localRepo.commit("Merged edit", "duke", "duke@openjdk.java.net");
+            var mergeCommit = localRepo.commit("Merged edit", "duke", "duke@openjdk.org");
             localRepo.push(mergeCommit, author.url(), "edit", true);
 
             // Make a merge PR

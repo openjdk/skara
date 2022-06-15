@@ -8,9 +8,9 @@ This repository contains tooling for working with OpenJDK projects and
 their repositories. The following CLI tools are available as part of this
 repository:
 
-- git-jcheck - a backwards compatible Git port of [jcheck](https://openjdk.java.net/projects/code-tools/jcheck/)
-- git-webrev - a backwards compatible Git port of [webrev](https://openjdk.java.net/projects/code-tools/webrev/)
-- git-defpath - a backwards compatible Git port of [defpath](https://openjdk.java.net/projects/code-tools/defpath/)
+- git-jcheck - a backwards compatible Git port of [jcheck](https://openjdk.org/projects/code-tools/jcheck/)
+- git-webrev - a backwards compatible Git port of [webrev](https://openjdk.org/projects/code-tools/webrev/)
+- git-defpath - a backwards compatible Git port of [defpath](https://openjdk.org/projects/code-tools/defpath/)
 - git-fork - fork a project on an external Git source code hosting provider to your personal space and optionally clone it
 - git-sync - sync the personal fork of the project with the current state of the upstream repository
 - git-pr - interact with pull requests for a project on an external Git source code hosting provider
@@ -240,7 +240,7 @@ to you to run `:make` and `:make tests` in Vim.
 
 ## Wiki
 
-Project Skara's wiki is available at <https://wiki.openjdk.java.net/display/skara>.
+Project Skara's wiki is available at <https://wiki.openjdk.org/display/skara>.
 
 ## Issues
 
@@ -251,26 +251,26 @@ under project Skara at <https://bugs.openjdk.org/projects/SKARA/>.
 
 We are more than happy to accept contributions to the Skara tooling, both via
 patches sent to the Skara
-[mailing list](https://mail.openjdk.java.net/mailman/listinfo/skara-dev) and in the
+[mailing list](https://mail.openjdk.org/mailman/listinfo/skara-dev) and in the
 form of pull requests on [GitHub](https://github.com/openjdk/skara/pulls/).
 
 ## Members
 
-See <http://openjdk.java.net/census#skara> for the current Skara
-[Reviewers](https://openjdk.java.net/bylaws#reviewer),
-[Committers](https://openjdk.java.net/bylaws#committer) and
-[Authors](https://openjdk.java.net/bylaws#author). See
-<https://openjdk.java.net/projects/> for how to become an author, committer
+See <http://openjdk.org/census#skara> for the current Skara
+[Reviewers](https://openjdk.org/bylaws#reviewer),
+[Committers](https://openjdk.org/bylaws#committer) and
+[Authors](https://openjdk.org/bylaws#author). See
+<https://openjdk.org/projects/> for how to become an author, committer
 or reviewer in an OpenJDK project.
 
 ## Discuss
 
 Development discussions take place on the project Skara mailing list
-`skara-dev@openjdk.java.net`, see
-<https://mail.openjdk.java.net/mailman/listinfo/skara-dev> for instructions
+`skara-dev@openjdk.org`, see
+<https://mail.openjdk.org/mailman/listinfo/skara-dev> for instructions
 on how to subscribe of if you want to read the archives. You can also reach
 many project Skara developers in the `#openjdk` IRC channel on
-[OFTC](https://www.oftc.net/), see <https://openjdk.java.net/irc/> for details.
+[OFTC](https://www.oftc.net/), see <https://openjdk.org/irc/> for details.
 
 ## License
 

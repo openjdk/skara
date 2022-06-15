@@ -76,7 +76,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
             message.append("However, no automatic labelling rule matches the changes in this pull request. ");
             message.append("In order to have an \"RFR\" email sent to the correct mailing list, you will ");
             message.append("need to add one or more applicable labels manually using the ");
-            message.append("[/label](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands#PullRequestCommands-/label)");
+            message.append("[/label](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/label)");
             message.append(" pull request command.\n\n");
             message.append("<details>\n");
             message.append("<summary>Applicable Labels</summary>\n");
@@ -104,7 +104,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
                 message.append("s");
             }
             message.append(". If you would like to change these labels, use the ");
-            message.append("[/label](https://wiki.openjdk.java.net/display/SKARA/Pull+Request+Commands#PullRequestCommands-/label)");
+            message.append("[/label](https://wiki.openjdk.org/display/SKARA/Pull+Request+Commands#PullRequestCommands-/label)");
             message.append(" pull request command.");
         }
 

@@ -28,17 +28,17 @@ import org.openjdk.skara.storage.StorageBuilder;
 public class TestUtils {
     public static StorageBuilder<UpdatedTag> createTagStorage(HostedRepository repository) {
         return new StorageBuilder<UpdatedTag>("tags.txt")
-                .remoteRepository(repository, "history", "Duke", "duke@openjdk.java.net", "Updated tags");
+                .remoteRepository(repository, "history", "Duke", "duke@openjdk.org", "Updated tags");
     }
 
     public static StorageBuilder<UpdatedBranch> createBranchStorage(HostedRepository repository) {
         return new StorageBuilder<UpdatedBranch>("branches.txt")
-                .remoteRepository(repository, "history", "Duke", "duke@openjdk.java.net", "Updated branches");
+                .remoteRepository(repository, "history", "Duke", "duke@openjdk.org", "Updated branches");
     }
 
     public static StorageBuilder<PullRequestState> createPullRequestStateStorage(HostedRepository repository) {
         return new StorageBuilder<PullRequestState>("prissues.txt")
-                .remoteRepository(repository, "history", "Duke", "duke@openjdk.java.net", "Updated prissues");
+                .remoteRepository(repository, "history", "Duke", "duke@openjdk.org", "Updated prissues");
     }
 
     // Test implementation of a RepositoryListener that does nothing

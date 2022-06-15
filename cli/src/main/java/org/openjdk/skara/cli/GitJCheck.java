@@ -91,7 +91,7 @@ public class GitJCheck {
             Option.shortcut("")
                   .fullname("census")
                   .describe("FILE")
-                  .helptext("Use the specified census (default: https://openjdk.java.net/census.xml)")
+                  .helptext("Use the specified census (default: https://openjdk.org/census.xml)")
                   .optional(),
             Option.shortcut("")
                   .fullname("ignore")

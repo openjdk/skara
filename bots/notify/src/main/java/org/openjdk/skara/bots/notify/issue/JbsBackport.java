@@ -63,7 +63,7 @@ public class JbsBackport {
 
     public Issue createBackport(Issue primary, String fixVersion, String assignee) {
         if (backportRequest == null) {
-            if (primary.project().webUrl().toString().contains("openjdk.java.net")) {
+            if (primary.project().webUrl().toString().contains("openjdk.org")) {
                 throw new RuntimeException("Backports on JBS require vault authentication");
             } else {
                 return createBackportIssue(primary);

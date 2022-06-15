@@ -531,7 +531,7 @@ class MergeBot implements Bot, WorkItem {
 
                     var project = JCheckConfiguration.from(repo, head).map(conf -> conf.general().project());
                     if (project.isPresent()) {
-                        message.add("All Committers in this [project](https://openjdk.java.net/census#" + project.get() + ") " +
+                        message.add("All Committers in this [project](https://openjdk.org/census#" + project.get() + ") " +
                                     "have access to my [personal fork](" + fork.nonTransformedWebUrl() + ") and can " +
                                     "therefore help resolve these merge conflicts (you may want to coordinate " +
                                     "who should do this).");
@@ -543,7 +543,7 @@ class MergeBot implements Bot, WorkItem {
                     message.add("The following paragraphs will give an example on how to solve these " +
                                 "merge conflicts and push the resulting merge commit to this pull request.");
                     message.add("The below commands should be run in a local clone of your " +
-                                "[personal fork](https://wiki.openjdk.java.net/display/skara#Skara-Personalforks) " +
+                                "[personal fork](https://wiki.openjdk.org/display/skara#Skara-Personalforks) " +
                                 "of the [" + target.name() + "](" + target.nonTransformedWebUrl() + ") repository.");
                     message.add("");
                     var localBranchName = "openjdk-bot-" + branchDesc;

@@ -247,7 +247,7 @@ public class JEPCommandTests {
             TestBotRunner.runPeriodicItems(prBot);
             assertFalse(pr.labelNames().contains(JEPCommand.JEP_LABEL));
             assertLastCommentContains(pr, "Only the pull request author and [Reviewers]" +
-                    "(https://openjdk.java.net/bylaws#reviewer) are allowed to use the `jep` command.");
+                    "(https://openjdk.org/bylaws#reviewer) are allowed to use the `jep` command.");
 
             // Require jep by the PR author
             pr.addComment("/jep TEST-2");
@@ -276,7 +276,7 @@ public class JEPCommandTests {
             TestBotRunner.runPeriodicItems(prBot);
             assertTrue(pr.labelNames().contains(JEPCommand.JEP_LABEL));
             assertLastCommentContains(pr, "Only the pull request author and [Reviewers]" +
-                    "(https://openjdk.java.net/bylaws#reviewer) are allowed to use the `jep` command.");
+                    "(https://openjdk.org/bylaws#reviewer) are allowed to use the `jep` command.");
             assertTrue(pr.body().contains("- [ ] Change requires a JEP request to be targeted"));
 
             // Not require jep by a reviewer

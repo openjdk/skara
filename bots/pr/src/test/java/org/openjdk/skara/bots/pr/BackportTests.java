@@ -72,7 +72,7 @@ class BackportTests {
             var originalMessage = issue1Number + ": An issue\n" +
                                   "\n" +
                                   "Reviewed-by: integrationreviewer2";
-            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
             localRepo.push(releaseHash, author.url(), "refs/heads/release", true);
 
             // "backport" the new file to the master branch
@@ -82,7 +82,7 @@ class BackportTests {
             var newFile2 = localRepo.root().resolve("a_new_file.txt");
             Files.writeString(newFile2, "hello");
             localRepo.add(newFile2);
-            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + releaseHash.hex());
 
@@ -172,7 +172,7 @@ class BackportTests {
                                   "This is a summary\n" +
                                   "\n" +
                                   "Reviewed-by: integrationreviewer2";
-            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
             localRepo.push(releaseHash, author.url(), "refs/heads/release", true);
 
             // "backport" the new file to the master branch
@@ -182,7 +182,7 @@ class BackportTests {
             var newFile2 = localRepo.root().resolve("a_new_file.txt");
             Files.writeString(newFile2, "hello");
             localRepo.add(newFile2);
-            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + releaseHash.hex());
 
@@ -276,7 +276,7 @@ class BackportTests {
                                   "This is a summary\n" +
                                   "\n" +
                                   "Reviewed-by: integrationreviewer2";
-            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
             localRepo.push(releaseHash, author.url(), "refs/heads/release", true);
 
             // "backport" the new file to the master branch
@@ -286,7 +286,7 @@ class BackportTests {
             var newFile2 = localRepo.root().resolve("a_new_file.txt");
             Files.writeString(newFile2, "hello");
             localRepo.add(newFile2);
-            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + releaseHash.hex());
 
@@ -421,7 +421,7 @@ class BackportTests {
             var originalMessage = issue1Number + ": An issue\n" +
                     "\n" +
                     "Reviewed-by: integrationreviewer2";
-            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
             localRepo.push(releaseHash, author.url(), "refs/heads/release", true);
 
             // "backport" the new file to the master branch
@@ -431,7 +431,7 @@ class BackportTests {
             var newFile2 = localRepo.root().resolve("a_new_file.txt");
             Files.writeString(newFile2, "hello");
             localRepo.add(newFile2);
-            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             // Create the backport with the hash from the PR branch
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + editHash.hex());
@@ -489,7 +489,7 @@ class BackportTests {
             var originalMessage = issue1Number + ": An issue\n" +
                     "\n" +
                     "Reviewed-by: integrationreviewer2";
-            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
             localRepo.push(releaseHash, author.url(), "refs/heads/release", true);
 
             // "backport" the new file to the master branch
@@ -499,7 +499,7 @@ class BackportTests {
             var newFile2 = localRepo.root().resolve("a_new_file.txt");
             Files.writeString(newFile2, "hello");
             localRepo.add(newFile2);
-            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             // Add another change on top of the backport
             var editHash2 = CheckableRepository.appendAndCommit(localRepo);
@@ -556,7 +556,7 @@ class BackportTests {
             var originalMessage = issue1Number + ": An issue\n" +
                                   "\n" +
                                   "Reviewed-by: integrationreviewer2";
-            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
             localRepo.push(releaseHash, author.url(), "refs/heads/release", true);
 
             // "backport" the new file to the master branch
@@ -566,7 +566,7 @@ class BackportTests {
             var newFile2 = localRepo.root().resolve("a_new_file.txt");
             Files.writeString(newFile2, "hello");
             localRepo.add(newFile2);
-            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + releaseHash.hex(), List.of());
 
@@ -616,7 +616,7 @@ class BackportTests {
             var originalMessage = issue1Number + ": An issue\n" +
                                   "\n" +
                                   "Reviewed-by: integrationreviewer2";
-            var masterHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var masterHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
 
             localRepo.push(masterHash, author.url(), "master", true);
 
@@ -629,7 +629,7 @@ class BackportTests {
             var upstreamMessage = issue2Number + ": Another issue\n" +
                                   "\n" +
                                   "Reviewed-by: integrationreviewer2";
-            var upstreamHash = localRepo.commit(upstreamMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var upstreamHash = localRepo.commit(upstreamMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
             localRepo.push(upstreamHash, author.url(), "refs/heads/release", true);
 
             // "backport" the new file to the master branch
@@ -638,7 +638,7 @@ class BackportTests {
             localRepo.checkout(editBranch);
             Files.writeString(newFile, "a\nb\nc\ne\nd\n");
             localRepo.add(newFile);
-            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + upstreamHash.hex());
 
@@ -686,7 +686,7 @@ class BackportTests {
             var originalMessage = issue1Number + ": An issue\n" +
                                   "\n" +
                                   "Reviewed-by: integrationreviewer2";
-            var masterHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var masterHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
 
             localRepo.push(masterHash, author.url(), "master", true);
 
@@ -699,7 +699,7 @@ class BackportTests {
             var upstreamMessage = issue2Number + ": Another issue\n" +
                                   "\n" +
                                   "Reviewed-by: integrationreviewer2";
-            var upstreamHash = localRepo.commit(upstreamMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var upstreamHash = localRepo.commit(upstreamMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
             localRepo.push(upstreamHash, author.url(), "refs/heads/release", true);
 
             // "backport" the new file to the master branch
@@ -708,7 +708,7 @@ class BackportTests {
             localRepo.checkout(editBranch);
             Files.writeString(newFile, "a\nb\nc\nd\nd");
             localRepo.add(newFile);
-            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + upstreamHash.hex());
 
@@ -757,7 +757,7 @@ class BackportTests {
             var originalMessage = issue1Number + ": An issue\n" +
                                   "\n" +
                                   "Reviewed-by: integrationreviewer2";
-            var masterHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var masterHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
 
             localRepo.push(masterHash, author.url(), "master", true);
 
@@ -770,7 +770,7 @@ class BackportTests {
             var upstreamMessage = issue2Number + ": Another issue\n" +
                                   "\n" +
                                   "Reviewed-by: integrationreviewer2";
-            var upstreamHash = localRepo.commit(upstreamMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var upstreamHash = localRepo.commit(upstreamMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
             localRepo.push(upstreamHash, author.url(), "refs/heads/release", true);
 
             // "backport" the new file to the master branch
@@ -782,7 +782,7 @@ class BackportTests {
             var anotherFile = localRepo.root().resolve("another_file.txt");
             Files.writeString(anotherFile, "f\ng\nh\ni");
             localRepo.add(anotherFile);
-            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + upstreamHash.hex());
 
@@ -834,7 +834,7 @@ class BackportTests {
             var originalMessage = issue1Number + ": An issue\n" +
                                   "\n" +
                                   "Reviewed-by: integrationreviewer2";
-            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
             localRepo.push(releaseHash, author.url(), "refs/heads/release", true);
 
             // "backport" the new file to the master branch
@@ -844,7 +844,7 @@ class BackportTests {
             var newFile2 = localRepo.root().resolve("a_new_file.txt");
             Files.writeString(newFile2, "hello");
             localRepo.add(newFile2);
-            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + releaseHash.hex());
 
@@ -930,7 +930,7 @@ class BackportTests {
             var originalMessage = issue1Number + ": An issue\n" +
                                   "\n" +
                                   "Reviewed-by: integrationreviewer2";
-            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
             localRepo.push(releaseHash, author.url(), "refs/heads/release", true);
 
             // "backport" the new file to the master branch
@@ -940,7 +940,7 @@ class BackportTests {
             var newFile2 = localRepo.root().resolve("a_new_file.txt");
             Files.writeString(newFile2, "hello");
             localRepo.add(newFile2);
-            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + releaseHash.hex());
 
@@ -1039,7 +1039,7 @@ class BackportTests {
             var originalMessage = issue1Number + ": An issue\n" +
                                   "\n" +
                                   "Reviewed-by: integrationreviewer2";
-            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
             localRepo.push(releaseHash, author.url(), "refs/heads/release", true);
 
             // "backport" the new file to the master branch
@@ -1049,7 +1049,7 @@ class BackportTests {
             var newFile2 = localRepo.root().resolve("a_new_file.txt");
             Files.writeString(newFile2, "hello");
             localRepo.add(newFile2);
-            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport  " + releaseHash.hex());
 
@@ -1097,7 +1097,7 @@ class BackportTests {
             var originalMessage = issue1Number + ": An issue\n" +
                                   "\n" +
                                   "Reviewed-by: integrationreviewer2";
-            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
             localRepo.push(releaseHash, author.url(), "refs/heads/release", true);
 
             // "backport" the new file to the master branch
@@ -1107,7 +1107,7 @@ class BackportTests {
             var newFile2 = localRepo.root().resolve("a_new_file.txt");
             Files.writeString(newFile2, "hello");
             localRepo.add(newFile2);
-            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + releaseHash.hex() + " ");
 
@@ -1155,7 +1155,7 @@ class BackportTests {
             var originalMessage = issue1Number + ": An issue\n" +
                                   "\n" +
                                   "Reviewed-by: integrationreviewer2";
-            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
             localRepo.push(releaseHash, author.url(), "refs/heads/release", true);
 
             // "backport" the new file to the master branch
@@ -1165,7 +1165,7 @@ class BackportTests {
             var newFile2 = localRepo.root().resolve("a_new_file.txt");
             Files.writeString(newFile2, "hello");
             localRepo.add(newFile2);
-            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport" + releaseHash.hex());
 
@@ -1213,7 +1213,7 @@ class BackportTests {
             var originalMessage = issue1Number + ": A issue\n" +
                                   "\n" +
                                   "Reviewed-by: integrationreviewer2";
-            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
             localRepo.push(releaseHash, author.url(), "refs/heads/release", true);
 
             // "backport" the new file to the master branch
@@ -1223,7 +1223,7 @@ class BackportTests {
             var newFile2 = localRepo.root().resolve("a_new_file.txt");
             Files.writeString(newFile2, "hello");
             localRepo.add(newFile2);
-            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + releaseHash.hex());
 
@@ -1311,7 +1311,7 @@ class BackportTests {
             var originalMessage = issue1Number + " An issue\n" +
                                   "\n" +
                                   "Reviewed-by: integrationreviewer2";
-            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
             localRepo.push(releaseHash, author.url(), "refs/heads/release", true);
 
             // "backport" the new file to the master branch
@@ -1321,7 +1321,7 @@ class BackportTests {
             var newFile2 = localRepo.root().resolve("a_new_file.txt");
             Files.writeString(newFile2, "hello");
             localRepo.add(newFile2);
-            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + releaseHash.hex());
 
@@ -1368,7 +1368,7 @@ class BackportTests {
             var newFile2 = localRepo.root().resolve("a_new_file.txt");
             Files.writeString(newFile2, "hello");
             localRepo.add(newFile2);
-            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
 
             // Create various kinds of bad pull request titles
@@ -1484,7 +1484,7 @@ class BackportTests {
             var originalMessage = issue1Number + ": An issue\n" +
                     "\n" +
                     "Reviewed-by: integrationreviewer2";
-            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var releaseHash = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
             localRepo.push(releaseHash, author.url(), "refs/heads/release", true);
 
             // Create the same fix in another release branch
@@ -1493,7 +1493,7 @@ class BackportTests {
             var newFile2 = localRepo.root().resolve("a_new_file.txt");
             Files.writeString(newFile2, "hello2");
             localRepo.add(newFile);
-            var releaseHash2 = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.java.net");
+            var releaseHash2 = localRepo.commit(originalMessage, "integrationcommitter1", "integrationcommitter1@openjdk.org");
             localRepo.push(releaseHash2, author.url(), "refs/heads/release2", true);
 
             // "backport" the new file to the master branch
@@ -1503,7 +1503,7 @@ class BackportTests {
             var newFile3 = localRepo.root().resolve("a_new_file.txt");
             Files.writeString(newFile3, "hello");
             localRepo.add(newFile3);
-            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.java.net");
+            var editHash = localRepo.commit("Backport", "duke", "duke@openjdk.org");
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "Backport " + releaseHash.hex());
 

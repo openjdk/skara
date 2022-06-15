@@ -50,7 +50,7 @@ class HgToGitConverterTests {
             var gitRepo = TestableRepository.init(gitRoot.path(), VCS.GIT);
 
             var converter = new HgToGitConverter(Map.of(), Map.of(), Set.of(), Set.of(),
-                                                 Map.of("foo", "Foo Bar <foo@openjdk.java.net>"), Map.of(), Map.of());
+                                                 Map.of("foo", "Foo Bar <foo@openjdk.org>"), Map.of(), Map.of());
             var marks = converter.convert(hgRepo, gitRepo);
             assertEquals(1, marks.size());
 
@@ -62,8 +62,8 @@ class HgToGitConverterTests {
             assertEquals(1, hgCommits.size());
             var hgCommit = hgCommits.get(0);
 
-            assertEquals(gitCommit.author(), new Author("Foo Bar", "foo@openjdk.java.net"));
-            assertEquals(gitCommit.committer(), new Author("Foo Bar", "foo@openjdk.java.net"));
+            assertEquals(gitCommit.author(), new Author("Foo Bar", "foo@openjdk.org"));
+            assertEquals(gitCommit.committer(), new Author("Foo Bar", "foo@openjdk.org"));
             assertEquals(hgCommit.message(), gitCommit.message());
             assertEquals(hgCommit.authored(), gitCommit.authored());
             assertEquals(hgCommit.isInitialCommit(), gitCommit.isInitialCommit());
@@ -132,7 +132,7 @@ class HgToGitConverterTests {
             var gitRepo = TestableRepository.init(gitRoot.path(), VCS.GIT);
 
             var converter = new HgToGitConverter(Map.of(), Map.of(), Set.of(), Set.of(),
-                                                 Map.of("foo", "Foo Bar <foo@openjdk.java.net>"),
+                                                 Map.of("foo", "Foo Bar <foo@openjdk.org>"),
                                                  Map.of("baz@domain.org", "Baz Bar <baz@domain.org>"),
                                                  Map.of("foo", List.of("foo@host.com")));
             var marks = converter.convert(hgRepo, gitRepo);
@@ -147,7 +147,7 @@ class HgToGitConverterTests {
             var hgCommit = hgCommits.get(0);
 
             assertEquals(new Author("Baz Bar", "baz@domain.org"), gitCommit.author());
-            assertEquals(new Author("Foo Bar", "foo@openjdk.java.net"), gitCommit.committer());
+            assertEquals(new Author("Foo Bar", "foo@openjdk.org"), gitCommit.committer());
             assertEquals(List.of("1234567: Added README"), gitCommit.message());
         }
     }
@@ -167,7 +167,7 @@ class HgToGitConverterTests {
             var gitRepo = TestableRepository.init(gitRoot.path(), VCS.GIT);
 
             var converter = new HgToGitConverter(Map.of(), Map.of(), Set.of(), Set.of(),
-                                                 Map.of("foo", "Foo Bar <foo@openjdk.java.net>"),
+                                                 Map.of("foo", "Foo Bar <foo@openjdk.org>"),
                                                  Map.of("baz@domain.org", "Baz Bar <baz@domain.org>",
                                                         "foo@host.com", "Foo Bar <foo@host.com>"),
                                                  Map.of("foo", List.of("foo@host.com")));
@@ -182,8 +182,8 @@ class HgToGitConverterTests {
             assertEquals(1, hgCommits.size());
             var hgCommit = hgCommits.get(0);
 
-            assertEquals(new Author("Foo Bar", "foo@openjdk.java.net"), gitCommit.author());
-            assertEquals(new Author("Foo Bar", "foo@openjdk.java.net"), gitCommit.committer());
+            assertEquals(new Author("Foo Bar", "foo@openjdk.org"), gitCommit.author());
+            assertEquals(new Author("Foo Bar", "foo@openjdk.org"), gitCommit.committer());
             assertEquals(List.of("1234567: Added README", "", "Co-authored-by: Baz Bar <baz@domain.org>"),
                          gitCommit.message());
         }
@@ -204,7 +204,7 @@ class HgToGitConverterTests {
             var gitRepo = TestableRepository.init(gitRoot.path(), VCS.GIT);
 
             var converter = new HgToGitConverter(Map.of(), Map.of(), Set.of(), Set.of(),
-                                                 Map.of("foo", "Foo Bar <foo@openjdk.java.net>"),
+                                                 Map.of("foo", "Foo Bar <foo@openjdk.org>"),
                                                  Map.of("baz@domain.org", "Baz Bar <baz@domain.org>",
                                                         "foo@host.com", "Foo Bar <foo@host.com>"),
                                                  Map.of("foo", List.of("foo@host.com")));
@@ -219,8 +219,8 @@ class HgToGitConverterTests {
             assertEquals(1, hgCommits.size());
             var hgCommit = hgCommits.get(0);
 
-            assertEquals(new Author("Foo Bar", "foo@openjdk.java.net"), gitCommit.author());
-            assertEquals(new Author("Foo Bar", "foo@openjdk.java.net"), gitCommit.committer());
+            assertEquals(new Author("Foo Bar", "foo@openjdk.org"), gitCommit.author());
+            assertEquals(new Author("Foo Bar", "foo@openjdk.org"), gitCommit.committer());
             assertEquals(List.of("1234567: Added README", "", "Additional text", "", "Co-authored-by: Baz Bar <baz@domain.org>"),
                          gitCommit.message());
         }

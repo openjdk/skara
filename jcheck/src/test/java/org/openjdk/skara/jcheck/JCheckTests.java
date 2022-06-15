@@ -54,7 +54,7 @@ class JCheckTests {
                 output.append("\n");
                 output.append("[census]\n");
                 output.append("version=0\n");
-                output.append("domain=openjdk.java.net\n");
+                output.append("domain=openjdk.org\n");
                 output.append("\n");
                 output.append("[checks \"whitespace\"]\n");
                 output.append("suffixes=.txt\n");
@@ -64,7 +64,7 @@ class JCheckTests {
             }
             repo.add(checkConf);
 
-            repo.commit("Initial commit\n\nReviewed-by: user2", "user3", "user3@openjdk.java.net");
+            repo.commit("Initial commit\n\nReviewed-by: user2", "user3", "user3@openjdk.org");
 
             return repo;
         }
@@ -259,7 +259,7 @@ class JCheckTests {
             var readme = repoPath.resolve("README");
             Files.write(readme, List.of("Hello, readme!"));
             repo.add(readme);
-            var first = repo.commit("Add README", "duke", "duke@openjdk.java.net");
+            var first = repo.commit("Add README", "duke", "duke@openjdk.org");
 
             var checks = JCheck.checksFor(repo, first);
             var checkNames = checks.stream()
@@ -279,11 +279,11 @@ class JCheckTests {
             var file = repoPath.resolve("file.txt");
             Files.write(file, List.of("Hello, file!"));
             repo.add(file);
-            var first = repo.commit("Add file", "duke", "duke@openjdk.java.net");
+            var first = repo.commit("Add file", "duke", "duke@openjdk.org");
 
             Files.delete(file);
             repo.remove(file);
-            var second = repo.commit("Remove file", "duke", "duke@openjdk.java.net");
+            var second = repo.commit("Remove file", "duke", "duke@openjdk.org");
 
             var censusPath = dir.path().resolve("census");
             Files.createDirectories(censusPath);
@@ -314,7 +314,7 @@ class JCheckTests {
             Files.writeString(jcheckConf, "[checks \"reviewers\"]\nminimum = 0\n",
                               StandardOpenOption.WRITE, StandardOpenOption.APPEND);
             repo.add(jcheckConf);
-            var secondCommit = repo.commit("Do not require reviews", "user3", "user3@openjdk.java.net");
+            var secondCommit = repo.commit("Do not require reviews", "user3", "user3@openjdk.org");
 
             var censusPath = dir.path().resolve("census");
             Files.createDirectories(censusPath);

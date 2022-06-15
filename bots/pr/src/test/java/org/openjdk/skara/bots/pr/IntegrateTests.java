@@ -96,9 +96,9 @@ class IntegrateTests {
 
             // Author and committer should be the same
             assertEquals("Generated Committer 1", headCommit.author().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
             assertTrue(pr.labelNames().contains("integrated"));
 
             // Ready label should have been removed
@@ -936,9 +936,9 @@ class IntegrateTests {
 
             // Author and committer should be the same
             assertEquals("Generated Committer 1", headCommit.author().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
             assertTrue(pr.labelNames().contains("integrated"));
 
             // Ready label should have been removed
@@ -1002,9 +1002,9 @@ class IntegrateTests {
 
             // Author and committer should be the same
             assertEquals("Generated Committer 1", headCommit.author().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
             assertTrue(pr.labelNames().contains("integrated"));
 
             // Ready label should have been removed
@@ -1093,9 +1093,9 @@ class IntegrateTests {
 
             // Author and committer should be the same
             assertEquals("Generated Committer 1", headCommit.author().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
             assertTrue(pr.labelNames().contains("integrated"));
 
             // Ready label should have been removed
@@ -1402,9 +1402,9 @@ class IntegrateTests {
             // Verify that the author and committer of the change are the correct users
             // The number is implied from the order the add* methods of CensusBuilder were called above.
             assertEquals("Generated Committer 1", headCommit.author().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
             assertEquals("Generated Committer 4", headCommit.committer().name());
-            assertEquals("integrationcommitter4@openjdk.java.net", headCommit.committer().email());
+            assertEquals("integrationcommitter4@openjdk.org", headCommit.committer().email());
             assertTrue(authorPr.labelNames().contains("integrated"));
 
             // Ready and deferred labels should have been removed
@@ -1499,9 +1499,9 @@ class IntegrateTests {
 
             // Verify that the author and committer of the change are the correct users
             assertEquals("Generated Committer 1", headCommit.author().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.author().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
-            assertEquals("integrationcommitter1@openjdk.java.net", headCommit.committer().email());
+            assertEquals("integrationcommitter1@openjdk.org", headCommit.committer().email());
         }
     }
 }
