@@ -220,7 +220,7 @@ public class BotRunner {
             try (var __ = new LogContext(Map.of("work_item", item.toString(),
                     "work_id", String.valueOf(workId)))) {
                 var submittedDuration = Duration.between(createTime, Instant.now());
-                SUBMITTED_TIME_GAUGE.labels(item.botName(), item.workItemName()).set(submittedDuration.toMillis() / 1_000_000.0);
+                SUBMITTED_TIME_GAUGE.labels(item.botName(), item.workItemName()).set(submittedDuration.toMillis() / 1_000.0);
                 log.log(Level.FINE, "Executing item " + item + " on repository " + scratchPath
                         + " after being submitted for " + submittedDuration, TaskPhases.BEGIN);
                 try {
@@ -276,7 +276,7 @@ public class BotRunner {
                         submit(candidate.item);
                         var timeSinceCreation = Duration.between(candidate.createTime, Instant.now());
                         PENDING_TIME_GAUGE.labels(candidate.item.botName(), candidate.item.workItemName())
-                                .set(timeSinceCreation.toMillis() / 1_000_000.0);
+                                .set(timeSinceCreation.toMillis() / 1_000.0);
                         log.fine("Submitting candidate: " + candidate.item
                                 + " after being pending for " + timeSinceCreation);
                     }
