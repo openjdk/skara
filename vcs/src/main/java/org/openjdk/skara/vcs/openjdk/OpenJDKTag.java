@@ -45,18 +45,19 @@ public class OpenJDKTag {
     /**
      * The patterns have the following groups:
      *
-     *                prefix   version  update  buildPrefix  buildNum
-     *                -------  -------  ------  -----------  ------
-     * jdk-9.1+27  -> jdk-9.1  9.1              +            27
-     * jdk8-b90    -> jdk8     8                -b           90
-     * jdk7u40-b20 -> jdk7u40  7u40     u20     -b           29
-     * hs24-b30    -> hs24     24               -b           30
-     * hs23.6-b19  -> hs23.6   23.6     .6      -b           19
-     * 11.1+22     -> 11.1     11.1     .1      +            22
-     * 8u321-b03   -> 8u321    8u321    u321    -b           3
+     *                     prefix       version   buildPrefix  buildNum
+     *                     -------      -------   -----------  ------
+     * jdk-9.1+27       -> jdk-9.1      9.1       +            27
+     * jdk8-b90         -> jdk8         8         -b           90
+     * jdk7u40-b20      -> jdk7u40      7u40      -b           29
+     * hs24-b30         -> hs24         24        -b           30
+     * hs23.6-b19       -> hs23.6       23.6      -b           19
+     * 11.1+22          -> 11.1         11.1      +            22
+     * 8u321-b03        -> 8u321        8u321     -b           3
+     * jdk8u341-foo-b17 -> jdk8u341-foo 8u341-foo -b           17
      */
 
-    private final static String legacyOpenJDKVersionPattern = "(jdk([0-9]{1,2}(u[0-9]{1,3})?))";
+    private final static String legacyOpenJDKVersionPattern = "(jdk([0-9]{1,2}(u[0-9]{1,3}(?:-[a-z0-9]+)?)?))";
     private final static String legacyHSVersionPattern = "((hs[0-9]{1,2}(\\.[0-9]{1,3})?))";
     private final static String legacyBuildPattern = "(-b)([0-9]{2,3})";
     // Version pattern matching project Verona (JEP 223) based versions

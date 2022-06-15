@@ -70,6 +70,10 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     // pronly is true.
     private final boolean resolve;
 
+    // A set of version opt strings that may be part of fixVersion in issues, but that
+    // do not need to be part of a tag to be considered a match.
+    private final Set<String> tagIgnoreOpt;
+
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
 
     private static final String pullRequestTip = "A pull request was submitted for review.";
@@ -78,7 +82,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                   boolean setFixVersion, Map<String, String> fixVersions, Map<String, List<String>> altFixVersions,
                   JbsBackport jbsBackport, boolean prOnly, boolean repoOnly, String buildName,
                   HostedRepository censusRepository, String censusRef, String namespace, boolean useHeadVersion,
-                  HostedRepository originalRepository, boolean resolve) {
+                  HostedRepository originalRepository, boolean resolve, Set<String> tagIgnoreOpt) {
         this.issueProject = issueProject;
         this.reviewLink = reviewLink;
         this.reviewIcon = reviewIcon;
@@ -97,6 +101,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         this.useHeadVersion = useHeadVersion;
         this.originalRepository = originalRepository;
         this.resolve = resolve;
+        this.tagIgnoreOpt = tagIgnoreOpt;
     }
 
     static IssueNotifierBuilder newBuilder() {
@@ -433,11 +438,22 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     }
 
     private boolean tagVersionMatchesFixVersion(JdkVersion fixVersion, JdkVersion tagVersion) {
-        // Ignore the opt string when comparing versions for match as the fixVersion can
-        // have a suffix such as "-oracle" that isn't reflected in tags.
-        if (fixVersion.components().equals(tagVersion.components())) {
+        if (fixVersion.equals(tagVersion)) {
             return true;
         }
+        // If the fix version has an opt string that should be ignored, compare just the version
+        // component parts.
+        if (fixVersion.opt().isPresent()) {
+            if (tagIgnoreOpt.contains(fixVersion.opt().get())
+                    && fixVersion.components().equals(tagVersion.components())) {
+                return true;
+            }
+            // If the opt strings shouldn't be ignored, break early if they aren't matching
+            if (!fixVersion.opt().equals(tagVersion.opt())) {
+                return false;
+            }
+        }
+
         // The fixVersion may have a prefix in the first component that is not present
         // in the tagVersion. e.g. 'openjdk8u342' vs '8u342'
         var fixComponents = fixVersion.components();
