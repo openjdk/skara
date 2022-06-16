@@ -64,11 +64,17 @@ public class BotRunner {
         private static final Counter.WithThreeLabels EXCEPTIONS_COUNTER =
             Counter.name("skara_runner_exceptions").labels("bot", "work_item", "exception").register();
         private static final Gauge.WithTwoLabels CPU_TIME_GAUGE =
-            Gauge.name("skara_runner_cpu_time").labels("bot", "work_item").register();
+                Gauge.name("skara_runner_cpu_time").labels("bot", "work_item").register();
         private static final Gauge.WithTwoLabels USER_TIME_GAUGE =
-            Gauge.name("skara_runner_user_time").labels("bot", "work_item").register();
+                Gauge.name("skara_runner_user_time").labels("bot", "work_item").register();
         private static final Gauge.WithTwoLabels ALLOCATED_BYTES_GAUGE =
-            Gauge.name("skara_runner_allocated_bytes").labels("bot", "work_item").register();
+                Gauge.name("skara_runner_allocated_bytes").labels("bot", "work_item").register();
+        private static final Counter.WithTwoLabels CPU_TIME_COUNTER =
+                Counter.name("skara_runner_cpu_time_total").labels("bot", "work_item").register();
+        private static final Counter.WithTwoLabels USER_TIME_COUNTER =
+                Counter.name("skara_runner_user_time_total").labels("bot", "work_item").register();
+        private static final Counter.WithTwoLabels ALLOCATED_BYTES_COUNTER =
+                Counter.name("skara_runner_allocated_bytes_total").labels("bot", "work_item").register();
 
         private final WorkItem item;
         private final int workId = workIdCounter.incrementAndGet();
@@ -159,13 +165,16 @@ public class BotRunner {
                 if (cpuTimeNs != -1L) {
                     double cpuTimeSeconds = cpuTimeNs / 1_000_000_000.0;
                     CPU_TIME_GAUGE.labels(item.botName(), item.workItemName()).set(cpuTimeSeconds);
+                    CPU_TIME_COUNTER.labels(item.botName(), item.workItemName()).inc(cpuTimeSeconds);
                 }
                 if (userTimeNs != -1L) {
                     double userTimeSeconds = userTimeNs / 1_000_000_000.0;
                     USER_TIME_GAUGE.labels(item.botName(), item.workItemName()).set(userTimeSeconds);
+                    USER_TIME_COUNTER.labels(item.botName(), item.workItemName()).inc(userTimeSeconds);
                 }
                 if (allocatedBytes != -1L) {
                     ALLOCATED_BYTES_GAUGE.labels(item.botName(), item.workItemName()).set(allocatedBytes);
+                    ALLOCATED_BYTES_COUNTER.labels(item.botName(), item.workItemName()).inc(allocatedBytes);
                 }
             }
         }
