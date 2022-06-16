@@ -33,7 +33,6 @@ import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.*;
-import java.util.stream.Collectors;
 import java.lang.management.ManagementFactory;
 import com.sun.management.ThreadMXBean;
 
@@ -60,6 +59,29 @@ public class BotRunner {
 
     private final AtomicInteger workIdCounter = new AtomicInteger();
 
+    /**
+     * A wrapper for a WorkItem while it's tracked as pending. Used to track
+     * when a particular WorkItem entered the pending state so that metrics
+     * and log messages can use this information.
+     */
+    private static class PendingWorkItem {
+        private final WorkItem item;
+        private final Instant createTime;
+
+        public PendingWorkItem(WorkItem item) {
+            this(item, null);
+        }
+
+        public PendingWorkItem(WorkItem item, Instant originalCreateTime) {
+            this.item = item;
+            if (originalCreateTime != null) {
+                this.createTime = originalCreateTime;
+            } else {
+                this.createTime = Instant.now();
+            }
+        }
+    }
+
     private class RunnableWorkItem implements Runnable {
         private static final Counter.WithThreeLabels EXCEPTIONS_COUNTER =
             Counter.name("skara_runner_exceptions").labels("bot", "work_item", "exception").register();
@@ -69,6 +91,18 @@ public class BotRunner {
                 Gauge.name("skara_runner_user_time").labels("bot", "work_item").register();
         private static final Gauge.WithTwoLabels ALLOCATED_BYTES_GAUGE =
                 Gauge.name("skara_runner_allocated_bytes").labels("bot", "work_item").register();
+        /**
+         * Gauge that tracks the time WorkItems have been pending before
+         * being submitted.
+         */
+        private static final Gauge.WithTwoLabels PENDING_TIME_GAUGE =
+            Gauge.name("skara_runner_pending_time").labels("bot", "work_item").register();
+        /**
+         * Gauge that tracks the time WorkItems have been submitted before
+         * starting to run.
+         */
+        private static final Gauge.WithTwoLabels SUBMITTED_TIME_GAUGE =
+                Gauge.name("skara_runner_submitted_time").labels("bot", "work_item").register();
         private static final Counter.WithTwoLabels CPU_TIME_COUNTER =
                 Counter.name("skara_runner_cpu_time_total").labels("bot", "work_item").register();
         private static final Counter.WithTwoLabels USER_TIME_COUNTER =
@@ -184,8 +218,8 @@ public class BotRunner {
 
             synchronized (executor) {
                 if (scratchPaths.isEmpty()) {
-                    log.finer("No scratch paths available - postponing " + item);
-                    addPending(item, null);
+                    log.warning("No scratch paths available - postponing " + item);
+                    addPending(new PendingWorkItem(item), null);
                     return;
                 }
                 scratchPath = scratchPaths.removeFirst();
@@ -194,7 +228,10 @@ public class BotRunner {
             Collection<WorkItem> followUpItems = null;
             try (var __ = new LogContext(Map.of("work_item", item.toString(),
                     "work_id", String.valueOf(workId)))) {
-                log.log(Level.FINE, "Executing item " + item + " on repository " + scratchPath, TaskPhases.BEGIN);
+                var submittedDuration = Duration.between(createTime, Instant.now());
+                SUBMITTED_TIME_GAUGE.labels(item.botName(), item.workItemName()).set(submittedDuration.toMillis() / 1_000.0);
+                log.log(Level.FINE, "Executing item " + item + " on repository " + scratchPath
+                        + " after being submitted for " + submittedDuration, TaskPhases.BEGIN);
                 try {
                     followUpItems = item.run(scratchPath);
                 } catch (UncheckedRestException e) {
@@ -227,15 +264,15 @@ public class BotRunner {
 
                 // Some of the pending items may now be eligible for execution
                 var candidateItems = pending.entrySet().stream()
-                                            .filter(e -> e.getValue().isEmpty() || !active.containsKey(e.getValue().get()))
-                                            .map(Map.Entry::getKey)
-                                            .collect(Collectors.toList());
+                        .filter(e -> e.getValue().isEmpty() || !active.containsKey(e.getValue().get()))
+                        .map(Map.Entry::getKey)
+                        .toList();
 
                 // Try the candidates against the current active set
                 for (var candidate : candidateItems) {
                     boolean maySubmit = true;
                     for (var activeItem : active.keySet()) {
-                        if (!activeItem.concurrentWith(candidate)) {
+                        if (!activeItem.concurrentWith(candidate.item)) {
                             // Still can't run this candidate, leave it pending
                             log.finer("Cannot submit candidate " + candidate + " - not concurrent with " + activeItem);
                             maySubmit = false;
@@ -245,8 +282,12 @@ public class BotRunner {
 
                     if (maySubmit) {
                         removePending(candidate);
-                        submit(candidate);
-                        log.finer("Submitting candidate: " + candidate);
+                        submit(candidate.item);
+                        var timeSinceCreation = Duration.between(candidate.createTime, Instant.now());
+                        PENDING_TIME_GAUGE.labels(candidate.item.botName(), candidate.item.workItemName())
+                                .set(timeSinceCreation.toMillis() / 1_000.0);
+                        log.fine("Submitting candidate: " + candidate.item
+                                + " after being pending for " + timeSinceCreation);
                     }
                 }
             }
@@ -254,7 +295,7 @@ public class BotRunner {
     }
 
     // Mapping of pending items to the active item preventing them from running
-    private final Map<WorkItem, Optional<WorkItem>> pending;
+    private final Map<PendingWorkItem, Optional<WorkItem>> pending;
     // Mapping of active WorkItem to their RunnableWorkItem
     private final Map<WorkItem, RunnableWorkItem> active;
     private final Deque<Path> scratchPaths;
@@ -280,19 +321,21 @@ public class BotRunner {
             for (var activeItem : active.keySet()) {
                 if (!activeItem.concurrentWith(item)) {
 
+                    Instant originalCreateTime = null;
                     for (var pendingItem : pending.keySet()) {
                         // If there are pending items of the same type that we cannot run concurrently with, replace them.
-                        if (item.replaces(pendingItem)) {
+                        if (item.replaces(pendingItem.item)) {
                             log.finer("Discarding obsoleted item " + pendingItem +
                                               " in favor of item " + item);
                             DISCARDED_COUNTER.labels(item.botName(), item.workItemName()).inc();
                             removePending(pendingItem);
+                            originalCreateTime = pendingItem.createTime;
                             // There can't be more than one
                             break;
                         }
                     }
 
-                    addPending(item, activeItem);
+                    addPending(new PendingWorkItem(item, originalCreateTime), activeItem);
                     return;
                 }
             }
@@ -303,20 +346,20 @@ public class BotRunner {
 
     /**
      * Called to add a WorkItem to the pending queue
-     * @param item Item to queue
+     * @param pendingItem Item to queue
      * @param activeItem Optional active item that this item is waiting for
      */
-    private void addPending(WorkItem item, WorkItem activeItem) {
-        pending.put(item, Optional.ofNullable(activeItem));
-        pendingGauge.labels(item.botName(), item.workItemName()).inc();
+    private void addPending(PendingWorkItem pendingItem, WorkItem activeItem) {
+        pending.put(pendingItem, Optional.ofNullable(activeItem));
+        pendingGauge.labels(pendingItem.item.botName(), pendingItem.item.workItemName()).inc();
     }
 
     /**
      * Called to remove an item from the pending queue.
      */
-    private void removePending(WorkItem item) {
-        pending.remove(item);
-        pendingGauge.labels(item.botName(), item.workItemName()).dec();
+    private void removePending(PendingWorkItem pendingItem) {
+        pending.remove(pendingItem);
+        pendingGauge.labels(pendingItem.item.botName(), pendingItem.item.workItemName()).dec();
     }
 
     /**

@@ -123,6 +123,15 @@ public class IssueNotifierFactory implements NotifierFactory {
             builder.originalRepository(botConfiguration.repository(notifierConfiguration.get("originalrepository").asString()));
         }
 
+        if (notifierConfiguration.contains("tag")) {
+            var tag = notifierConfiguration.get("tag");
+            if (tag.contains("ignoreopt")) {
+                builder.tagIgnoreOpt(tag.get("ignoreopt").stream()
+                        .map(JSONValue::asString)
+                        .collect(Collectors.toSet()));
+            }
+        }
+
         return builder.build();
     }
 }
