@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -44,7 +44,7 @@ public class CommitCommandWorkItem implements WorkItem {
 
     private static final Logger log = Logger.getLogger("org.openjdk.skara.bots.pr");
 
-    private static final Map<String, CommandHandler> commandHandlers = Map.ofEntries(
+    static final Map<String, CommandHandler> commandHandlers = Map.ofEntries(
             Map.entry("help", new HelpCommand()),
             Map.entry("backport", new BackportCommand()),
             Map.entry("tag", new TagCommand())
@@ -95,7 +95,7 @@ public class CommitCommandWorkItem implements WorkItem {
 
     private Optional<CommandInvocation> nextCommand(List<CommitComment> allComments) {
         var self = bot.repo().forge().currentUser();
-        var command = CommandExtractor.extractCommands(commandHandlers, commitComment.body(),
+        var command = CommandExtractor.extractCommands(true, commitComment.body(),
                                                        commitComment.id(), commitComment.author());
         if (command.isEmpty()) {
             return Optional.empty();
@@ -144,6 +144,7 @@ public class CommitCommandWorkItem implements WorkItem {
 
         bot.repo().addCommitComment(commitComment.commit(), writer.toString());
     }
+
     @Override
     public Collection<WorkItem> run(Path scratchPath) {
         log.info("Looking for commit comment commands");

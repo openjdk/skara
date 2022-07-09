@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,7 +38,7 @@ public class CommandExtractor {
         }
     }
 
-    static List<CommandInvocation> extractCommands(Map<String, CommandHandler> commandHandlers, String text, String baseId, HostUser user) {
+    static List<CommandInvocation> extractCommands(boolean commitCommandFirst, String text, String baseId, HostUser user) {
         var ret = new ArrayList<CommandInvocation>();
         CommandHandler multiLineHandler = null;
         List<String> multiLineBuffer = null;
@@ -52,7 +52,10 @@ public class CommandExtractor {
                     multiLineHandler = null;
                 }
                 var command = commandMatcher.group(1).toLowerCase();
-                var handler = commandHandlers.get(command);
+                var handler = commitCommandFirst ? CommitCommandWorkItem.commandHandlers.get(command) : PullRequestCommandWorkItem.commandHandlers.get(command);
+                if (handler == null) {
+                    handler = commitCommandFirst ? PullRequestCommandWorkItem.commandHandlers.get(command) : CommitCommandWorkItem.commandHandlers.get(command);
+                }
                 if (handler != null && handler.multiLine()) {
                     multiLineHandler = handler;
                     multiLineBuffer = new ArrayList<>();

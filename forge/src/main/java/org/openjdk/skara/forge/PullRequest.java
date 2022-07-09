@@ -22,6 +22,9 @@
  */
 package org.openjdk.skara.forge;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.vcs.Diff;
 import org.openjdk.skara.vcs.Hash;
@@ -176,4 +179,24 @@ public interface PullRequest extends Issue {
      * or the restful api doesn't support force-push, return empty.
      */
     Optional<ZonedDateTime> lastForcePushTime();
+
+    /**
+     * Return the commit hash if the pull request was integrated.
+     */
+    Optional<Hash> findIntegratedCommitHash();
+
+    default Optional<Hash> findIntegratedCommitHash(List<String> userIds) {
+        Pattern pushedPattern = Pattern.compile("Pushed as commit ([a-f0-9]{40})\\.");
+        if (labelNames().contains("integrated")) {
+            return comments().stream()
+                    .filter(comment -> userIds.contains(comment.author().id()))
+                    .map(Comment::body)
+                    .map(pushedPattern::matcher)
+                    .filter(Matcher::find)
+                    .map(m -> m.group(1))
+                    .map(Hash::new)
+                    .findAny();
+        }
+        return Optional.empty();
+    }
 }

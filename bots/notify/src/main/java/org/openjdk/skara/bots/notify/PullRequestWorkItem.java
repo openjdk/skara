@@ -24,7 +24,6 @@ package org.openjdk.skara.bots.notify;
 
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.PullRequest;
-import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.storage.StorageBuilder;
 import org.openjdk.skara.vcs.Hash;
@@ -49,23 +48,6 @@ public class PullRequestWorkItem implements WorkItem {
         this.listeners = listeners;
         this.errorHandler = errorHandler;
         this.integratorId = integratorId;
-    }
-
-    private final static Pattern pushedPattern = Pattern.compile("Pushed as commit ([a-f0-9]{40})\\.");
-
-    private Hash resultingCommitHash() {
-        if (pr.labelNames().contains("integrated")) {
-            return pr.comments().stream()
-                     .filter(comment -> comment.author().id().equals(integratorId))
-                     .map(Comment::body)
-                     .map(pushedPattern::matcher)
-                     .filter(Matcher::find)
-                     .map(m -> m.group(1))
-                     .map(Hash::new)
-                     .findAny()
-                     .orElse(null);
-        }
-        return null;
     }
 
     private Set<PullRequestState> deserializePrState(String current) {
@@ -202,7 +184,7 @@ public class PullRequestWorkItem implements WorkItem {
                 .materialize(historyPath);
 
         var issues = parseIssues();
-        var commit = resultingCommitHash();
+        var commit = pr.findIntegratedCommitHash(List.of(integratorId)).orElse(null);
         var state = new PullRequestState(pr, issues, commit, pr.headHash(), pr.state());
         var stored = storage.current();
         if (stored.contains(state)) {
@@ -217,7 +199,7 @@ public class PullRequestWorkItem implements WorkItem {
         // The stored entry could be old and be missing commit information - if so, upgrade it
         if (storedState.isPresent()) {
             if (storedState.get().commitId().equals(Optional.of(Hash.zero()))) {
-                var hash = resultingCommitHash();
+                var hash = pr.findIntegratedCommitHash(List.of(integratorId)).orElse(null);
                 storedState = Optional.of(new PullRequestState(pr, storedState.get().issueIds(), hash, pr.headHash(), pr.state()));
                 storage.put(storedState.get());
             }
