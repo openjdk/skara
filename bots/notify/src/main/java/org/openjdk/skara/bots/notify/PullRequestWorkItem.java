@@ -184,7 +184,7 @@ public class PullRequestWorkItem implements WorkItem {
                 .materialize(historyPath);
 
         var issues = parseIssues();
-        var commit = pr.findIntegratedCommitHash(List.of(integratorId)).orElse(null);
+        var commit = integratorId != null ? pr.findIntegratedCommitHash(List.of(integratorId)).orElse(null) : null;
         var state = new PullRequestState(pr, issues, commit, pr.headHash(), pr.state());
         var stored = storage.current();
         if (stored.contains(state)) {
@@ -199,7 +199,7 @@ public class PullRequestWorkItem implements WorkItem {
         // The stored entry could be old and be missing commit information - if so, upgrade it
         if (storedState.isPresent()) {
             if (storedState.get().commitId().equals(Optional.of(Hash.zero()))) {
-                var hash = pr.findIntegratedCommitHash(List.of(integratorId)).orElse(null);
+                var hash = integratorId != null ? pr.findIntegratedCommitHash(List.of(integratorId)).orElse(null) : null;
                 storedState = Optional.of(new PullRequestState(pr, storedState.get().issueIds(), hash, pr.headHash(), pr.state()));
                 storage.put(storedState.get());
             }
