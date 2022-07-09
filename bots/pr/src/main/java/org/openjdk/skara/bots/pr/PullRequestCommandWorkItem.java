@@ -202,7 +202,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
                 } else {
                     printer.print("The command `");
                     printer.print(command.name());
-                    printer.println("` can not be used in pull requests.");
+                    printer.println("` can not be used in pull requests. Please try to use this command on the commit.");
                 }
             }
         } else {
