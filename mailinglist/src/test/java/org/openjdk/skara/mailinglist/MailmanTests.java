@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.mailinglist;
 
+import java.time.ZonedDateTime;
 import org.junit.jupiter.api.Test;
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.test.TestMailmanServer;
@@ -166,6 +167,89 @@ class MailmanTests {
             assertEquals(1, conversations.size());
             var conversation = conversations.get(0);
             assertEquals(expectedMail, conversation.first());
+        }
+    }
+
+    @Test
+    void poll3months() throws Exception {
+        try (var testServer = new TestMailmanServer()) {
+            var listAddress = testServer.createList("test");
+            var mailmanServer = MailingListServerFactory.createMailmanServer(testServer.getArchive(),
+                    testServer.getSMTP(), Duration.ZERO);
+            var mailmanList = mailmanServer.getListReader(listAddress);
+            var sender = EmailAddress.from("Test", "test@test.email");
+            var now = ZonedDateTime.now();
+            var mail2monthsAgo = Email.create(sender, "Subject 2 months ago", "Body 1")
+                    .recipient(EmailAddress.parse(listAddress))
+                    .date(now.minusMonths(2))
+                    .build();
+            var mail1monthAgo = Email.create(sender, "Subject 1 month ago", "Body 2")
+                    .recipient(EmailAddress.parse(listAddress))
+                    .date(now.minusMonths(1))
+                    .build();
+            var mailNow = Email.create(sender, "Subject now", "Body 3")
+                    .recipient(EmailAddress.parse(listAddress))
+                    .build();
+
+            var duration2Months = Duration.between(now.minusMonths(2), now);
+            {
+                var conversations = mailmanList.conversations(duration2Months);
+                assertEquals(0, conversations.size());
+                assertEquals(3, testServer.callCount(), "Server wasn't called for every month");
+            }
+            {
+                // A 2 months old mail should not be picked up now as old results should be cached
+                mailmanServer.post(mail2monthsAgo);
+                testServer.processIncoming();
+                testServer.resetCallCount();
+                var conversations = mailmanList.conversations(duration2Months);
+                assertEquals(0, conversations.size());
+                //
+                assertEquals(2, testServer.callCount(), "Server should only be called for the current and previous month");
+            }
+            {
+                // A mail from last month should be found
+                mailmanServer.post(mail1monthAgo);
+                testServer.processIncoming();
+                testServer.resetCallCount();
+                var conversations = mailmanList.conversations(duration2Months);
+                assertEquals(1, conversations.size());
+                assertEquals(2, testServer.callCount());
+            }
+            {
+                // A current mail should be found
+                mailmanServer.post(mailNow);
+                testServer.processIncoming();
+                testServer.resetCallCount();
+                var conversations = mailmanList.conversations(duration2Months);
+                assertEquals(2, conversations.size());
+                assertEquals(2, testServer.callCount());
+            }
+            {
+                // Another mail from last month should be found
+                var mail1monthAgo2 = Email.create(sender, "Subject 1 month ago 2", "Body 2")
+                        .recipient(EmailAddress.parse(listAddress))
+                        .date(now.minusMonths(1))
+                        .build();
+                mailmanServer.post(mail1monthAgo2);
+                testServer.processIncoming();
+                testServer.resetCallCount();
+                var conversations = mailmanList.conversations(duration2Months);
+                assertEquals(3, conversations.size());
+                assertEquals(2, testServer.callCount());
+            }
+            {
+                // Another current mail should be found
+                var mailNow2 = Email.create(sender, "Subject now 2", "Body 3")
+                        .recipient(EmailAddress.parse(listAddress))
+                        .build();
+                mailmanServer.post(mailNow2);
+                testServer.processIncoming();
+                testServer.resetCallCount();
+                var conversations = mailmanList.conversations(duration2Months);
+                assertEquals(4, conversations.size());
+                assertEquals(2, testServer.callCount());
+            }
         }
     }
 }
