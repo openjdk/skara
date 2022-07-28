@@ -59,7 +59,7 @@ class PullRequestCommandTests {
             // Issue a commit command
             pr.addComment("/tag");
             TestBotRunner.runPeriodicItems(mergeBot);
-            PullRequestAsserts.assertLastCommentContains(pr, "The command `tag` can not be used in pull requests. Please try to use this command on the commit.");
+            PullRequestAsserts.assertLastCommentContains(pr, "The command `tag` can not be used in pull requests.");
 
             // Issue an invalid command
             pr.addComment("/howdy");
