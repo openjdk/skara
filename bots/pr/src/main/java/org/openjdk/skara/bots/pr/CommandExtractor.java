@@ -22,10 +22,16 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import org.openjdk.skara.forge.HostedCommit;
+import org.openjdk.skara.forge.PullRequest;
+import org.openjdk.skara.issuetracker.Comment;
 import org.openjdk.skara.host.HostUser;
 
+import java.io.PrintWriter;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 public class CommandExtractor {
     private static final Pattern commandPattern = Pattern.compile("^\\s*/([A-Za-z]+)(?:\\s+(.*))?");
@@ -38,7 +44,63 @@ public class CommandExtractor {
         }
     }
 
-    static List<CommandInvocation> extractCommands(boolean commitCommandFirst, String text, String baseId, HostUser user) {
+    private static final Map<String, CommandHandler> commandHandlers = Map.ofEntries(
+            Map.entry("help", new HelpCommand()),
+            Map.entry("integrate", new IntegrateCommand()),
+            Map.entry("sponsor", new SponsorCommand()),
+            Map.entry("contributor", new ContributorCommand()),
+            Map.entry("summary", new SummaryCommand()),
+            Map.entry("issue", new IssueCommand()),
+            Map.entry("solves", new IssueCommand("solves")),
+            Map.entry("reviewers", new ReviewersCommand()),
+            Map.entry("csr", new CSRCommand()),
+            Map.entry("jep", new JEPCommand()),
+            Map.entry("reviewer", new ReviewerCommand()),
+            Map.entry("label", new LabelCommand()),
+            Map.entry("cc", new LabelCommand("cc")),
+            Map.entry("clean", new CleanCommand()),
+            Map.entry("open", new OpenCommand()),
+            Map.entry("backport", new BackportCommand()),
+            Map.entry("tag", new TagCommand())
+    );
+
+    static class HelpCommand implements CommandHandler {
+        @Override
+        public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+            reply.println("Available commands:");
+            Stream.concat(
+                    commandHandlers.entrySet().stream()
+                            .filter(entry -> entry.getValue().allowedInPullRequest())
+                            .map(entry -> entry.getKey() + " - " + entry.getValue().description()),
+                    bot.externalPullRequestCommands().entrySet().stream()
+                            .map(entry -> entry.getKey() + " - " + entry.getValue())
+            ).sorted().forEachOrdered(c -> reply.println(" * " + c));
+        }
+
+        @Override
+        public void handle(PullRequestBot bot, HostedCommit hash, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+            reply.println("Available commands:");
+            Stream.concat(
+                    commandHandlers.entrySet().stream()
+                            .filter(entry -> entry.getValue().allowedInCommit())
+                            .map(entry -> entry.getKey() + " - " + entry.getValue().description()),
+                    bot.externalCommitCommands().entrySet().stream()
+                            .map(entry -> entry.getKey() + " - " + entry.getValue())
+            ).sorted().forEachOrdered(c -> reply.println(" * " + c));
+        }
+
+        @Override
+        public String description() {
+            return "shows this text";
+        }
+
+        @Override
+        public boolean allowedInCommit() {
+            return true;
+        }
+    }
+
+    static List<CommandInvocation> extractCommands(String text, String baseId, HostUser user) {
         var ret = new ArrayList<CommandInvocation>();
         CommandHandler multiLineHandler = null;
         List<String> multiLineBuffer = null;
@@ -52,10 +114,7 @@ public class CommandExtractor {
                     multiLineHandler = null;
                 }
                 var command = commandMatcher.group(1).toLowerCase();
-                var handler = commitCommandFirst ? CommitCommandWorkItem.commandHandlers.get(command) : PullRequestCommandWorkItem.commandHandlers.get(command);
-                if (handler == null) {
-                    handler = commitCommandFirst ? PullRequestCommandWorkItem.commandHandlers.get(command) : CommitCommandWorkItem.commandHandlers.get(command);
-                }
+                var handler = commandHandlers.get(command);
                 if (handler != null && handler.multiLine()) {
                     multiLineHandler = handler;
                     multiLineBuffer = new ArrayList<>();

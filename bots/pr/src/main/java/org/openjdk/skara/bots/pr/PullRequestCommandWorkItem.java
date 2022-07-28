@@ -40,61 +40,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     private static final String commandReplyMarker = "<!-- Jmerge command reply message (%s) -->";
     private static final Pattern commandReplyPattern = Pattern.compile("<!-- Jmerge command reply message \\((\\S+)\\) -->");
 
-    static final Map<String, CommandHandler> commandHandlers = Map.ofEntries(
-            Map.entry("help", new HelpCommand()),
-            Map.entry("integrate", new IntegrateCommand()),
-            Map.entry("sponsor", new SponsorCommand()),
-            Map.entry("contributor", new ContributorCommand()),
-            Map.entry("summary", new SummaryCommand()),
-            Map.entry("issue", new IssueCommand()),
-            Map.entry("solves", new IssueCommand("solves")),
-            Map.entry("reviewers", new ReviewersCommand()),
-            Map.entry("csr", new CSRCommand()),
-            Map.entry("jep", new JEPCommand()),
-            Map.entry("reviewer", new ReviewerCommand()),
-            Map.entry("label", new LabelCommand()),
-            Map.entry("cc", new LabelCommand("cc")),
-            Map.entry("clean", new CleanCommand()),
-            Map.entry("open", new OpenCommand())
-    );
-
     public static final String VALID_BOT_COMMAND_MARKER = "<!-- Valid self-command -->";
-
-    static class HelpCommand implements CommandHandler {
-        @Override
-        public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
-            reply.println("Available commands:");
-            Stream.concat(
-                    commandHandlers.entrySet().stream()
-                                   .filter(entry -> entry.getValue().allowedInPullRequest())
-                                   .map(entry -> entry.getKey() + " - " + entry.getValue().description()),
-                    bot.externalPullRequestCommands().entrySet().stream()
-                                          .map(entry -> entry.getKey() + " - " + entry.getValue())
-            ).sorted().forEachOrdered(c -> reply.println(" * " + c));
-        }
-
-        @Override
-        public void handle(PullRequestBot bot, HostedCommit hash, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
-            reply.println("Available commands:");
-            Stream.concat(
-                    commandHandlers.entrySet().stream()
-                                   .filter(entry -> entry.getValue().allowedInCommit())
-                                   .map(entry -> entry.getKey() + " - " + entry.getValue().description()),
-                    bot.externalPullRequestCommands().entrySet().stream()
-                       .map(entry -> entry.getKey() + " - " + entry.getValue())
-            ).sorted().forEachOrdered(c -> reply.println(" * " + c));
-        }
-
-        @Override
-        public String description() {
-            return "shows this text";
-        }
-
-        @Override
-        public boolean allowedInCommit() {
-            return true;
-        }
-    }
 
     PullRequestCommandWorkItem(PullRequestBot bot, PullRequest pr, Consumer<RuntimeException> errorHandler) {
         super(bot, pr, errorHandler);
@@ -115,10 +61,10 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     private Optional<CommandInvocation> nextCommand(PullRequest pr, List<Comment> comments) {
         var self = pr.repository().forge().currentUser();
         var body = PullRequestBody.parse(pr).bodyText();
-        var allCommands = Stream.concat(CommandExtractor.extractCommands(false, body, "body", pr.author()).stream(),
+        var allCommands = Stream.concat(CommandExtractor.extractCommands(body, "body", pr.author()).stream(),
                                         comments.stream()
                                                 .filter(comment -> !comment.author().equals(self) || comment.body().endsWith(VALID_BOT_COMMAND_MARKER))
-                                                .flatMap(c -> CommandExtractor.extractCommands(false, c.body(), c.id(), c.author()).stream()))
+                                                .flatMap(c -> CommandExtractor.extractCommands(c.body(), c.id(), c.author()).stream()))
                                 .collect(Collectors.toList());
 
         var handled = comments.stream()
