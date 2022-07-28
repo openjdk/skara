@@ -34,6 +34,7 @@ dependencies {
     implementation project(':network')
     implementation project(':vcs')
     implementation project(':email')
+    implementation project(':metrics')
 
     testImplementation project(':test')
 }

@@ -21,6 +21,7 @@
  * questions.
  */
 module org.openjdk.skara.mailinglist {
+    requires transitive org.openjdk.skara.metrics;
     requires java.net.http;
     requires java.logging;
     requires org.openjdk.skara.network;

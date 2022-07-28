@@ -33,6 +33,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import org.openjdk.skara.metrics.Counter;
 
 public class MailmanListReader implements MailingListReader {
     private final MailmanServer server;
@@ -43,6 +44,9 @@ public class MailmanListReader implements MailingListReader {
     private static final HttpClient client = HttpClient.newBuilder()
                                                        .connectTimeout(Duration.ofSeconds(10))
                                                        .build();
+
+    private static final Counter.WithOneLabel POLLING_COUNTER =
+            Counter.name("skara_mailman_polling").labels("code").register();
 
     MailmanListReader(MailmanServer server, Collection<String> names) {
         this.server = server;
@@ -90,6 +94,7 @@ public class MailmanListReader implements MailingListReader {
         var request = requestBuilder.build();
         try {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            POLLING_COUNTER.labels(String.valueOf(response.statusCode())).inc();
             if (response.statusCode() == 200) {
                 pageCache.put(uri, response);
                 return Optional.of(response);
@@ -102,6 +107,7 @@ public class MailmanListReader implements MailingListReader {
                 throw new RuntimeException("Bad response received: " + response);
             }
         } catch (IOException e) {
+            POLLING_COUNTER.labels(e.getMessage()).inc();
             throw new UncheckedIOException(e);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
