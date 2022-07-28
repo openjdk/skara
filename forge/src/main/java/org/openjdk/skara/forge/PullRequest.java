@@ -199,4 +199,8 @@ public interface PullRequest extends Issue {
         }
         return Optional.empty();
     }
+
+    static String commitHashMessage(Hash hash) {
+        return hash != null ? "Pushed as commit " + hash.hex() + "." : "";
+    }
 }
