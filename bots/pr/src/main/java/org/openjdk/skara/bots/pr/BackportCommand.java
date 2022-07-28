@@ -55,7 +55,7 @@ public class BackportCommand implements CommandHandler {
     @Override
     public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath,
                 CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
-        reply.println("The command `backport` can not be used in a pull request that has not yet been integrated.");
+        reply.println("The command `backport` can only be used in a pull request that has been integrated.");
     }
 
     @Override
