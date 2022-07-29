@@ -25,7 +25,6 @@ package org.openjdk.skara.bots.pr;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.*;
-import org.openjdk.skara.vcs.Hash;
 
 import java.io.*;
 import java.nio.file.Path;
@@ -40,63 +39,8 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
 
     private static final String commandReplyMarker = "<!-- Jmerge command reply message (%s) -->";
     private static final Pattern commandReplyPattern = Pattern.compile("<!-- Jmerge command reply message \\((\\S+)\\) -->");
-    private final static Pattern pushedPattern = Pattern.compile("Pushed as commit ([a-f0-9]{40})\\.");
-
-    private static final Map<String, CommandHandler> commandHandlers = Map.ofEntries(
-            Map.entry("help", new HelpCommand()),
-            Map.entry("integrate", new IntegrateCommand()),
-            Map.entry("sponsor", new SponsorCommand()),
-            Map.entry("contributor", new ContributorCommand()),
-            Map.entry("summary", new SummaryCommand()),
-            Map.entry("issue", new IssueCommand()),
-            Map.entry("solves", new IssueCommand("solves")),
-            Map.entry("reviewers", new ReviewersCommand()),
-            Map.entry("csr", new CSRCommand()),
-            Map.entry("jep", new JEPCommand()),
-            Map.entry("reviewer", new ReviewerCommand()),
-            Map.entry("label", new LabelCommand()),
-            Map.entry("cc", new LabelCommand("cc")),
-            Map.entry("clean", new CleanCommand()),
-            Map.entry("open", new OpenCommand())
-    );
 
     public static final String VALID_BOT_COMMAND_MARKER = "<!-- Valid self-command -->";
-
-    static class HelpCommand implements CommandHandler {
-        @Override
-        public void handle(PullRequestBot bot, PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
-            reply.println("Available commands:");
-            Stream.concat(
-                    commandHandlers.entrySet().stream()
-                                   .filter(entry -> entry.getValue().allowedInPullRequest())
-                                   .map(entry -> entry.getKey() + " - " + entry.getValue().description()),
-                    bot.externalPullRequestCommands().entrySet().stream()
-                                          .map(entry -> entry.getKey() + " - " + entry.getValue())
-            ).sorted().forEachOrdered(c -> reply.println(" * " + c));
-        }
-
-        @Override
-        public void handle(PullRequestBot bot, HostedCommit hash, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
-            reply.println("Available commands:");
-            Stream.concat(
-                    commandHandlers.entrySet().stream()
-                                   .filter(entry -> entry.getValue().allowedInCommit())
-                                   .map(entry -> entry.getKey() + " - " + entry.getValue().description()),
-                    bot.externalPullRequestCommands().entrySet().stream()
-                       .map(entry -> entry.getKey() + " - " + entry.getValue())
-            ).sorted().forEachOrdered(c -> reply.println(" * " + c));
-        }
-
-        @Override
-        public String description() {
-            return "shows this text";
-        }
-
-        @Override
-        public boolean allowedInCommit() {
-            return true;
-        }
-    }
 
     PullRequestCommandWorkItem(PullRequestBot bot, PullRequest pr, Consumer<RuntimeException> errorHandler) {
         super(bot, pr, errorHandler);
@@ -117,10 +61,10 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     private Optional<CommandInvocation> nextCommand(PullRequest pr, List<Comment> comments) {
         var self = pr.repository().forge().currentUser();
         var body = PullRequestBody.parse(pr).bodyText();
-        var allCommands = Stream.concat(CommandExtractor.extractCommands(commandHandlers, body, "body", pr.author()).stream(),
+        var allCommands = Stream.concat(CommandExtractor.extractCommands(body, "body", pr.author()).stream(),
                                         comments.stream()
                                                 .filter(comment -> !comment.author().equals(self) || comment.body().endsWith(VALID_BOT_COMMAND_MARKER))
-                                                .flatMap(c -> CommandExtractor.extractCommands(commandHandlers, c.body(), c.id(), c.author()).stream()))
+                                                .flatMap(c -> CommandExtractor.extractCommands(c.body(), c.id(), c.author()).stream()))
                                 .collect(Collectors.toList());
 
         var handled = comments.stream()
@@ -134,17 +78,6 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
                           .filter(ci -> !handled.contains(ci.id()))
                           .filter(ci -> !bot.externalPullRequestCommands().containsKey(ci.name()))
                           .findFirst();
-    }
-
-    private Optional<Hash> resultingCommitHash(List<Comment> allComments) {
-        return allComments.stream()
-                 .filter(comment -> comment.author().id().equals(pr.repository().forge().currentUser().id()))
-                 .map(Comment::body)
-                 .map(pushedPattern::matcher)
-                 .filter(Matcher::find)
-                 .map(m -> m.group(1))
-                 .map(Hash::new)
-                 .findAny();
     }
 
     private void changeLabelsAfterComment(List<String> labelsToAdd, List<String> labelsToRemove){
@@ -184,11 +117,14 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         if (handler.isPresent()) {
             if (isCommit) {
                 if (handler.get().allowedInCommit()) {
-                    var hash = resultingCommitHash(allComments);
+                    var hash = pr.findIntegratedCommitHash();
                     if (hash.isPresent()) {
                         var commit = pr.repository().commit(hash.get()).orElseThrow();
                         handler.get().handle(bot, commit, censusInstance, scratchPath, command, allComments, printer);
                     } else {
+                        // FIXME the argument `isCommit` is true here, which means the PR already has the `integrated` label
+                        //  and has the integrated commit hash, so this branch would never be run.
+                        //  Maybe this branch could be removed. And this branch can not be tested now.
                         printer.print("The command `");
                         printer.print(command.name());
                         printer.println("` can only be used in a pull request that has been integrated.");
@@ -212,7 +148,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
                 } else {
                     printer.print("The command `");
                     printer.print(command.name());
-                    printer.println("` can only be used in a pull request that has not yet been integrated.");
+                    printer.println("` can not be used in pull requests.");
                 }
             }
         } else {
@@ -255,7 +191,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         // We can't trust just the integrated label as that gets set before the commit comment.
         // If marked as integrated but there is no commit comment, any integrate command needs
         // to run again to correct the state of the PR.
-        if (!pr.labelNames().contains("integrated") || resultingCommitHash(comments).isEmpty()) {
+        if (!pr.labelNames().contains("integrated") || pr.findIntegratedCommitHash().isEmpty()) {
             processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), command, comments, false);
             // Must re-fetch PR after running the command, the command might have updated the PR
             var updatedPR = pr.repository().pullRequest(pr.id());

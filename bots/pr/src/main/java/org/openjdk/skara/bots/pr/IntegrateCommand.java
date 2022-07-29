@@ -330,7 +330,7 @@ public class IntegrateCommand implements CommandHandler {
         if (pr.labelNames().contains("sponsor")) {
             pr.removeLabel("sponsor");
         }
-        reply.println("Pushed as commit " + hash.hex() + ".");
+        reply.println(PullRequest.commitHashMessage(hash));
         reply.println();
         reply.println(":bulb: You may see a message that your pull request was closed with unmerged commits. This can be safely ignored.");
     }

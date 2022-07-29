@@ -858,4 +858,9 @@ public class GitLabMergeRequest implements PullRequest {
     public Optional<ZonedDateTime> lastForcePushTime() {
         return Optional.empty();
     }
+
+    @Override
+    public Optional<Hash> findIntegratedCommitHash() {
+        return findIntegratedCommitHash(List.of(repository.forge().currentUser().id()));
+    }
 }

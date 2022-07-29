@@ -34,6 +34,7 @@ import org.openjdk.skara.vcs.DiffComparator;
 import org.openjdk.skara.vcs.Hash;
 
 import java.io.IOException;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -104,5 +105,28 @@ public class GitHubRestApiTests {
         var pr = githubRepo.pullRequest("96");
         var lastForcePushTime = pr.lastForcePushTime();
         assertEquals("2022-05-29T10:32:43Z", lastForcePushTime.get().toString());
+    }
+
+    @Test
+    void testFindIntegratedCommitHash() {
+        var playgroundRepoOpt = githubHost.repository("openjdk/playground");
+        assumeTrue(playgroundRepoOpt.isPresent());
+        var playgroundRepo = playgroundRepoOpt.get();
+        var playgroundPr = playgroundRepo.pullRequest("96");
+        var playgroundHashOpt = playgroundPr.findIntegratedCommitHash();
+        assertTrue(playgroundHashOpt.isEmpty());
+        // `43336822` is the id of the `openjdk` bot(a GitHub App).
+        playgroundHashOpt = playgroundPr.findIntegratedCommitHash(List.of("43336822"));
+        assertTrue(playgroundHashOpt.isEmpty());
+
+        var jdkRepoOpt = githubHost.repository("openjdk/jdk");
+        assumeTrue(jdkRepoOpt.isPresent());
+        var jdkRepo = jdkRepoOpt.get();
+        var jdkPr = jdkRepo.pullRequest("8648");
+        var jdkHashOpt = jdkPr.findIntegratedCommitHash();
+        assertTrue(jdkHashOpt.isEmpty());
+        // `43336822` is the id of the `openjdk` bot(a GitHub App).
+        jdkHashOpt = jdkPr.findIntegratedCommitHash(List.of("43336822"));
+        assertTrue(jdkHashOpt.isPresent());
     }
 }

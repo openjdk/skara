@@ -271,4 +271,9 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     public void setLastForcePushTime(ZonedDateTime lastForcePushTime) {
         data.lastForcePushTime = lastForcePushTime;
     }
+
+    @Override
+    public Optional<Hash> findIntegratedCommitHash() {
+        return findIntegratedCommitHash(List.of(repository().forge().currentUser().id()));
+    }
 }

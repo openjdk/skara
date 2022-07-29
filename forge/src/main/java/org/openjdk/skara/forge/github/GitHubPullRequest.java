@@ -777,4 +777,9 @@ public class GitHubPullRequest implements PullRequest {
                       .reduce((a, b) -> b)
                       .map(obj -> ZonedDateTime.parse(obj.get("created_at").asString()));
     }
+
+    @Override
+    public Optional<Hash> findIntegratedCommitHash() {
+        return findIntegratedCommitHash(List.of(repository.forge().currentUser().id()));
+    }
 }

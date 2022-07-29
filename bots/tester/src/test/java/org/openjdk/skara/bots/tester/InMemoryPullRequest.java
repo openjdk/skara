@@ -332,4 +332,9 @@ class InMemoryPullRequest implements PullRequest {
     public Optional<ZonedDateTime> lastForcePushTime() {
         return Optional.empty();
     }
+
+    @Override
+    public Optional<Hash> findIntegratedCommitHash() {
+        return Optional.empty();
+    }
 }

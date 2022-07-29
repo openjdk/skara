@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -55,6 +55,11 @@ class PullRequestCommandTests {
             var editHash = CheckableRepository.appendAndCommit(localRepo);
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Issue a commit command
+            pr.addComment("/tag");
+            TestBotRunner.runPeriodicItems(mergeBot);
+            PullRequestAsserts.assertLastCommentContains(pr, "The command `tag` can not be used in pull requests.");
 
             // Issue an invalid command
             pr.addComment("/howdy");

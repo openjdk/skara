@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -69,12 +69,19 @@ public class CommitCommandTests {
             var replies = author.commitComments(editHash);
             CommitCommandAsserts.assertLastCommentContains(replies, "Available commands");
 
+            // Add a command which is only valid in pull request
+            author.addCommitComment(editHash, "/issue 12");
+            TestBotRunner.runPeriodicItems(bot);
+
+            replies = author.commitComments(editHash);
+            CommitCommandAsserts.assertLastCommentContains(replies, "The command `issue` can only be used in pull requests.");
+
             // Try an invalid one
             author.addCommitComment(editHash, "/hello");
             TestBotRunner.runPeriodicItems(bot);
 
             replies = author.commitComments(editHash);
-            CommitCommandAsserts.assertLastCommentContains(replies, "Unknown");
+            CommitCommandAsserts.assertLastCommentContains(replies, "Unknown command `hello` - for a list of valid commands use `/help`.");
         }
     }
 
@@ -95,6 +102,7 @@ public class CommitCommandTests {
                                     .censusRepo(censusBuilder.build())
                                     .censusLink("https://census.com/{{contributor}}-profile")
                                     .seedStorage(seedFolder)
+                                    .forks(Map.of("jdk17u-dev", credentials.getHostedRepository()))
                                     .build();
 
             // Populate the projects repository
@@ -107,6 +115,12 @@ public class CommitCommandTests {
             localRepo.push(editHash, author.url(), "refs/heads/edit", true);
             var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
 
+            // Add a `backport` command
+            pr.addComment("/backport jdk17u-dev");
+            TestBotRunner.runPeriodicItems(bot);
+            // The `backport` command is invalid because the pull request is not integrated.
+            PullRequestAsserts.assertLastCommentContains(pr, "The command `backport` can only be used in a pull request that has been integrated.");
+
             // Simulate an integration
             var botPr = botRepo.pullRequest(pr.id());
             localRepo.push(editHash, author.url(), "master");
@@ -118,6 +132,13 @@ public class CommitCommandTests {
             pr.addComment("/help");
             TestBotRunner.runPeriodicItems(bot);
             PullRequestAsserts.assertLastCommentContains(pr, "Available commands");
+
+            // Add a `backport` command
+            pr.addComment("/backport jdk17u-dev");
+            TestBotRunner.runPeriodicItems(bot);
+            // The `backport` command is valid.
+            PullRequestAsserts.assertLastCommentContains(pr, "Could **not** automatically backport");
+            PullRequestAsserts.assertLastCommentContains(pr, "To manually resolve these conflicts");
 
             // Try an unavailable one
             pr.addComment("/integrate");
