@@ -101,6 +101,7 @@ public class MailmanListReader implements MailingListReader {
             } else if (response.statusCode() == 304) {
                 return Optional.of(response);
             } else if (response.statusCode() == 404) {
+                pageCache.put(uri, response);
                 log.fine("Page not found for " + uri);
                 return Optional.empty();
             } else {
@@ -121,10 +122,7 @@ public class MailmanListReader implements MailingListReader {
                                                   .sorted(Comparator.reverseOrder())
                                                   .collect(Collectors.toList());
 
-        var useCached = new HashMap<String, Boolean>();
-        for (var name : names) {
-            useCached.put(name, false);
-        }
+        var monthCount = 0;
         var newContent = false;
         var emails = new ArrayList<Email>();
         for (var month : potentialPages) {
@@ -132,9 +130,10 @@ public class MailmanListReader implements MailingListReader {
                 URI mboxUri = server.getMbox(name, month);
                 var sender = EmailAddress.from(name + "@" + mboxUri.getHost());
 
-                if (useCached.get(name)) {
+                // For archives older than the previous month, always use cached results
+                if (monthCount > 1 && pageCache.containsKey(mboxUri)) {
                     var cachedResponse = pageCache.get(mboxUri);
-                    if (cachedResponse != null) {
+                    if (cachedResponse != null && cachedResponse.statusCode() != 404) {
                         emails.addAll(0, Mbox.splitMbox(cachedResponse.body(), sender));
                     }
                 } else {
@@ -142,7 +141,6 @@ public class MailmanListReader implements MailingListReader {
                     if (mboxResponse.isPresent()) {
                         if (mboxResponse.get().statusCode() == 304) {
                             emails.addAll(0, Mbox.splitMbox(pageCache.get(mboxUri).body(), sender));
-                            useCached.put(name, true);
                         } else {
                             emails.addAll(0, Mbox.splitMbox(mboxResponse.get().body(), sender));
                             newContent = true;
@@ -150,6 +148,7 @@ public class MailmanListReader implements MailingListReader {
                     }
                 }
             }
+            monthCount++;
         }
 
         if (newContent) {

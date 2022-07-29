@@ -23,6 +23,7 @@
 package org.openjdk.skara.test;
 
 import com.sun.net.httpserver.*;
+import java.time.format.DateTimeFormatter;
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.mailinglist.Mbox;
 import org.openjdk.skara.network.URIBuilder;
@@ -30,7 +31,6 @@ import org.openjdk.skara.network.URIBuilder;
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
 import java.security.*;
 import java.time.Duration;
 import java.util.*;
@@ -39,21 +39,31 @@ import java.util.regex.Pattern;
 public class TestMailmanServer implements AutoCloseable {
     private final HttpServer httpServer;
     private final SMTPServer smtpServer;
-    private final Map<String, Path> lists = new HashMap<>();
+    private final Map<String, HashMap<String, StringBuilder>> lists = new HashMap<>();
+
+    private int callCount = 0;
 
     private boolean lastResponseCached;
 
-    static private final Pattern listPathPattern = Pattern.compile("^/test/(.*?)/.*");
+    static private final Pattern listPathPattern = Pattern.compile("^/test/(.*?)/(.*)\\.txt");
 
     private class Handler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            callCount++;
             var listMatcher = listPathPattern.matcher(exchange.getRequestURI().getPath());
             if (!listMatcher.matches()) {
                 throw new RuntimeException();
             }
-            var list = lists.get(listMatcher.group(1));
-            var response = Files.readString(list);
+            var listPath = listMatcher.group(1);
+            var datePath = listMatcher.group(2);
+            var listMap = lists.get(listPath);
+            if (!listMap.containsKey(datePath)) {
+                exchange.sendResponseHeaders(404, 0);
+                exchange.close();
+                return;
+            }
+            var response = listMap.get(datePath).toString();
             lastResponseCached = false;
 
             try {
@@ -102,8 +112,7 @@ public class TestMailmanServer implements AutoCloseable {
 
     public String createList(String name) throws IOException {
         var listName = EmailAddress.parse(name + "@" + httpServer.getAddress().getHostString()).toString();
-        var listPath = Files.createTempFile("list-" + name, ".txt");
-        lists.put(name, listPath);
+        lists.put(name, new HashMap<>());
         return listName;
     }
 
@@ -118,11 +127,15 @@ public class TestMailmanServer implements AutoCloseable {
                             .build();
         var mboxEntry = Mbox.fromMail(stripped);
 
-        var listPath = email.recipients().stream()
+        var listMap = email.recipients().stream()
                             .filter(recipient -> lists.containsKey(recipient.localPart()))
                             .map(recipient -> lists.get(recipient.localPart()))
                             .findAny().orElseThrow();
-        Files.writeString(listPath, mboxEntry, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        var datePath = DateTimeFormatter.ofPattern("yyyy-MMMM", Locale.US).format(email.date());
+        if (!listMap.containsKey(datePath)) {
+            listMap.put(datePath, new StringBuilder());
+        }
+        listMap.get(datePath).append(mboxEntry);
     }
 
     public void processIncoming() throws IOException {
@@ -137,5 +150,13 @@ public class TestMailmanServer implements AutoCloseable {
 
     public boolean lastResponseCached() {
         return lastResponseCached;
+    }
+
+    public void resetCallCount() {
+        callCount = 0;
+    }
+
+    public int callCount() {
+        return callCount;
     }
 }
