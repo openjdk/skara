@@ -200,6 +200,9 @@ public interface PullRequest extends Issue {
         return Optional.empty();
     }
 
+    /**
+     * Return the comment message about the commit hash.
+     */
     static String commitHashMessage(Hash hash) {
         return hash != null ? "Pushed as commit " + hash.hex() + "." : "";
     }
