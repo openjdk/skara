@@ -145,6 +145,8 @@ public class BackportCommand implements CommandHandler {
                     lines.add("To manually resolve these conflicts run the following commands in your personal fork of [" + repoName + "](" + targetRepo.webUrl() + "):");
                     lines.add("");
                     lines.add("```");
+                    lines.add("$ git fetch --no-tags " + targetRepo.webUrl() + " " + targetBranch.name() + ":" + targetBranch.name());
+                    lines.add("$ git checkout " + targetBranch.name());
                     lines.add("$ git checkout -b " + backportBranchName);
                     lines.add("$ git fetch --no-tags " + bot.repo().webUrl() + " " + hash.hex());
                     lines.add("$ git cherry-pick --no-commit " + hash.hex());
