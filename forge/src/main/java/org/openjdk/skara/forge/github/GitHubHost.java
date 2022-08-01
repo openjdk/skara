@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.forge.github;
 
+import java.util.stream.Stream;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.json.*;
@@ -41,6 +42,7 @@ public class GitHubHost implements Forge {
     private final URI uri;
     private final Pattern webUriPattern;
     private final String webUriReplacement;
+    private final List<String> altWebUriReplacements;
     private final GitHubApplication application;
     private final Credential pat;
     private final RestRequest request;
@@ -55,10 +57,12 @@ public class GitHubHost implements Forge {
     // when creating a repository object.
     private final boolean offline;
 
-    public GitHubHost(URI uri, GitHubApplication application, Pattern webUriPattern, String webUriReplacement, Set<String> orgs) {
+    public GitHubHost(URI uri, GitHubApplication application, Pattern webUriPattern, String webUriReplacement,
+            List<String> altWebUriReplacements, Set<String> orgs) {
         this.uri = uri;
         this.webUriPattern = webUriPattern;
         this.webUriReplacement = webUriReplacement;
+        this.altWebUriReplacements = altWebUriReplacements;
         this.application = application;
         this.pat = null;
         this.orgs = orgs;
@@ -97,10 +101,12 @@ public class GitHubHost implements Forge {
         return graphQL;
     }
 
-    public GitHubHost(URI uri, Credential pat, Pattern webUriPattern, String webUriReplacement, Set<String> orgs) {
+    public GitHubHost(URI uri, Credential pat, Pattern webUriPattern, String webUriReplacement,
+            List<String> altWebUriReplacements, Set<String> orgs) {
         this.uri = uri;
         this.webUriPattern = webUriPattern;
         this.webUriReplacement = webUriReplacement;
+        this.altWebUriReplacements = altWebUriReplacements;
         this.pat = pat;
         this.application = null;
         this.orgs = orgs;
@@ -132,10 +138,12 @@ public class GitHubHost implements Forge {
         ));
     }
 
-    GitHubHost(URI uri, Pattern webUriPattern, String webUriReplacement, Set<String> orgs, boolean offline) {
+    GitHubHost(URI uri, Pattern webUriPattern, String webUriReplacement,
+            List<String> altWebUriReplacements, Set<String> orgs, boolean offline) {
         this.uri = uri;
         this.webUriPattern = webUriPattern;
         this.webUriReplacement = webUriReplacement;
+        this.altWebUriReplacements = altWebUriReplacements;
         this.pat = null;
         this.application = null;
         this.orgs = orgs;
@@ -184,6 +192,32 @@ public class GitHubHost implements Forge {
 
         }
         return URIBuilder.base(matcher.replaceAll(webUriReplacement)).build();
+    }
+
+    /**
+     * Gets a list of all the alternative URIs for this host for a given endpoint
+     * @param endpoint Endpoint to resolve
+     * @return List of URIs
+     */
+    List<URI> getAllWebURIs(String endpoint) {
+        var mainURI = getWebURI(endpoint);
+
+        if (altWebUriReplacements.isEmpty()) {
+            return List.of(mainURI);
+        }
+        var baseWebUri = URIBuilder.base(uri)
+                .setPath(endpoint)
+                .build();
+
+        var matcher = webUriPattern.matcher(baseWebUri.toString());
+        if (!matcher.matches()) {
+            return List.of(mainURI);
+        }
+
+        return Stream.concat(Stream.of(mainURI),
+                        altWebUriReplacements.stream()
+                                .map(r -> URIBuilder.base(matcher.replaceAll(r)).build()))
+                .toList();
     }
 
     Optional<String> getInstallationToken() {

@@ -43,7 +43,7 @@ public class ManualForgeTests {
 
         var keyContents = Files.readString(keyFile, StandardCharsets.UTF_8);
         var app = new GitHubApplication(keyContents, id, installation);
-        var gitHubHost = new GitHubHost(uri, app, null, null, Set.of());
+        var gitHubHost = new GitHubHost(uri, app, null, null, null, Set.of());
 
         var repo = gitHubHost.repository(settings.getProperty("github.repository")).orElseThrow();
 
