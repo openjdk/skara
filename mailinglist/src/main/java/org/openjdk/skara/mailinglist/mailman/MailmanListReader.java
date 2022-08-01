@@ -69,7 +69,8 @@ public class MailmanListReader implements MailingListReader {
         var start = now.minus(maxAge);
         List<ZonedDateTime> ret = new ArrayList<>();
 
-        while (start.isBefore(now)) {
+        // Iterate all the way until start is equal to now
+        while (!start.isAfter(now)) {
             ret.add(start);
             var next = start.plus(Duration.ofDays(1));
             while (start.getMonthValue() == next.getMonthValue()) {
