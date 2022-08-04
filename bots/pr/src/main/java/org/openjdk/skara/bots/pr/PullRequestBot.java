@@ -35,7 +35,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.*;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 class PullRequestBot implements Bot {
     private final HostedRepository remoteRepo;
@@ -161,7 +160,7 @@ class PullRequestBot implements Bot {
     }
 
     private List<WorkItem> getWorkItems(List<PullRequest> pullRequests) {
-        var ret = new LinkedList<WorkItem>();
+        var ret = new ArrayList<WorkItem>();
         ret.add(new CommitCommentsWorkItem(this, remoteRepo, excludeCommitCommentsFrom));
 
         for (var pr : pullRequests) {
@@ -186,10 +185,10 @@ class PullRequestBot implements Bot {
         List<PullRequest> prs;
         if (lastFullUpdate == null || lastFullUpdate.isBefore(Instant.now().minus(Duration.ofMinutes(10)))) {
             lastFullUpdate = Instant.now();
-            log.info("Fetching all open pull requests");
+            log.info("Fetching all open pull requests for " + remoteRepo.name());
             prs = remoteRepo.pullRequests();
         } else {
-            log.info("Fetching recently updated pull requests (open and closed)");
+            log.info("Fetching recently updated pull requests (open and closed) for " + remoteRepo.name());
             prs = remoteRepo.pullRequests(ZonedDateTime.now().minus(Duration.ofDays(1)));
         }
 
