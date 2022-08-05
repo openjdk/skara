@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -78,6 +78,9 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
 
     private static final String pullRequestTip = "A pull request was submitted for review.";
 
+    // Lazy loaded
+    private CensusInstance census = null;
+
     IssueNotifier(IssueProject issueProject, boolean reviewLink, URI reviewIcon, boolean commitLink, URI commitIcon,
                   boolean setFixVersion, Map<String, String> fixVersions, Map<String, List<String>> altFixVersions,
                   JbsBackport jbsBackport, boolean prOnly, boolean repoOnly, String buildName,
@@ -108,12 +111,18 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         return new IssueNotifierBuilder();
     }
 
+    private CensusInstance getCensus() {
+        if (census == null) {
+            census = CensusInstance.create(censusRepository, censusRef, namespace);
+        }
+        return census;
+    }
+
     private Optional<String> findCensusUser(String user, Path scratchPath) {
         if (censusRepository == null) {
             return Optional.empty();
         }
-        var censusInstance = CensusInstance.create(censusRepository, censusRef, scratchPath, namespace);
-        var ns = censusInstance.namespace();
+        var ns = getCensus().namespace();
         for (var entry : ns.entries()) {
             if (entry.getValue().username().equals(user)) {
                 return Optional.of(entry.getKey());

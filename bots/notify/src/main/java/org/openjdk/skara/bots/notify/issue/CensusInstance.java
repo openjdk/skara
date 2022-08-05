@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -39,42 +39,12 @@ class CensusInstance {
         this.namespace = namespace;
     }
 
-    private static Repository initialize(HostedRepository repo, String ref, Path folder) {
+    static CensusInstance create(HostedRepository censusRepo, String censusRef, String namespaceName) {
         try {
-            return Repository.materialize(folder, repo.url(), "+" + ref + ":" + "issue_census_" + repo.name());
+            var namespace = Census.parseNamespace(censusRepo, censusRef, namespaceName);
+            return new CensusInstance(namespace);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to retrieve census to " + folder, e);
-        }
-    }
-
-    private static Namespace namespace(Census census, String hostNamespace) {
-        var namespace = census.namespace(hostNamespace);
-        if (namespace == null) {
-            throw new RuntimeException("Namespace not found in census: " + hostNamespace);
-        }
-
-        return namespace;
-    }
-
-    static CensusInstance create(HostedRepository censusRepo, String censusRef, Path folder, String namespace) {
-        var repoName = censusRepo.url().getHost() + "/" + censusRepo.name();
-        var repoFolder = folder.resolve(URLEncoder.encode(repoName, StandardCharsets.UTF_8));
-        try {
-            var localRepo = Repository.get(repoFolder)
-                                      .or(() -> Optional.of(initialize(censusRepo, censusRef, repoFolder)))
-                                      .orElseThrow();
-            var hash = localRepo.fetch(censusRepo.url(), censusRef, false);
-            localRepo.checkout(hash, true);
-        } catch (IOException e) {
-            initialize(censusRepo, censusRef, repoFolder);
-        }
-
-        try {
-            var census = Census.parse(repoFolder);
-            var ns = namespace(census, namespace);
-            return new CensusInstance(ns);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot parse census at " + repoFolder, e);
+            throw new UncheckedIOException("Cannot parse census namespace from " + censusRepo.name(), e);
         }
     }
 

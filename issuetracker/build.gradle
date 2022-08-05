@@ -34,7 +34,6 @@ module {
 
 dependencies {
     implementation project(':vcs')
-    implementation project(':census')
     implementation project(':json')
     implementation project(':ini')
     implementation project(':process')

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,14 +27,22 @@ import org.openjdk.skara.xml.XML;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
+import org.w3c.dom.Document;
+
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
 class Contributors {
     static Map<String, Contributor> parse(Path p) throws IOException {
-        var result = new ArrayList<Contributor>();
+        return parse(XML.parse(p));
+    }
 
-        var document = XML.parse(p);
+    static Map<String, Contributor> parse(String s) throws IOException {
+        return parse(XML.parse(s));
+    }
+
+    private static Map<String, Contributor> parse(Document document) {
+        var result = new ArrayList<Contributor>();
         var contributors = XML.child(document, "contributors");
         for (var contributor : XML.children(contributors, "contributor")) {
             var username = XML.attribute(contributor, "username");

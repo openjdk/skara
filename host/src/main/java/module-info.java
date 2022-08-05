@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -21,15 +21,5 @@
  * questions.
  */
 module org.openjdk.skara.host {
-    requires org.openjdk.skara.vcs;
-    requires org.openjdk.skara.census;
-    requires org.openjdk.skara.json;
-    requires org.openjdk.skara.ini;
-    requires org.openjdk.skara.process;
-    requires org.openjdk.skara.email;
-    requires org.openjdk.skara.network;
-    requires java.net.http;
-    requires java.logging;
-
     exports org.openjdk.skara.host;
 }

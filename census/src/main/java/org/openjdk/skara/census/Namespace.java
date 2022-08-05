@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,6 +27,7 @@ import org.openjdk.skara.xml.XML;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 public class Namespace {
@@ -58,6 +59,15 @@ public class Namespace {
 
     static Namespace parse(Path p, Map<String, Contributor> contributors) throws IOException {
         var document = XML.parse(p);
+        return parse(document, contributors);
+    }
+
+    static Namespace parse(String s, Map<String, Contributor> contributors) throws IOException {
+        var document = XML.parse(s);
+        return parse(document, contributors);
+    }
+
+    private static Namespace parse(Document document, Map<String, Contributor> contributors) throws IOException {
         var namespace = XML.child(document, "namespace");
         return parse(namespace, contributors);
     }

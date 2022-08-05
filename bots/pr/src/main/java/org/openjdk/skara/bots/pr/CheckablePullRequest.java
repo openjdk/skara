@@ -66,12 +66,12 @@ public class CheckablePullRequest {
                                            .filter(review -> !ignoreStaleReviews || review.hash().orElseThrow().equals(pr.headHash()))
                                            .filter(review -> review.verdict() == Review.Verdict.APPROVED)
                                            .collect(Collectors.toList());
-        var reviewers = PullRequestUtils.reviewerNames(eligibleReviews, namespace);
+        var reviewers = reviewerNames(eligibleReviews, namespace);
         var comments = pr.comments();
         var currentUser = pr.repository().forge().currentUser();
 
         if (manualReviewers) {
-            var allReviewers = PullRequestUtils.reviewerNames(activeReviews, namespace);
+            var allReviewers = reviewerNames(activeReviews, namespace);
             var additionalReviewers = Reviewers.reviewers(currentUser, comments);
             for (var additionalReviewer : additionalReviewers) {
                 if (!allReviewers.contains(additionalReviewer)) {
@@ -294,5 +294,13 @@ public class CheckablePullRequest {
             targetHash = PullRequestUtils.targetHash(localRepo);
         }
         return targetHash;
+    }
+
+    public static Set<String> reviewerNames(List<Review> reviews, Namespace namespace) {
+        return reviews.stream()
+                .map(review -> namespace.get(review.reviewer().id()))
+                .filter(Objects::nonNull)
+                .map(Contributor::username)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 }
