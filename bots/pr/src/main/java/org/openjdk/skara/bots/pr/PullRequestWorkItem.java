@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import java.nio.file.Path;
+import java.util.Collection;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.PullRequest;
 
@@ -30,25 +32,41 @@ import java.util.function.Consumer;
 abstract class PullRequestWorkItem implements WorkItem {
     final Consumer<RuntimeException> errorHandler;
     final PullRequestBot bot;
-    final PullRequest pr;
+    final String prId;
+    PullRequest pr;
 
-    PullRequestWorkItem(PullRequestBot bot, PullRequest pr, Consumer<RuntimeException> errorHandler) {
+    PullRequestWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler) {
         this.bot = bot;
-        this.pr = pr;
+        this.prId = prId;
         this.errorHandler = errorHandler;
     }
 
     @Override
     public final boolean concurrentWith(WorkItem other) {
-        if (!(other instanceof PullRequestWorkItem)) {
+        if (!(other instanceof PullRequestWorkItem otherItem)) {
             return true;
         }
-        PullRequestWorkItem otherItem = (PullRequestWorkItem)other;
-        if (!pr.isSame(otherItem.pr)) {
+        if (!(prId.equals(otherItem.prId) && bot.repo().isSame(otherItem.bot.repo()))) {
             return true;
         }
         return false;
     }
+
+    /**
+     * Loads the PR from the remote repo at the start of run to guarantee that all
+     * PullRequestWorkItems have a coherent and current view of the PR to avoid
+     * races. When the run method is called, we are guaranteed to be the only
+     * WorkItem executing on this specific PR through the concurrentWith method.
+     * <p>
+     * Subclasses should override prRun instead of this method.
+     */
+    @Override
+    public final Collection<WorkItem> run(Path scratchPath) {
+        pr = bot.repo().pullRequest(prId);
+        return prRun(scratchPath);
+    }
+
+    abstract Collection<WorkItem> prRun(Path scratchPath);
 
     @Override
     public final void handleRuntimeException(RuntimeException e) {

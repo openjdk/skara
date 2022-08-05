@@ -42,8 +42,8 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
 
     public static final String VALID_BOT_COMMAND_MARKER = "<!-- Valid self-command -->";
 
-    PullRequestCommandWorkItem(PullRequestBot bot, PullRequest pr, Consumer<RuntimeException> errorHandler) {
-        super(bot, pr, errorHandler);
+    PullRequestCommandWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler) {
+        super(bot, prId, errorHandler);
     }
 
     private static class InvalidBodyCommandHandler implements CommandHandler {
@@ -100,7 +100,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     }
 
     private String describe(PullRequest pr) {
-        return pr.repository().name() + "#" + pr.id();
+        return pr.repository().name() + "#" + prId;
     }
 
     private void processCommand(PullRequest pr, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments,
@@ -161,7 +161,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     }
 
     @Override
-    public Collection<WorkItem> run(Path scratchPath) {
+    public Collection<WorkItem> prRun(Path scratchPath) {
         log.info("Looking for PR commands");
 
         var comments = pr.comments();
@@ -172,9 +172,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
 
             if (!bot.isAutoLabelled(pr)) {
                 // When all commands are processed, it's time to check labels
-                // Must re-fetch PR after running the command, the command might have updated the PR
-                var updatedPR = pr.repository().pullRequest(pr.id());
-                return List.of(new LabelerWorkItem(bot, updatedPR, errorHandler));
+                return List.of(new LabelerWorkItem(bot, prId, errorHandler));
             } else {
                 return List.of();
             }
@@ -193,11 +191,8 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         // to run again to correct the state of the PR.
         if (!pr.labelNames().contains("integrated") || pr.findIntegratedCommitHash().isEmpty()) {
             processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), command, comments, false);
-            // Must re-fetch PR after running the command, the command might have updated the PR
-            var updatedPR = pr.repository().pullRequest(pr.id());
-
             // Run another check to reflect potential changes from commands
-            return List.of(new CheckWorkItem(bot, updatedPR, errorHandler));
+            return List.of(new CheckWorkItem(bot, prId, errorHandler));
         } else {
             processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), command, comments, true);
             return List.of();
@@ -206,7 +201,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
 
     @Override
     public String toString() {
-        return "PullRequestCommandWorkItem@" + pr.repository().name() + "#" + pr.id();
+        return "PullRequestCommandWorkItem@" + pr.repository().name() + "#" + prId;
     }
 
     @Override

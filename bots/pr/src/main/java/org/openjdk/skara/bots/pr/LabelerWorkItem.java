@@ -36,13 +36,13 @@ import java.util.stream.Collectors;
 public class LabelerWorkItem extends PullRequestWorkItem {
     private static final String initialLabelMessage = "<!-- PullRequestBot initial label help comment -->";
 
-    LabelerWorkItem(PullRequestBot bot, PullRequest pr, Consumer<RuntimeException> errorHandler) {
-        super(bot, pr, errorHandler);
+    LabelerWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler) {
+        super(bot, prId, errorHandler);
     }
 
     @Override
     public String toString() {
-        return "LabelerWorkItem@" + pr.repository().name() + "#" + pr.id();
+        return "LabelerWorkItem@" + pr.repository().name() + "#" + prId;
     }
 
     private Set<String> getLabels(Repository localRepo) throws IOException {
@@ -114,7 +114,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
     }
 
     @Override
-    public Collection<WorkItem> run(Path scratchPath) {
+    public Collection<WorkItem> prRun(Path scratchPath) {
         if (bot.isAutoLabelled(pr)) {
             return List.of();
         }
