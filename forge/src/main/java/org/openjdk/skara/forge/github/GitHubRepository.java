@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.forge.github;
 
+import java.util.regex.Matcher;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.Label;
@@ -41,7 +42,7 @@ public class GitHubRepository implements HostedRepository {
     private final GitHubHost gitHubHost;
     private final String repository;
     private final RestRequest request;
-    private final Pattern pullRequestPattern;
+    private final List<Pattern> pullRequestPatterns;
 
     private JSONValue cachedJSON;
     private List<HostedBranch> branches;
@@ -74,8 +75,10 @@ public class GitHubRepository implements HostedRepository {
             }
             return headers;
         });
-        var urlPattern = gitHubHost.getWebURI("/" + repository + "/pull/").toString();
-        pullRequestPattern = Pattern.compile(urlPattern + "(\\d+)");
+        var urlPatterns = gitHubHost.getAllWebURIs("/" + repository + "/pull/");
+        pullRequestPatterns = urlPatterns.stream()
+                .map(u -> Pattern.compile(u + "(\\d+)"))
+                .toList();
     }
 
     private JSONValue json() {
@@ -175,12 +178,11 @@ public class GitHubRepository implements HostedRepository {
 
     @Override
     public Optional<PullRequest> parsePullRequestUrl(String url) {
-        var matcher = pullRequestPattern.matcher(url);
-        if (matcher.find()) {
-            return Optional.of(pullRequest(matcher.group(1)));
-        } else {
-            return Optional.empty();
-        }
+        return pullRequestPatterns.stream()
+                .map(p -> p.matcher(url))
+                .filter(Matcher::find)
+                .map(m -> pullRequest(m.group(1)))
+                .findAny();
     }
 
     @Override

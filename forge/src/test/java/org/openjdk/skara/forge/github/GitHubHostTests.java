@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.forge.github;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.openjdk.skara.network.URIBuilder;
 import org.openjdk.skara.test.TemporaryDirectory;
@@ -35,23 +36,32 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class GitHubHostTests {
     @Test
-    void webUriPatternReplacement() throws IOException, URISyntaxException {
-        try (var tempFolder = new TemporaryDirectory()) {
-            var host = new GitHubHost(URIBuilder.base("http://www.example.com").build(),
-                                      Pattern.compile("^(http://www.example.com)/test/(.*)$"), "$1/another/$2",
-                                      Set.of(), false);
-            assertEquals(new URI("http://www.example.com/another/hello"), host.getWebURI("/test/hello"));
-        }
+    void webUriPatternReplacement() throws URISyntaxException {
+        var host = new GitHubHost(URIBuilder.base("http://www.example.com").build(),
+                Pattern.compile("^(http://www.example.com)/test/(.*)$"), "$1/another/$2",
+                List.of(), Set.of(), false);
+        assertEquals(new URI("http://www.example.com/another/hello"), host.getWebURI("/test/hello"));
     }
 
     @Test
-    void nonTransformedWebUrl() throws IOException, URISyntaxException {
-        try (var tempFolder = new TemporaryDirectory()) {
-            var host = new GitHubHost(URIBuilder.base("http://www.example.com").build(),
-                                      Pattern.compile("^(http://www.example.com)/test/(.*)$"), "$1/another/$2",
-                                      Set.of(), false);
-            assertEquals(new URI("http://www.example.com/another/hello"), host.getWebURI("/test/hello"));
-            assertEquals(new URI("http://www.example.com/test/hello"), host.getWebURI("/test/hello", false));
-        }
+    void nonTransformedWebUrl() throws URISyntaxException {
+        var host = new GitHubHost(URIBuilder.base("http://www.example.com").build(),
+                Pattern.compile("^(http://www.example.com)/test/(.*)$"), "$1/another/$2",
+                List.of(), Set.of(), false);
+        assertEquals(new URI("http://www.example.com/another/hello"), host.getWebURI("/test/hello"));
+        assertEquals(new URI("http://www.example.com/test/hello"), host.getWebURI("/test/hello", false));
+    }
+
+    @Test
+    void webAltUriPatternReplacement() throws URISyntaxException {
+        var host = new GitHubHost(URIBuilder.base("http://www.example.com").build(),
+                Pattern.compile("^(http://www.example.com)/test/(.*)$"), "$1/another/$2",
+                List.of("http://localhost/$2"), Set.of(), false);
+        assertEquals(new URI("http://www.example.com/another/hello"), host.getWebURI("/test/hello"));
+        assertEquals(List.of(
+                        new URI("http://www.example.com/another/hello"),
+                        new URI("http://localhost/hello")
+                ),
+                host.getAllWebURIs("/test/hello"));
     }
 }

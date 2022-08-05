@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.forge.github;
 
+import java.util.List;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.Credential;
 import org.openjdk.skara.json.JSONObject;
@@ -48,13 +49,20 @@ public class GitHubForgeFactory implements ForgeFactory {
     public Forge create(URI uri, Credential credential, JSONObject configuration) {
         Pattern webUriPattern = null;
         String webUriReplacement = null;
+        List<String> altwebUriReplacements = List.of();
         var offline = false;
         Set<String> orgs = new HashSet<>();
 
         if (configuration != null) {
             if (configuration.contains("weburl")) {
-                webUriPattern = Pattern.compile(configuration.get("weburl").get("pattern").asString());
-                webUriReplacement = configuration.get("weburl").get("replacement").asString();
+                var weburl = configuration.get("weburl");
+                webUriPattern = Pattern.compile(weburl.get("pattern").asString());
+                webUriReplacement = weburl.get("replacement").asString();
+                if (weburl.contains("altreplacements")) {
+                    altwebUriReplacements = weburl.get("altreplacements").asArray().stream()
+                            .map(JSONValue::asString)
+                            .toList();
+                }
             }
 
             if (configuration.contains("offline")) {
@@ -75,12 +83,12 @@ public class GitHubForgeFactory implements ForgeFactory {
                 var id = credential.username().substring(0, separator);
                 var installation = credential.username().substring(separator + 1);
                 var app = new GitHubApplication(credential.password(), id, installation);
-                return new GitHubHost(uri, app, webUriPattern, webUriReplacement, orgs);
+                return new GitHubHost(uri, app, webUriPattern, webUriReplacement, altwebUriReplacements, orgs);
             } else {
-                return new GitHubHost(uri, credential, webUriPattern, webUriReplacement, orgs);
+                return new GitHubHost(uri, credential, webUriPattern, webUriReplacement, altwebUriReplacements, orgs);
             }
         } else {
-            return new GitHubHost(uri, webUriPattern, webUriReplacement, orgs, offline);
+            return new GitHubHost(uri, webUriPattern, webUriReplacement, altwebUriReplacements, orgs, offline);
         }
     }
 }
