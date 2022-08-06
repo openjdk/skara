@@ -142,7 +142,7 @@ public class BackportCommand implements CommandHandler {
                         lines.add("- " + path.toString());
                     }
                     lines.add("");
-                    lines.add("To manually resolve these conflicts, please fetch the appropriate branch/commit and resolve conflicts "
+                    lines.add("Please fetch the appropriate branch/commit and manually resolve these conflicts "
                             + "by using the following commands in your personal fork of [" + repoName + "](" + targetRepo.webUrl() + "):");
                     lines.add("");
                     lines.add("```");
