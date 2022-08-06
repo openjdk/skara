@@ -142,7 +142,8 @@ public class BackportCommand implements CommandHandler {
                         lines.add("- " + path.toString());
                     }
                     lines.add("");
-                    lines.add("To manually resolve these conflicts run the following commands in your personal fork of [" + repoName + "](" + targetRepo.webUrl() + "):");
+                    lines.add("To manually resolve these conflicts, please fetch the appropriate branch/commit and resolve conflicts "
+                            + "by using the following commands in your personal fork of [" + repoName + "](" + targetRepo.webUrl() + "):");
                     lines.add("");
                     lines.add("```");
                     lines.add("$ git fetch --no-tags " + targetRepo.webUrl() + " " + targetBranch.name() + ":" + targetBranch.name());
