@@ -50,8 +50,8 @@ class CheckWorkItem extends PullRequestWorkItem {
     private static final Pattern BACKPORT_ISSUE_TITLE_PATTERN = Pattern.compile("^Backport\\s*(?:(?<prefix>[A-Za-z][A-Za-z0-9]+)-)?(?<id>[0-9]+)\\s*$");
     private static final String ELLIPSIS = "…";
 
-    CheckWorkItem(PullRequestBot bot, PullRequest pr, Consumer<RuntimeException> errorHandler) {
-        super(bot, pr, errorHandler);
+    CheckWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler) {
+        super(bot, prId, errorHandler);
     }
 
     private String encodeReviewer(HostUser reviewer, CensusInstance censusInstance) {
@@ -214,11 +214,11 @@ class CheckWorkItem extends PullRequestWorkItem {
 
     @Override
     public String toString() {
-        return "CheckWorkItem@" + pr.repository().name() + "#" + pr.id();
+        return "CheckWorkItem@" + pr.repository().name() + "#" + prId;
     }
 
     @Override
-    public Collection<WorkItem> run(Path scratchPath) {
+    public Collection<WorkItem> prRun(Path scratchPath) {
         // First determine if the current state of the PR has already been checked
         var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
@@ -236,7 +236,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                 log.info("Skipping check of integrated PR");
                 // We still need to make sure any commands get run or are able to finish a
                 // previously interrupted run
-                return List.of(new PullRequestCommandWorkItem(bot, pr, errorHandler));
+                return List.of(new PullRequestCommandWorkItem(bot, prId, errorHandler));
             }
 
             var backportHashMatcher = BACKPORT_HASH_TITLE_PATTERN.matcher(pr.title());
@@ -300,7 +300,7 @@ class CheckWorkItem extends PullRequestWorkItem {
                     comment.add(text);
                     pr.addComment(String.join("\n", comment));
                     pr.addLabel("backport");
-                    return List.of(new CheckWorkItem(bot, pr.repository().pullRequest(pr.id()), errorHandler));
+                    return List.of(new CheckWorkItem(bot, prId, errorHandler));
                 } else {
                     var botUser = pr.repository().forge().currentUser();
                     var text = "<!-- backport error -->\n" +
@@ -339,12 +339,12 @@ class CheckWorkItem extends PullRequestWorkItem {
                         " the pull request title with `Backport <hash>`.";
                 pr.addComment(text);
                 pr.addLabel("backport");
-                return List.of(new CheckWorkItem(bot, pr.repository().pullRequest(pr.id()), errorHandler));
+                return List.of(new CheckWorkItem(bot, prId, errorHandler));
             }
 
             // If the title needs updating, we run the check again
             if (updateTitle()) {
-                return List.of(new CheckWorkItem(bot, pr.repository().pullRequest(pr.id()), errorHandler));
+                return List.of(new CheckWorkItem(bot, prId, errorHandler));
             }
 
             try {
@@ -363,9 +363,7 @@ class CheckWorkItem extends PullRequestWorkItem {
             pr.addComment("/integrate\n" + PullRequestCommandWorkItem.VALID_BOT_COMMAND_MARKER);
         }
 
-        // Must re-fetch PR after executing CheckRun
-        var updatedPR = pr.repository().pullRequest(pr.id());
-        return List.of(new PullRequestCommandWorkItem(bot, updatedPR, errorHandler));
+        return List.of(new PullRequestCommandWorkItem(bot, prId, errorHandler));
     }
 
     /**
