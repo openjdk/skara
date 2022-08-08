@@ -143,15 +143,25 @@ public class BackportCommand implements CommandHandler {
                     }
                     lines.add("");
                     lines.add("Please fetch the appropriate branch/commit and manually resolve these conflicts "
-                            + "by using the following commands in your personal fork of [" + repoName + "](" + targetRepo.webUrl() + "):");
+                            + "by using the following commands in your personal fork of [" + repoName + "](" + targetRepo.webUrl()
+                            + "). Note: these commands are just some suggestions and you can use other equivalent commands you know.");
                     lines.add("");
                     lines.add("```");
+                    lines.add("# Fetch the up-to-date version of the target branch");
                     lines.add("$ git fetch --no-tags " + targetRepo.webUrl() + " " + targetBranch.name() + ":" + targetBranch.name());
+                    lines.add("");
+                    lines.add("# Check out the target branch and create your own branch to backport");
                     lines.add("$ git checkout " + targetBranch.name());
                     lines.add("$ git checkout -b " + backportBranchName);
+                    lines.add("");
+                    lines.add("# Fetch the commit you want to backport");
                     lines.add("$ git fetch --no-tags " + bot.repo().webUrl() + " " + hash.hex());
+                    lines.add("");
+                    lines.add("# Backport the commit");
                     lines.add("$ git cherry-pick --no-commit " + hash.hex());
-                    lines.add("$ # Resolve conflicts");
+                    lines.add("# Resolve conflicts now");
+                    lines.add("");
+                    lines.add("# Commit the files you have modified");
                     lines.add("$ git add files/with/resolved/conflicts");
                     lines.add("$ git commit -m 'Backport " + hash.hex() + "'");
                     lines.add("```");
