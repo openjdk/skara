@@ -249,7 +249,7 @@ public class BackportCommitCommandTests {
             assertEquals(2, recentCommitComments.size());
             var botReply = recentCommitComments.get(0);
             assertTrue(botReply.body().contains("Could **not** automatically backport"));
-            assertTrue(botReply.body().contains("To manually resolve these conflicts run the following commands"));
+            assertTrue(botReply.body().contains("Please fetch the appropriate branch/commit and manually resolve these conflicts"));
             assertTrue(botReply.body().contains("master:master"));
             assertTrue(botReply.body().contains("$ git checkout master"));
             assertEquals(List.of(), author.pullRequests());

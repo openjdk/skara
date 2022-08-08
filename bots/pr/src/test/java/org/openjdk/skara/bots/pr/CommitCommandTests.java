@@ -138,7 +138,7 @@ public class CommitCommandTests {
             TestBotRunner.runPeriodicItems(bot);
             // The `backport` command is valid.
             PullRequestAsserts.assertLastCommentContains(pr, "Could **not** automatically backport");
-            PullRequestAsserts.assertLastCommentContains(pr, "To manually resolve these conflicts");
+            PullRequestAsserts.assertLastCommentContains(pr, "Please fetch the appropriate branch/commit and manually resolve these conflicts");
 
             // Try an unavailable one
             pr.addComment("/integrate");
