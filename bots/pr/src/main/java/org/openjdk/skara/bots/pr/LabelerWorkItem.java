@@ -42,7 +42,7 @@ public class LabelerWorkItem extends PullRequestWorkItem {
 
     @Override
     public String toString() {
-        return "LabelerWorkItem@" + pr.repository().name() + "#" + prId;
+        return "LabelerWorkItem@" + bot.repo().name() + "#" + prId;
     }
 
     private Set<String> getLabels(Repository localRepo) throws IOException {

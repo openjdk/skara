@@ -201,7 +201,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
 
     @Override
     public String toString() {
-        return "PullRequestCommandWorkItem@" + pr.repository().name() + "#" + prId;
+        return "PullRequestCommandWorkItem@" + bot.repo().name() + "#" + prId;
     }
 
     @Override
