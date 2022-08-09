@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -249,6 +249,9 @@ public class BackportCommitCommandTests {
             assertEquals(2, recentCommitComments.size());
             var botReply = recentCommitComments.get(0);
             assertTrue(botReply.body().contains("Could **not** automatically backport"));
+            assertTrue(botReply.body().contains("Please fetch the appropriate branch/commit and manually resolve these conflicts"));
+            assertTrue(botReply.body().contains("master:master"));
+            assertTrue(botReply.body().contains("$ git checkout master"));
             assertEquals(List.of(), author.pullRequests());
         }
     }
