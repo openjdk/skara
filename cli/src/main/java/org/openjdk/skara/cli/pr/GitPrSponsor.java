@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,6 +28,7 @@ import static org.openjdk.skara.cli.pr.Utils.*;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class GitPrSponsor {
     static final List<Flag> flags = List.of(
@@ -75,6 +76,7 @@ public class GitPrSponsor {
 
         var seenSponsorComment = false;
         var expected = "<!-- Jmerge command reply message (" + sponsorComment.id() + ") -->";
+        var pushedPattern = Pattern.compile("Pushed as commit ([a-f0-9]{40})\\.");
         for (var i = 0; i < 90; i++) {
             var comments = pr.comments();
             for (var comment : comments) {
@@ -87,7 +89,7 @@ public class GitPrSponsor {
                 var lines = comment.body().split("\n");
                 if (lines.length > 0 && lines[0].equals(expected)) {
                     for (var line : lines) {
-                        if (line.startsWith("Pushed as commit")) {
+                        if (pushedPattern.matcher(line).find()) {
                             var output = removeTrailing(line, ".");
                             System.out.println(output);
                             System.exit(0);
