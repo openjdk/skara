@@ -54,15 +54,23 @@ public class SponsorCommand implements CommandHandler {
         }
 
         var readyHash = ReadyForSponsorTracker.latestReadyForSponsor(pr.repository().forge().currentUser(), allComments);
-        if (!pr.labelNames().contains("auto") && readyHash.isEmpty()) {
-            reply.println("The change author (@" + pr.author().username() + ") must issue an `integrate` command before the integration can be sponsored.");
+        if (readyHash.isEmpty()) {
+            if (!pr.labelNames().contains("auto")) {
+                reply.println("The change author (@" + pr.author().username() + ") must issue an `integrate` command before the integration can be sponsored.");
+            } else {
+                reply.println("The PR is not yet marked as ready to be sponsored. Please try again when it is.");
+            }
             return;
         }
 
-        var acceptedHash = readyHash.orElseThrow();
-        if (!pr.labelNames().contains("auto") && !pr.headHash().equals(acceptedHash)) {
-            reply.print("The PR has been updated since the change author (@" + pr.author().username() + ") ");
-            reply.println("issued the `integrate` command - the author must perform this command again.");
+        var acceptedHash = readyHash.get();
+        if (!pr.headHash().equals(acceptedHash)) {
+            if (!pr.labelNames().contains("auto")) {
+                reply.print("The PR has been updated since the change author (@" + pr.author().username() + ") ");
+                reply.println("issued the `integrate` command - the author must perform this command again.");
+            } else {
+                reply.print("The PR is not yet marked as ready to be sponsored. Please try again when it is.");
+            }
             return;
         }
 
