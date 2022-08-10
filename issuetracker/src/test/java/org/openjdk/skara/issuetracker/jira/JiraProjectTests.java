@@ -24,11 +24,14 @@ package org.openjdk.skara.issuetracker.jira;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.network.URIBuilder;
+import org.openjdk.skara.test.ManualTestSettings;
 
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
 
@@ -61,5 +64,23 @@ public class JiraProjectTests {
         // Test the wrong JEP (number with alphabet).
         var wrongNumberJepOpt = jiraProject.jepIssue("JDK-123");
         assertTrue(wrongNumberJepOpt.isEmpty());
+    }
+
+    @Test
+    void test() throws IOException {
+        var settings = ManualTestSettings.loadManualTestSettings();
+        var jiraUri = settings.getProperty("jira-uri");
+        var cookie = settings.getProperty("jira-cookie");
+        var projectId = settings.getProperty("jira-project-id");
+        var issueId = settings.getProperty("jira-issue-id");
+        var uri = URIBuilder.base(jiraUri).build();
+        var jiraHost = new JiraIssueTrackerFactory().create(uri, cookie);
+        var jiraProject = jiraHost.project(projectId);
+        var jiraIssueOpt = jiraProject.issue(issueId);
+        var jiraIssue = jiraIssueOpt.get();
+        assertNotEquals(Issue.State.CLOSED, jiraIssue.state());
+        jiraIssue.setState(Issue.State.CLOSED);
+        var jiraIssueOpt2 = jiraProject.issue(issueId);
+        assertEquals(Issue.State.CLOSED, jiraIssueOpt2.get().state());
     }
 }
