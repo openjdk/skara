@@ -26,9 +26,9 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.network.URIBuilder;
+import org.openjdk.skara.test.ManualTestSettings;
 
 import java.io.IOException;
-import org.openjdk.skara.test.ManualTestSettings;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
