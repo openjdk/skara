@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -47,6 +47,20 @@ public class JiraHost implements IssueTracker {
                                 .appendPath("/rest/api/2/")
                                 .build();
         request = new RestRequest(baseApi);
+    }
+
+    /**
+     * This constructor is only used by the manual test code.
+     */
+    JiraHost(URI uri, String cookie) {
+        this.uri = uri;
+        this.visibilityRole = null;
+        this.securityLevel = null;
+
+        var baseApi = URIBuilder.base(uri)
+                                .appendPath("/rest/api/2/")
+                                .build();
+        request = new RestRequest(baseApi, "test", (r) -> Arrays.asList("Cookie", cookie));
     }
 
     JiraHost(URI uri, JiraVault jiraVault) {

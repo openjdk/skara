@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -52,5 +52,13 @@ public class JiraIssueTrackerFactory implements IssueTrackerFactory {
                 throw new RuntimeException("basic authentication not implemented yet");
             }
         }
+    }
+
+    /**
+     * Get the issue tracker according to the cookie which is copied from the browser.
+     * This method is only used by the manual test code.
+     */
+    public IssueTracker create(URI uri, String cookie) {
+        return new JiraHost(uri, cookie);
     }
 }
