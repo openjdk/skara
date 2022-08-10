@@ -31,6 +31,7 @@ import java.io.IOException;
 import org.openjdk.skara.test.ManualTestSettings;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.openjdk.skara.issuetracker.jira.JiraProject.JEP_NUMBER;
 
@@ -77,7 +78,7 @@ public class JiraProjectTests {
         var jiraProject = jiraHost.project(projectId);
         var jiraIssueOpt = jiraProject.issue(issueId);
         var jiraIssue = jiraIssueOpt.get();
-        assertEquals(Issue.State.RESOLVED, jiraIssue.state());
+        assertNotEquals(Issue.State.CLOSED, jiraIssue.state());
         jiraIssue.setState(Issue.State.CLOSED);
         var jiraIssueOpt2 = jiraProject.issue(issueId);
         assertEquals(Issue.State.CLOSED, jiraIssueOpt2.get().state());
