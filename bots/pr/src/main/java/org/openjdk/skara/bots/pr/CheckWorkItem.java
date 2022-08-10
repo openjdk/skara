@@ -214,7 +214,7 @@ class CheckWorkItem extends PullRequestWorkItem {
 
     @Override
     public String toString() {
-        return "CheckWorkItem@" + pr.repository().name() + "#" + prId;
+        return "CheckWorkItem@" + bot.repo().name() + "#" + prId;
     }
 
     @Override
