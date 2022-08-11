@@ -101,7 +101,9 @@ public class Namespace {
             return false;
         }
         Namespace namespace = (Namespace) o;
-        return name.equals(namespace.name) && mapping.equals(namespace.mapping) && reverse.equals(namespace.reverse);
+        return Objects.equals(name, namespace.name)
+                && Objects.equals(mapping, namespace.mapping)
+                && Objects.equals(reverse, namespace.reverse);
     }
 
     @Override
