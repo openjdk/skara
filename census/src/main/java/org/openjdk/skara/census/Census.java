@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,6 +30,7 @@ import java.net.URI;
 import java.net.http.*;
 import java.time.*;
 
+import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.xml.XML;
 import org.w3c.dom.Document;
 import static java.util.function.Function.identity;
@@ -211,5 +212,24 @@ public class Census {
         } catch (InterruptedException e) {
             throw new IOException(e);
         }
+    }
+
+    /**
+     * Initializes a single Namespace directly from a hosted repository. This works
+     * because the files needed to populate a single namespace are statically known.
+     * A full Census needs to discover files by listing them, which makes
+     * initialization from a remote repository inconvenient.
+     *
+     * @param repository HostedRepository to initialize from
+     * @param ref The reference in the repository to get data from
+     * @param name Name of namespace to initialize
+     * @return Just the named Namespace from the Census hosted in the repository
+     */
+    public static Namespace parseNamespace(HostedRepository repository, String ref, String name) throws IOException {
+        log.finer("Parsing namespace from repository " + repository.name());
+        var contributorsData = repository.fileContents("contributors.xml", ref);
+        var contributors = Contributors.parse(contributorsData);
+        var namespaceData = repository.fileContents("namespaces/" + name + ".xml", ref);
+        return Namespace.parse(namespaceData, contributors);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,7 +22,6 @@
  */
 package org.openjdk.skara.forge;
 
-import org.openjdk.skara.census.*;
 import org.openjdk.skara.vcs.*;
 
 import java.io.IOException;
@@ -198,14 +197,6 @@ public class PullRequestUtils {
             }
         }
         return ret;
-    }
-
-    public static Set<String> reviewerNames(List<Review> reviews, Namespace namespace) {
-        return reviews.stream()
-                      .map(review -> namespace.get(review.reviewer().id()))
-                      .filter(Objects::nonNull)
-                      .map(Contributor::username)
-                      .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     public static boolean containsForeignMerge(PullRequest pr, Repository localRepo) throws IOException {

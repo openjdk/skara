@@ -519,7 +519,7 @@ class CheckRun {
         // Check for manually added reviewers
         if (!ignoreStaleReviews) {
             var namespace = censusInstance.namespace();
-            var allReviewers = PullRequestUtils.reviewerNames(reviews, namespace);
+            var allReviewers = CheckablePullRequest.reviewerNames(reviews, namespace);
             var additionalEntries = new ArrayList<String>();
             for (var additional : Reviewers.reviewers(pr.repository().forge().currentUser(), comments)) {
                 if (!allReviewers.contains(additional)) {

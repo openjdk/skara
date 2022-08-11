@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,6 +29,10 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.time.Instant;
 import java.util.List;
+import org.junit.jupiter.api.TestInfo;
+import org.openjdk.skara.test.HostCredentials;
+import org.openjdk.skara.test.TemporaryDirectory;
+import org.openjdk.skara.vcs.Repository;
 
 class CensusTests {
     private Path createCensusDirectory() throws IOException {
@@ -174,5 +178,55 @@ class CensusTests {
         assertEquals("user2", census.namespace("reverse").get("2resu").username());
 
         Files.delete(tmpFile);
+    }
+
+    @Test
+    void parseNamespace(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var censusRepo = credentials.getHostedRepository();
+
+            var repoPath = tempFolder.path().resolve("census");
+            var localRepo = Repository.init(repoPath, censusRepo.repositoryType());
+
+            var namespacesDir = repoPath.resolve("namespaces");
+            Files.createDirectories(namespacesDir);
+
+            var namespaceFile = namespacesDir.resolve("aspace.xml");
+            var namespaceContent = List.of(
+                    "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>",
+                    "<namespace name=\"aspace\">",
+                    "    <user id=\"1234567\" census=\"user1\" />",
+                    "    <user id=\"2345678\" census=\"user2\" />",
+                    "</namespace>");
+            Files.write(namespaceFile, namespaceContent);
+            localRepo.add(namespaceFile);
+
+            var contributorsFile = repoPath.resolve("contributors.xml");
+            var contributorsContent = List.of(
+                    "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>",
+                    "<contributors>",
+                    "    <contributor username=\"user1\" full-name=\"User One\" />",
+                    "    <contributor username=\"user2\" full-name=\"User Two\" />",
+                    "    <contributor username=\"user3\" full-name=\"User Three\" />",
+                    "    <contributor username=\"user4\" full-name=\"User Four\" />",
+                    "</contributors>");
+            Files.write(contributorsFile, contributorsContent);
+            localRepo.add(contributorsFile);
+
+            var masterHash = localRepo.commit("Add namespace and contributors", "testauthor", "ta@none.none");
+
+            localRepo.push(masterHash, censusRepo.url(), "censusref", true);
+
+            var namespace = Census.parseNamespace(censusRepo, "censusref", "aspace");
+
+            var c1 = new Contributor("user1", "User One");
+            var c2 = new Contributor("user2", "User Two");
+            assertEquals("aspace", namespace.name());
+            assertEquals(c1, namespace.get("1234567"));
+            assertEquals(c2, namespace.get("2345678"));
+            assertEquals("1234567", namespace.get(c1));
+            assertEquals("2345678", namespace.get(c2));
+        }
     }
 }
