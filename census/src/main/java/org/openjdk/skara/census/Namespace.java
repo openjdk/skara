@@ -91,4 +91,23 @@ public class Namespace {
 
         return new Namespace(name, mapping, reverse);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Namespace namespace = (Namespace) o;
+        return Objects.equals(name, namespace.name)
+                && Objects.equals(mapping, namespace.mapping)
+                && Objects.equals(reverse, namespace.reverse);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, mapping, reverse);
+    }
 }
