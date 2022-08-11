@@ -24,6 +24,7 @@ package org.openjdk.skara.bots.pr;
 
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.*;
+import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 
 import java.io.*;
@@ -59,25 +60,32 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     }
 
     private Optional<CommandInvocation> nextCommand(PullRequest pr, List<Comment> comments) {
-        var self = pr.repository().forge().currentUser();
-        var body = PullRequestBody.parse(pr).bodyText();
-        var allCommands = Stream.concat(CommandExtractor.extractCommands(body, "body", pr.author()).stream(),
-                                        comments.stream()
-                                                .filter(comment -> !comment.author().equals(self) || comment.body().endsWith(VALID_BOT_COMMAND_MARKER))
-                                                .flatMap(c -> CommandExtractor.extractCommands(c.body(), c.id(), c.author()).stream()))
-                                .collect(Collectors.toList());
-
-        var handled = comments.stream()
-                              .filter(comment -> comment.author().equals(self))
-                              .map(comment -> commandReplyPattern.matcher(comment.body()))
-                              .filter(Matcher::find)
-                              .map(matcher -> matcher.group(1))
-                              .collect(Collectors.toSet());
-
+        var allCommands = findAllCommands(pr, comments);
+        var handled = findHandledCommands(pr, comments);
         return allCommands.stream()
                           .filter(ci -> !handled.contains(ci.id()))
                           .filter(ci -> !bot.externalPullRequestCommands().containsKey(ci.name()))
                           .findFirst();
+    }
+
+    static List<CommandInvocation> findAllCommands(PullRequest pr, List<Comment> comments) {
+        var self = pr.repository().forge().currentUser();
+        var body = PullRequestBody.parse(pr).bodyText();
+        return Stream.concat(CommandExtractor.extractCommands(body, "body", pr.author()).stream(),
+                        comments.stream()
+                                .filter(comment -> !comment.author().equals(self) || comment.body().endsWith(VALID_BOT_COMMAND_MARKER))
+                                .flatMap(c -> CommandExtractor.extractCommands(c.body(), c.id(), c.author()).stream()))
+                .collect(Collectors.toList());
+    }
+
+    static Set<String> findHandledCommands(PullRequest pr, List<Comment> comments) {
+        var self = pr.repository().forge().currentUser();
+        return comments.stream()
+                .filter(comment -> comment.author().equals(self))
+                .map(comment -> commandReplyPattern.matcher(comment.body()))
+                .filter(Matcher::find)
+                .map(matcher -> matcher.group(1))
+                .collect(Collectors.toSet());
     }
 
     private void changeLabelsAfterComment(List<String> labelsToAdd, List<String> labelsToRemove){

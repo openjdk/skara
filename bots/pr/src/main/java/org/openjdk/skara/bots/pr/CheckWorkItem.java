@@ -359,7 +359,8 @@ class CheckWorkItem extends PullRequestWorkItem {
             }
         }
 
-        if (pr.labelNames().contains("auto") && pr.labelNames().contains("ready") && !pr.labelNames().contains("sponsor")) {
+        if (pr.labelNames().contains("auto") && pr.labelNames().contains("ready")
+                && !pr.labelNames().contains("sponsor") && !unhandledIntegrateCommand(comments)) {
             pr.addComment("/integrate\n" + PullRequestCommandWorkItem.VALID_BOT_COMMAND_MARKER);
         }
 
@@ -387,6 +388,18 @@ class CheckWorkItem extends PullRequestWorkItem {
             localRepo = PullRequestUtils.materialize(hostedRepositoryPool, pr, localRepoPath);
         }
         return localRepo;
+    }
+
+    /**
+     * Looks through comments for any /integrate command that has not yet been handled.
+     * Used to avoid double posting /integrate
+     */
+    private boolean unhandledIntegrateCommand(List<Comment> comments) {
+        var allCommands = PullRequestCommandWorkItem.findAllCommands(pr, comments);
+        var handled = PullRequestCommandWorkItem.findHandledCommands(pr, comments);
+        return allCommands.stream()
+                .filter(ci -> ci.name().equals("integrate"))
+                .anyMatch(ci -> !handled.contains(ci.id()));
     }
 
     @Override

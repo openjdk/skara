@@ -771,6 +771,73 @@ class SponsorTests {
         }
     }
 
+    @Test
+    void sponsorAutoIntegrationOutOfOrder(TestInfo testInfo) throws IOException {
+        try (var credentials = new HostCredentials(testInfo);
+             var tempFolder = new TemporaryDirectory()) {
+            var author = credentials.getHostedRepository();
+            var integrator = credentials.getHostedRepository();
+            var reviewer = credentials.getHostedRepository();
+
+            var censusBuilder = credentials.getCensusBuilder()
+                    .addReviewer(reviewer.forge().currentUser().id());
+            var mergeBot = PullRequestBot.newBuilder().repo(integrator).censusRepo(censusBuilder.build()).build();
+
+            // Populate the projects repository
+            var localRepo = CheckableRepository.init(tempFolder.path(), author.repositoryType());
+            var masterHash = localRepo.resolve("master").orElseThrow();
+            assertFalse(CheckableRepository.hasBeenEdited(localRepo));
+            localRepo.push(masterHash, author.url(), "master", true);
+
+            // Make a change with a corresponding PR
+            var authorFullName = author.forge().currentUser().fullName();
+            var editHash = CheckableRepository.appendAndCommit(localRepo, "This is a new line", "Append commit", authorFullName, "ta@none.none");
+            localRepo.push(editHash, author.url(), "edit", true);
+            var pr = credentials.createPullRequest(author, "master", "edit", "This is a pull request");
+
+            // Approve it as another user
+            var approvalPr = reviewer.pullRequest(pr.id());
+            approvalPr.addReview(Review.Verdict.APPROVED, "Approved");
+
+            // Flag it as ready for integration automatically
+            pr.addComment("/integrate auto");
+            // Reviewer now sponsor a bit too early
+            var reviewerPr = reviewer.pullRequest(pr.id());
+            reviewerPr.addComment("/sponsor");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // Bot should have replied
+            var replies = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("will be automatically integrated"))
+                    .count();
+            assertEquals(1, replies);
+
+            // Bot should have replied that sponsoring wasn't yet possible
+            var sponsorReply = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("The PR is not yet marked as ready to be sponsored"))
+                    .count();
+            assertEquals(1, sponsorReply);
+
+            // Bot should have marked the PR as ready for sponsor
+            var ready = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("now ready to be sponsored"))
+                    .filter(comment -> comment.body().contains("at version " + editHash.hex()))
+                    .count();
+            assertEquals(1, ready);
+
+            // Try sponsor again
+            reviewerPr.addComment("/sponsor");
+            TestBotRunner.runPeriodicItems(mergeBot);
+
+            // The bot should have pushed the commit
+            var pushed = pr.comments().stream()
+                    .filter(comment -> comment.body().contains("Pushed as commit"))
+                    .count();
+            assertEquals(1, pushed);
+        }
+    }
+
+
     /**
      * Tests recovery after successfully pushing the commit, but failing to update the PR
      */
