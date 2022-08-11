@@ -62,12 +62,12 @@ class MergeTests {
             localRepo.push(masterHash, author.url(), "master", true);
 
             // Make more changes in another branch
-            var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other",
-                                                                "First other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash1, author.url(), "other", true);
-            var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other",
-                                                                "Second other\n\nReviewed-by: integrationreviewer2");
-            localRepo.push(otherHash2, author.url(), "other");
+            var otherHash1 = CheckableRepository.appendAndCommit(localRepo, "First change in other_/-1.2",
+                                                                "First other_/-1.2\n\nReviewed-by: integrationreviewer2");
+            localRepo.push(otherHash1, author.url(), "other_/-1.2", true);
+            var otherHash2 = CheckableRepository.appendAndCommit(localRepo, "Second change in other_/-1.2",
+                                                                "Second other_/-1.2\n\nReviewed-by: integrationreviewer2");
+            localRepo.push(otherHash2, author.url(), "other_/-1.2");
 
             // Go back to the original master
             localRepo.checkout(masterHash, true);
@@ -81,7 +81,7 @@ class MergeTests {
 
             var mergeHash = localRepo.commit("Merge commit", "some", "some@one");
             localRepo.push(mergeHash, author.url(), "edit", true);
-            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":other");
+            var pr = credentials.createPullRequest(author, "master", "edit", "Merge " + author.name() + ":other_/-1.2");
 
             // Approve it as another user
             var approvalPr = integrator.pullRequest(pr.id());
@@ -119,7 +119,7 @@ class MergeTests {
 
             // Author and committer should updated in the merge commit
             var headCommit = pushedRepo.commits(headHash.hex() + "^.." + headHash.hex()).asList().get(0);
-            assertEquals("Merge " + author.name() + ":other", headCommit.message().get(0));
+            assertEquals("Merge " + author.name() + ":other_/-1.2", headCommit.message().get(0));
             assertEquals("Generated Committer 1", headCommit.author().name());
             assertEquals("integrationcommitter1@openjdk.org", headCommit.author().email());
             assertEquals("Generated Committer 1", headCommit.committer().name());
@@ -1352,7 +1352,7 @@ class MergeTests {
             assertEquals(1, error, () -> pr.comments().stream().map(Comment::body).collect(Collectors.joining("\n\n")));
 
             var check = pr.checks(mergeHash).get("jcheck");
-            assertEquals("- Could not determine the source for this merge. A Merge PR title must be specified in the format: `^Merge ([-/\\w:+]+)$` to allow verification of the merge contents.", check.summary().orElseThrow());
+            assertEquals("- Could not determine the source for this merge. A Merge PR title must be specified in the format: `^Merge ([-/.\\w:+]+)$` to allow verification of the merge contents.", check.summary().orElseThrow());
         }
     }
 
