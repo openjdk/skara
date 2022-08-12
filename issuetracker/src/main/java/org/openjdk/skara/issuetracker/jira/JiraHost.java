@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.issuetracker.jira;
 
+import java.time.ZoneId;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.*;
@@ -37,6 +38,7 @@ public class JiraHost implements IssueTracker {
     private final RestRequest request;
 
     private HostUser currentUser;
+    private ZoneId timeZone;
 
     JiraHost(URI uri) {
         this.uri = uri;
@@ -137,6 +139,14 @@ public class JiraHost implements IssueTracker {
                                   .build();
         }
         return currentUser;
+    }
+
+    public ZoneId timeZone() {
+        if (timeZone == null) {
+            var data = request.get("myself").execute();
+            timeZone = ZoneId.of(data.get("timeZone").asString());
+        }
+        return timeZone;
     }
 
     @Override

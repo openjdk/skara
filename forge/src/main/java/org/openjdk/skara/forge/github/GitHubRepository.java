@@ -164,6 +164,16 @@ public class GitHubRepository implements HostedRepository {
     }
 
     @Override
+    public List<PullRequest> openPullRequestsAfter(ZonedDateTime updatedAfter) {
+        return request.get("pulls")
+                .param("state", "open")
+                .execute().asArray().stream()
+                .map(jsonValue -> new GitHubPullRequest(this, jsonValue, request))
+                .filter(pr -> pr.updatedAt().isAfter(updatedAfter))
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<PullRequest> findPullRequestsWithComment(String author, String body) {
         var query = "\"" + body + "\" in:comments type:pr repo:" + repository;
         if (author != null) {

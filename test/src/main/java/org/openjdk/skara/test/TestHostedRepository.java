@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -88,6 +88,14 @@ public class TestHostedRepository extends TestIssueProject implements HostedRepo
                    .filter(pr -> pr.updatedAt().isAfter(updatedAfter))
                    .sorted(Comparator.comparing(PullRequest::updatedAt).reversed())
                    .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<PullRequest> openPullRequestsAfter(ZonedDateTime updatedAfter) {
+        return host.getPullRequests(this).stream()
+                .filter(pr -> pr.state().equals(Issue.State.OPEN))
+                .filter(pr -> pr.updatedAt().isAfter(updatedAfter))
+                .collect(Collectors.toList());
     }
 
     @Override

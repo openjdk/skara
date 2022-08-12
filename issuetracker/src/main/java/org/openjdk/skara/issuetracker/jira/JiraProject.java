@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.issuetracker.jira;
 
+import java.time.format.DateTimeFormatter;
 import org.openjdk.skara.issuetracker.*;
 import org.openjdk.skara.json.*;
 import org.openjdk.skara.network.*;
@@ -414,12 +415,20 @@ public class JiraProject implements IssueProject {
         return issue(data.get("key").asString()).orElseThrow();
     }
 
+    private RestRequest generateIssueRequest(String id) {
+        return request.restrict("issue/" + id);
+    }
+
+    private RestRequest generateIssueRequest(JSONValue json) {
+        return generateIssueRequest(JiraIssue.id(json));
+    }
+
     @Override
     public Optional<Issue> issue(String id) {
         if (id.indexOf('-') < 0) {
             id = projectName.toUpperCase() + "-" + id;
         }
-        var issueRequest = request.restrict("issue/" + id);
+        var issueRequest = generateIssueRequest(id);
         final var finalId = id;
         var issue = issueRequest.get("")
                                 .onError(r -> {
@@ -442,7 +451,8 @@ public class JiraProject implements IssueProject {
         if (issues.get("issues").asArray().size() == 0) {
             return Optional.empty();
         } else {
-            return Optional.of(new JiraIssue(this, request, issues.get("issues").asArray().get(0)));
+            var json = issues.get("issues").asArray().get(0);
+            return Optional.of(new JiraIssue(this, generateIssueRequest(json), json));
         }
     }
 
@@ -453,30 +463,64 @@ public class JiraProject implements IssueProject {
                             .body("jql", "project = " + projectName + " AND status in (Open, New)")
                             .execute();
         for (var issue : issues.get("issues").asArray()) {
-            ret.add(new JiraIssue(this, request, issue));
+            ret.add(new JiraIssue(this, generateIssueRequest(issue), issue));
         }
         return ret;
     }
 
     @Override
     public List<Issue> issues(ZonedDateTime updatedAfter) {
-        var ret = new ArrayList<Issue>();
-        var jql = "project = " + projectName + " AND updated >= '-" + Duration.between(updatedAfter, ZonedDateTime.now()).toMinutes() + "m'";
+        var timeString = toTimeString(updatedAfter);
+        var jql = "project = " + projectName + " AND updated >= '" + timeString + "'";
+        return queryIssues(jql);
+    }
+
+
+    @Override
+    public List<Issue> csrIssues(ZonedDateTime updatedAfter) {
+        var timeString = toTimeString(updatedAfter);
+        var jql = "project = " + projectName + " AND updated >= '" + timeString + "' AND issuetype = CSR";
+        return queryIssues(jql);
+    }
+
+    @Override
+    public Optional<Issue> lastUpdatedIssue() {
+        var jql = "project = " + projectName + " ORDER BY updated DESC";
         var issues = request.get("search")
-                            .param("jql", jql)
-                            .execute();
+                .param("jql", jql)
+                .param("maxResults", "1")
+                .execute();
+        var issuesArray = issues.get("issues").asArray();
+        if (issuesArray.isEmpty()) {
+            return Optional.empty();
+        } else {
+            var json = issuesArray.get(0);
+            return Optional.of(new JiraIssue(this, generateIssueRequest(json), json));
+        }
+    }
+
+    private String toTimeString(ZonedDateTime time) {
+        var timeZoned = time.withZoneSameInstant(jiraHost.timeZone());
+        return timeZoned.format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm"));
+    }
+
+    private ArrayList<Issue> queryIssues(String jql) {
+        var ret = new ArrayList<Issue>();
+        var issues = request.get("search")
+                .param("jql", jql)
+                .execute();
         var startAt = 0;
         while (issues.get("issues").asArray().size() > 0) {
             for (var issue : issues.get("issues").asArray()) {
-                ret.add(new JiraIssue(this, request, issue));
+                ret.add(new JiraIssue(this, generateIssueRequest(issue), issue));
             }
 
             if (ret.size() < issues.get("total").asInt()) {
                 startAt += issues.get("issues").asArray().size();
                 issues = request.get("search")
-                                .param("jql", jql)
-                                .param("startAt", String.valueOf(startAt))
-                                .execute();
+                        .param("jql", jql)
+                        .param("startAt", String.valueOf(startAt))
+                        .execute();
             } else {
                 break;
             }

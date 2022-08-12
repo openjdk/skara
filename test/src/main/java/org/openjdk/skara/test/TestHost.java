@@ -251,4 +251,21 @@ public class TestHost implements Forge, IssueTracker {
                           .collect(Collectors.toList());
     }
 
+    List<TestIssue> getCsrIssues(TestIssueProject issueProject, ZonedDateTime updatedAfter) {
+        return data.issues.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(issue -> getIssue(issueProject, issue.getKey()))
+                .filter(i -> {
+                    var type = i.properties().get("issuetype");
+                    return type != null && "CSR".equals(type.asString());
+                })
+                .filter(i -> i.updatedAt().isAfter(updatedAfter))
+                .collect(Collectors.toList());
+    }
+
+    Optional<TestIssue> getLastUpdatedIssue(TestIssueProject issueProject) {
+        return data.issues.keySet().stream()
+                .map(testIssue -> getIssue(issueProject, testIssue))
+                .max(Comparator.comparing(TestIssue::updatedAt));
+    }
 }

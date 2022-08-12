@@ -22,6 +22,11 @@
  */
 package org.openjdk.skara.forge;
 
+import java.time.format.DateTimeFormatter;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.openjdk.skara.issuetracker.Comment;
+import org.openjdk.skara.issuetracker.Issue;
 import org.openjdk.skara.vcs.*;
 
 import java.io.IOException;
@@ -33,6 +38,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class PullRequestUtils {
+    private static final Logger log = Logger.getLogger("org.openjdk.skara.forge");
+
     private static Hash commitSquashed(Repository localRepo, Hash finalHead, Author author, Author committer, String commitMessage) throws IOException {
         return localRepo.commit(commitMessage, author.name(), author.email(), ZonedDateTime.now(),
                                 committer.name(), committer.email(), ZonedDateTime.now(), List.of(targetHash(localRepo)), localRepo.tree(finalHead));
@@ -213,5 +220,70 @@ public class PullRequestUtils {
             }
         }
         return false;
+    }
+
+    private static final String pullRequestMessage = "A pull request was submitted for review.";
+
+    /**
+     * Adds a link to a pull request as a formatted comment to an issue.
+     * @param issue Issue to add comment to
+     * @param pr PR to link to
+     */
+    public static void postPullRequestLinkComment(Issue issue, PullRequest pr) {
+        var alreadyPostedComment = issue.comments().stream()
+                .filter(comment -> comment.author().equals(issue.project().issueTracker().currentUser()))
+                .anyMatch(comment -> comment.body().contains(pullRequestMessage) && comment.body().contains(pr.webUrl().toString()));
+        if (!alreadyPostedComment) {
+            String builder = pullRequestMessage + "\n" +
+                    "URL: " + pr.webUrl().toString() + "\n" +
+                    "Date: " + pr.createdAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss +0000"));
+            issue.addComment(builder);
+        }
+    }
+
+    /**
+     * Removes a previously added comment with a link to a pull request from an issue.
+     * @param issue Issue to remove comment from
+     * @param pr PR that the comment linked to
+     */
+    public static void removePullRequestLinkComment(Issue issue, PullRequest pr) {
+        var postedComment = issue.comments().stream()
+                .filter(comment -> comment.author().equals(issue.project().issueTracker().currentUser()))
+                .filter(comment -> comment.body().contains(pullRequestMessage) && comment.body().contains(pr.webUrl().toString()))
+                .findAny();
+        postedComment.ifPresent(issue::removeComment);
+    }
+
+    /**
+     * Searches the comments of an issue for a pull request link.
+     * @param issue Issue to search
+     * @return List of all Web URI links to pull requests found in all the comments
+     */
+    public static List<URI> pullRequestCommentLink(Issue issue) {
+        return issue.comments().stream()
+                .filter(comment -> comment.author().equals(issue.project().issueTracker().currentUser()))
+                .map(PullRequestUtils::parsePullRequestComment)
+                .flatMap(Optional::stream)
+                .toList();
+
+    }
+
+    private static final Pattern PR_URL_PATTERN = Pattern.compile("^URL: (.*)");
+
+    private static Optional<URI> parsePullRequestComment(Comment comment) {
+        var lines = comment.body().lines().toList();
+        if (!lines.get(0).equals(pullRequestMessage)) {
+            return Optional.empty();
+        }
+        var urlMatcher = PR_URL_PATTERN.matcher(lines.get(1));
+        if (urlMatcher.matches()) {
+            var url = urlMatcher.group(1);
+            try {
+                return Optional.of(URI.create(url));
+            } catch (IllegalArgumentException e) {
+                log.log(Level.WARNING, "Invalid link in pull request link comment: " + url, e);
+            }
+        }
+        return Optional.empty();
     }
 }

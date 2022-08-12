@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -65,6 +65,11 @@ class InMemoryHostedRepository implements HostedRepository {
 
     @Override
     public List<PullRequest> pullRequests(ZonedDateTime updatedAfter) {
+        return null;
+    }
+
+    @Override
+    public List<PullRequest> openPullRequestsAfter(ZonedDateTime updatedAfter) {
         return null;
     }
 

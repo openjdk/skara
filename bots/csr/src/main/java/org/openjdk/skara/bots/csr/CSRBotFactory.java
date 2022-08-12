@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,14 +22,22 @@
  */
 package org.openjdk.skara.bots.csr;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import org.openjdk.skara.bot.*;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
+import org.openjdk.skara.forge.HostedRepository;
+import org.openjdk.skara.issuetracker.IssueProject;
 
+/**
+ * The factory creates a CSRPullRequestBot for every configured repository
+ * and a CSRIssueBot for each unique IssueProject found.
+ */
 public class CSRBotFactory implements BotFactory {
-    private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
+    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.csr");
 
     static final String NAME = "csr";
     @Override
@@ -40,14 +48,28 @@ public class CSRBotFactory implements BotFactory {
     @Override
     public List<Bot> create(BotConfiguration configuration) {
         var ret = new ArrayList<Bot>();
+        var prBots = new ArrayList<Bot>();
         var specific = configuration.specific();
+        var issueProjects = new HashSet<IssueProject>();
+        var repositories = new HashMap<IssueProject, List<HostedRepository>>();
 
         for (var project : specific.get("projects").asArray()) {
             var repo = configuration.repository(project.get("repository").asString());
-            var issues = configuration.issueProject(project.get("issues").asString());
+            var issueProject = configuration.issueProject(project.get("issues").asString());
+            issueProjects.add(issueProject);
+            if (!repositories.containsKey(issueProject)) {
+                repositories.put(issueProject, new ArrayList<>());
+            }
+            repositories.get(issueProject).add(repo);
             log.info("Setting up csr bot for " + repo.name());
-            ret.add(new CSRBot(repo, issues));
+            prBots.add(new CSRPullRequestBot(repo, issueProject));
         }
+
+        for (IssueProject issueProject : issueProjects) {
+            ret.add(new CSRIssueBot(issueProject, repositories.get(issueProject)));
+        }
+        // Need to add the PR bots after the issue bots, so that issue bots are called first
+        ret.addAll(prBots);
 
         return ret;
     }

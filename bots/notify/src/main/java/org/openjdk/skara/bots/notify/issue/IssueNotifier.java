@@ -36,7 +36,6 @@ import org.openjdk.skara.vcs.openjdk.*;
 import java.io.*;
 import java.net.URI;
 import java.nio.file.Path;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -75,8 +74,6 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
     private final Set<String> tagIgnoreOpt;
 
     private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
-
-    private static final String pullRequestTip = "A pull request was submitted for review.";
 
     // Lazy loaded
     private CensusInstance census = null;
@@ -228,12 +225,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
             realIssue.get().addLink(linkBuilder.build());
         }
 
-        var alreadyPostedComment = realIssue.get().comments().stream()
-                .filter(comment -> comment.author().equals(issueProject.issueTracker().currentUser()))
-                .anyMatch(comment -> comment.body().contains(pullRequestTip) && comment.body().contains(pr.webUrl().toString()));
-        if (!alreadyPostedComment) {
-            realIssue.get().addComment(pullRequestToTextBrief(pr));
-        }
+        PullRequestUtils.postPullRequestLinkComment(realIssue.get(), pr);
     }
 
     @Override
@@ -247,19 +239,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
         var link = Link.create(pr.webUrl(), "").build();
         realIssue.get().removeLink(link);
 
-        var postedComment = realIssue.get().comments().stream()
-                .filter(comment -> comment.author().equals(issueProject.issueTracker().currentUser()))
-                .filter(comment -> comment.body().contains(pullRequestTip) && comment.body().contains(pr.webUrl().toString()))
-                .findAny();
-        postedComment.ifPresent(comment -> realIssue.get().removeComment(comment));
-    }
-
-    private String pullRequestToTextBrief(PullRequest pr) {
-        var builder = new StringBuilder();
-        builder.append(pullRequestTip).append("\n");
-        builder.append("URL: ").append(pr.webUrl().toString()).append("\n");
-        builder.append("Date: ").append(pr.createdAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss +0000")));
-        return builder.toString();
+        PullRequestUtils.removePullRequestLinkComment(realIssue.get(), pr);
     }
 
     @Override
