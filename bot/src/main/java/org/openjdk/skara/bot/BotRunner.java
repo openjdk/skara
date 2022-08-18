@@ -99,6 +99,8 @@ public class BotRunner {
                 Gauge.name("skara_runner_submitted_time").labels("bot", "work_item").register();
         private static final Counter.WithTwoLabels TIME_COUNTER =
                 Counter.name("skara_runner_run_time_total").labels("bot", "work_item").register();
+        private static final Counter.WithTwoLabels ITEM_FINISHED_COUNTER =
+                Counter.name("skara_runner_finished").labels("bot", "work_item").register();
         private static final Counter.WithTwoLabels CPU_TIME_COUNTER =
                 Counter.name("skara_runner_cpu_time_total").labels("bot", "work_item").register();
         private static final Counter.WithTwoLabels ALLOCATED_BYTES_COUNTER =
@@ -169,6 +171,7 @@ public class BotRunner {
             try {
                 runMeasured();
             } finally {
+                ITEM_FINISHED_COUNTER.labels(item.botName(), item.workItemName()).inc();
                 long stopCpuTimeNs = getCurrentThreadCpuTime();
                 long stopAllocatedBytes = getCurrentThreadAllocatedBytes();
 
@@ -277,18 +280,22 @@ public class BotRunner {
     private final Deque<Path> scratchPaths;
 
     private static final Counter.WithTwoLabels SCHEDULED_COUNTER =
-        Counter.name("skara_runner_scheduled").labels("bot", "work_item").register();
+            Counter.name("skara_runner_scheduled_counter").labels("bot", "work_item").register();
+    private static final Counter.WithTwoLabels PENDING_COUNTER =
+            Counter.name("skara_runner_pending_counter").labels("bot", "work_item").register();
+    private static final Counter.WithTwoLabels SUBMITTED_COUNTER =
+            Counter.name("skara_runner_submitted_counter").labels("bot", "work_item").register();
     private static final Counter.WithTwoLabels DISCARDED_COUNTER =
-        Counter.name("skara_runner_discarded").labels("bot", "work_item").register();
+            Counter.name("skara_runner_discarded_counter").labels("bot", "work_item").register();
     /**
      * Gauge that tracks the number of active WorkItems for each kind
      */
-    private final Gauge.WithTwoLabels activeGauge =
+    private static final Gauge.WithTwoLabels ACTIVE_GAUGE =
             Gauge.name("skara_runner_active").labels("bot", "work_item").register();
     /**
      * Gauge that tracks the number of pending WorkItems for each kind
      */
-    private final Gauge.WithTwoLabels pendingGauge =
+    private static final Gauge.WithTwoLabels PENDING_GAUGE =
             Gauge.name("skara_runner_pending").labels("bot", "work_item").register();
 
     private void submitOrSchedule(WorkItem item) {
@@ -327,7 +334,8 @@ public class BotRunner {
      */
     private void addPending(PendingWorkItem pendingItem, WorkItem activeItem) {
         pending.put(pendingItem, Optional.ofNullable(activeItem));
-        pendingGauge.labels(pendingItem.item.botName(), pendingItem.item.workItemName()).inc();
+        PENDING_GAUGE.labels(pendingItem.item.botName(), pendingItem.item.workItemName()).inc();
+        PENDING_COUNTER.labels(pendingItem.item.botName(), pendingItem.item.workItemName()).inc();
     }
 
     /**
@@ -335,7 +343,7 @@ public class BotRunner {
      */
     private void removePending(PendingWorkItem pendingItem) {
         pending.remove(pendingItem);
-        pendingGauge.labels(pendingItem.item.botName(), pendingItem.item.workItemName()).dec();
+        PENDING_GAUGE.labels(pendingItem.item.botName(), pendingItem.item.workItemName()).dec();
     }
 
     /**
@@ -345,7 +353,8 @@ public class BotRunner {
         RunnableWorkItem runnableWorkItem = new RunnableWorkItem(item);
         executor.submit(runnableWorkItem);
         active.put(item, runnableWorkItem);
-        activeGauge.labels(item.botName(), item.workItemName()).inc();
+        ACTIVE_GAUGE.labels(item.botName(), item.workItemName()).inc();
+        SUBMITTED_COUNTER.labels(item.botName(), item.workItemName()).inc();
     }
 
     /**
@@ -353,7 +362,7 @@ public class BotRunner {
      */
     private void done(WorkItem item) {
         active.remove(item);
-        activeGauge.labels(item.botName(), item.workItemName()).dec();
+        ACTIVE_GAUGE.labels(item.botName(), item.workItemName()).dec();
     }
 
     private void drain(Duration timeout) throws TimeoutException {
@@ -434,7 +443,7 @@ public class BotRunner {
     private static final Gauge PERIODIC_CHECK_TIME_GAUGE =
             Gauge.name("skara_runner_check_time_gauge").register();
     private static final Counter.WithOneLabel PERIODIC_CHECK_TIME =
-            Counter.name("skara_runner_check_time_total").labels("bot").register();
+            Counter.name("skara_runner_check_time").labels("bot").register();
 
     private void checkPeriodicItems() {
         try (var __ = new LogContext("work_id", String.valueOf(workIdCounter.incrementAndGet()))) {
