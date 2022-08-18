@@ -22,7 +22,9 @@
  */
 package org.openjdk.skara.bots.mirror;
 
+import java.util.regex.Pattern;
 import org.openjdk.skara.bot.*;
+import org.openjdk.skara.json.JSONValue;
 import org.openjdk.skara.vcs.Branch;
 
 import java.io.*;
@@ -58,16 +60,29 @@ public class MirrorBotFactory implements BotFactory {
             var toName = repo.get("to").asString();
             var toRepo = configuration.repository(toName);
 
-            var branchNames = repo.contains("branches")?
-                repo.get("branches").asString().split(",") : new String[0];
-            var branches = Arrays.stream(branchNames)
-                                 .map(Branch::new)
-                                 .collect(Collectors.toList());
+            List<Pattern> branchPatterns;
+            if (repo.contains("branches")) {
+                // Accept both an array of regex patterns as well as a single comma separated
+                // string for backwards compatibility
+                var branchesElement = repo.get("branches");
+                if (branchesElement.isArray()) {
+                    branchPatterns = branchesElement.asArray().stream()
+                            .map(JSONValue::asString)
+                            .map(Pattern::compile)
+                            .toList();
+                } else {
+                    branchPatterns = Arrays.stream(repo.get("branches").asString().split(","))
+                            .map(Pattern::compile)
+                            .toList();
+                }
+            } else {
+                branchPatterns = List.of();
+            }
 
-            var includeTags = repo.contains("tags") && repo.get("tags").asBoolean();
+            var includeTags = branchPatterns.isEmpty() || (repo.contains("tags") && repo.get("tags").asBoolean());
 
             log.info("Setting up mirroring from " + fromRepo.name() + "to " + toRepo.name());
-            bots.add(new MirrorBot(storage, fromRepo, toRepo, branches, includeTags));
+            bots.add(new MirrorBot(storage, fromRepo, toRepo, branchPatterns, includeTags));
         }
         return bots;
     }

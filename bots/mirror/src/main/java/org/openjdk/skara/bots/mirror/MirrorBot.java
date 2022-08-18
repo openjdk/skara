@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.mirror;
 
+import java.util.regex.Pattern;
 import org.openjdk.skara.bot.*;
 import org.openjdk.skara.forge.HostedRepository;
 import org.openjdk.skara.vcs.*;
@@ -45,21 +46,21 @@ class MirrorBot implements Bot, WorkItem {
     private final Path storage;
     private final HostedRepository from;
     private final HostedRepository to;
-    private final List<Branch> branches;
+    private final List<Pattern> branchPatterns;
     private final boolean shouldMirrorEverything;
     private final boolean includeTags;
 
     MirrorBot(Path storage, HostedRepository from, HostedRepository to) {
-        this(storage, from, to, List.of(), false);
+        this(storage, from, to, List.of(), true);
     }
 
-    MirrorBot(Path storage, HostedRepository from, HostedRepository to, List<Branch> branches,
+    MirrorBot(Path storage, HostedRepository from, HostedRepository to, List<Pattern> branchPatterns,
               boolean includeTags) {
         this.storage = storage;
         this.from = from;
         this.to = to;
-        this.branches = branches;
-        this.shouldMirrorEverything = branches.isEmpty();
+        this.branchPatterns = branchPatterns;
+        this.shouldMirrorEverything = branchPatterns.isEmpty();
         this.includeTags = includeTags;
     }
 
@@ -84,11 +85,7 @@ class MirrorBot implements Bot, WorkItem {
             if (!Files.exists(dir)) {
                 log.info("Cloning " + from.name());
                 Files.createDirectories(dir);
-                if (shouldMirrorEverything) {
-                    repo = Repository.mirror(from.url(), dir);
-                } else {
-                    repo = Repository.clone(to.url(), dir);
-                }
+                repo = Repository.mirror(from.url(), dir);
             } else {
                 log.info("Found existing scratch directory for " + to.name());
                 repo = Repository.get(dir).orElseThrow(() -> {
@@ -96,16 +93,22 @@ class MirrorBot implements Bot, WorkItem {
                 });
             }
 
+            log.info("Pulling " + from.name());
+            repo.fetchAll(from.url(), includeTags);
             if (shouldMirrorEverything) {
-                log.info("Pulling " + from.name());
-                // Tags are always included when mirroring everything
-                repo.fetchAll(from.url(), true);
                 log.info("Pushing to " + to.name());
                 repo.pushAll(to.url());
             } else {
+                var branches = repo.branches();
                 for (var branch : branches) {
-                    var fetchHead = repo.fetch(from.url(), branch.name(), includeTags);
-                    repo.push(fetchHead, to.url(), branch.name(), false, includeTags);
+                    if (branchPatterns.stream().anyMatch(p -> p.matcher(branch.name()).matches())) {
+                        var hash = repo.resolve(branch);
+                        if (hash.isPresent()) {
+                            repo.push(hash.get(), to.url(), branch.name(), true, includeTags);
+                        } else {
+                            log.severe("Branch " + branch + " not found in repo " + repo);
+                        }
+                    }
                 }
             }
 
@@ -118,9 +121,9 @@ class MirrorBot implements Bot, WorkItem {
     @Override
     public String toString() {
         var name = "MirrorBot@" + from.name() + "->" + to.name();
-        if (!branches.isEmpty()) {
-            var branchNames = branches.stream().map(Branch::name).collect(Collectors.toList());
-            name += " (" + String.join(",", branchNames) + ")";
+        if (!branchPatterns.isEmpty()) {
+            var branchPatterns = this.branchPatterns.stream().map(Pattern::toString).collect(Collectors.toList());
+            name += " (" + String.join(",", branchPatterns) + ")";
         }
         return name;
     }

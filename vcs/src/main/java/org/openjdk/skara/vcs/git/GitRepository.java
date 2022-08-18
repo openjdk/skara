@@ -594,6 +594,9 @@ public class GitRepository implements Repository {
 
         if (includeTags) {
             cmd.add("--tags");
+            if (force) {
+                cmd.add("--force");
+            }
         }
 
         cmd.add(uri.toString());
