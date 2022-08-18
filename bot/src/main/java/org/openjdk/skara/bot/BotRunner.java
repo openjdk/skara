@@ -100,7 +100,7 @@ public class BotRunner {
         private static final Counter.WithTwoLabels TIME_COUNTER =
                 Counter.name("skara_runner_run_time_total").labels("bot", "work_item").register();
         private static final Counter.WithTwoLabels ITEM_FINISHED_COUNTER =
-                Counter.name("skara_runner_finished").labels("bot", "work_item").register();
+                Counter.name("skara_runner_finished_counter").labels("bot", "work_item").register();
         private static final Counter.WithTwoLabels CPU_TIME_COUNTER =
                 Counter.name("skara_runner_cpu_time_total").labels("bot", "work_item").register();
         private static final Counter.WithTwoLabels ALLOCATED_BYTES_COUNTER =
