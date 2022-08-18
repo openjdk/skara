@@ -148,4 +148,9 @@ public class MailingListArchiveReaderBot implements Bot {
     public String name() {
         return MailingListBridgeBotFactory.NAME;
     }
+
+    @Override
+    public String toString() {
+        return "MailingListArchiveReaderBot@" + repository.name();
+    }
 }

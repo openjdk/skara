@@ -95,4 +95,9 @@ public class LoggingBot implements Bot, WorkItem {
     public String workItemName() {
         return botName();
     }
+
+    @Override
+    public String toString() {
+        return "LoggingBot";
+    }
 }

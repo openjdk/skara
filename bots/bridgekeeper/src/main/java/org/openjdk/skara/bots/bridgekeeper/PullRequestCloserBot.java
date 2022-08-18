@@ -152,4 +152,9 @@ public class PullRequestCloserBot implements Bot {
     public String name() {
         return BridgekeeperBotFactory.NAME;
     }
+
+    @Override
+    public String toString() {
+        return "PullRequestCloserBot@" + remoteRepo.name();
+    }
 }

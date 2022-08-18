@@ -71,4 +71,9 @@ public class TestInfoBot implements Bot {
     public String name() {
         return TestInfoBotFactory.NAME;
     }
+
+    @Override
+    public String toString() {
+        return "TestInfoBot@" + repo.name();
+    }
 }

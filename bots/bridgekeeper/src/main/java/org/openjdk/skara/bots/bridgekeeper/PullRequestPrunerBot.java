@@ -176,4 +176,9 @@ public class PullRequestPrunerBot implements Bot {
     public String name() {
         return BridgekeeperBotFactory.NAME;
     }
+
+    @Override
+    public String toString() {
+        return "PullRequestPrunerBot";
+    }
 }

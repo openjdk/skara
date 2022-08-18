@@ -442,11 +442,14 @@ public class BotRunner {
             log.log(Level.FINE, "Starting of checking for periodic items", TaskPhases.BEGIN);
             try {
                 for (var bot : bots) {
-                    Instant botStart = Instant.now();
-                    var items = bot.getPeriodicItems();
-                    PERIODIC_CHECK_TIME.labels(bot.name()).inc(Duration.between(botStart, Instant.now()).toMillis() / 1_000.0);
-                    for (var item : items) {
-                        submitOrSchedule(item);
+                    try (var ___ = new LogContext("bot", bot.toString())) {
+                        Instant botStart = Instant.now();
+                        log.fine("Starting of checking for periodic items for " + bot.toString());
+                        var items = bot.getPeriodicItems();
+                        PERIODIC_CHECK_TIME.labels(bot.name()).inc(Duration.between(botStart, Instant.now()).toMillis() / 1_000.0);
+                        for (var item : items) {
+                            submitOrSchedule(item);
+                        }
                     }
                 }
             } catch (UncheckedRestException e) {

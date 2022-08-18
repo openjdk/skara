@@ -143,4 +143,9 @@ public class TestBot implements Bot {
     public String name() {
         return "test";
     }
+
+    @Override
+    public String toString() {
+        return "TestBot@" + repo.name();
+    }
 }
