@@ -316,4 +316,9 @@ class PullRequestBot implements Bot {
     public String name() {
         return PullRequestBotFactory.NAME;
     }
+
+    @Override
+    public String toString() {
+        return "PullRequestBot@" + remoteRepo.name();
+    }
 }

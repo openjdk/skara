@@ -90,7 +90,7 @@ class BotLogstashHandlerTests {
             assertEquals("Bye", requests.get(2).get("message").asString());
             assertEquals(Level.WARNING.toString(), requests.get(0).get("level").asString());
             assertNotNull(requests.get(0).get("work_id"), "work_id not set");
-            assertTrue(requests.get(0).get("work_item").asString().contains("LoggingBot@"),
+            assertTrue(requests.get(0).get("work_item").asString().contains("LoggingBot"),
                     "work_item has bad value " + requests.get(0).get("work_item").asString());
         }
     }

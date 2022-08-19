@@ -87,4 +87,9 @@ public class SyncLabelBot implements Bot {
     public String name() {
         return SyncLabelBotFactory.NAME;
     }
+
+    @Override
+    public String toString() {
+        return "SyncLabelBot@" + issueProject.name();
+    }
 }

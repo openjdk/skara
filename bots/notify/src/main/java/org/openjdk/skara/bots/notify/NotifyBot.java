@@ -109,7 +109,7 @@ public class NotifyBot implements Bot, Emitter {
 
     @Override
     public String toString() {
-        return "JNotifyBot@" + repository.name();
+        return "NotifyBot@" + repository.name();
     }
 
     @Override
