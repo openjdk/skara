@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -53,6 +53,11 @@ public interface HostedRepository {
      * match, the list may have been truncated.
      */
     List<PullRequest> pullRequests(ZonedDateTime updatedAfter);
+
+    /**
+     * Returns a list of all open pull requests that have been updated after the given time.
+     */
+    List<PullRequest> openPullRequestsAfter(ZonedDateTime updatedAfter);
     List<PullRequest> findPullRequestsWithComment(String author, String body);
     Optional<PullRequest> parsePullRequestUrl(String url);
 

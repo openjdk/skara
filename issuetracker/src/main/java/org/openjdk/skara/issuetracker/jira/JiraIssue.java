@@ -60,6 +60,10 @@ public class JiraIssue implements Issue {
 
     @Override
     public String id() {
+        return id(json);
+    }
+
+    static String id(JSONValue json) {
         return json.get("key").asString();
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -149,6 +149,17 @@ public class GitLabRepository implements HostedRepository {
                       .filter(this::hasHeadHash)
                       .map(value -> new GitLabMergeRequest(this, gitLabHost, value, request))
                       .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<PullRequest> openPullRequestsAfter(ZonedDateTime updatedAfter) {
+        return request.get("merge_requests")
+                .param("state", "opened")
+                .param("updated_after", updatedAfter.format(DateTimeFormatter.ISO_DATE_TIME))
+                .execute().stream()
+                .filter(this::hasHeadHash)
+                .map(value -> new GitLabMergeRequest(this, gitLabHost, value, request))
+                .collect(Collectors.toList());
     }
 
     @Override

@@ -83,6 +83,16 @@ public class TestIssueProject implements IssueProject {
     }
 
     @Override
+    public List<Issue> csrIssues(ZonedDateTime updatedAfter) {
+        return new ArrayList<>(host.getCsrIssues(this, updatedAfter));
+    }
+
+    @Override
+    public Optional<Issue> lastUpdatedIssue() {
+        return Optional.ofNullable(host.getLastUpdatedIssue(this).orElse(null));
+    }
+
+    @Override
     public String name() {
         return projectName.toUpperCase();
     }

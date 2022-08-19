@@ -43,4 +43,18 @@ public interface IssueProject {
      * @return the corresponding issue
      */
     Optional<Issue> jepIssue(String jepId);
+
+    /**
+     * Find all issues of CSR type updated after the given timestamp.
+     * Note that time queries in Jira are only on minute resolution.
+     * @param updatedAfter Timestamp
+     * @return List of issues found
+     */
+    List<Issue> csrIssues(ZonedDateTime updatedAfter);
+
+    /**
+     * Find the last updated issue.
+     * @return The last updated issue, or empty if none exist
+     */
+    Optional<Issue> lastUpdatedIssue();
 }
