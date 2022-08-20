@@ -329,6 +329,9 @@ class CSRBotTests {
             // The bot shouldn't add the `csr` label.
             assertFalse(pr.labelNames().contains("csr"));
 
+            // Test the method `TestPullRequest#diff`.
+            assertEquals(1, pr.diff().patches().size());
+
             // Add `version=bla` to `.jcheck/conf`, set the version as a wrong value
             localRepo.checkout(localRepo.defaultBranch());
             defaultConf = Files.readString(localRepo.root().resolve(".jcheck/conf"), StandardCharsets.UTF_8);
@@ -341,6 +344,9 @@ class CSRBotTests {
             TestBotRunner.runPeriodicItems(csrPullRequestBot);
             // The bot shouldn't add the `csr` label.
             assertFalse(pr.labelNames().contains("csr"));
+
+            // Test the method `TestPullRequest#diff`.
+            assertEquals(1, pr.diff().patches().size());
 
             // Set the `version` in `.jcheck/conf` as 17 which is an available version.
             localRepo.checkout(localRepo.defaultBranch());
