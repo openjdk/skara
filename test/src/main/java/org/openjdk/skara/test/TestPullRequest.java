@@ -252,14 +252,7 @@ public class TestPullRequest extends TestIssue implements PullRequest {
                 sourceHash = targetLocalRepository.fetch(sourceUri, sourceRef);
             }
             // Find the base hash of the source and target branches.
-            var baseHash = sourceHash;
-            var targetBranch = new Branch(targetRef());
-            while (!"0".repeat(40).equals(baseHash.hex())) {
-                if (targetLocalRepository.contains(targetBranch, baseHash)) {
-                    break;
-                }
-                baseHash = targetRepository.commit(baseHash).get().parents().get(0);
-            }
+            var baseHash = targetLocalRepository.mergeBase(sourceHash, targetRepository.branchHash(targetRef()));
             return targetLocalRepository.diff(baseHash, sourceHash);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
