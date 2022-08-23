@@ -355,6 +355,10 @@ class CheckWorkItem extends PullRequestWorkItem {
                 Repository localRepo = materializeLocalRepo(scratchPath, hostedRepositoryPool);
 
                 var expiresAt = CheckRun.execute(this, pr, localRepo, comments, allReviews, activeReviews, labels, census, bot.ignoreStaleReviews(), bot.integrators());
+                if (log.isLoggable(Level.INFO)) {
+                    var updatedPr = bot.repo().pullRequest(prId);
+                    logLatency("Time from PR updated to CheckRun done ", updatedPr.updatedAt(), log);
+                }
                 if (expiresAt.isPresent()) {
                     bot.scheduleRecheckAt(pr, expiresAt.get());
                 }
@@ -365,13 +369,13 @@ class CheckWorkItem extends PullRequestWorkItem {
 
         if (pr.labelNames().contains("auto") && pr.labelNames().contains("ready")
                 && !pr.labelNames().contains("sponsor") && !unhandledIntegrateCommand(comments)) {
-            pr.addComment("/integrate\n" + PullRequestCommandWorkItem.VALID_BOT_COMMAND_MARKER);
+            var comment = pr.addComment("/integrate\n" + PullRequestCommandWorkItem.VALID_BOT_COMMAND_MARKER);
+            var autoAdded = pr.labelAddedAt("auto").orElseThrow();
+            var readyAdded = pr.labelAddedAt("ready").orElseThrow();
+            var latency = Duration.between(autoAdded.isBefore(readyAdded) ? autoAdded : readyAdded, comment.createdAt());
+            log.log(Level.INFO, "Time from labels added to /integrate posted " + latency, latency);
         }
 
-        if (log.isLoggable(Level.INFO)) {
-            var updatedPr = bot.repo().pullRequest(prId);
-            logLatency("Time from PR updated to CheckWorkItem done ", updatedPr.updatedAt(), log);
-        }
         return List.of(new PullRequestCommandWorkItem(bot, prId, errorHandler, prUpdatedAt));
     }
 
