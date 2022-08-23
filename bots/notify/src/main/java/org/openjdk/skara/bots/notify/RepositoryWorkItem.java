@@ -22,6 +22,8 @@
  */
 package org.openjdk.skara.bots.notify;
 
+import java.time.Duration;
+import java.time.ZonedDateTime;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.storage.StorageBuilder;
@@ -151,6 +153,14 @@ public class RepositoryWorkItem implements WorkItem {
                 }
                 try {
                     handleUpdatedRef(localRepo, ref, commits, listener, scratchPath.resolve(listener.name()));
+                    if (log.isLoggable(Level.INFO)) {
+                        var now = ZonedDateTime.now();
+                        for (Commit commit : commits) {
+                            var latency = Duration.between(commit.metadata().committed(), now);
+                            log.log(Level.INFO, "Time from committed to notified for " + commit.hash()
+                                    + " on branch " + ref + " " + latency, latency);
+                        }
+                    }
                 } catch (NonRetriableException e) {
                     log.log(Level.INFO, "Non retriable exception occurred", e);
                     errors.add(e.cause());

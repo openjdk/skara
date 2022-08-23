@@ -205,12 +205,14 @@ public class BotRunner {
             }
 
             Collection<WorkItem> followUpItems = null;
+            var start = Instant.now();
             try (var __ = new LogContext(Map.of("work_item", item.toString(),
                     "work_id", String.valueOf(workId)))) {
-                var submittedDuration = Duration.between(createTime, Instant.now());
+                var submittedDuration = Duration.between(createTime, start);
                 SUBMITTED_TIME_GAUGE.labels(item.botName(), item.workItemName()).set(submittedDuration.toMillis() / 1_000.0);
                 log.log(Level.FINE, "Executing item " + item + " on repository " + scratchPath
-                        + " after being submitted for " + submittedDuration, TaskPhases.BEGIN);
+                        + " after being submitted for " + submittedDuration,
+                        new Object[]{TaskPhases.BEGIN, submittedDuration});
                 try {
                     followUpItems = item.run(scratchPath);
                 } catch (UncheckedRestException e) {
@@ -230,43 +232,45 @@ public class BotRunner {
                     }
                     item.handleRuntimeException(e);
                 } finally {
-                    log.log(Level.FINE, "Item " + item + " is now done", TaskPhases.END);
+                    var duration = Duration.between(start, Instant.now());
+                    log.log(Level.FINE, "Item " + item + " is now done " + duration,
+                            new Object[]{TaskPhases.END, duration});
                 }
-            }
-            if (followUpItems != null) {
-                followUpItems.forEach(BotRunner.this::submitOrSchedule);
-            }
+                if (followUpItems != null) {
+                    followUpItems.forEach(BotRunner.this::submitOrSchedule);
+                }
 
-            synchronized (executor) {
-                scratchPaths.addLast(scratchPath);
-                done(item);
+                synchronized (executor) {
+                    scratchPaths.addLast(scratchPath);
+                    done(item);
 
-                // Some of the pending items may now be eligible for execution
-                var candidateItems = pending.entrySet().stream()
-                        .filter(e -> e.getValue().isEmpty() || !active.containsKey(e.getValue().get()))
-                        .map(Map.Entry::getKey)
-                        .toList();
+                    // Some of the pending items may now be eligible for execution
+                    var candidateItems = pending.entrySet().stream()
+                            .filter(e -> e.getValue().isEmpty() || !active.containsKey(e.getValue().get()))
+                            .map(Map.Entry::getKey)
+                            .toList();
 
-                // Try the candidates against the current active set
-                for (var candidate : candidateItems) {
-                    boolean maySubmit = true;
-                    for (var activeItem : active.keySet()) {
-                        if (!activeItem.concurrentWith(candidate.item)) {
-                            // Still can't run this candidate, leave it pending
-                            log.finer("Cannot submit candidate " + candidate + " - not concurrent with " + activeItem);
-                            maySubmit = false;
-                            break;
+                    // Try the candidates against the current active set
+                    for (var candidate : candidateItems) {
+                        boolean maySubmit = true;
+                        for (var activeItem : active.keySet()) {
+                            if (!activeItem.concurrentWith(candidate.item)) {
+                                // Still can't run this candidate, leave it pending
+                                log.finer("Cannot submit candidate " + candidate + " - not concurrent with " + activeItem);
+                                maySubmit = false;
+                                break;
+                            }
                         }
-                    }
 
-                    if (maySubmit) {
-                        removePending(candidate);
-                        submit(candidate.item);
-                        var timeSinceCreation = Duration.between(candidate.createTime, Instant.now());
-                        PENDING_TIME_GAUGE.labels(candidate.item.botName(), candidate.item.workItemName())
-                                .set(timeSinceCreation.toMillis() / 1_000.0);
-                        log.fine("Submitting candidate: " + candidate.item
-                                + " after being pending for " + timeSinceCreation);
+                        if (maySubmit) {
+                            removePending(candidate);
+                            submit(candidate.item);
+                            var timeSinceCreation = Duration.between(candidate.createTime, Instant.now());
+                            PENDING_TIME_GAUGE.labels(candidate.item.botName(), candidate.item.workItemName())
+                                    .set(timeSinceCreation.toMillis() / 1_000.0);
+                            log.log(Level.FINE, "Submitting item " + candidate.item
+                                    + " after being pending for " + timeSinceCreation, timeSinceCreation);
+                        }
                     }
                 }
             }
@@ -318,11 +322,12 @@ public class BotRunner {
                         }
                     }
 
+                    log.fine("Adding pending item " + item);
                     addPending(new PendingWorkItem(item, originalCreateTime), activeItem);
                     return;
                 }
             }
-
+            log.fine("Submitting item " + item);
             submit(item);
         }
     }
@@ -448,17 +453,19 @@ public class BotRunner {
     private void checkPeriodicItems() {
         try (var __ = new LogContext("work_id", String.valueOf(workIdCounter.incrementAndGet()))) {
             Instant start = Instant.now();
-            log.log(Level.FINE, "Starting of checking for periodic items", TaskPhases.BEGIN);
+            log.log(Level.FINE, "Start of checking for periodic items", TaskPhases.BEGIN);
             try {
                 for (var bot : bots) {
                     try (var ___ = new LogContext("bot", bot.toString())) {
                         Instant botStart = Instant.now();
-                        log.fine("Starting of checking for periodic items for " + bot.toString());
+                        log.fine("Start of checking for periodic items for " + bot);
                         var items = bot.getPeriodicItems();
-                        PERIODIC_CHECK_TIME.labels(bot.name()).inc(Duration.between(botStart, Instant.now()).toMillis() / 1_000.0);
                         for (var item : items) {
                             submitOrSchedule(item);
                         }
+                        var duration = Duration.between(botStart, Instant.now());
+                        log.log(Level.FINE, "Checking for periodic items for " + bot + " took " + duration, duration);
+                        PERIODIC_CHECK_TIME.labels(bot.name()).inc(duration.toMillis() / 1_000.0);
                     }
                 }
             } catch (UncheckedRestException e) {
@@ -468,8 +475,10 @@ public class BotRunner {
             } catch (RuntimeException e) {
                 log.log(Level.SEVERE, "Exception during periodic items checking: " + e.getMessage(), e);
             } finally {
-                log.log(Level.FINE, "Done checking periodic items", TaskPhases.END);
-                PERIODIC_CHECK_TIME_GAUGE.set(Duration.between(start, Instant.now()).toMillis() / 1_000.0);
+                var duration = Duration.between(start, Instant.now());
+                log.log(Level.FINE, "Checking periodic items took " + duration,
+                        new Object[]{TaskPhases.END, duration});
+                PERIODIC_CHECK_TIME_GAUGE.set(duration.toMillis() / 1_000.0);
             }
         }
     }

@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import java.time.ZonedDateTime;
 import org.openjdk.skara.forge.HostedCommit;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.issuetracker.Comment;
@@ -100,7 +101,7 @@ public class CommandExtractor {
         }
     }
 
-    static List<CommandInvocation> extractCommands(String text, String baseId, HostUser user) {
+    static List<CommandInvocation> extractCommands(String text, String baseId, HostUser user, ZonedDateTime createdAt) {
         var ret = new ArrayList<CommandInvocation>();
         CommandHandler multiLineHandler = null;
         List<String> multiLineBuffer = null;
@@ -110,7 +111,8 @@ public class CommandExtractor {
             var commandMatcher = commandPattern.matcher(line);
             if (commandMatcher.matches()) {
                 if (multiLineHandler != null) {
-                    ret.add(new CommandInvocation(formatId(baseId, subId++), user, multiLineHandler, multiLineCommand, String.join("\n", multiLineBuffer)));
+                    ret.add(new CommandInvocation(formatId(baseId, subId++), user, multiLineHandler, multiLineCommand,
+                            String.join("\n", multiLineBuffer), createdAt));
                     multiLineHandler = null;
                 }
                 var command = commandMatcher.group(1).toLowerCase();
@@ -123,7 +125,8 @@ public class CommandExtractor {
                     }
                     multiLineCommand = command;
                 } else {
-                    ret.add(new CommandInvocation(formatId(baseId, subId++), user, handler, command, commandMatcher.group(2)));
+                    ret.add(new CommandInvocation(formatId(baseId, subId++), user, handler, command,
+                            commandMatcher.group(2), createdAt));
                 }
             } else {
                 if (multiLineHandler != null) {
@@ -132,7 +135,8 @@ public class CommandExtractor {
             }
         }
         if (multiLineHandler != null) {
-            ret.add(new CommandInvocation(formatId(baseId, subId), user, multiLineHandler, multiLineCommand, String.join("\n", multiLineBuffer)));
+            ret.add(new CommandInvocation(formatId(baseId, subId), user, multiLineHandler,
+                    multiLineCommand, String.join("\n", multiLineBuffer), createdAt));
         }
         return ret;
     }

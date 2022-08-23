@@ -22,6 +22,9 @@
  */
 package org.openjdk.skara.bots.mlbridge;
 
+import java.time.Duration;
+import java.time.ZonedDateTime;
+import java.util.logging.Level;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.forge.PullRequest;
@@ -87,6 +90,9 @@ public class CommentPosterWorkItem implements WorkItem {
 
             log.info("Bridging new message " + message.id() + " from " + message.author() + " to " + pr);
             BridgedComment.post(pr, message);
+            // Timestamp from email and a local date is the best we can do for latency here
+            var latency = Duration.between(message.date(), ZonedDateTime.now());
+            log.log(Level.INFO, "Time from message date to posting comment " + latency, latency);
         }
         return List.of();
     }

@@ -55,21 +55,25 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
         try {
             var seedRepo = hostedRepositoryPool.seedRepository(pr.repository(), false);
             seedRepo.fetch(pr.repository().url(), pr.headHash().hex());
-            seedRepo.push(pr.headHash(), pr.repository().url(), PreIntegrations.preIntegrateBranch(pr), true);
+            String branch = PreIntegrations.preIntegrateBranch(pr);
+            log.info("Creating new pull request pre-integration branch " + branch);
+            seedRepo.push(pr.headHash(), pr.repository().url(), branch, true);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
     private void deleteBranch(PullRequest pr) {
+        String branch = PreIntegrations.preIntegrateBranch(pr);
         var branchExists = pr.repository().branches().stream()
                          .map(HostedBranch::name)
-                         .anyMatch(name -> name.equals(PreIntegrations.preIntegrateBranch(pr)));
+                         .anyMatch(name -> name.equals(branch));
         if (!branchExists) {
-            log.info("Pull request pre-integration branch " + PreIntegrations.preIntegrateBranch(pr) + " doesn't exist on remote - ignoring");
+            log.info("Pull request pre-integration branch " + branch + " doesn't exist on remote - ignoring");
             return;
         }
-        pr.repository().deleteBranch(PreIntegrations.preIntegrateBranch(pr));
+        log.info("Deleting pull request pre-integration branch " + branch);
+        pr.repository().deleteBranch(branch);
     }
 
     @Override
@@ -85,6 +89,7 @@ public class PullRequestBranchNotifier implements Notifier, PullRequestListener 
             var retargetedDependencies = PreIntegrations.retargetDependencies(pr);
             deleteBranch(pr);
             for (var retargeted : retargetedDependencies) {
+                log.info("Posting retargeted comment on PR " + pr.id());
                 retargeted.addComment("""
                     The dependent pull request has now been integrated, and the target branch of this pull request \
                     has been updated. This means that changes from the dependent pull request can start to show up \

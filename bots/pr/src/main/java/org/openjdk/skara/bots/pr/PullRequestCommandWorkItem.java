@@ -22,9 +22,11 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import java.time.Duration;
+import java.time.ZonedDateTime;
+import java.util.logging.Level;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.*;
-import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.issuetracker.*;
 
 import java.io.*;
@@ -43,8 +45,9 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
 
     public static final String VALID_BOT_COMMAND_MARKER = "<!-- Valid self-command -->";
 
-    PullRequestCommandWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler) {
-        super(bot, prId, errorHandler);
+    PullRequestCommandWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler,
+            ZonedDateTime prUpdatedAt) {
+        super(bot, prId, errorHandler, prUpdatedAt);
     }
 
     private static class InvalidBodyCommandHandler implements CommandHandler {
@@ -71,10 +74,10 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
     static List<CommandInvocation> findAllCommands(PullRequest pr, List<Comment> comments) {
         var self = pr.repository().forge().currentUser();
         var body = PullRequestBody.parse(pr).bodyText();
-        return Stream.concat(CommandExtractor.extractCommands(body, "body", pr.author()).stream(),
+        return Stream.concat(CommandExtractor.extractCommands(body, "body", pr.author(), pr.createdAt()).stream(),
                         comments.stream()
                                 .filter(comment -> !comment.author().equals(self) || comment.body().endsWith(VALID_BOT_COMMAND_MARKER))
-                                .flatMap(c -> CommandExtractor.extractCommands(c.body(), c.id(), c.author()).stream()))
+                                .flatMap(c -> CommandExtractor.extractCommands(c.body(), c.id(), c.author(), c.createdAt()).stream()))
                 .collect(Collectors.toList());
     }
 
@@ -165,7 +168,9 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
             printer.println("` - for a list of valid commands use `/help`.");
         }
 
-        pr.addComment(writer.toString());
+        var newComment = pr.addComment(writer.toString());
+        var latency = Duration.between(command.createdAt(), newComment.createdAt());
+        log.log(Level.INFO, "Time from command to reply " + latency, latency);
     }
 
     @Override
@@ -180,7 +185,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
 
             if (!bot.isAutoLabelled(pr)) {
                 // When all commands are processed, it's time to check labels
-                return List.of(new LabelerWorkItem(bot, prId, errorHandler));
+                return List.of(new LabelerWorkItem(bot, prId, errorHandler, prUpdatedAt));
             } else {
                 return List.of();
             }
@@ -200,7 +205,7 @@ public class PullRequestCommandWorkItem extends PullRequestWorkItem {
         if (!pr.labelNames().contains("integrated") || pr.findIntegratedCommitHash().isEmpty()) {
             processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), command, comments, false);
             // Run another check to reflect potential changes from commands
-            return List.of(new CheckWorkItem(bot, prId, errorHandler));
+            return List.of(new CheckWorkItem(bot, prId, errorHandler, prUpdatedAt));
         } else {
             processCommand(pr, census, scratchPath.resolve("pr").resolve("command"), command, comments, true);
             return List.of();

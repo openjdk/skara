@@ -124,6 +124,7 @@ public class MailingListArchiveReaderBot implements Bot {
             return;
         }
 
+        log.info("Found " + bridgeCandidates.size() + " candidates for comments");
         var workItem = new CommentPosterWorkItem(pr, bridgeCandidates, e -> invalidate(bridgeCandidates));
         commentQueue.add(workItem);
     }

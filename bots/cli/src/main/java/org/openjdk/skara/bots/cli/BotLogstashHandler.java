@@ -113,6 +113,15 @@ public class BotLogstashHandler extends StreamHandler {
             query.put("logger_name", record.getLoggerName());
         }
 
+        var parameters = record.getParameters();
+        if (parameters != null) {
+            for (var parameter : parameters) {
+                if (parameter instanceof Duration duration) {
+                    query.put("duration", duration.toMillis());
+                }
+            }
+        }
+
         if (record.getThrown() != null) {
             var writer = new StringWriter();
             var printer = new PrintWriter(writer);

@@ -22,8 +22,8 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import java.time.ZonedDateTime;
 import org.openjdk.skara.host.HostUser;
-import org.openjdk.skara.issuetracker.Comment;
 
 import java.util.Optional;
 
@@ -33,13 +33,15 @@ class CommandInvocation {
     private final CommandHandler handler;
     private final String name;
     private final String args;
+    private final ZonedDateTime createdAt;
 
-    CommandInvocation(String id, HostUser user, CommandHandler handler, String name, String args) {
+    CommandInvocation(String id, HostUser user, CommandHandler handler, String name, String args, ZonedDateTime createdAt) {
         this.id = id;
         this.user = user;
         this.handler = handler;
         this.name = name;
         this.args = args != null ? args.strip() : "";
+        this.createdAt = createdAt;
     }
 
     String id() {
@@ -60,5 +62,9 @@ class CommandInvocation {
 
     String args() {
         return args;
+    }
+
+    ZonedDateTime createdAt() {
+        return createdAt;
     }
 }

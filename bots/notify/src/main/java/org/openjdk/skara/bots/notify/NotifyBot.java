@@ -33,7 +33,7 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 public class NotifyBot implements Bot, Emitter {
-    private final Logger log = Logger.getLogger("org.openjdk.skara.bots");;
+    private final Logger log = Logger.getLogger("org.openjdk.skara.bots");
     private final HostedRepository repository;
     private final Path storagePath;
     private final Pattern branches;

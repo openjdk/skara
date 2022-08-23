@@ -67,7 +67,7 @@ public class CommitCommandWorkItem implements WorkItem {
     private Optional<CommandInvocation> nextCommand(List<CommitComment> allComments) {
         var self = bot.repo().forge().currentUser();
         var command = CommandExtractor.extractCommands(commitComment.body(),
-                                                       commitComment.id(), commitComment.author());
+                commitComment.id(), commitComment.author(), commitComment.createdAt());
         if (command.isEmpty()) {
             return Optional.empty();
         }

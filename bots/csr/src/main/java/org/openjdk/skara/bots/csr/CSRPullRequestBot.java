@@ -80,8 +80,7 @@ class CSRPullRequestBot implements Bot {
                     continue;
                 }
             }
-            var pullRequestWorkItem = new PullRequestWorkItem(repo, pr.id(), project);
-            log.fine("Scheduling: " + pullRequestWorkItem);
+            var pullRequestWorkItem = new PullRequestWorkItem(repo, pr.id(), project, pr.updatedAt());
             items.add(pullRequestWorkItem);
         }
         prsUpdatedAt = newPrsUpdatedAt;
