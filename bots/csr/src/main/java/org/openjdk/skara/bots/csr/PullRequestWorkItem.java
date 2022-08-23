@@ -58,14 +58,14 @@ class PullRequestWorkItem implements WorkItem {
      * which would be either a PR or a CSR Issue. Used for tracking reaction legacy
      * of the bot through logging.
      */
-    private final ZonedDateTime updatedAtTrigger;
+    private final ZonedDateTime triggerUpdatedAt;
 
     public PullRequestWorkItem(HostedRepository repository, String prId, IssueProject project,
-            ZonedDateTime updatedAtTrigger) {
+            ZonedDateTime triggerUpdatedAt) {
         this.repository = repository;
         this.prId = prId;
         this.project = project;
-        this.updatedAtTrigger = updatedAtTrigger;
+        this.triggerUpdatedAt = triggerUpdatedAt;
     }
 
     @Override
@@ -239,7 +239,7 @@ class PullRequestWorkItem implements WorkItem {
     private void logLatency() {
         if (log.isLoggable(Level.INFO)) {
             var updatedPr = repository.pullRequest(prId);
-            var latency = Duration.between(updatedAtTrigger, updatedPr.updatedAt());
+            var latency = Duration.between(triggerUpdatedAt, updatedPr.updatedAt());
             log.log(Level.INFO, "Time from trigger to CSR state updated in PR " + latency, latency);
         }
     }
