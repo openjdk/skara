@@ -26,6 +26,7 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.*;
 import org.openjdk.skara.issuetracker.IssueProject;
 import org.openjdk.skara.network.URIBuilder;
+import org.openjdk.skara.vcs.Branch;
 import org.openjdk.skara.vcs.Diff;
 import org.openjdk.skara.vcs.Hash;
 
@@ -242,17 +243,17 @@ public class TestPullRequest extends TestIssue implements PullRequest {
     @Override
     public Diff diff() {
         try {
-            var targetHash = targetRepository.branchHash(targetRef());
             var targetLocalRepository = targetRepository.localRepository();
             var sourceLocalRepository = sourceRepository.localRepository();
-            if (targetLocalRepository.root().equals(sourceLocalRepository.root())) {
-                // same target and source repo, must contain both commits
-                return targetLocalRepository.diff(targetHash, headHash());
-            } else {
-                var uri = URI.create("file://" + sourceLocalRepository.root().toString());
-                var fetchHead = targetLocalRepository.fetch(uri, sourceRef);
-                return targetLocalRepository.diff(targetHash, fetchHead);
+            var sourceHash = headHash();
+            if (!targetLocalRepository.root().equals(sourceLocalRepository.root())) {
+                // The target and source repo are not same, fetch the source branch
+                var sourceUri = URI.create("file://" + sourceLocalRepository.root().toString());
+                sourceHash = targetLocalRepository.fetch(sourceUri, sourceRef);
             }
+            // Find the base hash of the source and target branches.
+            var baseHash = targetLocalRepository.mergeBase(sourceHash, targetRepository.branchHash(targetRef()));
+            return targetLocalRepository.diff(baseHash, sourceHash);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
