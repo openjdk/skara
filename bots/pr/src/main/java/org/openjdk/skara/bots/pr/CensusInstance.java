@@ -81,6 +81,10 @@ class CensusInstance extends LimitedCensusInstance {
                 new CensusInstance(l.census, l.configuration, project(l.configuration, l.census), l.namespace));
     }
 
+    /**
+     * The LimitedCensusInstance does not have a Project. Use this when the project
+     * may be invalid or unavailable to avoid errors.
+     */
     static Optional<LimitedCensusInstance> createLimited(HostedRepositoryPool hostedRepositoryPool,
             HostedRepository censusRepo, String censusRef, Path folder, HostedRepository repository, String ref,
             HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef) {
