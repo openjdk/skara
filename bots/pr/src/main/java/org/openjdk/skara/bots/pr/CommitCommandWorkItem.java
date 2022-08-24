@@ -130,7 +130,7 @@ public class CommitCommandWorkItem implements WorkItem {
         if (nextCommand.isEmpty()) {
             log.info("No new commit comments found, stopping further processing");
         } else {
-            var census = CensusInstance.createLimited(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(),
+            var census = LimitedCensusInstance.createLimitedCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(),
                                                scratchPath.resolve("census"), bot.repo(), commit.hash().hex(),
                                                bot.confOverrideRepository().orElse(null),
                                                bot.confOverrideName(),
