@@ -42,7 +42,8 @@ interface CommandHandler {
         handle(bot, pr, censusInstance, scratchPath, command, allComments, reply);
     }
 
-    default void handle(PullRequestBot bot, HostedCommit commit, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+    default void handle(PullRequestBot bot, HostedCommit commit, LimitedCensusInstance censusInstance, Path scratchPath,
+            CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
     }
 
     default boolean multiLine() {

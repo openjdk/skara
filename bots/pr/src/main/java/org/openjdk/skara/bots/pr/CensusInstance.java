@@ -33,17 +33,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Optional;
 
-class CensusInstance {
-    private final Census census;
-    private final JCheckConfiguration configuration;
+class CensusInstance extends LimitedCensusInstance {
     private final Project project;
-    private final Namespace namespace;
 
     private CensusInstance(Census census, JCheckConfiguration configuration, Project project, Namespace namespace) {
-        this.census = census;
-        this.configuration = configuration;
+        super(census, configuration, namespace);
         this.project = project;
-        this.namespace = namespace;
     }
 
     private static Project project(JCheckConfiguration configuration, Census census) {
@@ -80,6 +75,47 @@ class CensusInstance {
     static Optional<CensusInstance> create(HostedRepositoryPool hostedRepositoryPool,
                                  HostedRepository censusRepo, String censusRef, Path folder, HostedRepository repository, String ref,
                                  HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef) {
+        var limitedCensusInstance = createLimited(hostedRepositoryPool, censusRepo,
+                censusRef, folder, repository, ref, confOverrideRepo, confOverrideName, confOverrideRef);
+        return limitedCensusInstance.map(l ->
+                new CensusInstance(l.census, l.configuration, project(l.configuration, l.census), l.namespace));
+    }
+
+    static Optional<LimitedCensusInstance> createLimited(HostedRepositoryPool hostedRepositoryPool,
+            HostedRepository censusRepo, String censusRef, Path folder, HostedRepository repository, String ref,
+            HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef) {
+        Path repoFolder = getRepoFolder(hostedRepositoryPool, censusRepo, censusRef, folder);
+
+        try {
+            Optional<JCheckConfiguration> configuration = jCheckConfiguration(hostedRepositoryPool,
+                    repository, ref, confOverrideRepo, confOverrideName, confOverrideRef);
+            if (configuration.isEmpty()) {
+                return Optional.empty();
+            }
+            var census = Census.parse(repoFolder);
+            var namespace = namespace(census, repository.namespace());
+            return Optional.of(new LimitedCensusInstance(census, configuration.get(), namespace));
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot parse census at " + repoFolder, e);
+        }
+    }
+
+    private static Optional<JCheckConfiguration> jCheckConfiguration(HostedRepositoryPool hostedRepositoryPool,
+            HostedRepository repository, String ref, HostedRepository confOverrideRepo, String confOverrideName,
+            String confOverrideRef) throws IOException {
+        Optional<JCheckConfiguration> configuration;
+        if (confOverrideRepo == null) {
+            configuration = configuration(hostedRepositoryPool, repository, ".jcheck/conf", ref);
+        } else {
+            configuration = configuration(hostedRepositoryPool,
+                    confOverrideRepo,
+                    confOverrideName,
+                    confOverrideRef);
+        }
+        return configuration;
+    }
+
+    private static Path getRepoFolder(HostedRepositoryPool hostedRepositoryPool, HostedRepository censusRepo, String censusRef, Path folder) {
         var repoName = censusRepo.url().getHost() + "/" + censusRepo.name();
         var repoFolder = folder.resolve(URLEncoder.encode(repoName, StandardCharsets.UTF_8));
         try {
@@ -87,48 +123,11 @@ class CensusInstance {
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot materialize census to " + repoFolder, e);
         }
-
-        try {
-            Optional<JCheckConfiguration> configuration;
-            if (confOverrideRepo == null) {
-                configuration = configuration(hostedRepositoryPool, repository, ".jcheck/conf", ref);
-            } else {
-                configuration = configuration(hostedRepositoryPool,
-                                              confOverrideRepo,
-                                              confOverrideName,
-                                              confOverrideRef);
-            }
-            if (configuration.isEmpty()) {
-                return Optional.empty();
-            }
-            var census = Census.parse(repoFolder);
-            var project = project(configuration.get(), census);
-            var namespace = namespace(census, repository.namespace());
-            return Optional.of(new CensusInstance(census, configuration.get(), project, namespace));
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot parse census at " + repoFolder, e);
-        }
-    }
-
-    Census census() {
-        return census;
-    }
-
-    JCheckConfiguration configuration() {
-        return configuration;
+        return repoFolder;
     }
 
     Project project() {
         return project;
-    }
-
-    Namespace namespace() {
-        return namespace;
-    }
-
-    Optional<Contributor> contributor(HostUser hostUser) {
-        var contributor = namespace.get(hostUser.id());
-        return Optional.ofNullable(contributor);
     }
 
     boolean isAuthor(HostUser hostUser) {
@@ -156,5 +155,35 @@ class CensusInstance {
             return false;
         }
         return project.isReviewer(contributor.username(), version);
+    }
+}
+
+class LimitedCensusInstance {
+
+    protected final Census census;
+    protected final JCheckConfiguration configuration;
+    protected final Namespace namespace;
+
+    LimitedCensusInstance(Census census, JCheckConfiguration configuration, Namespace namespace) {
+        this.census = census;
+        this.configuration = configuration;
+        this.namespace = namespace;
+    }
+
+    Optional<Contributor> contributor(HostUser hostUser) {
+        var contributor = namespace.get(hostUser.id());
+        return Optional.ofNullable(contributor);
+    }
+
+    Census census() {
+        return census;
+    }
+
+    JCheckConfiguration configuration() {
+        return configuration;
+    }
+
+    Namespace namespace() {
+        return namespace;
     }
 }
