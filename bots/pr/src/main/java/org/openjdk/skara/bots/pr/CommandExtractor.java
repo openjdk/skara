@@ -78,7 +78,7 @@ public class CommandExtractor {
         }
 
         @Override
-        public void handle(PullRequestBot bot, HostedCommit hash, CensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
+        public void handle(PullRequestBot bot, HostedCommit hash, LimitedCensusInstance censusInstance, Path scratchPath, CommandInvocation command, List<Comment> allComments, PrintWriter reply) {
             reply.println("Available commands:");
             Stream.concat(
                     commandHandlers.entrySet().stream()

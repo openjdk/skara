@@ -86,7 +86,8 @@ public class CommitCommandWorkItem implements WorkItem {
         }
     }
 
-    private void processCommand(Path scratchPath, HostedCommit commit, CensusInstance censusInstance, CommandInvocation command, List<CommitComment> allComments) {
+    private void processCommand(Path scratchPath, HostedCommit commit, LimitedCensusInstance censusInstance,
+            CommandInvocation command, List<CommitComment> allComments) {
         var writer = new StringWriter();
         var printer = new PrintWriter(writer);
 
@@ -129,7 +130,7 @@ public class CommitCommandWorkItem implements WorkItem {
         if (nextCommand.isEmpty()) {
             log.info("No new commit comments found, stopping further processing");
         } else {
-            var census = CensusInstance.create(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(),
+            var census = LimitedCensusInstance.createLimitedCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(),
                                                scratchPath.resolve("census"), bot.repo(), commit.hash().hex(),
                                                bot.confOverrideRepository().orElse(null),
                                                bot.confOverrideName(),

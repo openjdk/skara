@@ -27,23 +27,15 @@ import org.openjdk.skara.forge.*;
 import org.openjdk.skara.host.HostUser;
 import org.openjdk.skara.jcheck.JCheckConfiguration;
 
-import java.io.*;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Optional;
 
-class CensusInstance {
-    private final Census census;
-    private final JCheckConfiguration configuration;
+class CensusInstance extends LimitedCensusInstance {
     private final Project project;
-    private final Namespace namespace;
 
     private CensusInstance(Census census, JCheckConfiguration configuration, Project project, Namespace namespace) {
-        this.census = census;
-        this.configuration = configuration;
+        super(census, configuration, namespace);
         this.project = project;
-        this.namespace = namespace;
     }
 
     private static Project project(JCheckConfiguration configuration, Census census) {
@@ -56,79 +48,24 @@ class CensusInstance {
         return project;
     }
 
-    private static Namespace namespace(Census census, String hostNamespace) {
-        //var namespace = census.namespace(pr.repository().getNamespace());
-        var namespace = census.namespace(hostNamespace);
-        if (namespace == null) {
-            throw new RuntimeException("Namespace not found in census: " + hostNamespace);
-        }
-
-        return namespace;
-    }
-
-    private static Optional<JCheckConfiguration> configuration(HostedRepositoryPool hostedRepositoryPool, HostedRepository remoteRepo, String name, String ref) throws IOException {
-        return hostedRepositoryPool.lines(remoteRepo, Path.of(name), ref).map(JCheckConfiguration::parse);
-    }
-
-    static Optional<CensusInstance> create(HostedRepositoryPool hostedRepositoryPool,
+    static Optional<CensusInstance> createCensusInstance(HostedRepositoryPool hostedRepositoryPool,
                                  HostedRepository censusRepo, String censusRef, Path folder, PullRequest pr,
                                  HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef) {
-        return create(hostedRepositoryPool, censusRepo, censusRef, folder, pr.repository(), pr.targetRef(),
+        return createCensusInstance(hostedRepositoryPool, censusRepo, censusRef, folder, pr.repository(), pr.targetRef(),
                       confOverrideRepo, confOverrideName, confOverrideRef);
     }
 
-    static Optional<CensusInstance> create(HostedRepositoryPool hostedRepositoryPool,
+    static Optional<CensusInstance> createCensusInstance(HostedRepositoryPool hostedRepositoryPool,
                                  HostedRepository censusRepo, String censusRef, Path folder, HostedRepository repository, String ref,
                                  HostedRepository confOverrideRepo, String confOverrideName, String confOverrideRef) {
-        var repoName = censusRepo.url().getHost() + "/" + censusRepo.name();
-        var repoFolder = folder.resolve(URLEncoder.encode(repoName, StandardCharsets.UTF_8));
-        try {
-            hostedRepositoryPool.checkoutAllowStale(censusRepo, censusRef, repoFolder);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot materialize census to " + repoFolder, e);
-        }
-
-        try {
-            Optional<JCheckConfiguration> configuration;
-            if (confOverrideRepo == null) {
-                configuration = configuration(hostedRepositoryPool, repository, ".jcheck/conf", ref);
-            } else {
-                configuration = configuration(hostedRepositoryPool,
-                                              confOverrideRepo,
-                                              confOverrideName,
-                                              confOverrideRef);
-            }
-            if (configuration.isEmpty()) {
-                return Optional.empty();
-            }
-            var census = Census.parse(repoFolder);
-            var project = project(configuration.get(), census);
-            var namespace = namespace(census, repository.namespace());
-            return Optional.of(new CensusInstance(census, configuration.get(), project, namespace));
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot parse census at " + repoFolder, e);
-        }
-    }
-
-    Census census() {
-        return census;
-    }
-
-    JCheckConfiguration configuration() {
-        return configuration;
+        var limitedCensusInstance = LimitedCensusInstance.createLimitedCensusInstance(hostedRepositoryPool, censusRepo,
+                censusRef, folder, repository, ref, confOverrideRepo, confOverrideName, confOverrideRef);
+        return limitedCensusInstance.map(l ->
+                new CensusInstance(l.census, l.configuration, project(l.configuration, l.census), l.namespace));
     }
 
     Project project() {
         return project;
-    }
-
-    Namespace namespace() {
-        return namespace;
-    }
-
-    Optional<Contributor> contributor(HostUser hostUser) {
-        var contributor = namespace.get(hostUser.id());
-        return Optional.ofNullable(contributor);
     }
 
     boolean isAuthor(HostUser hostUser) {
@@ -158,3 +95,4 @@ class CensusInstance {
         return project.isReviewer(contributor.username(), version);
     }
 }
+

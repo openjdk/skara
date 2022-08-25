@@ -223,7 +223,7 @@ class CheckWorkItem extends PullRequestWorkItem {
         var seedPath = bot.seedStorage().orElse(scratchPath.resolve("seeds"));
         var hostedRepositoryPool = new HostedRepositoryPool(seedPath);
 
-        var census = CensusInstance.create(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
+        var census = CensusInstance.createCensusInstance(hostedRepositoryPool, bot.censusRepo(), bot.censusRef(), scratchPath.resolve("census"), pr,
                                            bot.confOverrideRepository().orElse(null), bot.confOverrideName(), bot.confOverrideRef()).orElseThrow();
         var comments = pr.comments();
         var allReviews = pr.reviews();
