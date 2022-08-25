@@ -41,7 +41,6 @@ public interface Forge extends Host {
      *         does not exist on the Forge.
      */
     Optional<HostedRepository> repository(String name);
-    boolean supportsReviewBody();
     Optional<HostedCommit> search(Hash hash);
 
     static Forge from(String name, URI uri, Credential credential, JSONObject configuration) {

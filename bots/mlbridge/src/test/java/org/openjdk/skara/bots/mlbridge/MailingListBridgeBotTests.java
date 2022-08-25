@@ -2330,9 +2330,7 @@ class MailingListBridgeBotTests {
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Changes requested by "));
             assertEquals(1, archiveContainsCount(archiveFolder.path(), " by integrationreviewer1"));
-            if (author.forge().supportsReviewBody()) {
-                assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 1"));
-            }
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 1"));
 
             // Then approve it
             reviewedPr.addReview(Review.Verdict.APPROVED, "Reason 2");
@@ -2343,9 +2341,7 @@ class MailingListBridgeBotTests {
             // The archive should contain another note
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertEquals(1, archiveContainsCount(archiveFolder.path(), "Marked as reviewed by "));
-            if (author.forge().supportsReviewBody()) {
-                assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 2"));
-            }
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 2"));
             assertEquals(2, archiveContainsCount(archiveFolder.path(), "Re: RFR:"));
 
             // Yet another change
@@ -2357,9 +2353,7 @@ class MailingListBridgeBotTests {
             // The archive should contain another note
             Repository.materialize(archiveFolder.path(), archive.url(), "master");
             assertEquals(2, archiveContainsCount(archiveFolder.path(), "Changes requested by "));
-            if (author.forge().supportsReviewBody()) {
-                assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 3"));
-            }
+            assertEquals(1, archiveContainsCount(archiveFolder.path(), "Reason 3"));
         }
     }
 
