@@ -371,11 +371,6 @@ public class GitHubHost implements Forge {
     }
 
     @Override
-    public boolean supportsReviewBody() {
-        return true;
-    }
-
-    @Override
     public boolean isMemberOf(String groupId, HostUser user) {
         long gid = 0L;
         try {

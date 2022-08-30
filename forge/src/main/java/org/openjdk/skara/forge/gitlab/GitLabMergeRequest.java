@@ -129,44 +129,8 @@ public class GitLabMergeRequest implements PullRequest {
                                    }
                                    var id = obj.get("id").asInt();
                                    return new Review(createdAt, reviewer, verdict, hash, id, "");
-                               });
-
-        var awardApprovals = request.get("award_emoji").execute().stream()
-                                    .map(JSONValue::asObject)
-                                    .filter(obj -> obj.get("name").asString().equals("thumbsup") ||
-                                            obj.get("name").asString().equals("thumbsdown") ||
-                                            obj.get("name").asString().equals("question"))
-                                    .map(obj -> {
-                                        var reviewer = repository.forge().user(obj.get("user").get("username").asString());
-                                        Review.Verdict verdict;
-                                        switch (obj.get("name").asString()) {
-                                            case "thumbsup":
-                                                verdict = Review.Verdict.APPROVED;
-                                                break;
-                                            case "thumbsdown":
-                                                verdict = Review.Verdict.DISAPPROVED;
-                                                break;
-                                            default:
-                                                verdict = Review.Verdict.NONE;
-                                                break;
-                                        }
-
-                                        var createdAt = ZonedDateTime.parse(obj.get("updated_at").asString());
-
-                                        // Find the latest commit that isn't created after our review
-                                        var hash = commits.get(0).hash;
-                                        for (var cd : commits) {
-                                            if (createdAt.isAfter(cd.date)) {
-                                                hash = cd.hash;
-                                            }
-                                        }
-                                        var id = obj.get("id").asInt();
-                                        return new Review(createdAt, reviewer.get(), verdict, hash, id, null);
-                                    });
-
-        return Stream.concat(approvals, awardApprovals)
-                     .sorted(Comparator.comparing(Review::createdAt))
-                     .collect(Collectors.toList());
+                               }).toList();
+        return approvals;
     }
 
     @Override

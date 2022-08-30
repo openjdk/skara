@@ -63,11 +63,6 @@ class InMemoryHost implements Forge {
     }
 
     @Override
-    public boolean supportsReviewBody() {
-        return false;
-    }
-
-    @Override
     public boolean isMemberOf(String groupId, HostUser user) {
         return groups.get(groupId).contains(user);
     }

@@ -160,11 +160,6 @@ public class TestHost implements Forge, IssueTracker {
     }
 
     @Override
-    public boolean supportsReviewBody() {
-        return true;
-    }
-
-    @Override
     public boolean isMemberOf(String groupId, HostUser user) {
         return false;
     }

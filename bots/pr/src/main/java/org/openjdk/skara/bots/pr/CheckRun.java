@@ -747,21 +747,6 @@ class CheckRun {
         };
     }
 
-    private void updateReviewedMessages(List<Comment> comments, List<Review> reviews) {
-        var reviewTracker = new ReviewTracker(comments, reviews);
-
-        for (var added : reviewTracker.newReviews().entrySet()) {
-            var body = added.getValue() + "\n" +
-                    " ⚠️ Marking a PR as reviewed using the emoji buttons is deprecated and will not be supported in the near future. " +
-                    "Please use the `Approve` button instead!\n\n" +
-                    "This PR has been reviewed by " +
-                    formatReviewer(added.getKey().reviewer()) + " - " +
-                    verdictToString(added.getKey().verdict()) + ".";
-            log.info("Posting review message for " + added.getKey().id());
-            pr.addComment(body);
-        }
-    }
-
     private Optional<Comment> findComment(List<Comment> comments, String marker) {
         var self = pr.repository().forge().currentUser();
         return comments.stream()
@@ -1089,11 +1074,6 @@ class CheckRun {
                                                 additionalProgresses, integrationBlockers, isCleanBackport);
             var updatedBody = updateStatusMessage(statusMessage);
             var title = pr.title();
-
-            // Post / update approval messages (only needed if the review itself can't contain a body)
-            if (!pr.repository().forge().supportsReviewBody()) {
-                updateReviewedMessages(comments, allReviews);
-            }
 
             var amendedHash = checkablePullRequest.amendManualReviewers(localHash, censusInstance.namespace(), original.map(Commit::hash).orElse(null));
             var commit = localRepo.lookup(amendedHash).orElseThrow();
