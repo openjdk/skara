@@ -233,7 +233,7 @@ public class BotRunner {
                     item.handleRuntimeException(e);
                 } finally {
                     var duration = Duration.between(start, Instant.now());
-                    log.log(Level.FINE, "Item " + item + " is now done " + duration,
+                    log.log(Level.FINE, "Item " + item + " is now done after " + duration,
                             new Object[]{TaskPhases.END, duration});
                 }
                 if (followUpItems != null) {

@@ -356,6 +356,11 @@ class CheckWorkItem extends PullRequestWorkItem {
 
                 var expiresAt = CheckRun.execute(this, pr, localRepo, comments, allReviews, activeReviews, labels, census, bot.ignoreStaleReviews(), bot.integrators());
                 if (log.isLoggable(Level.INFO)) {
+                    // Log latency from the original updatedAt of the PR when this WorkItem
+                    // was triggered to when it was just updated by the CheckRun.execute above.
+                    // Both timestamps are taken from the PR data so they originate from the
+                    // same clock (on the forge). Guard this with isLoggable since we need to
+                    // re-fetch the PR data from the forge.
                     var updatedPr = bot.repo().pullRequest(prId);
                     logLatency("Time from PR updated to CheckRun done ", updatedPr.updatedAt(), log);
                 }
