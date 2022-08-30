@@ -23,7 +23,11 @@
 package org.openjdk.skara.bots.pr;
 
 import java.nio.file.Path;
+import java.time.Duration;
+import java.time.ZonedDateTime;
 import java.util.Collection;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.PullRequest;
 
@@ -33,12 +37,23 @@ abstract class PullRequestWorkItem implements WorkItem {
     final Consumer<RuntimeException> errorHandler;
     final PullRequestBot bot;
     final String prId;
+    /**
+     * The updatedAt timestamp of the PR that triggered this WorkItem at the
+     * time it was triggered. Used for tracking reaction latency of the bot
+     * through logging. This is the best estimated value, which is the last
+     * updatedAt value when the bot finds the PR. This value is propagated
+     * through chains of WorkItems, as the complete chain is considered to have
+     * been triggered by the same PR update.
+     */
+    final ZonedDateTime prUpdatedAt;
     PullRequest pr;
 
-    PullRequestWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler) {
+    PullRequestWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler,
+            ZonedDateTime prUpdatedAt) {
         this.bot = bot;
         this.prId = prId;
         this.errorHandler = errorHandler;
+        this.prUpdatedAt = prUpdatedAt;
     }
 
     @Override
@@ -76,5 +91,17 @@ abstract class PullRequestWorkItem implements WorkItem {
     @Override
     public String botName() {
         return bot.name();
+    }
+
+    /**
+     * Logs a latency message. Meant to be used right before returning from prRun(),
+     * if it makes sense to log a message at that point.
+     * @param message Message to be logged, will get latency string added to it.
+     * @param endTime The end time to use to calculate latency
+     * @param log The logger to log to
+     */
+    protected void logLatency(String message, ZonedDateTime endTime, Logger log) {
+        var latency = Duration.between(prUpdatedAt, endTime);
+        log.log(Level.INFO, message + latency, latency);
     }
 }

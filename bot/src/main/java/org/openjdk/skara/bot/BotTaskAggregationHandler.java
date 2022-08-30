@@ -56,10 +56,7 @@ public abstract class BotTaskAggregationHandler extends StreamHandler {
         if (record.getParameters() == null) {
             return false;
         }
-        if (record.getParameters().length != 1) {
-            return false;
-        }
-        return marker.equals(record.getParameters()[0]);
+        return Arrays.asList(record.getParameters()).contains(marker);
     }
 
     @Override

@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.pr;
 
+import java.time.ZonedDateTime;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.*;
 import org.openjdk.skara.issuetracker.Comment;
@@ -36,8 +37,9 @@ import java.util.stream.Collectors;
 public class LabelerWorkItem extends PullRequestWorkItem {
     private static final String initialLabelMessage = "<!-- PullRequestBot initial label help comment -->";
 
-    LabelerWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler) {
-        super(bot, prId, errorHandler);
+    LabelerWorkItem(PullRequestBot bot, String prId, Consumer<RuntimeException> errorHandler,
+            ZonedDateTime prUpdatedAt) {
+        super(bot, prId, errorHandler, prUpdatedAt);
     }
 
     @Override

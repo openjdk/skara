@@ -193,6 +193,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
             // If prOnly is false, this is instead done when processing commits
             if (prOnly && resolve) {
                 if (issue.state() == Issue.State.OPEN) {
+                    log.info("Resolving issue " + issue.id());
                     issue.setState(Issue.State.RESOLVED);
                     if (issue.assignees().isEmpty()) {
                         var username = findIssueUsername(commit, scratchPath);
@@ -222,9 +223,11 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                 linkBuilder.iconUrl(reviewIcon);
             }
 
+            log.info("Adding review link to issue " + realIssue.get().id());
             realIssue.get().addLink(linkBuilder.build());
         }
 
+        log.info("Adding review link comment to issue " + realIssue.get().id());
         PullRequestUtils.postPullRequestLinkComment(realIssue.get(), pr);
     }
 
@@ -236,6 +239,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
             return;
         }
 
+        log.info("Removing review links from issue " + realIssue.get().id());
         var link = Link.create(pr.webUrl(), "").build();
         realIssue.get().removeLink(link);
 
@@ -286,8 +290,11 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                             var fixVersion = JdkVersion.parse(requestedVersion).orElseThrow();
                             var existing = Backports.findIssue(issue, fixVersion);
                             if (existing.isEmpty()) {
+                                log.info("Creating new backport for " + issue.id() + " with fixVersion " + requestedVersion);
                                 issue = jbsBackport.createBackport(issue, requestedVersion, username.orElse(null));
                             } else {
+                                log.info("Found existing backport for " + issue.id() + " and requested fixVersion "
+                                        + requestedVersion + " " + existing.get().id());
                                 issue = existing.get();
                             }
                         }
@@ -305,11 +312,13 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                     issue.addComment(commitNotification);
                 }
                 if (issue.state() == Issue.State.OPEN) {
+                    log.info("Resolving issue " + issue.id());
                     issue.setState(Issue.State.RESOLVED);
                     if (issue.assignees().isEmpty()) {
                         if (username.isPresent()) {
                             var assignee = issueProject.issueTracker().user(username.get());
                             if (assignee.isPresent()) {
+                                log.info("Setting assignee for issue " + issue.id() + " to " + assignee.get());
                                 issue.setAssignees(List.of(assignee.get()));
                             }
                         }
@@ -322,11 +331,13 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                             // Check if the build name should be updated
                             var oldBuild = issue.properties().getOrDefault(RESOLVED_IN_BUILD, JSON.of());
                             if (BuildCompare.shouldReplace(buildName, oldBuild.asString())) {
+                                log.info("Setting resolved in build for " + issue.id() + " to " + buildName);
                                 issue.setProperty(RESOLVED_IN_BUILD, JSON.of(buildName));
                             } else {
                                 log.info("Not replacing build " + oldBuild.asString() + " with " + buildName + " for issue " + issue.id());
                             }
                         }
+                        log.info("Setting fixVersion for " + issue.id() + " to " + requestedVersion);
                         issue.setProperty("fixVersions", JSON.of(requestedVersion));
                     }
                 }
@@ -414,6 +425,7 @@ class IssueNotifier implements Notifier, PullRequestListener, RepositoryListener
                         var oldBuild = issue.properties().getOrDefault(RESOLVED_IN_BUILD, JSON.of());
                         var newBuild = "b" + String.format("%02d", tag.buildNum().get());
                         if (BuildCompare.shouldReplace(newBuild, oldBuild.asString())) {
+                            log.info("Setting resolved in build for " + issue.id() + " to " + newBuild);
                             issue.setProperty(RESOLVED_IN_BUILD, JSON.of(newBuild));
                         } else {
                             log.info("Not replacing build " + oldBuild.asString() + " with " + newBuild + " for issue " + issue.id());

@@ -83,9 +83,10 @@ class IssueWorkItem implements WorkItem {
                         .flatMap(Optional::stream)
                         .findAny())
                 .flatMap(Optional::stream)
-                .map(pr -> new PullRequestWorkItem(pr.repository(), pr.id(), csrIssue.project()))
+                // This will mix time stamps from the IssueTracker and the Forge hosting PRs, but it's the
+                // best we can do.
+                .map(pr -> new PullRequestWorkItem(pr.repository(), pr.id(), csrIssue.project(), csrIssue.updatedAt()))
                 .forEach(ret::add);
-        ret.forEach(item -> log.fine("Scheduling: " + item.toString() + " due to update in " + csrIssue.id()));
         return ret;
     }
 

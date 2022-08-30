@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.network;
 
+import java.util.logging.Level;
 import org.openjdk.skara.metrics.Counter;
 import org.openjdk.skara.metrics.Gauge;
 
@@ -200,9 +201,12 @@ enum RestRequestCache {
             }
             var finalRequest = requestBuilder.build();
             HttpResponse<String> response;
-            try (var ignored = new LockWithTimeout(authLock)){
+            try (var ignored = new LockWithTimeout(authLock)) {
                 // Perform requests using a certain account serially
+                var before = Instant.now();
                 response = client.send(finalRequest, HttpResponse.BodyHandlers.ofString());
+                var duration = Duration.between(before, Instant.now());
+                log.log(Level.FINE, "Calling GET " + finalRequest.uri().toString() + " took " + duration, duration);
             }
             if (cached != null && response.statusCode() == 304) {
                 cacheHitsCounter.inc();
@@ -231,7 +235,11 @@ enum RestRequestCache {
                 }
             }
             try (var ignored = new LockWithTimeout(authLock)) {
-                return client.send(finalRequest, HttpResponse.BodyHandlers.ofString());
+                var before = Instant.now();
+                var response = client.send(finalRequest, HttpResponse.BodyHandlers.ofString());
+                var duration = Duration.between(before, Instant.now());
+                log.log(Level.FINE, "Calling " + finalRequest.method() + " " + finalRequest.uri().toString() + " took " + duration, duration);
+                return response;
             } finally {
                 // Invalidate any related GET caches
                 var postUriString = unauthenticatedRequest.uri().toString();

@@ -85,6 +85,7 @@ class CommitCommentNotifier implements Notifier, PullRequestListener {
         if (existingComments.stream().anyMatch(c -> c.body().equals(commentBody))) {
             log.warning("Commit comment for " + hash + " already posted");
         } else {
+            log.info("Posting commit comment on " + hash);
             repository.addCommitComment(hash, commentBody);
         }
     }

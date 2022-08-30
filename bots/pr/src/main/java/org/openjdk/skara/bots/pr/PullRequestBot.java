@@ -169,10 +169,10 @@ class PullRequestBot implements Bot {
                     continue;
                 }
                 if (pr.state() == Issue.State.OPEN) {
-                    ret.add(new CheckWorkItem(this, pr.id(), e -> updateCache.invalidate(pr)));
+                    ret.add(new CheckWorkItem(this, pr.id(), e -> updateCache.invalidate(pr), pr.updatedAt()));
                 } else {
                     // Closed PR's do not need to be checked
-                    ret.add(new PullRequestCommandWorkItem(this, pr.id(), e -> updateCache.invalidate(pr)));
+                    ret.add(new PullRequestCommandWorkItem(this, pr.id(), e -> updateCache.invalidate(pr), pr.updatedAt()));
                 }
             }
         }

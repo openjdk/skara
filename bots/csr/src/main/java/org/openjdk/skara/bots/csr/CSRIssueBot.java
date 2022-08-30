@@ -102,7 +102,6 @@ public class CSRIssueBot implements Bot {
                 }
             }
             var issueWorkItem = new IssueWorkItem(this, issue);
-            log.fine("Scheduling: " + issueWorkItem);
             ret.add(issueWorkItem);
         }
         issueUpdatedAt = newIssuesUpdatedAt;

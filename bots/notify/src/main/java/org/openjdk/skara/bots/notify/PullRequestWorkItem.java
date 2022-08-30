@@ -22,6 +22,10 @@
  */
 package org.openjdk.skara.bots.notify;
 
+import java.time.Duration;
+import java.time.ZonedDateTime;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.PullRequest;
 import org.openjdk.skara.json.*;
@@ -36,6 +40,7 @@ import java.util.regex.*;
 import java.util.stream.*;
 
 public class PullRequestWorkItem implements WorkItem {
+    private final Logger log = Logger.getLogger("org.openjdk.skara.bots.notify");
     private final PullRequest pr;
     private final StorageBuilder<PullRequestState> prStateStorageBuilder;
     private final List<PullRequestListener> listeners;
@@ -245,6 +250,10 @@ public class PullRequestWorkItem implements WorkItem {
         }
 
         storage.put(state);
+        // This is mixing timestamps from the forge and the local host, which may not produce
+        // very accurate latencies, but it's the best we can do for this bot.
+        var latency = Duration.between(pr.updatedAt(), ZonedDateTime.now());
+        log.log(Level.INFO, "Time from PR updated to notifications done " + latency, latency);
         return List.of();
     }
 
