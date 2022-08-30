@@ -209,6 +209,9 @@ class MailingListNotifier implements Notifier, RepositoryListener {
                          .build();
 
         try {
+            log.info("Sending email for commits " + String.join(" ",
+                    commits.stream().map(Commit::hash).map(Hash::toString).toList())
+                    + " on branch " + branch + " to " + recipient);
             server.post(email);
         } catch (RuntimeException e) {
             throw new NonRetriableException(e);
@@ -278,6 +281,9 @@ class MailingListNotifier implements Notifier, RepositoryListener {
             email.author(commitToAuthor(taggedCommit));
         }
 
+        log.info("Sending email for commits " + String.join(" ",
+                commits.stream().map(Commit::hash).map(Hash::toString).toList())
+                + " for tag " + tag + " to " + recipient);
         try {
             server.post(email.build());
         } catch (RuntimeException e) {
@@ -311,6 +317,8 @@ class MailingListNotifier implements Notifier, RepositoryListener {
             email.author(commitToAuthor(commit));
         }
 
+        log.info("Sending email for commit " + commit
+                + " for tag " + tag + " to " + recipient);
         try {
             server.post(email.build());
         } catch (RuntimeException e) {
@@ -369,6 +377,7 @@ class MailingListNotifier implements Notifier, RepositoryListener {
                          .headers(headers)
                          .headers(commitHeaders(repository, commits))
                          .build();
+        log.info("Sending email for new branch " + branch + " to " + recipient);
         try {
             server.post(email);
         } catch (RuntimeException e) {

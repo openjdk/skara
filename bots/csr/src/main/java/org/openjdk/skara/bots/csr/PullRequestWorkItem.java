@@ -23,9 +23,12 @@
 package org.openjdk.skara.bots.csr;
 
 import java.nio.file.Path;
+import java.time.Duration;
+import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.forge.HostedRepository;
@@ -50,11 +53,19 @@ class PullRequestWorkItem implements WorkItem {
     private final HostedRepository repository;
     private final String prId;
     private final IssueProject project;
+    /**
+     * The updatedAt timestamp of the external entity that triggered this WorkItem,
+     * which would be either a PR or a CSR Issue. Used for tracking reaction legacy
+     * of the bot through logging.
+     */
+    private final ZonedDateTime triggerUpdatedAt;
 
-    public PullRequestWorkItem(HostedRepository repository, String prId, IssueProject project) {
+    public PullRequestWorkItem(HostedRepository repository, String prId, IssueProject project,
+            ZonedDateTime triggerUpdatedAt) {
         this.repository = repository;
         this.prId = prId;
         this.project = project;
+        this.triggerUpdatedAt = triggerUpdatedAt;
     }
 
     @Override
@@ -168,6 +179,7 @@ class PullRequestWorkItem implements WorkItem {
             } else {
                 log.info("CSR issue resolution is null for " + describe(pr) + ", not removing the CSR label");
             }
+            logLatency();
             return List.of();
         }
         var name = resolution.get("name");
@@ -178,6 +190,7 @@ class PullRequestWorkItem implements WorkItem {
             } else {
                 log.info("CSR issue resolution name is null for " + describe(pr) + ", not removing the CSR label");
             }
+            logLatency();
             return List.of();
         }
 
@@ -188,6 +201,7 @@ class PullRequestWorkItem implements WorkItem {
             } else {
                 log.info("CSR issue state is not closed for " + describe(pr) + ", not removing the CSR label");
             }
+            logLatency();
             return List.of();
         }
 
@@ -204,6 +218,7 @@ class PullRequestWorkItem implements WorkItem {
             } else {
                 log.info("CSR issue resolution is not 'Approved' for " + describe(pr) + ", not removing the CSR label");
             }
+            logLatency();
             return List.of();
         }
 
@@ -217,7 +232,16 @@ class PullRequestWorkItem implements WorkItem {
             log.info("CSR closed and approved for " + describe(pr) + ", adding the csr update marker");
             addUpdateMarker(pr);
         }
+        logLatency();
         return List.of();
+    }
+
+    private void logLatency() {
+        if (log.isLoggable(Level.INFO)) {
+            var updatedPr = repository.pullRequest(prId);
+            var latency = Duration.between(triggerUpdatedAt, updatedPr.updatedAt());
+            log.log(Level.INFO, "Time from trigger to CSR state updated in PR " + latency, latency);
+        }
     }
 
     @Override

@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Execution implements AutoCloseable {
@@ -46,6 +47,7 @@ public class Execution implements AutoCloseable {
     private Result result;
     private Throwable exception;
     private java.lang.Process process;
+    private Instant startTime;
 
     public static class CheckedResult {
 
@@ -129,15 +131,18 @@ public class Execution implements AutoCloseable {
 
     private void startProcess() throws IOException {
         cmd = String.join(" ", processBuilder.command());
-        log.fine("Executing '" + cmd + "'");
+        log.finer("Executing '" + cmd + "'");
 
         prepareRedirects();
 
+        startTime = Instant.now();
         process = processBuilder.start();
     }
 
     private void waitForProcess() throws IOException, InterruptedException {
         var terminated = this.process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);
+        var duration = Duration.between(startTime, Instant.now());
+        log.log(Level.FINE, "Executing '" + String.join(" ", processBuilder.command()) + " took " + duration, duration);
         if (!terminated) {
             log.warning("Command '" + cmd + "' didn't finish in " + timeout + ", attempting to terminate...");
             this.process.destroyForcibly().waitFor();

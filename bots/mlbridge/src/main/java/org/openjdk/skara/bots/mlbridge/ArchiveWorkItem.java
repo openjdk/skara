@@ -22,6 +22,7 @@
  */
 package org.openjdk.skara.bots.mlbridge;
 
+import java.util.logging.Level;
 import org.openjdk.skara.bot.WorkItem;
 import org.openjdk.skara.email.*;
 import org.openjdk.skara.forge.*;
@@ -403,6 +404,10 @@ class ArchiveWorkItem implements WorkItem {
                                          .build();
                 listServer.post(filteredEmail);
             }
+            // Mixing forge time and local time for the latency is not ideal, but the best
+            // we can do here.
+            var latency = Duration.between(pr.updatedAt(), ZonedDateTime.now());
+            log.log(Level.INFO, "Time from PR updated to emails sent " + latency, latency);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

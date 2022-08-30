@@ -378,6 +378,7 @@ class CheckRun {
         var isClean = DiffComparator.areFuzzyEqual(backportDiff, prDiff);
         var hasCleanLabel = labels.contains("clean");
         if (isClean && !hasCleanLabel) {
+            log.info("Adding label clean");
             pr.addLabel("clean");
         }
 
@@ -389,6 +390,7 @@ class CheckRun {
               .anyMatch(c -> c.body().contains("This backport pull request is now marked as clean"));
 
         if (!isCleanLabelManuallyAdded && !isClean && hasCleanLabel) {
+            log.info("Removing label clean");
             pr.removeLabel("clean");
         }
 
@@ -732,6 +734,7 @@ class CheckRun {
         var newBody = originalBody + "\n\n" + progressMarker + "\n" + message;
 
         // TODO? Retrieve the body again here to lower the chance of concurrent updates
+        log.info("Updating PR body");
         pr.setBody(newBody);
         return newBody;
     }
@@ -754,6 +757,7 @@ class CheckRun {
                     "This PR has been reviewed by " +
                     formatReviewer(added.getKey().reviewer()) + " - " +
                     verdictToString(added.getKey().verdict()) + ".";
+            log.info("Posting review message for " + added.getKey().id());
             pr.addComment(body);
         }
     }
@@ -939,12 +943,15 @@ class CheckRun {
             addFullNameWarningComment();
             var message = getMergeReadyComment(commitMessage, reviews);
             if (existing.isEmpty()) {
+                log.info("Adding merge ready comment");
                 pr.addComment(message);
             } else {
+                log.info("Updating merge ready comment");
                 pr.updateComment(existing.get().id(), message);
             }
-        } else {
-            existing.ifPresent(comment -> pr.updateComment(comment.id(), getMergeNoLongerReadyComment()));
+        } else if (existing.isPresent()) {
+            log.info("Updating merge ready comment as no longer ready");
+            pr.updateComment(existing.get().id(), getMergeNoLongerReadyComment());
         }
     }
 
@@ -976,6 +983,7 @@ class CheckRun {
             "Then proceed to create a new pull request with `NEW-BRANCH-NAME` as the source branch and " +
             "close this one.\n" +
             sourceBranchWarningMarker;
+        log.info("Adding source branch warning comment");
         pr.addComment(message);
     }
 
@@ -997,6 +1005,7 @@ class CheckRun {
                 "git push\n" +
                 "```\n" +
                 outdatedHelpMarker;
+        log.info("Adding merge conflict comment");
         pr.addComment(message);
     }
 
@@ -1015,6 +1024,7 @@ class CheckRun {
                       " the title of this pull request to `Merge <project>:<branch>` where `<project>` is the name of another project in the" +
                       " [OpenJDK organization](https://github.com/openjdk) (for example `Merge jdk:" + defaultBranch + "`).\n" +
                       mergeCommitWarningMarker;
+        log.info("Adding merge commit warning comment");
         pr.addComment(message);
     }
 
@@ -1155,11 +1165,13 @@ class CheckRun {
         // Synchronize the wanted set of labels
         for (var newLabel : newLabels) {
             if (!labels.contains(newLabel)) {
+                log.info("Adding label " + newLabel);
                 pr.addLabel(newLabel);
             }
         }
         for (var oldLabel : labels) {
             if (!newLabels.contains(oldLabel)) {
+                log.info("Removing label " + oldLabel);
                 pr.removeLabel(oldLabel);
             }
         }
