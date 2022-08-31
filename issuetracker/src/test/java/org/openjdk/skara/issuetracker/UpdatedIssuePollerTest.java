@@ -132,7 +132,7 @@ public class UpdatedIssuePollerTest {
             assertEquals(1, list.stream().filter(issue -> issue.id().equals(csrIssue2.id())).count());
 
             // No issue updates.
-            list = poller.getUpdatedIssues(IssueProject::issues);
+            list = poller.getUpdatedIssues(IssueProject::csrIssues);
             assertEquals(0, list.size());
         }
     }
