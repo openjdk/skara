@@ -33,7 +33,7 @@ import org.openjdk.skara.vcs.openjdk.Issue;
 public class RequestApprovalCommand implements CommandHandler {
     // The tag to re-run the CheckWorkItem of the PRBot.
     private static final String REQUEST_APPROVAL_MARKER = "<!-- request-approval: 'update' -->";
-    
+
     private void showHelp(PullRequest pr, PrintWriter writer) {
         writer.println(String.format("""
                 usage: `/request-approval <comment-text>`
